@@ -1,5 +1,5 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
+using Dapper;
 using Npgsql;
 
 namespace AgentEval.Server.Db;
@@ -19,6 +19,8 @@ internal static class Migrations
     // Any constant will do; it only has to be the same in every process that migrates.
     private const long MigrationLock = 0x6167_6576; // "agev"
 
+    private sealed record AppliedMigration(string Name, string Checksum);
+
     public static string Checksum(string file) => Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(file)));
 
     /// <summary>
@@ -26,11 +28,6 @@ internal static class Migrations
     /// Everything runs in one transaction under an advisory lock, so two server processes starting at once
     /// neither apply a migration twice nor see one half applied.
     /// </summary>
-    [SuppressMessage(
-        "Security",
-        "CA2100:Review SQL queries for security vulnerabilities",
-        Justification = "The SQL is the migration files of this repository, never input."
-    )]
     public static async Task<IReadOnlyList<string>> MigrateAsync(
         NpgsqlConnection connection,
         string directory,
@@ -42,22 +39,19 @@ internal static class Migrations
             .Order(StringComparer.Ordinal)
             .ToDictionary(file => Path.GetFileName(file), StringComparer.Ordinal);
 
-        await using var transaction = await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
-        await ExecuteAsync("SELECT pg_advisory_xact_lock(@lock)", ("lock", MigrationLock)).ConfigureAwait(false);
+        await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+        await ExecuteAsync("SELECT pg_advisory_xact_lock(@key)", new { key = MigrationLock });
         await ExecuteAsync(
-                "CREATE TABLE IF NOT EXISTS schema_migrations (name text PRIMARY KEY, checksum text NOT NULL, applied_at timestamptz NOT NULL DEFAULT now())"
+            "CREATE TABLE IF NOT EXISTS schema_migrations (name text PRIMARY KEY, checksum text NOT NULL, applied_at timestamptz NOT NULL DEFAULT now())"
+        );
+        var rows = await connection.QueryAsync<AppliedMigration>(
+            new CommandDefinition(
+                "SELECT name, checksum FROM schema_migrations",
+                transaction: transaction,
+                cancellationToken: cancellationToken
             )
-            .ConfigureAwait(false);
-
-        var applied = new Dictionary<string, string>(StringComparer.Ordinal);
-        await using (var select = new NpgsqlCommand("SELECT name, checksum FROM schema_migrations", connection, transaction))
-        await using (var reader = await select.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false))
-        {
-            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
-            {
-                applied[reader.GetString(0)] = reader.GetString(1);
-            }
-        }
+        );
+        var applied = rows.ToDictionary(row => row.Name, row => row.Checksum, StringComparer.Ordinal);
 
         foreach (var (name, recorded) in applied)
         {
@@ -76,25 +70,18 @@ internal static class Migrations
         var added = files.Where(entry => !applied.ContainsKey(entry.Key)).ToList();
         foreach (var (name, file) in added)
         {
-            await ExecuteAsync(await File.ReadAllTextAsync(file, cancellationToken).ConfigureAwait(false)).ConfigureAwait(false);
+            await ExecuteAsync(await File.ReadAllTextAsync(file, cancellationToken));
             await ExecuteAsync(
-                    "INSERT INTO schema_migrations (name, checksum) VALUES (@name, @checksum)",
-                    ("name", name),
-                    ("checksum", Checksum(file))
-                )
-                .ConfigureAwait(false);
+                "INSERT INTO schema_migrations (name, checksum) VALUES (@name, @checksum)",
+                new { name, checksum = Checksum(file) }
+            );
         }
-        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+        await transaction.CommitAsync(cancellationToken);
         return [.. added.Select(entry => entry.Key)];
 
-        async Task ExecuteAsync(string sql, params (string Name, object Value)[] parameters)
+        Task<int> ExecuteAsync(string sql, object? parameters = null)
         {
-            await using var command = new NpgsqlCommand(sql, connection, transaction);
-            foreach (var (parameter, value) in parameters)
-            {
-                command.Parameters.AddWithValue(parameter, value);
-            }
-            await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            return connection.ExecuteAsync(new CommandDefinition(sql, parameters, transaction, cancellationToken: cancellationToken));
         }
     }
 }

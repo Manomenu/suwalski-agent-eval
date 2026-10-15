@@ -76,8 +76,8 @@ instead of a model.
 
 ## Stack
 
-- **Server:** .NET 10, ASP.NET Core minimal APIs, Npgsql with plain SQL and numbered
-  migrations, OpenAPI document the web app is typed from; Microsoft Agent Framework for the
+- **Server:** .NET 10, ASP.NET Core minimal APIs, PostgreSQL through Npgsql and Dapper (SQL
+  written by hand, numbered migrations), OpenAPI document the web app is typed from; Microsoft Agent Framework for the
   agent under test and the judge (from step 3).
 - **Web:** React 19, Mantine, Vite, TypeScript strict.
 - **Around them:** PostgreSQL 17, a container per part, compose for the whole stack on a
@@ -91,6 +91,14 @@ layout, rules and gates, translated from Python to .NET.
 .NET SDK 10, `pnpm` (via corepack), `just`, `podman` with `podman compose` (or `docker` with
 `docker compose`); for the full gate also `helm`, `shellcheck` and `gitleaks`. After cloning:
 `just sync` (dependencies, the C# formatter and the git hooks).
+
+On Fedora (the owner's development machine):
+
+```sh
+sudo dnf install dotnet-sdk-10.0 nodejs podman podman-compose just helm ShellCheck
+corepack enable --install-directory ~/.local/bin   # pnpm, in the version package.json pins
+# gitleaks: the binary from https://github.com/gitleaks/gitleaks/releases, the version CI pins (8.30.1)
+```
 
 ## Everyday commands
 
