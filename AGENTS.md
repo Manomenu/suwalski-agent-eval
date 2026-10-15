@@ -85,6 +85,7 @@ app keeps its tests beside its code, so those folders would only split the .NET 
 | `justfile`, `.just/` | commands for humans: the main recipes and the `just <module>` families (section 10) |
 | `scripts/.internal/` | everything the gate, CI and `just` run (section 10) |
 | `.github/workflows/ci.yml` | CI: the gate, the browser tests, then the images |
+| `docs/claude-artifacts/README.md` | links to the design documents kept as Claude artifacts, each with what it holds in a sentence or two. A new artifact about this project gets its row in the same change |
 | `.artifacts/` | everything generated (e2e reports, renders); outside git and the images |
 | `.editorconfig`, `.csharpierrc.json`, `.config/dotnet-tools.json`, `.gitattributes` | the shared standards: UTF-8 and LF everywhere, the C# analyzer settings, the C# formatter and its pinned version, binaries never diffed as text, lockfiles and `openapi.d.ts` marked generated. A new binary or generated file type gets its line in `.gitattributes` |
 
