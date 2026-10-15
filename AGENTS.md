@@ -35,7 +35,8 @@ is registered in suwgit with:
 | `--b2b` | `me` |
 | `--project` | `AgenticAI` |
 
-- Commit when a change is finished and the gate (`./scripts/.internal/check.sh`) is green.
+- When a change is finished and the gate (`./scripts/.internal/check.sh`) is green, **push it
+  right away** with `suwgit push` (it commits and pushes) — not a bare `suwgit commit`.
 - Everything that rewrites or discards history stays the owner's: no amend, reset, rebase,
   force-push or deleting branches.
 - Without suwgit on the machine (or the repository not registered), do not fall back to plain
