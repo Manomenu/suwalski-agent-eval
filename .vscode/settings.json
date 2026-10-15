@@ -15,7 +15,7 @@
     "explorer.fileNesting.enabled": true,
     "explorer.fileNesting.expand": false,
     "explorer.fileNesting.patterns": {
-        "README.md": "AGENTS.md, CLAUDE.md, TODO.md, justfile, .editorconfig, .gitignore, .gitattributes, .dockerignore, compose.yaml",
+        "README.md": "AGENTS.md, CLAUDE.md, TODO.md, LICENSE, justfile, .editorconfig, .gitignore, .gitattributes, .dockerignore, compose.yaml",
         "AgentEval.slnx": "global.json, Directory.Build.props, Directory.Packages.props, .csharpierrc.json",
         "*.csproj": "packages.lock.json",
         "appsettings.json": "appsettings.*.json",
