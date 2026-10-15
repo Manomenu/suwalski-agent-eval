@@ -303,7 +303,9 @@ A change to one feature should touch one place on each side.
   that feature and give it a folder.
 - **Logic out of components.** Anything with rules is a plain `.ts` module with a
   `.test.ts` beside it; components and hooks only wire it to React.
-- **Files:** C# — one top-level type per file, named after it. Web — a component per
+- **Files:** C# — one top-level type per file, named after it, in the namespace its folder
+  path spells (`AgentEval.Server/Database/Pool.cs` → `AgentEval.Server.Database`); the build
+  fails otherwise (IDE0130, `.editorconfig`). Web — a component per
   `PascalCase.tsx`, hooks `useSomething.ts`, other modules `camelCase.ts`. Shared e2e steps,
   once there are some, live in `AgentEval.Web/e2e/helpers.ts`.
 - **State:** component state and props. No global store and no data-fetching library until
