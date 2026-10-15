@@ -17,12 +17,12 @@ default:
 # run — development servers on the host
 # ---------------------------------------------------------------------------------------
 
-# HTTP API on :6220 (OpenAPI document at /openapi/v1.json), rebuilt on every change — needs `just db up`
+# HTTP API on :6230 (OpenAPI document at /openapi/v1.json), rebuilt on every change — needs `just db up`
 [group('run')]
 server *args:
     DOTNET_WATCH_RESTART_ON_RUDE_EDIT=1 dotnet watch --project agenteval_server/AgentEval.Server run --no-launch-profile {{ args }}
 
-# Web UI on :3220 — proxies /api to the server, so run `just server` alongside
+# Web UI on :3230 — proxies /api to the server, so run `just server` alongside
 [group('run')]
 web *args:
     cd agenteval_web && { [ -d node_modules ] || pnpm install; } && pnpm dev {{ args }}
@@ -40,22 +40,22 @@ api-types:
 # infra — the containerised stack: the same images the cluster runs, wired the same way
 # ---------------------------------------------------------------------------------------
 
-# Build and start the stack on http://localhost:8092
+# Build and start the stack on http://localhost:8093
 [group('infra')]
 up:
-    podman compose up -d --build
-    @echo "web   http://localhost:8092"
+    docker compose up -d --build
+    @echo "web   http://localhost:8093"
 
 # Rebuild the images without the layer cache, then start (slow, on purpose)
 [group('infra')]
 rebuild:
-    podman compose build --no-cache
+    docker compose build --no-cache
     @just up
 
 # Stop the stack (images and the database volume stay)
 [group('infra')]
 down:
-    podman compose down --remove-orphans
+    docker compose down --remove-orphans
 
 # What is running, on which ports, and where to open it
 [group('infra')]
@@ -65,7 +65,7 @@ status:
 # Follow the logs of one service, or of all of them
 [group('infra')]
 logs service="":
-    podman compose logs -f {{ service }}
+    docker compose logs -f {{ service }}
 
 # ---------------------------------------------------------------------------------------
 # maintenance — quality gate and housekeeping

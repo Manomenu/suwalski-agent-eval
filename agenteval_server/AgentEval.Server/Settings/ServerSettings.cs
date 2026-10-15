@@ -20,7 +20,7 @@ namespace AgentEval.Server.Settings;
 internal sealed record ServerSettings(string Host, int Port, IReadOnlyList<string> CorsOrigins, string DatabaseUrl)
 {
     public static ServerSettings Defaults { get; } =
-        new("0.0.0.0", 6220, ["http://localhost:3220"], "postgresql://agenteval:agenteval@localhost:5453/agenteval");
+        new("0.0.0.0", 6230, ["http://localhost:3230"], "postgresql://agenteval:agenteval@localhost:5463/agenteval");
 
     /// <summary>The settings from configuration keys named like the environment variables (<c>DATABASE_URL</c>).</summary>
     public static ServerSettings From(IConfiguration config) =>

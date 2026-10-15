@@ -19,7 +19,7 @@ fi
 # commands, not one: CREATE DATABASE cannot run inside the transaction a single -c would be.
 recreate=(-c "DROP DATABASE IF EXISTS agenteval_e2e WITH (FORCE)" -c "CREATE DATABASE agenteval_e2e")
 if [ -n "${CI:-}" ]; then
-    psql -q "postgresql://agenteval:agenteval@localhost:5453/postgres" "${recreate[@]}"
+    psql -q "postgresql://agenteval:agenteval@localhost:5463/postgres" "${recreate[@]}"
 else
     "$ROOT/scripts/.internal/db.sh" psql -q -d postgres "${recreate[@]}"
 fi

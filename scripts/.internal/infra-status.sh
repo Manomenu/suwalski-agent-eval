@@ -15,7 +15,7 @@ fi
 # The service list has to come from the file, not from `compose ps`: ps only reports
 # containers that exist, so a service that never started would silently vanish from the
 # report instead of showing up as down.
-SERVICES="$(podman compose config --services 2>/dev/null | sort)"
+SERVICES="$(docker compose config --services 2>/dev/null | sort)"
 if [ -z "$SERVICES" ]; then
     echo "no services defined in compose.yaml" >&2
     exit 1
@@ -23,7 +23,7 @@ fi
 
 # compose prints one JSON object per line; some versions print a single array instead.
 # Normalise both into one array so the queries below don't have to care which it was.
-RUNNING="$(podman compose ps --format json 2>/dev/null \
+RUNNING="$(docker compose ps --format json 2>/dev/null \
     | jq -s 'if length == 1 and (.[0] | type) == "array" then .[0] else . end')"
 
 printf '%-10s %-20s %-20s %s\n' "SERVICE" "STATE" "PORTS" "OPEN"

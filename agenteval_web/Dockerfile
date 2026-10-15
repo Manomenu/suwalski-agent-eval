@@ -1,7 +1,7 @@
 # Build context is the SOLUTION ROOT, matching the server image so both build from one
 # place:
 #
-#   podman build -f agenteval_web/Dockerfile -t operat-web .
+#   docker build -f agenteval_web/Dockerfile -t agenteval-web .
 
 FROM docker.io/library/node:24-alpine AS builder
 
@@ -32,7 +32,7 @@ ENV NGINX_ENVSUBST_FILTER="^(API_UPSTREAM|NGINX_LOCAL_RESOLVERS)$"
 # which nginx needs to look the API's name up again after the server is recreated.
 ENV NGINX_ENTRYPOINT_LOCAL_RESOLVERS=1
 # Matches the service name in compose; the cluster overrides it with the Service address.
-ENV API_UPSTREAM="http://server:6220"
+ENV API_UPSTREAM="http://server:6230"
 
 COPY --from=builder /app/dist /usr/share/nginx/html
 COPY agenteval_web/nginx.conf.template /etc/nginx/templates/default.conf.template

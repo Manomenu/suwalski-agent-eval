@@ -36,7 +36,7 @@ jobs:
           POSTGRES_PASSWORD: agenteval
           POSTGRES_DB: agenteval
         ports:
-          - 5453:5432
+          - 5463:5432
         options: >-
           --health-cmd "pg_isready -h 127.0.0.1 -U agenteval"
           --health-interval 5s
@@ -96,7 +96,7 @@ jobs:
           POSTGRES_PASSWORD: agenteval
           POSTGRES_DB: agenteval
         ports:
-          - 5453:5432
+          - 5463:5432
         options: >-
           --health-cmd "pg_isready -h 127.0.0.1 -U agenteval"
           --health-interval 5s

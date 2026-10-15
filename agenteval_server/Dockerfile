@@ -1,7 +1,7 @@
 # Build context is the SOLUTION ROOT, not this directory: global.json, Directory.Build.props
 # and Directory.Packages.props (the package versions) live up there.
 #
-#   podman build -f agenteval_server/Dockerfile -t agenteval-server .
+#   docker build -f agenteval_server/Dockerfile -t agenteval-server .
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0.402-noble AS builder
 
@@ -33,6 +33,6 @@ ENV AGENTEVAL_SOLUTION_ROOT=/app
 # The image's own non-root user (uid 1654).
 USER app
 WORKDIR /app
-EXPOSE 6220
+EXPOSE 6230
 
 ENTRYPOINT ["dotnet", "AgentEval.Server.dll"]

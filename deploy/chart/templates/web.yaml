@@ -29,7 +29,7 @@ spec:
             - containerPort: {{ .Values.web.port }}
           env:
             # Nazwa usługi, nie adres — dokładnie to, po co istnieje ${API_UPSTREAM}
-            # w nginx.conf.template. W compose wystarcza http://server:6220; tu pełna nazwa,
+            # w nginx.conf.template. W compose wystarcza http://server:6230; tu pełna nazwa,
             # bo nginx sam ją rozwiązuje co kilka sekund i nie zna domen wyszukiwania
             # z /etc/resolv.conf, więc krótka nazwa usługi by nie zadziałała.
             - name: API_UPSTREAM
