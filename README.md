@@ -137,3 +137,7 @@ just secrets backup  # copy the local .env files into Bitwarden (restore on a ne
 ```
 
 How the repo is organised and what every change must bring along: [AGENTS.md](AGENTS.md).
+
+## License
+
+MIT, © 2026 Piotr Gugnowski — see [LICENSE](LICENSE).
