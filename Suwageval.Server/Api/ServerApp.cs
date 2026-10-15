@@ -1,5 +1,8 @@
 using System.Reflection;
+using Suwageval.Server.Agents;
+using Suwageval.Server.Checks;
 using Suwageval.Server.Database;
+using Suwageval.Server.Scenarios;
 
 namespace Suwageval.Server.Api;
 
@@ -20,6 +23,7 @@ internal static class ServerApp
     {
         var builder = WebApplication.CreateBuilder(args);
         builder.Services.AddDatabase(builder.Configuration, migrateOnStart: !WritingOpenApiDocument);
+        builder.Services.AddSingleton<AgentStore>().AddSingleton<ScenarioStore>().AddSingleton<CheckStore>();
         builder.Services.AddOpenApi();
 
         var app = builder.Build();
