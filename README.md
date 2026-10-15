@@ -72,13 +72,11 @@ is a chance to get a field wrong, and the API's shape would be described twice.
 
 ### Open questions
 
+Decided so far (the agent under test over HTTP, tags, non-determinism, who calls the API):
+`TODO.md`, "Decided for the slices to come". Still open:
+
 - **The scenario format:** a JSON schema of our own, an import from existing traces
   (OpenTelemetry GenAI conventions, Agent Framework's serialized threads), or both?
-- **The agent under test:** built in-process with Microsoft Agent Framework from the scenario's
-  configuration, or an external system called over HTTP?
-- **Tool results during a run:** stubbed from the scenario, or does the run stop at the first
-  tool call (enough for "was the right tool called")?
-- **Non-determinism:** one sample per scenario, or several with a pass rate?
 - **The model providers** for the agent and the judge, and the cost limits of a run.
 
 ### Roadmap (a sketch, one feature at a time)
