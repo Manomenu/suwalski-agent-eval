@@ -3,4 +3,11 @@
     <Project Path="Suwageval.Server/Suwageval.Server.csproj" />
     <Project Path="Suwageval.Server.Tests/Suwageval.Server.Tests.csproj" />
   </Folder>
+  <Folder Name="/Suwageval.Cli/">
+    <Project Path="Suwageval.Cli/Suwageval.Cli.csproj" />
+    <Project Path="Suwageval.Cli.Tests/Suwageval.Cli.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Suwageval.Contracts/">
+    <Project Path="Suwageval.Contracts/Suwageval.Contracts.csproj" />
+  </Folder>
 </Solution>

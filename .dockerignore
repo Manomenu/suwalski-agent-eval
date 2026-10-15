@@ -7,6 +7,10 @@
 .artifacts
 docs/
 deploy/
+# The CLI and its tests are not in any image, and the contracts only once the server references them.
+Suwageval.Cli/
+Suwageval.Cli.Tests/
+Suwageval.Contracts/
 
 **/node_modules/
 **/dist/

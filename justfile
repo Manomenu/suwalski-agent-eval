@@ -36,6 +36,18 @@ web *args:
 api-types:
     @./scripts/.internal/api-types.sh
 
+# Run the suwageval CLI from source, e.g. `just cli validate ../my-agent/suwageval`
+[group('dev')]
+cli *args:
+    dotnet run --project Suwageval.Cli -- {{ args }}
+
+# Pack the CLI and install (or update) it as the global `suwageval` command
+[group('dev')]
+cli-install:
+    dotnet pack Suwageval.Cli -c Release -o .artifacts/nupkg
+    dotnet tool uninstall --global Suwageval.Cli || true
+    dotnet tool install --global --add-source .artifacts/nupkg Suwageval.Cli
+
 # ---------------------------------------------------------------------------------------
 # infra — the containerised stack: the same images the cluster runs, wired the same way
 # ---------------------------------------------------------------------------------------
