@@ -51,6 +51,25 @@ Per test: pass/fail and why. Per scenario: all its tests. Per run of a suite: th
 configuration and model, the judge's model and prompt version, the totals — and a comparison
 with an earlier run, so a regression after a prompt or model change is visible at once.
 
+### Two front doors: the web and an agent
+
+The same API has two users: a person in the browser and an agent — Claude Code first. In
+Claude Code one should be able to say "build a scenario for version 13 of support-bot from
+this conversation, with a check that it calls `refund_order`", "run the regression tag on the
+new version", "why did scenario X fail" — and the agent does it through agenteval, not around
+it.
+
+What that takes:
+
+| Piece | What it is | Why |
+| --- | --- | --- |
+| **MCP server inside agenteval** | an `/mcp` endpoint of the same ASP.NET Core server (the official C# SDK, `ModelContextProtocol.AspNetCore`); its tools sit in the slices beside their endpoints (`Scenarios/ScenarioTools.cs` next to `ScenarioEndpoints.cs`) and call the same stores | typed tools with schemas the agent cannot get wrong, one source of truth with the HTTP API, usable from any MCP client, not only Claude Code |
+| **Claude Code plugin in this repo** | like suwgit's: `.claude-plugin/marketplace.json` + `claude-plugin/` with `.mcp.json` (the server's URL), a skill and a few slash commands | the skill carries what tools cannot: how to turn a conversation into a scenario, which check type fits which question, the workflow from the "Przygotowanie" flow; the commands are shortcuts (`/agenteval-scenario`, `/agenteval-run`) |
+| **Access from outside the laptop** | on the cluster the app sits behind Cloudflare Access (AGENTS.md, section 8); the MCP path needs a service token or its own policy | decided with the first remote use; on a laptop `http://localhost:6230/mcp` needs nothing |
+
+Not a REST-only skill (the agent writing `curl` with hand-made JSON): it works, but every call
+is a chance to get a field wrong, and the API's shape would be described twice.
+
 ### Open questions
 
 - **The scenario format:** a JSON schema of our own, an import from existing traces
@@ -69,6 +88,8 @@ with an earlier run, so a regression after a prompt or model change is visible a
 3. **Runs** — the agent under test through Microsoft Agent Framework produces the answer.
 4. **Judge** — LLM-as-judge tests, their verdicts stored with the run.
 5. **Results** — run reports and the comparison between runs on the web.
+6. **Agent front door** — the MCP endpoint over the slices that exist by then, and the
+   Claude Code plugin (skill + commands) that drives it.
 
 Microsoft Agent Framework enters the repository with step 3, as the first code that uses it
 (AGENTS.md, section 0) — together with its live test and the recorded answers the gate uses
