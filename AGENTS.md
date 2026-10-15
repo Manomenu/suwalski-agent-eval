@@ -286,6 +286,15 @@ A change to one feature should touch one place on each side.
   `Api/ServerApp.cs` calls), `ScenarioStore.cs` (the SQL), `Scenario.cs` (the records the API
   sends and receives); a single concern stays one file. Types are `internal` (the analyzers
   insist); the tests see them through `InternalsVisibleTo`.
+- **One operation, two front doors: HTTP and MCP.** The API is used by the web and by agents
+  (Claude Code through the MCP endpoint, README "Two front doors"). An operation's logic lives
+  once, in the slice (`ScenarioOperations.cs`, or the store when it is only a query), and
+  returns a record or a domain error. Two thin registrations call it: `ScenarioEndpoints.cs`
+  maps the result to HTTP (status codes, Problem Details), `ScenarioTools.cs` to an MCP tool
+  (`[McpServerTool]`, a description written for a model, errors as tool errors). No layer that
+  turns every endpoint into a tool by itself: not every endpoint is a good tool, and a tool's
+  description is not an endpoint's. A helper that registers both comes when the second slice
+  shows the same lines twice.
 - **Queries: SQL by hand, Dapper maps it.** A store writes plain SQL and lets Dapper map the
   rows onto its row records (`connection.QueryAsync<ScenarioRow>(sql, new { suiteId })`).
   Parameters always as `@name`, never concatenated into the text. No ORM (EF Core, linq2db)
