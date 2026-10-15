@@ -1,10 +1,18 @@
 {
     // C# Dev Kit brings the C# extension (Roslyn: navigation, find references, analyzers) and the
     // .NET runtime it runs on; works the same on Linux. CSharpier formats on save (.csharpierrc.json).
+    // YAML: compose, the chart, CI and the scenario files agents keep (docs/scenario-format.md).
+    // ShellCheck shows in the editor what the gate's shellcheck step fails on. EditorConfig applies
+    // .editorconfig to the files no formatter owns. Containers: Dockerfiles and compose.yaml.
     "recommendations": [
         "ms-dotnettools.csdevkit",
         "csharpier.csharpier-vscode",
         "esbenp.prettier-vscode",
-        "dbaeumer.vscode-eslint"
+        "dbaeumer.vscode-eslint",
+        "redhat.vscode-yaml",
+        "nefrob.vscode-just-syntax",
+        "timonwong.shellcheck",
+        "editorconfig.editorconfig",
+        "ms-azuretools.vscode-containers"
     ]
 }
