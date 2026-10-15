@@ -1,3 +1,10 @@
 {
-    "recommendations": ["ms-dotnettools.csdevkit", "csharpier.csharpier-vscode", "esbenp.prettier-vscode", "dbaeumer.vscode-eslint"]
+    // C# Dev Kit brings the C# extension (Roslyn: navigation, find references, analyzers) and the
+    // .NET runtime it runs on; works the same on Linux. CSharpier formats on save (.csharpierrc.json).
+    "recommendations": [
+        "ms-dotnettools.csdevkit",
+        "csharpier.csharpier-vscode",
+        "esbenp.prettier-vscode",
+        "dbaeumer.vscode-eslint"
+    ]
 }

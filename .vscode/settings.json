@@ -24,6 +24,12 @@
         "*.tsx": "${capture}.ts, ${capture}.*.ts, ${capture}.*.tsx"
     },
     "dotnet.defaultSolution": "AgentEval.slnx",
+    // The Problems panel shows what the gate fails on (analyzers, nullable) for the whole
+    // solution, not only for the files that happen to be open.
+    "dotnet.backgroundAnalysis.analyzerDiagnosticsScope": "fullSolution",
+    "dotnet.backgroundAnalysis.compilerDiagnosticsScope": "fullSolution",
+    // Test Explorer runs the xUnit tests through Microsoft.Testing.Platform, like `dotnet test`.
+    "dotnet.testWindow.useTestingPlatformProtocol": true,
     "[typescript]": {
         "editor.defaultFormatter": "esbenp.prettier-vscode"
     },
