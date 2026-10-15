@@ -63,7 +63,7 @@ What that takes:
 
 | Piece | What it is | Why |
 | --- | --- | --- |
-| **MCP server inside agenteval** | an `/mcp` endpoint of the same ASP.NET Core server (the official C# SDK, `ModelContextProtocol.AspNetCore`); its tools sit in the slices beside their endpoints (`Scenarios/ScenarioTools.cs` next to `ScenarioEndpoints.cs`) and call the same stores | typed tools with schemas the agent cannot get wrong, one source of truth with the HTTP API, usable from any MCP client, not only Claude Code |
+| **MCP server inside agenteval** | an `/mcp` endpoint of the same ASP.NET Core server (the official C# SDK, `ModelContextProtocol.AspNetCore`); its tools sit in the slices beside their endpoints (`Scenarios/ScenarioTools.cs` next to `ScenarioEndpoints.cs`); both are thin registrations over the same operation (AGENTS.md, section 5) | typed tools with schemas the agent cannot get wrong, one source of truth with the HTTP API, usable from any MCP client, not only Claude Code |
 | **Claude Code plugin in this repo** | like suwgit's: `.claude-plugin/marketplace.json` + `claude-plugin/` with `.mcp.json` (the server's URL), a skill and a few slash commands | the skill carries what tools cannot: how to turn a conversation into a scenario, which check type fits which question, the workflow from the "Przygotowanie" flow; the commands are shortcuts (`/agenteval-scenario`, `/agenteval-run`) |
 | **Access from outside the laptop** | on the cluster the app sits behind Cloudflare Access (AGENTS.md, section 8); the MCP path needs a service token or its own policy | decided with the first remote use; on a laptop `http://localhost:6230/mcp` needs nothing |
 
