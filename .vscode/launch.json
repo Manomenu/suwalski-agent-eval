@@ -1,0 +1,18 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "server",
+            "type": "dotnet",
+            "request": "launch",
+            "projectPath": "${workspaceFolder}/agenteval_server/AgentEval.Server/AgentEval.Server.csproj"
+        },
+        {
+            "name": "web (vite dev)",
+            "type": "node-terminal",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/agenteval_web",
+            "command": "pnpm dev"
+        }
+    ]
+}

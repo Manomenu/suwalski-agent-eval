@@ -1,0 +1,34 @@
+# Secrets and machine-local settings. Committed defaults live in .env.base, documented
+# overrides in .env.example; the real values never enter git (AGENTS.md, "Secrets").
+**/.env
+**/.env.local
+.secrets/
+*.pem
+*.key
+*.p12
+id_rsa*
+id_ed25519*
+
+# .NET
+**/bin/
+**/obj/
+**/TestResults/
+*.user
+.vs/
+
+# Web
+**/node_modules/
+**/dist/
+**/build/
+**/*.tsbuildinfo
+
+# Everything generated (e2e reports, renders, graphs) goes to .artifacts/, never next to code.
+.artifacts/*
+!.artifacts/.gitkeep
+**/logs/
+
+# Agents' scratch space — and the one-off scripts they leave where a package's tools can see them
+.claude/worktrees/
+scratchpad/
+*.tmp.mjs
+.suwgit.log
