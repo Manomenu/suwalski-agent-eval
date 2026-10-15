@@ -1,7 +1,7 @@
 # The local stand-in for the cluster. Same images, wired the way the ingress wires them: the
 # browser only ever talks to web, and /api is proxied on to server.
 #
-#   just up   ->  http://localhost:8092
+#   just up   ->  http://localhost:8093
 #
 # This is a verification harness, not the deployment: the whole stack runs on a laptop
 # without the cluster. The cluster gets the same images from the registry (deploy/chart).
@@ -24,7 +24,7 @@ services:
         - CMD
         - bash
         - -c
-        - exec 3<>/dev/tcp/localhost/6220 && printf 'GET /health HTTP/1.0\r\n\r\n' >&3 && grep -q '"ok"' <&3
+        - exec 3<>/dev/tcp/localhost/6230 && printf 'GET /health HTTP/1.0\r\n\r\n' >&3 && grep -q '"ok"' <&3
       interval: 10s
       timeout: 3s
       retries: 5
@@ -54,9 +54,9 @@ services:
       context: .
       dockerfile: agenteval_web/Dockerfile
     environment:
-      API_UPSTREAM: http://server:6220
+      API_UPSTREAM: http://server:6230
     ports:
-      - "8092:8080"
+      - "8093:8080"
     depends_on:
       server:
         condition: service_healthy

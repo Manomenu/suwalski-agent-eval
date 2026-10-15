@@ -7,10 +7,10 @@ public sealed class DotEnvTests
     [Fact]
     public void Lines_become_values_and_comments_are_skipped()
     {
-        var text = "# a comment\n\nPORT=6220\nCORS_ORIGINS=[\"http://localhost:3220\"]\r\nNAME=\"quoted value\"\nEMPTY=\n";
+        var text = "# a comment\n\nPORT=6230\nCORS_ORIGINS=[\"http://localhost:3230\"]\r\nNAME=\"quoted value\"\nEMPTY=\n";
 
         Assert.Equal(
-            [new("PORT", "6220"), new("CORS_ORIGINS", "[\"http://localhost:3220\"]"), new("NAME", "quoted value"), new("EMPTY", "")],
+            [new("PORT", "6230"), new("CORS_ORIGINS", "[\"http://localhost:3230\"]"), new("NAME", "quoted value"), new("EMPTY", "")],
             DotEnv.Parse(text, ".env")
         );
     }

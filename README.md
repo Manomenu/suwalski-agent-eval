@@ -88,14 +88,16 @@ layout, rules and gates, translated from Python to .NET.
 
 ## Requirements
 
-.NET SDK 10, `pnpm` (via corepack), `just`, `podman` with `podman compose` (or `docker` with
-`docker compose`); for the full gate also `helm`, `shellcheck` and `gitleaks`. After cloning:
-`just sync` (dependencies, the C# formatter and the git hooks).
+.NET SDK 10, `pnpm` (via corepack), `just`, `docker` with `docker compose` (on Fedora:
+podman behind the `docker` command, with the Compose v2 plugin); for the full gate also
+`helm`, `shellcheck` and `gitleaks`. After cloning: `just sync` (dependencies, the C#
+formatter and the git hooks).
 
 On Fedora (the owner's development machine):
 
 ```sh
-sudo dnf install dotnet-sdk-10.0 nodejs podman podman-compose just helm ShellCheck
+sudo dnf install dotnet-sdk-10.0 nodejs podman podman-docker just helm ShellCheck
+# docker compose: the official Compose v2 plugin (not podman-compose), talking to podman's socket
 corepack enable --install-directory ~/.local/bin   # pnpm, in the version package.json pins
 # gitleaks: the binary from https://github.com/gitleaks/gitleaks/releases, the version CI pins (8.30.1)
 ```
@@ -104,10 +106,10 @@ corepack enable --install-directory ~/.local/bin   # pnpm, in the version packag
 
 ```sh
 just                 # every recipe, grouped
-just db up           # local PostgreSQL on :5453
-just server          # API on :6220 (OpenAPI document at /openapi/v1.json)
-just web             # web app on :3220, proxies /api to the server
-just up              # the whole stack in containers on :8092 — no cluster needed
+just db up           # local PostgreSQL on :5463
+just server          # API on :6230 (OpenAPI document at /openapi/v1.json)
+just web             # web app on :3230, proxies /api to the server
+just up              # the whole stack in containers on :8093 — no cluster needed
 just check           # the quality gate, exactly what CI runs
 just e2e             # browser tests against a real server and database
 just secrets backup  # copy the local .env files into Bitwarden (restore on a new machine)

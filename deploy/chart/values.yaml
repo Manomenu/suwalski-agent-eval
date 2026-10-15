@@ -11,7 +11,7 @@ image:
 
 server:
   replicas: 1
-  port: 6220
+  port: 6230
   # A Secret with DATABASE_URL in the release namespace, created by the platform repo. Without
   # a database the server deliberately does not start.
   databaseSecret: ""

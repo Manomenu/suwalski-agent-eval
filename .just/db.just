@@ -9,7 +9,7 @@ set working-directory := ".."
 default:
     @just --list db --unsorted
 
-# Start the database on localhost:5453 (created on first run; data survives `down`)
+# Start the database on localhost:5463 (created on first run; data survives `down`)
 up:
     @./scripts/.internal/db.sh up
 

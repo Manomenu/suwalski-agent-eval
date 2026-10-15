@@ -1,18 +1,17 @@
 #!/usr/bin/env bash
 # Local PostgreSQL for development and tests: one container whose data lives in a named
 # volume, so it survives `down` and only `reset` wipes it. Humans call this through
-# `just db <command>`; check.sh calls `up` before the tests. podman when it is there, docker
-# otherwise — the commands below are the ones both understand.
+# `just db <command>`; check.sh calls `up` before the tests. This repo works with docker
+# (on Fedora: podman behind the docker command, AGENTS.md section 2).
 set -euo pipefail
 
-ENGINE=podman
-command -v podman >/dev/null 2>&1 || ENGINE=docker
+ENGINE=docker
 
 NAME=agenteval-postgres
 VOLUME=agenteval-postgres
 # The major version the cluster runs (CloudNativePG); the minor is pinned like every image here.
 IMAGE=docker.io/library/postgres:17.11
-PORT=5453
+PORT=5463
 USER=agenteval
 DB=agenteval
 
@@ -32,7 +31,7 @@ case "${1:-}" in
         if "$ENGINE" container inspect "$NAME" >/dev/null 2>&1; then
             # A container keeps the image it was created from; after a change of IMAGE the old
             # one would start silently (e.g. without an extension) and fail the migrations instead.
-            # IDs, not names: podman stores a digest reference in its own spelling. An IMAGE not
+            # IDs, not names: the engine may store a digest reference in its own spelling. An IMAGE not
             # pulled yet has no ID here, which counts as a change too.
             if [ "$("$ENGINE" container inspect --format '{{.Image}}' "$NAME")" != "$("$ENGINE" image inspect --format '{{.Id}}' "$IMAGE" 2>/dev/null)" ]; then
                 echo "$NAME runs another image than $IMAGE — \`just db reset\`, then \`just db up\`" >&2

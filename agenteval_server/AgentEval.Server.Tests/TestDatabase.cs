@@ -14,7 +14,7 @@ namespace AgentEval.Server.Tests;
 public sealed class TestDatabase : IAsyncLifetime
 {
     public static readonly string DatabaseUrl =
-        Environment.GetEnvironmentVariable("TEST_DATABASE_URL") ?? "postgresql://agenteval:agenteval@localhost:5453/agenteval_test";
+        Environment.GetEnvironmentVariable("TEST_DATABASE_URL") ?? "postgresql://agenteval:agenteval@localhost:5463/agenteval_test";
 
     private string? unavailable;
     private Pool? pool;

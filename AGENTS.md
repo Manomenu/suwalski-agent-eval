@@ -86,8 +86,8 @@ every moving part is a part someone has to keep alive.
 ## 2. Three ways to run it — all three always work
 
 1. **On the host, while developing:** `just db up`, `just server`, `just web` →
-   http://localhost:3220. Fastest loop: `dotnet watch` and Vite rebuild on save.
-2. **The container stack:** `just up` → http://localhost:8092. The same images the cluster
+   http://localhost:3230. Fastest loop: `dotnet watch` and Vite rebuild on save.
+2. **The container stack:** `just up` → http://localhost:8093. The same images the cluster
    runs, wired the same way (web proxies `/api` to server), with its own database volume.
    This is how a change is proven to work *without deploying it*.
 3. **The cluster:** `deploy/chart/` installed by Argo CD from the platform repo, which sets
@@ -110,7 +110,12 @@ the way production runs it. Consequences:
   `pnpm-lock.yaml`) in locked mode; every image pins its base and every external image is
   pinned to a version, never `latest`.
 - The gate renders the chart (`helm lint` + `helm template`) and validates `compose.yaml`
-  (`podman compose config`); `just up` is the manual proof that the images really start.
+  (`docker compose config`); `just up` is the manual proof that the images really start.
+- **Containers go through `docker` and `docker compose`** — the scripts, `just` and CI call
+  nothing else. On the owner's Fedora that is podman behind the `docker` command (podman-docker,
+  rootless) with the official Compose v2 plugin, not `podman-compose` (it has gaps, e.g.
+  `profiles:`); in CI it is Docker itself. solid-app-tpl calls `podman` directly; this repo
+  does not.
 
 ## 3. The quality gate
 
@@ -453,8 +458,8 @@ Two vocabularies, chosen word by word:
   | Script | Use it to |
   | --- | --- |
   | `scripts/.internal/check.sh` | verify a change — the whole gate (section 3) |
-  | `scripts/.internal/e2e.sh [playwright args]` | browser tests (`agenteval_web/src/**/*.e2e.ts`) against a real server and an empty `agenteval_e2e` database, on ports 6221/3221. Run it after changing anything a user clicks |
-  | `scripts/.internal/db.sh up\|down\|status\|psql` | the local PostgreSQL on `localhost:5453` (container `agenteval-postgres`, podman or docker). `check.sh` runs `up` itself; tests create their own `agenteval_test` database |
+  | `scripts/.internal/e2e.sh [playwright args]` | browser tests (`agenteval_web/src/**/*.e2e.ts`) against a real server and an empty `agenteval_e2e` database, on ports 6231/3231. Run it after changing anything a user clicks |
+  | `scripts/.internal/db.sh up\|down\|status\|psql` | the local PostgreSQL on `localhost:5463` (docker container `agenteval-postgres`). `check.sh` runs `up` itself; tests create their own `agenteval_test` database |
   | `scripts/.internal/api-types.sh [--check]` | regenerate `agenteval_web/src/api/openapi.d.ts` after changing a record the API exposes. Never edit that file by hand |
   | `scripts/.internal/secrets.sh backup\|restore` | **not for agents** — the owner's copy of the `.env` files in Bitwarden (`just secrets`, section 7); it asks for the master password |
   | `scripts/.internal/infra-status.sh` | what of the compose stack is up and on which ports (needs `jq`) |

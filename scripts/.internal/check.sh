@@ -58,7 +58,7 @@ helm_chart() {
 
 compose_file() {
     # The local stack (compose.yaml) must at least parse and resolve; `just up` builds it.
-    # podman on the laptop, docker on the CI runner — the same file either way.
+    # docker compose on the laptop and on the CI runner alike (AGENTS.md section 2).
     (cd "$ROOT" && "${COMPOSE[@]}" config --quiet)
 }
 
@@ -127,15 +127,13 @@ else
     REPORT+=("SKIP  secrets in git — gitleaks not installed (CI always runs it)")
 fi
 COMPOSE=()
-if command -v podman >/dev/null 2>&1 && podman compose version >/dev/null 2>&1; then
-    COMPOSE=(podman compose)
-elif command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
     COMPOSE=(docker compose)
 fi
 if [ ${#COMPOSE[@]} -gt 0 ]; then
     run_step "compose stack (compose config)" compose_file
 else
-    REPORT+=("SKIP  compose stack — neither podman compose nor docker compose")
+    REPORT+=("SKIP  compose stack — docker compose not installed")
 fi
 
 echo

@@ -1,11 +1,11 @@
 // End-to-end tests: a real browser against the real server and database.
 // `just e2e` (scripts/.internal/e2e.sh) prepares an empty database and runs them; CI does the
-// same. They start their own server and web app on 6221/3221, so the ones you run by hand on
-// 6220/3220 and your local data stay untouched.
+// same. They start their own server and web app on 6231/3231, so the ones you run by hand on
+// 6230/3230 and your local data stay untouched.
 import { defineConfig, devices } from "@playwright/test";
 
-const SERVER_PORT = 6221;
-const WEB_PORT = 3221;
+const SERVER_PORT = 6231;
+const WEB_PORT = 3231;
 
 export default defineConfig({
     // The tests live next to the code they check (src/App.e2e.ts by App.tsx).
@@ -38,7 +38,7 @@ export default defineConfig({
             url: `http://localhost:${SERVER_PORT}/health`,
             env: {
                 PORT: String(SERVER_PORT),
-                DATABASE_URL: process.env["E2E_DATABASE_URL"] ?? "postgresql://agenteval:agenteval@localhost:5453/agenteval_e2e",
+                DATABASE_URL: process.env["E2E_DATABASE_URL"] ?? "postgresql://agenteval:agenteval@localhost:5463/agenteval_e2e",
             },
             reuseExistingServer: false,
             // The first run compiles the server.
