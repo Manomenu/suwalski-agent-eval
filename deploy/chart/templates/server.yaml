@@ -28,8 +28,8 @@ spec:
           ports:
             - containerPort: {{ .Values.server.port }}
           env:
-            # Port z values, a nie z .env.base — jedno źródło prawdy dla sondy i procesu.
-            - name: PORT
+            # Port z values — jedno źródło prawdy dla sondy i procesu.
+            - name: ASPNETCORE_HTTP_PORTS
               value: {{ .Values.server.port | quote }}
           {{- with .Values.server.databaseSecret }}
           envFrom:

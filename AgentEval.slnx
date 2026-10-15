@@ -1,6 +1,6 @@
 <Solution>
-  <Folder Name="/agenteval_server/">
-    <Project Path="agenteval_server/AgentEval.Server/AgentEval.Server.csproj" />
-    <Project Path="agenteval_server/AgentEval.Server.Tests/AgentEval.Server.Tests.csproj" />
+  <Folder Name="/AgentEval.Server/">
+    <Project Path="AgentEval.Server/AgentEval.Server.csproj" />
+    <Project Path="AgentEval.Server.Tests/AgentEval.Server.Tests.csproj" />
   </Folder>
 </Solution>

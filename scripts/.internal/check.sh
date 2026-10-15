@@ -38,7 +38,7 @@ test_server() {
 
 web() {
     # Same order of concerns as the server: types, lint, format, tests.
-    cd "$ROOT/agenteval_web"
+    cd "$ROOT/AgentEval.Web"
     [ -d node_modules ] || pnpm install --frozen-lockfile --silent
     pnpm exec "$@"
 }
@@ -100,13 +100,13 @@ run_step "test server (xunit, incl. import contracts)" test_server
 # Two TypeScript projects: the app (browser) and the code that runs in Node (vite config, e2e
 # tests). This checks the types of both; it does not run the e2e tests (that is `just e2e`).
 web_typecheck() { web tsc --noEmit -p tsconfig.app.json && web tsc --noEmit -p tsconfig.node.json; }
-run_step "typecheck agenteval_web (tsc: app, e2e tests, config)" web_typecheck
-run_step "lint agenteval_web (eslint strict + import contracts)" web eslint .
-run_step "format agenteval_web (prettier --check)" web prettier --check .
-run_step "test agenteval_web (vitest)" web vitest run
+run_step "typecheck AgentEval.Web (tsc: app, e2e tests, config)" web_typecheck
+run_step "lint AgentEval.Web (eslint strict + import contracts)" web eslint .
+run_step "format AgentEval.Web (prettier --check)" web prettier --check .
+run_step "test AgentEval.Web (vitest)" web vitest run
 # Unused files, exports and dependencies. knip.json leaves out the generated API types and
 # openapi-typescript, which only scripts/.internal/api-types.sh uses (knip reads no shell).
-run_step "dead code agenteval_web (knip)" web knip
+run_step "dead code AgentEval.Web (knip)" web knip
 run_step "API types up to date (just api-types)" "$ROOT/scripts/.internal/api-types.sh" --check
 
 # Tools a fresh machine may lack are skipped with a visible note instead of a PASS — a

@@ -68,13 +68,13 @@ jobs:
       # package.json at the repo root for the action to find on its own.
       - uses: pnpm/action-setup@v4
         with:
-          package_json_file: agenteval_web/package.json
+          package_json_file: AgentEval.Web/package.json
 
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
           cache: pnpm
-          cache-dependency-path: agenteval_web/pnpm-lock.yaml
+          cache-dependency-path: AgentEval.Web/pnpm-lock.yaml
 
       # The script skips the chart check when helm is absent, so CI has to provide it —
       # otherwise the one place that should always run it would quietly not.
@@ -84,7 +84,7 @@ jobs:
       # CI that can disagree with your machine, and then neither of you is trustworthy.
       - run: ./scripts/.internal/check.sh
 
-  # The whole app in a real browser (agenteval_web/src/**/*.e2e.ts). Same script as `just e2e`;
+  # The whole app in a real browser (AgentEval.Web/src/**/*.e2e.ts). Same script as `just e2e`;
   # here PostgreSQL is a service, and the runner's psql makes the e2e database in it.
   e2e:
     runs-on: ubuntu-latest
@@ -115,20 +115,20 @@ jobs:
 
       - uses: pnpm/action-setup@v4
         with:
-          package_json_file: agenteval_web/package.json
+          package_json_file: AgentEval.Web/package.json
 
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
           cache: pnpm
-          cache-dependency-path: agenteval_web/pnpm-lock.yaml
+          cache-dependency-path: AgentEval.Web/pnpm-lock.yaml
 
       - run: pnpm install --frozen-lockfile
-        working-directory: agenteval_web
+        working-directory: AgentEval.Web
 
       # The browser and the system libraries it needs, at the version @playwright/test pins.
       - run: pnpm exec playwright install --with-deps chromium
-        working-directory: agenteval_web
+        working-directory: AgentEval.Web
 
       - run: ./scripts/.internal/e2e.sh
 
@@ -153,9 +153,9 @@ jobs:
       matrix:
         include:
           - image: server
-            dockerfile: agenteval_server/Dockerfile
+            dockerfile: AgentEval.Server/Dockerfile
           - image: web
-            dockerfile: agenteval_web/Dockerfile
+            dockerfile: AgentEval.Web/Dockerfile
     steps:
       - uses: actions/checkout@v4
 

@@ -12,7 +12,7 @@ image:
 server:
   replicas: 1
   port: 6230
-  # A Secret with DATABASE_URL in the release namespace, created by the platform repo. Without
+  # A Secret with ConnectionStrings__Default (an Npgsql connection string) in the release namespace, created by the platform repo. Without
   # a database the server deliberately does not start.
   databaseSecret: ""
   resources:

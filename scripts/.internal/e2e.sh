@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# End-to-end tests (agenteval_web/src/**/*.e2e.ts): a real browser against the real server and
+# End-to-end tests (AgentEval.Web/src/**/*.e2e.ts): a real browser against the real server and
 # database. Humans run `just e2e`, CI runs this script. Arguments go to Playwright, e.g.
 #   e2e.sh --headed        watch the browser
 #   e2e.sh -g "health"     only the tests whose name matches
@@ -24,6 +24,6 @@ else
     "$ROOT/scripts/.internal/db.sh" psql -q -d postgres "${recreate[@]}"
 fi
 
-cd "$ROOT/agenteval_web"
+cd "$ROOT/AgentEval.Web"
 [ -d node_modules ] || pnpm install --frozen-lockfile --silent
 exec pnpm exec playwright test -c e2e/playwright.config.ts "$@"

@@ -11,13 +11,9 @@ services:
   server:
     build:
       context: .
-      dockerfile: agenteval_server/Dockerfile
-    env_file:
-      - path: .env
-        required: false
+      dockerfile: AgentEval.Server/Dockerfile
     environment:
-      # After env_file on purpose: a host address from .env must not leak into the container.
-      DATABASE_URL: postgresql://agenteval:agenteval@postgres:5432/agenteval
+      ConnectionStrings__Default: Host=postgres;Port=5432;Database=agenteval;Username=agenteval;Password=agenteval
     healthcheck:
       # The runtime image has no curl or wget; bash's /dev/tcp asks /health without adding one.
       test:
@@ -52,7 +48,7 @@ services:
   web:
     build:
       context: .
-      dockerfile: agenteval_web/Dockerfile
+      dockerfile: AgentEval.Web/Dockerfile
     environment:
       API_UPSTREAM: http://server:6230
     ports:

@@ -1,5 +1,4 @@
-# Secrets and machine-local settings. Committed defaults live in .env.base, documented
-# overrides in .env.example; the real values never enter git (AGENTS.md, "Secrets").
+# Secrets and machine-local settings: the real values never enter git (AGENTS.md, "Secrets").
 **/.env
 **/.env.local
 .secrets/
