@@ -489,9 +489,16 @@
       "agenteval.server": {
         "type": "Project",
         "dependencies": {
+          "Dapper": "[2.1.89, )",
           "Microsoft.AspNetCore.OpenApi": "[10.0.12, )",
           "Npgsql": "[10.0.3, )"
         }
+      },
+      "Dapper": {
+        "type": "CentralTransitive",
+        "requested": "[2.1.89, )",
+        "resolved": "2.1.89",
+        "contentHash": "1VjFE664wnxvuhlgP8kS4PeFFF4jqD3VkbIHW6Zlc52zuibgcz5ICnIHcQXlTp6pURpPNGLV0ZpNe5x9KePJnA=="
       },
       "Microsoft.AspNetCore.OpenApi": {
         "type": "CentralTransitive",

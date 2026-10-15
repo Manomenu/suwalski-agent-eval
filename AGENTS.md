@@ -22,12 +22,24 @@ too, in the same task**, as long as it is not specific to .NET:
 - and say in the summary what went to the template. Features, domain rules and .NET-only
   tooling stay here; only how the repo is *run* travels.
 
-## Git: committing is the owner's job
+## Git: agents commit and push through suwgit
 
-**Agents never commit, amend, reset, rebase or push** — nor stage files (`git add`,
-`git mv`). Leave every change in the working tree for the owner to review and commit, even
-when it is finished and all checks pass. The only exception is the owner asking for it in so
-many words ("commit and deploy"), and it covers that task only.
+**Agents may commit and push — only with [suwgit](https://github.com/Manomenu/suwgit)**
+(`suwgit commit`, `suwgit push`), never with plain `git commit` / `git push`. This repository
+is registered in suwgit with:
+
+| Setting | Value |
+| --- | --- |
+| language | `en` |
+| autocommit | on |
+| `--b2b` | `me` |
+| `--project` | `AgenticAI` |
+
+- Commit when a change is finished and the gate (`./scripts/.internal/check.sh`) is green.
+- Everything that rewrites or discards history stays the owner's: no amend, reset, rebase,
+  force-push or deleting branches.
+- Without suwgit on the machine (or the repository not registered), do not fall back to plain
+  git: leave the change in the working tree and say so.
 
 **The main branch is `master`**, never `main`: CI publishes images only from `master`
 (`.github/workflows/ci.yml`), and every repo here uses that name.
@@ -58,7 +70,7 @@ every moving part is a part someone has to keep alive.
 | --- | --- |
 | `AgentEval.slnx` | the .NET solution: the server and its tests |
 | `global.json`, `Directory.Build.props`, `Directory.Packages.props` | the SDK band; the settings every C# project shares (nullable, analyzers, warnings as errors, lockfiles); every NuGet package and its version, named once |
-| `agenteval_server/AgentEval.Server/` | the HTTP API (ASP.NET Core minimal APIs, PostgreSQL through Npgsql, plain SQL). One folder — one namespace — per part: `Api/`, `Db/`, `Settings/`, then one per feature |
+| `agenteval_server/AgentEval.Server/` | the HTTP API (ASP.NET Core minimal APIs, PostgreSQL through Npgsql, SQL written by hand and mapped by Dapper). One folder — one namespace — per part: `Api/`, `Db/`, `Settings/`, then one per feature |
 | `agenteval_server/AgentEval.Server/Db/migrations/` | numbered SQL migrations, applied at start-up, checksummed (`Db/Migrations.cs`) |
 | `agenteval_server/AgentEval.Server.Tests/` | the server's tests (xUnit v3), mirroring the server's folders; `ContractsTests.cs` holds the import contracts |
 | `agenteval_web/` | the web app (React, Mantine, Vite). Source in `src/`, one folder per feature |
@@ -248,6 +260,11 @@ A change to one feature should touch one place on each side.
   `Api/ServerApp.cs` calls), `ScenarioStore.cs` (the SQL), `Scenario.cs` (the records the API
   sends and receives); a single concern stays one file. Types are `internal` (the analyzers
   insist); the tests see them through `InternalsVisibleTo`.
+- **Queries: SQL by hand, Dapper maps it.** A store writes plain SQL and lets Dapper map the
+  rows onto its row records (`connection.QueryAsync<ScenarioRow>(sql, new { suiteId })`).
+  Parameters always as `@name`, never concatenated into the text. No ORM (EF Core, linq2db)
+  and no SQL generator: the SQL a reader sees is the SQL PostgreSQL runs, and the tests
+  against the real database check it.
 - **Server data types — the contract and the inside.** A record an endpoint sends or receives
   is a contract with someone outside: it becomes the OpenAPI schema and the web app's types, so
   renaming a property breaks a client, and input from outside is validated where it enters. A
@@ -490,3 +507,15 @@ Transform tasks into verifiable goals:
 
 For multi-step tasks, state a brief plan with a check per step. Simplicity rules are in
 section 0.
+
+### 11.4 Delegate well-defined work to a cheaper model
+
+**Larger, well-defined tasks go to a subagent on Sonnet** — to save tokens. Well defined
+means: a clear goal, the files it touches are known, and a check says when it is done
+("port X to Y with `check.sh` green", "write the tests for Z", "rename A to B everywhere").
+
+- The prompt carries everything the subagent needs: the goal, the files, the rules of this
+  file that apply, and the acceptance check. It starts with no context of its own.
+- The main agent keeps what needs judgment: design decisions, unclear requirements, small
+  edits (spawning costs more than doing them), and the review of the subagent's result
+  against the acceptance check — without redoing the delegated work.

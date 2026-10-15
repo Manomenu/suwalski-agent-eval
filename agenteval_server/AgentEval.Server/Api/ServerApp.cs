@@ -1,3 +1,4 @@
+using System.Reflection;
 using AgentEval.Server.Db;
 using AgentEval.Server.Settings;
 
@@ -12,6 +13,12 @@ internal static class ServerApp
 {
     public const string CorsPolicy = "web";
 
+    /// <summary>
+    /// The build writes the OpenAPI document (scripts/.internal/api-types.sh) by starting the app inside
+    /// its GetDocument tool. Only the routes matter then, so the database is not touched.
+    /// </summary>
+    private static bool WritingOpenApiDocument => Assembly.GetEntryAssembly()?.GetName().Name == "GetDocument.Insider";
+
     public static WebApplication Build(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
@@ -22,7 +29,7 @@ internal static class ServerApp
         builder.WebHost.UseUrls($"http://{settings.Host}:{settings.Port}");
 
         builder.Services.AddSingleton(settings);
-        builder.Services.AddDatabase(settings.DatabaseUrl);
+        builder.Services.AddDatabase(settings.DatabaseUrl, migrateOnStart: !WritingOpenApiDocument);
         builder.Services.AddOpenApi();
         builder.Services.AddCors(cors =>
             cors.AddPolicy(CorsPolicy, policy => policy.WithOrigins([.. settings.CorsOrigins]).AllowAnyMethod().AllowAnyHeader())

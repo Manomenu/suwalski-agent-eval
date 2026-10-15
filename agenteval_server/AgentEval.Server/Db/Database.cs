@@ -9,10 +9,13 @@ internal static class Database
     /// The pool as a singleton, and the migrations at start-up: without the database there is nothing to
     /// serve, so the server fails to start with a clear error rather than failing every request later.
     /// </summary>
-    public static IServiceCollection AddDatabase(this IServiceCollection services, string databaseUrl)
+    public static IServiceCollection AddDatabase(this IServiceCollection services, string databaseUrl, bool migrateOnStart)
     {
         services.AddSingleton(_ => Pool.Create(databaseUrl));
-        services.AddHostedService<DatabaseStartup>();
+        if (migrateOnStart)
+        {
+            services.AddHostedService<DatabaseStartup>();
+        }
         return services;
     }
 
