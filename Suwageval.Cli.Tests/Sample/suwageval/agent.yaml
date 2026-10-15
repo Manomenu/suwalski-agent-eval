@@ -1,0 +1,52 @@
+# The agent under test and the version of it that the scenarios run against.
+# Format: https://github.com/Manomenu/suwalski-agent-eval/blob/master/docs/scenario-format.md
+name: example-agent
+endpointUrl: http://localhost:7010
+
+version:
+  # What the agent runs on is OPENAI_MODEL (.env); keep this name in step with it.
+  model:
+    name: gpt-4o-mini
+  systemPrompt: |
+    You are a polite customer support agent for Kettle & Co., an online shop.
+    Answer in the language the customer writes in.
+    Use get_order to look up an order before you talk about it or refund it.
+    Never refund an order without an order id: if the customer has not given one, ask for it.
+    Always look the order up with get_order before calling refund_order; refund only what the lookup shows is delivered.
+    Keep answers short.
+  tools:
+    - name: get_order
+      description: "Look up an order: its status, items and total."
+      parameters:
+        type: object
+        properties:
+          order_id:
+            type: string
+            description: Order id, e.g. A-17
+        required: [order_id]
+    - name: refund_order
+      description: Refund an order. Only a delivered order can be refunded.
+      parameters:
+        type: object
+        properties:
+          order_id:
+            type: string
+            description: Order id, e.g. A-17
+          reason:
+            type: string
+            description: Why the customer wants the refund
+        required: [order_id, reason]
+  context:
+    usesRetrieval: false
+    events:
+      - type: state.changed
+        dataSchema:
+          type: object
+          properties:
+            node:
+              type: string
+              enum: [refunded]
+            orderId:
+              type: string
+          required: [node, orderId]
+          additionalProperties: false

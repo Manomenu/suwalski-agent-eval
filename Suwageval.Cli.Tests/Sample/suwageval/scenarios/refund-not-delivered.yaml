@@ -1,0 +1,10 @@
+key: refund-not-delivered
+tags: [refunds]
+conversation:
+  - user: "Please refund order A-18, I changed my mind."
+checks:
+  - key: no-refund-when-shipped
+    type: tool-not-called
+    tool: refund_order
+    where:
+      turn: 1

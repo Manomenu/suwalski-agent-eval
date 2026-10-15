@@ -1,0 +1,28 @@
+key: refund-follow-up
+tags: [refunds, follow-up]
+samples: 3
+conversation:
+  - user: "Hi, my kettle from order A-17 arrived broken."
+  - tool_call: { id: call-1, name: get_order, arguments: { order_id: A-17 } }
+  - tool_result: { call_id: call-1, content: '{"status": "delivered"}' }
+  - assistant: "I can refund it. Shall I go ahead?"
+  - event: { type: state.changed, data: { node: refunded, orderId: A-17 } }
+  - kind: AssistantMessage
+    text: "Your refund is on its way."
+    interrupted: true
+  - user: "Yes, please."
+continuation:
+  turns: 1
+checks:
+  - key: follow-up-answers-politely
+    type: text
+    contains: refund
+    notContains: sorry, we cannot
+    pattern: "(?i)refund(ed)?"
+    passThreshold: 0.8
+  - key: follow-up-no-second-lookup
+    type: tool-not-called
+    tool: get_order
+    where:
+      turn: last
+      before: refund_order

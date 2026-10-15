@@ -73,11 +73,15 @@ app keeps its tests beside its code, so those folders would only split the .NET 
 
 | Path | Holds |
 | --- | --- |
-| `Suwageval.slnx` | the .NET solution: the server and its tests |
+| `Suwageval.slnx` | the .NET solution: the server, the CLI, the contracts and their tests |
 | `global.json`, `Directory.Build.props`, `Directory.Packages.props` | the SDK band; the settings every C# project shares (nullable, analyzers, warnings as errors, lockfiles); every NuGet package and its version, named once |
 | `Suwageval.Server/` | the HTTP API (ASP.NET Core minimal APIs, PostgreSQL through Npgsql, SQL written by hand and mapped by Dapper). One folder — one namespace — per part: `Api/`, `Database/`, then one per feature |
 | `Suwageval.Server/Database/Migrations/up/` | numbered SQL migrations, applied at start-up by grate (`Database/Migrator.cs`) |
 | `Suwageval.Server.Tests/` | the server's tests (xUnit v3), mirroring the server's folders; `ContractsTests.cs` holds the import contracts |
+| `Suwageval.Contracts/` | the records the API sends and receives and the CLI reads from YAML, with their JSON shape (System.Text.Json, camelCase, strict). Records only, public types (a library shared by projects); one folder — one namespace — per feature |
+| `Suwageval.Cli/` | the `suwageval` command, packed as a .NET tool (System.CommandLine, YamlDotNet). `Files/` reads the agent's YAML files into the contracts, `Validate/` is `suwageval validate` |
+| `Suwageval.Cli.Tests/` | the CLI's tests (xUnit v3), mirroring its folders; `Sample/` is an agent folder the happy-path tests validate |
+| `docs/scenario-format.md` | the file format (v0) an agent's repository keeps in `suwageval/`: `agent.yaml`, scenarios with checks, shorthands |
 | `Suwageval.Web/` | the web app (React, Mantine, Vite). Source in `src/`, one folder per feature |
 | `deploy/chart/` | the Helm chart the cluster runs: server, web, ingress and `templates/smoke-test.yaml`, the post-deploy smoke test |
 | `compose.yaml` | the whole stack on a laptop, from the same Dockerfiles — no cluster needed |
@@ -477,7 +481,7 @@ Two vocabularies, chosen word by word:
 ## 10. Commands: `justfile` vs `scripts/.internal/`
 
 - **`justfile` is for humans.** `just` lists every recipe, grouped: `run` (dev servers),
-  `dev` (code generation), `infra` (the container stack), `maintenance` (check, e2e, fmt,
+  `dev` (code generation, `just cli …` to run the CLI from source, `just cli-install` to install it as the global `suwageval`), `infra` (the container stack), `maintenance` (check, e2e, fmt,
   sync), plus modules in `.just/`: `db` (`.just/db.just`: the local PostgreSQL) and
   `secrets` (`.just/secrets.just`: the `.env` files in Bitwarden). New human-facing commands
   go there, into the matching group; a family of related commands becomes a module of its

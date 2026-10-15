@@ -66,6 +66,9 @@ The server has one interface, its HTTP API. Three users reach it:
   `scenarios/*.yaml` (a scenario with its checks inside; `user:` / `assistant:` shorthands for
   the log). The server's address is not in them: `SUWAGEVAL_URL` (default
   `http://localhost:6230`) or `--server`.
+- **The file format** (agent, scenarios, checks, shorthands, one complete example):
+  [docs/scenario-format.md](docs/scenario-format.md). `suwageval validate` checks it, with no
+  server.
 - **The CLI is built for agents too:** arguments are paths, `-` reads stdin, `--json` prints a
   result to read by machine.
 - **`Suwageval.Contracts`** holds the API's records — requests, responses, log items, checks —
@@ -89,8 +92,8 @@ version and a scenario, `run --tag regression --wait` against the running agent,
 result of deterministic checks (a tool called, an event, text) in the CLI. No judge, no
 multi-turn simulation, no web views yet.
 
-1. **Contracts and `validate`** — `Suwageval.Contracts` (format v0) and the CLI's `validate`;
-   the YAML files in the example agent.
+1. **Contracts and `validate`** — done: `Suwageval.Contracts` (format v0) and the CLI's
+   `validate`; the YAML files in the example agent.
 2. **Agents, Scenarios (with tags), Checks** — the slices that store them, and `suwageval push`.
 3. **Invocation and Runs** — the agent under test over HTTP (contract v0, `TODO.md`), the
    deterministic checks, and `suwageval run`. The MVP is reached here.
@@ -138,6 +141,7 @@ just server          # API on :6230 (OpenAPI document at /openapi/v1.json)
 just web             # web app on :3230, proxies /api to the server
 just up              # the whole stack in containers on :8093 — no cluster needed
 just check           # the quality gate, exactly what CI runs
+just cli validate DIR  # the suwageval CLI from source; `just cli-install` installs it globally
 just e2e             # browser tests against a real server and database
 just secrets backup  # copy the local .env files into Bitwarden (restore on a new machine)
 ```

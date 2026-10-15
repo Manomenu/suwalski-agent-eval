@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Suwageval.Cli</RootNamespace>
+    <!-- The command's name in its help text. -->
+    <AssemblyName>suwageval</AssemblyName>
+    <!-- Packed as a .NET tool: installing it gives the `suwageval` command (just cli-install). -->
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>suwageval</ToolCommandName>
+    <PackageId>Suwageval.Cli</PackageId>
+    <Description>Validate, push and run the evaluation files of an agent's repository against Suwageval.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.CommandLine" />
+    <PackageReference Include="YamlDotNet" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Suwageval.Contracts/Suwageval.Contracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Suwageval.Cli.Tests" />
+  </ItemGroup>
+</Project>

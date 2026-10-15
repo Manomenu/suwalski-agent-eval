@@ -61,8 +61,15 @@ dotnet_diagnostic.CA1032.severity = none
 
 # Tests: names are sentences (Health_answers_ok), xUnit needs public classes, and the SQL a
 # test builds (a scratch schema's name, a database to recreate) is its own, never input.
-[Suwageval.Server.Tests/**.cs]
+[{Suwageval.Server.Tests,Suwageval.Cli.Tests}/**.cs]
 dotnet_diagnostic.CA1707.severity = none
 dotnet_diagnostic.CA1515.severity = none
 dotnet_diagnostic.CA2100.severity = none
 dotnet_diagnostic.CA1054.severity = none
+
+# Contracts: the records the API and the CLI share. "Event" is the domain word (the agent's log has Events), not
+# the keyword a VB or F# consumer would trip over; a URL arrives as the text the file holds, checked where it is
+# used, so it stays a string.
+[Suwageval.Contracts/**.cs]
+dotnet_diagnostic.CA1716.severity = none
+dotnet_diagnostic.CA1056.severity = none

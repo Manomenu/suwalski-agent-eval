@@ -1,0 +1,20 @@
+key: refund-happy-path
+tags: [regression, refunds]
+conversation:
+  - user: "Hi, my kettle from order A-17 arrived broken. I'd like a refund."
+checks:
+  - key: refund-called-after-lookup
+    type: tool-called
+    tool: refund_order
+    args:
+      order_id: A-17
+    where:
+      turn: 1
+      after: get_order
+  - key: refunded-state-event
+    type: event
+    event: state.changed
+    data:
+      node: refunded
+    where:
+      turn: 1

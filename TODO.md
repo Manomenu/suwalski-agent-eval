@@ -57,6 +57,14 @@ belongs to.
 
 ## Later, after the MVP
 
+- **`validate`: JSON Schema checks of free JSON.** `arguments` of a `ToolCall` and `data` of an
+  `Event` (in the log, and `args` / `data` of the checks) are not yet validated against the
+  `parameters` / `dataSchema` the agent declares. Needs a JSON Schema validator package — add
+  it with this first check.
+- **`validate`: one problem per element.** The contract reports the first mistake in what it
+  reads, so each item, check and tool is read on its own (several problems per file), but two
+  mistakes inside one check show up one after the other.
+
 - **Editor hints for the scenario files:** publish a JSON Schema of the YAML files an agent's
   repo keeps (the agent, its scenarios with their checks) and point VS Code's YAML extension
   at it, so fields are suggested and mistakes underlined while writing. Until then the CLI's
