@@ -7,13 +7,13 @@ set -euo pipefail
 
 ENGINE=docker
 
-NAME=agenteval-postgres
-VOLUME=agenteval-postgres
+NAME=suwageval-postgres
+VOLUME=suwageval-postgres
 # The major version the cluster runs (CloudNativePG); the minor is pinned like every image here.
 IMAGE=docker.io/library/postgres:17.11
 PORT=5463
-USER=agenteval
-DB=agenteval
+USER=suwageval
+DB=suwageval
 
 wait_ready() {
     for _ in $(seq 1 30); do

@@ -7,4 +7,4 @@ record of how we got there.
 
 | Artifact | What it holds |
 | --- | --- |
-| [agenteval — organizacja projektu i API](https://claude.ai/artifact/UfjpCwDbQJVW9dd9zqwUGY) | The plan of agenteval: repo layout, server layers and feature slices, the inside of a slice, the data model with the context contract and events, the API manifest, checks as conditions on a run's turns, and diagrams of preparing an evaluation (API calls) and of a run. |
+| [suwageval — organizacja projektu i API](https://claude.ai/artifact/UfjpCwDbQJVW9dd9zqwUGY) | The plan of suwageval: repo layout, server layers and feature slices, the inside of a slice, the data model with the context contract and events, the API manifest, checks as conditions on a run's turns, and diagrams of preparing an evaluation (API calls) and of a run. |

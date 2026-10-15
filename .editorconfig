@@ -26,7 +26,7 @@ max_line_length = 140
 dotnet_analyzer_diagnostic.category-Style.severity = warning
 # Formatting is CSharpier's job; two formatters would fight.
 dotnet_diagnostic.IDE0055.severity = none
-# A namespace is its folder path (AgentEval.Server/Database/ → AgentEval.Server.Database):
+# A namespace is its folder path (Suwageval.Server/Database/ → Suwageval.Server.Database):
 # set on its own, so tuning the Style category above can never switch it off.
 dotnet_style_namespace_match_folder = true
 dotnet_diagnostic.IDE0130.severity = error
@@ -61,7 +61,7 @@ dotnet_diagnostic.CA1032.severity = none
 
 # Tests: names are sentences (Health_answers_ok), xUnit needs public classes, and the SQL a
 # test builds (a scratch schema's name, a database to recreate) is its own, never input.
-[AgentEval.Server.Tests/**.cs]
+[Suwageval.Server.Tests/**.cs]
 dotnet_diagnostic.CA1707.severity = none
 dotnet_diagnostic.CA1515.severity = none
 dotnet_diagnostic.CA2100.severity = none

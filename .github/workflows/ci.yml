@@ -32,13 +32,13 @@ jobs:
       postgres:
         image: docker.io/library/postgres:17.11
         env:
-          POSTGRES_USER: agenteval
-          POSTGRES_PASSWORD: agenteval
-          POSTGRES_DB: agenteval
+          POSTGRES_USER: suwageval
+          POSTGRES_PASSWORD: suwageval
+          POSTGRES_DB: suwageval
         ports:
           - 5463:5432
         options: >-
-          --health-cmd "pg_isready -h 127.0.0.1 -U agenteval"
+          --health-cmd "pg_isready -h 127.0.0.1 -U suwageval"
           --health-interval 5s
           --health-timeout 3s
           --health-retries 10
@@ -68,13 +68,13 @@ jobs:
       # package.json at the repo root for the action to find on its own.
       - uses: pnpm/action-setup@v4
         with:
-          package_json_file: AgentEval.Web/package.json
+          package_json_file: Suwageval.Web/package.json
 
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
           cache: pnpm
-          cache-dependency-path: AgentEval.Web/pnpm-lock.yaml
+          cache-dependency-path: Suwageval.Web/pnpm-lock.yaml
 
       # The script skips the chart check when helm is absent, so CI has to provide it —
       # otherwise the one place that should always run it would quietly not.
@@ -84,7 +84,7 @@ jobs:
       # CI that can disagree with your machine, and then neither of you is trustworthy.
       - run: ./scripts/.internal/check.sh
 
-  # The whole app in a real browser (AgentEval.Web/src/**/*.e2e.ts). Same script as `just e2e`;
+  # The whole app in a real browser (Suwageval.Web/src/**/*.e2e.ts). Same script as `just e2e`;
   # here PostgreSQL is a service, and the runner's psql makes the e2e database in it.
   e2e:
     runs-on: ubuntu-latest
@@ -92,13 +92,13 @@ jobs:
       postgres:
         image: docker.io/library/postgres:17.11
         env:
-          POSTGRES_USER: agenteval
-          POSTGRES_PASSWORD: agenteval
-          POSTGRES_DB: agenteval
+          POSTGRES_USER: suwageval
+          POSTGRES_PASSWORD: suwageval
+          POSTGRES_DB: suwageval
         ports:
           - 5463:5432
         options: >-
-          --health-cmd "pg_isready -h 127.0.0.1 -U agenteval"
+          --health-cmd "pg_isready -h 127.0.0.1 -U suwageval"
           --health-interval 5s
           --health-timeout 3s
           --health-retries 10
@@ -115,20 +115,20 @@ jobs:
 
       - uses: pnpm/action-setup@v4
         with:
-          package_json_file: AgentEval.Web/package.json
+          package_json_file: Suwageval.Web/package.json
 
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
           cache: pnpm
-          cache-dependency-path: AgentEval.Web/pnpm-lock.yaml
+          cache-dependency-path: Suwageval.Web/pnpm-lock.yaml
 
       - run: pnpm install --frozen-lockfile
-        working-directory: AgentEval.Web
+        working-directory: Suwageval.Web
 
       # The browser and the system libraries it needs, at the version @playwright/test pins.
       - run: pnpm exec playwright install --with-deps chromium
-        working-directory: AgentEval.Web
+        working-directory: Suwageval.Web
 
       - run: ./scripts/.internal/e2e.sh
 
@@ -153,9 +153,9 @@ jobs:
       matrix:
         include:
           - image: server
-            dockerfile: AgentEval.Server/Dockerfile
+            dockerfile: Suwageval.Server/Dockerfile
           - image: web
-            dockerfile: AgentEval.Web/Dockerfile
+            dockerfile: Suwageval.Web/Dockerfile
     steps:
       - uses: actions/checkout@v4
 

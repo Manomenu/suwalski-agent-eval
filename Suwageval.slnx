@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/Suwageval.Server/">
+    <Project Path="Suwageval.Server/Suwageval.Server.csproj" />
+    <Project Path="Suwageval.Server.Tests/Suwageval.Server.Tests.csproj" />
+  </Folder>
+</Solution>

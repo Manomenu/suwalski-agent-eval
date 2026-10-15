@@ -20,12 +20,12 @@ default:
 # HTTP API on :6230 (OpenAPI document at /openapi/v1.json), rebuilt on every change — needs `just db up`
 [group('run')]
 server *args:
-    DOTNET_WATCH_RESTART_ON_RUDE_EDIT=1 dotnet watch --project AgentEval.Server run {{ args }}
+    DOTNET_WATCH_RESTART_ON_RUDE_EDIT=1 dotnet watch --project Suwageval.Server run {{ args }}
 
 # Web UI on :3230 — proxies /api to the server, so run `just server` alongside
 [group('run')]
 web *args:
-    cd AgentEval.Web && { [ -d node_modules ] || pnpm install; } && pnpm dev {{ args }}
+    cd Suwageval.Web && { [ -d node_modules ] || pnpm install; } && pnpm dev {{ args }}
 
 # ---------------------------------------------------------------------------------------
 # dev — code generation and other chores while developing
@@ -84,14 +84,14 @@ check:
 # Apply autofixes and formatting: analyzer fixes and csharpier for C#, eslint and prettier for the web app
 [group('maintenance')]
 fmt:
-    dotnet format style AgentEval.slnx --verbosity quiet && dotnet format analyzers AgentEval.slnx --verbosity quiet
+    dotnet format style Suwageval.slnx --verbosity quiet && dotnet format analyzers Suwageval.slnx --verbosity quiet
     dotnet tool restore >/dev/null && dotnet csharpier format .
-    cd AgentEval.Web && pnpm exec eslint --fix . && pnpm exec prettier --write --log-level warn .
+    cd Suwageval.Web && pnpm exec eslint --fix . && pnpm exec prettier --write --log-level warn .
 
 # Install/refresh .NET and web dependencies from the lockfiles, and enable the git hooks
 [group('maintenance')]
 sync:
     git config core.hooksPath .githooks
     dotnet tool restore
-    dotnet restore AgentEval.slnx
-    cd AgentEval.Web && pnpm install --frozen-lockfile
+    dotnet restore Suwageval.slnx
+    cd Suwageval.Web && pnpm install --frozen-lockfile

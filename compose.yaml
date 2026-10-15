@@ -11,9 +11,9 @@ services:
   server:
     build:
       context: .
-      dockerfile: AgentEval.Server/Dockerfile
+      dockerfile: Suwageval.Server/Dockerfile
     environment:
-      ConnectionStrings__Default: Host=postgres;Port=5432;Database=agenteval;Username=agenteval;Password=agenteval
+      ConnectionStrings__Default: Host=postgres;Port=5432;Database=suwageval;Username=suwageval;Password=suwageval
     healthcheck:
       # The runtime image has no curl or wget; bash's /dev/tcp asks /health without adding one.
       test:
@@ -34,13 +34,13 @@ services:
   postgres:
     image: docker.io/library/postgres:17.11
     environment:
-      POSTGRES_USER: agenteval
-      POSTGRES_PASSWORD: agenteval
-      POSTGRES_DB: agenteval
+      POSTGRES_USER: suwageval
+      POSTGRES_PASSWORD: suwageval
+      POSTGRES_DB: suwageval
     volumes:
       - postgres:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "agenteval", "-d", "agenteval"]
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "suwageval", "-d", "suwageval"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -48,7 +48,7 @@ services:
   web:
     build:
       context: .
-      dockerfile: AgentEval.Web/Dockerfile
+      dockerfile: Suwageval.Web/Dockerfile
     environment:
       API_UPSTREAM: http://server:6230
     ports:

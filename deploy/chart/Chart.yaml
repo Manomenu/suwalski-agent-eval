@@ -1,5 +1,5 @@
 apiVersion: v2
-name: agenteval
+name: suwageval
 description: API plus a static frontend (nginx) in front of it
 type: application
 

@@ -73,15 +73,15 @@ app keeps its tests beside its code, so those folders would only split the .NET 
 
 | Path | Holds |
 | --- | --- |
-| `AgentEval.slnx` | the .NET solution: the server and its tests |
+| `Suwageval.slnx` | the .NET solution: the server and its tests |
 | `global.json`, `Directory.Build.props`, `Directory.Packages.props` | the SDK band; the settings every C# project shares (nullable, analyzers, warnings as errors, lockfiles); every NuGet package and its version, named once |
-| `AgentEval.Server/` | the HTTP API (ASP.NET Core minimal APIs, PostgreSQL through Npgsql, SQL written by hand and mapped by Dapper). One folder — one namespace — per part: `Api/`, `Database/`, then one per feature |
-| `AgentEval.Server/Database/Migrations/up/` | numbered SQL migrations, applied at start-up by grate (`Database/Migrator.cs`) |
-| `AgentEval.Server.Tests/` | the server's tests (xUnit v3), mirroring the server's folders; `ContractsTests.cs` holds the import contracts |
-| `AgentEval.Web/` | the web app (React, Mantine, Vite). Source in `src/`, one folder per feature |
+| `Suwageval.Server/` | the HTTP API (ASP.NET Core minimal APIs, PostgreSQL through Npgsql, SQL written by hand and mapped by Dapper). One folder — one namespace — per part: `Api/`, `Database/`, then one per feature |
+| `Suwageval.Server/Database/Migrations/up/` | numbered SQL migrations, applied at start-up by grate (`Database/Migrator.cs`) |
+| `Suwageval.Server.Tests/` | the server's tests (xUnit v3), mirroring the server's folders; `ContractsTests.cs` holds the import contracts |
+| `Suwageval.Web/` | the web app (React, Mantine, Vite). Source in `src/`, one folder per feature |
 | `deploy/chart/` | the Helm chart the cluster runs: server, web, ingress and `templates/smoke-test.yaml`, the post-deploy smoke test |
 | `compose.yaml` | the whole stack on a laptop, from the same Dockerfiles — no cluster needed |
-| `AgentEval.Server/Dockerfile`, `AgentEval.Web/Dockerfile` | the two images; build context is the repo root |
+| `Suwageval.Server/Dockerfile`, `Suwageval.Web/Dockerfile` | the two images; build context is the repo root |
 | `justfile`, `.just/` | commands for humans: the main recipes and the `just <module>` families (section 10) |
 | `scripts/.internal/` | everything the gate, CI and `just` run (section 10) |
 | `.github/workflows/ci.yml` | CI: the gate, the browser tests, then the images |
@@ -143,7 +143,7 @@ report and exits non-zero on any failure.
 | prettier | web formatting: every file of the web app (TS, TSX, JSON, CSS, HTML, YAML) is checked with `prettier --check` and fails the gate when unformatted. `just fmt` (or format-on-save in VS Code) fixes it; the style lives only in `.prettierrc.json` | same |
 | vitest | web unit tests (`<name>.test.ts`) | same |
 | knip | dead code on the web side: unused files, exports and dependencies. An `ignore` in `knip.json` needs a reason next to it | same |
-| API types | `AgentEval.Web/src/api/openapi.d.ts` matches the server's OpenAPI document (`just api-types`) | same |
+| API types | `Suwageval.Web/src/api/openapi.d.ts` matches the server's OpenAPI document (`just api-types`) | same |
 | helm | the chart lints and renders, and every annotation and label name fits Kubernetes' 63-character limit after the slash (the API server would refuse it only at deployment) | same |
 | shellcheck | the scripts and the git hooks | same |
 | gitleaks | no secret anywhere in the git history, nor in uncommitted changes. The `.githooks/pre-commit` hook runs it on every commit too (enabled by `just sync`); CI installs a pinned version, so there it never skips | same |
@@ -189,7 +189,7 @@ through the list and add what fits — or say in the change why something does n
   comment.
 - **Formatting:** CSharpier on the server, Prettier on the web — run `just fmt` before the
   gate; never hand-format against them or add files to `.prettierignore` to dodge them.
-- **Unit tests** for every type with rules: `AgentEval.Server.Tests/` mirrors the server's
+- **Unit tests** for every type with rules: `Suwageval.Server.Tests/` mirrors the server's
   folders (`Database/Migrator.cs` → `Database/MigratorTests.cs`), `<name>.test.ts` sits beside the
   file on the web.
 - **A browser test** (`<name>.e2e.ts` beside the code) when users click it: the path a user
@@ -241,7 +241,7 @@ not by reviewers; a dependency against it fails with the types involved.
 
 | | Server | Web |
 | --- | --- | --- |
-| Where | `Layers` in `AgentEval.Server.Tests/ContractsTests.cs` (ArchUnitNET, on the compiled assembly) | `boundaries/*` in `AgentEval.Web/eslint.config.js` |
+| Where | `Layers` in `Suwageval.Server.Tests/ContractsTests.cs` (ArchUnitNET, on the compiled assembly) | `boundaries/*` in `Suwageval.Web/eslint.config.js` |
 | Today | `Api` → `Database` | `main`/`App` → features → `api` |
 | A new feature | **must** get a layer — `Every_server_namespace_has_a_layer` fails otherwise | is a folder `src/<feature>/`, independent of other features by default |
 | Inside a feature | a feature with several concerns declares its own order (e.g. endpoints → store → model) as a test beside the first | free |
@@ -273,7 +273,7 @@ In practice:
 
 - **A new capability starts as a new folder**, or goes into the existing feature it
   belongs to — never into a shared bucket. Name it in the users' terms, the same on both
-  sides, so `AgentEval.Server/Scenarios/` and `AgentEval.Web/src/scenarios/` are obviously
+  sides, so `Suwageval.Server/Scenarios/` and `Suwageval.Web/src/scenarios/` are obviously
   one thing (PascalCase for the C# namespace, camelCase for the web folder).
 - **Shared code is the exception and is earned:** it moves down to a shared level only when
   a second feature really needs it, and only as plumbing (`Database/`, `api/client.ts`) — never as
@@ -286,15 +286,13 @@ A change to one feature should touch one place on each side.
   `Api/ServerApp.cs` calls), `ScenarioStore.cs` (the SQL), `Scenario.cs` (the records the API
   sends and receives); a single concern stays one file. Types are `internal` (the analyzers
   insist); the tests see them through `InternalsVisibleTo`.
-- **One operation, two front doors: HTTP and MCP.** The API is used by the web and by agents
-  (Claude Code through the MCP endpoint, README "Two front doors"). An operation's logic lives
-  once, in the slice (`ScenarioOperations.cs`, or the store when it is only a query), and
-  returns a record or a domain error. Two thin registrations call it: `ScenarioEndpoints.cs`
-  maps the result to HTTP (status codes, Problem Details), `ScenarioTools.cs` to an MCP tool
-  (`[McpServerTool]`, a description written for a model, errors as tool errors). No layer that
-  turns every endpoint into a tool by itself: not every endpoint is a good tool, and a tool's
-  description is not an endpoint's. A helper that registers both comes when the second slice
-  shows the same lines twice.
+- **One interface: HTTP. Its records live in `Suwageval.Contracts`.** The server is used by
+  the web app and by the `suwageval` CLI (and Claude Code through the CLI, README "Front
+  doors"); there is no MCP endpoint. A record the API sends or receives is declared once, in
+  `Suwageval.Contracts/<Feature>/` — the server's endpoints, the CLI and the OpenAPI document
+  (so the web's types) all come from it. An operation's logic lives once, in the slice (the
+  store, or `ScenarioOperations.cs` when there is more than a query); the endpoint only maps
+  it to HTTP (status codes, Problem Details).
 - **Queries: SQL by hand, Dapper maps it.** A store writes plain SQL and lets Dapper map the
   rows onto its row records (`connection.QueryAsync<ScenarioRow>(sql, new { suiteId })`).
   Parameters always as `@name`, never concatenated into the text. No ORM (EF Core, linq2db)
@@ -315,10 +313,10 @@ A change to one feature should touch one place on each side.
 - **Logic out of components.** Anything with rules is a plain `.ts` module with a
   `.test.ts` beside it; components and hooks only wire it to React.
 - **Files:** C# — one top-level type per file, named after it, in the namespace its folder
-  path spells (`AgentEval.Server/Database/Pool.cs` → `AgentEval.Server.Database`); the build
+  path spells (`Suwageval.Server/Database/Pool.cs` → `Suwageval.Server.Database`); the build
   fails otherwise (IDE0130, `.editorconfig`). Web — a component per
   `PascalCase.tsx`, hooks `useSomething.ts`, other modules `camelCase.ts`. Shared e2e steps,
-  once there are some, live in `AgentEval.Web/e2e/helpers.ts`.
+  once there are some, live in `Suwageval.Web/e2e/helpers.ts`.
 - **State:** component state and props. No global store and no data-fetching library until
   a second screen needs shared server state.
 
@@ -385,14 +383,14 @@ Panel.e2e.ts              └ Panel.e2e.ts
 - Name companions `<name>.<role>.ts` — `.test.ts` (vitest), `.e2e.ts` (Playwright),
   `.stories.tsx` etc. — never `test_<name>.ts` or a separate `__tests__/` folder; a
   differently named file falls out of the nesting.
-- Configuration nests under its owner: `AgentEval.slnx` ▸ `global.json`, `Directory.*.props`,
+- Configuration nests under its owner: `Suwageval.slnx` ▸ `global.json`, `Directory.*.props`,
   `.csharpierrc.json`; a `.csproj` ▸ its `packages.lock.json`; `package.json` ▸ lockfile,
   eslint, prettier, knip, tsconfig, vite; `appsettings.json` ▸ `appsettings.*.json`; `README.md` ▸
   the repo-level files.
 - A new kind of companion or config file gets a pattern in `.vscode/settings.json` in the
   same change, rather than cluttering the explorer.
 - C# tests cannot sit beside the type (they would compile into the server and its image), so
-  `AgentEval.Server.Tests/` mirrors the server's folders instead — same names,
+  `Suwageval.Server.Tests/` mirrors the server's folders instead — same names,
   `<Type>Tests.cs`.
 
 ## 7. Secrets
@@ -466,7 +464,7 @@ Two vocabularies, chosen word by word:
   `CreatedAt`), infrastructure (caches, jobs, settings, env vars, chart values), API routes,
   test helpers, CSS classes.
 - **C# conventions on the server, the web's on the web:** PascalCase types, members,
-  namespaces and the solution's folders (`AgentEval.Server/Database/`), camelCase in JSON (ASP.NET Core's default), snake_case tables and columns in
+  namespaces and the solution's folders (`Suwageval.Server/Database/`), camelCase in JSON (ASP.NET Core's default), snake_case tables and columns in
   PostgreSQL (`scenarios`, `created_at`).
 - **Abbreviations: only well-established ones, and only as part of a longer name.** `Id`,
   `Http`, `Json`, `Sql`, `Url`, `Db` inside `DbConnection` or `DbContext` are fine; a name that
@@ -492,15 +490,15 @@ Two vocabularies, chosen word by word:
   | Script | Use it to |
   | --- | --- |
   | `scripts/.internal/check.sh` | verify a change — the whole gate (section 3) |
-  | `scripts/.internal/e2e.sh [playwright args]` | browser tests (`AgentEval.Web/src/**/*.e2e.ts`) against a real server and an empty `agenteval_e2e` database, on ports 6231/3231. Run it after changing anything a user clicks |
-  | `scripts/.internal/db.sh up\|down\|status\|psql` | the local PostgreSQL on `localhost:5463` (docker container `agenteval-postgres`). `check.sh` runs `up` itself; tests create their own `agenteval_test` database |
-  | `scripts/.internal/api-types.sh [--check]` | regenerate `AgentEval.Web/src/api/openapi.d.ts` after changing a record the API exposes. Never edit that file by hand |
+  | `scripts/.internal/e2e.sh [playwright args]` | browser tests (`Suwageval.Web/src/**/*.e2e.ts`) against a real server and an empty `suwageval_e2e` database, on ports 6231/3231. Run it after changing anything a user clicks |
+  | `scripts/.internal/db.sh up\|down\|status\|psql` | the local PostgreSQL on `localhost:5463` (docker container `suwageval-postgres`). `check.sh` runs `up` itself; tests create their own `suwageval_test` database |
+  | `scripts/.internal/api-types.sh [--check]` | regenerate `Suwageval.Web/src/api/openapi.d.ts` after changing a record the API exposes. Never edit that file by hand |
   | `scripts/.internal/secrets.sh backup\|restore` | **not for agents** — the owner's copy of the `.env` files in Bitwarden (`just secrets`, section 7); it asks for the master password |
   | `scripts/.internal/infra-status.sh` | what of the compose stack is up and on which ports (needs `jq`) |
 
   A new helper an agent should reach for goes here too, with a row in this table.
-- **Plain `dotnet` works too:** `dotnet build AgentEval.slnx`, `dotnet test --solution
-  AgentEval.slnx` (Microsoft.Testing.Platform, set in `global.json`) — the gate is these plus
+- **Plain `dotnet` works too:** `dotnet build Suwageval.slnx`, `dotnet test --solution
+  Suwageval.slnx` (Microsoft.Testing.Platform, set in `global.json`) — the gate is these plus
   the rest of section 3.
 
 ## 11. Behavioral guidelines
