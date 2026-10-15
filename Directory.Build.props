@@ -1,0 +1,29 @@
+<!--
+  Settings every C# project in the solution shares — the counterpart of ruff.toml and
+  pyrightconfig.json. What the build reports here is what the gate fails on: an analyzer
+  warning is an error in the editor, in `just check` and in CI alike.
+-->
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Nullable reference types: the strict type check, like pyright strict. -->
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- Every analyzer rule (.NET's wide rule set); the ones that do not fit are switched off
+         one by one in .editorconfig, each with the reason. -->
+    <AnalysisLevel>latest-all</AnalysisLevel>
+    <!-- The IDE style rules set to warning in .editorconfig fail the build, not only the editor. -->
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <!-- Needed for IDE0005 (unused usings) to run in the build; the comments themselves are not required. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <InvariantGlobalization>true</InvariantGlobalization>
+
+    <!-- Lockfiles (packages.lock.json): the restore is reproducible, like uv.lock. CI and the
+         images restore in locked mode — a lockfile out of date with the packages fails there. -->
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <RestoreLockedMode Condition="'$(CI)' != ''">true</RestoreLockedMode>
+  </PropertyGroup>
+</Project>

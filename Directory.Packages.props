@@ -1,0 +1,25 @@
+<!--
+  Central package management: every NuGet package and its version is named once, here. A
+  project only references the package by name. A package arrives in the same change as the
+  first code that uses it (AGENTS.md, section 0).
+-->
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+  <ItemGroup Label="server">
+    <!-- the OpenAPI document the web client is typed from -->
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.12" />
+    <!-- writes that document at build time, without a database (scripts/.internal/api-types.sh) -->
+    <PackageVersion Include="Microsoft.Extensions.ApiDescription.Server" Version="10.0.12" />
+    <!-- PostgreSQL: plain SQL through a pooled data source -->
+    <PackageVersion Include="Npgsql" Version="10.0.3" />
+  </ItemGroup>
+  <ItemGroup Label="tests">
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.12" />
+    <!-- the server's import contracts (AGENTS.md, section 4) -->
+    <PackageVersion Include="TngTech.ArchUnitNET.xUnitV3" Version="0.13.4" />
+    <PackageVersion Include="xunit.v3" Version="4.0.2" />
+  </ItemGroup>
+</Project>

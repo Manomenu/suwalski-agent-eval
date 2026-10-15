@@ -1,0 +1,64 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{yml,yaml}]
+indent_size = 2
+
+[*.{csproj,props,targets,slnx}]
+indent_size = 2
+
+# C#: formatting is CSharpier's (.csharpierrc.json, 140 columns); everything below is lint.
+# Directory.Build.props turns on every analyzer (AnalysisLevel latest-all) and makes each
+# warning an error. A rule that does not fit this code base is switched off here, one line
+# each, with the reason — never with a #pragma in the code (a SuppressMessage on one member
+# carries its Justification).
+[*.cs]
+max_line_length = 140
+
+# Style rules (IDE*) run in the build too (EnforceCodeStyleInBuild).
+dotnet_analyzer_diagnostic.category-Style.severity = warning
+# Formatting is CSharpier's job; two formatters would fight.
+dotnet_diagnostic.IDE0055.severity = none
+
+csharp_style_namespace_declarations = file_scoped:warning
+csharp_style_var_for_built_in_types = true:warning
+csharp_style_var_when_type_is_apparent = true:warning
+csharp_style_var_elsewhere = true:warning
+csharp_style_expression_bodied_methods = when_on_single_line:warning
+csharp_style_expression_bodied_properties = true:warning
+csharp_prefer_braces = true:warning
+csharp_using_directive_placement = outside_namespace:warning
+dotnet_sort_system_directives_first = true
+dotnet_style_qualification_for_field = false:warning
+dotnet_style_qualification_for_property = false:warning
+dotnet_style_qualification_for_method = false:warning
+dotnet_style_qualification_for_event = false:warning
+
+# ConfigureAwait(false) matters in libraries running under a synchronization context; ASP.NET
+# Core and the test runner have none, so it would only be noise on every await.
+dotnet_diagnostic.CA2007.severity = none
+# Builder APIs (services.AddX(), app.MapY()) return themselves for chaining; discarding every
+# one of them with `_ =` would only hide the code.
+dotnet_diagnostic.IDE0058.severity = none
+# They rewrite an if/else into a conditional expression even when that nests ternaries or
+# buries a throw; whichever reads better stays.
+dotnet_diagnostic.IDE0045.severity = none
+dotnet_diagnostic.IDE0046.severity = none
+# The standard constructor set is for exceptions others catch and rethrow; ours are thrown
+# with a message, once, by our own code.
+dotnet_diagnostic.CA1032.severity = none
+
+# Tests: names are sentences (Health_answers_ok), xUnit needs public classes, and the SQL a
+# test builds (a scratch schema's name, a database to recreate) is its own, never input.
+[agenteval_server/AgentEval.Server.Tests/**.cs]
+dotnet_diagnostic.CA1707.severity = none
+dotnet_diagnostic.CA1515.severity = none
+dotnet_diagnostic.CA2100.severity = none
+dotnet_diagnostic.CA1054.severity = none

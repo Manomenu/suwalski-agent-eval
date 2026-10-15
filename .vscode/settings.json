@@ -1,0 +1,44 @@
+{
+    "editor.formatOnSave": true,
+    "[csharp]": {
+        "editor.defaultFormatter": "csharpier.csharpier-vscode"
+    },
+    "files.exclude": {
+        "**/bin": true,
+        "**/obj": true,
+        "**/TestResults": true,
+        "**/node_modules": true,
+        "**/dist": true
+    },
+    // File nesting (AGENTS.md, "File nesting"): a file's tests and companions fold under it,
+    // so the explorer shows one entry per module. Extend these patterns, don't fight them.
+    "explorer.fileNesting.enabled": true,
+    "explorer.fileNesting.expand": false,
+    "explorer.fileNesting.patterns": {
+        "README.md": "AGENTS.md, CLAUDE.md, TODO.md, justfile, .editorconfig, .gitignore, .gitattributes, .dockerignore, compose.yaml",
+        "AgentEval.slnx": "global.json, Directory.Build.props, Directory.Packages.props, .csharpierrc.json",
+        "*.csproj": "packages.lock.json",
+        ".env.base": ".env, .env.example",
+        "package.json": "pnpm*, .npm*, eslint*, .eslint*, prettier*, .prettier*, knip.json, tsconfig*.json, vite.config.ts, index.html",
+        "*.ts": "${capture}.js, ${capture}.*.ts",
+        "*.tsx": "${capture}.ts, ${capture}.*.ts, ${capture}.*.tsx"
+    },
+    "dotnet.defaultSolution": "AgentEval.slnx",
+    "[typescript]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[typescriptreact]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[javascript]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[json]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[css]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "eslint.workingDirectories": ["agenteval_web"],
+    "prettier.prettierPath": "agenteval_web/node_modules/prettier"
+}
