@@ -66,17 +66,21 @@ every moving part is a part someone has to keep alive.
 
 ## 1. What lives where
 
+The projects sit side by side at the root, each in a PascalCase folder named like the
+project, as in Microsoft's "React and ASP.NET Core" template — no `src/` and `tests/`: the web
+app keeps its tests beside its code, so those folders would only split the .NET part.
+
 | Path | Holds |
 | --- | --- |
 | `AgentEval.slnx` | the .NET solution: the server and its tests |
 | `global.json`, `Directory.Build.props`, `Directory.Packages.props` | the SDK band; the settings every C# project shares (nullable, analyzers, warnings as errors, lockfiles); every NuGet package and its version, named once |
-| `agenteval_server/AgentEval.Server/` | the HTTP API (ASP.NET Core minimal APIs, PostgreSQL through Npgsql, SQL written by hand and mapped by Dapper). One folder — one namespace — per part: `Api/`, `Db/`, `Settings/`, then one per feature |
-| `agenteval_server/AgentEval.Server/Db/migrations/` | numbered SQL migrations, applied at start-up, checksummed (`Db/Migrations.cs`) |
-| `agenteval_server/AgentEval.Server.Tests/` | the server's tests (xUnit v3), mirroring the server's folders; `ContractsTests.cs` holds the import contracts |
-| `agenteval_web/` | the web app (React, Mantine, Vite). Source in `src/`, one folder per feature |
+| `AgentEval.Server/` | the HTTP API (ASP.NET Core minimal APIs, PostgreSQL through Npgsql, SQL written by hand and mapped by Dapper). One folder — one namespace — per part: `Api/`, `Database/`, then one per feature |
+| `AgentEval.Server/Database/Migrations/up/` | numbered SQL migrations, applied at start-up by grate (`Database/Migrator.cs`) |
+| `AgentEval.Server.Tests/` | the server's tests (xUnit v3), mirroring the server's folders; `ContractsTests.cs` holds the import contracts |
+| `AgentEval.Web/` | the web app (React, Mantine, Vite). Source in `src/`, one folder per feature |
 | `deploy/chart/` | the Helm chart the cluster runs: server, web, ingress and `templates/smoke-test.yaml`, the post-deploy smoke test |
 | `compose.yaml` | the whole stack on a laptop, from the same Dockerfiles — no cluster needed |
-| `agenteval_server/Dockerfile`, `agenteval_web/Dockerfile` | the two images; build context is the repo root |
+| `AgentEval.Server/Dockerfile`, `AgentEval.Web/Dockerfile` | the two images; build context is the repo root |
 | `justfile`, `.just/` | commands for humans: the main recipes and the `just <module>` families (section 10) |
 | `scripts/.internal/` | everything the gate, CI and `just` run (section 10) |
 | `.github/workflows/ci.yml` | CI: the gate, the browser tests, then the images |
@@ -101,11 +105,15 @@ the way production runs it. Consequences:
 - **A new service** (a converter, a cache, a worker) is added to `compose.yaml` **and** to the
   chart in the same change, wired the same way: same names, same env vars, no published port
   unless the browser talks to it.
-- **A new env var** gets a working local default in `Settings/ServerSettings.cs`, a commented
-  line in `.env.example`, the value for compose in `compose.yaml` and for the cluster in the
-  chart (section 7 for secrets). Settings are read under the environment-variable name
-  (`DATABASE_URL`), from the layered `.env` files on a laptop and from the real environment
-  everywhere (`Settings/DotEnv.cs`).
+- **A new setting** is configuration the way ASP.NET Core does it: committed defaults in
+  `appsettings.json`, laptop values in `appsettings.Development.json`, the rest from the
+  environment (`Section:Key` read as `Section__Key`: `ConnectionStrings__Default`). In code it
+  is an options class of the feature that reads it (`ScenarioOptions`), bound with
+  `AddOptions<T>().BindConfiguration("Section")`, validated with `.Validate(...)` or data
+  annotations and **`.ValidateOnStart()`** — a missing or malformed value stops the server at
+  start, never a request later. The value for compose goes in `compose.yaml`, for the cluster in
+  the chart (section 7 for secrets). The database is the one exception to the section rule:
+  it is a connection string, `ConnectionStrings:Default`, read into `DatabaseOptions`.
 - **Images build from the repo root** with the committed lockfiles (`packages.lock.json`,
   `pnpm-lock.yaml`) in locked mode; every image pins its base and every external image is
   pinned to a version, never `latest`.
@@ -133,7 +141,7 @@ report and exits non-zero on any failure.
 | prettier | web formatting: every file of the web app (TS, TSX, JSON, CSS, HTML, YAML) is checked with `prettier --check` and fails the gate when unformatted. `just fmt` (or format-on-save in VS Code) fixes it; the style lives only in `.prettierrc.json` | same |
 | vitest | web unit tests (`<name>.test.ts`) | same |
 | knip | dead code on the web side: unused files, exports and dependencies. An `ignore` in `knip.json` needs a reason next to it | same |
-| API types | `agenteval_web/src/api/openapi.d.ts` matches the server's OpenAPI document (`just api-types`) | same |
+| API types | `AgentEval.Web/src/api/openapi.d.ts` matches the server's OpenAPI document (`just api-types`) | same |
 | helm | the chart lints and renders, and every annotation and label name fits Kubernetes' 63-character limit after the slash (the API server would refuse it only at deployment) | same |
 | shellcheck | the scripts and the git hooks | same |
 | gitleaks | no secret anywhere in the git history, nor in uncommitted changes. The `.githooks/pre-commit` hook runs it on every commit too (enabled by `just sync`); CI installs a pinned version, so there it never skips | same |
@@ -157,6 +165,16 @@ the page reaches the server, which only starts with its database (`/api/health`)
 A step that cannot run (a tool missing on a fresh machine) reports **SKIP**, never PASS.
 Never weaken a step to make a change pass — fix the change.
 
+### What the repo can prove, the gate proves
+
+Anything that can be checked from what is committed — file names and layout, configuration
+files, migration scripts, the OpenAPI document, which namespace uses which — is checked by a
+test or a gate step, **not by code the server runs**. The server trusts what the gate already
+proved and stays thin: no start-up code that validates its own files, no defensive branches for
+a state the repo cannot be in. Runtime validation is for what only exists at runtime: input
+from outside, configuration from the environment (`ValidateOnStart`), the database's state.
+Example: `MigrationFilesTests` checks the migration names; `Migrator` just runs them.
+
 ### A new feature brings its checks along
 
 Every kind of check the repo has applies to new code too. Before calling a feature done, go
@@ -170,15 +188,16 @@ through the list and add what fits — or say in the change why something does n
 - **Formatting:** CSharpier on the server, Prettier on the web — run `just fmt` before the
   gate; never hand-format against them or add files to `.prettierignore` to dodge them.
 - **Unit tests** for every type with rules: `AgentEval.Server.Tests/` mirrors the server's
-  folders (`Db/Migrations.cs` → `Db/MigrationsTests.cs`), `<name>.test.ts` sits beside the
+  folders (`Database/Migrator.cs` → `Database/MigratorTests.cs`), `<name>.test.ts` sits beside the
   file on the web.
 - **A browser test** (`<name>.e2e.ts` beside the code) when users click it: the path a user
   relies on, not every button.
 - **Import contracts:** the new namespace or folder gets its place (section 4), in the same change.
 - **Dead code:** knip stays clean, the analyzers report unused private members; remove what
   the change made unused.
-- **Database:** schema changes go into a new numbered migration, never an edited one; the
-  queries get tests against the real PostgreSQL.
+- **Database:** schema changes go into a new numbered script in `Database/Migrations/up/`
+  (`NNNN_what_it_does.sql`), never an edited one — grate refuses to start on a script that
+  changed after it ran; the queries get tests against the real PostgreSQL.
 - **API:** after changing a record the API sends or receives, regenerate `openapi.d.ts`
   (`just api-types`).
 - **An outside service** (a model provider behind Microsoft Agent Framework, an API, a public
@@ -220,8 +239,8 @@ not by reviewers; a dependency against it fails with the types involved.
 
 | | Server | Web |
 | --- | --- | --- |
-| Where | `Layers` in `agenteval_server/AgentEval.Server.Tests/ContractsTests.cs` (ArchUnitNET, on the compiled assembly) | `boundaries/*` in `agenteval_web/eslint.config.js` |
-| Today | `Api` → `Db` → `Settings` | `main`/`App` → features → `api` |
+| Where | `Layers` in `AgentEval.Server.Tests/ContractsTests.cs` (ArchUnitNET, on the compiled assembly) | `boundaries/*` in `AgentEval.Web/eslint.config.js` |
+| Today | `Api` → `Database` | `main`/`App` → features → `api` |
 | A new feature | **must** get a layer — `Every_server_namespace_has_a_layer` fails otherwise | is a folder `src/<feature>/`, independent of other features by default |
 | Inside a feature | a feature with several concerns declares its own order (e.g. endpoints → store → model) as a test beside the first | free |
 | Feature uses feature | only downwards, by its position in the layer list | only through an explicit policy in `eslint.config.js`, with a comment saying why |
@@ -252,10 +271,10 @@ In practice:
 
 - **A new capability starts as a new folder**, or goes into the existing feature it
   belongs to — never into a shared bucket. Name it in the users' terms, the same on both
-  sides, so `AgentEval.Server/Scenarios/` and `agenteval_web/src/scenarios/` are obviously
+  sides, so `AgentEval.Server/Scenarios/` and `AgentEval.Web/src/scenarios/` are obviously
   one thing (PascalCase for the C# namespace, camelCase for the web folder).
 - **Shared code is the exception and is earned:** it moves down to a shared level only when
-  a second feature really needs it, and only as plumbing (`Db/`, `api/client.ts`) — never as
+  a second feature really needs it, and only as plumbing (`Database/`, `api/client.ts`) — never as
   a grab-bag of helpers.
 
 A change to one feature should touch one place on each side.
@@ -286,7 +305,7 @@ A change to one feature should touch one place on each side.
   `.test.ts` beside it; components and hooks only wire it to React.
 - **Files:** C# — one top-level type per file, named after it. Web — a component per
   `PascalCase.tsx`, hooks `useSomething.ts`, other modules `camelCase.ts`. Shared e2e steps,
-  once there are some, live in `agenteval_web/e2e/helpers.ts`.
+  once there are some, live in `AgentEval.Web/e2e/helpers.ts`.
 - **State:** component state and props. No global store and no data-fetching library until
   a second screen needs shared server state.
 
@@ -355,7 +374,7 @@ Panel.e2e.ts              └ Panel.e2e.ts
   differently named file falls out of the nesting.
 - Configuration nests under its owner: `AgentEval.slnx` ▸ `global.json`, `Directory.*.props`,
   `.csharpierrc.json`; a `.csproj` ▸ its `packages.lock.json`; `package.json` ▸ lockfile,
-  eslint, prettier, knip, tsconfig, vite; `.env.base` ▸ `.env`, `.env.example`; `README.md` ▸
+  eslint, prettier, knip, tsconfig, vite; `appsettings.json` ▸ `appsettings.*.json`; `README.md` ▸
   the repo-level files.
 - A new kind of companion or config file gets a pattern in `.vscode/settings.json` in the
   same change, rather than cluttering the explorer.
@@ -365,34 +384,31 @@ Panel.e2e.ts              └ Panel.e2e.ts
 
 ## 7. Secrets
 
-**No secret value ever enters this repo** — not in code, not in `.env.example`, not in
+**No secret value ever enters this repo** — not in code, not in `appsettings.json`, not in
 `values.yaml`, not in a test. `.gitignore` keeps `.env`, `.secrets/` and key files out;
 gitleaks checks every commit (the pre-commit hook) and the whole history (the gate). A hit is
 never silenced with an allowlist entry for a real value — remove the value and rotate it.
 A model provider's API key is a secret like any other.
 
-- **On a laptop:** development values (a test API key, a local password) go in `.env` — at
-  the root or in `agenteval_server/` — which is gitignored. `.env.example` documents each
-  variable with a placeholder. **`just secrets backup`** copies those `.env` files into
-  Bitwarden (folder Homelab, one Secure Note per file, `agenteval/<path>`), **`just secrets
-  restore`** brings them back on a new machine (`--force` to overwrite a file that differs).
-  The logic is `scripts/.internal/secrets.sh`; the `bw` CLI must be logged in once
-  (`bw config server https://vault.bitwarden.eu && bw login`). After adding or changing a
-  value in a `.env`, tell the owner to run `just secrets backup`.
+- **On a laptop:** `dotnet user-secrets` (outside the repo, loaded on top of appsettings in
+  Development). The repo has no secret yet; how the first one arrives — user secrets, the
+  compose mount, `secrets.sh` backing that file up to Bitwarden — is planned in `TODO.md`
+  and built in the change that brings it. A local, non-secret value (the development
+  database's password) may sit in `appsettings.Development.json`.
 - **On the cluster:** secrets are owned by the platform repo (`suwalski-platform`), never
   by this one. Each lives in that repo's `.secrets/<project>[-<env>].env`, is entered once
   by `scripts/projects/<project>/[<env>/]setup.sh`, which creates the Kubernetes Secret, and
   is backed up to Bitwarden with **`just secrets backup`**; a new machine gets them back with
   **`just secrets restore`**. The chart only names the Secret (`server.databaseSecret` and
   the like) and reads it through `envFrom`.
-- **A new secret, step by step:** a setting in `Settings/ServerSettings.cs` with a working
-  local default (or none, if it has no safe default); a placeholder line in `.env.example`;
+- **A new secret, step by step:** an options class with no default for it, validated on start;
+  the laptop value in user secrets;
   the Secret's name as a chart value; the prompt in the platform repo's `setup.sh` (its
   AGENTS.md, „Nowa zmienna”). **End the change by telling the owner** to run that `setup.sh`
   and then `just secrets backup` there. Agents never log in to Bitwarden or run the backup
   themselves.
 - Not a secret — a URL, a port, a public name, a model's name — goes in plain sight:
-  `values.yaml`, a ConfigMap, `.env.base`.
+  `values.yaml`, a ConfigMap, `appsettings.json`.
 
 ## 8. Network access and login: through Cloudflare
 
@@ -436,9 +452,14 @@ Two vocabularies, chosen word by word:
   verbs (`Fetch`, `Replace`, `Search`, `Export`), generic fields (`Id`, `Name`, `Kind`,
   `CreatedAt`), infrastructure (caches, jobs, settings, env vars, chart values), API routes,
   test helpers, CSS classes.
-- **C# conventions on the server, the web's on the web:** PascalCase types, members and
-  namespaces, camelCase in JSON (ASP.NET Core's default), snake_case tables and columns in
+- **C# conventions on the server, the web's on the web:** PascalCase types, members,
+  namespaces and the solution's folders (`AgentEval.Server/Database/`), camelCase in JSON (ASP.NET Core's default), snake_case tables and columns in
   PostgreSQL (`scenarios`, `created_at`).
+- **Abbreviations: only well-established ones, and only as part of a longer name.** `Id`,
+  `Http`, `Json`, `Sql`, `Url`, `Db` inside `DbConnection` or `DbContext` are fine; a name that
+  is nothing but an abbreviation is spelled out — the folder is `Database/`, not `Db/`, a
+  setting is `ConnectionString`, not `ConnStr`. A word the team would have to decode is never
+  shortened.
 - **Text people read** is in the users' language regardless: labels and messages on the web
   (Polish, like the rest of the owner's apps).
 
@@ -458,9 +479,9 @@ Two vocabularies, chosen word by word:
   | Script | Use it to |
   | --- | --- |
   | `scripts/.internal/check.sh` | verify a change — the whole gate (section 3) |
-  | `scripts/.internal/e2e.sh [playwright args]` | browser tests (`agenteval_web/src/**/*.e2e.ts`) against a real server and an empty `agenteval_e2e` database, on ports 6231/3231. Run it after changing anything a user clicks |
+  | `scripts/.internal/e2e.sh [playwright args]` | browser tests (`AgentEval.Web/src/**/*.e2e.ts`) against a real server and an empty `agenteval_e2e` database, on ports 6231/3231. Run it after changing anything a user clicks |
   | `scripts/.internal/db.sh up\|down\|status\|psql` | the local PostgreSQL on `localhost:5463` (docker container `agenteval-postgres`). `check.sh` runs `up` itself; tests create their own `agenteval_test` database |
-  | `scripts/.internal/api-types.sh [--check]` | regenerate `agenteval_web/src/api/openapi.d.ts` after changing a record the API exposes. Never edit that file by hand |
+  | `scripts/.internal/api-types.sh [--check]` | regenerate `AgentEval.Web/src/api/openapi.d.ts` after changing a record the API exposes. Never edit that file by hand |
   | `scripts/.internal/secrets.sh backup\|restore` | **not for agents** — the owner's copy of the `.env` files in Bitwarden (`just secrets`, section 7); it asks for the master password |
   | `scripts/.internal/infra-status.sh` | what of the compose stack is up and on which ports (needs `jq`) |
 

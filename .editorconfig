@@ -57,7 +57,7 @@ dotnet_diagnostic.CA1032.severity = none
 
 # Tests: names are sentences (Health_answers_ok), xUnit needs public classes, and the SQL a
 # test builds (a scratch schema's name, a database to recreate) is its own, never input.
-[agenteval_server/AgentEval.Server.Tests/**.cs]
+[AgentEval.Server.Tests/**.cs]
 dotnet_diagnostic.CA1707.severity = none
 dotnet_diagnostic.CA1515.severity = none
 dotnet_diagnostic.CA2100.severity = none

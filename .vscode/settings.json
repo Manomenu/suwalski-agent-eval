@@ -18,7 +18,7 @@
         "README.md": "AGENTS.md, CLAUDE.md, TODO.md, justfile, .editorconfig, .gitignore, .gitattributes, .dockerignore, compose.yaml",
         "AgentEval.slnx": "global.json, Directory.Build.props, Directory.Packages.props, .csharpierrc.json",
         "*.csproj": "packages.lock.json",
-        ".env.base": ".env, .env.example",
+        "appsettings.json": "appsettings.*.json",
         "package.json": "pnpm*, .npm*, eslint*, .eslint*, prettier*, .prettier*, knip.json, tsconfig*.json, vite.config.ts, index.html",
         "*.ts": "${capture}.js, ${capture}.*.ts",
         "*.tsx": "${capture}.ts, ${capture}.*.ts, ${capture}.*.tsx"
@@ -45,6 +45,6 @@
     "[css]": {
         "editor.defaultFormatter": "esbenp.prettier-vscode"
     },
-    "eslint.workingDirectories": ["agenteval_web"],
-    "prettier.prettierPath": "agenteval_web/node_modules/prettier"
+    "eslint.workingDirectories": ["AgentEval.Web"],
+    "prettier.prettierPath": "AgentEval.Web/node_modules/prettier"
 }
