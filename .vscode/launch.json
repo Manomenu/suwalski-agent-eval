@@ -5,13 +5,13 @@
             "name": "server",
             "type": "dotnet",
             "request": "launch",
-            "projectPath": "${workspaceFolder}/AgentEval.Server/AgentEval.Server.csproj"
+            "projectPath": "${workspaceFolder}/Suwageval.Server/Suwageval.Server.csproj"
         },
         {
             "name": "web (vite dev)",
             "type": "node-terminal",
             "request": "launch",
-            "cwd": "${workspaceFolder}/AgentEval.Web",
+            "cwd": "${workspaceFolder}/Suwageval.Web",
             "command": "pnpm dev"
         }
     ]

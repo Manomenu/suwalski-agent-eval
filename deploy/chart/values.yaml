@@ -34,4 +34,4 @@ smokeTest:
 ingress:
   enabled: true
   className: traefik
-  host: agenteval.k8s.example.internal
+  host: suwageval.k8s.example.internal

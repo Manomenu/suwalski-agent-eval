@@ -16,14 +16,14 @@
     "explorer.fileNesting.expand": false,
     "explorer.fileNesting.patterns": {
         "README.md": "AGENTS.md, CLAUDE.md, TODO.md, LICENSE, justfile, .editorconfig, .gitignore, .gitattributes, .dockerignore, compose.yaml",
-        "AgentEval.slnx": "global.json, Directory.Build.props, Directory.Packages.props, .csharpierrc.json",
+        "Suwageval.slnx": "global.json, Directory.Build.props, Directory.Packages.props, .csharpierrc.json",
         "*.csproj": "packages.lock.json",
         "appsettings.json": "appsettings.*.json",
         "package.json": "pnpm*, .npm*, eslint*, .eslint*, prettier*, .prettier*, knip.json, tsconfig*.json, vite.config.ts, index.html",
         "*.ts": "${capture}.js, ${capture}.*.ts",
         "*.tsx": "${capture}.ts, ${capture}.*.ts, ${capture}.*.tsx"
     },
-    "dotnet.defaultSolution": "AgentEval.slnx",
+    "dotnet.defaultSolution": "Suwageval.slnx",
     // The Problems panel shows what the gate fails on (analyzers, nullable) for the whole
     // solution, not only for the files that happen to be open.
     "dotnet.backgroundAnalysis.analyzerDiagnosticsScope": "fullSolution",
@@ -45,6 +45,6 @@
     "[css]": {
         "editor.defaultFormatter": "esbenp.prettier-vscode"
     },
-    "eslint.workingDirectories": ["AgentEval.Web"],
-    "prettier.prettierPath": "AgentEval.Web/node_modules/prettier"
+    "eslint.workingDirectories": ["Suwageval.Web"],
+    "prettier.prettierPath": "Suwageval.Web/node_modules/prettier"
 }

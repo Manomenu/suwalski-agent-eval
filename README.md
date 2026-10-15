@@ -1,6 +1,6 @@
-# agenteval
+# Suwalski Agent Eval (suwageval)
 
-A harness for evaluating an LLM agent system: replay a recorded conversation, let the agent
+Suwageval is a harness for evaluating an LLM agent system: replay a recorded conversation, let the agent
 answer its last message, and check that answer with tests — deterministic ones and an LLM
 judge.
 
@@ -51,24 +51,27 @@ Per test: pass/fail and why. Per scenario: all its tests. Per run of a suite: th
 configuration and model, the judge's model and prompt version, the totals — and a comparison
 with an earlier run, so a regression after a prompt or model change is visible at once.
 
-### Two front doors: the web and an agent
+### Front doors: the web, a CLI, and Claude Code through the CLI
 
-The same API has two users: a person in the browser and an agent — Claude Code first. In
-Claude Code one should be able to say "build a scenario for version 13 of support-bot from
-this conversation, with a check that it calls `refund_order`", "run the regression tag on the
-new version", "why did scenario X fail" — and the agent does it through agenteval, not around
-it.
+The server has one interface, its HTTP API. Three users reach it:
 
-What that takes:
-
-| Piece | What it is | Why |
+| Who | Through | Does |
 | --- | --- | --- |
-| **MCP server inside agenteval** | an `/mcp` endpoint of the same ASP.NET Core server (the official C# SDK, `ModelContextProtocol.AspNetCore`); its tools sit in the slices beside their endpoints (`Scenarios/ScenarioTools.cs` next to `ScenarioEndpoints.cs`); both are thin registrations over the same operation (AGENTS.md, section 5) | typed tools with schemas the agent cannot get wrong, one source of truth with the HTTP API, usable from any MCP client, not only Claude Code |
-| **Claude Code plugin in this repo** | like suwgit's: `.claude-plugin/marketplace.json` + `claude-plugin/` with `.mcp.json` (the server's URL), a skill and a few slash commands | the skill carries what tools cannot: how to turn a conversation into a scenario, which check type fits which question, the workflow from the "Przygotowanie" flow; the commands are shortcuts (`/agenteval-scenario`, `/agenteval-run`) |
-| **Access from outside the laptop** | on the cluster the app sits behind Cloudflare Access (AGENTS.md, section 8); the MCP path needs a service token or its own policy | decided with the first remote use; on a laptop `http://localhost:6230/mcp` needs nothing |
+| a person in the browser | the web app | browses agents, scenarios, runs, results, comparisons |
+| an agent's repository, by hand or in CI | the `suwageval` CLI (`Suwageval.Cli`) | `validate` the scenario files, `push` the agent's version, scenarios and checks, `run --tag … --wait` with an exit code for CI |
+| Claude Code | a Claude Code plugin in this repo that drives the same CLI, like suwgit's | "build a scenario for this agent from this conversation", "run the regression tag on the new version", "why did scenario X fail" — writing the scenario as a file in the agent's repo, then `validate` and `push` |
 
-Not a REST-only skill (the agent writing `curl` with hand-made JSON): it works, but every call
-is a chance to get a field wrong, and the API's shape would be described twice.
+- **The scenario files live in the agent's repository**, in `suwageval/`: `agent.yaml` (the
+  agent and its version: name, `endpointUrl`, prompt, tools, context contract) and
+  `scenarios/*.yaml` (a scenario with its checks inside; `user:` / `assistant:` shorthands for
+  the log). The server's address is not in them: `SUWAGEVAL_URL` (default
+  `http://localhost:6230`) or `--server`.
+- **The CLI is built for agents too:** arguments are paths, `-` reads stdin, `--json` prints a
+  result to read by machine.
+- **`Suwageval.Contracts`** holds the API's records — requests, responses, log items, checks —
+  shared by the server and the CLI, so the file format and the API cannot drift apart.
+- **No MCP server:** the files in the agent's repo are the source of truth, and the CLI keeps
+  one way in for people, CI and Claude Code; no extra endpoint, no extra access question.
 
 ### Open questions
 
@@ -79,25 +82,30 @@ Decided so far (the agent under test over HTTP, tags, non-determinism, who calls
   (OpenTelemetry GenAI conventions, Agent Framework's serialized threads), or both?
 - **The model providers** for the agent and the judge, and the cost limits of a run.
 
-### Roadmap (a sketch, one feature at a time)
+### Roadmap
 
-1. **Scenarios** — the model, a JSON import, storage in PostgreSQL, a list on the web.
-2. **Deterministic tests** on a given answer — no model yet, fully covered by the gate.
-3. **Runs** — the agent under test through Microsoft Agent Framework produces the answer.
-4. **Judge** — LLM-as-judge tests, their verdicts stored with the run.
-5. **Results** — run reports and the comparison between runs on the web.
-6. **Agent front door** — the MCP endpoint over the slices that exist by then, and the
-   Claude Code plugin (skill + commands) that drives it.
+**First goal (MVP):** from `suwalski-example-agent`, `suwageval validate`, `push` the agent's
+version and a scenario, `run --tag regression --wait` against the running agent, and read the
+result of deterministic checks (a tool called, an event, text) in the CLI. No judge, no
+multi-turn simulation, no web views yet.
 
-Microsoft Agent Framework enters the repository with step 3, as the first code that uses it
-(AGENTS.md, section 0) — together with its live test and the recorded answers the gate uses
-instead of a model.
+1. **Contracts and `validate`** — `Suwageval.Contracts` (format v0) and the CLI's `validate`;
+   the YAML files in the example agent.
+2. **Agents, Scenarios (with tags), Checks** — the slices that store them, and `suwageval push`.
+3. **Invocation and Runs** — the agent under test over HTTP (contract v0, `TODO.md`), the
+   deterministic checks, and `suwageval run`. The MVP is reached here.
+4. **After the MVP** — the judge, multi-turn simulation, results and comparisons on the web,
+   the Claude Code plugin over the CLI.
+
+Microsoft Agent Framework enters this repository only if Suwageval builds an agent itself (the
+user simulator, the judge) — as the first code that uses it (AGENTS.md, section 0), together
+with its live test and the recorded answers the gate uses instead of a model.
 
 ## Stack
 
 - **Server:** .NET 10, ASP.NET Core minimal APIs, PostgreSQL through Npgsql and Dapper (SQL
   written by hand, numbered migrations), OpenAPI document the web app is typed from; Microsoft Agent Framework for the
-  agent under test and the judge (from step 3).
+  judge and the user simulator (after the MVP).
 - **Web:** React 19, Mantine, Vite, TypeScript strict.
 - **Around them:** PostgreSQL 17, a container per part, compose for the whole stack on a
   laptop, a Helm chart with a post-deploy smoke test for the cluster.
