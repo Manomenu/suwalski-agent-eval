@@ -31,3 +31,8 @@ id_ed25519*
 scratchpad/
 *.tmp.mjs
 .suwgit.log
+
+# grate's copies of the migration scripts it ran. Migrator points them at the temp folder; a
+# stray run from a project folder must not land them in git again.
+**/output/grate-internal*/
+**/output/migrations/
