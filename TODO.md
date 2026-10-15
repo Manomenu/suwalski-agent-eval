@@ -54,3 +54,10 @@ belongs to.
   (the conversation is repeated, not the check), `passThreshold` on a check (default 100%)
   over its pass rate. Later, when the same settings repeat: profiles — named presets
   (`noisy`: 5 samples, 80%) assigned by name like a tag.
+
+## Later, after the MVP
+
+- **Editor hints for the scenario files:** publish a JSON Schema of the YAML files an agent's
+  repo keeps (the agent, its scenarios with their checks) and point VS Code's YAML extension
+  at it, so fields are suggested and mistakes underlined while writing. Until then the CLI's
+  `validate` command is the check.
