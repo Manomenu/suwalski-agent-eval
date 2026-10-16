@@ -3,25 +3,6 @@
 Rules for anyone — human or AI agent — changing this repository. `CLAUDE.md` only points
 here; this file is the one to edit. What the project is for: [README.md](README.md).
 
-## Template upstream: good practices flow back to solid-app-tpl
-
-This repository was created from **solid-app-tpl** (`~/repos/solid-app-tpl/`,
-https://github.com/Manomenu/solid-app-tpl) — the template every new app starts from — and
-translated from its stack (FastAPI, uv, ruff, pyright) to .NET. The rules, the layout, the
-gates, the container stack and the chart are the template's; only the tools that run them
-differ (section 3 maps one onto the other).
-
-**When a task introduces a good practice of running a repository** — a new gate step, a
-convention for layout or naming, a script, a CI job, a rule in this file, a fix to the
-tooling — **and `~/repos/solid-app-tpl/` exists on this machine, bring it to the template
-too, in the same task**, as long as it is not specific to .NET:
-
-- in its generic form: `myapp` names, no feature or domain code, no secrets, no addresses;
-- with the template's gate green afterwards (`./scripts/.internal/check.sh` there), and
-  `init-project.sh` updated when it rewrites the new files;
-- and say in the summary what went to the template. Features, domain rules and .NET-only
-  tooling stay here; only how the repo is *run* travels.
-
 ## Git: agents commit and push through suwgit
 
 **Agents may commit and push — only with [suwgit](https://github.com/Manomenu/suwgit)**
@@ -130,8 +111,7 @@ the way production runs it. Consequences:
 - **Containers go through `docker` and `docker compose`** — the scripts, `just` and CI call
   nothing else. On the owner's Fedora that is podman behind the `docker` command (podman-docker,
   rootless) with the official Compose v2 plugin, not `podman-compose` (it has gaps, e.g.
-  `profiles:`); in CI it is Docker itself. solid-app-tpl calls `podman` directly; this repo
-  does not.
+  `profiles:`); in CI it is Docker itself.
 
 ## 3. The quality gate
 
@@ -139,21 +119,21 @@ the way production runs it. Consequences:
 the same thing for humans. Run it before calling any change done. It prints a PASS/FAIL/SKIP
 report and exits non-zero on any failure.
 
-| Step | Guards | In solid-app-tpl |
-| --- | --- | --- |
-| build server | the compiler with nullable reference types, every .NET analyzer (`AnalysisLevel` `latest-all`, the IDE style rules too) and NuGet's vulnerability audit; any warning is an error (`Directory.Build.props`). A rule that does not fit is switched off in `.editorconfig` with the reason, never with `#pragma`; a single justified exception is a `[SuppressMessage(..., Justification = ...)]` on that member | ruff, pyright strict |
-| format server | `csharpier check` — C# (and the project files) formatted by CSharpier, 140 columns. `just fmt` fixes it | ruff format |
-| test server | xUnit v3 against a real PostgreSQL (`just db up` locally, a service in CI), incl. `ContractsTests.cs`: the import contracts, and every server namespace has a layer | pytest, import-linter |
-| tsc (app + node) | TypeScript strict plus the extra flags in `tsconfig.app.json`; `tsconfig.node.json` covers the Vite config and the e2e tests | same |
-| eslint | typescript-eslint `strictTypeChecked` + `stylisticTypeChecked`, react-hooks, and the web import contracts (section 4) | same |
-| prettier | web formatting: every file of the web app (TS, TSX, JSON, CSS, HTML, YAML) is checked with `prettier --check` and fails the gate when unformatted. `just fmt` (or format-on-save in VS Code) fixes it; the style lives only in `.prettierrc.json` | same |
-| vitest | web unit tests (`<name>.test.ts`) | same |
-| knip | dead code on the web side: unused files, exports and dependencies. An `ignore` in `knip.json` needs a reason next to it | same |
-| API types | `Suwageval.Web/src/api/openapi.d.ts` matches the server's OpenAPI document (`just api-types`) | same |
-| helm | the chart lints and renders, and every annotation and label name fits Kubernetes' 63-character limit after the slash (the API server would refuse it only at deployment) | same |
-| shellcheck | the scripts and the git hooks | same |
-| gitleaks | no secret anywhere in the git history, nor in uncommitted changes. The `.githooks/pre-commit` hook runs it on every commit too (enabled by `just sync`); CI installs a pinned version, so there it never skips | same |
-| compose | `compose.yaml` resolves | same |
+| Step | Guards |
+| --- | --- |
+| build server | the compiler with nullable reference types, every .NET analyzer (`AnalysisLevel` `latest-all`, the IDE style rules too) and NuGet's vulnerability audit; any warning is an error (`Directory.Build.props`). A rule that does not fit is switched off in `.editorconfig` with the reason, never with `#pragma`; a single justified exception is a `[SuppressMessage(..., Justification = ...)]` on that member |
+| format server | `csharpier check` — C# (and the project files) formatted by CSharpier, 140 columns. `just fmt` fixes it |
+| test server | xUnit v3 against a real PostgreSQL (`just db up` locally, a service in CI), incl. `ContractsTests.cs`: the import contracts, and every server namespace has a layer |
+| tsc (app + node) | TypeScript strict plus the extra flags in `tsconfig.app.json`; `tsconfig.node.json` covers the Vite config and the e2e tests |
+| eslint | typescript-eslint `strictTypeChecked` + `stylisticTypeChecked`, react-hooks, and the web import contracts (section 4) |
+| prettier | web formatting: every file of the web app (TS, TSX, JSON, CSS, HTML, YAML) is checked with `prettier --check` and fails the gate when unformatted. `just fmt` (or format-on-save in VS Code) fixes it; the style lives only in `.prettierrc.json` |
+| vitest | web unit tests (`<name>.test.ts`) |
+| knip | dead code on the web side: unused files, exports and dependencies. An `ignore` in `knip.json` needs a reason next to it |
+| API types | `Suwageval.Web/src/api/openapi.d.ts` matches the server's OpenAPI document (`just api-types`) |
+| helm | the chart lints and renders, and every annotation and label name fits Kubernetes' 63-character limit after the slash (the API server would refuse it only at deployment) |
+| shellcheck | the scripts and the git hooks |
+| gitleaks | no secret anywhere in the git history, nor in uncommitted changes. The `.githooks/pre-commit` hook runs it on every commit too (enabled by `just sync`); CI installs a pinned version, so there it never skips |
+| compose | `compose.yaml` resolves |
 
 **Browser tests** are separate: `./scripts/.internal/e2e.sh` (`just e2e`) runs Playwright
 against a real server and an empty database of its own, on ports apart from the ones you
