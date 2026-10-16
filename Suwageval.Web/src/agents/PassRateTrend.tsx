@@ -11,6 +11,7 @@ import {
     RUN_KEY,
     TREND_MIN_RUNS,
     asTrendRow,
+    measuredSeries,
     hasRechecks,
     legendColor,
     seriesColor,
@@ -74,9 +75,9 @@ export function PassRateTrend({ points }: { points: RunPassRates[] }) {
                                                     Re-checked: these are the results of its latest re-check
                                                 </Text>
                                             )}
-                                            {shown.map((name) => (
+                                            {measuredSeries(row, shown).map((name) => (
                                                 <Text key={name} size="sm" c={seriesColor(name, names)}>
-                                                    {name}: {row[name] === null || row[name] === undefined ? "—" : `${String(row[name])}%`}
+                                                    {name}: {String(row[name])}%
                                                 </Text>
                                             ))}
                                         </Paper>

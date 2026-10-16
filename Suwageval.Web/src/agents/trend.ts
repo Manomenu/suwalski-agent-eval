@@ -42,7 +42,11 @@ export function trendRows(points: RunPassRates[]): TrendRow[] {
         const row: TrendRow = {
             [RUN_KEY]: point.runId,
             [LABEL_KEY]: shortDate(point.createdAt),
-            [DETAILS_KEY]: [point.versionLabel?.trim() ? point.versionLabel : "no label", point.modelNames.join(", ")]
+            [DETAILS_KEY]: [
+                point.tag == null ? "all scenarios" : `tag ${point.tag}`,
+                point.versionLabel?.trim() ? point.versionLabel : "no label",
+                point.modelNames.join(", "),
+            ]
                 .filter((part) => part !== "")
                 .join(" · "),
             [RECHECK_KEY]: point.recheckedBy ?? null,
@@ -90,4 +94,9 @@ export function toggleHidden(hidden: ReadonlySet<string>, name: string): Readonl
 /** Some point shows the results of a re-check, not of its own run: the chart says so. */
 export function hasRechecks(points: readonly RunPassRates[]): boolean {
     return points.some((point) => point.recheckedBy != null);
+}
+
+/** The series a run measured, in the legend's order: a line passing over a run that did not measure it shows no value there. */
+export function measuredSeries(row: TrendRow, series: readonly string[]): string[] {
+    return series.filter((name) => typeof row[name] === "number");
 }
