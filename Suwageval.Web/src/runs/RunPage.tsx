@@ -11,7 +11,7 @@ export function RunPage({ runId }: { runId: string }) {
     if (state.kind === "loading") {
         return (
             <Container py="xl">
-                <Loader aria-label="Ładuję wyniki" />
+                <Loader aria-label="Loading results" />
             </Container>
         );
     }
@@ -19,8 +19,8 @@ export function RunPage({ runId }: { runId: string }) {
         const notFound = isRunNotFound(state.error);
         return (
             <Container py="xl">
-                <Alert color="red" title={notFound ? "Nie znaleziono runu" : "Nie udało się wczytać wyników"}>
-                    {notFound ? `Nie ma runu ${runId}.` : state.error.message}
+                <Alert color="red" title={notFound ? "Run not found" : "Could not load the results"}>
+                    {notFound ? `There is no run ${runId}.` : state.error.message}
                 </Alert>
             </Container>
         );
@@ -31,34 +31,34 @@ export function RunPage({ runId }: { runId: string }) {
         <Container py="xl" size="lg">
             <Stack gap="md">
                 <Group gap="xs">
-                    <Anchor href="/">Agenci</Anchor>/<Anchor href={`/agents/${encodeURIComponent(run.agent)}`}>{run.agent}</Anchor>
+                    <Anchor href="/">Agents</Anchor>/<Anchor href={`/agents/${encodeURIComponent(run.agent)}`}>{run.agent}</Anchor>
                 </Group>
                 <Group gap="sm">
                     <Title order={2}>Run {run.agent}</Title>
                     <Badge size="lg" color={statusColor(run.status)}>
                         {statusLabel(run.status)}
                     </Badge>
-                    {isActive(run.status) && <Loader size="sm" aria-label="Run trwa" />}
+                    {isActive(run.status) && <Loader size="sm" aria-label="Run in progress" />}
                 </Group>
                 <Text c="dimmed">
-                    id {run.id} · wersja {run.agentVersionId}
+                    id {run.id} · version {run.agentVersionId}
                     {run.tag ? ` · tag ${run.tag}` : ""} · {run.endpointUrl}
                 </Text>
                 <Group gap="lg">
-                    <Text>Próbki: {progress(run)}</Text>
-                    <Text c="green">Checki zaliczone: {num(run.checksPassed)}</Text>
-                    <Text c={num(run.checksFailed) > 0 ? "red" : "dimmed"}>Checki niezaliczone: {num(run.checksFailed)}</Text>
+                    <Text>Samples: {progress(run)}</Text>
+                    <Text c="green">Checks passed: {num(run.checksPassed)}</Text>
+                    <Text c={num(run.checksFailed) > 0 ? "red" : "dimmed"}>Checks failed: {num(run.checksFailed)}</Text>
                 </Group>
                 <Text c="dimmed" size="sm">
-                    utworzony {formatTime(run.createdAt)} · start {formatTime(run.startedAt)} · koniec {formatTime(run.finishedAt)}
+                    created {formatTime(run.createdAt)} · start {formatTime(run.startedAt)} · koniec {formatTime(run.finishedAt)}
                 </Text>
                 {run.contractChangedDuringRun === true && (
-                    <Alert color="yellow" title="Kontrakt agenta zmienił się w trakcie runu">
-                        Część próbek może nie pochodzić z tej wersji.
+                    <Alert color="yellow" title="The agent's contract changed during the run">
+                        Some samples may not come from this version.
                     </Alert>
                 )}
                 {run.error && (
-                    <Alert color="red" title="Run nie powiódł się">
+                    <Alert color="red" title="The run failed">
                         {run.error}
                     </Alert>
                 )}

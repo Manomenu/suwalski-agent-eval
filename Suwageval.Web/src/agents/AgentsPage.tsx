@@ -14,16 +14,16 @@ export function AgentsPage() {
         <Page state={state} notFound="">
             {(agents) => (
                 <Stack gap="md">
-                    <Title order={2}>Agenci</Title>
+                    <Title order={2}>Agents</Title>
                     {agents.length === 0 ? (
-                        <Text c="dimmed">Nie ma jeszcze agentów. Dodaj pierwszego przez suwageval push.</Text>
+                        <Text c="dimmed">There are no agents yet. Add the first one with suwageval push.</Text>
                     ) : (
                         <Table>
                             <Table.Thead>
                                 <Table.Tr>
-                                    <Table.Th>Nazwa</Table.Th>
-                                    <Table.Th>Adres</Table.Th>
-                                    <Table.Th>Utworzony</Table.Th>
+                                    <Table.Th>Name</Table.Th>
+                                    <Table.Th>Address</Table.Th>
+                                    <Table.Th>Created</Table.Th>
                                 </Table.Tr>
                             </Table.Thead>
                             <Table.Tbody>

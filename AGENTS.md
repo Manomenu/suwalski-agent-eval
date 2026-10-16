@@ -365,7 +365,7 @@ the base's only feature and shows the pattern end to end: `api.ts` → `status.t
   for it, with classes named after the feature (`.draft-row`), not inline style objects that
   are repeated.
 - **Accessible names are the test contract.** Interactive things are real buttons, links and
-  inputs with a visible label or an `aria-label` (an icon button: `aria-label="Konto"`).
+  inputs with a visible label or an `aria-label` (an icon button: `aria-label="Account"`).
   That is what screen readers read and what the e2e tests find them by.
 - **Numbers that shape the layout are named constants** (`NAVBAR_WIDTH`), exported, and tests
   compute expectations from them — a test that hard-codes 220 breaks on a design tweak.
@@ -467,7 +467,7 @@ Two vocabularies, chosen word by word:
 
 - **Domain words in the users' language.** What the users' work is made of — its things, their
   attributes, the terms of the trade — is named the way the users say it. The trade here is
-  evaluating LLM agents, and its terms are English even in Polish conversation: `Scenario`,
+  evaluating LLM agents, and its terms are English: `Scenario`,
   `Conversation`, `ToolCall`, `RetrievedChunk`, `Assertion`, `Judge`, `Verdict`, `Run`. Pick
   one word per thing and keep it everywhere — server, web, database, README.
 - **Software words in technical English.** Everything that exists only because there is
@@ -483,13 +483,12 @@ Two vocabularies, chosen word by word:
   is nothing but an abbreviation is spelled out — the folder is `Database/`, not `Db/`, a
   setting is `ConnectionString`, not `ConnStr`. A word the team would have to decode is never
   shortened.
-- **Text people read** is in the users' language regardless: labels and messages on the web
-  (Polish, like the rest of the owner's apps).
+- **Text people read** — labels and messages on the web — is in English, like everything else.
 
 ## 10. Commands: `justfile` vs `scripts/.internal/`
 
 - **`justfile` is for humans.** `just` lists every recipe, grouped: `run` (dev servers),
-  `dev` (code generation, `just cli …` to run the CLI from source, `just cli-install` to install it as the global `suwageval`), `infra` (the container stack), `maintenance` (check, e2e, fmt,
+  `dev` (code generation, `just cli …` to run the CLI from source, `just cli-install` to install it as the global `suwageval`, `just tmux-dev` for the interactive tmux layout of the local stack, humans only, via `scripts/.internal/tmux-dev.sh`), `infra` (the container stack), `maintenance` (check, e2e, fmt,
   sync), plus modules in `.just/`: `db` (`.just/db.just`: the local PostgreSQL) and
   `secrets` (`.just/secrets.just`: the `.env` files in Bitwarden). New human-facing commands
   go there, into the matching group; a family of related commands becomes a module of its

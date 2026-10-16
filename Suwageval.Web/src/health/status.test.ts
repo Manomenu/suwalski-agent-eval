@@ -8,6 +8,6 @@ group("statusOf", () => {
     });
 
     it("is down with the reason when the request failed", () => {
-        expect(describe(statusOf(new Error("502 Bad Gateway")))).toBe("nie działa (502 Bad Gateway)");
+        expect(describe(statusOf(new Error("502 Bad Gateway")))).toBe("down (502 Bad Gateway)");
     });
 });

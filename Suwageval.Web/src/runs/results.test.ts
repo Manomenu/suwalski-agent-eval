@@ -31,8 +31,8 @@ describe("results", () => {
         expect(isActive("Cancelled")).toBe(false);
     });
 
-    it("labels statuses in Polish", () => {
-        expect(statusLabel("Done")).toBe("zakończony");
+    it("labels statuses in English", () => {
+        expect(statusLabel("Done")).toBe("done");
     });
 
     it("writes shares as percent without trailing zeros", () => {
@@ -46,7 +46,7 @@ describe("results", () => {
             { sample: 1, passed: true, evidence: [], message: "" },
             { sample: 2, passed: false, evidence: [], message: "" },
         ]);
-        expect(checkSummary(c)).toBe("50% (1/2 próbek, wymagane 100%)");
+        expect(checkSummary(c)).toBe("50% (1/2 samples, required 100%)");
     });
 
     it("shows progress, with no total before the run starts", () => {
@@ -78,9 +78,9 @@ describe("results", () => {
     });
 
     it("titles and bodies items", () => {
-        expect(itemTitle(call)).toBe("wywołanie: search");
+        expect(itemTitle(call)).toBe("call: search");
         expect(itemBody(call)).toBe('{\n  "q": "x"\n}');
         expect(itemBody(reply)).toBe("hi");
-        expect(itemTitle({ kind: "ToolResult", callId: "1", content: "", isError: true })).toBe("wynik narzędzia (błąd)");
+        expect(itemTitle({ kind: "ToolResult", callId: "1", content: "", isError: true })).toBe("tool result (error)");
     });
 });

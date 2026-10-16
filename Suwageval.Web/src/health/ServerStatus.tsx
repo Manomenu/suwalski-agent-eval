@@ -25,7 +25,7 @@ export function ServerStatus() {
 
     return (
         <Badge variant="light" size="lg" color={status.kind === "down" ? "red" : "indigo"}>
-            serwer: {describe(status)}
+            server: {describe(status)}
         </Badge>
     );
 }

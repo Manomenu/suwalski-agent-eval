@@ -14,23 +14,26 @@ export function ScenarioCard({ scenario }: { scenario: ScenarioRunResult }) {
                 {scenario.samples.map((sample) => (
                     <Stack key={sample.sample} gap="xs">
                         {sample.status === "Failed" && (
-                            <Alert color="red" title={`Próbka ${num(sample.sample)}: agent nic nie zwrócił`}>
+                            <Alert color="red" title={`Sample ${num(sample.sample)}: the agent returned nothing`}>
                                 {sample.error}
                             </Alert>
                         )}
                         {(sample.undeclared?.length ?? 0) > 0 && (
-                            <Alert color="yellow" title={`Próbka ${num(sample.sample)}: agent zwrócił to, czego jego wersja nie deklaruje`}>
+                            <Alert
+                                color="yellow"
+                                title={`Sample ${num(sample.sample)}: the agent returned what its version does not declare`}
+                            >
                                 {sample.undeclared?.join(", ")}
                             </Alert>
                         )}
                     </Stack>
                 ))}
 
-                {scenario.checks.length === 0 && <Text c="dimmed">Brak checków.</Text>}
+                {scenario.checks.length === 0 && <Text c="dimmed">No checks.</Text>}
                 {scenario.checks.map((check) => (
                     <Stack key={check.key} gap={4}>
                         <Group gap="xs">
-                            <Badge color={check.passed ? "green" : "red"}>{check.passed ? "zaliczony" : "niezaliczony"}</Badge>
+                            <Badge color={check.passed ? "green" : "red"}>{check.passed ? "passed" : "failed"}</Badge>
                             <Text fw={600}>{check.key}</Text>
                             <Text c="dimmed">{checkSummary(check)}</Text>
                         </Group>
@@ -39,7 +42,7 @@ export function ScenarioCard({ scenario }: { scenario: ScenarioRunResult }) {
                                 .filter((sample) => !sample.passed || check.samples.length === 1)
                                 .map((sample) => (
                                     <List.Item key={sample.sample}>
-                                        {check.samples.length > 1 ? `próbka ${num(sample.sample)}: ` : ""}
+                                        {check.samples.length > 1 ? `sample ${num(sample.sample)}: ` : ""}
                                         {sample.message}
                                     </List.Item>
                                 ))}
@@ -50,7 +53,7 @@ export function ScenarioCard({ scenario }: { scenario: ScenarioRunResult }) {
                 <Accordion multiple variant="contained">
                     {scenario.samples.map((sample) => (
                         <Accordion.Item key={sample.sample} value={String(num(sample.sample))}>
-                            <Accordion.Control>Wynik agenta, próbka {num(sample.sample)}</Accordion.Control>
+                            <Accordion.Control>Agent output, sample {num(sample.sample)}</Accordion.Control>
                             <Accordion.Panel>
                                 <ConversationView
                                     items={sample.output ?? []}

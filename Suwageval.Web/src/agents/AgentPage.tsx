@@ -15,23 +15,23 @@ export function AgentPage({ name }: { name: string }) {
     });
 
     return (
-        <Page state={state} notFound={`Nie ma agenta ${name}.`}>
+        <Page state={state} notFound={`There is no agent ${name}.`}>
             {({ agent, runs, versions }) => (
                 <Stack gap="lg">
-                    <Anchor href="/">← Agenci</Anchor>
+                    <Anchor href="/">← Agents</Anchor>
                     <Stack gap={4}>
                         <Title order={2}>{agent.name}</Title>
                         <Text c="dimmed">
-                            {agent.endpointUrl} · utworzony {formatTime(agent.createdAt)}
+                            {agent.endpointUrl} · created {formatTime(agent.createdAt)}
                         </Text>
                         <Text c="dimmed">
-                            wersje {num(agent.versions)} · scenariusze {num(agent.scenarios)} · checki {num(agent.checks)}
+                            versions {num(agent.versions)} · scenarios {num(agent.scenarios)} · checks {num(agent.checks)}
                         </Text>
                     </Stack>
 
-                    <Title order={3}>Runy</Title>
+                    <Title order={3}>Runs</Title>
                     {runs.length === 0 ? (
-                        <Text c="dimmed">Ten agent nie miał jeszcze runu.</Text>
+                        <Text c="dimmed">This agent has no runs yet.</Text>
                     ) : (
                         <Table>
                             <Table.Thead>
@@ -39,11 +39,11 @@ export function AgentPage({ name }: { name: string }) {
                                     <Table.Th>Run</Table.Th>
                                     <Table.Th>Status</Table.Th>
                                     <Table.Th>Tag</Table.Th>
-                                    <Table.Th>Wersja</Table.Th>
-                                    <Table.Th>Checki</Table.Th>
-                                    <Table.Th>Próbki</Table.Th>
-                                    <Table.Th>Utworzony</Table.Th>
-                                    <Table.Th>Zakończony</Table.Th>
+                                    <Table.Th>Version</Table.Th>
+                                    <Table.Th>Checks</Table.Th>
+                                    <Table.Th>Samples</Table.Th>
+                                    <Table.Th>Created</Table.Th>
+                                    <Table.Th>Finished</Table.Th>
                                 </Table.Tr>
                             </Table.Thead>
                             <Table.Tbody>
@@ -64,10 +64,10 @@ export function AgentPage({ name }: { name: string }) {
                                         <Table.Td>
                                             <Group gap={4}>
                                                 <Text span c="green">
-                                                    {num(run.checksPassed)} zal.
+                                                    {num(run.checksPassed)} passed
                                                 </Text>
                                                 <Text span c={num(run.checksFailed) > 0 ? "red" : "dimmed"}>
-                                                    {num(run.checksFailed)} niezal.
+                                                    {num(run.checksFailed)} failed
                                                 </Text>
                                             </Group>
                                         </Table.Td>
@@ -80,15 +80,15 @@ export function AgentPage({ name }: { name: string }) {
                         </Table>
                     )}
 
-                    <Title order={3}>Wersje</Title>
+                    <Title order={3}>Versions</Title>
                     {versions.length === 0 ? (
-                        <Text c="dimmed">Ten agent nie ma jeszcze wersji — powstaje przy pierwszym runie.</Text>
+                        <Text c="dimmed">This agent has no versions yet — one is created on the first run.</Text>
                     ) : (
                         <Table>
                             <Table.Thead>
                                 <Table.Tr>
-                                    <Table.Th>Etykieta</Table.Th>
-                                    <Table.Th>Utworzona</Table.Th>
+                                    <Table.Th>Label</Table.Th>
+                                    <Table.Th>Created</Table.Th>
                                     <Table.Th>Id</Table.Th>
                                 </Table.Tr>
                             </Table.Thead>

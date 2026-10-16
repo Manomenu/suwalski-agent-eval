@@ -27,7 +27,7 @@ export function App() {
             {page.kind === "run" && <RunPage runId={page.runId} />}
             {page.kind === "unknown" && (
                 <Container py="xl">
-                    <Anchor href="/">Nie znaleziono strony — wróć do listy agentów</Anchor>
+                    <Anchor href="/">Page not found — back to the list of agents</Anchor>
                 </Container>
             )}
         </>

@@ -11,7 +11,7 @@ export function VersionPage({ name, versionId }: { name: string; versionId: stri
     const state = useLoaded(`${name}/${versionId}`, (signal) => fetchVersion(name, versionId, signal));
 
     return (
-        <Page state={state} notFound={`Nie ma wersji ${versionId} agenta ${name}.`}>
+        <Page state={state} notFound={`There is no version ${versionId} of agent ${name}.`}>
             {(version) => {
                 const { content } = version;
                 const tools = content.tools ?? [];
@@ -19,20 +19,20 @@ export function VersionPage({ name, versionId }: { name: string; versionId: stri
                 return (
                     <Stack gap="md">
                         <Anchor href={agentHref(name)}>← {name}</Anchor>
-                        <Title order={2}>Wersja {versionTitle(version.id, content.label)}</Title>
+                        <Title order={2}>Version {versionTitle(version.id, content.label)}</Title>
                         <Text c="dimmed">
-                            id {version.id} · utworzona {formatTime(version.createdAt)} · hash {version.contentHash}
+                            id {version.id} · created {formatTime(version.createdAt)} · hash {version.contentHash}
                         </Text>
 
-                        <Title order={3}>Prompt systemowy</Title>
+                        <Title order={3}>System prompt</Title>
                         <Code block>{content.systemPrompt}</Code>
 
                         <Title order={3}>Model</Title>
                         <Text>{content.model.name}</Text>
                         {content.model.parameters != null && <Code block>{jsonText(content.model.parameters)}</Code>}
 
-                        <Title order={3}>Narzędzia</Title>
-                        {tools.length === 0 && <Text c="dimmed">Brak narzędzi.</Text>}
+                        <Title order={3}>Tools</Title>
+                        {tools.length === 0 && <Text c="dimmed">No tools.</Text>}
                         {tools.map((tool) => (
                             <Stack key={tool.name} gap="xs">
                                 <Text fw={600}>{tool.name}</Text>
@@ -41,14 +41,14 @@ export function VersionPage({ name, versionId }: { name: string; versionId: stri
                             </Stack>
                         ))}
 
-                        <Title order={3}>Kontekst</Title>
+                        <Title order={3}>Context</Title>
                         <Badge variant="light" w="fit-content">
-                            {content.context?.usesRetrieval === true ? "używa retrievalu" : "bez retrievalu"}
+                            {content.context?.usesRetrieval === true ? "uses retrieval" : "no retrieval"}
                         </Badge>
-                        {events.length === 0 && <Text c="dimmed">Brak zdarzeń.</Text>}
+                        {events.length === 0 && <Text c="dimmed">No events.</Text>}
                         {events.map((event) => (
                             <Stack key={event.type} gap="xs">
-                                <Text fw={600}>Zdarzenie {event.type}</Text>
+                                <Text fw={600}>Event {event.type}</Text>
                                 <Code block>{jsonText(event.dataSchema)}</Code>
                             </Stack>
                         ))}
