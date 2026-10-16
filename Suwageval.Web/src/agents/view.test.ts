@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import { ApiError } from "../api/client";
+import { PAGE_SIZE } from "../runs/paging";
 import {
     agentHref,
+    allowedVersionIds,
+    firstPages,
+    hasMorePages,
     canCompare,
     compareHref,
     isNotFound,
@@ -164,5 +168,45 @@ describe("comparing", () => {
         const newestFirst = [{ id: "c" }, { id: "b" }, { id: "a" }];
         expect(runsToCompare(newestFirst, new Set(["c", "a"]))).toEqual(["a", "c"]);
         expect(runsToCompare(newestFirst, new Set(["gone"]))).toEqual([]);
+    });
+});
+
+describe("allowedVersionIds", () => {
+    const withData = { id: "v-data", archivedAt: null, modelNames: ["large"], dataVersion: "build-7" };
+    const versions = [old, current, withData];
+
+    it("is null when the filters let every version through", () => {
+        expect(allowedVersionIds(versions, true, [], [])).toBeNull();
+        expect(allowedVersionIds([current, withData], false, [], [])).toBeNull();
+        expect(allowedVersionIds([], false, [], [])).toBeNull();
+    });
+
+    it("lists the versions left after hiding archived ones, models and data versions", () => {
+        expect(allowedVersionIds(versions, false, [], [])).toEqual(["v-new", "v-data"]);
+        expect(allowedVersionIds(versions, true, ["small"], [])).toEqual(["v-old"]);
+        expect(allowedVersionIds(versions, true, ["large"], ["build-7"])).toEqual(["v-data"]);
+    });
+
+    it("is empty when no version qualifies", () => {
+        expect(allowedVersionIds(versions, true, ["none"], [])).toEqual([]);
+        expect(allowedVersionIds([old], false, [], [])).toEqual([]);
+    });
+});
+
+describe("firstPages", () => {
+    const items = Array.from({ length: PAGE_SIZE * 2 + 1 }, (_, index) => index);
+
+    it("shows a page, then the next one, and everything once the pages cover the list", () => {
+        expect(firstPages(items, 1)).toHaveLength(PAGE_SIZE);
+        expect(firstPages(items, 2)).toHaveLength(PAGE_SIZE * 2);
+        expect(firstPages(items, 3)).toEqual(items);
+    });
+
+    it("says there is more until the shown pages cover the list", () => {
+        expect(hasMorePages(items, 1)).toBe(true);
+        expect(hasMorePages(items, 2)).toBe(true);
+        expect(hasMorePages(items, 3)).toBe(false);
+        expect(hasMorePages(items.slice(0, PAGE_SIZE), 1)).toBe(false);
+        expect(hasMorePages([], 1)).toBe(false);
     });
 });

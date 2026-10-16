@@ -170,7 +170,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         var response = await Rerun(client, original.RunId, new RerunRequest { EndpointUrl = "http://127.0.0.1:1" });
 
         await AssertBadGatewayAsync(response, "http://127.0.0.1:1/suwageval/contract");
-        Assert.Single(await GetAsync<List<RunSummary>>(client, $"/runs?agent={agent.Name}"));
+        Assert.Single((await GetAsync<RunList>(client, $"/runs?agent={agent.Name}")).Runs);
     }
 
     [Fact]
@@ -226,7 +226,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         var response = await Post(client, new RunRequest { Agent = agent.Name });
 
         await AssertBadGatewayAsync(response, "http://127.0.0.1:1/suwageval/contract");
-        Assert.Empty(await GetAsync<List<RunSummary>>(client, $"/runs?agent={agent.Name}"));
+        Assert.Empty((await GetAsync<RunList>(client, $"/runs?agent={agent.Name}")).Runs);
     }
 
     [Fact]
@@ -250,7 +250,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         fake.ServeContract(SeededAgent.ExampleVersion with { Agents = [] });
         await AssertBadGatewayAsync(await Post(client, new RunRequest { Agent = agent.Name }), "agents: there is at least one agent");
 
-        Assert.Empty(await GetAsync<List<RunSummary>>(client, $"/runs?agent={agent.Name}"));
+        Assert.Empty((await GetAsync<RunList>(client, $"/runs?agent={agent.Name}")).Runs);
     }
 
     private static async Task AssertBadGatewayAsync(HttpResponseMessage response, string detailPart)
@@ -293,7 +293,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         var mismatches = problem.RootElement.GetProperty("mismatches").EnumerateArray().Select(m => m.GetString()).ToList();
         var one = Assert.Single(mismatches);
         Assert.Contains("refund_order", one, StringComparison.Ordinal);
-        Assert.Empty(await GetAsync<List<RunSummary>>(client, $"/runs?agent={agent.Name}"));
+        Assert.Empty((await GetAsync<RunList>(client, $"/runs?agent={agent.Name}")).Runs);
     }
 
     [Fact]
@@ -320,7 +320,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
 
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
         Assert.Contains("No judge model is configured", await response.Content.ReadAsStringAsync(Cancellation), StringComparison.Ordinal);
-        Assert.Empty(await GetAsync<List<RunSummary>>(client, $"/runs?agent={agent.Name}"));
+        Assert.Empty((await GetAsync<RunList>(client, $"/runs?agent={agent.Name}")).Runs);
     }
 
     [Fact]
@@ -354,7 +354,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         var body = await response.Content.ReadAsStringAsync(Cancellation);
         Assert.Contains("No judge model is configured", body, StringComparison.Ordinal);
         Assert.Contains("argument matching", body, StringComparison.Ordinal);
-        Assert.Empty(await GetAsync<List<RunSummary>>(client, $"/runs?agent={agent.Name}"));
+        Assert.Empty((await GetAsync<RunList>(client, $"/runs?agent={agent.Name}")).Runs);
     }
 
     [Fact]
@@ -367,13 +367,47 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         var second = await StartAsync(client, new RunRequest { Agent = agent.Name });
         await NewAgentAsync(fake.Url.AbsoluteUri);
 
-        var runs = await GetAsync<List<RunSummary>>(client, $"/runs?agent={agent.Name}");
+        var runs = await GetAsync<RunList>(client, $"/runs?agent={agent.Name}");
 
-        Assert.Equal([second.RunId, first.RunId], runs.Select(run => run.Id));
+        Assert.Equal([second.RunId, first.RunId], runs.Runs.Select(run => run.Id));
+        Assert.Null(runs.Next);
         Assert.Equal(
             HttpStatusCode.NotFound,
             (await client.GetAsync(new Uri("/runs?agent=nope", UriKind.Relative), Cancellation)).StatusCode
         );
+    }
+
+    [Fact]
+    public async Task The_run_list_is_paged_by_limit_and_before()
+    {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
+        var client = Client();
+        var agent = await NewAgentAsync(fake.Url.AbsoluteUri);
+        var started = new List<Guid>();
+        for (var index = 0; index < 3; index++)
+        {
+            started.Add((await StartAsync(client, new RunRequest { Agent = agent.Name })).RunId);
+        }
+        started.Reverse();
+
+        var first = await GetAsync<RunList>(client, $"/runs?agent={agent.Name}&limit=2");
+        var second = await GetAsync<RunList>(client, $"/runs?agent={agent.Name}&limit=2&before={first.Next}");
+
+        Assert.Equal(started.Take(2), first.Runs.Select(run => run.Id));
+        Assert.Equal(started[1], first.Next);
+        Assert.Equal(started.Skip(2), second.Runs.Select(run => run.Id));
+        Assert.Null(second.Next);
+    }
+
+    [Theory]
+    [InlineData("limit=0")]
+    [InlineData("limit=101")]
+    [InlineData("before=00000000-0000-0000-0000-000000000001")]
+    public async Task A_bad_limit_or_an_unknown_before_is_422(string query)
+    {
+        var response = await Client().GetAsync(new Uri($"/runs?{query}", UriKind.Relative), Cancellation);
+
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
     }
 
     [Fact]

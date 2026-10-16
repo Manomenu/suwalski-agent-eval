@@ -50,10 +50,17 @@ public sealed class RunsCommandTests
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             paths.Add(request.RequestUri?.PathAndQuery ?? "");
+            var query = System.Web.HttpUtility.ParseQueryString(request.RequestUri?.Query ?? "");
+            var after = query["before"] is { } before ? Array.FindIndex(Newest, run => run.Id == Guid.Parse(before)) + 1 : 0;
+            var page = Newest
+                .Skip(after)
+                .Take(int.Parse(query["limit"] ?? "20", System.Globalization.CultureInfo.InvariantCulture))
+                .ToList();
+            var list = new RunList { Runs = page, Next = after + page.Count < Newest.Length ? page[^1].Id : null };
             return Task.FromResult(
                 new HttpResponseMessage(HttpStatusCode.OK)
                 {
-                    Content = new StringContent(JsonSerializer.Serialize(Newest, ContractJson.Options), Encoding.UTF8, "application/json"),
+                    Content = new StringContent(JsonSerializer.Serialize(list, ContractJson.Options), Encoding.UTF8, "application/json"),
                 }
             );
         }
@@ -66,7 +73,7 @@ public sealed class RunsCommandTests
 
         Assert.Equal(0, exit);
         Assert.Empty(error);
-        Assert.Equal(["/runs?agent=example-agent"], paths);
+        Assert.Equal(["/runs?agent=example-agent&limit=10"], paths);
         var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
         Assert.Equal(3, lines.Length);
         Assert.StartsWith("aaaaaaaa-0000-0000-0000-000000000003  Done  smoke", lines[0], StringComparison.Ordinal);
@@ -76,10 +83,20 @@ public sealed class RunsCommandTests
     [Fact]
     public void Limit_keeps_the_newest_runs()
     {
-        var (_, output, _, _) = Runs("--limit", "2");
+        var (_, output, _, paths) = Runs("--limit", "2");
 
+        Assert.Equal(["/runs?agent=example-agent&limit=2"], paths);
         Assert.Equal(2, output.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length);
         Assert.DoesNotContain("000000000001", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_limit_over_the_servers_page_size_is_asked_for_in_pages_of_at_most_that_size()
+    {
+        var (_, output, _, paths) = Runs("--limit", "150");
+
+        Assert.Equal(["/runs?agent=example-agent&limit=100"], paths);
+        Assert.Equal(3, output.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length);
     }
 
     [Fact]

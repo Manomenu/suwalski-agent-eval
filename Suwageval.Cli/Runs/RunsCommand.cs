@@ -42,7 +42,7 @@ internal static class RunsCommand
                 {
                     var transport =
                         http ?? (owned = new HttpClient { BaseAddress = ServerAddress.Api(ServerAddress.Site(parsed.GetValue(server))) });
-                    var runs = (await new RunClient(transport).RunsAsync(agent, cancellationToken)).Take(parsed.GetValue(limit)).ToList();
+                    var runs = await new RunClient(transport).RunsAsync(agent, parsed.GetValue(limit), cancellationToken);
                     var output = parsed.InvocationConfiguration.Output;
                     if (parsed.GetValue(json))
                     {

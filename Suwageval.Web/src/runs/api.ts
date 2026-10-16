@@ -1,17 +1,19 @@
 // This feature's HTTP calls, typed from the generated OpenAPI types.
 import { request } from "../api/client";
 import type { components } from "../api/openapi";
+import { runsPath } from "./paging";
 
 export type RunResults = components["schemas"]["RunResults"];
 export type RunCreated = components["schemas"]["RunCreated"];
+export type RunList = components["schemas"]["RunList"];
 export type RunSummary = components["schemas"]["RunSummary"];
 export type ScenarioRunResult = components["schemas"]["ScenarioRunResult"];
 export type CheckRunResult = components["schemas"]["CheckRunResult"];
 export type ConversationItem = components["schemas"]["ConversationItem"];
 
-/** The runs of one agent (by name), newest first. */
-export function fetchRuns(agent: string, signal: AbortSignal): Promise<RunSummary[]> {
-    return request<RunSummary[]>(`/runs?agent=${encodeURIComponent(agent)}`, { signal });
+/** One page of the runs of one agent (by name), newest first; see `runsPath`. */
+export function fetchRuns(agent: string, before: string | null, versionIds: readonly string[], signal: AbortSignal): Promise<RunList> {
+    return request<RunList>(runsPath(agent, before, versionIds), { signal });
 }
 
 export function fetchRunResults(runId: string, signal: AbortSignal): Promise<RunResults> {

@@ -11,6 +11,7 @@ namespace Suwageval.Cli.Server;
 /// <summary>The server's run endpoints and the agent version ones, spoken with the contract records. Anything that goes wrong is a <see cref="RunClientException"/>.</summary>
 internal sealed class RunClient(HttpClient http)
 {
+    private const int MaxPageSize = 100;
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(1);
 
     public Task<RunCreated> CreateAsync(RunRequest request, CancellationToken cancellationToken) =>
@@ -39,12 +40,28 @@ internal sealed class RunClient(HttpClient http)
     public Task<RunSummary> GetAsync(Guid runId, CancellationToken cancellationToken) =>
         SendAsync<RunSummary>(() => http.GetAsync(new Uri($"runs/{runId}", UriKind.Relative), cancellationToken), cancellationToken);
 
-    /// <summary>The agent's runs, newest first.</summary>
-    public Task<IReadOnlyList<RunSummary>> RunsAsync(string agent, CancellationToken cancellationToken) =>
-        SendAsync<IReadOnlyList<RunSummary>>(
-            () => http.GetAsync(new Uri($"runs?agent={Uri.EscapeDataString(agent)}", UriKind.Relative), cancellationToken),
-            cancellationToken
-        );
+    /// <summary>The agent's newest runs, newest first, at most <paramref name="limit"/> of them (asked for in pages the server accepts).</summary>
+    public async Task<IReadOnlyList<RunSummary>> RunsAsync(string agent, int limit, CancellationToken cancellationToken)
+    {
+        var runs = new List<RunSummary>();
+        Guid? before = null;
+        while (runs.Count < limit)
+        {
+            var url = $"runs?agent={Uri.EscapeDataString(agent)}&limit={Math.Min(limit - runs.Count, MaxPageSize)}";
+            if (before is { } cursor)
+            {
+                url += $"&before={cursor}";
+            }
+            var page = await SendAsync<RunList>(() => http.GetAsync(new Uri(url, UriKind.Relative), cancellationToken), cancellationToken);
+            runs.AddRange(page.Runs);
+            if (page.Next is not { } next)
+            {
+                break;
+            }
+            before = next;
+        }
+        return runs;
+    }
 
     public Task<RunResults> ResultsAsync(Guid runId, CancellationToken cancellationToken) =>
         SendAsync<RunResults>(
