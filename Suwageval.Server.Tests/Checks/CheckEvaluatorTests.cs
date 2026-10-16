@@ -298,6 +298,16 @@ public sealed class CheckEvaluatorTests
     }
 
     [Fact]
+    public void A_passing_text_check_says_what_it_found()
+    {
+        var trace = Turn(Say("refund done"));
+
+        var verdict = Run(TextOf(contains: "refund", notContains: "sorry", pattern: "done$"), trace);
+
+        Assert.Equal("The answer contains \"refund\" and does not contain \"sorry\" and matches /done$/.", verdict.Message);
+    }
+
+    [Fact]
     public void Text_joins_the_messages_of_the_scope_and_ignores_other_items()
     {
         var first = Say("one");

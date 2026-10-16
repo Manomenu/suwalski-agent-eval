@@ -89,3 +89,20 @@ export function hangingIndent(line: string): number {
     const match = /^(\s*(?:- )*)(?:(?:"[^"]*"|[^\s:"#][^:#]*?):(?: |$))?/.exec(line);
     return match?.[0].length ?? 0;
 }
+
+/** Whether `$judge` appears anywhere in a check's expected JSON. */
+function hasJudgeMatcher(value: unknown): boolean {
+    if (Array.isArray(value)) return value.some(hasJudgeMatcher);
+    if (value !== null && typeof value === "object") {
+        return Object.entries(value).some(([name, inner]) => name === "$judge" || hasJudgeMatcher(inner));
+    }
+    return false;
+}
+
+/** A model has the last word on the check (a `judge` check, or `$judge` in its args, result or data): its verdict and reason are not deterministic. */
+export function judgedByModel(definition: CheckDefinition): boolean {
+    if (definition.type === "judge") return true;
+    if (definition.type === "tool-called") return hasJudgeMatcher(definition.args) || hasJudgeMatcher(definition.result);
+    if (definition.type === "event") return hasJudgeMatcher(definition.data);
+    return false;
+}

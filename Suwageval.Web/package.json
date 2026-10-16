@@ -18,6 +18,7 @@
         "@mantine/charts": "^9.6.3",
         "@mantine/core": "^9.6.3",
         "@mantine/hooks": "^9.6.3",
+        "@tabler/icons-react": "^3.49.0",
         "react": "^19.3.0",
         "react-dom": "^19.3.0",
         "recharts": "^3.10.1",

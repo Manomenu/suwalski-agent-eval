@@ -251,8 +251,25 @@ internal static class CheckEvaluator
         }
         var subject = messages.Count == 0 ? "There is no answer" + scope.Description : "The answer" + scope.Description;
         return failures.Count == 0
-            ? new CheckVerdict(true, messages, $"{subject} satisfies the text check.")
+            ? new CheckVerdict(true, messages, $"{subject} {string.Join(" and ", TextConditions(check))}.")
             : new CheckVerdict(false, messages, $"{subject} {string.Join(" and ", failures)}.");
+    }
+
+    /// <summary>What a passing <c>text</c> check found, condition by condition: <c>contains "Hello" and matches /(?i)hi/</c>.</summary>
+    private static IEnumerable<string> TextConditions(TextCheck check)
+    {
+        if (check.Contains is { } contains)
+        {
+            yield return $"contains \"{contains}\"";
+        }
+        if (check.NotContains is { } notContains)
+        {
+            yield return $"does not contain \"{notContains}\"";
+        }
+        if (check.Pattern is { } pattern)
+        {
+            yield return $"matches /{pattern}/";
+        }
     }
 
     private static bool Matches(string text, string pattern, out string? problem)
