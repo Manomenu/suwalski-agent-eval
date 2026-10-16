@@ -14,7 +14,6 @@ import {
     stateExplanation,
     stateLabel,
     statedChecks,
-    summaryChips,
 } from "./regression";
 
 const summary: RegressionSummary = {
@@ -98,9 +97,16 @@ describe("grouping", () => {
             stated("New"),
             stated("AgentError"),
         ]);
-        expect(groups.attention.map((c) => c.state)).toEqual(["Regression", "New", "AgentError", "AlreadyBroken"]);
-        expect(groups.brief.map((c) => c.state)).toEqual(["Fixed", "Unstable"]);
+        expect(groups.groups.map((g) => g.state)).toEqual(["Regression", "New", "AgentError", "AlreadyBroken", "Fixed", "Unstable"]);
         expect(groups.known.map((c) => c.state)).toEqual(["KnownFailure"]);
+    });
+    it("collects the checks of a state in one group and leaves empty states out", () => {
+        const groups = groupChecks([stated("New"), stated("Regression"), stated("New")]);
+        expect(groups.groups.map((g) => [g.state, g.checks.length])).toEqual([
+            ["Regression", 1],
+            ["New", 2],
+        ]);
+        expect(groups.known).toEqual([]);
     });
     it("skips passed checks and checks without a state", () => {
         const results = {
@@ -112,17 +118,6 @@ describe("grouping", () => {
             ],
         } as unknown as RunResults;
         expect(statedChecks(results).map((c) => c.check.key)).toEqual(["c"]);
-    });
-});
-
-describe("summaryChips", () => {
-    it("lists only the non-zero counts", () => {
-        expect(summaryChips(summary).map((c) => `${c.label} ${c.count}`)).toEqual([
-            "Regression 1",
-            "Already broken 2",
-            "Unstable 1",
-            "Known failure 3",
-        ]);
     });
 });
 
