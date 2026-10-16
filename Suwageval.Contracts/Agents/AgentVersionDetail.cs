@@ -6,6 +6,6 @@ public sealed record AgentVersionDetail(
     Guid AgentId,
     string ContentHash,
     DateTimeOffset CreatedAt,
-    DateTimeOffset? ArchivedAt,
-    AgentContract Content
+    AgentContract Content,
+    DateTimeOffset? ArchivedAt = null
 );

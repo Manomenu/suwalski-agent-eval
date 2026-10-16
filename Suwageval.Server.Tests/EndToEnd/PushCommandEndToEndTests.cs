@@ -53,7 +53,8 @@ public sealed class PushCommandEndToEndTests(TestDatabase database) : IAsyncDisp
         return (exit, output.ToString(), error.ToString());
     }
 
-    private static int Count(string text, string word) => text.Split('\n').Count(line => line.EndsWith(word, StringComparison.Ordinal));
+    private static int Count(string text, string word) =>
+        text.Split('\n').Count(line => line.TrimEnd('\r').EndsWith(word, StringComparison.Ordinal));
 
     [Fact]
     public void The_first_push_creates_everything_and_the_second_changes_nothing()

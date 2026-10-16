@@ -63,6 +63,7 @@ public sealed class RunCommandTests
             Key = key,
             Revision = 1,
             LatestRevision = 1,
+            JudgedByModel = false,
             Definition = new TextCheck
             {
                 Key = key,

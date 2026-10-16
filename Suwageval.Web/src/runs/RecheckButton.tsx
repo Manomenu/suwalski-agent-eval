@@ -1,7 +1,7 @@
 import { Accordion, Alert, Button, Group, List, Loader, Modal, Stack, Text, Tooltip } from "@mantine/core";
 import { useEffect, useState } from "react";
 
-import { definitionYaml, judgedByModel } from "../checks/definition";
+import { definitionYaml } from "../checks/definition";
 import { ModelJudgedIcon } from "../checks/ModelJudgedIcon";
 import { LineDiffView } from "../diff/LineDiffView";
 import { fetchRecheckPlan, recheck, type ChangedCheck, type RecheckPlan, type RunSummary } from "./api";
@@ -179,7 +179,7 @@ function CloseRow({ onClose, busy = false, children }: { onClose: () => void; bu
 
 /** One check of the plan with how it changed; a changed check can show the definition the run used next to the current one. */
 function ChangedCheckRow({ check }: { check: ChangedCheck }) {
-    const judgedNow = check.after != null && judgedByModel(check.after);
+    const judgedNow = check.afterJudgedByModel;
     return (
         <Stack gap={4}>
             <Group gap="xs">

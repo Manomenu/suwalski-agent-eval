@@ -297,26 +297,6 @@ public sealed class JsonSubsetTests
     }
 
     [Fact]
-    public void Invalid_patterns_are_reported_with_their_path()
-    {
-        var expected = Items.Json( /*lang=json,strict*/
-            """{"a":{"$pattern":"("},"b":[{"$pattern":"ok"},{"c":{"$pattern":"[a"}}]}"""
-        );
-
-        var invalid = JsonSubset.InvalidPatterns(expected, "args").Select(problem => problem.Path).ToList();
-
-        Assert.Equal(["args.a.$pattern", "args.b[1].c.$pattern"], invalid);
-        Assert.Empty(
-            JsonSubset.InvalidPatterns(
-                Items.Json( /*lang=json,strict*/
-                    """{"a":{"$pattern":"fine"}}"""
-                ),
-                "args"
-            )
-        );
-    }
-
-    [Fact]
     public void Both_matchers_work_side_by_side_and_the_judgements_skip_the_pattern_nodes()
     {
         var actual = Items.Json( /*lang=json,strict*/
@@ -339,6 +319,5 @@ public sealed class JsonSubsetTests
 
         Assert.Null(JsonSubset.PatternOf(expected.GetProperty("reason")));
         Assert.False(JudgeMatcher.IsMatcher(expected.GetProperty("reason")));
-        Assert.Equal("args.reason", Assert.Single(JudgeMatcher.Problems(expected, "args")).Path);
     }
 }

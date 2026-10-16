@@ -120,7 +120,6 @@ internal static class AgentEndpoints
                 version.AgentId,
                 version.ContentHash,
                 version.CreatedAt,
-                version.ArchivedAt,
                 content with
                 {
                     Label = version.Label,
@@ -133,7 +132,8 @@ internal static class AgentEndpoints
                             }
                             : null,
                     },
-                }
+                },
+                version.ArchivedAt
             )
         );
     }
@@ -153,11 +153,11 @@ internal static class AgentEndpoints
         return new AgentVersion(
             row.Id,
             row.AgentId,
-            row.Label,
             row.ContentHash,
             row.CreatedAt,
-            row.ArchivedAt,
             ContractContent.ModelNames(contract),
+            row.Label,
+            row.ArchivedAt,
             contract.Context.Retrieval?.DataVersion,
             row.DataDescription
         );

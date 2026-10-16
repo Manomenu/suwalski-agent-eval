@@ -21,6 +21,10 @@ export default defineConfig(
             "@typescript-eslint/restrict-template-expressions": ["error", { allowNumber: true }],
             // `onClick={() => setOpen(false)}` is the idiomatic React handler; braces add nothing.
             "@typescript-eslint/no-confusing-void-expression": ["error", { ignoreArrowShorthand: true }],
+            // A switch over a union names every member, so adding one to a type (a run status, a check kind) fails
+            // here at each place that has to learn about it. A `default` does not count as handling them: it would
+            // hide exactly that failure.
+            "@typescript-eslint/switch-exhaustiveness-check": ["error", { considerDefaultExhaustiveForUnions: false }],
             // `const { a: _, ...rest } = obj` drops a key on purpose.
             "@typescript-eslint/no-unused-vars": ["error", { ignoreRestSiblings: true }],
         },

@@ -1,5 +1,5 @@
 // What the run page shows, as plain functions: labels, numbers and which items to highlight.
-import type { CheckRunResult, ConversationItem, RunSummary, ScenarioRunResult } from "./api";
+import type { CheckRunResult, ConversationItem, RunResults, RunSummary, ScenarioRunResult } from "./api";
 
 export const POLL_INTERVAL_MS = 2000;
 
@@ -129,9 +129,10 @@ export function itemTitle(item: ConversationItem): string {
             return `retrieval: ${item.query}`;
         case "Event":
             return `event: ${item.type}`;
-        default:
-            return "?";
+        case undefined:
+            break;
     }
+    return "?";
 }
 
 /** The body of an item as text: message text, pretty arguments, a result, retrieved chunks. */
@@ -150,9 +151,10 @@ export function itemBody(item: ConversationItem): string {
                 .join("\n\n");
         case "Event":
             return JSON.stringify(item.data, null, 2);
-        default:
-            return "";
+        case undefined:
+            break;
     }
+    return "";
 }
 
 /** Milliseconds as seconds rounded to one decimal: 9840 → 9.8. */
@@ -165,33 +167,8 @@ export function formatSeconds(milliseconds: number): string {
     return `${seconds(milliseconds).toFixed(1)} s`;
 }
 
-/** How long the agent took for each sample that made a call (the samples without one have no duration). */
-function sampleDurations(scenarios: readonly ScenarioRunResult[]): number[] {
-    return scenarios.flatMap((scenario) => scenario.samples.flatMap((sample) => (sample.durationMs == null ? [] : [sample.durationMs])));
-}
-
-/** The middle value; the mean of the two middle ones for an even count. */
-export function median(values: readonly number[]): number {
-    const sorted = [...values].sort((a, b) => a - b);
-    const middle = Math.floor(sorted.length / 2);
-    return sorted.length % 2 === 1 ? (sorted[middle] ?? 0) : ((sorted[middle - 1] ?? 0) + (sorted[middle] ?? 0)) / 2;
-}
-
-/** The 95th percentile by nearest rank: the value at rank ⌈0.95·n⌉ of the sorted values. */
-export function p95(values: readonly number[]): number {
-    const sorted = [...values].sort((a, b) => a - b);
-    return sorted[Math.max(1, Math.ceil(0.95 * sorted.length)) - 1] ?? 0;
-}
-
-/** The median and p95 turn time over all samples that made a call, in milliseconds; null when none did. */
-export function turnTimes(scenarios: readonly ScenarioRunResult[]): { medianMs: number; p95Ms: number } | null {
-    const durations = sampleDurations(scenarios);
-    if (durations.length === 0) return null;
-    return { medianMs: median(durations), p95Ms: p95(durations) };
-}
-
-/** "Turn time: median 9.8 s · p95 109.1 s" over all samples that made a call; null when none did. */
-export function durationSummary(scenarios: readonly ScenarioRunResult[]): string | null {
-    const times = turnTimes(scenarios);
-    return times === null ? null : `Turn time: median ${formatSeconds(times.medianMs)} · p95 ${formatSeconds(times.p95Ms)}`;
+/** "Turn time: median 9.8 s · p95 109.1 s" over all samples of the run that made a call; null when none did. */
+export function durationSummary(results: Pick<RunResults, "medianMs" | "p95Ms">): string | null {
+    const { medianMs, p95Ms } = results;
+    return medianMs == null || p95Ms == null ? null : `Turn time: median ${formatSeconds(medianMs)} · p95 ${formatSeconds(p95Ms)}`;
 }

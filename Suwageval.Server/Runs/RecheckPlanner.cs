@@ -173,6 +173,7 @@ internal static class RecheckPlanner
             Change = change,
             Before = before,
             After = after,
+            AfterJudgedByModel = after is not null && CheckEvaluator.JudgedByModel(after),
         };
 
     private static CheckInput Definition(CheckResultRow verdict) =>

@@ -146,7 +146,7 @@ export function VersionsSection({
                                             <Table.Td>
                                                 <Group gap="xs">
                                                     {versionLabel(version)}
-                                                    {version.archivedAt !== null && (
+                                                    {version.archivedAt != null && (
                                                         <Badge color="gray" variant="light">
                                                             Archived
                                                         </Badge>

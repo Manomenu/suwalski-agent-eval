@@ -23,7 +23,7 @@ export function VersionPage({ name, versionId }: { name: string; versionId: stri
                         <Text c="dimmed">
                             id {version.id} · created {formatTime(version.createdAt)} · hash {version.contentHash}
                         </Text>
-                        {version.archivedAt !== null && (
+                        {version.archivedAt != null && (
                             <Badge color="gray" variant="light" w="fit-content">
                                 Archived {formatTime(version.archivedAt)}
                             </Badge>

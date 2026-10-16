@@ -63,39 +63,6 @@ internal static class JsonSubset
     }
 
     /// <summary>
-    /// The matchers inside <paramref name="expected"/> whose regular expression does not compile: the path (<c>args.zipCode</c>,
-    /// <c>args.items[0]</c>) and why. Empty when every pattern is valid.
-    /// </summary>
-    public static IEnumerable<(string Path, string Error)> InvalidPatterns(JsonElement expected, string path)
-    {
-        if (PatternOf(expected) is { } pattern)
-        {
-            var error = Compile(pattern);
-            return error is null ? [] : [($"{path}.{PatternProperty}", error)];
-        }
-        if (expected.ValueKind == JsonValueKind.Object)
-        {
-            return expected.EnumerateObject().SelectMany(property => InvalidPatterns(property.Value, $"{path}.{property.Name}"));
-        }
-        return expected.ValueKind == JsonValueKind.Array
-            ? expected.EnumerateArray().SelectMany((item, index) => InvalidPatterns(item, $"{path}[{index}]"))
-            : [];
-    }
-
-    private static string? Compile(string pattern)
-    {
-        try
-        {
-            _ = new Regex(pattern, RegexOptions.None, PatternTimeout);
-            return null;
-        }
-        catch (ArgumentException error)
-        {
-            return error.Message;
-        }
-    }
-
-    /// <summary>
     /// The <c>$judge</c> nodes of <paramref name="expected"/> with the values <paramref name="actual"/> has there, in document order;
     /// <paramref name="path"/> names the root (<c>args</c>). Call it only when <see cref="Contains"/> is true.
     /// </summary>

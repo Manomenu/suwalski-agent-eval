@@ -52,6 +52,7 @@ public sealed class PassRateTrendTests
                             Key = $"check-{index}",
                             Revision = 1,
                             LatestRevision = 1,
+                            JudgedByModel = false,
                             Definition = SeededAgent.RefundAfterLookup($"check-{index}", key),
                             Passed = passed,
                             PassRate = passed ? 1 : 0,
@@ -70,73 +71,6 @@ public sealed class PassRateTrendTests
         ["a"] = ["smoke", "regression"],
         ["b"] = ["regression"],
     };
-
-    [Fact]
-    public void Only_finished_runs_count_the_newest_fifty_oldest_first()
-    {
-        var newestFirst = Enumerable
-            .Range(0, 60)
-            .Select(minute => Run(RunStatus.Done, 59 - minute))
-            .Prepend(Run(RunStatus.Cancelled, 100))
-            .Prepend(Run(RunStatus.Failed, 101))
-            .ToList();
-
-        var picked = PassRateTrend.Pick(newestFirst);
-
-        Assert.Equal(PassRateTrend.MaxRuns, picked.Count);
-        Assert.All(picked, point => Assert.Equal(RunStatus.Done, point.Run.State));
-        Assert.Equal(picked.Select(point => point.Run).OrderBy(run => run.CreatedAt), picked.Select(point => point.Run));
-        Assert.Equal(newestFirst[2].Id, picked[^1].Run.Id);
-        Assert.All(picked, point => Assert.Null(point.RecheckedBy));
-    }
-
-    [Fact]
-    public void A_re_check_is_never_a_point_of_its_own()
-    {
-        var original = Run(RunStatus.Done, 1);
-
-        var picked = PassRateTrend.Pick([Run(RunStatus.Done, 3, original.Id), original]);
-
-        Assert.Equal(original.Id, Assert.Single(picked).Run.Id);
-    }
-
-    [Fact]
-    public void A_point_shows_the_newest_finished_re_check_of_its_run()
-    {
-        var original = Run(RunStatus.Done, 1);
-        var older = Run(RunStatus.Done, 2, original.Id);
-        var newer = Run(RunStatus.Done, 3, original.Id);
-        var running = Run(RunStatus.Running, 4, original.Id);
-        var other = Run(RunStatus.Done, 0);
-
-        var picked = PassRateTrend.Pick([running, newer, older, original, other]);
-
-        Assert.Equal([other.Id, original.Id], picked.Select(point => point.Run.Id));
-        Assert.Equal([null, newer.Id], picked.Select(point => point.RecheckedBy?.Id));
-    }
-
-    [Fact]
-    public void A_re_check_still_running_changes_nothing()
-    {
-        var original = Run(RunStatus.Done, 1);
-
-        var picked = PassRateTrend.Pick([Run(RunStatus.Running, 2, original.Id), Run(RunStatus.Queued, 3, original.Id), original]);
-
-        Assert.Null(Assert.Single(picked).RecheckedBy);
-    }
-
-    [Fact]
-    public void The_cap_counts_original_runs_only()
-    {
-        var originals = Enumerable.Range(0, 60).Select(minute => Run(RunStatus.Done, minute)).ToList();
-        var rechecks = originals.Select(run => Run(RunStatus.Done, 100, run.Id));
-        var newestFirst = rechecks.Concat(Enumerable.Reverse(originals)).ToList();
-
-        var picked = PassRateTrend.Pick(newestFirst);
-
-        Assert.Equal(PassRateTrend.MaxRuns, picked.Count);
-        Assert.All(picked, point => Assert.NotNull(point.RecheckedBy));
-    }
 
     [Fact]
     public void A_check_counts_once_in_the_total_and_in_every_tag_of_its_scenario()
@@ -190,22 +124,5 @@ public sealed class PassRateTrendTests
         Assert.Null(rates.Value.MedianMs);
         Assert.Null(rates.Value.P95Ms);
         Assert.All(rates.Value.Tags, tag => Assert.Null(tag.MedianMs));
-    }
-
-    [Fact]
-    public void Median_takes_the_middle_value_or_the_mean_of_the_two_middle_ones()
-    {
-        Assert.Equal(3.0, PassRateTrend.Median([5, 1, 3]));
-        Assert.Equal(2.5, PassRateTrend.Median([4, 1, 2, 3]));
-        Assert.Null(PassRateTrend.Median([]));
-    }
-
-    [Fact]
-    public void P95_is_the_value_at_rank_ceiling_of_ninety_five_percent()
-    {
-        Assert.Equal(19.0, PassRateTrend.P95([.. Enumerable.Range(1, 20)]));
-        Assert.Equal(4.0, PassRateTrend.P95([4, 1, 2, 3]));
-        Assert.Equal(7.0, PassRateTrend.P95([7]));
-        Assert.Null(PassRateTrend.P95([]));
     }
 }

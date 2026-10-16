@@ -13,26 +13,12 @@ export function oldestFirst<T extends { createdAt: string }>(a: T, b: T): [T, T]
     return Date.parse(b.createdAt) < Date.parse(a.createdAt) ? [b, a] : [a, b];
 }
 
-/** Keys whose value is a JSON Schema the agent wrote: a null inside one is part of the schema, not an unset field. */
-const SCHEMA_KEYS = new Set(["parameters", "dataSchema", "fixturesSchema"]);
-
-/** The contract without the fields it leaves unset (null), so a field that appears reads as added, not as `null` replaced. */
-function withoutUnset(value: unknown): unknown {
-    if (Array.isArray(value)) return value.map(withoutUnset);
-    if (value === null || typeof value !== "object") return value;
-    return Object.fromEntries(
-        Object.entries(value)
-            .filter(([, inner]) => inner != null)
-            .map(([key, inner]) => [key, SCHEMA_KEYS.has(key) ? inner : withoutUnset(inner)]),
-    );
-}
-
 /**
- * The contract as YAML, in the contract's own key order, without its unset fields. Nothing folds (`lineWidth: 0`), and a
+ * The contract as YAML, in the contract's own key order. The server leaves unset fields out and a null inside a schema stays. Nothing folds (`lineWidth: 0`), and a
  * multi-line text such as a prompt becomes a block scalar (`|`), so a change inside it is a change of its own lines.
  */
 export function contractYaml(content: Contract): string {
-    return stringify(withoutUnset(content), { lineWidth: 0 });
+    return stringify(content, { lineWidth: 0 });
 }
 
 /** How many lines `to` adds and removes compared with `from`. */

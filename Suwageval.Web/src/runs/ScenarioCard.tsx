@@ -1,7 +1,6 @@
 import { Accordion, Alert, Badge, Card, Group, List, Stack, Text, Title } from "@mantine/core";
 
 import { CheckDefinitionButton } from "../checks/CheckDefinitionButton";
-import { judgedByModel } from "../checks/definition";
 import { ModelJudgedIcon } from "../checks/ModelJudgedIcon";
 import { UnstableCheckIcon } from "../checks/UnstableCheckIcon";
 import type { ScenarioRunResult, UnstableCheck } from "./api";
@@ -53,7 +52,7 @@ export function ScenarioCard({
                                     </Badge>
                                 )}
                                 <Text fw={600}>{check.key}</Text>
-                                {judgedByModel(check.definition) && <ModelJudgedIcon />}
+                                {check.judgedByModel && <ModelJudgedIcon />}
                                 {unstableCheck !== undefined && <UnstableCheckIcon label={unstableTooltip(unstableCheck)} />}
                                 <CheckDefinitionButton
                                     definition={check.definition}
@@ -68,7 +67,7 @@ export function ScenarioCard({
                                     .map((sample) => (
                                         <List.Item key={sample.sample}>
                                             {check.samples.length > 1 ? `sample ${sample.sample}: ` : ""}
-                                            {judgedByModel(check.definition) && !sample.notJudged ? (
+                                            {check.judgedByModel && !sample.notJudged ? (
                                                 <Text span fs="italic" inherit>
                                                     {sample.message}
                                                 </Text>

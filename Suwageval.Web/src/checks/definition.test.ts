@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { CheckDefinition } from "./api";
-import { definitionSummary, definitionYaml, hangingIndent, judgedByModel, revisionNote } from "./definition";
+import { definitionSummary, definitionYaml, hangingIndent, revisionNote } from "./definition";
 
 // `where.turn` is typed `unknown` by the API schema; the JSON carries a number, "last" or "any".
 const toolCalled: CheckDefinition = {
@@ -15,14 +15,14 @@ const toolCalled: CheckDefinition = {
 };
 
 describe("definitionYaml", () => {
-    it("leaves out the scenario's key and what is unset, but keeps a null the check expects", () => {
+    it("leaves out the scenario's key and an empty where, but keeps a null the check expects", () => {
         const check: CheckDefinition = {
             type: "tool-called",
             key: "k",
             scenarioKey: "s",
             tool: "t",
             args: { note: null },
-            where: { turn: null, after: null, before: null },
+            where: {},
         };
         expect(definitionYaml(check)).toBe(["key: k", "type: tool-called", "tool: t", "args:", "  note: null", ""].join("\n"));
     });
@@ -120,29 +120,5 @@ describe("hangingIndent", () => {
         expect(hangingIndent("  plain text: no, a key")).toBe("  plain text: ".length);
         expect(hangingIndent("    just text")).toBe(4);
         expect(hangingIndent("pattern: (?i)^a:b$")).toBe("pattern: ".length);
-    });
-});
-
-describe("judgedByModel", () => {
-    it("is true for a judge check and for $judge at any depth of args, result or data", () => {
-        expect(judgedByModel({ type: "judge", key: "j", scenarioKey: "s", criteria: "polite" })).toBe(true);
-        expect(
-            judgedByModel({
-                type: "tool-called",
-                key: "c",
-                scenarioKey: "s",
-                tool: "t",
-                args: { a: [{ b: { $judge: { description: "x" } } }] },
-            }),
-        ).toBe(true);
-        expect(
-            judgedByModel({ type: "tool-called", key: "c", scenarioKey: "s", tool: "t", result: { r: { $judge: { description: "x" } } } }),
-        ).toBe(true);
-        expect(judgedByModel({ type: "event", key: "e", scenarioKey: "s", event: "e", data: { $judge: { description: "x" } } })).toBe(true);
-    });
-
-    it("is false for rules only, $pattern included", () => {
-        expect(judgedByModel({ type: "tool-called", key: "c", scenarioKey: "s", tool: "t", args: { a: { $pattern: "^x$" } } })).toBe(false);
-        expect(judgedByModel({ type: "text", key: "t", scenarioKey: "s", contains: "$judge" })).toBe(false);
     });
 });

@@ -46,15 +46,9 @@ describe("contractYaml", () => {
         expect(yaml).toContain(`      ${long}\n`);
     });
 
-    it("leaves out unset fields, but keeps a null inside a schema the agent wrote", () => {
+    it("keeps a null inside a schema the agent wrote", () => {
         const base = contract();
-        const yaml = contractYaml({
-            ...base,
-            label: null,
-            context: { ...base.context, retrieval: null, fixturesSchema: { type: "object", default: null } },
-        });
-        expect(yaml).not.toContain("label:");
-        expect(yaml).not.toContain("retrieval:");
+        const yaml = contractYaml({ ...base, context: { ...base.context, fixturesSchema: { type: "object", default: null } } });
         expect(yaml).toContain("default: null");
     });
 

@@ -16,4 +16,7 @@ public sealed record ChangedCheck
 
     /// <summary>The check as it is now; null for a removed check.</summary>
     public CheckInput? After { get; init; }
+
+    /// <summary>Whether a model gives the verdict of <see cref="After"/>; false for a removed check.</summary>
+    public required bool AfterJudgedByModel { get; init; }
 }
