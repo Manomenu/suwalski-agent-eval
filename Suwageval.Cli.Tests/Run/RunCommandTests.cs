@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using Suwageval.Contracts;
+using Suwageval.Contracts.Checks;
 using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Cli.Tests.Run;
@@ -61,6 +62,13 @@ public sealed class RunCommandTests
         {
             Key = key,
             Revision = 1,
+            LatestRevision = 1,
+            Definition = new TextCheck
+            {
+                Key = key,
+                ScenarioKey = "s",
+                Contains = "x",
+            },
             Passed = passed,
             PassRate =
                 rate >= 0 ? rate

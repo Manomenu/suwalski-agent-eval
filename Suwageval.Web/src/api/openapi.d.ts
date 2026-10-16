@@ -945,6 +945,13 @@ export interface components {
              * @description The revision of the check that ran.
              */
             revision: number | string;
+            /**
+             * Format: int32
+             * @description The check's newest revision now; above int CheckRunResult.Revision when the check changed since the run.
+             */
+            latestRevision: number | string;
+            /** @description The check as it was stored in int CheckRunResult.Revision: the definition the run used. */
+            definition: components["schemas"]["CheckInput"];
             /** @description True when double CheckRunResult.PassRate reaches double CheckRunResult.PassThreshold. */
             passed: boolean;
             /**

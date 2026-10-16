@@ -67,6 +67,16 @@ export interface CheckRow {
     cells: (CheckCell | null)[];
 }
 
+/** The check of a row as one run ran it: the baseline's if it has it, else the first run that does. */
+export function checkOfRow(runs: RunScenarios[], row: CheckRow, baseline: number): CheckRunResult | null {
+    const ordered = [runs[baseline], ...runs.filter((_, column) => column !== baseline)];
+    for (const results of ordered) {
+        const check = results?.scenarios.find((scenario) => scenario.key === row.scenarioKey)?.checks.find((c) => c.key === row.checkKey);
+        if (check !== undefined) return check;
+    }
+    return null;
+}
+
 interface RunScenarios {
     scenarios: ScenarioRunResult[];
 }

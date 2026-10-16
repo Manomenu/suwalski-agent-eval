@@ -1,5 +1,6 @@
 import { Accordion, Alert, Badge, Card, Group, List, Stack, Text, Title } from "@mantine/core";
 
+import { CheckDefinitionButton } from "../checks/CheckDefinitionButton";
 import type { ScenarioRunResult } from "./api";
 import { ConversationView } from "./ConversationView";
 import { checkSummary, failedEvidenceKeys, notJudgedCount, num } from "./results";
@@ -40,6 +41,11 @@ export function ScenarioCard({ scenario }: { scenario: ScenarioRunResult }) {
                                 </Badge>
                             )}
                             <Text fw={600}>{check.key}</Text>
+                            <CheckDefinitionButton
+                                definition={check.definition}
+                                revision={num(check.revision)}
+                                latestRevision={num(check.latestRevision)}
+                            />
                             <Text c="dimmed">{checkSummary(check)}</Text>
                         </Group>
                         <List size="sm" listStyleType="none">

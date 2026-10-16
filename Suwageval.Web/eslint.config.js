@@ -84,6 +84,16 @@ export default defineConfig(
                             from: { element: { type: "feature", captured: { name: "compare" } } },
                             allow: { to: { element: { type: "feature", captured: { name: "agents" } } } },
                         },
+                        // The run page and the compare table both show a check's definition, as the run used it, in a
+                        // drawer: checks/ owns the button, the YAML and the syntax highlighter, runs/ and compare/ place it.
+                        {
+                            from: { element: { type: "feature", captured: { name: "runs" } } },
+                            allow: { to: { element: { type: "feature", captured: { name: "checks" } } } },
+                        },
+                        {
+                            from: { element: { type: "feature", captured: { name: "compare" } } },
+                            allow: { to: { element: { type: "feature", captured: { name: "checks" } } } },
+                        },
                         // Example of an explicit edge — a feature's screen embedding another feature:
                         // {
                         //     from: { element: { type: "feature", captured: { name: "notes" } } },
