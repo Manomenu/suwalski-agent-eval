@@ -748,6 +748,64 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/runs/{id}/recheck": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RecheckPlan"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Accepted */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RunCreated"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/runs/{id}/cancel": {
         parameters: {
             query?: never;
@@ -939,6 +997,19 @@ export interface components {
             versionIds: string[];
             archived: boolean;
         };
+        /** @description A check whose verdict a re-check would not copy from the run: it changed, was added or was removed since. */
+        ChangedCheck: {
+            scenarioKey: string;
+            checkKey: string;
+            change: components["schemas"]["CheckChange"];
+            before?: null | components["schemas"]["CheckInput"];
+            after?: null | components["schemas"]["CheckInput"];
+        };
+        /**
+         * @description What happened to a check since a run. A changed pass threshold is a change: it is part of the check's revision.
+         * @enum {unknown}
+         */
+        CheckChange: "Changed" | "Added" | "Removed";
         /** @description A test on what the agent produced for a scenario, told apart by `type`. */
         CheckInput: components["schemas"]["CheckInputToolCalledCheck"] | components["schemas"]["CheckInputToolNotCalledCheck"] | components["schemas"]["CheckInputEventCheck"] | components["schemas"]["CheckInputEventNotEmittedCheck"] | components["schemas"]["CheckInputCitedCheck"] | components["schemas"]["CheckInputTextCheck"] | components["schemas"]["CheckInputJudgeCheck"];
         CheckInputCitedCheck: {
@@ -1202,6 +1273,30 @@ export interface components {
         PutScenariosRequest: {
             scenarios: components["schemas"]["ScenarioInput"][];
         };
+        /** @enum {unknown} */
+        RecheckBlocker: "NotFinished" | "AllSkipped" | "Mismatches" | "NothingChanged" | null;
+        /**
+         * @description What a re-check of a run would do, and whether it can start at all. A re-check evaluates the run's stored answers again with
+         *     the current checks, so it is only worth starting when some check changed since the run; the agent is not asked and its current
+         *     contract plays no role.
+         */
+        RecheckPlan: {
+            possible: boolean;
+            /** @description Why not, in one sentence for a person; null when bool RecheckPlan.Possible. */
+            reason?: null | string;
+            blocker?: null | components["schemas"]["RecheckBlocker"];
+            /** @description The checks that would be evaluated again, by scenario and check key; the others keep the verdict of the run. */
+            changedChecks: components["schemas"]["ChangedCheck"][];
+            /**
+             * Format: int32
+             * @description How many of the checks that would be evaluated again call the judge's model.
+             */
+            judgedChecks: number | string;
+            /** @description The scenarios of the run that would be left out, with the reason. */
+            skippedScenarios: components["schemas"]["SkippedScenario"][];
+            /** @description What does not fit between the current checks and the version the run was under test; empty when it all fits. */
+            mismatches: string[];
+        };
         /** @description The optional body of a rerun: everything else (agent, tag) is taken from the run being repeated. */
         RerunRequest: {
             /** @description Where to reach the agent for the new run; none means the endpoint the repeated run used. */
@@ -1252,6 +1347,12 @@ export interface components {
             runId: string;
             /** Format: date-time */
             createdAt: string;
+            /**
+             * Format: uuid
+             * @description The re-check whose results the point shows (the newest finished one of this run); null when the point shows the run's own
+             *     results. A re-check is never a point of its own.
+             */
+            recheckedBy?: null | string;
             /** Format: uuid */
             agentVersionId: string;
             /** @description The tag the run was limited to; null when it ran every scenario. Only such a run says what "all checks" are. */
@@ -1330,6 +1431,15 @@ export interface components {
             startedAt?: null | string;
             /** Format: date-time */
             finishedAt?: null | string;
+            /**
+             * Format: uuid
+             * @description The run whose stored answers this run evaluated again with the current checks, without calling the agent (a re-check); null for a
+             *     run that called the agent. Always a run that called the agent: a re-check of a re-check points at the original. The turn times
+             *     of a re-check are the source's, copied, not measured again.
+             */
+            recheckOf?: null | string;
+            /** @description The scenarios of the source a re-check left out, with the reason; empty for a run that called the agent. */
+            skippedScenarios?: components["schemas"]["SkippedScenario"][];
         };
         /** @description What the agent produced for one sample of a scenario. */
         SampleResult: {
@@ -1392,6 +1502,11 @@ export interface components {
             revision: number | string;
             /** Format: date-time */
             createdAt: string;
+        };
+        /** @description A scenario a re-check did not evaluate, and why: its stored answers answer a conversation that is not the current one. */
+        SkippedScenario: {
+            key: string;
+            reason: string;
         };
         /** @description Adds and removes tags on several scenarios at once; tags are metadata and make no new revision. */
         TagChangeRequest: {

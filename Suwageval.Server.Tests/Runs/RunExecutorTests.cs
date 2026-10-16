@@ -38,7 +38,13 @@ public sealed class RunExecutorTests(TestDatabase database)
     )
     {
         var store = Store();
-        await store.EnqueueAsync(agent.Id, agent.VersionId, tag, (endpoint ?? new Uri(agent.EndpointUrl)).AbsoluteUri, Cancellation);
+        await store.EnqueueAsync(
+            agent.Id,
+            agent.VersionId,
+            tag,
+            (endpoint ?? new Uri(agent.EndpointUrl)).AbsoluteUri,
+            cancellationToken: Cancellation
+        );
         var run = await store.ClaimNextAsync(agent.Id, Cancellation);
         var executor = new RunExecutor(
             store,

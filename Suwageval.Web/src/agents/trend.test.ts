@@ -5,8 +5,10 @@ import {
     ALL_SERIES,
     DETAILS_KEY,
     LABEL_KEY,
+    RECHECK_KEY,
     RUN_KEY,
     asTrendRow,
+    hasRechecks,
     legendColor,
     percent,
     seriesColor,
@@ -107,5 +109,15 @@ describe("All", () => {
     it("takes the legend's colour without the shade", () => {
         expect(legendColor("smoke", [ALL_SERIES, "smoke"])).toBe("blue");
         expect(legendColor(ALL_SERIES, [ALL_SERIES])).toBe("mauve");
+    });
+});
+
+describe("re-checked points", () => {
+    it("carry the re-check in their row and are announced by hasRechecks", () => {
+        const rechecked = [{ ...point("r1", 0.5, []), recheckedBy: "r1-recheck" }, point("r2", 1, [])];
+
+        expect(trendRows(rechecked).map((row) => row[RECHECK_KEY])).toEqual(["r1-recheck", null]);
+        expect(hasRechecks(rechecked)).toBe(true);
+        expect(hasRechecks([point("r2", 1, [])])).toBe(false);
     });
 });

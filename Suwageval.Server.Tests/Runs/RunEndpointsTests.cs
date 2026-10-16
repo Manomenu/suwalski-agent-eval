@@ -538,7 +538,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         var failedRun = Guid.Empty;
         foreach (var passed in new[] { true, false })
         {
-            var id = await store.EnqueueAsync(agent.Id, agent.VersionId, null, agent.EndpointUrl, Cancellation);
+            var id = await store.EnqueueAsync(agent.Id, agent.VersionId, null, agent.EndpointUrl, cancellationToken: Cancellation);
             await store.AddSampleAsync(
                 id,
                 new NewSample(

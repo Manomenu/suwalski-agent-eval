@@ -18,7 +18,7 @@ internal static class RunServiceCollectionExtensions
             .Bind(configuration.GetSection(RunOptions.Section))
             .Validate(options => options.MaxParallelScenarios > 0, "Runs:MaxParallelScenarios must be above 0")
             .ValidateOnStart();
-        services.AddSingleton<RunStore>().AddSingleton<RunExecutor>();
+        services.AddSingleton<RunStore>().AddSingleton<RunExecutor>().AddSingleton<RunRechecker>();
         if (startWorker)
         {
             services.AddHostedService<RunWorker>();

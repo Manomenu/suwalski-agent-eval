@@ -4,7 +4,7 @@ import { formatTime } from "../runs/results";
 import { fetchVersion, type AgentVersionDetail } from "./api";
 import { Page } from "./Page";
 import { useLoaded } from "./useLoaded";
-import { VersionDiff } from "./VersionDiff";
+import { VersionDiffView } from "./VersionDiffView";
 import { contractYaml, oldestFirst, summarizeChanges } from "./versionDiff";
 import { agentHref, versionHref, versionTitle } from "./view";
 
@@ -54,7 +54,7 @@ export function VersionComparePage({ name, a, b }: { name: string; a: string; b:
                             </List>
                         )}
                         <Title order={3}>Diff</Title>
-                        <VersionDiff from={contractYaml(base.content)} to={contractYaml(next.content)} />
+                        <VersionDiffView from={contractYaml(base.content)} to={contractYaml(next.content)} />
                     </Stack>
                 );
             }}

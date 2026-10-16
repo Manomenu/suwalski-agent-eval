@@ -60,7 +60,7 @@ app keeps its tests beside its code, so those folders would only split the .NET 
 | `Suwageval.Server/Database/Migrations/up/` | numbered SQL migrations, applied at start-up by grate (`Database/Migrator.cs`) |
 | `Suwageval.Server.Tests/` | the server's tests (xUnit v3), mirroring the server's folders; `ContractsTests.cs` holds the import contracts, `ProjectReferencesTests.cs` the project graph. `EndToEnd/` is the one place where the CLI runs against the server in process (`push`, `run`, `rerun`); only its types may use the CLI (`EndToEndContractsTests.cs`) |
 | `Suwageval.Contracts/` | the records the API sends and receives and the CLI reads from YAML, with their JSON shape (System.Text.Json, camelCase, strict). Records only, public types (a library shared by projects); one folder — one namespace — per feature |
-| `Suwageval.Cli/` | the `suwageval` command, packed as a .NET tool (System.CommandLine, YamlDotNet). `Files/` reads the agent's YAML files into the contracts, `Validate/` is `suwageval validate`, `Validation/` is the validator and its report (shared by `validate` and `push`), `Push/` is `suwageval push`, `Run/` is `suwageval run`, `Rerun/` is `suwageval rerun` (a new run with the agent, tag and endpoint of an earlier one), `Cancel/` is `suwageval cancel` (stops a queued or running run), `Results/` is `suwageval results` (opens the run's page on the web), `Compare/` is `suwageval compare` (opens the comparison of 2 to 5 runs of one agent), `Runs/` is `suwageval runs` (lists the agent's newest runs, to pick runs to compare), `Unstable/` is `suwageval unstable` (the checks that pass in some runs of one agent version and fail in others), `Versions/` is `suwageval versions` (list, archive, unarchive an agent's versions; `diff` opens the page showing what changed between two), `Server/` is what they share: Suwageval's address (the web's, the API under its `/api`), the run endpoints (`RunClient`), the page opening (`WebPage`, shared by `results`, `compare` and `versions diff`), the verdict, what `run` and `rerun` print (`RunOutput`) and the JSON output |
+| `Suwageval.Cli/` | the `suwageval` command, packed as a .NET tool (System.CommandLine, YamlDotNet). `Files/` reads the agent's YAML files into the contracts, `Validate/` is `suwageval validate`, `Validation/` is the validator and its report (shared by `validate` and `push`), `Push/` is `suwageval push`, `Run/` is `suwageval run`, `Rerun/` is `suwageval rerun` (a new run with the agent, tag and endpoint of an earlier one), `Recheck/` is `suwageval recheck` (judges a finished run's stored answers again with the current checks, no agent call; `--dry-run` prints the plan), `Cancel/` is `suwageval cancel` (stops a queued or running run), `Results/` is `suwageval results` (opens the run's page on the web), `Compare/` is `suwageval compare` (opens the comparison of 2 to 5 runs of one agent), `Runs/` is `suwageval runs` (lists the agent's newest runs, to pick runs to compare), `Unstable/` is `suwageval unstable` (the checks that pass in some runs of one agent version and fail in others), `Versions/` is `suwageval versions` (list, archive, unarchive an agent's versions; `diff` opens the page showing what changed between two), `Server/` is what they share: Suwageval's address (the web's, the API under its `/api`), the run endpoints (`RunClient`), the page opening (`WebPage`, shared by `results`, `compare` and `versions diff`), the verdict, what `run`, `rerun` and `recheck` print (`RunOutput`) and the JSON output |
 | `Suwageval.Cli.Tests/` | the CLI's tests (xUnit v3), mirroring its folders; pure unit tests — no server, no database (those are the server tests' `EndToEnd/`); `ContractsTests.cs` holds the CLI's import contracts; `Sample/` is the one agent folder the tests use (the server tests link it into their output) |
 | `docs/scenario-format.md` | the file format an agent's repository keeps in `suwageval/` and the agent contract (v1): `agent.yaml`, scenarios with checks, shorthands |
 | `docs/universal-approach.md` | why contract v1 and its checks look the way they do: each element, the need it answers, what was left out on purpose |
@@ -232,7 +232,7 @@ not by reviewers; a dependency against it fails with the types involved.
 | Feature uses feature | only downwards, by its position in the layer list | only through an explicit policy in `eslint.config.js`, with a comment saying why |
 
 **The CLI** is layered the same way, by `Layers` in `Suwageval.Cli.Tests/ContractsTests.cs`:
-root (`Program`, `CliApp`) → the commands `Validate` \| `Push` \| `Run` \| `Rerun` \| `Cancel` \| `Runs` \| `Unstable` \| `Results` \| `Compare` \| `Versions` (siblings: none uses another) →
+root (`Program`, `CliApp`) → the commands `Validate` \| `Push` \| `Run` \| `Rerun` \| `Recheck` \| `Cancel` \| `Runs` \| `Unstable` \| `Results` \| `Compare` \| `Versions` (siblings: none uses another) →
 `Validation` \| `Server` → `Files`; `Every_cli_namespace_has_a_layer` fails for a namespace without one. What two commands
 share moves down into a layer of its own.
 
@@ -338,6 +338,11 @@ A change to one feature should touch one place on each side.
   fails otherwise (IDE0130, `.editorconfig`). Web — a component per
   `PascalCase.tsx`, hooks `useSomething.ts`, other modules `camelCase.ts`. Shared e2e steps,
   once there are some, live in `Suwageval.Web/e2e/helpers.ts`.
+  Two files in one folder never differ only in letter case: Windows and macOS file systems
+  ignore case, so an import then resolves to the wrong file. A component and its logic module get
+  different words (`VersionDiffView.tsx` + `versionDiff.ts`); the gate checks it
+  (`RepositoryLayoutTests`: `No_two_files_differ_only_in_letter_case` and
+  `No_two_web_modules_in_one_folder_differ_only_in_letter_case_of_their_name`).
 - **State:** component state and props. No global store and no data-fetching library until
   a second screen needs shared server state.
 

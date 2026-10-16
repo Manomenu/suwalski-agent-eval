@@ -5,7 +5,7 @@ namespace Suwageval.Server.Tests.Runs;
 
 public sealed class PassRateTrendTests
 {
-    private static RunRow Run(RunStatus status, int minute) =>
+    private static RunRow Run(RunStatus status, int minute, Guid? recheckOf = null) =>
         new(
             Guid.NewGuid(),
             Guid.NewGuid(),
@@ -23,7 +23,8 @@ public sealed class PassRateTrendTests
             false,
             new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddMinutes(minute),
             null,
-            null
+            null,
+            recheckOf
         );
 
     private static ScenarioRunResult Scenario(string key, params bool[] checks) =>
@@ -73,9 +74,58 @@ public sealed class PassRateTrendTests
         var picked = PassRateTrend.Pick(newestFirst);
 
         Assert.Equal(PassRateTrend.MaxRuns, picked.Count);
-        Assert.All(picked, run => Assert.Equal(RunStatus.Done, run.State));
-        Assert.Equal(picked.OrderBy(run => run.CreatedAt), picked);
-        Assert.Equal(newestFirst[2].Id, picked[^1].Id);
+        Assert.All(picked, point => Assert.Equal(RunStatus.Done, point.Run.State));
+        Assert.Equal(picked.Select(point => point.Run).OrderBy(run => run.CreatedAt), picked.Select(point => point.Run));
+        Assert.Equal(newestFirst[2].Id, picked[^1].Run.Id);
+        Assert.All(picked, point => Assert.Null(point.RecheckedBy));
+    }
+
+    [Fact]
+    public void A_re_check_is_never_a_point_of_its_own()
+    {
+        var original = Run(RunStatus.Done, 1);
+
+        var picked = PassRateTrend.Pick([Run(RunStatus.Done, 3, original.Id), original]);
+
+        Assert.Equal(original.Id, Assert.Single(picked).Run.Id);
+    }
+
+    [Fact]
+    public void A_point_shows_the_newest_finished_re_check_of_its_run()
+    {
+        var original = Run(RunStatus.Done, 1);
+        var older = Run(RunStatus.Done, 2, original.Id);
+        var newer = Run(RunStatus.Done, 3, original.Id);
+        var running = Run(RunStatus.Running, 4, original.Id);
+        var other = Run(RunStatus.Done, 0);
+
+        var picked = PassRateTrend.Pick([running, newer, older, original, other]);
+
+        Assert.Equal([other.Id, original.Id], picked.Select(point => point.Run.Id));
+        Assert.Equal([null, newer.Id], picked.Select(point => point.RecheckedBy?.Id));
+    }
+
+    [Fact]
+    public void A_re_check_still_running_changes_nothing()
+    {
+        var original = Run(RunStatus.Done, 1);
+
+        var picked = PassRateTrend.Pick([Run(RunStatus.Running, 2, original.Id), Run(RunStatus.Queued, 3, original.Id), original]);
+
+        Assert.Null(Assert.Single(picked).RecheckedBy);
+    }
+
+    [Fact]
+    public void The_cap_counts_original_runs_only()
+    {
+        var originals = Enumerable.Range(0, 60).Select(minute => Run(RunStatus.Done, minute)).ToList();
+        var rechecks = originals.Select(run => Run(RunStatus.Done, 100, run.Id));
+        var newestFirst = rechecks.Concat(Enumerable.Reverse(originals)).ToList();
+
+        var picked = PassRateTrend.Pick(newestFirst);
+
+        Assert.Equal(PassRateTrend.MaxRuns, picked.Count);
+        Assert.All(picked, point => Assert.NotNull(point.RecheckedBy));
     }
 
     [Fact]

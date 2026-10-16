@@ -33,6 +33,20 @@ internal sealed class RunClient(HttpClient http)
             cancellationToken
         );
 
+    /// <summary>What a re-check of run <paramref name="runId"/> would do and whether it can start.</summary>
+    public Task<RecheckPlan> RecheckPlanAsync(Guid runId, CancellationToken cancellationToken) =>
+        SendAsync<RecheckPlan>(
+            () => http.GetAsync(new Uri($"runs/{runId}/recheck", UriKind.Relative), cancellationToken),
+            cancellationToken
+        );
+
+    /// <summary>Starts a re-check of run <paramref name="runId"/>: its stored answers judged again by the current checks.</summary>
+    public Task<RunCreated> RecheckAsync(Guid runId, CancellationToken cancellationToken) =>
+        SendAsync<RunCreated>(
+            () => http.PostAsync(new Uri($"runs/{runId}/recheck", UriKind.Relative), null, cancellationToken),
+            cancellationToken
+        );
+
     /// <summary>Asks the server to stop run <paramref name="runId"/>: it answers 202 for any known run, a finished one stays as it is.</summary>
     public Task CancelAsync(Guid runId, CancellationToken cancellationToken) =>
         SendAsync(() => http.PostAsync(new Uri($"runs/{runId}/cancel", UriKind.Relative), null, cancellationToken), cancellationToken);

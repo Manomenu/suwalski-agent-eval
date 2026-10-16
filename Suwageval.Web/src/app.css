@@ -47,7 +47,7 @@
 }
 
 /* The line diff of two versions: a row is the two line numbers, the +/- marker and the text, which wraps (never scrolled
-   sideways) and hangs under its start (the row's inline padding, see agents/VersionDiff.tsx). */
+   sideways) and hangs under its start (the row's inline padding, see agents/VersionDiffView.tsx). */
 .version-diff {
     font-family: var(--mantine-font-family-monospace);
     font-size: var(--mantine-font-size-sm);

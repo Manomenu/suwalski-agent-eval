@@ -11,6 +11,8 @@ export type RunSummary = components["schemas"]["RunSummary"];
 export type ScenarioRunResult = components["schemas"]["ScenarioRunResult"];
 export type CheckRunResult = components["schemas"]["CheckRunResult"];
 export type UnstableCheck = components["schemas"]["UnstableCheck"];
+export type RecheckPlan = components["schemas"]["RecheckPlan"];
+export type ChangedCheck = components["schemas"]["ChangedCheck"];
 export type ConversationItem = components["schemas"]["ConversationItem"];
 
 /** One page of the runs of one agent (by name), newest first; see `runsPath`. */
@@ -35,4 +37,14 @@ export function rerun(runId: string): Promise<RunCreated> {
 /** The agent's unstable checks (see `stability.ts`), limited to the given versions (none: all of them). */
 export function fetchUnstableChecks(agent: string, versionIds: readonly string[], signal: AbortSignal): Promise<UnstableCheck[]> {
     return request<UnstableCheck[]>(unstableChecksPath(agent, versionIds), { signal });
+}
+
+/** What a re-check of the run would do and whether it can start; nothing is started. */
+export function fetchRecheckPlan(runId: string, signal: AbortSignal): Promise<RecheckPlan> {
+    return request<RecheckPlan>(`/runs/${runId}/recheck`, { signal });
+}
+
+/** A new run that judges this run's stored answers again with the current checks; the agent is not called. */
+export function recheck(runId: string): Promise<RunCreated> {
+    return request<RunCreated>(`/runs/${runId}/recheck`, { method: "POST" });
 }

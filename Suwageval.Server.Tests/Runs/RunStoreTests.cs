@@ -23,7 +23,7 @@ public sealed class RunStoreTests(TestDatabase database)
         );
 
     private static Task<Guid> EnqueueAsync(RunStore store, SeededAgent agent, string? tag = null) =>
-        store.EnqueueAsync(agent.Id, agent.VersionId, tag, agent.EndpointUrl, Cancellation);
+        store.EnqueueAsync(agent.Id, agent.VersionId, tag, agent.EndpointUrl, cancellationToken: Cancellation);
 
     [Fact]
     public async Task An_enqueued_run_is_queued_with_no_results()
@@ -314,9 +314,15 @@ public sealed class RunStoreTests(TestDatabase database)
         Assert.Equal([second], onlyOther.Select(run => run.Id));
     }
 
-    private async Task<Guid> FinishedRunAsync(RunStore store, SeededAgent agent, bool[] samplePassed, RunStatus status = RunStatus.Done)
+    private async Task<Guid> FinishedRunAsync(
+        RunStore store,
+        SeededAgent agent,
+        bool[] samplePassed,
+        RunStatus status = RunStatus.Done,
+        Guid? recheckOf = null
+    )
     {
-        var id = await EnqueueAsync(store, agent);
+        var id = await store.EnqueueAsync(agent.Id, agent.VersionId, null, agent.EndpointUrl, recheckOf, cancellationToken: Cancellation);
         var scenario = await new ScenarioStore(database.Pool).GetAsync(agent.Id, "refund", Cancellation);
         var check = Assert.Single(await new CheckStore(database.Pool).ListAsync(agent.Id, cancellationToken: Cancellation));
         for (var i = 0; i < samplePassed.Length; i++)
@@ -381,5 +387,18 @@ public sealed class RunStoreTests(TestDatabase database)
         var row = Assert.Single(await store.ListRunCheckVerdictsAsync(agent.Id, [], 1, Cancellation));
 
         Assert.Equal(newest, row.RunId);
+    }
+
+    [Fact]
+    public async Task Run_check_verdicts_leave_out_rechecks_that_only_repeat_stored_answers()
+    {
+        var store = Store();
+        var agent = await NewAgentAsync();
+        var source = await FinishedRunAsync(store, agent, [true]);
+        await FinishedRunAsync(store, agent, [false], recheckOf: source);
+
+        var row = Assert.Single(await store.ListRunCheckVerdictsAsync(agent.Id, [], 200, Cancellation));
+
+        Assert.Equal(source, row.RunId);
     }
 }

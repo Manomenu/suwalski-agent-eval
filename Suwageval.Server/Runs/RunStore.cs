@@ -18,7 +18,8 @@ internal sealed class RunStore(Pool pool)
                (SELECT count(*)::int FROM check_results c JOIN scenario_results s ON s.id = c.scenario_result_id
                  WHERE s.run_id = r.id AND NOT c.passed) AS ChecksFailed,
                r.contract_changed_during_run AS ContractChangedDuringRun, r.cancel_requested AS CancelRequested,
-               r.created_at AS CreatedAt, r.started_at AS StartedAt, r.finished_at AS FinishedAt
+               r.created_at AS CreatedAt, r.started_at AS StartedAt, r.finished_at AS FinishedAt,
+               r.recheck_of AS RecheckOf, r.skipped_scenarios::text AS SkippedScenarios, r.verdicts_from AS VerdictsFrom
         FROM runs r
         JOIN agents a ON a.id = r.agent_id
         """;
@@ -29,6 +30,8 @@ internal sealed class RunStore(Pool pool)
         Guid agentVersionId,
         string? tag,
         string endpointUrl,
+        Guid? recheckOf = null,
+        Guid? verdictsFrom = null,
         CancellationToken cancellationToken = default
     )
     {
@@ -36,8 +39,8 @@ internal sealed class RunStore(Pool pool)
         return await connection.QuerySingleAsync<Guid>(
             new CommandDefinition(
                 """
-                INSERT INTO runs (agent_id, agent_version_id, tag, endpoint_url)
-                VALUES (@agentId, @agentVersionId, @tag, @endpointUrl)
+                INSERT INTO runs (agent_id, agent_version_id, tag, endpoint_url, recheck_of, verdicts_from)
+                VALUES (@agentId, @agentVersionId, @tag, @endpointUrl, @recheckOf, @verdictsFrom)
                 RETURNING id
                 """,
                 new
@@ -46,6 +49,8 @@ internal sealed class RunStore(Pool pool)
                     agentVersionId,
                     tag,
                     endpointUrl,
+                    recheckOf,
+                    verdictsFrom,
                 },
                 cancellationToken: cancellationToken
             )
@@ -152,6 +157,19 @@ internal sealed class RunStore(Pool pool)
             new CommandDefinition(
                 "UPDATE runs SET samples_total = @samplesTotal WHERE id = @id",
                 new { id, samplesTotal },
+                cancellationToken: cancellationToken
+            )
+        );
+    }
+
+    /// <summary>Records the scenarios a re-check left out.</summary>
+    public async Task SetSkippedAsync(Guid id, IReadOnlyList<SkippedScenario> skipped, CancellationToken cancellationToken = default)
+    {
+        await using var connection = await pool.OpenAsync(cancellationToken);
+        await connection.ExecuteAsync(
+            new CommandDefinition(
+                "UPDATE runs SET skipped_scenarios = @skippedJson::jsonb WHERE id = @id",
+                new { id, skippedJson = JsonSerializer.Serialize(skipped, ContractJson.Options) },
                 cancellationToken: cancellationToken
             )
         );
@@ -280,7 +298,7 @@ internal sealed class RunStore(Pool pool)
                 """
                 SELECT sr.id, s.key AS ScenarioKey, sr.scenario_revision AS ScenarioRevision, sr.sample, sr.status,
                        sr.output::text AS Output, sr.error, sr.undeclared::text AS Undeclared,
-                       sr.duration_ms AS DurationMs
+                       sr.duration_ms AS DurationMs, sr.scenario_id AS ScenarioId
                 FROM scenario_results sr
                 JOIN scenarios s ON s.id = sr.scenario_id
                 WHERE sr.run_id = @runId
@@ -304,7 +322,7 @@ internal sealed class RunStore(Pool pool)
                        (SELECT MAX(latest.revision) FROM check_revisions latest WHERE latest.check_id = cr.check_id) AS LatestRevision,
                        rev.content::text AS Definition,
                        COALESCE((rev.content->>'passThreshold')::float8, 1.0) AS PassThreshold,
-                       cr.passed, cr.not_judged AS NotJudged, cr.evidence::text AS Evidence, cr.message
+                       cr.passed, cr.not_judged AS NotJudged, cr.evidence::text AS Evidence, cr.message, cr.check_id AS CheckId
                 FROM check_results cr
                 JOIN scenario_results sr ON sr.id = cr.scenario_result_id
                 JOIN checks c ON c.id = cr.check_id
@@ -337,7 +355,7 @@ internal sealed class RunStore(Pool pool)
                 WITH picked AS (
                     SELECT id, created_at, agent_version_id FROM runs
                     WHERE agent_id = @agentId AND status = 'Done'
-                      -- Runs that only re-judge stored answers (runs.recheck_of IS NOT NULL) must be excluded here: one more AND.
+                      AND recheck_of IS NULL -- a re-check repeats its source run's stored answers: not an independent sample
                       AND (cardinality(@versionIds::uuid[]) = 0 OR agent_version_id = ANY(@versionIds::uuid[]))
                     ORDER BY created_at DESC, id
                     LIMIT @maxRuns
