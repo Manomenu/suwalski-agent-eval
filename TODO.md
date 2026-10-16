@@ -57,6 +57,22 @@ belongs to.
 
 ## Later, after the MVP
 
+- **Runs from an agent's CI** (needs Suwageval on the cluster first, and the CLI speaking Cloudflare Access with a
+  service token). Not a run on every PR: a series of small PRs, or one big MR split into many, would start the whole
+  evaluation again and again, each time calling the agent's model and the judge, while most PRs (refactors, tests, CI, docs)
+  do not change what the agent answers. Triggers, in this order:
+  1. **On demand in a PR** — a label (`eval`) or a comment (`/suwageval`): the person decides, not the number of PRs.
+  2. **After a merge to the agent's `master`** — one full run per change that landed, compared with the previous one; a
+     split MR is evaluated once it is whole.
+  3. **Later, per agent repo: paths that change behaviour** (prompts, tool definitions, model config, the RAG pipeline)
+     start a run on their own; the list lives in that repo's workflow.
+  4. **Skip a version already evaluated** — the agent's version is its contract hash: when it has a recent finished run,
+     CI answers "already evaluated" with the link instead of running. Only together with 3: a tool's implementation can
+     change without its schema, so the contract (and the version) stays the same.
+  The result goes back as a PR comment: totals against `master`, the tags that moved, checks that got worse (stable ones
+  first, unstable ones marked as possible noise), links to the comparison and the version diff. Open question: how the
+  server reaches the agent built from a PR (started in the job behind a tunnel, or a preview deployment).
+
 - **`validate`: JSON Schema checks of free JSON.** `arguments` of a `ToolCall` and `data` of an
   `Event` (in the log, and `args` / `data` of the checks) are not yet validated against the
   `parameters` / `dataSchema` the agent declares in its served contract (`validate` already reads
