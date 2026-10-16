@@ -82,6 +82,16 @@ belongs to.
   first, unstable ones marked as possible noise), links to the comparison and the version diff. Open question: how the
   server reaches the agent built from a PR (started in the job behind a tunnel, or a preview deployment).
 
+- **Regressions, the automatic mode** (designed, to be built first; the artifact "Regresje w Suwageval",
+  `docs/claude-artifacts/README.md`). A regression is a check that passed steadily and fails now; the baseline is the
+  check's history over the newest reference runs (runs from a branch of `regression.branches` in `agent.yaml`, default the
+  repo's default branch, with a clean tree and a pushed commit), so nobody sets or marks anything. Open decisions are at
+  the end of the artifact.
+
+- **Regressions, the manual mode** — only if the automatic one proves not enough in practice: marking a run as the
+  baseline by hand, `expected fail` on a check (with a reason or an issue link), accepting a change by hand. Left out
+  of the automatic mode on purpose: each is a step someone has to remember, and a forgotten one makes the report lie.
+
 - **`validate`: JSON Schema checks of free JSON.** `arguments` of a `ToolCall` and `data` of an
   `Event` (in the log, and `args` / `data` of the checks) are not yet validated against the
   `parameters` / `dataSchema` the agent declares in its served contract (`validate` already reads
