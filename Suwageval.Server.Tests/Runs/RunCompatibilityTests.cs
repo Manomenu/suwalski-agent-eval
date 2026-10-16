@@ -13,7 +13,7 @@ public sealed class RunCompatibilityTests
     private static IReadOnlyList<string> Mismatches(
         IReadOnlyList<(string, ScenarioContent)> scenarios,
         IReadOnlyList<CheckInput> checks,
-        AgentVersionInput? version = null
+        AgentContract? version = null
     ) => RunCompatibility.Mismatches(version ?? SeededAgent.ExampleVersion, scenarios, checks);
 
     [Fact]
@@ -53,7 +53,7 @@ public sealed class RunCompatibilityTests
             Mismatches(
                 [("s", Content(retrieval))],
                 [],
-                new AgentVersionInput
+                new AgentContract
                 {
                     SystemPrompt = "p",
                     Model = new ModelDefinition { Name = "m" },

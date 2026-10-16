@@ -10,5 +10,6 @@ internal sealed record NewSample(
     SampleStatus Status,
     string? OutputJson,
     string? Error,
+    IReadOnlyList<string> Undeclared,
     IReadOnlyList<NewCheckResult> Checks
 );

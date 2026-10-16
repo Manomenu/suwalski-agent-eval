@@ -6,7 +6,7 @@ files are YAML in a folder `suwageval/` at the root of the agent's repository (`
 
 ```
 suwageval/
-  agent.yaml            the agent and the version of it under test
+  agent.yaml            the agent: its name and where it runs
   scenarios/
     refund-happy-path.yaml   one scenario per file, its checks inside
     ...
@@ -14,34 +14,94 @@ suwageval/
 
 The fields are the records of `Suwageval.Contracts` in camelCase. Unknown fields, missing
 required fields and wrong values are errors, reported with file, line and path. `validate`
-needs no server:
+needs no server; it asks the running agent for its contract (below) to check names, and says so
+when it could not:
 
 ```sh
 suwageval validate                      # ./suwageval
 suwageval validate path/to/suwageval    # another folder
 suwageval validate scenarios/x.yaml     # one scenario, checked against ./suwageval/agent.yaml (--dir for another)
 suwageval validate - < scenario.yaml    # one scenario from stdin, same
-suwageval validate --json               # { "valid": bool, "problems": [{ "file", "path", "message" }] }
+suwageval validate --endpoint URL       # read the agent's contract from URL instead of agent.yaml's endpointUrl
+suwageval validate --offline            # do not ask the agent: the structure only
+suwageval validate --json               # { "valid": bool, "namesChecked": bool, "notice": string|null, "problems": [{ "file", "path", "message" }] }
 ```
 
 Exit code 0 when valid, 1 when anything is wrong. A file that does not match the contract is
-reported for its structure first; what the files say about each other (keys, tools, events) is
-checked once its structure is right.
+reported for its structure first; what the files say about each other (keys, tool results) is
+checked once its structure is right. **Tool and event names** are checked against the contract
+the running agent serves: `validate` GETs `{endpointUrl}/suwageval/contract` (5 s timeout). When
+the agent cannot be reached, or does not serve a contract, the names are not checked, a notice
+says why (`names not checked: agent at http://localhost:7010 unreachable (connection refused)`),
+`namesChecked` is `false` and the exit code is still 0 when the files are right. `--offline`
+skips the fetch.
 
 ## `agent.yaml`
 
-The agent (`name`, `endpointUrl`) and, under `version:`, the version the scenarios run against.
+Only the agent's name and where it runs. **What the agent is** — prompt, model, tools, events —
+is not written in any file: the running agent serves it (next section), so a run always records
+what really ran. A `version:` key is an error.
 
 | Field | | |
 | --- | --- | --- |
 | `name` | required | the agent's name |
-| `endpointUrl` | required | where the agent is reached: `POST {endpointUrl}/suwageval/turn` |
-| `version.label` | | a name for this version, e.g. `v3-shorter-prompt` |
-| `version.systemPrompt` | required | the agent's system prompt |
-| `version.model` | required | `name` (required) and `parameters` (free mapping, e.g. `temperature`) |
-| `version.tools` | | the tools the agent may call: `name`, `description`, `parameters` (a JSON Schema) |
-| `version.context.usesRetrieval` | | `true` if the agent retrieves chunks (RAG); default `false` |
-| `version.context.events` | | the events the agent emits: `type` and `dataSchema` (a JSON Schema for `data`) |
+| `endpointUrl` | required | where the agent is reached: `POST {endpointUrl}/suwageval/turn`, `GET {endpointUrl}/suwageval/contract` |
+
+## The agent contract (contract v0)
+
+An agent under test serves two routes. `POST /suwageval/turn` runs a turn (the conversation in,
+the items it produced out). `GET /suwageval/contract` says what the agent is:
+
+```json
+{
+  "label": "3f2a9c1",
+  "systemPrompt": "You are a polite customer support agent ...",
+  "model": { "name": "gpt-4o-mini", "parameters": { "temperature": 0 } },
+  "tools": [
+    {
+      "name": "get_order",
+      "description": "Look up an order: its status, items and total.",
+      "parameters": { "type": "object", "properties": { "order_id": { "type": "string" } }, "required": ["order_id"] }
+    }
+  ],
+  "context": {
+    "usesRetrieval": false,
+    "events": [{ "type": "state.changed", "dataSchema": { "type": "object" } }]
+  }
+}
+```
+
+| Field | | |
+| --- | --- | --- |
+| `label` | | a name for this version, e.g. the git SHA; no part of the content: renaming alone is not a new version |
+| `systemPrompt` | required | the agent's system prompt |
+| `model` | required | `name` (required) and `parameters` (free mapping, e.g. `temperature`) |
+| `tools` | | the tools the agent may call: `name`, `description`, `parameters` (a JSON Schema) |
+| `context.usesRetrieval` | | `true` if the agent retrieves chunks (RAG); default `false` |
+| `context.events` | | the events the agent emits: `type` and `dataSchema` (a JSON Schema for `data`) |
+
+Unknown fields are an error, like everywhere in the contracts.
+
+**Every conversation starts from the same test data.** Suwageval runs scenarios in parallel and
+one run after another; an agent that carried state from one `POST /suwageval/turn` to the next
+(an order refunded in an earlier run) would make a result depend on what ran before. The agent
+runs each conversation against a fresh copy of its test data — the example agent gives every
+turn its own copy of the fake shop.
+
+**How Suwageval uses it.** `POST /runs` GETs the contract from the agent (`endpointUrl` of the
+request, else the agent's), registers it as a version and runs against that version. The content
+hash (without `label`) makes the same contract the existing version and a changed one a new
+version; the answer to `POST /runs` and `suwageval run` say which version and whether it is `new`.
+
+- An agent that cannot be reached, or whose contract cannot be read or is not valid, is a 502
+  that names the URL and the cause; nothing is queued.
+- The scenarios and checks must fit that version (every tool and event they name is in it, a
+  retrieval needs `usesRetrieval`): otherwise 409 with the mismatches, nothing is queued.
+- At the end of a run the contract is read again. If it differs from the run's version (the agent
+  was redeployed mid-run) the run says `contractChangedDuringRun: true`.
+- A `ToolCall` or `Event` the agent produces during a run that its version does not declare is
+  recorded on the sample as `undeclared` (`tool 'x'`, `event 'y'`) and shown in the results. It
+  is a warning, not a failure by itself.
 
 ## A scenario file
 
@@ -69,7 +129,8 @@ full with `kind:`.
 | | `Retrieval` with `query` and `chunks: [{ text, source, score }]` (full form only) |
 
 Rules: a `tool_result` answers an earlier `tool_call` with the same id; an `event` has a
-type declared in `context.events`; a `Retrieval` needs `usesRetrieval: true`.
+type declared in the agent's `context.events`; a `Retrieval` needs `usesRetrieval: true` in its
+contract.
 
 ### Checks
 
@@ -84,7 +145,8 @@ pass, above 0 up to 1, default `1.0`). The scenario is the file the check sits i
 | `event` | `event` (the type), `data` (optional) | the agent emitted the event; `data`, when given, is a subset of its data |
 | `text` | `contains`, `notContains`, `pattern` (at least one) | the answer contains the text, does not contain the text, matches the regular expression |
 
-A `tool` must be one of the version's tools and an `event` one of its declared event types.
+A `tool` must be one of the agent's tools and an `event` one of its declared event types (checked
+by `validate` against the agent's contract, and by the server when a run starts).
 Other types (a judge) come after the MVP; an unknown `type` is an error.
 
 `where` narrows a check to a part of what was produced:
@@ -124,40 +186,10 @@ Not checked yet: that `arguments` and `data` match the JSON Schemas the agent de
 ```yaml
 name: example-agent
 endpointUrl: http://localhost:7010
-
-version:
-  model:
-    name: gpt-4o-mini
-  systemPrompt: |
-    You are a polite customer support agent for Kettle & Co.
-    Look an order up with get_order before you refund it.
-  tools:
-    - name: get_order
-      description: "Look up an order: its status, items and total."
-      parameters:
-        type: object
-        properties:
-          order_id: { type: string }
-        required: [order_id]
-    - name: refund_order
-      description: Refund an order. Only a delivered order can be refunded.
-      parameters:
-        type: object
-        properties:
-          order_id: { type: string }
-          reason: { type: string }
-        required: [order_id, reason]
-  context:
-    usesRetrieval: false
-    events:
-      - type: state.changed
-        dataSchema:
-          type: object
-          properties:
-            node: { type: string }
-            orderId: { type: string }
-          required: [node, orderId]
 ```
+
+The agent at that address serves the contract of the section above, with the tools `get_order`
+and `refund_order` and the event `state.changed` that this scenario uses.
 
 `suwageval/scenarios/refund-follow-up.yaml`:
 

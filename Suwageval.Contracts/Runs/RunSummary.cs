@@ -28,6 +28,12 @@ public sealed record RunSummary
 
     public required int ChecksFailed { get; init; }
 
+    /// <summary>
+    /// <c>true</c> when the agent's contract, read again at the end of the run, differs from the version the run started with
+    /// (a redeploy mid-run): the results may not all be of that version.
+    /// </summary>
+    public bool ContractChangedDuringRun { get; init; }
+
     public required DateTime CreatedAt { get; init; }
 
     public DateTime? StartedAt { get; init; }

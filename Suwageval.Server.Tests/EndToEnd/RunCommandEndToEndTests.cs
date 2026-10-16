@@ -24,7 +24,7 @@ public sealed class RunCommandEndToEndTests(TestDatabase database) : IAsyncDispo
     {
         await File.WriteAllTextAsync(
             Path.Combine(work, "agent.yaml"),
-            $"name: {agent.Name}\nendpointUrl: {agent.EndpointUrl}\nversion:\n  systemPrompt: p\n  model:\n    name: m\n",
+            $"name: {agent.Name}\nendpointUrl: {agent.EndpointUrl}\n",
             Cancellation
         );
         using var http = app.CreateClient();
@@ -125,23 +125,55 @@ public sealed class RunCommandEndToEndTests(TestDatabase database) : IAsyncDispo
         var (exit, output, _) = await RunCliAsync(agent, "--tag", "regression");
 
         Assert.Equal(0, exit);
-        Assert.True(Guid.TryParse(output.Trim(), out _));
+        Assert.True(Guid.TryParse(output.Trim().Split('\n')[^1], out _));
+    }
+
+    [Fact]
+    public async Task The_version_comes_from_the_running_agent_new_once_and_existing_again_until_it_changes()
+    {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
+        fake.ServeContract(SeededAgent.ExampleVersion with { SystemPrompt = "Fresh for this test." });
+        var agent = await SeedAsync(fake.Url.AbsoluteUri);
+
+        var (_, first, _) = await RunCliAsync(agent, "--tag", "regression", "--wait");
+        var (_, second, _) = await RunCliAsync(agent, "--tag", "regression", "--wait");
+        fake.ServeContract(SeededAgent.ExampleVersion with { SystemPrompt = "Redeployed." });
+        var (_, third, _) = await RunCliAsync(agent, "--tag", "regression", "--wait");
+
+        Assert.Contains(": new", first.Split('\n')[0], StringComparison.Ordinal);
+        Assert.Contains(": existing", second.Split('\n')[0], StringComparison.Ordinal);
+        Assert.Contains(": new", third.Split('\n')[0], StringComparison.Ordinal);
+        Assert.NotEqual(first.Split('\n')[0], third.Split('\n')[0]);
+    }
+
+    [Fact]
+    public async Task An_agent_that_cannot_say_what_it_is_exits_2_naming_the_contract_url()
+    {
+        var agent = await SeedAsync("http://127.0.0.1:1");
+
+        var (exit, _, error) = await RunCliAsync(agent, "--tag", "regression", "--wait");
+
+        Assert.Equal(2, exit);
+        Assert.Contains("502", error, StringComparison.Ordinal);
+        Assert.Contains("http://127.0.0.1:1/suwageval/contract", error, StringComparison.Ordinal);
     }
 
     [Fact]
     public async Task A_version_that_does_not_fit_exits_2_listing_the_mismatches()
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
-        var agent = await SeededAgent.CreateAsync(
-            database.Pool,
-            fake.Url.AbsoluteUri,
-            [SeededAgent.Scenario("refund")],
-            [SeededAgent.RefundAfterLookup("refund-called", "refund")],
-            new AgentVersionInput
+        fake.ServeContract(
+            new AgentContract
             {
                 SystemPrompt = "p",
                 Model = new ModelDefinition { Name = "m" },
             }
+        );
+        var agent = await SeededAgent.CreateAsync(
+            database.Pool,
+            fake.Url.AbsoluteUri,
+            [SeededAgent.Scenario("refund")],
+            [SeededAgent.RefundAfterLookup("refund-called", "refund")]
         );
 
         var (exit, _, error) = await RunCliAsync(agent, "--wait");

@@ -156,30 +156,7 @@ export interface paths {
             };
         };
         put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    agent: string;
-                };
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["AgentVersionInput"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -722,14 +699,6 @@ export interface components {
             /** @description Where suwageval reaches the agent under test (`POST {endpointUrl}/suwageval/turn`). */
             endpointUrl: string;
         };
-        /** @description What the agent was configured as when a run happened. */
-        AgentVersionInput: {
-            label?: null | string;
-            systemPrompt: string;
-            model: components["schemas"]["ModelDefinition"];
-            tools?: components["schemas"]["ToolDefinition"][];
-            context?: components["schemas"]["ContextDefinition"];
-        };
         /** @description A test on what the agent produced for a scenario, told apart by `type`. */
         CheckInput: components["schemas"]["CheckInputToolCalledCheck"] | components["schemas"]["CheckInputToolNotCalledCheck"] | components["schemas"]["CheckInputEventCheck"] | components["schemas"]["CheckInputTextCheck"];
         CheckInputEventCheck: {
@@ -834,11 +803,6 @@ export interface components {
             /** @description A tool name or event type: only what came before it counts. */
             before?: null | string;
         };
-        /** @description What besides messages and tool calls may appear in the agent's conversation log. */
-        ContextDefinition: {
-            usesRetrieval?: boolean;
-            events?: components["schemas"]["EventDeclaration"][];
-        };
         /** @description How the conversation goes on after its last message. */
         Continuation: {
             /**
@@ -891,20 +855,11 @@ export interface components {
             kind?: "UserMessage";
             text: string;
         };
-        EventDeclaration: {
-            type: string;
-            /** @description The shape of the event's `data`, as a JSON Schema document. */
-            dataSchema: components["schemas"]["JsonElement"];
-        };
         /** @description What /health answers. */
         Health: {
             status: string;
         };
         JsonElement: unknown;
-        ModelDefinition: {
-            name: string;
-            parameters?: null | components["schemas"]["JsonElement"];
-        };
         /** @description The checks to write for an agent; keys not listed are left alone. */
         PutChecksRequest: {
             checks: components["schemas"]["CheckInput"][];
@@ -922,19 +877,21 @@ export interface components {
         RunCreated: {
             /** Format: uuid */
             runId: string;
+            /**
+             * Format: uuid
+             * @description The version the run is under test: the contract the agent served when the run was started.
+             */
+            agentVersionId: string;
+            /** @description `true` when that contract was new (a first version, or the agent changed); `false` when the same content was registered before. */
+            versionCreated: boolean;
         };
         /** @description Starts a run of an agent's scenarios. */
         RunRequest: {
             /** @description The agent's name or id. */
             agent: string;
-            /**
-             * Format: uuid
-             * @description The version under test; none means the newest registered one.
-             */
-            agentVersionId?: null | string;
             /** @description Only the scenarios with this tag; none means every scenario of the agent. */
             tag?: null | string;
-            /** @description Where to reach the agent for this run; none means the endpoint the agent was registered with. */
+            /** @description Where to reach the agent for this run, and to read its contract from; none means the endpoint the agent was registered with. */
             endpointUrl?: null | string;
         };
         /** @description A run with what every scenario produced and how every check judged it. */
@@ -974,6 +931,11 @@ export interface components {
             checksPassed: number | string;
             /** Format: int32 */
             checksFailed: number | string;
+            /**
+             * @description `true` when the agent's contract, read again at the end of the run, differs from the version the run started with
+             *             (a redeploy mid-run): the results may not all be of that version.
+             */
+            contractChangedDuringRun?: boolean;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
@@ -992,6 +954,11 @@ export interface components {
             /** @description The items the agent produced; none when the sample failed. */
             output?: null | components["schemas"]["ConversationItem"][];
             error?: null | string;
+            /**
+             * @description Warnings: tool calls and events the agent produced that its version does not declare (`tool 'x'`, `event 'y'`).
+             *     Not a failure by itself.
+             */
+            undeclared?: string[];
         };
         /**
          * @description Whether the agent produced an answer for one sample of a scenario.
@@ -1028,12 +995,6 @@ export interface components {
             scenarioKeys: string[];
             add: string[];
             remove: string[];
-        };
-        ToolDefinition: {
-            name: string;
-            description: string;
-            /** @description The arguments the tool takes, as a JSON Schema document. */
-            parameters: components["schemas"]["JsonElement"];
         };
         /** @description Which turn a check looks at: a number (from 1), `"last"` or `"any"`. The default value is "any". */
         TurnSelector: unknown;

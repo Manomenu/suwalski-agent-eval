@@ -48,7 +48,7 @@ belongs to.
   come later as a second way.
 - **Who calls the API from an agent's repo:** for now JSON files in that repo
   (`suwageval/agent.yaml`, `suwageval/scenarios/*.yaml`) and a script. Target: a CLI
-  `suwageval` (`push` a folder = versions, scenarios, checks; `run --tag … --wait` with an
+  `suwageval` (`push` a folder = agent, scenarios, checks; `run --tag … --wait` with an
   exit code for CI), a CI step around it, and a Claude Code plugin driving the CLI.
 - **Non-determinism (Runs, Checks):** one sample by default; `samples: N` on a scenario
   (the conversation is repeated, not the check), `passThreshold` on a check (default 100%)
@@ -59,7 +59,9 @@ belongs to.
 
 - **`validate`: JSON Schema checks of free JSON.** `arguments` of a `ToolCall` and `data` of an
   `Event` (in the log, and `args` / `data` of the checks) are not yet validated against the
-  `parameters` / `dataSchema` the agent declares. Needs a JSON Schema validator package — add
+  `parameters` / `dataSchema` the agent declares in its served contract (`validate` already reads
+  it when the agent is reachable; the run could check what the agent produces too). Needs a JSON
+  Schema validator package — add
   it with this first check.
 - **`validate`: one problem per element.** The contract reports the first mistake in what it
   reads, so each item, check and tool is read on its own (several problems per file), but two
@@ -82,17 +84,3 @@ belongs to.
   the server does not ask for one). Configured in user secrets, never in a committed file,
   in the change that brings the judge or the simulator. The example agent already uses it
   through its gitignored `.env`.
-- **Automatic versions, taken from the running agent (right after the MVP):** the agent serves
-  its contract — `GET {agentUrl}/suwageval/contract`: system prompt (or its template), model
-  and parameters, tools with argument schemas, event types with data schemas, and a label
-  (its git SHA). At `POST /runs` the server fetches it and registers it as a version: the
-  content hash already turns "same as before" into the existing version and "changed" into a
-  new one. So a run always records what really ran, and `agent.yaml` shrinks to the agent's
-  name and `endpointUrl`. Its `version:` section goes away in the same change — one way to
-  pass a version, not two: an agent without the contract endpoint cannot be evaluated.
-  - `suwageval validate` fetches the contract when the agent is reachable (`--endpoint`), to
-    check tool and event names; offline it checks the files' structure and says it skipped
-    the names.
-  - The run fetches the contract again at the end; if it changed mid-run (a redeploy), the
-    run says so.
-  - A run also marks a produced `ToolCall` or `Event` that the contract does not declare.

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Suwageval.Contracts.Runs;
 using Suwageval.Server.Agents;
 using Suwageval.Server.Checks;
+using Suwageval.Server.Invocation;
 using Suwageval.Server.Scenarios;
 
 namespace Suwageval.Server.Runs;
@@ -21,9 +22,10 @@ internal static class RunEndpoints
     }
 
     /// <summary>
-    /// 202 with the run's id once it is queued. 404: no such agent or version; 422: the request or what it selects is not
-    /// runnable (a bad endpoint, no scenario with the tag); 409: the version does not fit the scenarios and checks — the
-    /// mismatches are listed and nothing is queued.
+    /// 202 with the run's id and its version once it is queued: the version is the contract the agent serves at that moment,
+    /// registered here. 404: no such agent; 422: the request or what it selects is not runnable (a bad endpoint, no scenario
+    /// with the tag); 502: the agent's contract could not be read or is not valid; 409: the version does not fit the scenarios
+    /// and checks — the mismatches are listed and nothing is queued.
     /// </summary>
     private static async Task<IResult> CreateAsync(
         RunRequest request,
@@ -31,6 +33,7 @@ internal static class RunEndpoints
         ScenarioStore scenarios,
         CheckStore checks,
         RunStore runs,
+        AgentClient client,
         CancellationToken cancellationToken
     )
     {
@@ -48,23 +51,32 @@ internal static class RunEndpoints
         {
             return NotFound($"There is no agent '{request.Agent}'.");
         }
-        var version = request.AgentVersionId is { } versionId
-            ? await agents.GetVersionAsync(versionId, cancellationToken)
-            : await NewestVersionAsync(agents, agent.Id, cancellationToken);
-        if (version is null || version.AgentId != agent.Id)
-        {
-            return NotFound(
-                request.AgentVersionId is null
-                    ? $"Agent '{agent.Name}' has no version yet: push it first."
-                    : $"Agent '{agent.Name}' has no version {request.AgentVersionId}."
-            );
-        }
 
         var picked = await scenarios.ListAsync(agent.Id, request.Tag, cancellationToken);
         if (picked.Count == 0)
         {
             return Invalid("tag", request.Tag is null ? "The agent has no scenarios." : $"No scenario has the tag '{request.Tag}'.");
         }
+
+        // The version is what the agent says it is right now: read its contract, register it (the same content is the same
+        // version), and run against that. Nothing is queued when the agent cannot say.
+        var endpoint = request.EndpointUrl ?? agent.EndpointUrl;
+        var served = await client.GetContractAsync(new Uri(endpoint), cancellationToken);
+        if (served.Contract is not { } contract)
+        {
+            return BadGateway("The agent's contract could not be read", served.Error ?? "The agent served nothing.");
+        }
+        var contractProblems = ContractContent.Problems(contract);
+        if (contractProblems.Count > 0)
+        {
+            return BadGateway(
+                "The agent's contract is not valid",
+                $"The contract served at {endpoint.TrimEnd('/')}/suwageval/contract is not valid: {string.Join("; ", contractProblems)}."
+            );
+        }
+        var registration = await agents.RegisterVersionAsync(agent.Id, ContractContent.Json(contract), contract.Label, cancellationToken);
+        var version = registration.Version;
+
         var keys = picked.Select(scenario => scenario.Key).ToHashSet();
         var pickedChecks = (await checks.ListAsync(agent.Id, cancellationToken: cancellationToken)).Where(check =>
             keys.Contains(check.ScenarioKey)
@@ -85,8 +97,16 @@ internal static class RunEndpoints
             );
         }
 
-        var id = await runs.EnqueueAsync(agent.Id, version.Id, request.Tag, request.EndpointUrl ?? agent.EndpointUrl, cancellationToken);
-        return Results.Accepted($"/runs/{id}", new RunCreated { RunId = id });
+        var id = await runs.EnqueueAsync(agent.Id, version.Id, request.Tag, endpoint, cancellationToken);
+        return Results.Accepted(
+            $"/runs/{id}",
+            new RunCreated
+            {
+                RunId = id,
+                AgentVersionId = version.Id,
+                VersionCreated = registration.Created,
+            }
+        );
     }
 
     private static async Task<IResult> ListAsync(
@@ -140,11 +160,8 @@ internal static class RunEndpoints
         return Results.Accepted($"/runs/{id}");
     }
 
-    private static async Task<AgentVersionRow?> NewestVersionAsync(AgentStore agents, Guid agentId, CancellationToken cancellationToken)
-    {
-        var versions = await agents.ListVersionsAsync(agentId, cancellationToken);
-        return versions.Count > 0 ? versions[0] : null;
-    }
+    private static IResult BadGateway(string title, string detail) =>
+        Results.Problem(title: title, detail: detail, statusCode: StatusCodes.Status502BadGateway);
 
     private static IResult NotFound(string detail) =>
         Results.Problem(detail: detail, statusCode: StatusCodes.Status404NotFound, title: "Not found");

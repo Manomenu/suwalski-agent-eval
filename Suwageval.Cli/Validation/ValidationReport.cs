@@ -22,6 +22,10 @@ internal static class ValidationReport
             var path = problem.Path.Length == 0 ? "" : $" {problem.Path}:";
             writer.WriteLine($"{problem.File}{position}:{path} {problem.Message}");
         }
+        if (result.Notice is not null)
+        {
+            writer.WriteLine(result.Notice);
+        }
         writer.WriteLine(
             result.IsValid
                 ? $"valid ({result.Scenarios} scenarios, {result.Checks} checks)"
@@ -32,11 +36,16 @@ internal static class ValidationReport
 
     public static string Json(ValidationResult result) =>
         JsonSerializer.Serialize(
-            new JsonReport(result.IsValid, [.. result.Problems.Select(p => new JsonProblem(p.File, p.Path, p.Message))]),
+            new JsonReport(
+                result.IsValid,
+                result.NamesChecked,
+                result.Notice,
+                [.. result.Problems.Select(p => new JsonProblem(p.File, p.Path, p.Message))]
+            ),
             JsonOptions
         );
 
-    private sealed record JsonReport(bool Valid, IReadOnlyList<JsonProblem> Problems);
+    private sealed record JsonReport(bool Valid, bool NamesChecked, string? Notice, IReadOnlyList<JsonProblem> Problems);
 
     private sealed record JsonProblem(string File, string Path, string Message);
 }

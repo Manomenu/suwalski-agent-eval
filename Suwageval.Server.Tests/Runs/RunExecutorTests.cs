@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Suwageval.Contracts.Conversations;
 using Suwageval.Contracts.Runs;
+using Suwageval.Server.Agents;
 using Suwageval.Server.Checks;
 using Suwageval.Server.Invocation;
 using Suwageval.Server.Runs;
@@ -37,6 +38,7 @@ public sealed class RunExecutorTests(TestDatabase database)
             store,
             new ScenarioStore(database.Pool),
             new CheckStore(database.Pool),
+            new AgentStore(database.Pool),
             new AgentClient(new HttpClient { Timeout = TimeSpan.FromSeconds(10) }),
             Options.Create(new RunOptions { MaxParallelScenarios = parallel }),
             NullLogger<RunExecutor>.Instance
@@ -89,6 +91,76 @@ public sealed class RunExecutorTests(TestDatabase database)
         Assert.Equal("refund_order", Assert.IsType<ToolCall>(Assert.Single(called.Samples[0].Evidence)).Name);
         var request = Assert.Single(fake.Requests);
         Assert.Contains("Please refund order A-17.", request, StringComparison.Ordinal);
+    }
+
+    private const string UndeclaredTurn = /*lang=json,strict*/
+        """
+        {"items":[
+          {"kind":"ToolCall","id":"c1","name":"cancel_order","arguments":{}},
+          {"kind":"Event","type":"order.cancelled","data":{}},
+          {"kind":"ToolCall","id":"c2","name":"get_order","arguments":{}},
+          {"kind":"AssistantMessage","text":"Done."}
+        ]}
+        """;
+
+    [Fact]
+    public async Task A_tool_call_or_event_the_version_does_not_declare_is_a_warning_on_the_sample_not_a_failure()
+    {
+        await using var fake = await FakeAgent.AlwaysAsync(UndeclaredTurn);
+        var agent = await SeededAgent.CreateAsync(database.Pool, fake.Url.AbsoluteUri, [SeededAgent.Scenario("refund")], []);
+
+        var results = await RunAsync(agent);
+
+        Assert.Equal(RunStatus.Done, results.Run.Status);
+        var sample = Assert.Single(Assert.Single(results.Scenarios).Samples);
+        Assert.Equal(SampleStatus.Done, sample.Status);
+        Assert.Equal(["tool 'cancel_order'", "event 'order.cancelled'"], sample.Undeclared);
+    }
+
+    [Fact]
+    public async Task A_contract_that_is_still_the_same_at_the_end_is_not_flagged()
+    {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
+        var agent = await SeededAgent.CreateAsync(database.Pool, fake.Url.AbsoluteUri, [SeededAgent.Scenario("refund")], []);
+
+        var results = await RunAsync(agent);
+
+        Assert.False(results.Run.ContractChangedDuringRun);
+        Assert.Equal(1, fake.ContractRequests);
+    }
+
+    [Fact]
+    public async Task A_contract_that_changed_while_the_run_was_going_is_flagged_on_the_run()
+    {
+        // A redeploy between the samples: the agent serves another contract once its first turn has been answered.
+        FakeAgent? redeployed = null;
+        await using var fake = await FakeAgent.StartAsync(
+            (_, _) =>
+            {
+                redeployed?.ServeContract(SeededAgent.ExampleVersion with { SystemPrompt = "Redeployed mid-run." });
+                return Results.Text(FakeAgent.RefundTurn, "application/json");
+            }
+        );
+        redeployed = fake;
+        var agent = await SeededAgent.CreateAsync(database.Pool, fake.Url.AbsoluteUri, [SeededAgent.Scenario("refund")], []);
+
+        var results = await RunAsync(agent);
+
+        Assert.Equal(RunStatus.Done, results.Run.Status);
+        Assert.True(results.Run.ContractChangedDuringRun);
+    }
+
+    [Fact]
+    public async Task An_agent_that_cannot_be_asked_again_at_the_end_does_not_flag_a_change()
+    {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
+        fake.ServeContract(_ => Results.StatusCode(500));
+        var agent = await SeededAgent.CreateAsync(database.Pool, fake.Url.AbsoluteUri, [SeededAgent.Scenario("refund")], []);
+
+        var results = await RunAsync(agent);
+
+        Assert.Equal(RunStatus.Done, results.Run.Status);
+        Assert.False(results.Run.ContractChangedDuringRun);
     }
 
     [Fact]

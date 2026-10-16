@@ -110,6 +110,7 @@ public sealed class RunStoreTests(TestDatabase database)
                 /*lang=json,strict*/
                 """[{"kind":"AssistantMessage","text":"hi"}]""",
                 null,
+                ["tool 'cancel_order'"],
                 [new NewCheckResult(check.Id, check.Revision, false, "[]", "refund_order was not called.")]
             ),
             Cancellation
@@ -120,6 +121,10 @@ public sealed class RunStoreTests(TestDatabase database)
         var sample = Assert.Single(await store.ListScenarioResultsAsync(id, Cancellation));
         Assert.Equal(("refund", scenario.Revision, 1, "Done"), (sample.ScenarioKey, sample.ScenarioRevision, sample.Sample, sample.Status));
         Assert.Contains("hi", sample.Output, StringComparison.Ordinal);
+        Assert.Equal( /*lang=json,strict*/
+            """["tool 'cancel_order'"]""",
+            sample.Undeclared
+        );
         var verdict = Assert.Single(await store.ListCheckResultsAsync(id, Cancellation));
         Assert.Equal(
             ("refund-called", 0.8, false, "refund_order was not called."),
@@ -135,7 +140,7 @@ public sealed class RunStoreTests(TestDatabase database)
         var agent = await NewAgentAsync();
         var id = await EnqueueAsync(store, agent);
         var scenario = await new ScenarioStore(database.Pool).GetAsync(agent.Id, "refund", Cancellation);
-        var sample = new NewSample(scenario!.Id, scenario.Revision, 1, SampleStatus.Failed, null, "down", []);
+        var sample = new NewSample(scenario!.Id, scenario.Revision, 1, SampleStatus.Failed, null, "down", [], []);
         await store.AddSampleAsync(id, sample, Cancellation);
 
         await Assert.ThrowsAnyAsync<Exception>(() => store.AddSampleAsync(id, sample, Cancellation));

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Suwageval.Contracts.Agents;
 
 namespace Suwageval.Server.Tests.Runs;
 
@@ -33,6 +34,8 @@ internal sealed class FakeAgent : IAsyncDisposable
     private readonly ConcurrentQueue<string> requests = new();
     private int inFlight;
     private int maxInFlight;
+    private int contractRequests;
+    private Func<int, IResult> contract = _ => Results.Text(SeededAgent.Serialized(SeededAgent.ExampleVersion), "application/json");
 
     private FakeAgent() { }
 
@@ -40,6 +43,15 @@ internal sealed class FakeAgent : IAsyncDisposable
 
     /// <summary>The bodies of the requests received so far.</summary>
     public IReadOnlyCollection<string> Requests => requests;
+
+    /// <summary>How many times the contract was asked for.</summary>
+    public int ContractRequests => Volatile.Read(ref contractRequests);
+
+    /// <summary>Serves this contract from now on (the example agent's until then).</summary>
+    public void ServeContract(AgentContract served) => ServeContract(_ => Results.Text(SeededAgent.Serialized(served), "application/json"));
+
+    /// <summary>Answers the contract route as the script says; it gets the number of the request (from 1).</summary>
+    public void ServeContract(Func<int, IResult> answer) => Volatile.Write(ref contract, answer);
 
     /// <summary>The most calls that were being answered at the same moment.</summary>
     public int MaxConcurrency => Volatile.Read(ref maxInFlight);
@@ -53,6 +65,7 @@ internal sealed class FakeAgent : IAsyncDisposable
         builder.WebHost.UseUrls("http://127.0.0.1:0");
         var app = builder.Build();
         var agent = new FakeAgent();
+        app.MapGet("/suwageval/contract", () => Volatile.Read(ref agent.contract)(Interlocked.Increment(ref agent.contractRequests)));
         app.MapPost(
             "/suwageval/turn",
             async (HttpRequest request) =>

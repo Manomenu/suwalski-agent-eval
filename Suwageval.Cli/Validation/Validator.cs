@@ -1,33 +1,40 @@
 using System.Text.RegularExpressions;
 using Suwageval.Cli.Files;
 using Suwageval.Contracts;
+using Suwageval.Contracts.Agents;
 using Suwageval.Contracts.Checks;
 using Suwageval.Contracts.Conversations;
 
 namespace Suwageval.Cli.Validation;
 
 /// <summary>
-/// Everything that can be said about an agent's files without a server: the files match the contract, and what they
-/// say about each other holds (keys, tools, events, tool results).
+/// Everything that can be said about an agent's files: they match the contract, and what they
+/// say about each other holds (keys, tool results; tools and events too, once the agent's own contract is at hand).
 /// </summary>
 internal static class Validator
 {
-    public static ValidationResult Validate(AgentFolder folder) => Validate(folder.AgentFile, folder.AgentText, folder.Scenarios);
+    public static ValidationResult Validate(AgentFolder folder, AgentContract? contract = null) =>
+        Validate(folder.AgentFile, folder.AgentText, folder.Scenarios, contract);
 
     /// <param name="agentFile">Name of the agent file, for the problem when <paramref name="agent"/> is missing.</param>
-    /// <param name="agent">The agent file, or null when it does not exist; then what depends on it is not checked.</param>
+    /// <param name="agent">The agent file, or null when it does not exist.</param>
     /// <param name="scenarioFiles">The scenario files to check, each by its name and content.</param>
-    public static ValidationResult Validate(string agentFile, string? agent, IReadOnlyList<SourceText> scenarioFiles)
+    /// <param name="contract">What the running agent serves: with it tool and event names are checked, without it they are not.</param>
+    public static ValidationResult Validate(
+        string agentFile,
+        string? agent,
+        IReadOnlyList<SourceText> scenarioFiles,
+        AgentContract? contract = null
+    )
     {
         var problems = new List<Problem>();
-        LoadedAgent? loadedAgent = null;
         if (agent is null)
         {
             problems.Add(new Problem(agentFile, "", "The agent file does not exist.", null, null));
         }
         else
         {
-            loadedAgent = AgentFileReader.Read(agentFile, agent, problems);
+            AgentFileReader.Read(agentFile, agent, problems);
         }
 
         var scenarioKeys = new Dictionary<string, string>();
@@ -43,14 +50,14 @@ internal static class Validator
             }
             scenarioCount++;
             checkCount += loaded.Checks.Count;
-            CheckScenario(loaded, loadedAgent, scenarioKeys, checkKeys, problems);
+            CheckScenario(loaded, contract, scenarioKeys, checkKeys, problems);
         }
         return new ValidationResult(problems, scenarioCount, checkCount);
     }
 
     private static void CheckScenario(
         LoadedScenario loaded,
-        LoadedAgent? agent,
+        AgentContract? contract,
         Dictionary<string, string> scenarioKeys,
         Dictionary<string, string> checkKeys,
         List<Problem> problems
@@ -82,15 +89,15 @@ internal static class Validator
             problems.Add(source.Problem("conversation", "The conversation has no items; the agent needs a message to answer."));
         }
 
-        CheckConversation(loaded, agent, problems);
+        CheckConversation(loaded, contract, problems);
 
         for (var i = 0; i < loaded.Checks.Count; i++)
         {
-            CheckCheck(source, loaded.Checks[i], $"checks[{i}]", agent, checkKeys, problems);
+            CheckCheck(source, loaded.Checks[i], $"checks[{i}]", contract, checkKeys, problems);
         }
     }
 
-    private static void CheckConversation(LoadedScenario loaded, LoadedAgent? agent, List<Problem> problems)
+    private static void CheckConversation(LoadedScenario loaded, AgentContract? contract, List<Problem> problems)
     {
         var source = loaded.Source;
         var callIds = new HashSet<string>();
@@ -105,11 +112,11 @@ internal static class Validator
                 case ToolResult result when !callIds.Contains(result.CallId):
                     problems.Add(source.Problem($"{path}.callId", $"No earlier tool_call has the id '{result.CallId}'."));
                     break;
-                case Retrieval when agent is { Version.Context.UsesRetrieval: false }:
-                    problems.Add(source.Problem(path, "A retrieval item needs 'usesRetrieval: true' in the agent's context."));
+                case Retrieval when contract is { Context.UsesRetrieval: false }:
+                    problems.Add(source.Problem(path, "A retrieval item needs 'usesRetrieval: true' in the agent's contract."));
                     break;
-                case Event conversationEvent when agent is not null && !EventTypes(agent).Contains(conversationEvent.Type):
-                    problems.Add(source.Problem($"{path}.type", UnknownEvent(conversationEvent.Type, agent)));
+                case Event conversationEvent when contract is not null && !EventTypes(contract).Contains(conversationEvent.Type):
+                    problems.Add(source.Problem($"{path}.type", UnknownEvent(conversationEvent.Type, contract)));
                     break;
                 default:
                     break;
@@ -121,7 +128,7 @@ internal static class Validator
         YamlSource source,
         CheckInput check,
         string path,
-        LoadedAgent? agent,
+        AgentContract? contract,
         Dictionary<string, string> checkKeys,
         List<Problem> problems
     )
@@ -135,13 +142,13 @@ internal static class Validator
         switch (check)
         {
             case ToolCalledCheck called:
-                CheckTool(source, $"{path}.tool", called.Tool, agent, problems);
+                CheckTool(source, $"{path}.tool", called.Tool, contract, problems);
                 break;
             case ToolNotCalledCheck notCalled:
-                CheckTool(source, $"{path}.tool", notCalled.Tool, agent, problems);
+                CheckTool(source, $"{path}.tool", notCalled.Tool, contract, problems);
                 break;
-            case EventCheck eventCheck when agent is not null && !EventTypes(agent).Contains(eventCheck.Event):
-                problems.Add(source.Problem($"{path}.event", UnknownEvent(eventCheck.Event, agent)));
+            case EventCheck eventCheck when contract is not null && !EventTypes(contract).Contains(eventCheck.Event):
+                problems.Add(source.Problem($"{path}.event", UnknownEvent(eventCheck.Event, contract)));
                 break;
             case TextCheck text:
                 CheckText(source, path, text, problems);
@@ -150,10 +157,10 @@ internal static class Validator
                 break;
         }
 
-        if (check.Where is { } where && agent is not null)
+        if (check.Where is { } where && contract is not null)
         {
-            CheckAnchor(source, $"{path}.where.after", where.After, agent, problems);
-            CheckAnchor(source, $"{path}.where.before", where.Before, agent, problems);
+            CheckAnchor(source, $"{path}.where.after", where.After, contract, problems);
+            CheckAnchor(source, $"{path}.where.before", where.Before, contract, problems);
         }
     }
 
@@ -176,18 +183,18 @@ internal static class Validator
         }
     }
 
-    private static void CheckTool(YamlSource source, string path, string tool, LoadedAgent? agent, List<Problem> problems)
+    private static void CheckTool(YamlSource source, string path, string tool, AgentContract? contract, List<Problem> problems)
     {
-        if (agent is not null && agent.Version.Tools.All(declared => declared.Name != tool))
+        if (contract is not null && contract.Tools.All(declared => declared.Name != tool))
         {
-            var known = string.Join(", ", agent.Version.Tools.Select(declared => declared.Name));
+            var known = string.Join(", ", contract.Tools.Select(declared => declared.Name));
             problems.Add(source.Problem(path, $"The agent has no tool '{tool}' (its tools: {known})."));
         }
     }
 
-    private static void CheckAnchor(YamlSource source, string path, string? name, LoadedAgent agent, List<Problem> problems)
+    private static void CheckAnchor(YamlSource source, string path, string? name, AgentContract contract, List<Problem> problems)
     {
-        if (name is not null && agent.Version.Tools.All(tool => tool.Name != name) && !EventTypes(agent).Contains(name))
+        if (name is not null && contract.Tools.All(tool => tool.Name != name) && !EventTypes(contract).Contains(name))
         {
             problems.Add(source.Problem(path, $"'{name}' is neither a tool of the agent nor one of its event types."));
         }
@@ -212,11 +219,12 @@ internal static class Validator
         }
     }
 
-    private static HashSet<string> EventTypes(LoadedAgent agent) => [.. agent.Version.Context.Events.Select(declared => declared.Type)];
+    private static HashSet<string> EventTypes(AgentContract? contract) =>
+        [.. contract?.Context.Events.Select(declared => declared.Type) ?? []];
 
-    private static string UnknownEvent(string type, LoadedAgent agent)
+    private static string UnknownEvent(string type, AgentContract? contract)
     {
-        var known = string.Join(", ", EventTypes(agent));
-        return $"The agent does not declare the event type '{type}' in context.events (declared: {(known.Length == 0 ? "none" : known)}).";
+        var known = string.Join(", ", EventTypes(contract));
+        return $"The agent does not declare the event type '{type}' in its contract (declared: {(known.Length == 0 ? "none" : known)}).";
     }
 }

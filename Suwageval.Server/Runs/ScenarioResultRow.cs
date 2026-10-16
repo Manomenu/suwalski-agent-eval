@@ -8,5 +8,6 @@ internal sealed record ScenarioResultRow(
     int Sample,
     string Status,
     string? Output,
-    string? Error
+    string? Error,
+    string Undeclared
 );

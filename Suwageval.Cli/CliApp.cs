@@ -8,12 +8,12 @@ namespace Suwageval.Cli;
 /// <summary>The command tree. Streams come in as arguments so the tests can talk to it without the console.</summary>
 internal static class CliApp
 {
-    // http: the client commands reach the server with; null makes one from --server / SUWAGEVAL_URL.
+    // http: the client the commands reach the outside with (the server for push and run, the agent for validate); null makes their own.
     public static int Run(string[] args, TextReader input, TextWriter output, TextWriter error, HttpClient? http = null)
     {
         var root = new RootCommand("Suwageval: the evaluation files of an agent's repository.")
         {
-            ValidateCommand.Create(input),
+            ValidateCommand.Create(input, http),
             PushCommand.Create(http),
             RunCommand.Create(http),
         };

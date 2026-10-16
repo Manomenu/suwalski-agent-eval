@@ -13,7 +13,7 @@ internal static class RunCompatibility
 {
     /// <summary>What does not fit, one sentence each; empty when the version can run it all.</summary>
     public static IReadOnlyList<string> Mismatches(
-        AgentVersionInput version,
+        AgentContract version,
         IReadOnlyList<(string Key, ScenarioContent Content)> scenarios,
         IReadOnlyList<CheckInput> checks
     )

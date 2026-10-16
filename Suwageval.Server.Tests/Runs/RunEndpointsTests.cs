@@ -1,13 +1,13 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Suwageval.Contracts;
 using Suwageval.Contracts.Agents;
 using Suwageval.Contracts.Conversations;
 using Suwageval.Contracts.Runs;
-using Suwageval.Server.Agents;
 using Suwageval.Server.Runs;
 
 namespace Suwageval.Server.Tests.Runs;
@@ -24,7 +24,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         return app.CreateClient();
     }
 
-    private Task<SeededAgent> NewAgentAsync(string endpoint = "http://agent.test") =>
+    private Task<SeededAgent> NewAgentAsync(string endpoint) =>
         SeededAgent.CreateAsync(
             database.Pool,
             endpoint,
@@ -47,77 +47,81 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         ?? throw new InvalidOperationException("no body");
 
     [Fact]
-    public async Task Starting_a_run_queues_it_and_the_newest_version_is_the_default()
+    public async Task Starting_a_run_registers_the_contract_the_agent_serves_and_queues_the_run_with_it()
     {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
+        fake.ServeContract(SeededAgent.ExampleVersion with { SystemPrompt = "A brand new prompt.", Label = "v2" });
         var client = Client();
-        var agent = await NewAgentAsync();
-        var newer = await new AgentStore(database.Pool).RegisterVersionAsync(
-            agent.Id,
-            JsonSerializer.Serialize(SeededAgent.ExampleVersion with { Label = "newer" }, ContractJson.Options),
-            "newer",
-            Cancellation
-        );
+        var agent = await NewAgentAsync(fake.Url.AbsoluteUri);
 
         var created = await StartAsync(client, new RunRequest { Agent = agent.Name, Tag = "regression" });
 
+        Assert.True(created.VersionCreated);
+        Assert.NotEqual(agent.VersionId, created.AgentVersionId);
         var run = await GetAsync<RunSummary>(client, $"/runs/{created.RunId}");
         Assert.Equal(
-            (agent.Name, newer.Version.Id, "regression", "http://agent.test"),
+            (agent.Name, created.AgentVersionId, "regression", fake.Url.AbsoluteUri),
             (run.Agent, run.AgentVersionId, run.Tag, run.EndpointUrl)
         );
         Assert.Equal(RunStatus.Queued, run.Status);
+        var version = await GetAsync<AgentVersionDetail>(client, $"/agents/{agent.Name}/versions/{created.AgentVersionId}");
+        Assert.Equal(("A brand new prompt.", "v2"), (version.Content.SystemPrompt, version.Content.Label));
     }
 
     [Fact]
-    public async Task A_run_can_name_the_agent_by_id_pick_a_version_and_override_the_endpoint()
+    public async Task The_same_contract_is_the_same_version_and_a_changed_one_is_a_new_version()
     {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
         var client = Client();
-        var agent = await NewAgentAsync();
+        var agent = await NewAgentAsync(fake.Url.AbsoluteUri);
 
-        var created = await StartAsync(
-            client,
-            new RunRequest
-            {
-                Agent = agent.Id.ToString(),
-                AgentVersionId = agent.VersionId,
-                EndpointUrl = "http://other.test:7010",
-            }
-        );
+        var first = await StartAsync(client, new RunRequest { Agent = agent.Name });
+        var second = await StartAsync(client, new RunRequest { Agent = agent.Name });
+        fake.ServeContract(SeededAgent.ExampleVersion with { SystemPrompt = "Changed." });
+        var third = await StartAsync(client, new RunRequest { Agent = agent.Name });
+        fake.ServeContract(SeededAgent.ExampleVersion);
+        var back = await StartAsync(client, new RunRequest { Agent = agent.Name });
+
+        // The seeded version has the example agent's content, so the first run finds it.
+        Assert.Equal((agent.VersionId, false), (first.AgentVersionId, first.VersionCreated));
+        Assert.Equal((first.AgentVersionId, false), (second.AgentVersionId, second.VersionCreated));
+        Assert.NotEqual(first.AgentVersionId, third.AgentVersionId);
+        Assert.True(third.VersionCreated);
+        Assert.Equal((first.AgentVersionId, false), (back.AgentVersionId, back.VersionCreated));
+        Assert.Equal(4, fake.ContractRequests);
+    }
+
+    [Fact]
+    public async Task The_endpoint_of_the_request_is_where_the_contract_is_read_and_the_run_will_go()
+    {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
+        var client = Client();
+        var agent = await NewAgentAsync("http://127.0.0.1:1");
+
+        var created = await StartAsync(client, new RunRequest { Agent = agent.Id.ToString(), EndpointUrl = fake.Url.AbsoluteUri });
 
         var run = await GetAsync<RunSummary>(client, $"/runs/{created.RunId}");
-        Assert.Equal((agent.VersionId, "http://other.test:7010", null), (run.AgentVersionId, run.EndpointUrl, run.Tag));
+        Assert.Equal((fake.Url.AbsoluteUri, null), (run.EndpointUrl, run.Tag));
+        Assert.Equal(1, fake.ContractRequests);
     }
 
     [Fact]
-    public async Task An_unknown_agent_or_version_is_404()
-    {
-        var client = Client();
-        var agent = await NewAgentAsync();
-        var other = await NewAgentAsync();
-
-        Assert.Equal(HttpStatusCode.NotFound, (await Post(client, new RunRequest { Agent = "no-such-agent" })).StatusCode);
-        Assert.Equal(
-            HttpStatusCode.NotFound,
-            (await Post(client, new RunRequest { Agent = agent.Name, AgentVersionId = Guid.NewGuid() })).StatusCode
-        );
-        // A version of another agent is not this agent's version.
-        Assert.Equal(
-            HttpStatusCode.NotFound,
-            (await Post(client, new RunRequest { Agent = agent.Name, AgentVersionId = other.VersionId })).StatusCode
-        );
-    }
+    public async Task An_unknown_agent_is_404() =>
+        Assert.Equal(HttpStatusCode.NotFound, (await Post(Client(), new RunRequest { Agent = "no-such-agent" })).StatusCode);
 
     [Fact]
-    public async Task An_agent_without_a_version_cannot_be_run()
+    public async Task A_version_in_the_request_is_not_accepted_any_more()
     {
         var client = Client();
-        var name = Agents.AgentStoreTests.UniqueName();
-        await new AgentStore(database.Pool).CreateAsync(name, "http://agent.test", Cancellation);
+        var agent = await NewAgentAsync("http://127.0.0.1:1");
 
-        var response = await Post(client, new RunRequest { Agent = name });
+        var response = await client.PostAsJsonAsync(
+            new Uri("/runs", UriKind.Relative),
+            new { agent = agent.Name, agentVersionId = agent.VersionId },
+            Cancellation
+        );
 
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-        Assert.Contains("push it first", await response.Content.ReadAsStringAsync(Cancellation), StringComparison.Ordinal);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
     [Theory]
@@ -128,7 +132,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
     public async Task A_request_that_cannot_run_is_422_naming_the_field(string agentName, string? tag, string? endpoint, string field)
     {
         var client = Client();
-        var agent = await NewAgentAsync();
+        var agent = await NewAgentAsync("http://127.0.0.1:1");
 
         var response = await Post(
             client,
@@ -146,19 +150,65 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
     }
 
     [Fact]
-    public async Task A_version_that_does_not_fit_is_409_with_the_mismatches_and_nothing_is_queued()
+    public async Task An_agent_that_cannot_be_reached_is_502_naming_the_url_and_nothing_is_queued()
     {
         var client = Client();
-        var agent = await SeededAgent.CreateAsync(
-            database.Pool,
-            "http://agent.test",
-            [SeededAgent.Scenario("refund")],
-            [SeededAgent.RefundAfterLookup("refund-called", "refund")],
-            new AgentVersionInput
+        var agent = await NewAgentAsync("http://127.0.0.1:1");
+
+        var response = await Post(client, new RunRequest { Agent = agent.Name });
+
+        await AssertBadGatewayAsync(response, "http://127.0.0.1:1/suwageval/contract");
+        Assert.Empty(await GetAsync<List<RunSummary>>(client, $"/runs?agent={agent.Name}"));
+    }
+
+    [Fact]
+    public async Task A_contract_that_cannot_be_read_is_502_and_nothing_is_queued()
+    {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
+        var client = Client();
+        var agent = await NewAgentAsync(fake.Url.AbsoluteUri);
+
+        fake.ServeContract(_ => Results.StatusCode(404));
+        await AssertBadGatewayAsync(await Post(client, new RunRequest { Agent = agent.Name }), "404");
+        fake.ServeContract(_ => Results.Text("<html>", "text/html"));
+        await AssertBadGatewayAsync(await Post(client, new RunRequest { Agent = agent.Name }), "suwageval/contract");
+        fake.ServeContract(_ =>
+            Results.Text( /*lang=json,strict*/
+                """{"systemPrompt":"p"}""",
+                "application/json"
+            )
+        );
+        await AssertBadGatewayAsync(await Post(client, new RunRequest { Agent = agent.Name }), "does not match the contract");
+        fake.ServeContract(SeededAgent.ExampleVersion with { SystemPrompt = " " });
+        await AssertBadGatewayAsync(await Post(client, new RunRequest { Agent = agent.Name }), "systemPrompt is empty");
+
+        Assert.Empty(await GetAsync<List<RunSummary>>(client, $"/runs?agent={agent.Name}"));
+    }
+
+    private static async Task AssertBadGatewayAsync(HttpResponseMessage response, string detailPart)
+    {
+        Assert.Equal(HttpStatusCode.BadGateway, response.StatusCode);
+        using var problem = JsonDocument.Parse(await response.Content.ReadAsStringAsync(Cancellation));
+        Assert.Contains(detailPart, problem.RootElement.GetProperty("detail").GetString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_version_that_does_not_fit_is_409_with_the_mismatches_and_nothing_is_queued()
+    {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
+        fake.ServeContract(
+            new AgentContract
             {
                 SystemPrompt = "p",
                 Model = new ModelDefinition { Name = "m" },
             }
+        );
+        var client = Client();
+        var agent = await SeededAgent.CreateAsync(
+            database.Pool,
+            fake.Url.AbsoluteUri,
+            [SeededAgent.Scenario("refund")],
+            [SeededAgent.RefundAfterLookup("refund-called", "refund")]
         );
 
         var response = await Post(client, new RunRequest { Agent = agent.Name });
@@ -174,11 +224,12 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
     [Fact]
     public async Task Runs_of_an_agent_are_listed_newest_first()
     {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
         var client = Client();
-        var agent = await NewAgentAsync();
+        var agent = await NewAgentAsync(fake.Url.AbsoluteUri);
         var first = await StartAsync(client, new RunRequest { Agent = agent.Name });
         var second = await StartAsync(client, new RunRequest { Agent = agent.Name });
-        await NewAgentAsync();
+        await NewAgentAsync(fake.Url.AbsoluteUri);
 
         var runs = await GetAsync<List<RunSummary>>(client, $"/runs?agent={agent.Name}");
 
@@ -209,8 +260,9 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
     [Fact]
     public async Task Cancelling_a_queued_run_is_202_and_the_run_is_cancelled()
     {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
         var client = Client();
-        var agent = await NewAgentAsync();
+        var agent = await NewAgentAsync(fake.Url.AbsoluteUri);
         var created = await StartAsync(client, new RunRequest { Agent = agent.Name });
 
         var response = await client.PostAsync(new Uri($"/runs/{created.RunId}/cancel", UriKind.Relative), null, Cancellation);
@@ -222,8 +274,9 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
     [Fact]
     public async Task A_queued_run_has_empty_results()
     {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
         var client = Client();
-        var agent = await NewAgentAsync();
+        var agent = await NewAgentAsync(fake.Url.AbsoluteUri);
         var created = await StartAsync(client, new RunRequest { Agent = agent.Name });
 
         var results = await GetAsync<RunResults>(client, $"/runs/{created.RunId}/results");
@@ -247,13 +300,21 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
 
         var summary = await GetAsync<RunSummary>(client, $"/runs/{created.RunId}");
         Assert.Equal(
-            (RunStatus.Done, 1, 1, 2, 0),
-            (summary.Status, summary.SamplesTotal, summary.SamplesDone, summary.ChecksPassed, summary.ChecksFailed)
+            (RunStatus.Done, 1, 1, 2, 0, false),
+            (
+                summary.Status,
+                summary.SamplesTotal,
+                summary.SamplesDone,
+                summary.ChecksPassed,
+                summary.ChecksFailed,
+                summary.ContractChangedDuringRun
+            )
         );
         var results = await GetAsync<RunResults>(client, $"/runs/{created.RunId}/results");
         var scenario = Assert.Single(results.Scenarios);
         Assert.Equal("refund", scenario.Key);
         Assert.Equal(6, scenario.Samples[0].Output?.Count);
+        Assert.Empty(scenario.Samples[0].Undeclared);
         Assert.All(scenario.Checks, check => Assert.True(check.Passed && check.PassRate == 1.0 && check.PassThreshold == 1.0));
         Assert.IsType<Event>(Assert.Single(scenario.Checks.Single(check => check.Key == "refund-event").Samples[0].Evidence));
     }

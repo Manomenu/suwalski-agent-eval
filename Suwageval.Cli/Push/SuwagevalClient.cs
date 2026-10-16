@@ -18,19 +18,6 @@ internal sealed class SuwagevalClient(HttpClient http)
         return (await ReadAsync<Agent>(response, cancellationToken), response.StatusCode == HttpStatusCode.Created);
     }
 
-    /// <summary>The version, and whether this call created it (otherwise the same content was registered before).</summary>
-    public async Task<(AgentVersion Version, bool Created)> RegisterVersionAsync(
-        string agent,
-        AgentVersionInput input,
-        CancellationToken cancellationToken
-    )
-    {
-        var response = await SendAsync(client =>
-            client.PostAsJsonAsync($"agents/{Uri.EscapeDataString(agent)}/versions", input, ContractJson.Options, cancellationToken)
-        );
-        return (await ReadAsync<AgentVersion>(response, cancellationToken), response.StatusCode == HttpStatusCode.Created);
-    }
-
     public async Task<PutScenariosResponse> PutScenariosAsync(
         string agent,
         IReadOnlyList<ScenarioInput> scenarios,

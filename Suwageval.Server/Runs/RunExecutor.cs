@@ -2,8 +2,10 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
 using Suwageval.Contracts;
+using Suwageval.Contracts.Agents;
 using Suwageval.Contracts.Checks;
 using Suwageval.Contracts.Runs;
+using Suwageval.Server.Agents;
 using Suwageval.Server.Checks;
 using Suwageval.Server.Invocation;
 using Suwageval.Server.Scenarios;
@@ -24,6 +26,7 @@ internal sealed partial class RunExecutor(
     RunStore runs,
     ScenarioStore scenarios,
     CheckStore checks,
+    AgentStore agents,
     AgentClient agent,
     IOptions<RunOptions> options,
     ILogger<RunExecutor> logger
@@ -37,6 +40,8 @@ internal sealed partial class RunExecutor(
         ArgumentNullException.ThrowIfNull(run);
         try
         {
+            var version = await agents.GetVersionAsync(run.AgentVersionId, cancellationToken);
+            var declared = StoredContent.Version(version?.Content ?? throw new InvalidOperationException("The run's version is gone."));
             var plan = await PlanAsync(run, cancellationToken);
             var work = plan.SelectMany(scenario =>
                     Enumerable.Range(1, Math.Max(1, scenario.Content.Samples)).Select(sample => (scenario, sample))
@@ -58,7 +63,7 @@ internal sealed partial class RunExecutor(
                             await stop.CancelAsync();
                             return;
                         }
-                        await RunSampleAsync(run, item.scenario, item.sample, cancellationToken);
+                        await RunSampleAsync(run, declared, item.scenario, item.sample, cancellationToken);
                     }
                 );
             }
@@ -67,6 +72,7 @@ internal sealed partial class RunExecutor(
                 // Cancelled by request: the status is set below.
             }
             var cancelled = stop.IsCancellationRequested && !cancellationToken.IsCancellationRequested;
+            await CheckContractUnchangedAsync(run, version.ContentHash, cancellationToken);
             await runs.FinishAsync(run.Id, cancelled ? RunStatus.Cancelled : RunStatus.Done, cancellationToken: CancellationToken.None);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -77,6 +83,19 @@ internal sealed partial class RunExecutor(
         {
             LogRunFailed(error, run.Id);
             await runs.FinishAsync(run.Id, RunStatus.Failed, error.Message, CancellationToken.None);
+        }
+    }
+
+    /// <summary>
+    /// Reads the agent's contract again: a different one means the agent was redeployed while the run was going, so some
+    /// samples may not be of the version the run says. An agent that does not answer now proves nothing either way.
+    /// </summary>
+    private async Task CheckContractUnchangedAsync(RunRow run, string versionHash, CancellationToken cancellationToken)
+    {
+        var now = await agent.GetContractAsync(new Uri(run.EndpointUrl), cancellationToken);
+        if (now.Contract is { } contract && ContractContent.Hash(contract) != versionHash)
+        {
+            await runs.MarkContractChangedAsync(run.Id, cancellationToken);
         }
     }
 
@@ -96,7 +115,13 @@ internal sealed partial class RunExecutor(
         ];
     }
 
-    private async Task RunSampleAsync(RunRow run, PlannedScenario scenario, int sample, CancellationToken cancellationToken)
+    private async Task RunSampleAsync(
+        RunRow run,
+        AgentContract declared,
+        PlannedScenario scenario,
+        int sample,
+        CancellationToken cancellationToken
+    )
     {
         var turn =
             scenario.Content.Continuation.Turns > 1
@@ -116,6 +141,7 @@ internal sealed partial class RunExecutor(
                 SampleStatus.Done,
                 JsonSerializer.Serialize(items, Json),
                 null,
+                UndeclaredOutput.Of(items, declared),
                 [
                     .. scenario.Checks.Select(check =>
                     {
@@ -141,6 +167,7 @@ internal sealed partial class RunExecutor(
                 SampleStatus.Failed,
                 null,
                 reason,
+                [],
                 [
                     .. scenario.Checks.Select(check => new NewCheckResult(
                         check.Row.Id,

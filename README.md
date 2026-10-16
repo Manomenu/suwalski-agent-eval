@@ -58,14 +58,22 @@ The server has one interface, its HTTP API. Three users reach it:
 | Who | Through | Does |
 | --- | --- | --- |
 | a person in the browser | the web app | browses agents, scenarios, runs, results, comparisons |
-| an agent's repository, by hand or in CI | the `suwageval` CLI (`Suwageval.Cli`) | `validate` the scenario files, `push` the agent's version, scenarios and checks, `run --tag … --wait` with an exit code for CI |
+| an agent's repository, by hand or in CI | the `suwageval` CLI (`Suwageval.Cli`) | `validate` the scenario files, `push` the agent, its scenarios and checks, `run --tag … --wait` with an exit code for CI |
 | Claude Code | a Claude Code plugin in this repo that drives the same CLI, like suwgit's | "build a scenario for this agent from this conversation", "run the regression tag on the new version", "why did scenario X fail" — writing the scenario as a file in the agent's repo, then `validate` and `push` |
 
 - **The scenario files live in the agent's repository**, in `suwageval/`: `agent.yaml` (the
-  agent and its version: name, `endpointUrl`, prompt, tools, context contract) and
+  agent: `name` and `endpointUrl`, nothing else) and
   `scenarios/*.yaml` (a scenario with its checks inside; `user:` / `assistant:` shorthands for
   the log). The server's address is not in them: `SUWAGEVAL_URL` (default
   `http://localhost:6230`) or `--server`.
+- **A version is never written in a file: the running agent serves it.** `GET
+  {endpointUrl}/suwageval/contract` returns its system prompt, model, tools (with argument
+  schemas) and events (with data schemas), and a label. `suwageval run` makes the server read it,
+  register it (same content, same version; changed, a new one) and run against it — so a run
+  always records what really ran, and says whether the version is `new` or `existing`.
+  `suwageval validate` reads it too, to check tool and event names (`--offline` skips that; an
+  unreachable agent is a notice, not an error). An agent without the contract endpoint cannot be
+  evaluated. The contract: [docs/scenario-format.md](docs/scenario-format.md).
 - **The file format** (agent, scenarios, checks, shorthands, one complete example):
   [docs/scenario-format.md](docs/scenario-format.md). `suwageval validate` checks it, with no
   server.
@@ -87,8 +95,8 @@ Decided so far (the agent under test over HTTP, tags, non-determinism, who calls
 
 ### Roadmap
 
-**First goal (MVP):** from `suwalski-example-agent`, `suwageval validate`, `push` the agent's
-version and a scenario, `run --tag regression --wait` against the running agent, and read the
+**First goal (MVP):** from `suwalski-example-agent`, `suwageval validate`, `push` the agent
+and a scenario, `run --tag regression --wait` against the running agent, and read the
 result of deterministic checks (a tool called, an event, text) in the CLI. No judge, no
 multi-turn simulation, no web views yet.
 
@@ -96,7 +104,7 @@ multi-turn simulation, no web views yet.
    `validate`; the YAML files in the example agent.
 2. **Agents, Scenarios (with tags), Checks** — done: the slices that store them (HTTP endpoints
    in `*Endpoints.cs`), and `suwageval push`.
-3. **Invocation and Runs** — done: the agent under test over HTTP (contract v0, `TODO.md`), the
+3. **Invocation and Runs** — done: the agent under test over HTTP (contract v0: `/suwageval/turn` and `/suwageval/contract`, `docs/scenario-format.md`), the
    deterministic checks, and `suwageval run` (`--wait` exits 0 when every check passed its
    threshold, 1 when one did not, 2 when the run could not finish). The MVP is reached here.
 4. **After the MVP** — the judge, multi-turn simulation, results and comparisons on the web,

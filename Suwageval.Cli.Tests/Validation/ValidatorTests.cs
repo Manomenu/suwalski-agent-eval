@@ -1,12 +1,22 @@
 using Suwageval.Cli.Files;
 using Suwageval.Cli.Validation;
+using Suwageval.Contracts.Agents;
 
 namespace Suwageval.Cli.Tests.Validation;
 
 public sealed class ValidatorTests
 {
-    private static ValidationResult Validate(string scenario, string agent = TestAgent.Yaml) =>
-        Validator.Validate("agent.yaml", agent, [new SourceText("s.yaml", scenario)]);
+    /// <summary>The scenario against the agent file and the contract the running agent serves (none: names are not checked).</summary>
+    private static ValidationResult Validate(string scenario, AgentContract? contract = null, bool offline = false) =>
+        Validator.Validate(
+            "agent.yaml",
+            TestAgent.Yaml,
+            [new SourceText("s.yaml", scenario)],
+            offline ? null : contract ?? TestAgent.Contract
+        );
+
+    private static ValidationResult ValidateAgentFile(string agent) =>
+        Validator.Validate("agent.yaml", agent, [new SourceText("s.yaml", TestAgent.Scenario)]);
 
     private static void AssertProblem(ValidationResult result, string path, string messagePart)
     {
@@ -46,34 +56,36 @@ public sealed class ValidatorTests
     }
 
     [Theory]
-    [InlineData("name: x\nendpointUrl: http://x\n", "Missing required field: version")]
-    [InlineData("name: x\nendpointUrl: http://x\nversion:\n  model: { name: m }\n", "systemPrompt")]
-    [InlineData("name: x\nendpointUrl: http://x\nbogus: 1\nversion: { systemPrompt: p, model: { name: m } }\n", "Unknown field 'bogus'")]
-    [InlineData("endpointUrl: http://x\nversion: { systemPrompt: p, model: { name: m } }\n", "name")]
+    [InlineData("name: x\n", "Missing required field: endpointUrl")]
+    [InlineData("endpointUrl: http://x\n", "Missing required field: name")]
+    [InlineData("name: x\nendpointUrl: http://x\nbogus: 1\n", "Unknown field 'bogus'")]
     public void The_agent_file_is_checked_against_the_contract(string agent, string messagePart)
     {
-        var result = Validate(TestAgent.Scenario, agent);
+        var result = ValidateAgentFile(agent);
 
         Assert.Contains(result.Problems, p => p.File == "agent.yaml" && p.Message.Contains(messagePart, StringComparison.Ordinal));
     }
 
     [Fact]
-    public void Every_broken_tool_of_the_agent_is_reported()
+    public void A_version_in_the_agent_file_is_refused_because_versions_come_from_the_agent()
     {
-        var agent = """
-            name: x
-            endpointUrl: http://x
-            version:
-              systemPrompt: p
-              model: { name: m }
-              tools:
-                - { name: a }
-                - { name: b, description: d }
-            """;
+        var result = ValidateAgentFile("name: x\nendpointUrl: http://x\nversion:\n  systemPrompt: p\n  model: { name: m }\n");
 
-        var result = Validate(TestAgent.Scenario, agent);
+        var problem = Assert.Single(result.Problems);
+        Assert.Equal(("agent.yaml", "version"), (problem.File, problem.Path));
+        Assert.Contains("versions come from the agent's /suwageval/contract", problem.Message, StringComparison.Ordinal);
+        Assert.Equal(3L, problem.Line);
+    }
 
-        Assert.Equal(["version.tools[0]", "version.tools[1]"], result.Problems.Where(p => p.File == "agent.yaml").Select(p => p.Path));
+    [Fact]
+    public void Without_the_agents_contract_names_are_not_checked_but_the_structure_still_is()
+    {
+        var scenario =
+            "key: k\nconversation:\n  - event: { type: nope, data: {} }\nchecks:\n  - { key: c, type: tool-called, tool: nope }\n";
+
+        Assert.True(Validate(scenario, offline: true).IsValid);
+        Assert.Equal(2, Validate(scenario).Problems.Count);
+        AssertProblem(Validate("key: Bad\nconversation:\n  - user: hi\n", offline: true), "key", "kebab-case");
     }
 
     [Fact]
