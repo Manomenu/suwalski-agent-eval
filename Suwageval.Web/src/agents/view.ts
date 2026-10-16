@@ -1,5 +1,6 @@
 // What the agent pages show, as plain functions: links, labels and the JSON of a schema.
 import { ApiError } from "../api/client";
+import { PAGE_SIZE } from "../runs/paging";
 
 export const agentHref = (name: string) => `/agents/${encodeURIComponent(name)}`;
 export const versionHref = (name: string, versionId: string) => `${agentHref(name)}/versions/${versionId}`;
@@ -62,6 +63,36 @@ export function visibleRuns<T extends { agentVersionId: string }>(
         if (chosenData.size > 0 && (version?.dataVersion == null || !chosenData.has(version.dataVersion))) return false;
         return true;
     });
+}
+
+/**
+ * The ids of the versions whose runs the filters let through, or null when they let through every version (then no
+ * version needs to be asked for). An empty list means no version qualifies.
+ */
+export function allowedVersionIds(
+    versions: { id: string; archivedAt: string | null; modelNames: string[]; dataVersion?: string | null }[],
+    showArchived: boolean,
+    models: readonly string[],
+    dataVersions: readonly string[],
+): string[] | null {
+    const allowed = visibleRuns(
+        versions.map((version) => ({ agentVersionId: version.id })),
+        versions,
+        showArchived,
+        models,
+        dataVersions,
+    ).map((run) => run.agentVersionId);
+    return allowed.length === versions.length ? null : allowed;
+}
+
+/** The first `pages` pages of `items` (a page is `PAGE_SIZE` of them) — what a list with "Show more" displays. */
+export function firstPages<T>(items: T[], pages: number): T[] {
+    return items.slice(0, pages * PAGE_SIZE);
+}
+
+/** Whether `items` has more than `pages` pages, so "Show more" has something to show. */
+export function hasMorePages(items: unknown[], pages: number): boolean {
+    return items.length > pages * PAGE_SIZE;
 }
 
 /** Comparing takes at least two runs and at most five (more would not fit a screen). */

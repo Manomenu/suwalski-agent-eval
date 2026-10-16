@@ -3,7 +3,7 @@ import { useState } from "react";
 
 import { formatTime } from "../runs/results";
 import { archiveVersions, type AgentVersion } from "./api";
-import { selectionActions, versionHref, versionLabel, versionTitle, visibleVersions } from "./view";
+import { firstPages, hasMorePages, selectionActions, versionHref, versionLabel, versionTitle, visibleVersions } from "./view";
 
 /** The agent's versions: select some to archive them (hidden, never deleted), switch "Show archived" to see and restore them. */
 export function VersionsSection({
@@ -21,6 +21,8 @@ export function VersionsSection({
     onChanged: () => void;
 }) {
     const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
+    // How many pages of versions are shown ("Show more" adds one).
+    const [pages, setPages] = useState(1);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -83,6 +85,7 @@ export function VersionsSection({
                                 label="Show archived"
                                 checked={showArchived}
                                 onChange={(event) => {
+                                    setPages(1);
                                     onShowArchivedChange(event.currentTarget.checked);
                                 }}
                             />
@@ -103,7 +106,7 @@ export function VersionsSection({
                                     </Table.Tr>
                                 </Table.Thead>
                                 <Table.Tbody>
-                                    {listed.map((version) => (
+                                    {firstPages(listed, pages).map((version) => (
                                         <Table.Tr key={version.id}>
                                             <Table.Td>
                                                 <Checkbox
@@ -133,6 +136,18 @@ export function VersionsSection({
                                 </Table.Tbody>
                             </Table>
                         </Table.ScrollContainer>
+                        {hasMorePages(listed, pages) && (
+                            <Group justify="center">
+                                <Button
+                                    variant="light"
+                                    onClick={() => {
+                                        setPages(pages + 1);
+                                    }}
+                                >
+                                    Show more
+                                </Button>
+                            </Group>
+                        )}
                         {listed.length === 0 && <Text c="dimmed">All versions are archived — switch on Show archived to see them.</Text>}
                     </Stack>
                 </Paper>

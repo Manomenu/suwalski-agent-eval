@@ -12,11 +12,14 @@ namespace Suwageval.Server.Runs;
 /// <summary>The routes of runs: start one or repeat one, follow it, read its results, cancel it.</summary>
 internal static class RunEndpoints
 {
+    private const int DefaultPageSize = 20;
+    private const int MaxPageSize = 100;
+
     public static IEndpointRouteBuilder MapRuns(this IEndpointRouteBuilder app)
     {
         ArgumentNullException.ThrowIfNull(app);
         app.MapPost("/runs", CreateAsync).Produces<RunCreated>(StatusCodes.Status202Accepted);
-        app.MapGet("/runs", ListAsync).Produces<IReadOnlyList<RunSummary>>();
+        app.MapGet("/runs", ListAsync).Produces<RunList>();
         app.MapGet("/runs/{id:guid}", GetAsync).Produces<RunSummary>();
         app.MapGet("/runs/{id:guid}/results", ResultsAsync).Produces<RunResults>();
         app.MapPost("/runs/{id:guid}/rerun", RerunAsync).Produces<RunCreated>(StatusCodes.Status202Accepted);
@@ -225,13 +228,26 @@ internal static class RunEndpoints
         );
     }
 
+    /// <summary>
+    /// A page of runs, newest first, with the id to continue from. <c>limit</c> (default 20, 1 to 100), <c>before</c> (a run id: only
+    /// older runs), <c>version</c> (repeatable agent version ids: only their runs). 404: no such agent; 422: a bad limit or an unknown
+    /// <c>before</c>.
+    /// </summary>
     private static async Task<IResult> ListAsync(
         [FromQuery] string? agent,
+        [FromQuery] Guid? before,
+        [FromQuery] Guid[]? version,
+        [FromQuery] int? limit,
         AgentStore agents,
         RunStore runs,
         CancellationToken cancellationToken
     )
     {
+        var size = limit ?? DefaultPageSize;
+        if (size is < 1 or > MaxPageSize)
+        {
+            return Invalid("limit", $"The limit is between 1 and {MaxPageSize}.");
+        }
         Guid? agentId = null;
         if (agent is not null)
         {
@@ -242,8 +258,14 @@ internal static class RunEndpoints
             }
             agentId = found.Id;
         }
-        var rows = await runs.ListAsync(agentId, cancellationToken);
-        return Results.Ok(rows.Select(RunReport.Summary).ToList());
+        if (before is { } cursor && await runs.GetAsync(cursor, cancellationToken) is null)
+        {
+            return Invalid("before", $"There is no run {cursor}.");
+        }
+        // One more than asked for tells whether an older run exists.
+        var rows = await runs.ListPageAsync(agentId, before, version ?? [], size + 1, cancellationToken);
+        var page = rows.Take(size).Select(RunReport.Summary).ToList();
+        return Results.Ok(new RunList { Runs = page, Next = rows.Count > size ? page[^1].Id : null });
     }
 
     private static async Task<IResult> GetAsync(Guid id, RunStore runs, CancellationToken cancellationToken)

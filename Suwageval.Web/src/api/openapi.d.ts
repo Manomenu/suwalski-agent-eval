@@ -581,6 +581,9 @@ export interface paths {
             parameters: {
                 query?: {
                     agent?: string;
+                    before?: string;
+                    version?: string[];
+                    limit?: number | string;
                 };
                 header?: never;
                 path?: never;
@@ -594,7 +597,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["RunSummary"][];
+                        "application/json": components["schemas"]["RunList"];
                     };
                 };
             };
@@ -1191,6 +1194,15 @@ export interface components {
             agentVersionId: string;
             /** @description `true` when that contract was new (a first version, or the agent changed); `false` when the same content was registered before. */
             versionCreated: boolean;
+        };
+        /** @description One page of runs, newest first. */
+        RunList: {
+            runs: components["schemas"]["RunSummary"][];
+            /**
+             * Format: uuid
+             * @description The run id to pass as `before` to get the next page; null when there are no older runs.
+             */
+            next?: null | string;
         };
         /**
          * @description The pass rate of one finished run, over all its checks and per scenario tag: a point of the agent's trend. A check counts once

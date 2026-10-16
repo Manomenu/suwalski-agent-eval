@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Dapper;
 using Suwageval.Contracts;
 using Suwageval.Contracts.Runs;
 using Suwageval.Server.Checks;
@@ -239,5 +240,77 @@ public sealed class RunStoreTests(TestDatabase database)
         var runs = await store.ListAsync(agent.Id, Cancellation);
 
         Assert.Equal([second, first], runs.Select(run => run.Id));
+    }
+
+    private async Task SetCreatedAtAsync(Guid id, DateTime createdAt)
+    {
+        await using var connection = await database.Pool.OpenAsync(Cancellation);
+        await connection.ExecuteAsync(
+            new CommandDefinition(
+                "UPDATE runs SET created_at = @createdAt WHERE id = @id",
+                new { id, createdAt },
+                cancellationToken: Cancellation
+            )
+        );
+    }
+
+    private async Task<IReadOnlyList<Guid>> PageAsync(SeededAgent agent, Guid? before, int limit) =>
+        [.. (await Store().ListPageAsync(agent.Id, before, [], limit, Cancellation)).Select(run => run.Id)];
+
+    [Fact]
+    public async Task A_page_is_ordered_by_creation_time_descending_then_id_and_continues_after_before()
+    {
+        var store = Store();
+        var agent = await NewAgentAsync();
+        var moment = DateTime.UtcNow.AddDays(-1);
+        var ids = new List<Guid>();
+        for (var index = 0; index < 4; index++)
+        {
+            ids.Add(await EnqueueAsync(store, agent));
+        }
+        // Three runs created at the very same moment (ties go by id), one older.
+        foreach (var id in ids.Take(3))
+        {
+            await SetCreatedAtAsync(id, moment);
+        }
+        await SetCreatedAtAsync(ids[3], moment.AddHours(-1));
+        var expected = ids.Take(3).Order().Append(ids[3]).ToList();
+
+        Assert.Equal(expected, await PageAsync(agent, null, 10));
+        Assert.Equal(expected.Skip(1), await PageAsync(agent, expected[0], 10));
+        Assert.Equal(expected.Skip(2).Take(1), await PageAsync(agent, expected[1], 1));
+        Assert.Empty(await PageAsync(agent, expected[3], 10));
+    }
+
+    [Fact]
+    public async Task A_page_is_limited_and_asking_for_one_more_shows_whether_there_is_more()
+    {
+        var store = Store();
+        var agent = await NewAgentAsync();
+        for (var index = 0; index < 3; index++)
+        {
+            await EnqueueAsync(store, agent);
+        }
+
+        Assert.Equal(2, (await PageAsync(agent, null, 2)).Count);
+        Assert.Equal(3, (await PageAsync(agent, null, 3)).Count);
+        Assert.Equal(3, (await PageAsync(agent, null, 4)).Count);
+        Assert.Empty(await PageAsync(await NewAgentAsync(), null, 5));
+    }
+
+    [Fact]
+    public async Task A_page_can_be_narrowed_to_agent_versions()
+    {
+        var store = Store();
+        var agent = await NewAgentAsync();
+        var other = await NewAgentAsync();
+        var first = await EnqueueAsync(store, agent);
+        var second = await EnqueueAsync(store, other);
+
+        var both = await store.ListPageAsync(null, null, [agent.VersionId, other.VersionId], 100, Cancellation);
+        var onlyOther = await store.ListPageAsync(null, null, [other.VersionId], 100, Cancellation);
+
+        Assert.Equal([second, first], both.Select(run => run.Id).Where(id => id == first || id == second));
+        Assert.Equal([second], onlyOther.Select(run => run.Id));
     }
 }

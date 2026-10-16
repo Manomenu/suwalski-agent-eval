@@ -75,6 +75,45 @@ internal sealed class RunStore(Pool pool)
     }
 
     /// <summary>
+    /// A page of runs, newest first (<c>created_at</c> descending, then <c>id</c>): at most <paramref name="limit"/> of them,
+    /// only those strictly after run <paramref name="before"/> in that order, only those of the given agent versions when
+    /// <paramref name="versionIds"/> is not empty. A <paramref name="before"/> that is no run gives an empty page.
+    /// </summary>
+    public async Task<IReadOnlyList<RunRow>> ListPageAsync(
+        Guid? agentId,
+        Guid? before,
+        IReadOnlyCollection<Guid> versionIds,
+        int limit,
+        CancellationToken cancellationToken = default
+    )
+    {
+        await using var connection = await pool.OpenAsync(cancellationToken);
+        var rows = await connection.QueryAsync<RunRow>(
+            new CommandDefinition(
+                $"""
+                {RunSelect}
+                WHERE (@agentId::uuid IS NULL OR r.agent_id = @agentId)
+                  AND (cardinality(@versionIds::uuid[]) = 0 OR r.agent_version_id = ANY(@versionIds::uuid[]))
+                  AND (@before::uuid IS NULL OR EXISTS (
+                        SELECT 1 FROM runs b
+                        WHERE b.id = @before AND (r.created_at < b.created_at OR (r.created_at = b.created_at AND r.id > b.id))))
+                ORDER BY r.created_at DESC, r.id
+                LIMIT @limit
+                """,
+                new
+                {
+                    agentId,
+                    before,
+                    versionIds = versionIds.ToArray(),
+                    limit,
+                },
+                cancellationToken: cancellationToken
+            )
+        );
+        return [.. rows];
+    }
+
+    /// <summary>
     /// Takes the oldest queued run and marks it running — in one statement, with <c>FOR UPDATE SKIP LOCKED</c>, so
     /// two workers never get the same run. Null when the queue is empty. <paramref name="agentId"/> narrows the queue to
     /// one agent's runs (the tests share a database; the worker passes none).
