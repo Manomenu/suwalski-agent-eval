@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using Suwageval.Cli.Tests.Run;
 using Suwageval.Contracts;
 using Suwageval.Contracts.Runs;
 
@@ -95,6 +96,22 @@ public sealed class RerunCommandTests
 
         using var sent = JsonDocument.Parse(server.Requests[0].Body ?? "");
         Assert.Equal("http://other:1", sent.RootElement.GetProperty("endpointUrl").GetString());
+    }
+
+    [Theory]
+    [InlineData(false, 0)]
+    [InlineData(true, 1)]
+    public void Only_strict_fails_on_a_known_failure(bool strict, int expected)
+    {
+        var (exit, _, _, _) = Run(
+            request =>
+                request.Method == HttpMethod.Get && request.RequestUri?.AbsolutePath == $"/runs/{NewId}/results"
+                    ? Json(KnownFailureResults.Create(Summary(RunStatus.Done)))
+                    : Answer(request, RunStatus.Done),
+            strict ? [OriginalId.ToString(), "--wait", "--strict"] : [OriginalId.ToString(), "--wait"]
+        );
+
+        Assert.Equal(expected, exit);
     }
 
     [Fact]

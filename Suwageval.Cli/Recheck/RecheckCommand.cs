@@ -22,17 +22,19 @@ internal static class RecheckCommand
         };
         var wait = CommandOptions.Wait("re-check");
         var json = CommandOptions.Json("Print JSON: the plan with --dry-run, the results with --wait, otherwise { runId }.");
+        var strict = CommandOptions.Strict();
         var server = CommandOptions.Server();
 
         var command = new Command(
             "recheck",
-            "Judge the stored answers of a finished run again with the current checks, without calling the agent. Nothing is started when no check changed (exit 0). With --wait: exit 0 when all checks pass, 1 when a check fails, 2 when the run cannot be re-checked or cannot finish."
+            "Judge the stored answers of a finished run again with the current checks, without calling the agent. Nothing is started when no check changed (exit 0). With --wait: exit 0 unless a check regressed or is new and failing (--strict: unless any check fails), 2 when the run cannot be re-checked or cannot finish."
         )
         {
             runId,
             dryRun,
             wait,
             json,
+            strict,
             server,
         };
         command.SetAction(
@@ -70,6 +72,7 @@ internal static class RecheckCommand
                                     created,
                                     parsed.GetValue(wait),
                                     asJson,
+                                    parsed.GetValue(strict),
                                     site,
                                     output,
                                     error,

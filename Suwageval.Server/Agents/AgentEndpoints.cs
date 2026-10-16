@@ -27,22 +27,32 @@ internal static class AgentEndpoints
         {
             errors.Add(new FieldError("endpointUrl", "The endpoint URL is an absolute http or https address."));
         }
+        errors.AddRange(RegressionRules.Problems(definition.Regression).Select(problem => new FieldError(problem.Path, problem.Message)));
         if (errors.Count > 0)
         {
             return ProblemResults.Invalid(errors);
         }
 
         var creation = await store.CreateAsync(definition.Name, definition.EndpointUrl, cancellationToken);
-        if (creation.Created)
+        var agent = creation.Agent;
+        if (!creation.Created && agent.EndpointUrl != definition.EndpointUrl)
         {
-            return Results.Created($"/agents/{Uri.EscapeDataString(definition.Name)}", ToAgent(creation.Agent));
+            agent = await store.SetEndpointUrlAsync(agent.Id, definition.EndpointUrl, cancellationToken);
         }
-        var agent =
-            creation.Agent.EndpointUrl == definition.EndpointUrl
-                ? creation.Agent
-                : await store.SetEndpointUrlAsync(creation.Agent.Id, definition.EndpointUrl, cancellationToken);
-        return Results.Ok(ToAgent(agent));
+        // The pushed definition is the source of truth: leaving regression: out puts the defaults back.
+        if (!SameRegression(agent.Regression, definition.Regression))
+        {
+            agent = await store.SetRegressionAsync(agent.Id, definition.Regression, cancellationToken);
+        }
+        return creation.Created
+            ? Results.Created($"/agents/{Uri.EscapeDataString(definition.Name)}", ToAgent(agent))
+            : Results.Ok(ToAgent(agent));
     }
+
+    private static bool SameRegression(RegressionSettings? stored, RegressionSettings? pushed) =>
+        stored?.History == pushed?.History
+        && (stored?.Branches is null) == (pushed?.Branches is null)
+        && (stored?.Branches ?? []).SequenceEqual(pushed?.Branches ?? []);
 
     private static async Task<IResult> ListAsync(AgentStore store, CancellationToken cancellationToken) =>
         Results.Ok((await store.ListAsync(cancellationToken)).Select(ToAgent));

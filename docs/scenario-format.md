@@ -46,6 +46,20 @@ what really ran. A `version:` key is an error.
 | --- | --- | --- |
 | `name` | required | the agent's name |
 | `endpointUrl` | required | where the agent is reached: `POST {endpointUrl}/suwageval/turn`, `GET {endpointUrl}/suwageval/contract` |
+| `regression` | optional | how regressions are found (next block, section "Regressions") |
+
+```yaml
+regression:
+  branches: [master, release] # optional; none means the repository's default branch
+  history: 5 # optional; 1 to 20, default 5
+```
+
+- `branches` — the branches whose runs make the history of a check (the main one first). When given, the list is not empty,
+  each name is non-empty without whitespace, and none is named twice. Left out, it is the repository's default branch
+  (`origin/HEAD`, read by the CLI).
+- `history` — how many of the newest reference runs make a check's history: an integer from 1 to 20 (default 5).
+
+`suwageval validate` and `push` check both (the server answers 422 for the same problems).
 
 ## The agent contract (contract v1)
 
@@ -320,6 +334,42 @@ Inside `args` and `result` (of `tool-called`) and `data` (of `event`), at any de
   same meaning); one value per `$judge`.
 
 Not checked yet: that `arguments`, `data` and `fixtures` match the JSON Schemas the agent declares.
+
+## Regressions
+
+A **regression** is a check that passed steadily and fails now. Nobody marks a baseline: the baseline is the check's **history**
+over the newest *reference runs*.
+
+- **Reference run.** A run is a reference run when the CLI found, when it started it, a clean working tree, a commit that is
+  pushed, and a branch that is one of `regression.branches` (or the repository's default branch when none are listed). The CLI
+  reads this from git in the agent's folder, or from the CI's environment (GitHub Actions, GitLab CI), and sends it with the run.
+  Without git a run has no origin: it is never a reference run and is compared with every run of the agent.
+- **What a run is compared with** (decided once, when it starts): the branch given with `suwageval run --ref <branch>`; else the
+  run's own branch when it is one of the listed branches; else the branch a pull or merge request targets (in CI) when it is
+  listed; else the first listed branch. A rerun and a re-check inherit the origin, the reference flag and the comparison of the
+  run they repeat.
+- **History of a check.** Of the finished runs of that branch's reference runs before this one (a re-check's verdicts replace
+  those of its original), only the runs that judged *the same revision of the check on the same revision of the scenario* count.
+  Their newest ones, up to twice `history`, give one verdict each: the check passed in that run or it did not.
+- **The states** of a check in a run (`N` = `history`):
+
+  | State | Means |
+  | --- | --- |
+  | Passed | passed (steadily, or with too little history to judge) |
+  | Regression | failed now after its last `N` runs all passed |
+  | New | failed now with fewer than `N` runs of history |
+  | Already broken | failed now, and failing for fewer than `N` runs in a row after `N` passing ones: not caused by this run |
+  | Known failure | failed now and in at least the last `N` runs |
+  | Fixed | passes now after a failing streak |
+  | Unstable | its history mixes passes and failures in no steady pattern |
+
+  A check also says when the agent gave no answer in its scenario (`agentFailed`): then the agent failed, not the check.
+- **Exit codes** of `run --wait` (and `rerun`, `recheck`) when the results carry the comparison: 1 only when a check regressed
+  or is new and failing; known failures, unstable and already broken checks leave the exit code 0. `--strict` brings back the old
+  rule (1 when any check misses its threshold). 2 and 130 are unchanged.
+- **An intended change of behaviour is a change of the check.** Update the check (it becomes a new revision, whose history starts
+  empty, so it is *new* until `N` runs show it steady); never edit a check to hide a regression. A new revision of a scenario
+  resets the history of its checks the same way.
 
 ## Results: how long a turn took
 

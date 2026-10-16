@@ -1,3 +1,5 @@
+using System.Text.Json;
+using Suwageval.Contracts;
 using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Server.Runs;
@@ -23,8 +25,15 @@ internal sealed record RunRow(
     DateTime? FinishedAt,
     Guid? RecheckOf = null,
     string SkippedScenarios = "[]",
-    Guid? VerdictsFrom = null
+    Guid? VerdictsFrom = null,
+    string? Origin = null,
+    bool Reference = false,
+    string? ComparedWith = null
 )
 {
+    /// <summary>What a rerun or a re-check of this run inherits.</summary>
+    public RunPlacement Placement =>
+        new(Origin is null ? null : JsonSerializer.Deserialize<RunOrigin>(Origin, ContractJson.Options), Reference, ComparedWith);
+
     public RunStatus State => Enum.Parse<RunStatus>(Status);
 }

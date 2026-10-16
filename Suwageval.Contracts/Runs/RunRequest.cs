@@ -11,4 +11,7 @@ public sealed record RunRequest
 
     /// <summary>Where to reach the agent for this run, and to read its contract from; none means the endpoint the agent was registered with.</summary>
     public string? EndpointUrl { get; init; }
+
+    /// <summary>Where the agent's repository stood; none when the run does not come from a git repository (it is then compared with every run of the agent).</summary>
+    public RunOrigin? Origin { get; init; }
 }

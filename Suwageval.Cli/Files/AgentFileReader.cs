@@ -4,7 +4,7 @@ using Suwageval.Contracts.Agents;
 namespace Suwageval.Cli.Files;
 
 /// <summary>
-/// Reads <c>agent.yaml</c>: the <see cref="AgentDefinition"/> fields, <c>name</c> and <c>endpointUrl</c>. What the agent
+/// Reads <c>agent.yaml</c>: the <see cref="AgentDefinition"/> fields, <c>name</c>, <c>endpointUrl</c> and the optional <c>regression</c>. What the agent
 /// is (prompt, model, tools) is not in the file: the running agent serves it at <c>/suwageval/contract</c>.
 /// </summary>
 internal static class AgentFileReader
@@ -34,6 +34,12 @@ internal static class AgentFileReader
         }
 
         var definition = ContractReader.Read<AgentDefinition>(source, root, "", problems);
-        return definition is null ? null : new LoadedAgent(source, definition);
+        if (definition is null)
+        {
+            return null;
+        }
+        var regression = RegressionRules.Problems(definition.Regression);
+        problems.AddRange(regression.Select(problem => source.Problem(problem.Path, problem.Message)));
+        return regression.Count == 0 ? new LoadedAgent(source, definition) : null;
     }
 }

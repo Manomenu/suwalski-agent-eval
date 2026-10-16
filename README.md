@@ -53,6 +53,14 @@ Per test: pass/fail and why. Per scenario: all its tests. Per run of a suite: th
 configuration and model, the judge's model and prompt version, the totals — and a comparison
 with an earlier run, so a regression after a prompt or model change is visible at once.
 
+### Regressions
+
+A check that passed in the last 5 reference runs (clean tree, pushed commit, the repository's default branch or the branches
+`agent.yaml` lists under `regression`) and fails now is a **regression**; a failing check with too little history is **new**.
+`suwageval run --wait` prints these first and exits 1 only for them; known failures, unstable and already broken checks leave
+the exit code 0, `--strict` fails on any failed check, `--ref <branch>` picks the branch to compare with. The rules are in
+`docs/scenario-format.md`, "Regressions".
+
 ### Front doors: the web, a CLI, and Claude Code through the CLI
 
 The server has one interface, its HTTP API. Three users reach it:
@@ -60,7 +68,7 @@ The server has one interface, its HTTP API. Three users reach it:
 | Who | Through | Does |
 | --- | --- | --- |
 | a person in the browser | the web app | browses agents, scenarios, runs, results, comparisons |
-| an agent's repository, by hand or in CI | the `suwageval` CLI (`Suwageval.Cli`) | `validate` the scenario files, `push` the agent, its scenarios and checks, `run --tag … --wait` with an exit code for CI, `rerun <runId>` to repeat a run, `recheck <runId>` to judge a finished run's stored answers again with the current checks (`--dry-run` shows what would be evaluated), `cancel <runId>` to stop a queued or running one, `results <runId>` to open a run on the web, `runs` to list the agent's newest runs, `unstable` to list the checks that pass in some runs of a version and fail in others, `compare <runId> <runId> …` to open the comparison of 2 to 5 runs of one agent on the web, `versions` to list, archive and restore the agent's versions, `versions diff <a> <b>` to open what changed between two of them on the web |
+| an agent's repository, by hand or in CI | the `suwageval` CLI (`Suwageval.Cli`) | `validate` the scenario files, `push` the agent, its scenarios and checks, `run --tag … --wait` with an exit code for CI (`--ref <branch>` picks the branch to compare with, `--strict` fails on any failed check, not only on regressions; `rerun` and `recheck` take `--strict` too), `rerun <runId>` to repeat a run, `recheck <runId>` to judge a finished run's stored answers again with the current checks (`--dry-run` shows what would be evaluated), `cancel <runId>` to stop a queued or running one, `results <runId>` to open a run on the web, `runs` to list the agent's newest runs, `unstable` to list the checks that pass in some runs of a version and fail in others, `compare <runId> <runId> …` to open the comparison of 2 to 5 runs of one agent on the web, `versions` to list, archive and restore the agent's versions, `versions diff <a> <b>` to open what changed between two of them on the web |
 | Claude Code | the Claude Code plugin in this repo (`claude-plugin/`) that drives the same CLI, like suwgit's | "build a scenario for this agent from this conversation", "run the regression tag on the new version", "why did scenario X fail" — writing the scenario as a file in the agent's repo, then `validate` and `push` |
 
 - **Anything the web can do, the CLI — and so Claude Code through the plugin — can do too; not the
@@ -72,8 +80,9 @@ The server has one interface, its HTTP API. Three users reach it:
   the log). Suwageval's address is not in them: `SUWAGEVAL_URL` (default
   `http://localhost:3230`) or `--server` — the web app's address, the API is under its `/api`
   (so on a laptop the CLI needs `just web` running too).
-- **The results are read on the web.** `suwageval run --wait` prints one line of totals and the
-  link to the run's page, with its exit code; `suwageval results <runId>` opens that page in
+- **The results are read on the web.** `suwageval run --wait` prints what was compared with, the regressions and new failing
+  checks first, then the totals and the link to the run's page; it exits 0 unless a check regressed or is new and failing
+  (1; `--strict`: unless any check failed), 2 when the run could not finish; `suwageval results <runId>` opens that page in
   the browser. A "Run again" button on the run's page (and `suwageval rerun <runId>`, same flags as
   `run`) starts a new run with the same agent, tag and endpoint, against the version the agent
   serves now. A "Re-check" button beside it (and `suwageval recheck <runId>`) judges the run's *stored answers* again with the
@@ -176,7 +185,7 @@ multi-turn simulation, no web views yet (the judge came right after: step 4).
    in `*Endpoints.cs`), and `suwageval push`.
 3. **Invocation and Runs** — done: the agent under test over HTTP (contract v1: `/suwageval/turn` and `/suwageval/contract`, `docs/scenario-format.md`), the
    deterministic checks, and `suwageval run` (`--wait` exits 0 when every check passed its
-   threshold, 1 when one did not, 2 when the run could not finish). The MVP is reached here.
+   threshold, 1 when one did not, 2 when the run could not finish; since regressions, 1 means a regression or a new failing check unless `--strict`). The MVP is reached here.
 4. **After the MVP** — the judge is done: a `judge` check, verdict by a model through Microsoft Agent Framework
    (`docs/scenario-format.md`, "The judge check"), with a daily live check of the model from the cluster. Still to come:
    multi-turn simulation, results and comparisons on the web.

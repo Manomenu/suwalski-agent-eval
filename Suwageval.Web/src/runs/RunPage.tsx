@@ -3,6 +3,7 @@ import { Alert, Anchor, Badge, Group, List, Loader, Paper, Stack, Text, Title } 
 import { isNotFound } from "../api/client";
 import { CancelButton } from "./CancelButton";
 import { RecheckButton } from "./RecheckButton";
+import { RegressionSection } from "./RegressionSection";
 import { RerunButton } from "./RerunButton";
 import { ScenarioCard } from "./ScenarioCard";
 import { durationSummary, formatTime, isActive, progress, runHref, runStatusLabel, statusColor } from "./results";
@@ -92,6 +93,7 @@ export function RunPage({ runId }: { runId: string }) {
                         {run.error}
                     </Alert>
                 )}
+                <RegressionSection results={state.results} />
                 {scenarios.map((scenario) => (
                     <ScenarioCard key={scenario.key} scenario={scenario} versionId={run.agentVersionId} unstable={unstable} />
                 ))}

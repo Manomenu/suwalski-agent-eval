@@ -1,4 +1,5 @@
 using Dapper;
+using Suwageval.Contracts.Agents;
 using Suwageval.Server.Database;
 
 namespace Suwageval.Server.Agents;
@@ -6,7 +7,8 @@ namespace Suwageval.Server.Agents;
 /// <summary>Agents and their versions. Plain SQL, mapped by Dapper.</summary>
 internal sealed class AgentStore(Pool pool)
 {
-    private const string AgentColumns = "id, name, endpoint_url AS EndpointUrl, created_at AS CreatedAt";
+    private const string AgentColumns =
+        "id, name, endpoint_url AS EndpointUrl, created_at AS CreatedAt, to_json(regression_branches)::text AS RegressionBranches, regression_history AS RegressionHistory";
 
     private const string VersionColumns =
         "id, agent_id AS AgentId, content::text AS Content, content_hash AS ContentHash, label, data_description AS DataDescription, created_at AS CreatedAt, archived_at AS ArchivedAt";
@@ -42,6 +44,24 @@ internal sealed class AgentStore(Pool pool)
             new CommandDefinition(
                 $"UPDATE agents SET endpoint_url = @endpointUrl WHERE id = @id RETURNING {AgentColumns}",
                 new { id, endpointUrl },
+                cancellationToken: cancellationToken
+            )
+        );
+    }
+
+    /// <summary>Stores the agent's regression settings; none puts the defaults back.</summary>
+    public async Task<AgentRow> SetRegressionAsync(Guid id, RegressionSettings? settings, CancellationToken cancellationToken = default)
+    {
+        await using var connection = await pool.OpenAsync(cancellationToken);
+        return await connection.QuerySingleAsync<AgentRow>(
+            new CommandDefinition(
+                $"UPDATE agents SET regression_branches = @branches, regression_history = @history WHERE id = @id RETURNING {AgentColumns}",
+                new
+                {
+                    id,
+                    branches = settings?.Branches?.ToArray(),
+                    history = settings?.History,
+                },
                 cancellationToken: cancellationToken
             )
         );

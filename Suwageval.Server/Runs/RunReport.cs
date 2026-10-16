@@ -38,6 +38,9 @@ internal static class RunReport
             StartedAt = run.StartedAt,
             FinishedAt = run.FinishedAt,
             RecheckOf = run.RecheckOf,
+            Origin = run.Placement.Origin,
+            Reference = run.Reference,
+            ComparedWith = run.ComparedWith,
             SkippedScenarios = JsonSerializer.Deserialize<IReadOnlyList<SkippedScenario>>(run.SkippedScenarios, ContractJson.Options) ?? [],
         };
     }

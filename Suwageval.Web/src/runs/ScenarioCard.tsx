@@ -5,6 +5,7 @@ import { ModelJudgedIcon } from "../checks/ModelJudgedIcon";
 import { UnstableCheckIcon } from "../checks/UnstableCheckIcon";
 import type { ScenarioRunResult, UnstableCheck } from "./api";
 import { ConversationView } from "./ConversationView";
+import { stateColor, stateLabel } from "./regression";
 import { findUnstable, unstableTooltip } from "./stability";
 import { checkSummary, failedEvidenceKeys, formatSeconds, notJudgedCount } from "./results";
 
@@ -46,6 +47,11 @@ export function ScenarioCard({
                         <Stack key={check.key} gap={4}>
                             <Group gap="xs">
                                 <Badge color={check.passed ? "green" : "red"}>{check.passed ? "passed" : "failed"}</Badge>
+                                {check.regression != null && check.regression.state !== "Passed" && (
+                                    <Badge color={stateColor(check.regression.state)} variant="light">
+                                        {stateLabel(check.regression.state)}
+                                    </Badge>
+                                )}
                                 {notJudgedCount(check) > 0 && (
                                     <Badge color="yellow" variant="light">
                                         {`not judged: ${notJudgedCount(check)} of ${check.samples.length} samples`}

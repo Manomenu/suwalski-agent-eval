@@ -28,4 +28,7 @@ public sealed record CheckRunResult
     public required double PassThreshold { get; init; }
 
     public required IReadOnlyList<CheckSampleResult> Samples { get; init; }
+
+    /// <summary>The verdict against the check's history; none until the run is done.</summary>
+    public CheckRegression? Regression { get; init; }
 }

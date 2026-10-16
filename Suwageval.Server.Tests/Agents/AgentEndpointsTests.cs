@@ -84,6 +84,63 @@ public sealed class AgentEndpointsTests(TestDatabase database) : IAsyncDisposabl
     }
 
     [Fact]
+    public async Task The_regression_settings_are_stored_replaced_and_put_back_to_the_defaults_when_left_out()
+    {
+        var name = AgentStoreTests.UniqueName();
+        var store = new AgentStore(database.Pool);
+        var settings = new RegressionSettings { Branches = ["master", "release"], History = 3 };
+
+        await server.Post(
+            "/agents",
+            new AgentDefinition
+            {
+                Name = name,
+                EndpointUrl = "http://a.test",
+                Regression = settings,
+            }
+        );
+        var stored = (await store.GetAsync(name, TestContext.Current.CancellationToken))!.Regression;
+        await server.Post(
+            "/agents",
+            new AgentDefinition
+            {
+                Name = name,
+                EndpointUrl = "http://a.test",
+                Regression = new RegressionSettings { History = 7 },
+            }
+        );
+        var changed = (await store.GetAsync(name, TestContext.Current.CancellationToken))!.Regression;
+        await server.Post("/agents", new AgentDefinition { Name = name, EndpointUrl = "http://a.test" });
+        var cleared = (await store.GetAsync(name, TestContext.Current.CancellationToken))!.Regression;
+
+        Assert.Equal(["master", "release"], stored!.Branches);
+        Assert.Equal(3, stored.History);
+        Assert.Null(changed!.Branches);
+        Assert.Equal(7, changed.History);
+        Assert.Null(cleared);
+    }
+
+    [Fact]
+    public async Task Invalid_regression_settings_are_a_422_naming_the_fields()
+    {
+        var response = await server.Post(
+            "/agents",
+            new AgentDefinition
+            {
+                Name = AgentStoreTests.UniqueName(),
+                EndpointUrl = "http://a.test",
+                Regression = new RegressionSettings { Branches = ["master", "master", "a b"], History = 0 },
+            }
+        );
+
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+        Assert.Equal(
+            ["regression.branches[1]", "regression.branches[2]", "regression.history"],
+            (await TestServer.ErrorFields(response)).Order(StringComparer.Ordinal)
+        );
+    }
+
+    [Fact]
     public async Task A_body_with_an_unknown_field_is_a_400_problem()
     {
         var response = await server.PostRaw(

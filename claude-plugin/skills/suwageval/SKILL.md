@@ -55,9 +55,9 @@ its `/api`. The address is `SUWAGEVAL_URL`, or `--server` on a command; the defa
 | --- | --- |
 | check the files and the names against the agent's contract | `suwageval validate [dir]` (`--json`, `--offline` to skip the agent, `--endpoint URL`) |
 | send the agent, scenarios and checks to the server | `suwageval push [dir]` |
-| run the scenarios and wait | `suwageval run --wait --json` (`--tag <tag>` for some scenarios only) |
-| run an earlier run again | `suwageval rerun <runId> --wait --json` (`--endpoint URL`): same agent, tag and endpoint, the version the agent serves now |
-| judge a finished run's stored answers again with the current checks (no agent call) | `suwageval recheck <runId> --wait --json`; `--dry-run` first prints what would be evaluated again (exit 0 when no check changed: nothing is started). Use it after fixing a check; `rerun` is for when the agent changed |
+| run the scenarios and wait | `suwageval run --wait --json` (`--tag <tag>` for some scenarios only; `--ref <branch>` to compare with another branch's reference runs; `--strict` to exit 1 on any failed check) |
+| run an earlier run again | `suwageval rerun <runId> --wait --json` (`--endpoint URL`, `--strict`): same agent, tag and endpoint, the version the agent serves now |
+| judge a finished run's stored answers again with the current checks (no agent call) | `suwageval recheck <runId> --wait --json` (`--strict`); `--dry-run` first prints what would be evaluated again (exit 0 when no check changed: nothing is started). Use it after fixing a check; `rerun` is for when the agent changed |
 | stop a queued or running run | `suwageval cancel <runId>`: samples in flight finish, no new one starts; a finished run stays as it is. Only for a run the user asked to stop |
 | open a run on the web | `suwageval results <runId>` |
 | a run's results as JSON | `suwageval results <runId> --json` |
@@ -75,8 +75,8 @@ The comparison of two versions is `{SUWAGEVAL_URL}/agents/{agent}/versions/compa
 
 | code | `validate` | `run --wait`, `results --json` |
 | --- | --- | --- |
-| 0 | the files are valid | every check passed its threshold |
-| 1 | something is wrong | a check failed |
+| 0 | the files are valid | no regression and no new failing check (with `--strict`: every check passed its threshold) |
+| 1 | something is wrong | a check regressed or is new and failing (with `--strict`: any check failed) |
 | 2 | — | the run could not be started or finished |
 
 `validate` exits 0 with a notice when the agent was unreachable: the names were then not
@@ -171,6 +171,18 @@ asked for or confirmed: show the ids first. `/suwageval:versions` does this.
 `checks`; a check has `key`, `passed`, `passRate`, `passThreshold` and per-sample `message` and
 `evidence` — the message says why it failed. A judge check's message is the judge's reason; a sample with `notJudged: true` was not judged at all. A scenario sample with an `error` means the agent
 itself failed on that turn, which is not a check failing: say which.
+
+## Regressions
+
+A run that finished has `results.regression` (what it was compared with, and counts) and each check a `regression`
+(`state`: `Passed`, `Regression`, `New`, `AlreadyBroken`, `KnownFailure`, `Fixed`, `Unstable`; `failingSince`, `lastPassedRun`,
+`agentFailed`). A regression is a check that passed steadily over the newest reference runs (clean tree, pushed commit,
+the default branch or `regression.branches` of `agent.yaml`) and fails now. Report in this order: **regressions and new
+failing checks** first (scenario, check, why; `lastPassedRun` is the run to compare with: `{SUWAGEVAL_URL}/compare?runs={lastPassedRun},{run.id}`),
+then **already broken** (not caused by this run), then fixed and unstable ones; known failures only as a count. A check with
+`agentFailed` failed because the agent gave no answer: say so. Never change a check to hide a regression. When a behaviour
+change was intended, the check is what is out of date: update it (`/suwageval:fix`), push, and run again; it starts a new
+history, so it is *new* until it has run enough times.
 
 ## Unstable checks
 
