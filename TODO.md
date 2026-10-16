@@ -89,7 +89,26 @@ belongs to.
     that agent — and `tools` are the tools THAT agent may call;
   - `otherConfig`: free text for what belongs to the system, not to one agent (e.g. "retries
     on every LLM agent: 2");
-  - `context` (events, retrieval) stays as in v0.
+  - `context` (events, retrieval) stays as in v0, plus **the version of the retrieval data**.
+    Today a changed knowledge base leaves the contract — and so the agent version — unchanged, and
+    two runs of "the same version" are compared over different data. Suwageval does not store the
+    data, only a fingerprint the agent computes. With `usesRetrieval: true` the contract requires
+    `context.retrieval`:
+    - `dataVersion` (required): an opaque string, part of the content hash, so new data makes a
+      new agent version that can be filtered and compared like a model;
+    - `description` (optional): for people (`1832 articles, help center + returns policy`), shown on
+      the web and in the comparison header, outside the hash like `label`.
+    How the agent computes `dataVersion` is its business, but it must change whenever what retrieval
+    can return changes: the content AND how it was indexed. Recommended: the id of the index build
+    (every rebuild gets a new one), or a hash over (document id, content hash) for every document plus
+    the pipeline settings (chunking, embedding model, index parameters). Not "last updated": a
+    deletion or a re-index with other chunking or embeddings does not move it. For repeatable runs the
+    agent serves a frozen snapshot of its data in test mode (the "same test data" rule of the
+    contract), so `dataVersion` changes only when the snapshot is swapped on purpose.
+    **The Claude Code plugin carries this guidance** (`claude-plugin/skills/suwageval/SKILL.md`, and
+    the command that helps wire an agent to the contract): when Claude adds `dataVersion` to an
+    agent, it computes it from the index build or the content-and-pipeline hash as above, never from
+    a timestamp alone, and points the agent at a frozen snapshot for evaluation.
   Free text is enough to start: it is part of the content hash, so any change makes a new
   version, and it is shown when comparing versions. Structure comes later, once real systems
   show which parts checks or comparisons need.
