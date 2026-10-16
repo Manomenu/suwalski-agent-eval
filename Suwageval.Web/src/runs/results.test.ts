@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { CheckRunResult, ConversationItem, RunSummary, ScenarioRunResult } from "./api";
 import {
+    checkAnchor,
     checkSummary,
     durationSummary,
     formatSeconds,
@@ -15,6 +16,7 @@ import {
     percentValue,
     progress,
     runHref,
+    samplesToOpen,
     seconds,
     shortId,
     versionTitle,
@@ -147,6 +149,21 @@ describe("results", () => {
             expect(durationSummary({ medianMs: null, p95Ms: null })).toBeNull();
             expect(durationSummary({})).toBeNull();
         });
+    });
+});
+
+describe("checkAnchor", () => {
+    it("names a check's row by its scenario and key", () => {
+        expect(checkAnchor("refund", "confirms-refund")).toBe("check-refund--confirms-refund");
+    });
+});
+
+describe("samplesToOpen", () => {
+    const sample = (n: number, passed: boolean) => ({ sample: n, passed, message: "", notJudged: false, evidence: [] });
+    it("opens the samples the check failed in, else the first", () => {
+        expect(samplesToOpen({ samples: [sample(1, true), sample(2, false), sample(3, false)] })).toEqual(["2", "3"]);
+        expect(samplesToOpen({ samples: [sample(1, true), sample(2, true)] })).toEqual(["1"]);
+        expect(samplesToOpen({ samples: [] })).toEqual([]);
     });
 });
 

@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { RunResults } from "./api";
 import { comparedWithHeading, groupChecks, historyText, compareLink, stateLabel, statedChecks, type StatedCheck } from "./regression";
 import { CheckHistory } from "./CheckHistory";
-import { runHref, shortId } from "./results";
+import { checkAnchor, runHref, shortId } from "./results";
 import { StateBadge } from "./StateBadge";
 
 /** What a check's state says about it: since when it fails, and what to compare with. */
@@ -15,9 +15,9 @@ function CheckLine({ item, runId }: { item: StatedCheck; runId: string }) {
     return (
         <List.Item>
             <Group gap="xs">
-                <Text fw={600}>
+                <Anchor href={`#${checkAnchor(item.scenarioKey, item.check.key)}`} fw={600} c="inherit">
                     {item.scenarioKey} / {item.check.key}
-                </Text>
+                </Anchor>
                 <CheckHistory check={item.check} />
                 {failingSince != null && (
                     <Text span c="dimmed">

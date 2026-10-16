@@ -18,6 +18,17 @@ export function versionTitle(id: string, label: string | null | undefined): stri
     return label?.trim() ? label : shortId(id);
 }
 
+/** The id of a check's row on the run page, so a link can jump to it (`#check-<scenario>--<check>`). */
+export function checkAnchor(scenarioKey: string, checkKey: string): string {
+    return `check-${scenarioKey}--${checkKey}`;
+}
+
+/** The samples whose output to open when someone jumps to a check: the ones it failed in, else the first. */
+export function samplesToOpen(check: Pick<CheckRunResult, "samples">): string[] {
+    const failed = check.samples.filter((sample) => !sample.passed).map((sample) => String(sample.sample));
+    return failed.length > 0 ? failed : check.samples.slice(0, 1).map((sample) => String(sample.sample));
+}
+
 /** A run that is still going: the page asks again until it is over. */
 export function isActive(status: Status): boolean {
     return status === "Queued" || status === "Running";

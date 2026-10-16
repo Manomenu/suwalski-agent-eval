@@ -82,3 +82,22 @@
     overflow-wrap: anywhere;
     min-height: 1lh;
 }
+
+/* A check jumped to from the run page's regression list: clear of the fixed header (HEADER_HEIGHT, 60px), and marked a moment. */
+.check-target {
+    scroll-margin-top: 76px;
+    border-radius: var(--mantine-radius-sm);
+}
+
+.check-target:target {
+    animation: check-target-flash 1.6s ease-out;
+}
+
+@keyframes check-target-flash {
+    from {
+        background-color: var(--mantine-color-yellow-light);
+    }
+    to {
+        background-color: transparent;
+    }
+}
