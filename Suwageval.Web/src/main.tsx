@@ -1,4 +1,5 @@
 import "@mantine/core/styles.css";
+import "@mantine/charts/styles.css";
 
 import { MantineProvider, createTheme, type MantineColorsTuple } from "@mantine/core";
 import { StrictMode } from "react";
@@ -107,8 +108,33 @@ const orange: MantineColorsTuple = [
     "#57423b",
 ];
 
+const teal: MantineColorsTuple = [
+    "#f4fcfb",
+    "#e7f9f6",
+    "#dbf5f1",
+    "#caf0ea",
+    "#b2eae1",
+    "#94e2d5",
+    "#7ab8b0",
+    "#608e8b",
+    "#4c6f6f",
+    "#385053",
+];
+const pink: MantineColorsTuple = [
+    "#fef9fd",
+    "#fdf2fa",
+    "#fceaf7",
+    "#fae0f3",
+    "#f8d3ee",
+    "#f5c2e7",
+    "#c79fbe",
+    "#9a7b95",
+    "#786177",
+    "#554658",
+];
+
 const theme = createTheme({
-    colors: { dark, gray, mauve, red, green, yellow, blue, orange },
+    colors: { dark, gray, mauve, red, green, yellow, blue, orange, teal, pink },
     primaryColor: "mauve",
     primaryShade: 5,
     // Mocha's accents are pastel: text on a filled one is dark, picked by Mantine.

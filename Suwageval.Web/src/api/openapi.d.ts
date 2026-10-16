@@ -780,6 +780,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/agents/{agent}/pass-rates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    agent: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RunPassRates"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1155,6 +1192,29 @@ export interface components {
             /** @description `true` when that contract was new (a first version, or the agent changed); `false` when the same content was registered before. */
             versionCreated: boolean;
         };
+        /**
+         * @description The pass rate of one finished run, over all its checks and per scenario tag: a point of the agent's trend. A check counts once
+         *     per scenario (passed or not by its threshold over the samples), the way the results page counts it.
+         */
+        RunPassRates: {
+            /** Format: uuid */
+            runId: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: uuid */
+            agentVersionId: string;
+            /** @description The label the version's contract carries, if any. */
+            versionLabel?: null | string;
+            /** @description The models the version's LLM agents use. */
+            modelNames: string[];
+            /**
+             * Format: double
+             * @description Checks passed over checks, from 0 to 1.
+             */
+            passRate: number | string;
+            /** @description One rate per tag the run's scenarios carry now, sorted by tag; a scenario without checks adds nothing to its tags. */
+            tags: components["schemas"]["TagPassRate"][];
+        };
         /** @description Starts a run of an agent's scenarios. */
         RunRequest: {
             /** @description The agent's name or id. */
@@ -1285,6 +1345,12 @@ export interface components {
             scenarioKeys: string[];
             add: string[];
             remove: string[];
+        };
+        /** @description The pass rate of a run over the checks of the scenarios that carry one tag, from 0 to 1. */
+        TagPassRate: {
+            tag: string;
+            /** Format: double */
+            passRate: number | string;
         };
         ToolDefinition: {
             name: string;
