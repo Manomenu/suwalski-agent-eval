@@ -1203,6 +1203,8 @@ export interface components {
             createdAt: string;
             /** Format: uuid */
             agentVersionId: string;
+            /** @description The tag the run was limited to; null when it ran every scenario. Only such a run says what "all checks" are. */
+            tag?: null | string;
             /** @description The label the version's contract carries, if any. */
             versionLabel?: null | string;
             /** @description The models the version's LLM agents use. */

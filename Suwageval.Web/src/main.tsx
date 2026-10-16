@@ -1,5 +1,6 @@
 import "@mantine/core/styles.css";
 import "@mantine/charts/styles.css";
+import "./app.css";
 
 import { MantineProvider, createTheme, type MantineColorsTuple } from "@mantine/core";
 import { StrictMode } from "react";

@@ -7,6 +7,7 @@ import {
     LABEL_KEY,
     RUN_KEY,
     asTrendRow,
+    legendColor,
     percent,
     seriesColor,
     toggleHidden,
@@ -14,9 +15,16 @@ import {
     trendSeries,
 } from "./trend";
 
-function point(id: string, passRate: number, tags: [string, number][], versionLabel: string | null = "v1"): RunPassRates {
+function point(
+    id: string,
+    passRate: number,
+    tags: [string, number][],
+    versionLabel: string | null = "v1",
+    tag: string | null = null,
+): RunPassRates {
     return {
         runId: id,
+        tag,
         createdAt: "2026-10-16T14:05:00Z",
         agentVersionId: "version",
         versionLabel,
@@ -86,5 +94,18 @@ describe("asTrendRow", () => {
         expect(asTrendRow({ [RUN_KEY]: "r1" })).not.toBeNull();
         expect(asTrendRow({ other: 1 })).toBeNull();
         expect(asTrendRow(undefined)).toBeNull();
+    });
+});
+
+describe("All", () => {
+    it("comes only from runs of every scenario; a run limited to a tag adds to that tag's line only", () => {
+        const rows = trendRows([point("full", 0.9, [["smoke", 1]]), point("smoke-only", 0.5, [["smoke", 0.5]], "v1", "smoke")]);
+        expect(rows.map((row) => row[ALL_SERIES])).toEqual([90, null]);
+        expect(rows.map((row) => row["smoke"])).toEqual([100, 50]);
+    });
+
+    it("takes the legend's colour without the shade", () => {
+        expect(legendColor("smoke", [ALL_SERIES, "smoke"])).toBe("blue");
+        expect(legendColor(ALL_SERIES, [ALL_SERIES])).toBe("mauve");
     });
 });

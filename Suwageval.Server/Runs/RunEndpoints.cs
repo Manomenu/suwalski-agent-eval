@@ -67,6 +67,7 @@ internal static class RunEndpoints
                     RunId = run.Id,
                     CreatedAt = run.CreatedAt,
                     AgentVersionId = version.Id,
+                    Tag = run.Tag,
                     VersionLabel = version.Label,
                     ModelNames = ContractContent.ModelNames(StoredContent.Version(version.Content)),
                     PassRate = rates.PassRate,
