@@ -2,7 +2,6 @@ import { Accordion, Anchor, Group, List, Paper, Stack, Text, Title } from "@mant
 
 import type { RunResults } from "./api";
 import {
-    AGENT_FAILED_NOTE,
     comparedWithHeading,
     groupChecks,
     historyText,
@@ -33,11 +32,6 @@ function CheckLine({ item, runId }: { item: StatedCheck; runId: string }) {
                 {failingSince != null && (
                     <Text span c="dimmed">
                         failing since <Anchor href={runHref(failingSince)}>run {shortId(failingSince)}</Anchor>
-                    </Text>
-                )}
-                {regression?.agentFailed === true && (
-                    <Text span c="dimmed">
-                        {AGENT_FAILED_NOTE}
                     </Text>
                 )}
                 {compare !== null && <Anchor href={compare.href}>{compare.label}</Anchor>}

@@ -13,7 +13,4 @@ public sealed record CheckRegression
 
     /// <summary>The verdicts the state was computed from, oldest first: the newest reference runs of the check's history.</summary>
     public IReadOnlyList<CheckHistoryPoint> History { get; init; } = [];
-
-    /// <summary>True when the scenario's samples in this run have an agent error instead of an answer: the agent failed, not the check.</summary>
-    public bool AgentFailed { get; init; }
 }

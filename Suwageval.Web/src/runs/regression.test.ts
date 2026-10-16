@@ -26,6 +26,7 @@ const summary: RegressionSummary = {
     knownFailures: 3,
     fixed: 0,
     unstable: 1,
+    agentErrors: 0,
 };
 
 function stated(state: RegressionState): { scenarioKey: string; check: CheckRunResult; state: RegressionState } {
@@ -37,6 +38,7 @@ describe("labels and colours", () => {
         expect(stateLabel("AlreadyBroken")).toBe("Already broken");
         expect(stateLabel("KnownFailure")).toBe("Known failure");
         expect(stateLabel("Regression")).toBe("Regression");
+        expect(stateLabel("AgentError")).toBe("Agent error");
     });
     it("colours the states", () => {
         expect(stateColor("Regression")).toBe("red");
@@ -45,11 +47,21 @@ describe("labels and colours", () => {
         expect(stateColor("KnownFailure")).toBe("gray");
         expect(stateColor("Fixed")).toBe("green");
         expect(stateColor("Unstable")).toBe("yellow");
+        expect(stateColor("AgentError")).toBe("grape");
     });
     it("says what each state means, and which ones fail the CLI's exit code", () => {
-        const states: RegressionState[] = ["Passed", "Regression", "New", "AlreadyBroken", "KnownFailure", "Fixed", "Unstable"];
+        const states: RegressionState[] = [
+            "Passed",
+            "Regression",
+            "New",
+            "AlreadyBroken",
+            "KnownFailure",
+            "Fixed",
+            "Unstable",
+            "AgentError",
+        ];
         const failing = states.filter((state) => stateExplanation(state).includes("Fails the CLI's exit code"));
-        expect(failing).toEqual(["Regression", "New"]);
+        expect(failing).toEqual(["Regression", "New", "AgentError"]);
         expect(stateExplanation("AlreadyBroken")).toContain("not caused by this run");
     });
 });
@@ -84,8 +96,9 @@ describe("grouping", () => {
             stated("Fixed"),
             stated("Regression"),
             stated("New"),
+            stated("AgentError"),
         ]);
-        expect(groups.attention.map((c) => c.state)).toEqual(["Regression", "New", "AlreadyBroken"]);
+        expect(groups.attention.map((c) => c.state)).toEqual(["Regression", "New", "AgentError", "AlreadyBroken"]);
         expect(groups.brief.map((c) => c.state)).toEqual(["Fixed", "Unstable"]);
         expect(groups.known.map((c) => c.state)).toEqual(["KnownFailure"]);
     });
@@ -164,8 +177,12 @@ describe("historyMarks", () => {
             },
         });
         expect(marks.map((mark) => mark.label)).toEqual(["run 725c66c4: passed", "run 11111111: failed", "this run: failed"]);
-        expect(marks[0]).toMatchObject({ tooltip: "17/10 00:03 · run 725c66c4 · passed", href: "/runs/725c66c4-0000", passed: true });
-        expect(marks[2]).toMatchObject({ tooltip: "this run · failed", href: null, passed: false });
+        expect(marks[0]).toMatchObject({ tooltip: "17/10 00:03 · run 725c66c4 · passed", href: "/runs/725c66c4-0000", outcome: "passed" });
+        expect(marks[2]).toMatchObject({ tooltip: "this run · failed", href: null, outcome: "failed" });
+    });
+    it("marks this run of an agent error apart from a failure", () => {
+        const marks = historyMarks({ passed: false, regression: { state: "AgentError", history: [point("725c66c4-0000", true, at)] } });
+        expect(marks[1]).toMatchObject({ outcome: "agentError", label: "this run: agent error", tooltip: "this run · agent error" });
     });
     it("shows nothing for a check without history", () => {
         expect(historyMarks({ passed: false, regression: { state: "New", history: [] } })).toEqual([]);

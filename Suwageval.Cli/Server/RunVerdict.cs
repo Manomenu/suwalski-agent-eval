@@ -6,13 +6,13 @@ namespace Suwageval.Cli.Server;
 internal static class RunVerdict
 {
     /// <summary>
-    /// 2 when the run did not finish. Otherwise, with the regression summary and without <paramref name="strict"/>: 1 when a check regressed or is
-    /// new and failing, else 0 (known failures, unstable and already broken checks do not fail it). Strict, or without the summary: 0 when every
+    /// 2 when the run did not finish. Otherwise, with the regression summary and without <paramref name="strict"/>: 1 when a check regressed, is
+    /// new and failing or failed because the agent gave no answer, else 0 (known failures, unstable and already broken checks do not fail it). Strict, or without the summary: 0 when every
     /// check reached its pass threshold (a run with no checks has nothing to fail), 1 when one did not.
     /// </summary>
     public static int ExitCode(RunResults results, bool strict) =>
         results.Run.Status != RunStatus.Done ? 2
-        : results.Regression is { } regression && !strict ? (regression.Regressions + regression.New > 0 ? 1 : 0)
+        : results.Regression is { } regression && !strict ? (regression.Regressions + regression.New + regression.AgentErrors > 0 ? 1 : 0)
         : results.Scenarios.All(scenario => scenario.Checks.All(check => check.Passed)) ? 0
         : 1;
 

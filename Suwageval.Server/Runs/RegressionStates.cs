@@ -21,18 +21,19 @@ internal static class RegressionStates
     /// The state of a check that <paramref name="passed"/> now, with <paramref name="history"/> (oldest first, at most the newest 2N) and a
     /// history of <paramref name="n"/> runs: a steady pass that fails now is a <see cref="RegressionState.Regression"/>; a failure in a row
     /// for N runs is known, a shorter one after N passes is already broken; a mixed past is unstable; with too little history a failure is new.
+    /// A failure that <paramref name="onlyAgentErrors"/> caused (the samples with an answer alone would pass) is an
+    /// <see cref="RegressionState.AgentError"/>, whatever the history.
     /// </summary>
-    public static CheckRegression Of(IReadOnlyList<CheckHistoryPoint> history, int n, bool passed, bool agentFailed)
+    public static CheckRegression Of(IReadOnlyList<CheckHistoryPoint> history, int n, bool passed, bool onlyAgentErrors)
     {
         var outcomes = history.Select(point => point.Passed).ToList();
-        var state = State(outcomes, n, passed);
+        var state = onlyAgentErrors && !passed ? RegressionState.AgentError : State(outcomes, n, passed);
         var trailing = TrailingFailures(outcomes);
         return new CheckRegression
         {
             State = state,
             FailingSince = state == RegressionState.AlreadyBroken ? history[^trailing].RunId : null,
             LastPassedRun = history.Any(point => point.Passed) ? history.Last(point => point.Passed).RunId : null,
-            AgentFailed = agentFailed,
             History = history,
         };
     }

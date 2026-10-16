@@ -78,7 +78,8 @@ public sealed class RegressionHistoryTests(TestDatabase database) : IAsyncDispos
         RunPlacement? placement = null,
         Guid? recheckOf = null,
         RunStatus status = RunStatus.Done,
-        string? error = null
+        string? error = null,
+        bool[]? errored = null
     )
     {
         var store = Store();
@@ -95,15 +96,16 @@ public sealed class RegressionHistoryTests(TestDatabase database) : IAsyncDispos
         var check = Assert.Single(await new CheckStore(database.Pool).ListAsync(agent.Id, cancellationToken: Cancellation));
         for (var i = 0; i < samplePassed.Length; i++)
         {
+            var failed = error is not null || (errored?[i] ?? false);
             await store.AddSampleAsync(
                 id,
                 new NewSample(
                     scenario!.Id,
                     scenario.Revision,
                     i + 1,
-                    error is null ? SampleStatus.Done : SampleStatus.Failed,
+                    failed ? SampleStatus.Failed : SampleStatus.Done,
                     "[]",
-                    error,
+                    failed ? error ?? "HTTP 500" : null,
                     1,
                     [],
                     [new NewCheckResult(check.Id, check.Revision, samplePassed[i], "[]", "m")]
@@ -250,8 +252,8 @@ public sealed class RegressionHistoryTests(TestDatabase database) : IAsyncDispos
 
         var check = Assert.Single(Assert.Single(results.Scenarios).Checks);
         Assert.Equal(
-            (RegressionState.Regression, last, null, false),
-            (check.Regression!.State, check.Regression.LastPassedRun, check.Regression.FailingSince, check.Regression.AgentFailed)
+            (RegressionState.Regression, last, null),
+            (check.Regression!.State, check.Regression.LastPassedRun, check.Regression.FailingSince)
         );
         Assert.Equal(passed, check.Regression.History.Select(point => point.RunId));
         Assert.All(check.Regression.History, point => Assert.True(point.Passed));
@@ -299,7 +301,7 @@ public sealed class RegressionHistoryTests(TestDatabase database) : IAsyncDispos
     }
 
     [Fact]
-    public async Task A_run_that_is_not_done_has_no_regression_and_a_sample_with_an_error_says_the_agent_failed()
+    public async Task A_run_that_is_not_done_has_no_regression_and_a_check_that_fails_only_for_lack_of_an_answer_is_an_agent_error()
     {
         var agent = await NewAgentAsync();
         var running = await FinishedRunAsync(agent, [false], Reference(), status: RunStatus.Failed);
@@ -310,7 +312,52 @@ public sealed class RegressionHistoryTests(TestDatabase database) : IAsyncDispos
 
         Assert.Null(notDone.Regression);
         Assert.All(notDone.Scenarios.SelectMany(scenario => scenario.Checks), check => Assert.Null(check.Regression));
-        Assert.True(Assert.Single(Assert.Single(done.Scenarios).Checks).Regression!.AgentFailed);
+        Assert.Equal(RegressionState.AgentError, Assert.Single(Assert.Single(done.Scenarios).Checks).Regression!.State);
+        Assert.Equal(1, done.Regression!.AgentErrors);
+    }
+
+    [Fact]
+    public async Task A_run_where_every_sample_had_an_agent_error_is_not_a_point_of_the_history()
+    {
+        var agent = await NewAgentAsync();
+        var passing = await PassAsync(agent, Reference());
+        await FinishedRunAsync(agent, [false], Reference(), error: "HTTP 500");
+        var current = await PassAsync(agent, OnBranch("feature/x"));
+
+        var rows = await Store().ListCheckHistoriesAsync(current, current, "master", 10, Cancellation);
+
+        Assert.Equal([passing], rows.Select(row => row.RunId));
+    }
+
+    [Fact]
+    public async Task A_run_with_some_agent_errors_is_counted_over_its_evaluated_samples_only()
+    {
+        var agent = await NewAgentAsync();
+        var partly = await FinishedRunAsync(agent, [true, false, false], Reference(), errored: [false, true, true]);
+        var current = await PassAsync(agent, OnBranch("feature/x"));
+
+        var row = Assert.Single(await Store().ListCheckHistoriesAsync(current, current, "master", 10, Cancellation));
+
+        Assert.Equal((partly, 1, 1), (row.RunId, row.Samples, row.SamplesPassed));
+    }
+
+    [Fact]
+    public async Task A_failing_check_whose_evaluated_samples_reach_the_threshold_is_an_agent_error_and_one_whose_do_not_is_a_regression()
+    {
+        var agent = await NewAgentAsync();
+        for (var i = 0; i < 5; i++)
+        {
+            await PassAsync(agent, Reference());
+        }
+        var onlyErrors = await FinishedRunAsync(agent, [true, false], OnBranch("feature/x"), errored: [false, true]);
+        var realFailure = await FinishedRunAsync(agent, [false, false], OnBranch("feature/y"), errored: [false, true]);
+
+        var errorState = Assert.Single(Assert.Single((await ResultsAsync(onlyErrors)).Scenarios).Checks).Regression!;
+        var failureState = Assert.Single(Assert.Single((await ResultsAsync(realFailure)).Scenarios).Checks).Regression!;
+
+        Assert.Equal(RegressionState.AgentError, errorState.State);
+        Assert.Equal(5, errorState.History.Count);
+        Assert.Equal(RegressionState.Regression, failureState.State);
     }
 
     private static RunOrigin MasterOrigin() =>

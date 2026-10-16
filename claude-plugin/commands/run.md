@@ -17,14 +17,14 @@ $ARGUMENTS
    with the original run (`{SUWAGEVAL_URL or http://localhost:3230}/compare?runs={original},{run.id}`).
    Otherwise run `suwageval run --wait --json`, with `--tag <name>` if the user named a tag. Exit code 0
    means no regression and no new failing check (known, already broken and unstable failures leave it 0;
-   `--strict` makes any failed check exit 1), 1 a check regressed or is new and failing, 2 the run could
+   `--strict` makes any failed check exit 1), 1 a check regressed, is new and failing, or is an agent error, 2 the run could
    not finish (or was cancelled). 1 is a result, not an error; for 2 show `run.error` or the message and stop. 130 means the waiting was
    interrupted and the run goes on: say so, with its id.
    If the user asks to stop a run, cancel it with `suwageval cancel <id>` (find the id with
    `suwageval runs --json`): only the run they named, never one on your own initiative.
 3. Summarise from the JSON: the agent version (`run.agentVersionId`), what the run was compared with
    (`regression.comparedWith`), the totals (`checksPassed` / `checksFailed`), and, from each check's
-   `regression.state`, in this order: **regressions and new failing checks** first (scenario key, check
+   `regression.state`, in this order: **regressions, new failing checks and agent errors** first (scenario key, check
    key, why: its samples' `message`; for a regression the link
    `{SUWAGEVAL_URL or http://localhost:3230}/compare?runs={lastPassedRun},{run.id}`), then **already broken**
    (not caused by this run, `failingSince`), then fixed and unstable ones; known failures only as a count.

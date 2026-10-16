@@ -1,5 +1,5 @@
 // A check that passed in the newest reference runs of master and fails now is shown as a regression on the run's page,
-// with a link to compare with the last passing run.
+// with a link to compare with the last passing run. A check that fails only because the agent answered 500 is an agent error.
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 
@@ -72,6 +72,52 @@ test("A check that passed in the reference runs and fails now is a regression wi
 
         await page.goto(`/agents/${name}`);
         await expect(page.getByText("Reference", { exact: true })).toHaveCount(REFERENCE_RUNS);
+    } finally {
+        agentServer.close();
+    }
+});
+
+test("A check that fails because the agent gave no answer is an agent error, not a regression", async ({ page, request }) => {
+    let broken = false;
+    const agentServer = createServer((req, response) => {
+        if (req.url === "/suwageval/contract") {
+            response.setHeader("content-type", "application/json");
+            response.end(
+                JSON.stringify({
+                    label: "e2e-agent-error",
+                    agents: [{ name: "main", model: { name: "e2e-model" }, config: "Be helpful." }],
+                }),
+            );
+        } else if (broken) {
+            response.statusCode = 500;
+            response.end("boom");
+        } else {
+            response.setHeader("content-type", "application/json");
+            response.end(JSON.stringify({ items: [{ kind: "AssistantMessage", text: "Hello there." }] }));
+        }
+    });
+    await new Promise<void>((resolve) => agentServer.listen(0, "localhost", resolve));
+    try {
+        const name = `e2e-agent-error-${Date.now()}`;
+        const endpointUrl = `http://localhost:${(agentServer.address() as AddressInfo).port}`;
+        expect((await request.post("/api/agents", { data: { name, endpointUrl } })).ok()).toBe(true);
+        const scenario = { key: "greets", conversation: [{ kind: "UserMessage", text: "Hello" }] };
+        expect((await request.put(`/api/agents/${name}/scenarios`, { data: { scenarios: [scenario] } })).ok()).toBe(true);
+        const check = { type: "text", key: "says-hello", scenarioKey: "greets", contains: "Hello" };
+        expect((await request.put(`/api/agents/${name}/checks`, { data: { checks: [check] } })).ok()).toBe(true);
+
+        const origin = { branch: "master", clean: true, pushed: true, defaultBranch: "master" };
+        for (let i = 0; i < REFERENCE_RUNS; i++) await runToEnd(request, { agent: name, origin });
+
+        broken = true;
+        const failing = await runToEnd(request, { agent: name, origin: { ...origin, clean: false } });
+
+        await page.goto(`/runs/${failing}`);
+        await expect(page.getByText("greets / says-hello", { exact: true })).toBeVisible();
+        await expect(page.getByText("Agent error", { exact: true }).first()).toBeVisible();
+        await expect(page.getByText("Regression", { exact: true })).toHaveCount(0);
+        const strip = page.getByRole("group", { name: "History of the check", exact: true }).first();
+        await expect(strip.getByRole("img", { name: "this run: agent error", exact: true })).toBeVisible();
     } finally {
         agentServer.close();
     }

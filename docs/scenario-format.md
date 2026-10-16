@@ -350,7 +350,9 @@ over the newest *reference runs*.
   run they repeat.
 - **History of a check.** Of the finished runs of that branch's reference runs before this one (a re-check's verdicts replace
   those of its original), only the runs that judged *the same revision of the check on the same revision of the scenario* count.
-  Their newest ones, up to twice `history`, give one verdict each: the check passed in that run or it did not.
+  Their newest ones, up to twice `history`, give one verdict each: the check passed in that run or it did not. Samples where the
+  agent gave no answer (an error, a timeout) are left out of that verdict, and a run where every sample of the scenario had none
+  is not a point of the history at all (it is skipped, not a failure); `suwageval unstable` leaves them out the same way.
 - **The states** of a check in a run (`N` = `history`):
 
   | State | Means |
@@ -362,14 +364,13 @@ over the newest *reference runs*.
   | Known failure | failed now and in at least the last `N` runs |
   | Fixed | passes now after a failing streak |
   | Unstable | its history mixes passes and failures in no steady pattern |
+  | Agent error | failed now only because the agent gave no answer for some samples: the samples with an answer alone reach the threshold, or there are none. If they miss it, the normal state applies |
 
   A check also carries the `history` its state was computed from (run, time, passed). The web shows it as a strip of marks
   (a green dot passed, a red ✗ failed; oldest first, this run last); the CLI prints it after each listed check as
-  `✓✓✓✗ → ✗`: the history oldest first, an arrow, this run.
-
-  A check also says when the agent gave no answer in its scenario (`agentFailed`): then the agent failed, not the check.
-- **Exit codes** of `run --wait` (and `rerun`, `recheck`) when the results carry the comparison: 1 only when a check regressed
-  or is new and failing; known failures, unstable and already broken checks leave the exit code 0. `--strict` brings back the old
+  `✓✓✓✗ → ✗`: the history oldest first, an arrow, this run (a grey – for an agent error).
+- **Exit codes** of `run --wait` (and `rerun`, `recheck`) when the results carry the comparison: 1 only when a check regressed,
+  is new and failing, or is an agent error; known failures, unstable and already broken checks leave the exit code 0. `--strict` brings back the old
   rule (1 when any check misses its threshold). 2 and 130 are unchanged.
 - **An intended change of behaviour is a change of the check.** Update the check (it becomes a new revision, whose history starts
   empty, so it is *new* until `N` runs show it steady); never edit a check to hide a regression. A new revision of a scenario

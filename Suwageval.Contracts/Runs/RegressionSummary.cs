@@ -20,4 +20,6 @@ public sealed record RegressionSummary
     public required int Fixed { get; init; }
 
     public required int Unstable { get; init; }
+
+    public required int AgentErrors { get; init; }
 }
