@@ -8,9 +8,6 @@ namespace Suwageval.Server.Runs;
 /// </summary>
 internal static class RegressionStates
 {
-    /// <summary>One earlier run of a check's history and whether the check passed in it.</summary>
-    internal readonly record struct Point(Guid RunId, bool Passed);
-
     private enum Baseline
     {
         StablePass,
@@ -25,7 +22,7 @@ internal static class RegressionStates
     /// history of <paramref name="n"/> runs: a steady pass that fails now is a <see cref="RegressionState.Regression"/>; a failure in a row
     /// for N runs is known, a shorter one after N passes is already broken; a mixed past is unstable; with too little history a failure is new.
     /// </summary>
-    public static CheckRegression Of(IReadOnlyList<Point> history, int n, bool passed, bool agentFailed)
+    public static CheckRegression Of(IReadOnlyList<CheckHistoryPoint> history, int n, bool passed, bool agentFailed)
     {
         var outcomes = history.Select(point => point.Passed).ToList();
         var state = State(outcomes, n, passed);
@@ -36,6 +33,7 @@ internal static class RegressionStates
             FailingSince = state == RegressionState.AlreadyBroken ? history[^trailing].RunId : null,
             LastPassedRun = history.Any(point => point.Passed) ? history.Last(point => point.Passed).RunId : null,
             AgentFailed = agentFailed,
+            History = history,
         };
     }
 

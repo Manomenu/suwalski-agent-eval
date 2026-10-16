@@ -42,10 +42,12 @@ internal static class RegressionReport
                     .Checks.Select(check =>
                     {
                         var points = historyOf[(scenarioIdOf[scenario.Key], checkIdOf[(scenario.Key, check.Key)])]
-                            .Select(row => new RegressionStates.Point(
-                                row.RunId,
-                                RunReport.Reaches(row.SamplesPassed, row.Samples, row.PassThreshold)
-                            ))
+                            .Select(row => new CheckHistoryPoint
+                            {
+                                RunId = row.RunId,
+                                CreatedAt = row.CreatedAt,
+                                Passed = RunReport.Reaches(row.SamplesPassed, row.Samples, row.PassThreshold),
+                            })
                             .ToList();
                         return check with { Regression = RegressionStates.Of(points, n, check.Passed, agentFailed) };
                     })

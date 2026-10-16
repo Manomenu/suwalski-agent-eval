@@ -2,8 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import type { CheckRunResult, RegressionState, RegressionSummary, RunResults } from "./api";
 import {
+    compareLink,
     comparedWithHeading,
     groupChecks,
+    historyMarks,
+    historyTime,
     historyText,
     knownFailuresText,
     regressionCompareHref,
@@ -107,5 +110,59 @@ describe("knownFailuresText", () => {
     it("pluralises", () => {
         expect(knownFailuresText(1)).toBe("1 known failure");
         expect(knownFailuresText(5)).toBe("5 known failures");
+    });
+});
+
+const point = (runId: string, passed: boolean, createdAt = "2026-10-17T00:03:00Z") => ({ runId, passed, createdAt });
+
+describe("compareLink", () => {
+    const history = [point("aaaa", true), point("bbbb", false), point("cccc", true), point("dddd", false), point("eeee", true)];
+
+    it("compares a fixed check with the newest run it failed in", () => {
+        expect(compareLink("now", { state: "Fixed", history })).toEqual({
+            label: "Compare with the last failing run",
+            href: "/compare?runs=dddd,now",
+        });
+    });
+    it("compares the other states with the last passing run", () => {
+        expect(compareLink("now", { state: "Regression", lastPassedRun: "eeee", history })).toEqual({
+            label: "Compare with the last passing run",
+            href: "/compare?runs=eeee,now",
+        });
+    });
+    it("has no link for an already broken check, or without a run to compare with", () => {
+        expect(compareLink("now", { state: "AlreadyBroken", lastPassedRun: "eeee", history })).toBeNull();
+        expect(compareLink("now", { state: "New", history: [] })).toBeNull();
+        expect(compareLink("now", { state: "Fixed", history: [point("aaaa", true)] })).toBeNull();
+        expect(compareLink("now", undefined)).toBeNull();
+    });
+});
+
+describe("historyTime", () => {
+    it("is day/month and hours:minutes", () => {
+        expect(historyTime(new Date(2026, 9, 17, 0, 3).toISOString())).toBe("17/10 00:03");
+        expect(historyTime(new Date(2026, 0, 5, 13, 45).toISOString())).toBe("05/01 13:45");
+    });
+});
+
+describe("historyMarks", () => {
+    const at = new Date(2026, 9, 17, 0, 3).toISOString();
+
+    it("lists the history oldest first and this run last", () => {
+        const marks = historyMarks({
+            passed: false,
+            regression: {
+                state: "Regression",
+                history: [point("725c66c4-0000", true, at), point("11111111-0000", false, at)],
+            },
+        });
+        expect(marks.map((mark) => mark.label)).toEqual(["run 725c66c4: passed", "run 11111111: failed", "this run: failed"]);
+        expect(marks[0]).toMatchObject({ tooltip: "17/10 00:03 · run 725c66c4 · passed", href: "/runs/725c66c4-0000", passed: true });
+        expect(marks[2]).toMatchObject({ tooltip: "this run · failed", href: null, passed: false });
+    });
+    it("shows nothing for a check without history", () => {
+        expect(historyMarks({ passed: false, regression: { state: "New", history: [] } })).toEqual([]);
+        expect(historyMarks({ passed: true, regression: { state: "Passed" } })).toEqual([]);
+        expect(historyMarks({ passed: true })).toEqual([]);
     });
 });

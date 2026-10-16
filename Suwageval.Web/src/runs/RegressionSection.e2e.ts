@@ -58,6 +58,15 @@ test("A check that passed in the reference runs and fails now is a regression wi
         const link = page.getByRole("link", { name: "Compare with the last passing run", exact: true });
         await expect(link).toHaveAttribute("href", `/compare?runs=${lastPassed},${failing}`);
 
+        // The check's history is a strip of marks, oldest first, ending with this run; each earlier mark links to its run.
+        const strip = page.getByRole("group", { name: "History of the check", exact: true }).first();
+        await expect(strip.getByRole("link", { name: /^run [0-9a-f]{8}: passed$/ })).toHaveCount(REFERENCE_RUNS);
+        await expect(strip.getByRole("img", { name: "this run: failed", exact: true })).toBeVisible();
+        await strip.getByRole("link", { name: `run ${lastPassed.slice(0, 8)}: passed`, exact: true }).hover();
+        await expect(page.getByText("Click a mark to open that run.", { exact: false })).toBeVisible();
+        await strip.getByRole("link", { name: `run ${lastPassed.slice(0, 8)}: passed`, exact: true }).click();
+        await expect(page).toHaveURL(`/runs/${lastPassed}`);
+
         await page.goto(`/agents/${name}`);
         await expect(page.getByText("Reference", { exact: true })).toHaveCount(REFERENCE_RUNS);
     } finally {

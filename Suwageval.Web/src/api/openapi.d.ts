@@ -1014,6 +1014,14 @@ export interface components {
          * @enum {unknown}
          */
         CheckChange: "Changed" | "Added" | "Removed";
+        /** @description One earlier run of a check's history and whether the check passed in it. */
+        CheckHistoryPoint: {
+            /** Format: uuid */
+            runId: string;
+            /** Format: date-time */
+            createdAt: string;
+            passed: boolean;
+        };
         /** @description A test on what the agent produced for a scenario, told apart by `type`. */
         CheckInput: components["schemas"]["CheckInputToolCalledCheck"] | components["schemas"]["CheckInputToolNotCalledCheck"] | components["schemas"]["CheckInputEventCheck"] | components["schemas"]["CheckInputEventNotEmittedCheck"] | components["schemas"]["CheckInputCitedCheck"] | components["schemas"]["CheckInputTextCheck"] | components["schemas"]["CheckInputJudgeCheck"];
         CheckInputCitedCheck: {
@@ -1144,6 +1152,8 @@ export interface components {
              * @description The newest run of the history in which the check passed, to compare with; none when it never passed there.
              */
             lastPassedRun?: null | string;
+            /** @description The verdicts the state was computed from, oldest first: the newest reference runs of the check's history. */
+            history?: components["schemas"]["CheckHistoryPoint"][];
             /** @description True when the scenario's samples in this run have an agent error instead of an answer: the agent failed, not the check. */
             agentFailed?: boolean;
         };

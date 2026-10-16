@@ -157,7 +157,8 @@ public sealed class RunCommandTests
         CheckRunResult check,
         RegressionState state,
         Guid? failingSince = null,
-        bool agentFailed = false
+        bool agentFailed = false,
+        params bool[] history
     ) =>
         check with
         {
@@ -166,6 +167,18 @@ public sealed class RunCommandTests
                 State = state,
                 FailingSince = failingSince,
                 AgentFailed = agentFailed,
+                History =
+                [
+                    .. history.Select(
+                        (passed, index) =>
+                            new CheckHistoryPoint
+                            {
+                                RunId = Guid.NewGuid(),
+                                CreatedAt = new DateTime(2026, 10, 1, 0, 0, 0, DateTimeKind.Utc).AddHours(index),
+                                Passed = passed,
+                            }
+                    ),
+                ],
             },
         };
 
@@ -267,8 +280,17 @@ public sealed class RunCommandTests
         var results = WithSummary(
             Results(
                 RunStatus.Done,
-                WithState(Check("refund-tool-called", false, "tool 'issue_refund' was not called"), RegressionState.Regression),
-                WithState(Check("invoice-attached", false, "no invoice"), RegressionState.AlreadyBroken, broken),
+                WithState(
+                    Check("refund-tool-called", false, "tool 'issue_refund' was not called"),
+                    RegressionState.Regression,
+                    history: [true, true, true, true, true]
+                ),
+                WithState(
+                    Check("invoice-attached", false, "no invoice"),
+                    RegressionState.AlreadyBroken,
+                    broken,
+                    history: [true, true, true, true, true, false]
+                ),
                 WithState(Check("polite", true, "ok"), RegressionState.Passed)
             ),
             "master",
@@ -282,10 +304,11 @@ public sealed class RunCommandTests
         var lines = output.ReplaceLineEndings("\n");
         Assert.Contains("compared with master (last 5 reference runs)\n", lines, StringComparison.Ordinal);
         Assert.Contains(
-            "\u2717 1 regression\n  refund-happy-path / refund-tool-called  tool 'issue_refund' was not called\n",
+            "\u2717 1 regression\n  refund-happy-path / refund-tool-called  \u2713\u2713\u2713\u2713\u2713 \u2192 \u2717  tool 'issue_refund' was not called\n",
             lines,
             StringComparison.Ordinal
         );
+        Assert.Contains("\u2713\u2713\u2713\u2713\u2713\u2717 \u2192 \u2717  failing since run 8d2e1c3a", lines, StringComparison.Ordinal);
         Assert.Contains("! 1 already broken", lines, StringComparison.Ordinal);
         Assert.Contains("failing since run 8d2e1c3a", lines, StringComparison.Ordinal);
         Assert.Contains("3 checks: 1 passed, 2 failed\n", lines, StringComparison.Ordinal);

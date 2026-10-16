@@ -85,7 +85,7 @@ internal static class RegressionText
         // A section of one check with nothing to explain is one line: easier to read than a heading with a list under it.
         if (items.Count == 1 && !withMessage && detail is null)
         {
-            text.AppendLine($"{heading.PadRight(HeadingWidth)}{items[0].Label}{AgentFailed(items[0].Check)}");
+            text.AppendLine($"{heading.PadRight(HeadingWidth)}{items[0].Label}{Strip(items[0].Check, "  ")}{AgentFailed(items[0].Check)}");
             return;
         }
         text.AppendLine(note is null ? heading : heading.PadRight(HeadingWidth) + note);
@@ -93,9 +93,25 @@ internal static class RegressionText
         foreach (var item in items)
         {
             var why = withMessage ? FirstFailure(item.Check) : detail?.Invoke(item);
-            var line = why is null ? $"  {item.Label}" : $"  {item.Label.PadRight(width)}  {why}";
+            var strip = Strip(item.Check, "  ");
+            var line = why is null ? $"  {item.Label}{strip}" : $"  {item.Label.PadRight(width)}{strip}  {why}";
             text.AppendLine(line + AgentFailed(item.Check));
         }
+    }
+
+    /// <summary>
+    /// The check's history oldest first, then this run after an arrow: <c>✓✓✓✗ → ✗</c> (✓ passed, ✗ failed). Empty, with no prefix,
+    /// when the check has no history.
+    /// </summary>
+    internal static string Strip(CheckRunResult check, string prefix = "")
+    {
+        var history = check.Regression?.History ?? [];
+        if (history.Count == 0)
+        {
+            return "";
+        }
+        var past = string.Concat(history.Select(point => point.Passed ? "✓" : "✗"));
+        return $"{prefix}{past} → {(check.Passed ? "✓" : "✗")}";
     }
 
     private static string? FirstFailure(CheckRunResult check) => check.Samples.FirstOrDefault(sample => !sample.Passed)?.Message;

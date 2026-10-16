@@ -368,7 +368,7 @@ internal sealed class RunStore(Pool pool)
                     SELECT p.*, row_number() OVER (PARTITION BY p.scenario_id, p.check_id ORDER BY p.created_at DESC, p.run_id) AS rn
                     FROM per_run p
                 )
-                SELECT scenario_id AS ScenarioId, check_id AS CheckId, run_id AS RunId, samples AS Samples,
+                SELECT scenario_id AS ScenarioId, check_id AS CheckId, run_id AS RunId, created_at AS CreatedAt, samples AS Samples,
                        samples_passed AS SamplesPassed, pass_threshold AS PassThreshold
                 FROM ranked
                 WHERE rn <= @limit
