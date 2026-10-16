@@ -59,7 +59,7 @@ The server has one interface, its HTTP API. Three users reach it:
 | --- | --- | --- |
 | a person in the browser | the web app | browses agents, scenarios, runs, results, comparisons |
 | an agent's repository, by hand or in CI | the `suwageval` CLI (`Suwageval.Cli`) | `validate` the scenario files, `push` the agent, its scenarios and checks, `run --tag … --wait` with an exit code for CI, `results <runId>` to open a run on the web |
-| Claude Code | a Claude Code plugin in this repo that drives the same CLI, like suwgit's | "build a scenario for this agent from this conversation", "run the regression tag on the new version", "why did scenario X fail" — writing the scenario as a file in the agent's repo, then `validate` and `push` |
+| Claude Code | the Claude Code plugin in this repo (`claude-plugin/`) that drives the same CLI, like suwgit's | "build a scenario for this agent from this conversation", "run the regression tag on the new version", "why did scenario X fail" — writing the scenario as a file in the agent's repo, then `validate` and `push` |
 
 - **The scenario files live in the agent's repository**, in `suwageval/`: `agent.yaml` (the
   agent: `name` and `endpointUrl`, nothing else) and
@@ -88,6 +88,42 @@ The server has one interface, its HTTP API. Three users reach it:
 - **No MCP server:** the files in the agent's repo are the source of truth, and the CLI keeps
   one way in for people, CI and Claude Code; no extra endpoint, no extra access question.
 
+### Use it from Claude Code
+
+The repository is also a [Claude Code](https://claude.com/claude-code) plugin marketplace. With
+the plugin, Claude knows how to set the `suwageval` CLI up and drives it when you ask in your own
+words. Install it at the Claude Code prompt:
+
+```
+/plugin install suwageval --marketplace Manomenu/suwalski-agent-eval
+```
+
+Answer `y` to add the marketplace, then pick a scope. To install it in two steps instead:
+
+```
+/plugin marketplace add Manomenu/suwalski-agent-eval
+/plugin install suwageval@suwalski-agent-eval
+```
+
+Then ask in plain words, or use the commands:
+
+| command | example |
+| --- | --- |
+| `/suwageval:scenario` | `/suwageval:scenario the agent refuses a refund after 14 days` |
+| `/suwageval:fix` | `/suwageval:fix` — validate, then repair the scenarios the agent's change broke |
+| `/suwageval:run` | `/suwageval:run tag regression` — push, run, and explain what failed |
+
+The plugin needs the CLI: without it, Claude gives you the lines to install it. To update the
+plugin later:
+
+```
+! claude plugin marketplace update suwalski-agent-eval
+! claude plugin update suwageval@suwalski-agent-eval
+```
+
+and `/reload-plugins`. Claude Code keeps its own copy of the plugin, so it does not change until
+you update it.
+
 ### Open questions
 
 Decided so far (the agent under test over HTTP, tags, non-determinism, who calls the API):
@@ -111,8 +147,8 @@ multi-turn simulation, no web views yet.
 3. **Invocation and Runs** — done: the agent under test over HTTP (contract v0: `/suwageval/turn` and `/suwageval/contract`, `docs/scenario-format.md`), the
    deterministic checks, and `suwageval run` (`--wait` exits 0 when every check passed its
    threshold, 1 when one did not, 2 when the run could not finish). The MVP is reached here.
-4. **After the MVP** — the judge, multi-turn simulation, results and comparisons on the web,
-   the Claude Code plugin over the CLI.
+4. **After the MVP** — the judge, multi-turn simulation, results and comparisons on the web.
+   The Claude Code plugin over the CLI is done (see "Use it from Claude Code").
 
 Microsoft Agent Framework enters this repository only if Suwageval builds an agent itself (the
 user simulator, the judge) — as the first code that uses it (AGENTS.md, section 0), together

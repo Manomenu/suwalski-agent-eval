@@ -1,0 +1,9 @@
+{
+  "name": "suwageval",
+  "description": "Teaches Claude Code to evaluate an LLM agent with Suwageval: write scenarios as files in the agent's repository, keep them valid, run them and read the results, with /suwageval:scenario, /suwageval:fix and /suwageval:run.",
+  "author": {
+    "name": "Piotr Gugnowski"
+  },
+  "homepage": "https://github.com/Manomenu/suwalski-agent-eval",
+  "license": "MIT"
+}

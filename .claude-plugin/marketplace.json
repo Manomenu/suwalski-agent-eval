@@ -1,0 +1,14 @@
+{
+  "name": "suwalski-agent-eval",
+  "description": "Suwageval for Claude Code: write, validate and run evaluation scenarios for an LLM agent.",
+  "owner": {
+    "name": "Piotr Gugnowski"
+  },
+  "plugins": [
+    {
+      "name": "suwageval",
+      "source": "./claude-plugin",
+      "description": "Drive the suwageval CLI from Claude Code: write scenarios, keep them valid, run them and read why a check failed."
+    }
+  ]
+}
