@@ -5,17 +5,26 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 
-declare -a REPORT
+REPORT=()
+FAILURES=()
 FAILED=0
+# Each step's output is kept, so the report can repeat the end of a failed one: a reader who only
+# sees the last lines (`| tail`) still sees why it failed.
+LOGS="$(mktemp -d)"
+trap 'rm -rf "$LOGS"' EXIT
+FAILURE_LINES=25
 
 run_step() {
     local name="$1"; shift
+    local log
+    log="$LOGS/${#REPORT[@]}.log"
     echo
     echo "==> $name"
-    if "$@"; then
+    if "$@" 2>&1 | tee "$log"; then
         REPORT+=("PASS  $name")
     else
         REPORT+=("FAIL  $name")
+        FAILURES+=("$name" "$log")
         FAILED=1
     fi
 }
@@ -137,6 +146,12 @@ if [ ${#COMPOSE[@]} -gt 0 ]; then
 else
     REPORT+=("SKIP  compose stack — docker compose not installed")
 fi
+
+for ((i = 0; i < ${#FAILURES[@]}; i += 2)); do
+    echo
+    echo "==================== failed: ${FAILURES[i]} (last $FAILURE_LINES lines) ===================="
+    tail -n "$FAILURE_LINES" "${FAILURES[i + 1]}"
+done
 
 echo
 echo "==================== check report ===================="
