@@ -4,6 +4,8 @@
 # What each step guards, and what a new feature adds to it: AGENTS.md, "The quality gate".
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+# shellcheck source=scripts/.internal/checkout-env.sh
+source "$ROOT/scripts/.internal/checkout-env.sh"
 
 REPORT=()
 FAILURES=()

@@ -4,8 +4,10 @@
 // 6230/3230 and your local data stay untouched.
 import { defineConfig, devices } from "@playwright/test";
 
-const SERVER_PORT = 6231;
-const WEB_PORT = 3231;
+// e2e.sh sets these per checkout (scripts/.internal/checkout-env.sh); the defaults are the main checkout's.
+const SERVER_PORT = Number(process.env["E2E_SERVER_PORT"] ?? 6231);
+const WEB_PORT = Number(process.env["E2E_WEB_PORT"] ?? 3231);
+const DATABASE = process.env["E2E_DATABASE"] ?? "suwageval_e2e";
 
 export default defineConfig({
     // The tests live next to the code they check (src/App.e2e.ts by App.tsx).
@@ -40,7 +42,7 @@ export default defineConfig({
                 ASPNETCORE_URLS: `http://localhost:${SERVER_PORT}`,
                 ConnectionStrings__Default:
                     process.env["E2E_CONNECTION_STRING"] ??
-                    "Host=localhost;Port=5463;Database=suwageval_e2e;Username=suwageval;Password=suwageval",
+                    `Host=localhost;Port=5463;Database=${DATABASE};Username=suwageval;Password=suwageval`,
             },
             reuseExistingServer: false,
             // The first run compiles the server.
