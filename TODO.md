@@ -49,7 +49,7 @@ belongs to.
 - **Who calls the API from an agent's repo:** for now JSON files in that repo
   (`suwageval/agent.yaml`, `suwageval/scenarios/*.yaml`) and a script. Target: a CLI
   `suwageval` (`push` a folder = agent, scenarios, checks; `run --tag … --wait` with an
-  exit code for CI), a CI step around it, and a Claude Code plugin driving the CLI.
+  exit code for CI) and a CI step around it. (The Claude Code plugin driving the CLI exists: `claude-plugin/`.)
 - **Non-determinism (Runs, Checks):** one sample by default; `samples: N` on a scenario
   (the conversation is repeated, not the check), `passThreshold` on a check (default 100%)
   over its pass rate. Later, when the same settings repeat: profiles — named presets
