@@ -1,10 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
-using Suwageval.Contracts.Checks;
 using Suwageval.Contracts.Runs;
 using Suwageval.Server.Agents;
 using Suwageval.Server.Checks;
 using Suwageval.Server.Invocation;
 using Suwageval.Server.Judges;
+using Suwageval.Server.Problems;
 using Suwageval.Server.Scenarios;
 
 namespace Suwageval.Server.Runs;
@@ -50,7 +50,7 @@ internal static class RunEndpoints
         var found = await agents.GetAsync(agent, cancellationToken);
         if (found is null)
         {
-            return NotFound($"There is no agent '{agent}'.");
+            return ProblemResults.NotFound("Agent", agent);
         }
         var rows = await runs.ListRunCheckVerdictsAsync(found.Id, version ?? [], UnstableCheckRuns, cancellationToken);
         var unstable = UnstableChecks.Find(rows);
@@ -77,7 +77,7 @@ internal static class RunEndpoints
         var found = await agents.GetAsync(agent, cancellationToken);
         if (found is null)
         {
-            return NotFound($"There is no agent '{agent}'.");
+            return ProblemResults.NotFound("Agent", agent);
         }
         var picked = PassRateTrend.Pick(await runs.ListAsync(found.Id, cancellationToken));
         var versions = (await agents.ListVersionsAsync(found.Id, cancellationToken)).ToDictionary(version => version.Id);
@@ -108,7 +108,7 @@ internal static class RunEndpoints
                     AgentVersionId = version.Id,
                     Tag = run.Tag,
                     VersionLabel = version.Label,
-                    ModelNames = ContractContent.ModelNames(StoredContent.Version(version.Content)),
+                    ModelNames = ContractContent.ModelNames(ContractContent.Read(version.Content)),
                     PassRate = rates.PassRate,
                     MedianMs = rates.MedianMs,
                     P95Ms = rates.P95Ms,
@@ -139,23 +139,26 @@ internal static class RunEndpoints
     {
         if (string.IsNullOrWhiteSpace(request.Agent))
         {
-            return Invalid("agent", "The agent's name or id is required.");
+            return ProblemResults.Invalid("agent", "The agent's name or id is required.");
         }
         if (request.EndpointUrl is { } url && !(Uri.TryCreate(url, UriKind.Absolute, out var parsed) && parsed.Scheme is "http" or "https"))
         {
-            return Invalid("endpointUrl", "The endpoint is an absolute http or https URL.");
+            return ProblemResults.Invalid("endpointUrl", "The endpoint is an absolute http or https URL.");
         }
 
         var agent = await agents.GetAsync(request.Agent, cancellationToken);
         if (agent is null)
         {
-            return NotFound($"There is no agent '{request.Agent}'.");
+            return ProblemResults.NotFound("Agent", request.Agent);
         }
 
         var picked = await scenarios.ListAsync(agent.Id, request.Tag, cancellationToken);
         if (picked.Count == 0)
         {
-            return Invalid("tag", request.Tag is null ? "The agent has no scenarios." : $"No scenario has the tag '{request.Tag}'.");
+            return ProblemResults.Invalid(
+                "tag",
+                request.Tag is null ? "The agent has no scenarios." : $"No scenario has the tag '{request.Tag}'."
+            );
         }
 
         // The version is what the agent says it is right now: read its contract, register it (the same content is the same
@@ -164,12 +167,12 @@ internal static class RunEndpoints
         var served = await client.GetContractAsync(new Uri(endpoint), cancellationToken);
         if (served.Contract is not { } contract)
         {
-            return BadGateway("The agent's contract could not be read", served.Error ?? "The agent served nothing.");
+            return ProblemResults.BadGateway("The agent's contract could not be read", served.Error ?? "The agent served nothing.");
         }
         var contractProblems = ContractContent.Problems(contract);
         if (contractProblems.Count > 0)
         {
-            return BadGateway(
+            return ProblemResults.BadGateway(
                 "The agent's contract is not valid",
                 $"The contract served at {endpoint.TrimEnd('/')}/suwageval/contract is not valid: {string.Join("; ", contractProblems)}."
             );
@@ -184,14 +187,15 @@ internal static class RunEndpoints
         var version = registration.Version;
 
         var keys = picked.Select(scenario => scenario.Key).ToHashSet();
-        var pickedChecks = (await checks.ListAsync(agent.Id, cancellationToken: cancellationToken)).Where(check =>
-            keys.Contains(check.ScenarioKey)
-        );
+        var pickedChecks = (await checks.ListAsync(agent.Id, cancellationToken: cancellationToken))
+            .Where(check => keys.Contains(check.ScenarioKey))
+            .Select(StoredContent.Check)
+            .ToList();
 
         var mismatches = RunCompatibility.Mismatches(
-            StoredContent.Version(version.Content),
+            ContractContent.Read(version.Content),
             [.. picked.Select(scenario => (scenario.Key, StoredContent.Scenario(scenario.Content)))],
-            [.. pickedChecks.Select(StoredContent.Check)]
+            pickedChecks
         );
         if (mismatches.Count > 0)
         {
@@ -203,10 +207,7 @@ internal static class RunEndpoints
             );
         }
 
-        if (
-            !judge.IsConfigured
-            && pickedChecks.Any(check => StoredContent.Check(check) is JudgeCheck || CheckEvaluator.UsesJudge(StoredContent.Check(check)))
-        )
+        if (!judge.IsConfigured && pickedChecks.Any(CheckEvaluator.JudgedByModel))
         {
             return Results.Problem(
                 title: "No judge model is configured",
@@ -247,7 +248,7 @@ internal static class RunEndpoints
         var original = await runs.GetAsync(id, cancellationToken);
         if (original is null)
         {
-            return NotFound($"There is no run {id}.");
+            return ProblemResults.NotFound("Run", id.ToString());
         }
         return await CreateAsync(
             new RunRequest
@@ -277,7 +278,7 @@ internal static class RunEndpoints
     )
     {
         var planned = await PlanRecheckAsync(id, agents, scenarios, checks, runs, cancellationToken);
-        return planned is null ? NotFound($"There is no run {id}.") : Results.Ok(planned.Plan);
+        return planned is null ? ProblemResults.NotFound("Run", id.ToString()) : Results.Ok(planned.Plan);
     }
 
     /// <summary>
@@ -297,7 +298,7 @@ internal static class RunEndpoints
         var planned = await PlanRecheckAsync(id, agents, scenarios, checks, runs, cancellationToken);
         if (planned is null)
         {
-            return NotFound($"There is no run {id}.");
+            return ProblemResults.NotFound("Run", id.ToString());
         }
         if (!planned.Plan.Possible)
         {
@@ -359,7 +360,7 @@ internal static class RunEndpoints
             await runs.ListCheckResultsAsync(shown.Id, cancellationToken),
             await scenarios.ListAsync(original.AgentId, cancellationToken: cancellationToken),
             await checks.ListAsync(original.AgentId, cancellationToken: cancellationToken),
-            StoredContent.Version(version?.Content ?? throw new InvalidOperationException("The run's version is gone."))
+            ContractContent.Read(version?.Content ?? throw new InvalidOperationException("The run's version is gone."))
         );
         return new PlannedRecheck(shown, original, plan);
     }
@@ -382,7 +383,7 @@ internal static class RunEndpoints
         var size = limit ?? DefaultPageSize;
         if (size is < 1 or > MaxPageSize)
         {
-            return Invalid("limit", $"The limit is between 1 and {MaxPageSize}.");
+            return ProblemResults.Invalid("limit", $"The limit is between 1 and {MaxPageSize}.");
         }
         Guid? agentId = null;
         if (agent is not null)
@@ -390,13 +391,13 @@ internal static class RunEndpoints
             var found = await agents.GetAsync(agent, cancellationToken);
             if (found is null)
             {
-                return NotFound($"There is no agent '{agent}'.");
+                return ProblemResults.NotFound("Agent", agent);
             }
             agentId = found.Id;
         }
         if (before is { } cursor && await runs.GetAsync(cursor, cancellationToken) is null)
         {
-            return Invalid("before", $"There is no run {cursor}.");
+            return ProblemResults.Invalid("before", $"There is no run {cursor}.");
         }
         // One more than asked for tells whether an older run exists.
         var rows = await runs.ListPageAsync(agentId, before, version ?? [], size + 1, cancellationToken);
@@ -407,7 +408,7 @@ internal static class RunEndpoints
     private static async Task<IResult> GetAsync(Guid id, RunStore runs, CancellationToken cancellationToken)
     {
         var run = await runs.GetAsync(id, cancellationToken);
-        return run is null ? NotFound($"There is no run {id}.") : Results.Ok(RunReport.Summary(run));
+        return run is null ? ProblemResults.NotFound("Run", id.ToString()) : Results.Ok(RunReport.Summary(run));
     }
 
     /// <summary>The results so far — a run that is still going has some, a queued one none.</summary>
@@ -416,7 +417,7 @@ internal static class RunEndpoints
         var run = await runs.GetAsync(id, cancellationToken);
         if (run is null)
         {
-            return NotFound($"There is no run {id}.");
+            return ProblemResults.NotFound("Run", id.ToString());
         }
         var samples = await runs.ListScenarioResultsAsync(id, cancellationToken);
         var verdicts = await runs.ListCheckResultsAsync(id, cancellationToken);
@@ -428,21 +429,9 @@ internal static class RunEndpoints
     {
         if (await runs.GetAsync(id, cancellationToken) is null)
         {
-            return NotFound($"There is no run {id}.");
+            return ProblemResults.NotFound("Run", id.ToString());
         }
         await runs.RequestCancelAsync(id, cancellationToken);
         return Results.Accepted($"/runs/{id}");
     }
-
-    private static IResult BadGateway(string title, string detail) =>
-        Results.Problem(title: title, detail: detail, statusCode: StatusCodes.Status502BadGateway);
-
-    private static IResult NotFound(string detail) =>
-        Results.Problem(detail: detail, statusCode: StatusCodes.Status404NotFound, title: "Not found");
-
-    private static IResult Invalid(string field, string message) =>
-        Results.ValidationProblem(
-            new Dictionary<string, string[]> { [field] = [message] },
-            statusCode: StatusCodes.Status422UnprocessableEntity
-        );
 }

@@ -3,7 +3,7 @@ import { Anchor, Group, Paper, Stack, Text, Title, Tooltip } from "@mantine/core
 import { UNSTABLE_EXPLANATION, UnstableCheckIcon } from "../checks/UnstableCheckIcon";
 import type { UnstableCheck } from "../runs/api";
 import { cardRows, passedOfRuns } from "../runs/stability";
-import { runHref, versionTitle } from "./view";
+import { runHref, versionTitle } from "../runs/results";
 
 const HEADING_HELP_WIDTH = 340;
 

@@ -19,4 +19,10 @@ internal static class ProblemResults
             errors.GroupBy(error => error.Field).ToDictionary(group => group.Key, group => group.Select(error => error.Message).ToArray()),
             statusCode: StatusCodes.Status422UnprocessableEntity
         );
+
+    /// <summary>422 for one field.</summary>
+    public static IResult Invalid(string field, string message) => Invalid([new FieldError(field, message)]);
+
+    public static IResult BadGateway(string title, string detail) =>
+        Results.Problem(title: title, detail: detail, statusCode: StatusCodes.Status502BadGateway);
 }

@@ -6,7 +6,7 @@
 // check counts once, however many samples it has.
 import { COMPARE_MAX_RUNS, COMPARE_MIN_RUNS } from "../agents/view";
 import type { CheckRunResult, RunSummary, ScenarioRunResult } from "../runs/api";
-import { formatSeconds, notJudgedCount, num, percent } from "../runs/results";
+import { formatSeconds, notJudgedCount, percent } from "../runs/results";
 
 const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -53,7 +53,7 @@ export interface CheckCell {
 export function cellOf(check: CheckRunResult): CheckCell {
     return {
         passed: check.passed,
-        passRate: num(check.passRate),
+        passRate: check.passRate,
         passes: check.samples.filter((sample) => sample.passed).length,
         samples: check.samples.length,
         notJudged: notJudgedCount(check),
@@ -214,8 +214,8 @@ export function deltaText(value: Delta): string {
 
 /** The "N/M checks passed" of a run's header, over every check so far. */
 export function checksPassedText(run: Pick<RunSummary, "checksPassed" | "checksFailed">): string {
-    const passed = num(run.checksPassed);
-    return `${passed}/${passed + num(run.checksFailed)} checks passed`;
+    const passed = run.checksPassed;
+    return `${passed}/${passed + run.checksFailed} checks passed`;
 }
 
 /** A turn time within this share of the baseline's counts as the same... */

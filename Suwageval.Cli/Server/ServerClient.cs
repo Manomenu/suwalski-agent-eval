@@ -1,18 +1,57 @@
 using System.Globalization;
+using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using Suwageval.Contracts;
 using Suwageval.Contracts.Agents;
+using Suwageval.Contracts.Checks;
 using Suwageval.Contracts.Runs;
+using Suwageval.Contracts.Scenarios;
 
 namespace Suwageval.Cli.Server;
 
-/// <summary>The server's run endpoints and the agent version ones, spoken with the contract records. Anything that goes wrong is a <see cref="RunClientException"/>.</summary>
-internal sealed class RunClient(HttpClient http)
+/// <summary>The server's endpoints for agents, scenarios, checks, runs and versions, spoken with the contract records. Anything that goes wrong is a <see cref="ServerClientException"/>.</summary>
+internal sealed class ServerClient(HttpClient http)
 {
     private const int MaxPageSize = 100;
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(1);
+
+    /// <summary>The agent, and whether this call created it (otherwise it existed; its endpoint URL is now the given one).</summary>
+    public Task<(Agent Agent, bool Created)> PutAgentAsync(AgentDefinition definition, CancellationToken cancellationToken) =>
+        ReadAsync(
+            () => http.PostAsJsonAsync(new Uri("agents", UriKind.Relative), definition, ContractJson.Options, cancellationToken),
+            async response => (await ReadBodyAsync<Agent>(response, cancellationToken), response.StatusCode == HttpStatusCode.Created),
+            cancellationToken
+        );
+
+    public Task<PutScenariosResponse> PutScenariosAsync(
+        string agent,
+        IReadOnlyList<ScenarioInput> scenarios,
+        CancellationToken cancellationToken
+    ) =>
+        SendAsync<PutScenariosResponse>(
+            () =>
+                http.PutAsJsonAsync(
+                    new Uri($"agents/{Uri.EscapeDataString(agent)}/scenarios", UriKind.Relative),
+                    new PutScenariosRequest(scenarios),
+                    ContractJson.Options,
+                    cancellationToken
+                ),
+            cancellationToken
+        );
+
+    public Task<PutChecksResponse> PutChecksAsync(string agent, IReadOnlyList<CheckInput> checks, CancellationToken cancellationToken) =>
+        SendAsync<PutChecksResponse>(
+            () =>
+                http.PutAsJsonAsync(
+                    new Uri($"agents/{Uri.EscapeDataString(agent)}/checks", UriKind.Relative),
+                    new PutChecksRequest(checks),
+                    ContractJson.Options,
+                    cancellationToken
+                ),
+            cancellationToken
+        );
 
     public Task<RunCreated> CreateAsync(RunRequest request, CancellationToken cancellationToken) =>
         SendAsync<RunCreated>(
@@ -125,13 +164,11 @@ internal sealed class RunClient(HttpClient http)
         );
 
     private static async Task<T> SendAsync<T>(Func<Task<HttpResponseMessage>> send, CancellationToken cancellationToken) =>
-        await ReadAsync(
-            send,
-            async response =>
-                await response.Content.ReadFromJsonAsync<T>(ContractJson.Options, cancellationToken)
-                ?? throw new RunClientException("The server's answer was empty."),
-            cancellationToken
-        );
+        await ReadAsync(send, response => ReadBodyAsync<T>(response, cancellationToken), cancellationToken);
+
+    private static async Task<T> ReadBodyAsync<T>(HttpResponseMessage response, CancellationToken cancellationToken) =>
+        await response.Content.ReadFromJsonAsync<T>(ContractJson.Options, cancellationToken)
+        ?? throw new ServerClientException("The server's answer was empty.");
 
     /// <summary>For an answer with no body.</summary>
     private static async Task SendAsync(Func<Task<HttpResponseMessage>> send, CancellationToken cancellationToken) =>
@@ -148,22 +185,22 @@ internal sealed class RunClient(HttpClient http)
             using var response = await send();
             if (!response.IsSuccessStatusCode)
             {
-                throw new RunClientException(Describe(response.StatusCode, await response.Content.ReadAsStringAsync(cancellationToken)));
+                throw new ServerClientException(Describe(response.StatusCode, await response.Content.ReadAsStringAsync(cancellationToken)));
             }
             return await read(response);
         }
         catch (HttpRequestException error)
         {
-            throw new RunClientException($"The server could not be reached: {error.Message}");
+            throw new ServerClientException($"The server could not be reached: {error.Message}");
         }
         catch (JsonException error)
         {
-            throw new RunClientException($"The server's answer could not be read: {error.Message}");
+            throw new ServerClientException($"The server's answer could not be read: {error.Message}");
         }
     }
 
     /// <summary>The Problem Details of the server in words: its detail, or every field error of a validation problem.</summary>
-    private static string Describe(System.Net.HttpStatusCode status, string body)
+    private static string Describe(HttpStatusCode status, string body)
     {
         var text = new StringBuilder().Append(CultureInfo.InvariantCulture, $"The server answered {(int)status} {status}");
         try

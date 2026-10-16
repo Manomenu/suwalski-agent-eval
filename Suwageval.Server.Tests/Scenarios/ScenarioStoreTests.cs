@@ -184,19 +184,18 @@ public sealed class ScenarioStoreTests(TestDatabase database)
     }
 
     [Fact]
-    public async Task Change_tags_adds_and_removes_reports_unknown_keys_and_makes_no_revision()
+    public async Task Change_tags_adds_and_removes_skips_unknown_keys_and_makes_no_revision()
     {
         var store = Store();
         var agent = await NewAgentAsync();
         await store.UpsertAsync(agent, [Item("a", "{}", "old", "keep"), Item("b", "{}"), Item("gone", "{}")], Cancellation);
         await store.DeleteAsync(agent, "gone", Cancellation);
 
-        var change = await store.ChangeTagsAsync(agent, ["a", "b", "missing", "gone"], ["new"], ["old"], Cancellation);
+        var changed = await store.ChangeTagsAsync(agent, ["a", "b", "missing", "gone"], ["new"], ["old"], Cancellation);
 
-        Assert.Equal(["a", "b"], change.Changed.Select(scenario => scenario.Key));
-        Assert.Equal(["keep", "new"], change.Changed[0].Tags);
-        Assert.Equal(["new"], change.Changed[1].Tags);
-        Assert.Equal(["missing", "gone"], change.UnknownKeys);
+        Assert.Equal(["a", "b"], changed.Select(scenario => scenario.Key));
+        Assert.Equal(["keep", "new"], changed[0].Tags);
+        Assert.Equal(["new"], changed[1].Tags);
         Assert.Single(await store.ListRevisionsAsync(agent, "a", Cancellation));
     }
 

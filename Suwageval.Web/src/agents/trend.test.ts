@@ -11,8 +11,6 @@ import {
     hasRechecks,
     legendColor,
     measuredSeries,
-    percent,
-    seconds,
     seriesColor,
     toggleHidden,
     trendRows,
@@ -66,13 +64,6 @@ describe("trendRows", () => {
 
         expect(rows.map((row) => row[DETAILS_KEY])).toEqual(["all scenarios · v1 · big, small", "all scenarios · no label · big, small"]);
         expect(rows[0]?.[LABEL_KEY]).toMatch(/^\d{2}\/\d{2} \d{2}:\d{2}$/);
-    });
-});
-
-describe("percent", () => {
-    it("rounds to one decimal", () => {
-        expect(percent(0.12345)).toBe(12.3);
-        expect(percent(1)).toBe(100);
     });
 });
 
@@ -149,12 +140,6 @@ describe("turn time", () => {
         point("r2", 0.5, [["smoke", 1]], "v1", "smoke", 2000),
         point("r3", 1, []),
     ];
-
-    it("rounds milliseconds to seconds with one decimal", () => {
-        expect(seconds(1240)).toBe(1.2);
-        expect(seconds(1250)).toBe(1.3);
-        expect(seconds(0)).toBe(0);
-    });
 
     it("keeps the runs that made a call", () => {
         expect(withTurnTimes(timed).map((run) => run.runId)).toEqual(["r1", "r2"]);

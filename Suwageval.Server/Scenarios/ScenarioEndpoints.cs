@@ -163,8 +163,8 @@ internal static class ScenarioEndpoints
             return ProblemResults.Invalid(unknown.Select(key => new FieldError("scenarioKeys", $"There is no scenario '{key}'.")));
         }
 
-        var change = await store.ChangeTagsAsync(row.Id, request.ScenarioKeys, request.Add, request.Remove, cancellationToken);
-        return Results.Ok(new TagChangeResponse([.. change.Changed.Select(changed => new ScenarioTagSet(changed.Key, changed.Tags))]));
+        var changed = await store.ChangeTagsAsync(row.Id, request.ScenarioKeys, request.Add, request.Remove, cancellationToken);
+        return Results.Ok(new TagChangeResponse([.. changed.Select(scenario => new ScenarioTagSet(scenario.Key, scenario.Tags))]));
     }
 
     private static async Task<IResult> ListTagsAsync(

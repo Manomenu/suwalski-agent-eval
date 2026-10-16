@@ -1,8 +1,6 @@
 // What the re-check button and its dialog show, as plain functions.
 import type { ChangedCheck, RecheckPlan, RunSummary } from "./api";
-import { num } from "./results";
 
-/** Only a finished run has all its answers: the button is offered disabled for any other. */
 /** What the Re-check button does, said on hover. */
 export const RECHECK_EXPLANATION =
     "Judges this run's stored answers again with the current checks, without calling the agent. Use it after changing or adding checks: unchanged checks keep their verdicts, changed and new ones are evaluated, and scenarios changed since the run are skipped.";
@@ -12,15 +10,10 @@ export function recheckTooltip(status: RunSummary["status"]): string {
     return recheckDisabledReason(status) ?? RECHECK_EXPLANATION;
 }
 
+/** Only a finished run has all its answers: the button is offered disabled for any other. */
 export function recheckDisabledReason(status: RunSummary["status"]): string | null {
     return status === "Done" ? null : "Only a finished run can be re-checked.";
 }
-
-export const CHANGE_LABELS: Record<ChangedCheck["change"], string> = {
-    Changed: "Changed",
-    Added: "Added",
-    Removed: "Removed",
-};
 
 export interface ScenarioChanges {
     scenarioKey: string;
@@ -46,11 +39,6 @@ export function planHeadline(plan: Pick<RecheckPlan, "changedChecks">): string {
 
 /** Said when some of the checks to evaluate call the judge's model; null when none does. */
 export function judgedNote(plan: Pick<RecheckPlan, "judgedChecks">): string | null {
-    const judged = num(plan.judgedChecks);
+    const judged = plan.judgedChecks;
     return judged > 0 ? `${judged} judged by a model: ${judged === 1 ? "it calls" : "they call"} the judge's model.` : null;
-}
-
-/** A re-check run: the run page says whose answers it holds. */
-export function recheckSource(run: Pick<RunSummary, "recheckOf">): string | null {
-    return run.recheckOf ?? null;
 }

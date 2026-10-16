@@ -65,13 +65,13 @@ internal sealed class RunStore(Pool pool)
         );
     }
 
-    /// <summary>Newest first, optionally only the runs of one agent.</summary>
-    public async Task<IReadOnlyList<RunRow>> ListAsync(Guid? agentId = null, CancellationToken cancellationToken = default)
+    /// <summary>The runs of one agent, newest first.</summary>
+    public async Task<IReadOnlyList<RunRow>> ListAsync(Guid agentId, CancellationToken cancellationToken = default)
     {
         await using var connection = await pool.OpenAsync(cancellationToken);
         var rows = await connection.QueryAsync<RunRow>(
             new CommandDefinition(
-                $"{RunSelect} WHERE (@agentId::uuid IS NULL OR r.agent_id = @agentId) ORDER BY r.created_at DESC, r.id",
+                $"{RunSelect} WHERE r.agent_id = @agentId ORDER BY r.created_at DESC, r.id",
                 new { agentId },
                 cancellationToken: cancellationToken
             )

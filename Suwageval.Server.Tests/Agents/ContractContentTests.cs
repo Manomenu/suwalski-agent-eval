@@ -99,8 +99,6 @@ public sealed class ContractContentTests
         );
         Assert.DoesNotContain("1832", ContractContent.Json(WithRetrieval("v1", "1832 articles")), StringComparison.Ordinal);
         Assert.NotEqual(ContractContent.Hash(WithRetrieval("v1")), ContractContent.Hash(WithRetrieval("v2")));
-        Assert.Equal("v2", ContractContent.DataVersion(WithRetrieval("v2")));
-        Assert.Null(ContractContent.DataVersion(Contract()));
     }
 
     [Fact]

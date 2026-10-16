@@ -1,20 +1,24 @@
 // What the run page shows, as plain functions: labels, numbers and which items to highlight.
-import { ApiError } from "../api/client";
 import type { CheckRunResult, ConversationItem, RunSummary, ScenarioRunResult } from "./api";
 
 export const POLL_INTERVAL_MS = 2000;
 
 type Status = RunSummary["status"];
 
-/** The API's schema says `number | string` for numbers; the JSON carries numbers. */
-export function num(value: number | string): number {
-    return Number(value);
-}
-
-/** A run that is still going: the page asks again until it is over. */
 /** The page of a run. */
 export const runHref = (runId: string) => `/runs/${runId}`;
 
+/** The first eight characters of a guid — enough to tell runs and versions apart in a table. */
+export function shortId(id: string): string {
+    return id.slice(0, 8);
+}
+
+/** What names a version in its page's title: its label, or the start of its id when it has none. */
+export function versionTitle(id: string, label: string | null | undefined): string {
+    return label?.trim() ? label : shortId(id);
+}
+
+/** A run that is still going: the page asks again until it is over. */
 export function isActive(status: Status): boolean {
     return status === "Queued" || status === "Running";
 }
@@ -63,14 +67,14 @@ export function statusColor(status: Status): string {
     }
 }
 
-/** 0.666 → "66.7%" (no trailing zeros, like the CLI report). */
-export function percent(share: number | string): string {
-    return `${Number((num(share) * 100).toFixed(1))}%`;
+/** 0.666 → 66.7: a share as a percentage rounded to one decimal. */
+export function percentValue(share: number): number {
+    return Math.round(share * 1000) / 10;
 }
 
-/** The server's 404 for the run — the only error the page tells apart. */
-export function isRunNotFound(error: Error): boolean {
-    return error instanceof ApiError && error.status === 404;
+/** 0.666 → "66.7%" (no trailing zeros, like the CLI report). */
+export function percent(share: number): string {
+    return `${percentValue(share)}%`;
 }
 
 export function formatTime(iso: string | null | undefined): string {
@@ -90,8 +94,8 @@ export function notJudgedCount(check: CheckRunResult): number {
 
 /** A run's progress: `3/10`, or just `0` before the total is known. */
 export function progress(run: RunSummary): string {
-    const total = num(run.samplesTotal);
-    return total > 0 ? `${num(run.samplesDone)}/${total}` : `${num(run.samplesDone)}`;
+    const total = run.samplesTotal;
+    return total > 0 ? `${run.samplesDone}/${total}` : `${run.samplesDone}`;
 }
 
 export function itemKey(item: ConversationItem): string {
@@ -103,7 +107,7 @@ export function failedEvidenceKeys(scenario: ScenarioRunResult, sample: number):
     const keys = new Set<string>();
     for (const check of scenario.checks) {
         for (const checkSample of check.samples) {
-            if (num(checkSample.sample) === sample && !checkSample.passed) {
+            if (checkSample.sample === sample && !checkSample.passed) {
                 for (const item of checkSample.evidence) keys.add(itemKey(item));
             }
         }
@@ -142,7 +146,7 @@ export function itemBody(item: ConversationItem): string {
             return item.content;
         case "Retrieval":
             return item.chunks
-                .map((chunk) => `[${chunk.source}${chunk.score == null ? "" : `, ${num(chunk.score).toFixed(2)}`}] ${chunk.text}`)
+                .map((chunk) => `[${chunk.source}${chunk.score == null ? "" : `, ${chunk.score.toFixed(2)}`}] ${chunk.text}`)
                 .join("\n\n");
         case "Event":
             return JSON.stringify(item.data, null, 2);
@@ -151,16 +155,19 @@ export function itemBody(item: ConversationItem): string {
     }
 }
 
+/** Milliseconds as seconds rounded to one decimal: 9840 → 9.8. */
+export function seconds(milliseconds: number): number {
+    return Math.round(milliseconds / 100) / 10;
+}
+
 /** 9800 → "9.8 s" (one decimal). */
 export function formatSeconds(milliseconds: number): string {
-    return `${(Math.round(milliseconds / 100) / 10).toFixed(1)} s`;
+    return `${seconds(milliseconds).toFixed(1)} s`;
 }
 
 /** How long the agent took for each sample that made a call (the samples without one have no duration). */
 function sampleDurations(scenarios: readonly ScenarioRunResult[]): number[] {
-    return scenarios.flatMap((scenario) =>
-        scenario.samples.flatMap((sample) => (sample.durationMs == null ? [] : [num(sample.durationMs)])),
-    );
+    return scenarios.flatMap((scenario) => scenario.samples.flatMap((sample) => (sample.durationMs == null ? [] : [sample.durationMs])));
 }
 
 /** The middle value; the mean of the two middle ones for an even count. */

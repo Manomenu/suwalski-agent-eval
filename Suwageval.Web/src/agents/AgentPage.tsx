@@ -2,7 +2,7 @@ import { Alert, Anchor, Badge, Button, Checkbox, Group, Loader, MultiSelect, Pap
 import { lazy, Suspense, useState } from "react";
 
 import { useUnstableChecks } from "../runs/useUnstableChecks";
-import { formatTime, num, progress, statusColor, statusLabel } from "../runs/results";
+import { formatTime, progress, runHref, shortId, statusColor, statusLabel } from "../runs/results";
 import { fetchAgent, fetchPassRates, fetchVersions, type AgentVersion } from "./api";
 import { HeaderHelp } from "./HeaderHelp";
 import { Page } from "./Page";
@@ -14,9 +14,7 @@ import {
     compareHref,
     dataVersionsOf,
     modelsOf,
-    runHref,
     runsToCompare,
-    shortId,
     versionHref,
     visibleRuns,
     COMPARE_MAX_RUNS,
@@ -116,7 +114,7 @@ function AgentView({
                                 {agent.endpointUrl} · created {formatTime(agent.createdAt)}
                             </Text>
                             <Text c="dimmed">
-                                versions {num(agent.versions)} · scenarios {num(agent.scenarios)} · checks {num(agent.checks)}
+                                versions {agent.versions} · scenarios {agent.scenarios} · checks {agent.checks}
                             </Text>
                         </Stack>
                     </Paper>
@@ -245,10 +243,10 @@ function AgentView({
                                                 <Table.Td>
                                                     <Group gap={4}>
                                                         <Text span c="green">
-                                                            {num(run.checksPassed)} passed
+                                                            {run.checksPassed} passed
                                                         </Text>
-                                                        <Text span c={num(run.checksFailed) > 0 ? "red" : "dimmed"}>
-                                                            {num(run.checksFailed)} failed
+                                                        <Text span c={run.checksFailed > 0 ? "red" : "dimmed"}>
+                                                            {run.checksFailed} failed
                                                         </Text>
                                                     </Group>
                                                 </Table.Td>

@@ -7,7 +7,7 @@ import { UnstableCheckIcon } from "../checks/UnstableCheckIcon";
 import type { ScenarioRunResult, UnstableCheck } from "./api";
 import { ConversationView } from "./ConversationView";
 import { findUnstable, unstableTooltip } from "./stability";
-import { checkSummary, failedEvidenceKeys, formatSeconds, notJudgedCount, num } from "./results";
+import { checkSummary, failedEvidenceKeys, formatSeconds, notJudgedCount } from "./results";
 
 /** One scenario: its checks with verdicts, the warnings of its samples, and what the agent produced. */
 export function ScenarioCard({
@@ -28,15 +28,12 @@ export function ScenarioCard({
                 {scenario.samples.map((sample) => (
                     <Stack key={sample.sample} gap="xs">
                         {sample.status === "Failed" && (
-                            <Alert color="red" title={`Sample ${num(sample.sample)}: the agent returned nothing`}>
+                            <Alert color="red" title={`Sample ${sample.sample}: the agent returned nothing`}>
                                 {sample.error}
                             </Alert>
                         )}
                         {(sample.undeclared?.length ?? 0) > 0 && (
-                            <Alert
-                                color="yellow"
-                                title={`Sample ${num(sample.sample)}: the agent returned what its version does not declare`}
-                            >
+                            <Alert color="yellow" title={`Sample ${sample.sample}: the agent returned what its version does not declare`}>
                                 {sample.undeclared?.join(", ")}
                             </Alert>
                         )}
@@ -45,7 +42,7 @@ export function ScenarioCard({
 
                 {scenario.checks.length === 0 && <Text c="dimmed">No checks.</Text>}
                 {scenario.checks.map((check) => {
-                    const unstableCheck = findUnstable(unstable, versionId, scenario.key, check.key, num(check.revision));
+                    const unstableCheck = findUnstable(unstable, versionId, scenario.key, check.key, check.revision);
                     return (
                         <Stack key={check.key} gap={4}>
                             <Group gap="xs">
@@ -60,8 +57,8 @@ export function ScenarioCard({
                                 {unstableCheck !== undefined && <UnstableCheckIcon label={unstableTooltip(unstableCheck)} />}
                                 <CheckDefinitionButton
                                     definition={check.definition}
-                                    revision={num(check.revision)}
-                                    latestRevision={num(check.latestRevision)}
+                                    revision={check.revision}
+                                    latestRevision={check.latestRevision}
                                 />
                                 <Text c="dimmed">{checkSummary(check)}</Text>
                             </Group>
@@ -70,7 +67,7 @@ export function ScenarioCard({
                                     .filter((sample) => !sample.passed || check.samples.length === 1)
                                     .map((sample) => (
                                         <List.Item key={sample.sample}>
-                                            {check.samples.length > 1 ? `sample ${num(sample.sample)}: ` : ""}
+                                            {check.samples.length > 1 ? `sample ${sample.sample}: ` : ""}
                                             {judgedByModel(check.definition) && !sample.notJudged ? (
                                                 <Text span fs="italic" inherit>
                                                     {sample.message}
@@ -87,16 +84,13 @@ export function ScenarioCard({
 
                 <Accordion multiple variant="contained">
                     {scenario.samples.map((sample) => (
-                        <Accordion.Item key={sample.sample} value={String(num(sample.sample))}>
+                        <Accordion.Item key={sample.sample} value={String(sample.sample)}>
                             <Accordion.Control>
-                                Agent output, sample {num(sample.sample)}
-                                {sample.durationMs != null && ` · ${formatSeconds(num(sample.durationMs))}`}
+                                Agent output, sample {sample.sample}
+                                {sample.durationMs != null && ` · ${formatSeconds(sample.durationMs)}`}
                             </Accordion.Control>
                             <Accordion.Panel>
-                                <ConversationView
-                                    items={sample.output ?? []}
-                                    highlight={failedEvidenceKeys(scenario, num(sample.sample))}
-                                />
+                                <ConversationView items={sample.output ?? []} highlight={failedEvidenceKeys(scenario, sample.sample)} />
                             </Accordion.Panel>
                         </Accordion.Item>
                     ))}

@@ -48,7 +48,7 @@ public sealed class AgentEndpointsTests(TestDatabase database) : IAsyncDisposabl
             row.CreatedAt,
             row.ArchivedAt,
             ContractContent.ModelNames(contract),
-            ContractContent.DataVersion(contract),
+            contract.Context.Retrieval?.DataVersion,
             contract.Context.Retrieval?.Description
         );
     }

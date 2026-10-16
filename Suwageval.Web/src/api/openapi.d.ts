@@ -583,7 +583,7 @@ export interface paths {
                     agent?: string;
                     before?: string;
                     version?: string[];
-                    limit?: number | string;
+                    limit?: number;
                 };
                 header?: never;
                 path?: never;
@@ -953,11 +953,11 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
             /** Format: int32 */
-            versions: number | string;
+            versions: number;
             /** Format: int32 */
-            scenarios: number | string;
+            scenarios: number;
             /** Format: int32 */
-            checks: number | string;
+            checks: number;
         };
         /**
          * @description A registered version of an agent, without its content (but with the names of the models its LLM agents use, so runs can be
@@ -1025,7 +1025,7 @@ export interface components {
              * Format: double
              * @description The share of samples that must pass, from above 0 to 1.
              */
-            passThreshold?: number | string;
+            passThreshold?: number;
         };
         CheckInputEventCheck: {
             /** @enum {string} */
@@ -1041,7 +1041,7 @@ export interface components {
              * Format: double
              * @description The share of samples that must pass, from above 0 to 1.
              */
-            passThreshold?: number | string;
+            passThreshold?: number;
         };
         CheckInputEventNotEmittedCheck: {
             /** @enum {string} */
@@ -1057,7 +1057,7 @@ export interface components {
              * Format: double
              * @description The share of samples that must pass, from above 0 to 1.
              */
-            passThreshold?: number | string;
+            passThreshold?: number;
         };
         /** @description A model's verdict on what the agent produced, against criteria written in plain words. */
         CheckInputJudgeCheck: {
@@ -1073,7 +1073,7 @@ export interface components {
              * Format: double
              * @description The share of samples that must pass, from above 0 to 1.
              */
-            passThreshold?: number | string;
+            passThreshold?: number;
         };
         /** @description On the agent's answer text; at least one of the three is given, all given must hold. */
         CheckInputTextCheck: {
@@ -1091,7 +1091,7 @@ export interface components {
              * Format: double
              * @description The share of samples that must pass, from above 0 to 1.
              */
-            passThreshold?: number | string;
+            passThreshold?: number;
         };
         CheckInputToolCalledCheck: {
             /** @enum {string} */
@@ -1109,7 +1109,7 @@ export interface components {
              * Format: double
              * @description The share of samples that must pass, from above 0 to 1.
              */
-            passThreshold?: number | string;
+            passThreshold?: number;
         };
         CheckInputToolNotCalledCheck: {
             /** @enum {string} */
@@ -1125,7 +1125,7 @@ export interface components {
              * Format: double
              * @description The share of samples that must pass, from above 0 to 1.
              */
-            passThreshold?: number | string;
+            passThreshold?: number;
         };
         /** @description One check over the samples of its scenario: the pass rate against the threshold. */
         CheckRunResult: {
@@ -1134,12 +1134,12 @@ export interface components {
              * Format: int32
              * @description The revision of the check that ran.
              */
-            revision: number | string;
+            revision: number;
             /**
              * Format: int32
              * @description The check's newest revision now; above int CheckRunResult.Revision when the check changed since the run.
              */
-            latestRevision: number | string;
+            latestRevision: number;
             /** @description The check as it was stored in int CheckRunResult.Revision: the definition the run used. */
             definition: components["schemas"]["CheckInput"];
             /** @description True when double CheckRunResult.PassRate reaches double CheckRunResult.PassThreshold. */
@@ -1148,9 +1148,9 @@ export interface components {
              * Format: double
              * @description The share of samples that passed, from 0 to 1.
              */
-            passRate: number | string;
+            passRate: number;
             /** Format: double */
-            passThreshold: number | string;
+            passThreshold: number;
             samples: components["schemas"]["CheckSampleResult"][];
         };
         /** @description A check's verdict on one sample. */
@@ -1159,7 +1159,7 @@ export interface components {
              * Format: int32
              * @description From 1.
              */
-            sample: number | string;
+            sample: number;
             /** @description False also when `notJudged`: a sample nobody could judge does not pass. */
             passed: boolean;
             /**
@@ -1192,7 +1192,7 @@ export interface components {
              * Format: int32
              * @description How many agent turns are produced (one: the agent answers the last message).
              */
-            turns?: number | string;
+            turns?: number;
         };
         /** @description One entry of the conversation log, told apart by `kind`. */
         ConversationItem: components["schemas"]["ConversationItemUserMessage"] | components["schemas"]["ConversationItemAssistantMessage"] | components["schemas"]["ConversationItemToolCall"] | components["schemas"]["ConversationItemToolResult"] | components["schemas"]["ConversationItemRetrieval"] | components["schemas"]["ConversationItemEvent"];
@@ -1291,7 +1291,7 @@ export interface components {
              * Format: int32
              * @description How many of the checks that would be evaluated again call the judge's model.
              */
-            judgedChecks: number | string;
+            judgedChecks: number;
             /** @description The scenarios of the run that would be left out, with the reason. */
             skippedScenarios: components["schemas"]["SkippedScenario"][];
             /** @description What does not fit between the current checks and the version the run was under test; empty when it all fits. */
@@ -1316,7 +1316,7 @@ export interface components {
             text: string;
             source: string;
             /** Format: double */
-            score?: null | number | string;
+            score?: null | number;
         };
         RunCreated: {
             /** Format: uuid */
@@ -1365,17 +1365,17 @@ export interface components {
              * Format: double
              * @description Checks passed over checks, from 0 to 1.
              */
-            passRate: number | string;
+            passRate: number;
             /**
              * Format: double
              * @description The median turn time over the run's samples that made a call, in milliseconds; null when none did.
              */
-            medianMs?: null | number | string;
+            medianMs?: null | number;
             /**
              * Format: double
              * @description The 95th percentile (nearest rank) of the same turn times, in milliseconds; null when none.
              */
-            p95Ms?: null | number | string;
+            p95Ms?: null | number;
             /** @description One rate per tag the run's scenarios carry now, sorted by tag; a scenario without checks adds nothing to its tags. */
             tags: components["schemas"]["TagPassRate"][];
         };
@@ -1415,16 +1415,16 @@ export interface components {
              * Format: int32
              * @description How many samples the run will produce; zero until the run starts.
              */
-            samplesTotal: number | string;
+            samplesTotal: number;
             /** Format: int32 */
-            samplesDone: number | string;
+            samplesDone: number;
             /**
              * Format: int32
              * @description Check results over all samples so far.
              */
-            checksPassed: number | string;
+            checksPassed: number;
             /** Format: int32 */
-            checksFailed: number | string;
+            checksFailed: number;
             /**
              * @description `true` when the agent's contract, read again at the end of the run, differs from the version the run started with
              *             (a redeploy mid-run): the results may not all be of that version.
@@ -1457,7 +1457,7 @@ export interface components {
              * Format: int32
              * @description From 1.
              */
-            sample: number | string;
+            sample: number;
             status: components["schemas"]["SampleStatus"];
             /** @description The items the agent produced; none when the sample failed. */
             output?: null | components["schemas"]["ConversationItem"][];
@@ -1466,7 +1466,7 @@ export interface components {
              * Format: int32
              * @description How long the call to the agent took, measured by Suwageval (wall-clock, whether it answered or not); null when no call was made.
              */
-            durationMs?: null | number | string;
+            durationMs?: null | number;
             /**
              * @description Warnings: tool calls and events the agent produced that its version does not declare (`tool 'x'`, `event 'y'`).
              *     Not a failure by itself.
@@ -1491,7 +1491,7 @@ export interface components {
              * Format: int32
              * @description How many times the conversation is repeated, for agents that do not answer the same way twice.
              */
-            samples?: number | string;
+            samples?: number;
         };
         /** @description One scenario in a run: its samples and, per check, how many of them passed. */
         ScenarioRunResult: {
@@ -1500,7 +1500,7 @@ export interface components {
              * Format: int32
              * @description The revision of the scenario that ran.
              */
-            revision: number | string;
+            revision: number;
             samples: components["schemas"]["SampleResult"][];
             checks: components["schemas"]["CheckRunResult"][];
         };
@@ -1509,7 +1509,7 @@ export interface components {
             key: string;
             tags: string[];
             /** Format: int32 */
-            revision: number | string;
+            revision: number;
             /** Format: date-time */
             createdAt: string;
         };
@@ -1531,11 +1531,11 @@ export interface components {
         TagPassRate: {
             tag: string;
             /** Format: double */
-            passRate: number | string;
+            passRate: number;
             /** Format: double */
-            medianMs: null | number | string;
+            medianMs: null | number;
             /** Format: double */
-            p95Ms: null | number | string;
+            p95Ms: null | number;
         };
         ToolDefinition: {
             name: string;
@@ -1554,7 +1554,7 @@ export interface components {
             scenarioKey: string;
             checkKey: string;
             /** Format: int32 */
-            checkRevision: number | string;
+            checkRevision: number;
             /** Format: uuid */
             agentVersionId: string;
             /** @description The label the version's contract carries, if any. */
@@ -1563,12 +1563,12 @@ export interface components {
              * Format: int32
              * @description The finished runs of the version that had a verdict of the check; at least 2.
              */
-            runs: number | string;
+            runs: number;
             /**
              * Format: int32
              * @description How many of int UnstableCheck.Runs the check passed in; more than 0 and less than int UnstableCheck.Runs.
              */
-            passedRuns: number | string;
+            passedRuns: number;
             /**
              * Format: uuid
              * @description The newest of those runs in which the check failed.

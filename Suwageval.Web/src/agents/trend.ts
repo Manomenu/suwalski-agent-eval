@@ -1,5 +1,5 @@
 import type { RunPassRates } from "./api";
-import { num } from "../runs/results";
+import { percentValue, seconds } from "../runs/results";
 
 /** The series of every run's rate over all checks. */
 export const ALL_SERIES = "All";
@@ -25,35 +25,25 @@ function shortDate(iso: string): string {
     return `${pad(date.getDate())}/${pad(date.getMonth() + 1)} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-/** 0 to 1 as a percentage rounded to one decimal. */
-export function percent(rate: number): number {
-    return Math.round(rate * 1000) / 10;
-}
-
 /** What a chart reads from a point or from one of its tags (`RunPassRates` and `TagPassRate` both have these). */
 interface Reading {
-    passRate: number | string;
-    medianMs?: number | string | null;
-    p95Ms?: number | string | null;
+    passRate: number;
+    medianMs?: number | null;
+    p95Ms?: number | null;
 }
 
 /** The number a chart plots from a reading, in the chart's own unit; null when the reading has none. */
 export type Measure = (reading: Reading) => number | null;
 
-const passRateMeasure: Measure = (reading) => percent(num(reading.passRate));
+const passRateMeasure: Measure = (reading) => percentValue(reading.passRate);
 
 /** Which turn time a chart shows. */
 export type TurnTimeStat = "median" | "p95";
 
-/** Milliseconds as seconds rounded to one decimal (the run page's rule). */
-export function seconds(milliseconds: number): number {
-    return Math.round(milliseconds / 100) / 10;
-}
-
 export function turnTimeMeasure(stat: TurnTimeStat): Measure {
     return (reading) => {
         const milliseconds = stat === "median" ? reading.medianMs : reading.p95Ms;
-        return milliseconds == null ? null : seconds(num(milliseconds));
+        return milliseconds == null ? null : seconds(milliseconds);
     };
 }
 

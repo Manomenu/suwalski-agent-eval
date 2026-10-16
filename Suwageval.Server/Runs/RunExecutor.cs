@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
 using Suwageval.Contracts;
@@ -37,56 +36,31 @@ internal sealed partial class RunExecutor(
 {
     private static readonly JsonSerializerOptions Json = ContractJson.Options;
 
-    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Whatever breaks a run is recorded on it.")]
-    public async Task ExecuteAsync(RunRow run, CancellationToken cancellationToken)
+    public Task ExecuteAsync(RunRow run, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(run);
-        try
-        {
-            var version = await agents.GetVersionAsync(run.AgentVersionId, cancellationToken);
-            var declared = StoredContent.Version(version?.Content ?? throw new InvalidOperationException("The run's version is gone."));
-            var plan = await PlanAsync(run, cancellationToken);
-            var work = plan.SelectMany(scenario =>
-                    Enumerable.Range(1, Math.Max(1, scenario.Content.Samples)).Select(sample => (scenario, sample))
-                )
-                .ToList();
-            await runs.SetTotalAsync(run.Id, work.Count, cancellationToken);
-
-            using var stop = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            try
+        return RunLoop.ExecuteAsync(
+            runs,
+            options.Value.MaxParallelScenarios,
+            run,
+            async () =>
             {
-                await Parallel.ForEachAsync(
+                var version = await agents.GetVersionAsync(run.AgentVersionId, cancellationToken);
+                var declared = ContractContent.Read(version?.Content ?? throw new InvalidOperationException("The run's version is gone."));
+                var plan = await PlanAsync(run, cancellationToken);
+                var work = plan.SelectMany(scenario =>
+                        Enumerable.Range(1, Math.Max(1, scenario.Content.Samples)).Select(sample => (scenario, sample))
+                    )
+                    .ToList();
+                return new RunLoop.Plan<(PlannedScenario scenario, int sample)>(
                     work,
-                    new ParallelOptions { MaxDegreeOfParallelism = options.Value.MaxParallelScenarios, CancellationToken = stop.Token },
-                    async (item, _) =>
-                    {
-                        // The agent is called with the outer token: stopping lets samples in flight finish, it only starts no new one.
-                        if (await runs.IsCancelRequestedAsync(run.Id, cancellationToken))
-                        {
-                            await stop.CancelAsync();
-                            return;
-                        }
-                        await RunSampleAsync(run, declared, item.scenario, item.sample, cancellationToken);
-                    }
+                    item => RunSampleAsync(run, declared, item.scenario, item.sample, cancellationToken),
+                    () => CheckContractUnchangedAsync(run, version.ContentHash, cancellationToken)
                 );
-            }
-            catch (OperationCanceledException) when (stop.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
-            {
-                // Cancelled by request: the status is set below.
-            }
-            var cancelled = stop.IsCancellationRequested && !cancellationToken.IsCancellationRequested;
-            await CheckContractUnchangedAsync(run, version.ContentHash, cancellationToken);
-            await runs.FinishAsync(run.Id, cancelled ? RunStatus.Cancelled : RunStatus.Done, cancellationToken: CancellationToken.None);
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch (Exception error)
-        {
-            LogRunFailed(error, run.Id);
-            await runs.FinishAsync(run.Id, RunStatus.Failed, error.Message, CancellationToken.None);
-        }
+            },
+            error => LogRunFailed(error, run.Id),
+            cancellationToken
+        );
     }
 
     /// <summary>

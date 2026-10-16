@@ -6,7 +6,8 @@ import { Page } from "./Page";
 import { useLoaded } from "./useLoaded";
 import { LineDiffView } from "../diff/LineDiffView";
 import { contractYaml, oldestFirst, summarizeChanges } from "./versionDiff";
-import { agentHref, versionHref, versionTitle } from "./view";
+import { versionTitle } from "../runs/results";
+import { agentHref, versionHref } from "./view";
 
 function VersionCard({ name, role, version }: { name: string; role: string; version: AgentVersionDetail }) {
     const models = [...new Set(version.content.agents.map((agent) => agent.model.name))].join(", ");

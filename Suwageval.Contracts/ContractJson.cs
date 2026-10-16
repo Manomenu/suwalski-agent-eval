@@ -8,7 +8,7 @@ public static class ContractJson
 {
     /// <summary>
     /// Unknown fields, missing required ones and nulls in non-nullable members are errors, so a typo in a scenario file
-    /// is reported instead of silently ignored. Read-only: share it, do not change it.
+    /// is reported instead of silently ignored, and a number is a JSON number, never a string holding one. Read-only: share it, do not change it.
     /// </summary>
     public static JsonSerializerOptions Options { get; } = Create();
 
@@ -21,6 +21,7 @@ public static class ContractJson
         options.RespectRequiredConstructorParameters = true;
         options.AllowOutOfOrderMetadataProperties = true;
         options.PropertyNameCaseInsensitive = false;
+        options.NumberHandling = JsonNumberHandling.Strict;
     }
 
     private static JsonSerializerOptions Create()

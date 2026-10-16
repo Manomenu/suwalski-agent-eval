@@ -20,43 +20,31 @@ internal static class ResultsCommand
         {
             Description = "Print the results as JSON instead of opening the page; waits for the run to end and exits by its checks.",
         };
-        var server = new Option<string?>("--server") { Description = ServerAddress.OptionDescription };
+        var server = CommandOptions.Server();
 
         var command = new Command("results", "Open the run's results on the web, or print them as JSON.") { runId, json, server };
         command.SetAction(
-            async (parsed, cancellationToken) =>
-            {
-                var output = parsed.InvocationConfiguration.Output;
-                var site = ServerAddress.Site(parsed.GetValue(server));
-                var transport = http ?? new HttpClient { BaseAddress = ServerAddress.Api(site) };
-                var client = new RunClient(transport);
-                var id = parsed.GetValue(runId);
-                try
-                {
-                    if (parsed.GetValue(json))
+            (parsed, cancellationToken) =>
+                ServerCall.RunAsync(
+                    parsed.GetValue(server),
+                    http,
+                    parsed.InvocationConfiguration.Error,
+                    async (client, site) =>
                     {
-                        await client.WaitForEndAsync(id, cancellationToken);
-                        var results = await client.ResultsAsync(id, cancellationToken);
-                        await output.WriteLineAsync(OutputJson.Of(results));
-                        return RunVerdict.ExitCode(results);
+                        var output = parsed.InvocationConfiguration.Output;
+                        var id = parsed.GetRequiredValue(runId);
+                        if (parsed.GetValue(json))
+                        {
+                            await client.WaitForEndAsync(id, cancellationToken);
+                            var results = await client.ResultsAsync(id, cancellationToken);
+                            await output.WriteLineAsync(OutputJson.Of(results));
+                            return RunVerdict.ExitCode(results);
+                        }
+                        await client.GetAsync(id, cancellationToken);
+                        await WebPage.ShowAsync(ServerAddress.RunPage(site, id), output, parsed.InvocationConfiguration.Error, openBrowser);
+                        return 0;
                     }
-                    await client.GetAsync(id, cancellationToken);
-                    await WebPage.ShowAsync(ServerAddress.RunPage(site, id), output, parsed.InvocationConfiguration.Error, openBrowser);
-                    return 0;
-                }
-                catch (RunClientException failure)
-                {
-                    await parsed.InvocationConfiguration.Error.WriteLineAsync(failure.Message);
-                    return 2;
-                }
-                finally
-                {
-                    if (http is null)
-                    {
-                        transport.Dispose();
-                    }
-                }
-            }
+                )
         );
         return command;
     }

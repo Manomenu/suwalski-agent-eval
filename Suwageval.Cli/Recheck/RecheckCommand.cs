@@ -20,16 +20,9 @@ internal static class RecheckCommand
         {
             Description = "Print what would be re-checked (JSON with --json) and start nothing; exit 0.",
         };
-        var wait = new Option<bool>("--wait")
-        {
-            Description =
-                "Wait for the re-check to finish and print its totals and the link to its page (see the exit codes). Ctrl+C asks whether to cancel the run too.",
-        };
-        var json = new Option<bool>("--json")
-        {
-            Description = "Print JSON: the plan with --dry-run, the results with --wait, otherwise { runId }.",
-        };
-        var server = new Option<string?>("--server") { Description = ServerAddress.OptionDescription };
+        var wait = CommandOptions.Wait("re-check");
+        var json = CommandOptions.Json("Print JSON: the plan with --dry-run, the results with --wait, otherwise { runId }.");
+        var server = CommandOptions.Server();
 
         var command = new Command(
             "recheck",
@@ -43,62 +36,52 @@ internal static class RecheckCommand
             server,
         };
         command.SetAction(
-            async (parsed, cancellationToken) =>
+            (parsed, cancellationToken) =>
             {
-                var site = ServerAddress.Site(parsed.GetValue(server));
-                var transport = http ?? new HttpClient { BaseAddress = ServerAddress.Api(site) };
                 var output = parsed.InvocationConfiguration.Output;
                 var error = parsed.InvocationConfiguration.Error;
                 var asJson = parsed.GetValue(json);
-                try
-                {
-                    var client = new RunClient(transport);
-                    var plan = await client.RecheckPlanAsync(parsed.GetRequiredValue(runId), cancellationToken);
-                    if (parsed.GetValue(dryRun) || !plan.Possible)
-                    {
-                        await output.WriteLineAsync(
-                            asJson ? OutputJson.Of(plan) : RecheckText.Describe(parsed.GetRequiredValue(runId), plan)
-                        );
-                        return plan.Blocker is null or RecheckBlocker.NothingChanged || parsed.GetValue(dryRun) ? 0 : 2;
-                    }
-                    if (!asJson)
-                    {
-                        foreach (var skipped in plan.SkippedScenarios)
-                        {
-                            await output.WriteLineAsync(RecheckText.Skipped(skipped));
-                        }
-                    }
-                    var created = await client.RecheckAsync(parsed.GetRequiredValue(runId), cancellationToken);
-                    return await RunOutput.ReportAsync(
-                        client,
-                        created,
-                        parsed.GetValue(wait),
-                        asJson,
-                        site,
-                        output,
-                        error,
-                        terminal,
-                        cancellationToken
-                    );
-                }
-                catch (RunClientException failure)
-                {
-                    await error.WriteLineAsync(failure.Message);
-                    return 2;
-                }
-                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-                {
-                    // Ctrl+C before the server answered: the run may exist already, and is then left as it is.
-                    await error.WriteLineAsync("Interrupted; if the re-check was started, `suwageval runs` lists it.");
-                    return RunOutput.Interrupted;
-                }
-                finally
-                {
-                    if (http is null)
-                    {
-                        transport.Dispose();
-                    }
-                }
+                return ServerCall.RunAsync(
+                    parsed.GetValue(server),
+                    http,
+                    error,
+                    (client, site) =>
+                        RunOutput.GuardAsync(
+                            async () =>
+                            {
+                                var plan = await client.RecheckPlanAsync(parsed.GetRequiredValue(runId), cancellationToken);
+                                if (parsed.GetValue(dryRun) || !plan.Possible)
+                                {
+                                    await output.WriteLineAsync(
+                                        asJson ? OutputJson.Of(plan) : RecheckText.Describe(parsed.GetRequiredValue(runId), plan)
+                                    );
+                                    return plan.Blocker is null or RecheckBlocker.NothingChanged || parsed.GetValue(dryRun) ? 0 : 2;
+                                }
+                                if (!asJson)
+                                {
+                                    foreach (var skipped in plan.SkippedScenarios)
+                                    {
+                                        await output.WriteLineAsync(RecheckText.Skipped(skipped));
+                                    }
+                                }
+                                var created = await client.RecheckAsync(parsed.GetRequiredValue(runId), cancellationToken);
+                                return await RunOutput.ReportAsync(
+                                    client,
+                                    created,
+                                    parsed.GetValue(wait),
+                                    asJson,
+                                    site,
+                                    output,
+                                    error,
+                                    terminal,
+                                    cancellationToken
+                                );
+                            },
+                            error,
+                            "re-check",
+                            cancellationToken
+                        )
+                );
             }
         );
         return command;

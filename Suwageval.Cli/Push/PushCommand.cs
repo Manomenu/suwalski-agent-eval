@@ -1,6 +1,5 @@
 using System.CommandLine;
 using System.Globalization;
-using System.Text.Json;
 using Suwageval.Cli.Files;
 using Suwageval.Cli.Server;
 using Suwageval.Cli.Validation;
@@ -10,24 +9,16 @@ namespace Suwageval.Cli.Push;
 /// <summary><c>suwageval push [dir]</c>: validates the agent's files, then writes the agent, its scenarios and checks to the server (its version is not pushed: a run reads it from the agent).</summary>
 internal static class PushCommand
 {
-    private const string DefaultDir = "suwageval";
-
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
-    {
-        WriteIndented = true,
-        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-    };
-
     /// <param name="http">The client to reach the server with; null makes one for <c>--server</c> (tests pass the in-process server's).</param>
     public static Command Create(HttpClient? http)
     {
         var dir = new Argument<string>("dir")
         {
             Description = "The suwageval folder with agent.yaml and scenarios/.",
-            DefaultValueFactory = _ => DefaultDir,
+            DefaultValueFactory = _ => AgentFolder.DefaultDir,
         };
-        var server = new Option<string?>("--server") { Description = ServerAddress.OptionDescription };
-        var json = new Option<bool>("--json") { Description = "Print one JSON object with the result instead of text." };
+        var server = CommandOptions.Server();
+        var json = CommandOptions.Json("Print one JSON object with the result instead of text.");
 
         var command = new Command(
             "push",
@@ -63,7 +54,7 @@ internal static class PushCommand
     {
         var folder = AgentFolder.Read(dir);
         var validation = Validator.Validate(folder);
-        if (!validation.IsValid)
+        if (validation is not { IsValid: true, Agent: { } agent })
         {
             if (json)
             {
@@ -76,39 +67,29 @@ internal static class PushCommand
             return 1;
         }
 
-        var problems = new List<Problem>();
-        var agent = AgentFileReader.Read(folder.AgentFile, folder.AgentText!, problems);
-        var scenarios = folder
-            .Scenarios.Select(file => ScenarioFileReader.Read(file.File, file.Text, problems))
-            .OfType<LoadedScenario>()
-            .ToList();
-        if (agent is null)
-        {
-            // Validation passed a moment ago on the same text, so this only happens if the readers and the validator disagree.
-            await console.Error.WriteLineAsync("The agent file could not be read.");
-            return 1;
-        }
-
-        using var created = http is null ? new HttpClient { BaseAddress = ServerAddress.Api(ServerAddress.Site(server)) } : null;
-        var client = new SuwagevalClient(http ?? created!);
-        try
-        {
-            var (savedAgent, agentCreated) = await client.PutAgentAsync(agent.Definition, cancellationToken);
-            var scenarioResults = await client.PutScenariosAsync(
-                savedAgent.Name,
-                [.. scenarios.Select(s => s.Scenario)],
-                cancellationToken
-            );
-            var checkResults = await client.PutChecksAsync(savedAgent.Name, [.. scenarios.SelectMany(s => s.Checks)], cancellationToken);
-            var result = new PushResult(savedAgent, agentCreated, scenarioResults.Results, checkResults.Results);
-            await console.Output.WriteAsync(json ? JsonSerializer.Serialize(result, JsonOptions) + Environment.NewLine : Text(result));
-            return 0;
-        }
-        catch (ServerException error)
-        {
-            await console.Error.WriteLineAsync(error.Message);
-            return 1;
-        }
+        return await ServerCall.RunAsync(
+            server,
+            http,
+            console.Error,
+            async (client, _) =>
+            {
+                var (savedAgent, agentCreated) = await client.PutAgentAsync(agent.Definition, cancellationToken);
+                var scenarioResults = await client.PutScenariosAsync(
+                    savedAgent.Name,
+                    [.. validation.LoadedScenarios.Select(s => s.Scenario)],
+                    cancellationToken
+                );
+                var checkResults = await client.PutChecksAsync(
+                    savedAgent.Name,
+                    [.. validation.LoadedScenarios.SelectMany(s => s.Checks)],
+                    cancellationToken
+                );
+                var result = new PushResult(savedAgent, agentCreated, scenarioResults.Results, checkResults.Results);
+                await console.Output.WriteAsync(json ? OutputJson.Of(result) + Environment.NewLine : Text(result));
+                return 0;
+            },
+            failureExit: 1
+        );
     }
 
     private static string Text(PushResult result)

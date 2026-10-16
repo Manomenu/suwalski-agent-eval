@@ -71,7 +71,7 @@ export function definitionSummary(definition: CheckDefinition): string {
         turnPart(where?.turn),
         where?.after == null ? null : `after ${where.after}`,
         where?.before == null ? null : `before ${where.before}`,
-        threshold === undefined ? null : `threshold ${String(Math.round(Number(threshold) * 100))}%`,
+        threshold === undefined ? null : `threshold ${String(Math.round(threshold * 100))}%`,
     ];
     return parts.filter((part) => part !== null).join(" · ");
 }
