@@ -1,9 +1,9 @@
 import { Anchor, Badge, Button, Checkbox, Group, MultiSelect, Paper, Stack, Table, Text, Title } from "@mantine/core";
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 
 import { fetchRuns } from "../runs/api";
 import { formatTime, num, progress, statusColor, statusLabel } from "../runs/results";
-import { fetchAgent, fetchVersions } from "./api";
+import { fetchAgent, fetchPassRates, fetchVersions } from "./api";
 import { Page } from "./Page";
 import { useLoaded } from "./useLoaded";
 import {
@@ -21,6 +21,9 @@ import {
 } from "./view";
 import { VersionsSection } from "./VersionsSection";
 
+// The chart library is the largest part of the app: it loads only when an agent's page is opened.
+const PassRateTrend = lazy(() => import("./PassRateTrend").then((module) => ({ default: module.PassRateTrend })));
+
 const MODEL_FILTER_MIN_WIDTH = 260;
 const RUNS_TABLE_MIN_WIDTH = 940;
 
@@ -34,13 +37,18 @@ export function AgentPage({ name }: { name: string }) {
     // Bumped after versions are archived or restored: the lists are loaded again (the page stays until the new ones arrive).
     const [reload, setReload] = useState(0);
     const state = useLoaded(`${name}/${reload}`, async (signal) => {
-        const [agent, runs, versions] = await Promise.all([fetchAgent(name, signal), fetchRuns(name, signal), fetchVersions(name, signal)]);
-        return { agent, runs, versions };
+        const [agent, runs, versions, passRates] = await Promise.all([
+            fetchAgent(name, signal),
+            fetchRuns(name, signal),
+            fetchVersions(name, signal),
+            fetchPassRates(name, signal),
+        ]);
+        return { agent, runs, versions, passRates };
     });
 
     return (
         <Page state={state} notFound={`There is no agent ${name}.`}>
-            {({ agent, runs: allRuns, versions }) => {
+            {({ agent, runs: allRuns, versions, passRates }) => {
                 const runs = visibleRuns(allRuns, versions, showArchived, models, dataVersions);
                 // Only what is listed counts: a run the filter hides is not compared.
                 const toCompare = runsToCompare(runs, selected);
@@ -58,6 +66,10 @@ export function AgentPage({ name }: { name: string }) {
                                 </Text>
                             </Stack>
                         </Paper>
+
+                        <Suspense fallback={null}>
+                            <PassRateTrend points={visibleRuns(passRates, versions, showArchived, models, dataVersions)} />
+                        </Suspense>
 
                         <Title order={3}>Runs</Title>
                         <Group justify="space-between" align="flex-end">

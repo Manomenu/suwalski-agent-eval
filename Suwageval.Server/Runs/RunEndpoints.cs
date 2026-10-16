@@ -21,7 +21,60 @@ internal static class RunEndpoints
         app.MapGet("/runs/{id:guid}/results", ResultsAsync).Produces<RunResults>();
         app.MapPost("/runs/{id:guid}/rerun", RerunAsync).Produces<RunCreated>(StatusCodes.Status202Accepted);
         app.MapPost("/runs/{id:guid}/cancel", CancelAsync).Produces(StatusCodes.Status202Accepted);
+        app.MapGet("/agents/{agent}/pass-rates", PassRatesAsync).Produces<IReadOnlyList<RunPassRates>>();
         return app;
+    }
+
+    /// <summary>
+    /// The pass-rate trend of an agent: its finished runs (the newest <see cref="PassRateTrend.MaxRuns"/>, oldest first) with
+    /// the rate over all checks and per tag. Tags are the scenarios' current ones; a run with no check is left out. 404: no such agent.
+    /// </summary>
+    private static async Task<IResult> PassRatesAsync(
+        string agent,
+        AgentStore agents,
+        ScenarioStore scenarios,
+        RunStore runs,
+        CancellationToken cancellationToken
+    )
+    {
+        var found = await agents.GetAsync(agent, cancellationToken);
+        if (found is null)
+        {
+            return NotFound($"There is no agent '{agent}'.");
+        }
+        var picked = PassRateTrend.Pick(await runs.ListAsync(found.Id, cancellationToken));
+        var versions = (await agents.ListVersionsAsync(found.Id, cancellationToken)).ToDictionary(version => version.Id);
+        var tagsOf = (await scenarios.ListAsync(found.Id, cancellationToken: cancellationToken)).ToDictionary(
+            scenario => scenario.Key,
+            scenario => (IReadOnlyList<string>)scenario.Tags
+        );
+        var points = new List<RunPassRates>();
+        foreach (var run in picked)
+        {
+            var results = RunReport.Results(
+                run,
+                await runs.ListScenarioResultsAsync(run.Id, cancellationToken),
+                await runs.ListCheckResultsAsync(run.Id, cancellationToken)
+            );
+            if (PassRateTrend.Rates(results, tagsOf) is not { } rates)
+            {
+                continue;
+            }
+            var version = versions[run.AgentVersionId];
+            points.Add(
+                new RunPassRates
+                {
+                    RunId = run.Id,
+                    CreatedAt = run.CreatedAt,
+                    AgentVersionId = version.Id,
+                    VersionLabel = version.Label,
+                    ModelNames = ContractContent.ModelNames(StoredContent.Version(version.Content)),
+                    PassRate = rates.PassRate,
+                    Tags = rates.Tags,
+                }
+            );
+        }
+        return Results.Ok(points);
     }
 
     /// <summary>

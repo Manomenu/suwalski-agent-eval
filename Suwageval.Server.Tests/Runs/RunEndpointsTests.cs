@@ -462,5 +462,31 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         Assert.IsType<Event>(Assert.Single(scenario.Checks.Single(check => check.Key == "refund-event").Samples[0].Evidence));
     }
 
+    [Fact]
+    public async Task Pass_rates_list_the_finished_runs_oldest_first_with_the_rate_per_tag()
+    {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
+        var client = Client();
+        var agent = await NewAgentAsync(fake.Url.AbsoluteUri);
+        var queued = await StartAsync(client, new RunRequest { Agent = agent.Name, Tag = "regression" });
+        var done = await StartAsync(client, new RunRequest { Agent = agent.Name, Tag = "regression" });
+        var store = app.Services.GetRequiredService<RunStore>();
+        var claimed = await store.ClaimNextAsync(agent.Id, Cancellation);
+        await app
+            .Services.GetRequiredService<RunExecutor>()
+            .ExecuteAsync(claimed ?? throw new InvalidOperationException("not queued"), Cancellation);
+
+        var points = await GetAsync<List<RunPassRates>>(client, $"/agents/{agent.Name}/pass-rates");
+
+        var point = Assert.Single(points);
+        Assert.Equal((queued.RunId, agent.VersionId, 1.0), (point.RunId, point.AgentVersionId, point.PassRate));
+        Assert.Equal([new TagPassRate("regression", 1.0)], point.Tags);
+        Assert.NotEqual(done.RunId, point.RunId);
+        Assert.Equal(
+            HttpStatusCode.NotFound,
+            (await client.GetAsync(new Uri("/agents/no-such-agent/pass-rates", UriKind.Relative), Cancellation)).StatusCode
+        );
+    }
+
     public ValueTask DisposeAsync() => app.DisposeAsync();
 }

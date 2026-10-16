@@ -27,6 +27,13 @@ export async function archiveVersions(name: string, versionIds: string[], archiv
     await request<undefined>(`${agentPath(name)}/versions/archive`, { method: "POST", body: JSON.stringify(body) });
 }
 
+export type RunPassRates = components["schemas"]["RunPassRates"];
+
+/** The pass rate of the agent's finished runs, oldest first (the newest 50 at most). */
+export function fetchPassRates(name: string, signal: AbortSignal): Promise<RunPassRates[]> {
+    return request<RunPassRates[]>(`${agentPath(name)}/pass-rates`, { signal });
+}
+
 export function fetchVersion(name: string, versionId: string, signal: AbortSignal): Promise<AgentVersionDetail> {
     return request<AgentVersionDetail>(`${agentPath(name)}/versions/${versionId}`, { signal });
 }
