@@ -23,7 +23,10 @@ public sealed class RunCommandEndToEndTests(TestDatabase database) : IAsyncDispo
 
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
 
-    private async Task<(int Exit, string Output, string Error)> RunCliAsync(SeededAgent agent, params string[] args)
+    private Task<(int Exit, string Output, string Error)> RunCliAsync(SeededAgent agent, params string[] args) =>
+        CliAsync(agent, ["run", "--dir", work, .. args]);
+
+    private async Task<(int Exit, string Output, string Error)> CliAsync(SeededAgent agent, string[] command)
     {
         await File.WriteAllTextAsync(
             Path.Combine(work, "agent.yaml"),
@@ -57,7 +60,7 @@ public sealed class RunCommandEndToEndTests(TestDatabase database) : IAsyncDispo
                 {
                     using var output = new StringWriter();
                     using var error = new StringWriter();
-                    var exit = CliApp.Run(["run", "--dir", work, .. args], new StringReader(""), output, error, http);
+                    var exit = CliApp.Run(command, new StringReader(""), output, error, http);
                     return (exit, output.ToString(), error.ToString());
                 },
                 Cancellation
@@ -185,6 +188,22 @@ public sealed class RunCommandEndToEndTests(TestDatabase database) : IAsyncDispo
         Assert.Contains("409", error, StringComparison.Ordinal);
         Assert.Contains("refund_order", error, StringComparison.Ordinal);
         Assert.Empty(fake.Requests);
+    }
+
+    [Fact]
+    public async Task Rerun_repeats_a_run_of_the_agent_with_its_tag_and_prints_like_run()
+    {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
+        var agent = await SeedAsync(fake.Url.AbsoluteUri);
+        var (_, first, _) = await RunCliAsync(agent, "--tag", "regression");
+        var original = first.Trim().Split('\n')[^1];
+
+        var (exit, output, error) = await CliAsync(agent, ["rerun", original, "--wait"]);
+
+        Assert.Equal(0, exit);
+        Assert.Contains(": existing", output, StringComparison.Ordinal);
+        Assert.Contains("2 of 2 checks passed.", output, StringComparison.Ordinal);
+        Assert.Empty(error);
     }
 
     public async ValueTask DisposeAsync()

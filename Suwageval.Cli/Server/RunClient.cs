@@ -19,6 +19,19 @@ internal sealed class RunClient(HttpClient http)
             cancellationToken
         );
 
+    /// <summary>A new run with the agent, tag and endpoint of run <paramref name="runId"/> (the endpoint unless another is given).</summary>
+    public Task<RunCreated> RerunAsync(Guid runId, string? endpointUrl, CancellationToken cancellationToken) =>
+        SendAsync<RunCreated>(
+            () =>
+                http.PostAsJsonAsync(
+                    new Uri($"runs/{runId}/rerun", UriKind.Relative),
+                    new RerunRequest { EndpointUrl = endpointUrl },
+                    ContractJson.Options,
+                    cancellationToken
+                ),
+            cancellationToken
+        );
+
     public Task<RunSummary> GetAsync(Guid runId, CancellationToken cancellationToken) =>
         SendAsync<RunSummary>(() => http.GetAsync(new Uri($"runs/{runId}", UriKind.Relative), cancellationToken), cancellationToken);
 

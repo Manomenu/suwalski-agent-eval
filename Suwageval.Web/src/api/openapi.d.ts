@@ -704,6 +704,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/runs/{id}/rerun": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": null | components["schemas"]["RerunRequest"];
+                };
+            };
+            responses: {
+                /** @description Accepted */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RunCreated"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/runs/{id}/cancel": {
         parameters: {
             query?: never;
@@ -1019,6 +1060,11 @@ export interface components {
         /** @description The scenarios to write for an agent; keys not listed are left alone. */
         PutScenariosRequest: {
             scenarios: components["schemas"]["ScenarioInput"][];
+        };
+        /** @description The optional body of a rerun: everything else (agent, tag) is taken from the run being repeated. */
+        RerunRequest: {
+            /** @description Where to reach the agent for the new run; none means the endpoint the repeated run used. */
+            endpointUrl?: null | string;
         };
         RetrievedChunk: {
             text: string;

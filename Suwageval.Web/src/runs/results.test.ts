@@ -13,6 +13,7 @@ import {
     notJudgedCount,
     percent,
     progress,
+    runHref,
     statusLabel,
 } from "./results";
 
@@ -91,5 +92,11 @@ describe("results", () => {
         expect(itemBody(call)).toBe('{\n  "q": "x"\n}');
         expect(itemBody(reply)).toBe("hi");
         expect(itemTitle({ kind: "ToolResult", callId: "1", content: "", isError: true })).toBe("tool result (error)");
+    });
+});
+
+describe("runHref", () => {
+    it("is the run's page", () => {
+        expect(runHref("abc")).toBe("/runs/abc");
     });
 });

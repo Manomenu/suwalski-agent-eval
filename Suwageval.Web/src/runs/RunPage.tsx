@@ -1,5 +1,6 @@
 import { Alert, Anchor, Badge, Group, Loader, Paper, Stack, Text, Title } from "@mantine/core";
 
+import { RerunButton } from "./RerunButton";
 import { ScenarioCard } from "./ScenarioCard";
 import { formatTime, isActive, isRunNotFound, num, progress, statusColor, statusLabel } from "./results";
 import { useRunResults } from "./useRunResults";
@@ -36,6 +37,7 @@ export function RunPage({ runId }: { runId: string }) {
                     id {run.id} · version {run.agentVersionId}
                     {run.tag ? ` · tag ${run.tag}` : ""} · {run.endpointUrl}
                 </Text>
+                <RerunButton runId={run.id} />
                 <Paper withBorder p="md">
                     <Group gap="lg">
                         <Text>Samples: {progress(run)}</Text>

@@ -1,6 +1,7 @@
 using System.CommandLine;
 using Suwageval.Cli.Compare;
 using Suwageval.Cli.Push;
+using Suwageval.Cli.Rerun;
 using Suwageval.Cli.Results;
 using Suwageval.Cli.Run;
 using Suwageval.Cli.Runs;
@@ -28,6 +29,7 @@ internal static class CliApp
             ValidateCommand.Create(input, http),
             PushCommand.Create(http),
             RunCommand.Create(http),
+            RerunCommand.Create(http),
             ResultsCommand.Create(http, openBrowser),
             CompareCommand.Create(http, openBrowser),
             RunsCommand.Create(http),

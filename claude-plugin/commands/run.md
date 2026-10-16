@@ -11,7 +11,11 @@ $ARGUMENTS
 1. Run `suwageval push`. If it reports problems, show them and stop (`/suwageval:fix` repairs
    them); a server that does not answer is for the user to start, so say which address was tried
    (`SUWAGEVAL_URL`, default `http://localhost:3230`).
-2. Run `suwageval run --wait --json`, with `--tag <name>` if the user named a tag. Exit code 0
+2. If the user asks to run again or repeat a run ("the last run"), find it with `suwageval runs --json`
+   (newest first) and run `suwageval rerun <id> --wait --json` instead: it keeps that run's tag and
+   endpoint and uses the version the agent serves now. Summarise as for a run, and offer the comparison
+   with the original run (`{SUWAGEVAL_URL or http://localhost:3230}/compare?runs={original},{run.id}`).
+   Otherwise run `suwageval run --wait --json`, with `--tag <name>` if the user named a tag. Exit code 0
    means every check passed, 1 some failed, 2 the run could not finish. 1 is a result, not an
    error; for 2 show `run.error` or the message and stop.
 3. Summarise from the JSON: the agent version (`run.agentVersionId`), the totals
