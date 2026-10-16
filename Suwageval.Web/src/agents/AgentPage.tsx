@@ -21,6 +21,7 @@ import {
     visibleRuns,
     COMPARE_MAX_RUNS,
     COMPARE_MIN_RUNS,
+    VERSION_HELP,
 } from "./view";
 import { UnstableChecksCard } from "./UnstableChecksCard";
 import { VersionsSection } from "./VersionsSection";
@@ -32,8 +33,6 @@ const MODEL_HELP =
 const DATA_VERSION_HELP =
     "Show only runs of agent versions whose retrieval data is one of these: the dataVersion the agent declares, a fingerprint of what its retrieval can return (content and indexing). New data is a new agent version. Agents without retrieval have none. The chart and the unstable checks follow the filter.";
 const TAG_HELP = "The scenario tag the run was limited to (run --tag); — means every scenario of the agent ran.";
-const VERSION_HELP =
-    "The agent version the run used: its contract as the agent served it when the run started (LLM agents, prompts, models, tools, events, data version). Any change there is a new version; open it to see the contract, or tick two in Versions to compare them.";
 const CHECKS_HELP =
     "Checks passed and failed in this run. A check is one condition on the agent's answer, written in a scenario file: a tool called or not, an event, a text, a cited source, a judge's verdict. It passes when its share of passing samples reaches its threshold.";
 const SAMPLES_HELP =
