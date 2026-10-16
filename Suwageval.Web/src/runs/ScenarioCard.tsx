@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Accordion, Alert, Badge, Card, Group, List, Stack, Text, Title } from "@mantine/core";
 
 import { CheckDefinitionButton } from "../checks/CheckDefinitionButton";
@@ -9,7 +10,7 @@ import { CheckHistory } from "./CheckHistory";
 import { stateLabel } from "./regression";
 import { StateBadge } from "./StateBadge";
 import { findUnstable, unstableTooltip } from "./stability";
-import { checkSummary, failedEvidenceKeys, formatSeconds, notJudgedCount } from "./results";
+import { checkAnchor, checkSummary, failedEvidenceKeys, formatSeconds, notJudgedCount, samplesToOpen } from "./results";
 
 /** One scenario: its checks with verdicts, the warnings of its samples, and what the agent produced. */
 export function ScenarioCard({
@@ -22,6 +23,17 @@ export function ScenarioCard({
     versionId: string;
     unstable: UnstableCheck[];
 }) {
+    const [openSamples, setOpenSamples] = useState<string[]>([]);
+    // A link to one of this scenario's checks (`#check-…`) opens the outputs it is about, so the answer is right below.
+    useEffect(() => {
+        const openFromHash = () => {
+            const target = scenario.checks.find((check) => `#${checkAnchor(scenario.key, check.key)}` === window.location.hash);
+            if (target !== undefined) setOpenSamples((open) => [...new Set([...open, ...samplesToOpen(target)])]);
+        };
+        openFromHash();
+        window.addEventListener("hashchange", openFromHash);
+        return () => window.removeEventListener("hashchange", openFromHash);
+    }, [scenario]);
     return (
         <Card withBorder padding="md">
             <Stack gap="sm">
@@ -46,7 +58,7 @@ export function ScenarioCard({
                 {scenario.checks.map((check) => {
                     const unstableCheck = findUnstable(unstable, versionId, scenario.key, check.key, check.revision);
                     return (
-                        <Stack key={check.key} gap={4}>
+                        <Stack key={check.key} gap={4} id={checkAnchor(scenario.key, check.key)} className="check-target">
                             <Group gap="xs">
                                 <Badge color={check.passed ? "green" : "red"}>{check.passed ? "passed" : "failed"}</Badge>
                                 {check.regression != null && check.regression.state !== "Passed" && (
@@ -90,7 +102,7 @@ export function ScenarioCard({
                     );
                 })}
 
-                <Accordion multiple variant="contained">
+                <Accordion multiple variant="contained" value={openSamples} onChange={setOpenSamples}>
                     {scenario.samples.map((sample) => (
                         <Accordion.Item key={sample.sample} value={String(sample.sample)}>
                             <Accordion.Control>

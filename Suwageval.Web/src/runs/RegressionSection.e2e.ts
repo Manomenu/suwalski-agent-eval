@@ -63,6 +63,12 @@ test("A check that passed in the reference runs and fails now is a regression wi
         const link = page.getByRole("link", { name: "Compare with the last passing run", exact: true });
         await expect(link).toHaveAttribute("href", `/compare?runs=${lastPassed},${failing}`);
 
+        // The check's name jumps to its row in the scenario card and opens the output it failed on.
+        await expect(page.getByText("Goodbye.", { exact: true })).toBeHidden();
+        await section.getByRole("link", { name: "greets / says-hello", exact: true }).click();
+        await expect(page).toHaveURL(new RegExp(`/runs/${failing}#check-greets--says-hello$`));
+        await expect(page.getByText("Goodbye.", { exact: true })).toBeVisible();
+
         // The check's history is a strip of marks, oldest first, ending with this run; each earlier mark links to its run.
         const strip = page.getByRole("group", { name: "History of the check", exact: true }).first();
         await expect(strip.getByRole("link", { name: /^run [0-9a-f]{8}: passed$/ })).toHaveCount(REFERENCE_RUNS);
