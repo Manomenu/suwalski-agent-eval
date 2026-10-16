@@ -84,16 +84,24 @@ belongs to.
   the server does not ask for one). Configured in user secrets, never in a committed file,
   in the change that brings the judge or the simulator. The example agent already uses it
   through its gitignored `.env`.
-- **The contract for multi-agent systems (contract v1):** a system under test is often several
-  LLM agents, not one prompt. The contract becomes:
-  - `agents`: a list of LLM agents, each `{ name, model { name, parameters }, config }`, where
-    `config` is free text for now — the system prompt, a scope policy, whatever defines that
-    agent;
+- **The contract for multi-agent systems (contract v1, replaces v0):** a system under test is
+  often several LLM agents, not one prompt. The contract becomes:
+  - `agents`: a list of LLM agents, each `{ name, model { name, parameters }, config, tools }`,
+    where `config` is free text for now — the system prompt, a scope policy, whatever defines
+    that agent — and `tools` are the tools THAT agent may call;
   - `otherConfig`: free text for what belongs to the system, not to one agent (e.g. "retries
     on every LLM agent: 2");
-  - `tools` and `context` (events, retrieval) stay as in v0.
+  - `context` (events, retrieval) stays as in v0.
   Free text is enough to start: it is part of the content hash, so any change makes a new
   version, and it is shown when comparing versions. Structure comes later, once real systems
-  show which parts checks or comparisons need. Open: whether tools belong to the system or to
-  each agent (a `ToolCall` would then name its agent), and how v0 contracts (one
-  `systemPrompt`) map onto v1.
+  show which parts checks or comparisons need.
+  - **A `ToolCall` names its agent** (`agent` field), and `tool-called` / `tool-not-called`
+    checks can require it: `by: refunds-agent` — the right tool from the wrong agent fails.
+    `validate` and the 409 at `POST /runs` check that the tool belongs to that agent.
+  - **The state a call was made in is read from the log, not stamped on the call:** the state
+    at any point is the `data` of the last `state.changed` event before it. A check can then
+    say `where: { state: { node: awaiting_payment } }` — one source of truth, nothing the
+    agent has to repeat on every call.
+  - **v0 becomes invalid; no compatibility:** the agent contract, the files, the stored
+    versions and the scenarios move to v1 in one change; the development and test databases
+    are recreated (nothing in them is worth migrating yet).
