@@ -20,9 +20,14 @@ function subject(definition: CheckDefinition): string {
     switch (definition.type) {
         case "tool-called":
         case "tool-not-called":
-            return `${definition.type} ${definition.tool}`;
+            return [definition.type, definition.tool, definition.by == null ? null : `by ${definition.by}`]
+                .filter((part) => part !== null)
+                .join(" ");
         case "event":
-            return `event ${definition.event}`;
+        case "event-not-emitted":
+            return `${definition.type} ${definition.event}`;
+        case "cited":
+            return `cited ${definition.sources.join(", ")}`;
         case "text": {
             const parts = [
                 definition.contains == null ? null : `contains ${JSON.stringify(definition.contains)}`,

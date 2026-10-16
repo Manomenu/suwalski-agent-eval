@@ -90,6 +90,13 @@ internal static class Validator
             problems.Add(source.Problem("conversation", "The conversation has no items; the agent needs a message to answer."));
         }
 
+        if (scenario.Fixtures is not null && contract is { Context.FixturesSchema: null })
+        {
+            problems.Add(
+                source.Problem("fixtures", "The scenario has fixtures, but the agent's contract declares no context.fixturesSchema.")
+            );
+        }
+
         CheckConversation(loaded, contract, problems);
 
         for (var i = 0; i < loaded.Checks.Count; i++)
@@ -109,6 +116,7 @@ internal static class Validator
             {
                 case ToolCall call:
                     callIds.Add(call.Id);
+                    CheckTool(source, call.Agent is null ? $"{path}.name" : $"{path}.agent", call.Name, call.Agent, contract, problems);
                     break;
                 case ToolResult result when !callIds.Contains(result.CallId):
                     problems.Add(source.Problem($"{path}.callId", $"No earlier tool_call has the id '{result.CallId}'."));
@@ -143,24 +151,24 @@ internal static class Validator
         switch (check)
         {
             case ToolCalledCheck called:
-                CheckTool(source, $"{path}.tool", called.Tool, contract, problems);
-                if (called.Args is { } args)
-                {
-                    CheckMatchers(source, args, $"{path}.args", problems);
-                }
+                CheckTool(source, called.By is null ? $"{path}.tool" : $"{path}.by", called.Tool, called.By, contract, problems);
+                CheckMatchers(source, called.Args, $"{path}.args", problems);
+                CheckMatchers(source, called.Result, $"{path}.result", problems);
                 break;
             case ToolNotCalledCheck notCalled:
-                CheckTool(source, $"{path}.tool", notCalled.Tool, contract, problems);
+                CheckTool(source, notCalled.By is null ? $"{path}.tool" : $"{path}.by", notCalled.Tool, notCalled.By, contract, problems);
                 break;
             case EventCheck eventCheck:
-                if (contract is not null && !EventTypes(contract).Contains(eventCheck.Event))
-                {
-                    problems.Add(source.Problem($"{path}.event", UnknownEvent(eventCheck.Event, contract)));
-                }
-                if (eventCheck.Data is { } data)
-                {
-                    CheckMatchers(source, data, $"{path}.data", problems);
-                }
+                CheckEvent(source, $"{path}.event", eventCheck.Event, contract, problems);
+                CheckMatchers(source, eventCheck.Data, $"{path}.data", problems);
+                break;
+            case EventNotEmittedCheck notEmitted:
+                CheckEvent(source, $"{path}.event", notEmitted.Event, contract, problems);
+                CheckMatchers(source, notEmitted.Data, $"{path}.data", problems);
+                CheckNoJudge(source, notEmitted.Data, $"{path}.data", problems);
+                break;
+            case CitedCheck cited:
+                CheckCited(source, path, cited, problems);
                 break;
             case TextCheck text:
                 CheckText(source, path, text, problems);
@@ -198,25 +206,101 @@ internal static class Validator
         }
     }
 
-    private static void CheckTool(YamlSource source, string path, string tool, AgentContract? contract, List<Problem> problems)
+    /// <summary>The tool must exist: on the named agent, or, with none named, on some agent.</summary>
+    private static void CheckTool(
+        YamlSource source,
+        string path,
+        string tool,
+        string? agent,
+        AgentContract? contract,
+        List<Problem> problems
+    )
     {
-        if (contract is not null && contract.Tools.All(declared => declared.Name != tool))
+        if (contract is null)
         {
-            var known = string.Join(", ", contract.Tools.Select(declared => declared.Name));
-            problems.Add(source.Problem(path, $"The agent has no tool '{tool}' (its tools: {known})."));
+            return;
+        }
+        if (agent is null)
+        {
+            if (!contract.Agents.Any(declared => declared.Tools.Any(t => t.Name == tool)))
+            {
+                var known = string.Join(", ", AllTools(contract));
+                problems.Add(source.Problem(path, $"No agent has the tool '{tool}' (the tools: {known})."));
+            }
+            return;
+        }
+        var owner = contract.Agents.FirstOrDefault(declared => declared.Name == agent);
+        if (owner is null)
+        {
+            var known = string.Join(", ", contract.Agents.Select(declared => declared.Name));
+            problems.Add(source.Problem(path, $"The system has no agent '{agent}' (its agents: {known})."));
+        }
+        else if (owner.Tools.All(t => t.Name != tool))
+        {
+            var known = string.Join(", ", owner.Tools.Select(t => t.Name));
+            problems.Add(source.Problem(path, $"The agent '{agent}' has no tool '{tool}' (its tools: {known})."));
         }
     }
 
+    private static IEnumerable<string> AllTools(AgentContract contract) =>
+        contract.Agents.SelectMany(agent => agent.Tools.Select(tool => tool.Name)).Distinct();
+
     private static void CheckAnchor(YamlSource source, string path, string? name, AgentContract contract, List<Problem> problems)
     {
-        if (name is not null && contract.Tools.All(tool => tool.Name != name) && !EventTypes(contract).Contains(name))
+        if (name is not null && !AllTools(contract).Contains(name) && !EventTypes(contract).Contains(name))
         {
             problems.Add(source.Problem(path, $"'{name}' is neither a tool of the agent nor one of its event types."));
         }
     }
 
-    private static void CheckMatchers(YamlSource source, JsonElement expected, string path, List<Problem> problems) =>
-        problems.AddRange(JudgeMatchers.Problems(expected, path).Select(problem => source.Problem(problem.Path, problem.Message)));
+    private static void CheckEvent(YamlSource source, string path, string type, AgentContract? contract, List<Problem> problems)
+    {
+        if (contract is not null && !EventTypes(contract).Contains(type))
+        {
+            problems.Add(source.Problem(path, UnknownEvent(type, contract)));
+        }
+    }
+
+    /// <summary>The matchers in <c>args</c> / <c>result</c> / <c>data</c>: every <c>$pattern</c> compiles, every <c>$judge</c> is well formed.</summary>
+    private static void CheckMatchers(YamlSource source, JsonElement? expected, string path, List<Problem> problems)
+    {
+        if (expected is not { } json)
+        {
+            return;
+        }
+        problems.AddRange(
+            PatternMatchers
+                .Invalid(json, path)
+                .Select(invalid => source.Problem(invalid.Path, $"The pattern is not a valid regular expression: {invalid.Error}"))
+        );
+        problems.AddRange(JudgeMatchers.Problems(json, path).Select(problem => source.Problem(problem.Path, problem.Message)));
+    }
+
+    /// <summary>"No event whose data a model would accept" would need a model call per event and turn its verdict upside down: not offered.</summary>
+    private static void CheckNoJudge(YamlSource source, JsonElement? expected, string path, List<Problem> problems)
+    {
+        if (expected is { } json && JudgeMatchers.IsIn(json))
+        {
+            problems.Add(
+                source.Problem(path, "'$judge' is not allowed in an event-not-emitted check; use a $pattern, or a literal value.")
+            );
+        }
+    }
+
+    private static void CheckCited(YamlSource source, string path, CitedCheck cited, List<Problem> problems)
+    {
+        if (cited.Sources.Count == 0)
+        {
+            problems.Add(source.Problem($"{path}.sources", "A cited check needs at least one source."));
+        }
+        for (var i = 0; i < cited.Sources.Count; i++)
+        {
+            if (string.IsNullOrWhiteSpace(cited.Sources[i]))
+            {
+                problems.Add(source.Problem($"{path}.sources[{i}]", "A source is not empty."));
+            }
+        }
+    }
 
     private static void CheckText(YamlSource source, string path, TextCheck text, List<Problem> problems)
     {

@@ -16,36 +16,72 @@ internal static class TestAgent
         endpointUrl: http://localhost:7010
         """;
 
-    /// <summary>What the running agent serves for <see cref="Yaml"/>: two tools and one event.</summary>
+    /// <summary>What the running agent serves for <see cref="Yaml"/>: two agents with three tools, and one event.</summary>
     public static AgentContract Contract { get; } =
         new()
         {
-            SystemPrompt = "Be helpful.",
-            Model = new ModelDefinition { Name = "some-model" },
-            Tools =
+            Agents =
             [
-                new ToolDefinition
+                new LlmAgentDefinition
                 {
-                    Name = "get_order",
-                    Description = "Look an order up.",
-                    Parameters = Schema,
+                    Name = "support-agent",
+                    Model = new ModelDefinition { Name = "some-model" },
+                    Config = "Be helpful.",
+                    Tools =
+                    [
+                        new ToolDefinition
+                        {
+                            Name = "get_order",
+                            Description = "Look an order up.",
+                            Parameters = Schema,
+                        },
+                        new ToolDefinition
+                        {
+                            Name = "refund_order",
+                            Description = "Refund an order.",
+                            Parameters = Schema,
+                        },
+                    ],
                 },
-                new ToolDefinition
+                new LlmAgentDefinition
                 {
-                    Name = "refund_order",
-                    Description = "Refund an order.",
-                    Parameters = Schema,
+                    Name = "billing-agent",
+                    Model = new ModelDefinition { Name = "some-model" },
+                    Config = "Handle payments.",
+                    Tools =
+                    [
+                        new ToolDefinition
+                        {
+                            Name = "charge_card",
+                            Description = "Charge a card.",
+                            Parameters = Schema,
+                        },
+                    ],
                 },
             ],
             Context = new ContextDefinition { Events = [new EventDeclaration { Type = "state.changed", DataSchema = Schema }] },
         };
 
+    /// <summary>The same agent, now declaring that it accepts fixtures.</summary>
+    public static AgentContract WithFixtures { get; } = Contract with { Context = Contract.Context with { FixturesSchema = Schema } };
+
     public static AgentContract WithRetrieval { get; } =
         new()
         {
-            SystemPrompt = "Be helpful.",
-            Model = new ModelDefinition { Name = "some-model" },
-            Context = new ContextDefinition { UsesRetrieval = true },
+            Agents =
+            [
+                new LlmAgentDefinition
+                {
+                    Name = "support-agent",
+                    Model = new ModelDefinition { Name = "some-model" },
+                    Config = "Be helpful.",
+                },
+            ],
+            Context = new ContextDefinition
+            {
+                UsesRetrieval = true,
+                Retrieval = new RetrievalDefinition { DataVersion = "test-data" },
+            },
         };
 
     public const string Scenario = """

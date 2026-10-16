@@ -28,6 +28,11 @@ public sealed class ConversationShorthandsTests
         """{"kind":"ToolCall","id":"c1","name":"get_order","arguments":{"order_id":"A-17"}}"""
     )]
     [InlineData(
+        "tool_call: { id: c1, name: get_order, arguments: {}, agent: support-agent }",
+        /*lang=json,strict*/
+        """{"kind":"ToolCall","id":"c1","name":"get_order","arguments":{},"agent":"support-agent"}"""
+    )]
+    [InlineData(
         "tool_result: { call_id: c1, content: ok, isError: true }",
         /*lang=json,strict*/
         """{"kind":"ToolResult","callId":"c1","content":"ok","isError":true}"""

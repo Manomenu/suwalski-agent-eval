@@ -186,8 +186,8 @@ internal sealed class RunStore(Pool pool)
         var resultId = await connection.QuerySingleAsync<Guid>(
             new CommandDefinition(
                 """
-                INSERT INTO scenario_results (run_id, scenario_id, scenario_revision, sample, status, output, error, undeclared)
-                VALUES (@runId, @scenarioId, @scenarioRevision, @sampleNumber, @status, @outputJson::jsonb, @error, @undeclaredJson::jsonb)
+                INSERT INTO scenario_results (run_id, scenario_id, scenario_revision, sample, status, output, error, undeclared, duration_ms)
+                VALUES (@runId, @scenarioId, @scenarioRevision, @sampleNumber, @status, @outputJson::jsonb, @error, @undeclaredJson::jsonb, @durationMs)
                 RETURNING id
                 """,
                 new
@@ -199,6 +199,7 @@ internal sealed class RunStore(Pool pool)
                     status = sample.Status.ToString(),
                     outputJson = sample.OutputJson,
                     error = sample.Error,
+                    durationMs = sample.DurationMs,
                     undeclaredJson = JsonSerializer.Serialize(sample.Undeclared, ContractJson.Options),
                 },
                 transaction,
@@ -239,7 +240,8 @@ internal sealed class RunStore(Pool pool)
             new CommandDefinition(
                 """
                 SELECT sr.id, s.key AS ScenarioKey, sr.scenario_revision AS ScenarioRevision, sr.sample, sr.status,
-                       sr.output::text AS Output, sr.error, sr.undeclared::text AS Undeclared
+                       sr.output::text AS Output, sr.error, sr.undeclared::text AS Undeclared,
+                       sr.duration_ms AS DurationMs
                 FROM scenario_results sr
                 JOIN scenarios s ON s.id = sr.scenario_id
                 WHERE sr.run_id = @runId

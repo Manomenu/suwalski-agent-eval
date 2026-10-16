@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Suwageval.Contracts;
@@ -58,22 +60,45 @@ internal sealed class AgentClient(HttpClient http)
         }
     }
 
+    /// <summary>
+    /// One turn: the conversation and the scenario's fixtures in, the items the agent produced out. The result carries the
+    /// wall-clock time of the call, whether it succeeded or not.
+    /// </summary>
     public async Task<TurnResult> TurnAsync(
         Uri endpointUrl,
         IReadOnlyList<ConversationItem> conversation,
+        TurnContext context,
         CancellationToken cancellationToken = default
     )
     {
+        var clock = Stopwatch.StartNew();
+        var result = await CallAsync(endpointUrl, conversation, context, cancellationToken);
+        return result with { DurationMs = (int)clock.ElapsedMilliseconds };
+    }
+
+    private async Task<TurnResult> CallAsync(
+        Uri endpointUrl,
+        IReadOnlyList<ConversationItem> conversation,
+        TurnContext context,
+        CancellationToken cancellationToken
+    )
+    {
         ArgumentNullException.ThrowIfNull(endpointUrl);
+        ArgumentNullException.ThrowIfNull(context);
         var url = new Uri(endpointUrl.AbsoluteUri.TrimEnd('/') + "/suwageval/turn");
         try
         {
-            using var response = await http.PostAsJsonAsync(
-                url,
-                new TurnRequest { Conversation = conversation },
-                Request,
-                cancellationToken
-            );
+            using var request = new HttpRequestMessage(HttpMethod.Post, url)
+            {
+                Content = JsonContent.Create(
+                    new TurnRequest { Conversation = conversation, Fixtures = context.Fixtures },
+                    options: Request
+                ),
+            };
+            request.Headers.Add("Suwageval-Run-Id", context.RunId.ToString());
+            request.Headers.Add("Suwageval-Scenario", context.ScenarioKey);
+            request.Headers.Add("Suwageval-Sample", context.Sample.ToString(CultureInfo.InvariantCulture));
+            using var response = await http.SendAsync(request, cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
                 var body = await response.Content.ReadAsStringAsync(cancellationToken);

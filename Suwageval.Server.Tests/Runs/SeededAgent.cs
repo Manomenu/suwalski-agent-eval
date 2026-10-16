@@ -20,25 +20,32 @@ internal sealed record SeededAgent(Guid Id, string Name, Guid VersionId, string 
     public static AgentContract ExampleVersion { get; } =
         new()
         {
-            SystemPrompt = "You are a support agent.",
-            Model = new ModelDefinition { Name = "test-model" },
-            Tools =
+            Agents =
             [
-                new ToolDefinition
+                new LlmAgentDefinition
                 {
-                    Name = "get_order",
-                    Description = "Look an order up.",
-                    Parameters = Json( /*lang=json,strict*/
-                        """{"type":"object"}"""
-                    ),
-                },
-                new ToolDefinition
-                {
-                    Name = "refund_order",
-                    Description = "Refund an order.",
-                    Parameters = Json( /*lang=json,strict*/
-                        """{"type":"object"}"""
-                    ),
+                    Name = "support-agent",
+                    Model = new ModelDefinition { Name = "test-model" },
+                    Config = "You are a support agent.",
+                    Tools =
+                    [
+                        new ToolDefinition
+                        {
+                            Name = "get_order",
+                            Description = "Look an order up.",
+                            Parameters = Json( /*lang=json,strict*/
+                                """{"type":"object"}"""
+                            ),
+                        },
+                        new ToolDefinition
+                        {
+                            Name = "refund_order",
+                            Description = "Refund an order.",
+                            Parameters = Json( /*lang=json,strict*/
+                                """{"type":"object"}"""
+                            ),
+                        },
+                    ],
                 },
             ],
             Context = new ContextDefinition
@@ -56,10 +63,29 @@ internal sealed record SeededAgent(Guid Id, string Name, Guid VersionId, string 
             },
         };
 
+    /// <summary>The example agent redeployed with another config: another version.</summary>
+    public static AgentContract ExampleVersionConfigured(string config) =>
+        ExampleVersion with
+        {
+            Agents = [ExampleVersion.Agents[0] with { Config = config }],
+        };
+
     /// <summary>A contract as an agent serves it.</summary>
     public static string Serialized(AgentContract contract) => JsonSerializer.Serialize(contract, ContractJson.Options);
 
-    public static ScenarioInput Scenario(string key, string[]? tags = null, int samples = 1, int turns = 1) =>
+    /// <summary>The example agent, now declaring that it accepts fixtures.</summary>
+    public static AgentContract ExampleVersionWithFixtures { get; } =
+        ExampleVersion with
+        {
+            Context = ExampleVersion.Context with
+            {
+                FixturesSchema = Json( /*lang=json,strict*/
+                    """{"type":"object"}"""
+                ),
+            },
+        };
+
+    public static ScenarioInput Scenario(string key, string[]? tags = null, int samples = 1, int turns = 1, JsonElement? fixtures = null) =>
         new()
         {
             Key = key,
@@ -67,6 +93,7 @@ internal sealed record SeededAgent(Guid Id, string Name, Guid VersionId, string 
             Conversation = [new UserMessage { Text = "Please refund order A-17." }],
             Continuation = new Continuation { Turns = turns },
             Samples = samples,
+            Fixtures = fixtures,
         };
 
     public static ToolCalledCheck RefundAfterLookup(string key, string scenarioKey, double passThreshold = 1.0) =>
@@ -107,7 +134,7 @@ internal sealed record SeededAgent(Guid Id, string Name, Guid VersionId, string 
             agent.Id,
             JsonSerializer.Serialize(version ?? ExampleVersion, ContractJson.Options),
             null,
-            TestContext.Current.CancellationToken
+            cancellationToken: TestContext.Current.CancellationToken
         );
         await new ScenarioStore(pool).UpsertAsync(
             agent.Id,

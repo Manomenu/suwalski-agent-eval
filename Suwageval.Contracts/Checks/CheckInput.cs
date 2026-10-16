@@ -7,6 +7,8 @@ namespace Suwageval.Contracts.Checks;
 [JsonDerivedType(typeof(ToolCalledCheck), "tool-called")]
 [JsonDerivedType(typeof(ToolNotCalledCheck), "tool-not-called")]
 [JsonDerivedType(typeof(EventCheck), "event")]
+[JsonDerivedType(typeof(EventNotEmittedCheck), "event-not-emitted")]
+[JsonDerivedType(typeof(CitedCheck), "cited")]
 [JsonDerivedType(typeof(TextCheck), "text")]
 [JsonDerivedType(typeof(JudgeCheck), "judge")]
 public abstract record CheckInput

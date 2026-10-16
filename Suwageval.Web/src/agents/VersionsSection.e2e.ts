@@ -9,7 +9,9 @@ function serveContract(prompt: { current: string; label: string }): Promise<Serv
     const server = createServer((request, response) => {
         if (request.url === "/suwageval/contract") {
             response.setHeader("content-type", "application/json");
-            response.end(JSON.stringify({ label: prompt.label, systemPrompt: prompt.current, model: { name: "some-model" } }));
+            response.end(
+                JSON.stringify({ label: prompt.label, agents: [{ name: "main", model: { name: "some-model" }, config: prompt.current }] }),
+            );
         } else {
             // Not a turn the test cares about: the run fails, the version stays.
             response.statusCode = 500;

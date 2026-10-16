@@ -15,7 +15,7 @@ features will be built from, not something that runs today.
 A scenario is a frozen moment of a conversation with the agent, plus what we expect next:
 
 - **The context, structured** — everything the agent had at that point:
-  - the agent's configuration: system prompt, the tools it may call (their names and schemas);
+  - the system's configuration: its LLM agents (each with its model, config such as the system prompt, and the tools it may call, their names and schemas);
   - the messages so far: user, assistant, system;
   - the tool calls already made: which tool, with which arguments, what it returned;
   - the data retrieved by RAG: the query and the chunks that came back (text, source, score);
@@ -84,8 +84,8 @@ The server has one interface, its HTTP API. Three users reach it:
   `suwageval compare <runId> <runId> …` opens the same page; `suwageval runs` lists the runs to
   pick from. Claude compares through `results --json` of each run.
 - **A version is never written in a file: the running agent serves it.** `GET
-  {endpointUrl}/suwageval/contract` returns its system prompt, model, tools (with argument
-  schemas) and events (with data schemas), and a label. `suwageval run` makes the server read it,
+  {endpointUrl}/suwageval/contract` returns its LLM agents (each with model, config and tools, with argument
+  schemas), other system-wide config, the events (with data schemas), and a label. `suwageval run` makes the server read it,
   register it (same content, same version; changed, a new one) and run against it — so a run
   always records what really ran, and says whether the version is `new` or `existing`.
   `suwageval validate` reads it too, to check tool and event names (`--offline` skips that; an
@@ -154,11 +154,11 @@ and a scenario, `run --tag regression --wait` against the running agent, and rea
 result of deterministic checks (a tool called, an event, text) in the CLI. No judge, no
 multi-turn simulation, no web views yet (the judge came right after: step 4).
 
-1. **Contracts and `validate`** — done: `Suwageval.Contracts` (format v0) and the CLI's
+1. **Contracts and `validate`** — done: `Suwageval.Contracts` (format v1) and the CLI's
    `validate`; the YAML files in the example agent.
 2. **Agents, Scenarios (with tags), Checks** — done: the slices that store them (HTTP endpoints
    in `*Endpoints.cs`), and `suwageval push`.
-3. **Invocation and Runs** — done: the agent under test over HTTP (contract v0: `/suwageval/turn` and `/suwageval/contract`, `docs/scenario-format.md`), the
+3. **Invocation and Runs** — done: the agent under test over HTTP (contract v1: `/suwageval/turn` and `/suwageval/contract`, `docs/scenario-format.md`), the
    deterministic checks, and `suwageval run` (`--wait` exits 0 when every check passed its
    threshold, 1 when one did not, 2 when the run could not finish). The MVP is reached here.
 4. **After the MVP** — the judge is done: a `judge` check, verdict by a model through Microsoft Agent Framework

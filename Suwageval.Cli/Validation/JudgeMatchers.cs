@@ -3,13 +3,28 @@ using System.Text.Json;
 namespace Suwageval.Cli.Validation;
 
 /// <summary>
-/// The shape of the <c>$judge</c> matchers in a check's <c>args</c> / <c>data</c> (docs/scenario-format.md): an object whose only property is
+/// The shape of the <c>$judge</c> matchers in a check's <c>args</c> / <c>result</c> / <c>data</c> (docs/scenario-format.md): an object whose only property is
 /// <c>$judge</c>, holding <c>description</c> (non-empty text) and/or <c>examples</c> (a non-empty list). The server applies the same rules to
 /// a push (<c>Checks/JudgeMatcher.cs</c>; the two projects share nothing but the contracts, so the rules are written twice and tested twice).
 /// </summary>
 internal static class JudgeMatchers
 {
     private const string Key = "$judge";
+
+    /// <summary>Whether a <c>$judge</c> key is anywhere in <paramref name="expected"/>.</summary>
+    public static bool IsIn(JsonElement expected) =>
+        expected.ValueKind switch
+        {
+            JsonValueKind.Object => expected.TryGetProperty(Key, out _) || expected.EnumerateObject().Any(property => IsIn(property.Value)),
+            JsonValueKind.Array => expected.EnumerateArray().Any(IsIn),
+            JsonValueKind.Undefined
+            or JsonValueKind.String
+            or JsonValueKind.Number
+            or JsonValueKind.True
+            or JsonValueKind.False
+            or JsonValueKind.Null => false,
+            _ => false,
+        };
 
     /// <summary>What is wrong with the matchers in <paramref name="expected"/>, each with its path (under <paramref name="path"/>).</summary>
     public static List<(string Path, string Message)> Problems(JsonElement expected, string path)

@@ -14,8 +14,15 @@ public sealed class AgentEndpointsTests(TestDatabase database) : IAsyncDisposabl
     private static AgentContract Version(string prompt = "Be helpful.") =>
         new()
         {
-            SystemPrompt = prompt,
-            Model = new ModelDefinition { Name = "some-model" },
+            Agents =
+            [
+                new LlmAgentDefinition
+                {
+                    Name = "main",
+                    Model = new ModelDefinition { Name = "some-model" },
+                    Config = prompt,
+                },
+            ],
         };
 
     /// <summary>What a run does when it starts: registers the contract the agent serves. The endpoint for it is gone.</summary>
@@ -29,10 +36,21 @@ public sealed class AgentEndpointsTests(TestDatabase database) : IAsyncDisposabl
                 agent.Id,
                 ContractContent.Json(contract),
                 contract.Label,
+                contract.Context.Retrieval?.Description,
                 TestContext.Current.CancellationToken
             )
         ).Version;
-        return new AgentVersion(row.Id, row.AgentId, row.Label, row.ContentHash, row.CreatedAt, row.ArchivedAt, contract.Model.Name);
+        return new AgentVersion(
+            row.Id,
+            row.AgentId,
+            row.Label,
+            row.ContentHash,
+            row.CreatedAt,
+            row.ArchivedAt,
+            ContractContent.ModelNames(contract),
+            ContractContent.DataVersion(contract),
+            contract.Context.Retrieval?.Description
+        );
     }
 
     [Fact]
@@ -132,15 +150,29 @@ public sealed class AgentEndpointsTests(TestDatabase database) : IAsyncDisposabl
     public async Task Versions_are_listed_and_one_is_read_with_its_content()
     {
         var name = await server.NewAgent();
-        var version = await RegisterAsync(name, Version() with { Label = "v1" });
+        var version = await RegisterAsync(
+            name,
+            Version() with
+            {
+                Label = "v1",
+                Context = new ContextDefinition
+                {
+                    UsesRetrieval = true,
+                    Retrieval = new RetrievalDefinition { DataVersion = "build-7", Description = "1832 articles" },
+                },
+            }
+        );
 
         var listed = await TestServer.Read<AgentVersion[]>(await server.Get($"/agents/{name}/versions"));
         var detail = await TestServer.Read<AgentVersionDetail>(await server.Get($"/agents/{name}/versions/{version.Id}"));
 
-        Assert.Equal([version], listed);
-        Assert.Equal("some-model", listed[0].ModelName);
+        Assert.Equal(version.Id, Assert.Single(listed).Id);
+        Assert.Equal(["some-model"], listed[0].ModelNames);
+        Assert.Equal("build-7", listed[0].DataVersion);
+        Assert.Equal("1832 articles", listed[0].DataDescription);
+        Assert.Equal("1832 articles", detail.Content.Context.Retrieval?.Description);
         Assert.Equal(version.Id, detail.Id);
-        Assert.Equal("Be helpful.", detail.Content.SystemPrompt);
+        Assert.Equal("Be helpful.", detail.Content.Agents[0].Config);
         Assert.Equal("v1", detail.Content.Label);
     }
 

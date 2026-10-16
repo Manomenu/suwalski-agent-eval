@@ -100,6 +100,7 @@ internal static class RunReport
             Status = Enum.Parse<SampleStatus>(row.Status),
             Output = row.Output is null ? null : Items(row.Output),
             Error = row.Error,
+            DurationMs = row.DurationMs,
             Undeclared = JsonSerializer.Deserialize<IReadOnlyList<string>>(row.Undeclared, ContractJson.Options) ?? [],
         };
 

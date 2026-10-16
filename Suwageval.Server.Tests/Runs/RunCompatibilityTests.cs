@@ -26,6 +26,42 @@ public sealed class RunCompatibilityTests
         );
 
     [Fact]
+    public void Fixtures_need_a_version_that_declares_a_fixtures_schema()
+    {
+        var withFixtures = new ScenarioContent
+        {
+            Conversation = [new UserMessage { Text = "hi" }],
+            Fixtures = Json( /*lang=json,strict*/
+                """{"pinned":[]}"""
+            ),
+        };
+
+        var one = Assert.Single(Mismatches([("s", withFixtures)], []));
+
+        Assert.Contains("scenario 's'", one, StringComparison.Ordinal);
+        Assert.Contains("fixturesSchema", one, StringComparison.Ordinal);
+        Assert.Empty(Mismatches([("s", withFixtures)], [], SeededAgent.ExampleVersionWithFixtures));
+        Assert.Empty(Mismatches([("s", Content(new UserMessage { Text = "hi" }))], []));
+    }
+
+    [Fact]
+    public void An_event_not_emitted_check_must_name_a_declared_event()
+    {
+        var undeclared = new EventNotEmittedCheck
+        {
+            Key = "c",
+            ScenarioKey = "s",
+            Event = "nope",
+        };
+        var declared = undeclared with { Key = "d", Event = "state.changed" };
+
+        var one = Assert.Single(Mismatches([], [undeclared, declared]));
+
+        Assert.Contains("check 'c'", one, StringComparison.Ordinal);
+        Assert.Contains("event 'nope'", one, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_tool_call_in_the_conversation_must_be_a_tool_of_the_version()
     {
         var mismatches = Mismatches([("s", Content(Call("cancel_order")))], []);
@@ -55,9 +91,20 @@ public sealed class RunCompatibilityTests
                 [],
                 new AgentContract
                 {
-                    SystemPrompt = "p",
-                    Model = new ModelDefinition { Name = "m" },
-                    Context = new ContextDefinition { UsesRetrieval = true },
+                    Agents =
+                    [
+                        new LlmAgentDefinition
+                        {
+                            Name = "a",
+                            Model = new ModelDefinition { Name = "m" },
+                            Config = "p",
+                        },
+                    ],
+                    Context = new ContextDefinition
+                    {
+                        UsesRetrieval = true,
+                        Retrieval = new RetrievalDefinition { DataVersion = "test-data" },
+                    },
                 }
             )
         );
@@ -108,5 +155,81 @@ public sealed class RunCompatibilityTests
         var call = Call("nope");
 
         Assert.Single(Mismatches([("s", Content(call, call))], []));
+    }
+
+    private static AgentContract TwoAgents() =>
+        SeededAgent.ExampleVersion with
+        {
+            Agents =
+            [
+                SeededAgent.ExampleVersion.Agents[0] with
+                {
+                    Tools = [SeededAgent.ExampleVersion.Agents[0].Tools[0]],
+                },
+                SeededAgent.ExampleVersion.Agents[0] with
+                {
+                    Name = "billing",
+                    Tools = [SeededAgent.ExampleVersion.Agents[0].Tools[1]],
+                },
+            ],
+        };
+
+    [Fact]
+    public void A_tool_without_an_agent_may_belong_to_any_agent() =>
+        Assert.Empty(Mismatches([("s", Content(Call("get_order"), Call("refund_order")))], [], TwoAgents()));
+
+    [Fact]
+    public void A_tool_call_that_names_an_agent_needs_that_agent_to_exist_and_have_the_tool()
+    {
+        var mismatches = Mismatches(
+            [
+                (
+                    "s",
+                    Content(Call("get_order", agent: "billing"), Call("get_order", agent: "ghost"), Call("refund_order", agent: "billing"))
+                ),
+            ],
+            [],
+            TwoAgents()
+        );
+
+        Assert.Equal(2, mismatches.Count);
+        Assert.Contains("agent 'billing' does not have", mismatches[0], StringComparison.Ordinal);
+        Assert.Contains("agent 'ghost', which the version does not have", mismatches[1], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_check_by_an_agent_needs_that_agent_to_have_the_tool()
+    {
+        var mismatches = Mismatches(
+            [("s", Content())],
+            [
+                new ToolCalledCheck
+                {
+                    Key = "a",
+                    ScenarioKey = "s",
+                    Tool = "get_order",
+                    By = "support-agent",
+                },
+                new ToolCalledCheck
+                {
+                    Key = "b",
+                    ScenarioKey = "s",
+                    Tool = "get_order",
+                    By = "billing",
+                },
+                new ToolNotCalledCheck
+                {
+                    Key = "c",
+                    ScenarioKey = "s",
+                    Tool = "get_order",
+                    By = "ghost",
+                },
+            ],
+            TwoAgents()
+        );
+
+        Assert.Equal(2, mismatches.Count);
+        Assert.Contains("check 'b'", mismatches[0], StringComparison.Ordinal);
+        Assert.Contains("check 'c'", mismatches[1], StringComparison.Ordinal);
     }
 }

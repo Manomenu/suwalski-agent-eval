@@ -55,8 +55,8 @@ public sealed class AgentStoreTests(TestDatabase database)
         const string content = /*lang=json,strict*/
             """{"prompt":"be brief","model":"m1"}""";
 
-        var first = await store.RegisterVersionAsync(agent.Id, content, "v1", Cancellation);
-        var again = await store.RegisterVersionAsync(agent.Id, content, "other label", Cancellation);
+        var first = await store.RegisterVersionAsync(agent.Id, content, "v1", cancellationToken: Cancellation);
+        var again = await store.RegisterVersionAsync(agent.Id, content, "other label", cancellationToken: Cancellation);
 
         Assert.True(first.Created);
         Assert.False(again.Created);
@@ -74,13 +74,13 @@ public sealed class AgentStoreTests(TestDatabase database)
             agent.Id, /*lang=json,strict*/
             """{"model":"m1"}""",
             null,
-            Cancellation
+            cancellationToken: Cancellation
         );
         var second = await store.RegisterVersionAsync(
             agent.Id, /*lang=json,strict*/
             """{"model":"m2"}""",
             "second",
-            Cancellation
+            cancellationToken: Cancellation
         );
 
         var versions = await store.ListVersionsAsync(agent.Id, Cancellation);
@@ -103,13 +103,13 @@ public sealed class AgentStoreTests(TestDatabase database)
             one.Id, /*lang=json,strict*/
             """{"model":"m1"}""",
             null,
-            Cancellation
+            cancellationToken: Cancellation
         );
         var registration = await store.RegisterVersionAsync(
             two.Id, /*lang=json,strict*/
             """{"model":"m1"}""",
             null,
-            Cancellation
+            cancellationToken: Cancellation
         );
 
         Assert.True(registration.Created);
@@ -125,13 +125,13 @@ public sealed class AgentStoreTests(TestDatabase database)
             agent.Id, /*lang=json,strict*/
             """{"model":"m1"}""",
             null,
-            Cancellation
+            cancellationToken: Cancellation
         );
         await store.RegisterVersionAsync(
             agent.Id, /*lang=json,strict*/
             """{"model":"m2"}""",
             null,
-            Cancellation
+            cancellationToken: Cancellation
         );
 
         await store.ArchiveVersionsAsync(agent.Id, [first.Version.Id], archived: true, Cancellation);
@@ -148,7 +148,7 @@ public sealed class AgentStoreTests(TestDatabase database)
             agent.Id, /*lang=json,strict*/
             """{"model":"m1"}""",
             null,
-            Cancellation
+            cancellationToken: Cancellation
         );
         await store.ArchiveVersionsAsync(agent.Id, [first.Version.Id], archived: true, Cancellation);
         Assert.NotNull((await store.GetVersionAsync(first.Version.Id, Cancellation))?.ArchivedAt);
@@ -157,7 +157,7 @@ public sealed class AgentStoreTests(TestDatabase database)
             agent.Id, /*lang=json,strict*/
             """{"model":"m1"}""",
             null,
-            Cancellation
+            cancellationToken: Cancellation
         );
 
         Assert.False(again.Created);
@@ -176,7 +176,7 @@ public sealed class AgentStoreTests(TestDatabase database)
                 agent.Id, /*lang=json,strict*/
                 """{"model":"m1"}""",
                 null,
-                Cancellation
+                cancellationToken: Cancellation
             )
         ).Version;
         await store.ArchiveVersionsAsync(agent.Id, [version.Id], archived: true, Cancellation);

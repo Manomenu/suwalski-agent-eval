@@ -1,0 +1,14 @@
+namespace Suwageval.Contracts.Agents;
+
+/// <summary>The data an agent's retrieval reads, as the agent describes it.</summary>
+public sealed record RetrievalDefinition
+{
+    /// <summary>
+    /// An opaque fingerprint of what retrieval can return (the content and how it was indexed). Part of the content hash:
+    /// new data is a new agent version.
+    /// </summary>
+    public required string DataVersion { get; init; }
+
+    /// <summary>For people (what the data is, how much of it). Outside the content hash, like the label.</summary>
+    public string? Description { get; init; }
+}

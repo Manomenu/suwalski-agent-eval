@@ -9,6 +9,9 @@ internal sealed record TurnResult
 
     public string? Error { get; private init; }
 
+    /// <summary>How long the call took, measured here; null when no call was made.</summary>
+    public int? DurationMs { get; init; }
+
     public static TurnResult Succeeded(IReadOnlyList<ConversationItem> items) => new() { Items = items };
 
     public static TurnResult Failed(string error) => new() { Error = error };

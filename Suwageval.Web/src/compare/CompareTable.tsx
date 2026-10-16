@@ -1,9 +1,9 @@
 import { Anchor, Badge, Button, Group, Paper, Stack, Switch, Table, Text } from "@mantine/core";
 import { useState } from "react";
 
-import { shortId, versionLabel } from "../agents/view";
+import { dataText, shortId, versionLabel } from "../agents/view";
 import { CheckDefinitionButton } from "../checks/CheckDefinitionButton";
-import { formatTime, num, percent } from "../runs/results";
+import { durationSummary, formatTime, num, percent } from "../runs/results";
 import type { Comparison } from "./api";
 import {
     alignRows,
@@ -44,7 +44,8 @@ export function CompareTable({ comparison, firstBaseline }: { comparison: Compar
                         <Table.Thead>
                             <Table.Tr>
                                 <Table.Th w={LABEL_COLUMN_WIDTH} />
-                                {runs.map(({ run }, column) => {
+                                {runs.map((results, column) => {
+                                    const { run } = results;
                                     const version = versions.find((candidate) => candidate.id === run.agentVersionId);
                                     const isBaseline = column === baseline;
                                     return (
@@ -62,13 +63,21 @@ export function CompareTable({ comparison, firstBaseline }: { comparison: Compar
                                                     version {version === undefined ? shortId(run.agentVersionId) : versionLabel(version)}
                                                 </Text>
                                                 <Text size="xs" fw="normal">
-                                                    {version?.modelName ?? "unknown model"}
+                                                    {version === undefined ? "unknown model" : version.modelNames.join(", ")}
                                                 </Text>
+                                                {version !== undefined && dataText(version) !== null && (
+                                                    <Text size="xs" fw="normal">
+                                                        {dataText(version)}
+                                                    </Text>
+                                                )}
                                                 <Text size="xs" c="dimmed" fw="normal">
                                                     {formatTime(run.createdAt)}
                                                 </Text>
                                                 <Text size="xs" fw="normal">
                                                     {checksPassedText(run)}
+                                                </Text>
+                                                <Text size="xs" fw="normal">
+                                                    {durationSummary(results.scenarios) ?? "Turn time: —"}
                                                 </Text>
                                                 {isBaseline ? (
                                                     <Badge variant="filled" w="fit-content">

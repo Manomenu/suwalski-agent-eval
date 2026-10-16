@@ -9,5 +9,6 @@ internal sealed record ScenarioResultRow(
     string Status,
     string? Output,
     string? Error,
-    string Undeclared
+    string Undeclared,
+    int? DurationMs
 );

@@ -11,7 +11,13 @@ function serveAgent(agent: { label: string; reply: string }): Promise<Server> {
     const server = createServer((request, response) => {
         response.setHeader("content-type", "application/json");
         if (request.url === "/suwageval/contract") {
-            response.end(JSON.stringify({ label: agent.label, systemPrompt: agent.label, model: { name: "e2e-model" } }));
+            response.end(
+                JSON.stringify({
+                    label: agent.label,
+                    agents: [{ name: "main", model: { name: "e2e-model" }, config: agent.label }],
+                    context: { usesRetrieval: true, retrieval: { dataVersion: "e2e-data-1", description: "e2e articles" } },
+                }),
+            );
         } else {
             response.end(JSON.stringify({ items: [{ kind: "AssistantMessage", text: agent.reply }] }));
         }
@@ -65,6 +71,9 @@ test("two runs are compared from the agent page", async ({ page, request }) => {
         await expect(page.getByText("1/2 checks passed", { exact: true })).toBeVisible();
         await expect(page.getByText("2/2 checks passed", { exact: true })).toBeVisible();
         await expect(page.getByText("e2e-model", { exact: true })).toHaveCount(2);
+        // The data version and the turn time of each run.
+        await expect(page.getByText("data e2e-data-1 · e2e articles", { exact: true })).toHaveCount(2);
+        await expect(page.getByText(/^Turn time: median .* s · p95 .* s$/)).toHaveCount(2);
         // The tag's pass rate went from 50% to 100%.
         await expect(page.getByRole("row", { name: /^smoke 50% 100% ▲ 50 pp$/ })).toBeVisible();
 

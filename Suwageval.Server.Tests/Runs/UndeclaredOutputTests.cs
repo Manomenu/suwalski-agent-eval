@@ -5,11 +5,12 @@ namespace Suwageval.Server.Tests.Runs;
 
 public sealed class UndeclaredOutputTests
 {
-    private static ToolCall Call(string name) =>
+    private static ToolCall Call(string name, string? agent = null) =>
         new()
         {
             Id = "c",
             Name = name,
+            Agent = agent,
             Arguments = System.Text.Json.JsonDocument.Parse("{}").RootElement,
         };
 
@@ -33,4 +34,31 @@ public sealed class UndeclaredOutputTests
                 SeededAgent.ExampleVersion
             )
         );
+
+    [Fact]
+    public void A_call_that_names_an_agent_is_checked_against_that_agents_tools() =>
+        Assert.Equal(
+            ["agent 'ghost'", "tool 'cancel_order' of agent 'support-agent'"],
+            UndeclaredOutput.Of(
+                [
+                    Call("get_order", "support-agent"),
+                    Call("get_order", "ghost"),
+                    Call("cancel_order", "support-agent"),
+                    Call("get_order", "ghost"),
+                ],
+                SeededAgent.ExampleVersion
+            )
+        );
+
+    [Fact]
+    public void A_tool_only_another_agent_has_is_undeclared_for_the_agent_that_called_it()
+    {
+        var version = SeededAgent.ExampleVersion with
+        {
+            Agents = [SeededAgent.ExampleVersion.Agents[0], SeededAgent.ExampleVersion.Agents[0] with { Name = "billing", Tools = [] }],
+        };
+
+        Assert.Equal(["tool 'get_order' of agent 'billing'"], UndeclaredOutput.Of([Call("get_order", "billing")], version));
+        Assert.Empty(UndeclaredOutput.Of([Call("get_order")], version));
+    }
 }

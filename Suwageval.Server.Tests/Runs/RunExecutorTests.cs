@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -98,6 +99,84 @@ public sealed class RunExecutorTests(TestDatabase database)
         Assert.Equal("refund_order", Assert.IsType<ToolCall>(Assert.Single(called.Samples[0].Evidence)).Name);
         var request = Assert.Single(fake.Requests);
         Assert.Contains("Please refund order A-17.", request, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task The_scenarios_fixtures_and_the_correlation_headers_reach_the_agent_on_every_turn()
+    {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.PlainTurn);
+        fake.ServeContract(SeededAgent.ExampleVersionWithFixtures);
+        var agent = await SeededAgent.CreateAsync(
+            database.Pool,
+            fake.Url.AbsoluteUri,
+            [
+                SeededAgent.Scenario(
+                    "with-fixtures",
+                    samples: 2,
+                    fixtures: JsonDocument
+                        .Parse( /*lang=json,strict*/
+                            """{"pinnedResources":["plans"]}"""
+                        )
+                        .RootElement.Clone()
+                ),
+                SeededAgent.Scenario("without-fixtures"),
+            ],
+            [],
+            SeededAgent.ExampleVersionWithFixtures
+        );
+        var (run, executor) = await ClaimAsync(agent, parallel: 1);
+
+        await executor.ExecuteAsync(run, Cancellation);
+
+        var turns = fake
+            .Requests.Zip(fake.RequestHeaders, (body, headers) => (Body: JsonDocument.Parse(body).RootElement, Headers: headers))
+            .ToList();
+        Assert.Equal(3, turns.Count);
+        Assert.All(turns, turn => Assert.Equal(run.Id.ToString(), turn.Headers["Suwageval-Run-Id"]));
+        var withFixtures = turns.Where(turn => turn.Headers["Suwageval-Scenario"] == "with-fixtures").ToList();
+        Assert.Equal(["1", "2"], withFixtures.Select(turn => turn.Headers["Suwageval-Sample"]).Order());
+        Assert.All(
+            withFixtures,
+            turn =>
+                Assert.Equal( /*lang=json,strict*/
+                    """{"pinnedResources":["plans"]}""",
+                    turn.Body.GetProperty("fixtures").GetRawText()
+                )
+        );
+        var (withoutBody, _) = Assert.Single(turns, turn => turn.Headers["Suwageval-Scenario"] == "without-fixtures");
+        Assert.False(withoutBody.TryGetProperty("fixtures", out _));
+    }
+
+    [Fact]
+    public async Task The_duration_of_the_call_is_stored_per_sample_and_missing_when_no_call_was_made()
+    {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.PlainTurn, TimeSpan.FromMilliseconds(80));
+        var agent = await SeededAgent.CreateAsync(
+            database.Pool,
+            fake.Url.AbsoluteUri,
+            [SeededAgent.Scenario("answered"), SeededAgent.Scenario("multi", turns: 2)],
+            []
+        );
+
+        var results = await RunAsync(agent);
+
+        var answered = Assert.Single(Assert.Single(results.Scenarios, scenario => scenario.Key == "answered").Samples);
+        Assert.True(answered.DurationMs >= 70, $"{answered.DurationMs}");
+        var skipped = Assert.Single(Assert.Single(results.Scenarios, scenario => scenario.Key == "multi").Samples);
+        Assert.Null(skipped.DurationMs);
+    }
+
+    [Fact]
+    public async Task A_call_that_failed_still_has_a_duration()
+    {
+        await using var fake = await FakeAgent.StartAsync((_, _) => Results.StatusCode(500), TimeSpan.FromMilliseconds(80));
+        var agent = await SeededAgent.CreateAsync(database.Pool, fake.Url.AbsoluteUri, [SeededAgent.Scenario("down")], []);
+
+        var results = await RunAsync(agent);
+
+        var sample = Assert.Single(Assert.Single(results.Scenarios).Samples);
+        Assert.Equal(SampleStatus.Failed, sample.Status);
+        Assert.True(sample.DurationMs >= 70, $"{sample.DurationMs}");
     }
 
     private static JudgeCheck PoliteRefusal(string key, string scenarioKey) =>
@@ -269,7 +348,7 @@ public sealed class RunExecutorTests(TestDatabase database)
         await using var fake = await FakeAgent.StartAsync(
             (_, _) =>
             {
-                redeployed?.ServeContract(SeededAgent.ExampleVersion with { SystemPrompt = "Redeployed mid-run." });
+                redeployed?.ServeContract(SeededAgent.ExampleVersionConfigured("Redeployed mid-run."));
                 return Results.Text(FakeAgent.RefundTurn, "application/json");
             }
         );

@@ -32,6 +32,7 @@ internal sealed class FakeAgent : IAsyncDisposable
 
     private WebApplication? app;
     private readonly ConcurrentQueue<string> requests = new();
+    private readonly ConcurrentQueue<IReadOnlyDictionary<string, string>> headers = new();
     private int inFlight;
     private int maxInFlight;
     private int contractRequests;
@@ -43,6 +44,9 @@ internal sealed class FakeAgent : IAsyncDisposable
 
     /// <summary>The bodies of the requests received so far.</summary>
     public IReadOnlyCollection<string> Requests => requests;
+
+    /// <summary>The headers of the turn requests received so far, by name, in the order of <see cref="Requests"/>.</summary>
+    public IReadOnlyCollection<IReadOnlyDictionary<string, string>> RequestHeaders => headers;
 
     /// <summary>How many times the contract was asked for.</summary>
     public int ContractRequests => Volatile.Read(ref contractRequests);
@@ -72,6 +76,9 @@ internal sealed class FakeAgent : IAsyncDisposable
             {
                 using var reader = new StreamReader(request.Body);
                 var body = await reader.ReadToEndAsync();
+                agent.headers.Enqueue(
+                    request.Headers.ToDictionary(header => header.Key, header => header.Value.ToString(), StringComparer.OrdinalIgnoreCase)
+                );
                 agent.requests.Enqueue(body);
                 var now = Interlocked.Increment(ref agent.inFlight);
                 int seen;

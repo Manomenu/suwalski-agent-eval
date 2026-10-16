@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Suwageval.Contracts.Conversations;
 
 namespace Suwageval.Contracts.Scenarios;
@@ -12,6 +14,13 @@ public sealed record ScenarioInput
     public IReadOnlyList<string> Tags { get; init; } = [];
 
     public required IReadOnlyList<ConversationItem> Conversation { get; init; }
+
+    /// <summary>
+    /// Test data the agent is started with, sent verbatim with every turn. Free JSON, shaped by the agent's
+    /// <c>context.fixturesSchema</c>; a scenario that has it needs an agent that declares the schema.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public JsonElement? Fixtures { get; init; }
 
     public Continuation Continuation { get; init; } = new();
 

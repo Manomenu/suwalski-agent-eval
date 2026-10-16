@@ -141,10 +141,44 @@ export function itemBody(item: ConversationItem): string {
         case "ToolResult":
             return item.content;
         case "Retrieval":
-            return item.chunks.map((chunk) => `[${chunk.source}, ${num(chunk.score).toFixed(2)}] ${chunk.text}`).join("\n\n");
+            return item.chunks
+                .map((chunk) => `[${chunk.source}${chunk.score == null ? "" : `, ${num(chunk.score).toFixed(2)}`}] ${chunk.text}`)
+                .join("\n\n");
         case "Event":
             return JSON.stringify(item.data, null, 2);
         default:
             return "";
     }
+}
+
+/** 9800 → "9.8 s" (one decimal). */
+export function formatSeconds(milliseconds: number): string {
+    return `${(Math.round(milliseconds / 100) / 10).toFixed(1)} s`;
+}
+
+/** How long the agent took for each sample that made a call (the samples without one have no duration). */
+function sampleDurations(scenarios: readonly ScenarioRunResult[]): number[] {
+    return scenarios.flatMap((scenario) =>
+        scenario.samples.flatMap((sample) => (sample.durationMs == null ? [] : [num(sample.durationMs)])),
+    );
+}
+
+/** The middle value; the mean of the two middle ones for an even count. */
+export function median(values: readonly number[]): number {
+    const sorted = [...values].sort((a, b) => a - b);
+    const middle = Math.floor(sorted.length / 2);
+    return sorted.length % 2 === 1 ? (sorted[middle] ?? 0) : ((sorted[middle - 1] ?? 0) + (sorted[middle] ?? 0)) / 2;
+}
+
+/** The 95th percentile by nearest rank: the value at rank ⌈0.95·n⌉ of the sorted values. */
+export function p95(values: readonly number[]): number {
+    const sorted = [...values].sort((a, b) => a - b);
+    return sorted[Math.max(1, Math.ceil(0.95 * sorted.length)) - 1] ?? 0;
+}
+
+/** "Turn time: median 9.8 s · p95 109.1 s" over all samples that made a call; null when none did. */
+export function durationSummary(scenarios: readonly ScenarioRunResult[]): string | null {
+    const durations = sampleDurations(scenarios);
+    if (durations.length === 0) return null;
+    return `Turn time: median ${formatSeconds(median(durations))} · p95 ${formatSeconds(p95(durations))}`;
 }

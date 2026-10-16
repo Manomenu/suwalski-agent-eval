@@ -51,7 +51,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
     public async Task Starting_a_run_registers_the_contract_the_agent_serves_and_queues_the_run_with_it()
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
-        fake.ServeContract(SeededAgent.ExampleVersion with { SystemPrompt = "A brand new prompt.", Label = "v2" });
+        fake.ServeContract(SeededAgent.ExampleVersionConfigured("A brand new prompt.") with { Label = "v2" });
         var client = Client();
         var agent = await NewAgentAsync(fake.Url.AbsoluteUri);
 
@@ -66,7 +66,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         );
         Assert.Equal(RunStatus.Queued, run.Status);
         var version = await GetAsync<AgentVersionDetail>(client, $"/agents/{agent.Name}/versions/{created.AgentVersionId}");
-        Assert.Equal(("A brand new prompt.", "v2"), (version.Content.SystemPrompt, version.Content.Label));
+        Assert.Equal(("A brand new prompt.", "v2"), (version.Content.Agents[0].Config, version.Content.Label));
     }
 
     [Fact]
@@ -78,7 +78,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
 
         var first = await StartAsync(client, new RunRequest { Agent = agent.Name });
         var second = await StartAsync(client, new RunRequest { Agent = agent.Name });
-        fake.ServeContract(SeededAgent.ExampleVersion with { SystemPrompt = "Changed." });
+        fake.ServeContract(SeededAgent.ExampleVersionConfigured("Changed."));
         var third = await StartAsync(client, new RunRequest { Agent = agent.Name });
         fake.ServeContract(SeededAgent.ExampleVersion);
         var back = await StartAsync(client, new RunRequest { Agent = agent.Name });
@@ -147,7 +147,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         var agent = await NewAgentAsync(fake.Url.AbsoluteUri);
         var original = await StartAsync(client, new RunRequest { Agent = agent.Name });
 
-        other.ServeContract(SeededAgent.ExampleVersion with { SystemPrompt = "Changed since." });
+        other.ServeContract(SeededAgent.ExampleVersionConfigured("Changed since."));
         var again = await RerunOkAsync(client, original.RunId, new RerunRequest { EndpointUrl = other.Url.AbsoluteUri });
 
         Assert.True(again.VersionCreated);
@@ -242,13 +242,13 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         await AssertBadGatewayAsync(await Post(client, new RunRequest { Agent = agent.Name }), "suwageval/contract");
         fake.ServeContract(_ =>
             Results.Text( /*lang=json,strict*/
-                """{"systemPrompt":"p"}""",
+                """{"agents":"p"}""",
                 "application/json"
             )
         );
         await AssertBadGatewayAsync(await Post(client, new RunRequest { Agent = agent.Name }), "does not match the contract");
-        fake.ServeContract(SeededAgent.ExampleVersion with { SystemPrompt = " " });
-        await AssertBadGatewayAsync(await Post(client, new RunRequest { Agent = agent.Name }), "systemPrompt is empty");
+        fake.ServeContract(SeededAgent.ExampleVersion with { Agents = [] });
+        await AssertBadGatewayAsync(await Post(client, new RunRequest { Agent = agent.Name }), "agents: there is at least one agent");
 
         Assert.Empty(await GetAsync<List<RunSummary>>(client, $"/runs?agent={agent.Name}"));
     }
@@ -267,8 +267,15 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         fake.ServeContract(
             new AgentContract
             {
-                SystemPrompt = "p",
-                Model = new ModelDefinition { Name = "m" },
+                Agents =
+                [
+                    new LlmAgentDefinition
+                    {
+                        Name = "a",
+                        Model = new ModelDefinition { Name = "m" },
+                        Config = "p",
+                    },
+                ],
             }
         );
         var client = Client();

@@ -79,7 +79,13 @@ internal static class RunEndpoints
                 $"The contract served at {endpoint.TrimEnd('/')}/suwageval/contract is not valid: {string.Join("; ", contractProblems)}."
             );
         }
-        var registration = await agents.RegisterVersionAsync(agent.Id, ContractContent.Json(contract), contract.Label, cancellationToken);
+        var registration = await agents.RegisterVersionAsync(
+            agent.Id,
+            ContractContent.Json(contract),
+            contract.Label,
+            contract.Context.Retrieval?.Description,
+            cancellationToken
+        );
         var version = registration.Version;
 
         var keys = picked.Select(scenario => scenario.Key).ToHashSet();

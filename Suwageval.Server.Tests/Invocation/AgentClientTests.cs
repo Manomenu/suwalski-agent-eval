@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text;
+using System.Text.Json;
 using Suwageval.Contracts.Conversations;
 using Suwageval.Server.Invocation;
 
@@ -11,15 +12,20 @@ public sealed class AgentClientTests
 
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
 
+    private static readonly TurnContext Context = new(Guid.Parse("11111111-2222-3333-4444-555555555555"), "refund-flow", 3);
+
     private sealed class Stub(Func<HttpRequestMessage, Task<HttpResponseMessage>> answer) : HttpMessageHandler
     {
         public string? RequestBody { get; private set; }
+
+        public Dictionary<string, string> RequestHeaders { get; private set; } = [];
 
         public Uri? RequestUri { get; private set; }
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             RequestUri = request.RequestUri;
+            RequestHeaders = request.Headers.ToDictionary(header => header.Key, header => string.Join(",", header.Value));
             RequestBody = request.Content is null ? null : await request.Content.ReadAsStringAsync(cancellationToken);
             return await answer(request);
         }
@@ -32,7 +38,7 @@ public sealed class AgentClientTests
     {
         using var stub = new Stub(answer);
         using var http = new HttpClient(stub, disposeHandler: false) { Timeout = TimeSpan.FromSeconds(30) };
-        var result = await new AgentClient(http).TurnAsync(Agent, [new UserMessage { Text = "hi" }], Cancellation);
+        var result = await new AgentClient(http).TurnAsync(Agent, [new UserMessage { Text = "hi" }], Context, Cancellation);
         return (result, stub);
     }
 
@@ -71,9 +77,70 @@ public sealed class AgentClientTests
         );
         using var http = new HttpClient(stub, disposeHandler: false);
 
-        await new AgentClient(http).TurnAsync(Agent, [new AssistantMessage { Text = "a" }], Cancellation);
+        await new AgentClient(http).TurnAsync(Agent, [new AssistantMessage { Text = "a" }], Context, Cancellation);
 
         Assert.DoesNotContain("interrupted", stub.RequestBody, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Sends_the_fixtures_verbatim_and_the_correlation_headers_on_every_call()
+    {
+        using var stub = new Stub(_ =>
+            Task.FromResult(
+                Ok( /*lang=json,strict*/
+                    """{"items":[]}"""
+                )
+            )
+        );
+        using var http = new HttpClient(stub, disposeHandler: false);
+        var fixtures = JsonDocument
+            .Parse( /*lang=json,strict*/
+                """{"pinnedResources":["plans"],"n":1.50}"""
+            )
+            .RootElement.Clone();
+
+        await new AgentClient(http).TurnAsync(Agent, [new UserMessage { Text = "hi" }], Context with { Fixtures = fixtures }, Cancellation);
+
+        using var body = JsonDocument.Parse(stub.RequestBody ?? "");
+        Assert.Equal(fixtures.GetRawText(), body.RootElement.GetProperty("fixtures").GetRawText());
+        Assert.Equal("11111111-2222-3333-4444-555555555555", stub.RequestHeaders["Suwageval-Run-Id"]);
+        Assert.Equal("refund-flow", stub.RequestHeaders["Suwageval-Scenario"]);
+        Assert.Equal("3", stub.RequestHeaders["Suwageval-Sample"]);
+    }
+
+    [Fact]
+    public async Task Leaves_the_fixtures_out_when_the_scenario_has_none()
+    {
+        var (_, stub) = await CallAsync(_ =>
+            Task.FromResult(
+                Ok( /*lang=json,strict*/
+                    """{"items":[]}"""
+                )
+            )
+        );
+
+        Assert.DoesNotContain("fixtures", stub.RequestBody, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Measures_how_long_the_call_took_whether_it_succeeded_or_not()
+    {
+        var (answered, _) = await CallAsync(async _ =>
+        {
+            await Task.Delay(60, Cancellation);
+            return Ok( /*lang=json,strict*/
+                """{"items":[]}"""
+            );
+        });
+        var (failed, _) = await CallAsync(async _ =>
+        {
+            await Task.Delay(60, Cancellation);
+            return new HttpResponseMessage(HttpStatusCode.InternalServerError);
+        });
+
+        Assert.True(answered.DurationMs >= 50, $"{answered.DurationMs}");
+        Assert.Null(failed.Items);
+        Assert.True(failed.DurationMs >= 50, $"{failed.DurationMs}");
     }
 
     [Fact]
@@ -149,7 +216,7 @@ public sealed class AgentClientTests
         using var hanging = new Hanging();
         using var http = new HttpClient(hanging, disposeHandler: false) { Timeout = TimeSpan.FromMilliseconds(200) };
 
-        var result = await new AgentClient(http).TurnAsync(Agent, [new UserMessage { Text = "hi" }], Cancellation);
+        var result = await new AgentClient(http).TurnAsync(Agent, [new UserMessage { Text = "hi" }], Context, Cancellation);
 
         Assert.Null(result.Items);
         Assert.Contains("did not answer within", result.Error, StringComparison.Ordinal);
@@ -157,8 +224,8 @@ public sealed class AgentClientTests
 
     private const string ContractBody = /*lang=json,strict*/
         """
-        {"label":"abc1234","systemPrompt":"Be helpful.","model":{"name":"m","parameters":{"temperature":0}},
-         "tools":[{"name":"get_order","description":"d","parameters":{"type":"object"}}],
+        {"label":"abc1234","agents":[{"name":"main","model":{"name":"m","parameters":{"temperature":0}},"config":"Be helpful.",
+         "tools":[{"name":"get_order","description":"d","parameters":{"type":"object"}}]}],"otherConfig":"retries: 2",
          "context":{"usesRetrieval":false,"events":[{"type":"state.changed","dataSchema":{"type":"object"}}]}}
         """;
 
@@ -177,8 +244,10 @@ public sealed class AgentClientTests
         Assert.Equal(new Uri("http://agent.test/base/suwageval/contract"), stub.RequestUri);
         Assert.Null(result.Error);
         var contract = result.Contract ?? throw new InvalidOperationException("no contract");
-        Assert.Equal(("abc1234", "Be helpful.", "m"), (contract.Label, contract.SystemPrompt, contract.Model.Name));
-        Assert.Equal("get_order", Assert.Single(contract.Tools).Name);
+        var agent = Assert.Single(contract.Agents);
+        Assert.Equal(("abc1234", "Be helpful.", "m"), (contract.Label, agent.Config, agent.Model.Name));
+        Assert.Equal(("main", "retries: 2"), (agent.Name, contract.OtherConfig));
+        Assert.Equal("get_order", Assert.Single(agent.Tools).Name);
         Assert.Equal("state.changed", Assert.Single(contract.Context.Events).Type);
     }
 
@@ -186,10 +255,10 @@ public sealed class AgentClientTests
     [InlineData("not json")]
     [InlineData("null")]
     [InlineData( /*lang=json,strict*/
-        """{"systemPrompt":"p"}"""
+        """{"otherConfig":"p"}"""
     )]
     [InlineData( /*lang=json,strict*/
-        """{"systemPrompt":"p","model":{"name":"m"},"colour":"red"}"""
+        """{"agents":[],"colour":"red"}"""
     )]
     public async Task An_unreadable_contract_is_a_failed_result_naming_the_url(string body)
     {
@@ -237,7 +306,7 @@ public sealed class AgentClientTests
         using var http = new HttpClient(stub, disposeHandler: false);
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            new AgentClient(http).TurnAsync(Agent, [new UserMessage { Text = "hi" }], cancelled.Token)
+            new AgentClient(http).TurnAsync(Agent, [new UserMessage { Text = "hi" }], Context, cancelled.Token)
         );
     }
 }
