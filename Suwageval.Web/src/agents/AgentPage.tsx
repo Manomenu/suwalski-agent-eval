@@ -1,4 +1,19 @@
-import { Alert, Anchor, Badge, Button, Checkbox, Group, Loader, MultiSelect, Paper, Stack, Table, Text, Title } from "@mantine/core";
+import {
+    Alert,
+    Anchor,
+    Badge,
+    Button,
+    Checkbox,
+    Group,
+    Loader,
+    MultiSelect,
+    Paper,
+    Stack,
+    Table,
+    Text,
+    Title,
+    Tooltip,
+} from "@mantine/core";
 import { lazy, Suspense, useState } from "react";
 
 import { useUnstableChecks } from "../runs/useUnstableChecks";
@@ -25,6 +40,11 @@ import { UnstableChecksCard } from "./UnstableChecksCard";
 import { VersionsSection } from "./VersionsSection";
 
 // The chart library is the largest part of the app: it loads only when an agent's page is opened.
+/** What the Samples column counts, said on hover over its header. */
+const SAMPLES_HELP =
+    "Answers of the agent in this run: done / planned. A sample is one play of a scenario's conversation; a scenario is played as many times as its samples field says (1 by default), so a check's pass rate is the share of its samples that passed.";
+const HEADER_HELP_WIDTH = 320;
+
 const PassRateTrend = lazy(() => import("./PassRateTrend").then((module) => ({ default: module.PassRateTrend })));
 
 const MODEL_FILTER_MIN_WIDTH = 260;
@@ -178,7 +198,18 @@ function AgentView({
                                             <Table.Th>Tag</Table.Th>
                                             <Table.Th>Version</Table.Th>
                                             <Table.Th>Checks</Table.Th>
-                                            <Table.Th>Samples</Table.Th>
+                                            <Table.Th>
+                                                <Tooltip label={SAMPLES_HELP} multiline w={HEADER_HELP_WIDTH}>
+                                                    <Text
+                                                        span
+                                                        inherit
+                                                        td="underline"
+                                                        style={{ textDecorationStyle: "dotted", cursor: "help" }}
+                                                    >
+                                                        Samples
+                                                    </Text>
+                                                </Tooltip>
+                                            </Table.Th>
                                             <Table.Th>Created</Table.Th>
                                             <Table.Th>Finished</Table.Th>
                                         </Table.Tr>
