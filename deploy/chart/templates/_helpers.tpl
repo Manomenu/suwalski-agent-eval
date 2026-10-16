@@ -24,3 +24,21 @@ zatrzymać wdrożenie z czytelnym błędem, a nie po cichu wziąć „latest".
 {{- $tag := required "image.tag jest wymagany — ustawia go Argo Application w repo platformy" .Values.image.tag -}}
 {{ .Values.image.registry }}/{{ .component }}:{{ $tag }}
 {{- end -}}
+
+{{/*
+The judge's model as environment variables (appsettings: Models:judge and Judge:Model). Rendered only when
+judgeModel.baseUrl is set: without a model the server starts anyway and refuses runs that have judge checks.
+Used by the server and by the daily live check, so both ask the same model the same way.
+*/}}
+{{- define "app.judgeEnv" -}}
+{{- with .Values.judgeModel }}
+{{- if .baseUrl }}
+- name: Models__judge__BaseUrl
+  value: {{ .baseUrl | quote }}
+- name: Models__judge__Model
+  value: {{ required "judgeModel.name is required when judgeModel.baseUrl is set" .name | quote }}
+- name: Models__judge__MaxConcurrency
+  value: {{ .maxConcurrency | quote }}
+{{- end }}
+{{- end }}
+{{- end -}}

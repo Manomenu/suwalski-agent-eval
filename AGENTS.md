@@ -56,7 +56,7 @@ app keeps its tests beside its code, so those folders would only split the .NET 
 | --- | --- |
 | `Suwageval.slnx` | the .NET solution: the server, the CLI, the contracts and their tests |
 | `global.json`, `Directory.Build.props`, `Directory.Packages.props` | the SDK band; the settings every C# project shares (nullable, analyzers, warnings as errors, lockfiles); every NuGet package and its version, named once |
-| `Suwageval.Server/` | the HTTP API (ASP.NET Core minimal APIs, PostgreSQL through Npgsql, SQL written by hand and mapped by Dapper). One folder — one namespace — per part: `Api/`, `Database/`, then one per feature. `Runs/` holds the queue's worker (`RunWorker`, a hosted service); the tests share one database, so they run the server without it (`RunTestApp`) and take runs themselves, per agent |
+| `Suwageval.Server/` | the HTTP API (ASP.NET Core minimal APIs, PostgreSQL through Npgsql, SQL written by hand and mapped by Dapper). One folder — one namespace — per part: `Api/`, `Database/`, then one per feature. `Runs/` holds the queue's worker (`RunWorker`, a hosted service); the tests share one database, so they run the server without it (`RunTestApp`) and take runs themselves, per agent. `Models/` holds the models Suwageval itself calls (`Models:<name>`): one chat client and one pool of concurrent calls per model. `Judges/` holds the verdict of a `judge` check (a Microsoft Agent Framework agent over a model's client) and the daily `live-check` command (`Program.cs` runs it for the chart's CronJob) |
 | `Suwageval.Server/Database/Migrations/up/` | numbered SQL migrations, applied at start-up by grate (`Database/Migrator.cs`) |
 | `Suwageval.Server.Tests/` | the server's tests (xUnit v3), mirroring the server's folders; `ContractsTests.cs` holds the import contracts, `ProjectReferencesTests.cs` the project graph. `EndToEnd/` is the one place where the CLI runs against the server in process (`push`, `run`); only its types may use the CLI (`EndToEndContractsTests.cs`) |
 | `Suwageval.Contracts/` | the records the API sends and receives and the CLI reads from YAML, with their JSON shape (System.Text.Json, camelCase, strict). Records only, public types (a library shared by projects); one folder — one namespace — per feature |
@@ -65,7 +65,7 @@ app keeps its tests beside its code, so those folders would only split the .NET 
 | `docs/scenario-format.md` | the file format (v0) an agent's repository keeps in `suwageval/`: `agent.yaml`, scenarios with checks, shorthands |
 | `.claude-plugin/`, `claude-plugin/` | the Claude Code plugin: `.claude-plugin/marketplace.json` is the marketplace (`suwalski-agent-eval`), `claude-plugin/` the plugin `suwageval` — one skill and the commands (`/suwageval:scenario`, `fix`, `run`) that drive the CLI. Text only, checked by `ClaudePluginTests.cs`; the file format is linked from the skill, not copied |
 | `Suwageval.Web/` | the web app (React, Mantine, Vite). Source in `src/`, one folder per feature |
-| `deploy/chart/` | the Helm chart the cluster runs: server, web, ingress and `templates/smoke-test.yaml`, the post-deploy smoke test |
+| `deploy/chart/` | the Helm chart the cluster runs: server, web, ingress, `templates/smoke-test.yaml` (the post-deploy smoke test) and `templates/live-check.yaml` (the daily CronJob that asks the judge's model, section 3) |
 | `compose.yaml` | the whole stack on a laptop, from the same Dockerfiles — no cluster needed |
 | `Suwageval.Server/Dockerfile`, `Suwageval.Web/Dockerfile` | the two images; build context is the repo root |
 | `justfile`, `.just/` | commands for humans: the main recipes and the `just <module>` families (section 10) |
@@ -225,7 +225,7 @@ not by reviewers; a dependency against it fails with the types involved.
 | | Server | Web |
 | --- | --- | --- |
 | Where | `Layers` in `Suwageval.Server.Tests/ContractsTests.cs` (ArchUnitNET, on the compiled assembly) | `boundaries/*` in `Suwageval.Web/eslint.config.js` |
-| Today | `Api` → `Runs` → `Checks` \| `Invocation` → `Scenarios` → `Agents` → `Database` | `main`/`App` → features → `api` |
+| Today | `Api` → `Runs` → `Judges` → `Checks` \| `Invocation` \| `Models` → `Scenarios` → `Agents` → `Database` | `main`/`App` → features → `api` |
 | A new feature | **must** get a layer — `Every_server_namespace_has_a_layer` fails otherwise | is a folder `src/<feature>/`, independent of other features by default |
 | Inside a feature | a feature with several concerns declares its own order (e.g. endpoints → store → model) as a test beside the first | free |
 | Feature uses feature | only downwards, by its position in the layer list | only through an explicit policy in `eslint.config.js`, with a comment saying why |
@@ -438,8 +438,15 @@ A model provider's API key is a secret like any other.
   AGENTS.md, „Nowa zmienna”). **End the change by telling the owner** to run that `setup.sh`
   and then `just secrets backup` there. Agents never log in to Bitwarden or run the backup
   themselves.
-- Not a secret — a URL, a port, a public name, a model's name — goes in plain sight:
+- Not a secret — a public URL, a port, a public name — goes in plain sight:
   `values.yaml`, a ConfigMap, `appsettings.json`.
+- **Addresses of the owner's own infrastructure are never committed either** — a model server on
+  the private network (its URL, the model's name there), a host's IP. On a laptop they live in the
+  gitignored `.env` at the repo root, read by `just server`, `just up` (compose's `env_file`) and
+  `scripts/.internal/live-check.sh`, and backed up with `just secrets backup`; `.env.example` lists the
+  names with placeholders. On the cluster they are chart values set by the platform repo. Defaults that
+  say nothing about the network (a concurrency limit, `Judge:Model: judge`) stay in `appsettings.json`
+  or in code.
 
 ## 8. Network access and login: through Cloudflare
 
@@ -508,6 +515,7 @@ Two vocabularies, chosen word by word:
   | Script | Use it to |
   | --- | --- |
   | `scripts/.internal/check.sh` | verify a change — the whole gate (section 3) |
+  | `scripts/.internal/live-check.sh [test args]` | the live tests (`[Trait("live", "true")]`): one or two real calls to the judge's model, from `Models__judge__*` in the gitignored `.env` (section 7). The gate leaves them out; run it after changing the judge, its prompt or the model, and when the model's server changed |
   | `scripts/.internal/e2e.sh [playwright args]` | browser tests (`Suwageval.Web/src/**/*.e2e.ts`) against a real server and an empty `suwageval_e2e` database, on ports 6231/3231. Run it after changing anything a user clicks |
   | `scripts/.internal/db.sh up\|down\|status\|psql` | the local PostgreSQL on `localhost:5463` (docker container `suwageval-postgres`). `check.sh` runs `up` itself; tests create their own `suwageval_test` database |
   | `scripts/.internal/api-types.sh [--check]` | regenerate `Suwageval.Web/src/api/openapi.d.ts` after changing a record the API exposes. Never edit that file by hand |

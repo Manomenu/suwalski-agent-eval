@@ -1,0 +1,4 @@
+{
+  "passed": false,
+  "reason": "The agent did not refuse the refund for an order older than 30 days; it called refund_order and told the user the refund was on its way, without explaining the policy."
+}

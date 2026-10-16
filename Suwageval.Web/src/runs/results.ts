@@ -65,6 +65,11 @@ export function checkSummary(check: CheckRunResult): string {
     return `${percent(check.passRate)} (${passes}/${check.samples.length} samples, required ${percent(check.passThreshold)})`;
 }
 
+/** How many samples of a check no judge could give a verdict on (its model was unreachable or answered unreadably). */
+export function notJudgedCount(check: CheckRunResult): number {
+    return check.samples.filter((sample) => sample.notJudged).length;
+}
+
 /** A run's progress: `3/10`, or just `0` before the total is known. */
 export function progress(run: RunSummary): string {
     const total = num(run.samplesTotal);

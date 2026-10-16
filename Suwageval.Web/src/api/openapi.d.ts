@@ -810,13 +810,29 @@ export interface components {
             archived: boolean;
         };
         /** @description A test on what the agent produced for a scenario, told apart by `type`. */
-        CheckInput: components["schemas"]["CheckInputToolCalledCheck"] | components["schemas"]["CheckInputToolNotCalledCheck"] | components["schemas"]["CheckInputEventCheck"] | components["schemas"]["CheckInputTextCheck"];
+        CheckInput: components["schemas"]["CheckInputToolCalledCheck"] | components["schemas"]["CheckInputToolNotCalledCheck"] | components["schemas"]["CheckInputEventCheck"] | components["schemas"]["CheckInputTextCheck"] | components["schemas"]["CheckInputJudgeCheck"];
         CheckInputEventCheck: {
             /** @enum {string} */
             type?: "event";
             /** @description The event's type, one the agent declares. */
             event: string;
             data?: null | components["schemas"]["JsonElement"];
+            /** @description Lowercase kebab-case, unique within the agent. */
+            key: string;
+            scenarioKey: string;
+            where?: null | components["schemas"]["CheckWhere"];
+            /**
+             * Format: double
+             * @description The share of samples that must pass, from above 0 to 1.
+             */
+            passThreshold?: number | string;
+        };
+        /** @description A model's verdict on what the agent produced, against criteria written in plain words. */
+        CheckInputJudgeCheck: {
+            /** @enum {string} */
+            type?: "judge";
+            /** @description What the agent's output must satisfy, in one or a few sentences; the judge answers whether it does. */
+            criteria: string;
             /** @description Lowercase kebab-case, unique within the agent. */
             key: string;
             scenarioKey: string;
@@ -900,7 +916,13 @@ export interface components {
              * @description From 1.
              */
             sample: number | string;
+            /** @description False also when `notJudged`: a sample nobody could judge does not pass. */
             passed: boolean;
+            /**
+             * @description True when a judge check could not get a verdict (the model was unreachable, too slow or answered unreadably) — told
+             *     apart from a verdict of "failed"; `message` says what happened.
+             */
+            notJudged: boolean;
             /** @description The items that decided the verdict; may be empty (a tool that was not called leaves nothing to show). */
             evidence: components["schemas"]["ConversationItem"][];
             message: string;

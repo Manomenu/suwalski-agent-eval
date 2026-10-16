@@ -31,6 +31,7 @@ spec:
             # Port z values — jedno źródło prawdy dla sondy i procesu.
             - name: ASPNETCORE_HTTP_PORTS
               value: {{ .Values.server.port | quote }}
+            {{- include "app.judgeEnv" . | nindent 12 }}
           {{- with .Values.server.databaseSecret }}
           envFrom:
             - secretRef:

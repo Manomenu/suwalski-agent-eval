@@ -142,7 +142,7 @@ Decided so far (the agent under test over HTTP, tags, non-determinism, who calls
 **First goal (MVP):** from `suwalski-example-agent`, `suwageval validate`, `push` the agent
 and a scenario, `run --tag regression --wait` against the running agent, and read the
 result of deterministic checks (a tool called, an event, text) in the CLI. No judge, no
-multi-turn simulation, no web views yet.
+multi-turn simulation, no web views yet (the judge came right after: step 4).
 
 1. **Contracts and `validate`** — done: `Suwageval.Contracts` (format v0) and the CLI's
    `validate`; the YAML files in the example agent.
@@ -151,18 +151,20 @@ multi-turn simulation, no web views yet.
 3. **Invocation and Runs** — done: the agent under test over HTTP (contract v0: `/suwageval/turn` and `/suwageval/contract`, `docs/scenario-format.md`), the
    deterministic checks, and `suwageval run` (`--wait` exits 0 when every check passed its
    threshold, 1 when one did not, 2 when the run could not finish). The MVP is reached here.
-4. **After the MVP** — the judge, multi-turn simulation, results and comparisons on the web.
+4. **After the MVP** — the judge is done: a `judge` check, verdict by a model through Microsoft Agent Framework
+   (`docs/scenario-format.md`, "The judge check"), with a daily live check of the model from the cluster. Still to come:
+   multi-turn simulation, results and comparisons on the web.
    The Claude Code plugin over the CLI is done (see "Use it from Claude Code").
 
-Microsoft Agent Framework enters this repository only if Suwageval builds an agent itself (the
-user simulator, the judge) — as the first code that uses it (AGENTS.md, section 0), together
-with its live test and the recorded answers the gate uses instead of a model.
+Microsoft Agent Framework came in with the judge, the first code that uses it (AGENTS.md, section 0), together
+with its live test (`scripts/.internal/live-check.sh`) and the recorded answers the gate uses instead of a model.
+The user simulator will use the same per-model client and pool of calls.
 
 ## Stack
 
 - **Server:** .NET 10, ASP.NET Core minimal APIs, PostgreSQL through Npgsql and Dapper (SQL
   written by hand, numbered migrations), OpenAPI document the web app is typed from; Microsoft Agent Framework for the
-  judge and the user simulator (after the MVP).
+  judge today, the user simulator after the MVP.
 - **Web:** React 19, Mantine, Vite, TypeScript strict.
 - **Around them:** PostgreSQL 17, a container per part, compose for the whole stack on a
   laptop, a Helm chart with a post-deploy smoke test for the cluster.
@@ -187,6 +189,7 @@ corepack enable --install-directory ~/.local/bin   # pnpm, in the version packag
 
 ```sh
 just                 # every recipe, grouped
+cp .env.example .env # once: the judge's model (address and name), never committed
 just db up           # local PostgreSQL on :5463
 just server          # API on :6230 (OpenAPI document at /openapi/v1.json)
 just web             # web app on :3230, proxies /api to the server

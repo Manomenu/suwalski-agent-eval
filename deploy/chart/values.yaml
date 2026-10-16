@@ -19,6 +19,28 @@ server:
     requests: { cpu: 50m, memory: 128Mi }
     limits: { memory: 384Mi }
 
+# The model Suwageval itself calls to give the verdicts of `judge` checks: an OpenAI-compatible
+# server (its endpoints directly under baseUrl, e.g. {baseUrl}/chat/completions). Not secrets: a
+# URL and a name; the platform repo sets them. Empty baseUrl = no model: the server starts, and a run
+# with judge checks is refused. maxConcurrency is the one pool of calls to this model, shared by
+# everything that asks (TODO.md, "Parallel runs").
+judgeModel:
+  baseUrl: ""
+  name: ""
+  maxConcurrency: 8
+
+# The daily check of that model from the cluster's own network (templates/live-check.yaml): the
+# server's image, another command, one judge call with a fixed tiny case. Rendered only with a
+# judgeModel. A failure turns the Job red and, with discordSecret, posts to the alerts channel.
+liveCheck:
+  schedule: "17 6 * * *" # once a day (the CronJob's time zone is Europe/Warsaw)
+  # A Secret in the release namespace with LiveCheck__DiscordWebhookUrl (a Discord webhook), created
+  # by the platform repo's setup.sh. Optional: empty or missing = the check only fails the Job.
+  discordSecret: ""
+  resources:
+    requests: { cpu: 20m, memory: 128Mi }
+    limits: { memory: 256Mi }
+
 web:
   replicas: 1
   port: 8080

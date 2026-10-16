@@ -241,6 +241,17 @@ public sealed class ValidatorTests
         AssertProblem(result, "checks[0].pattern", "regular expression");
     }
 
+    [Fact]
+    public void A_judge_check_needs_criteria()
+    {
+        AssertProblem(
+            Validate("key: k\nconversation:\n  - user: hi\nchecks:\n  - { key: c, type: judge, criteria: '  ' }\n"),
+            "checks[0].criteria",
+            "needs 'criteria'"
+        );
+        Assert.True(Validate("key: k\nconversation:\n  - user: hi\nchecks:\n  - { key: c, type: judge, criteria: polite }\n").IsValid);
+    }
+
     [Theory]
     [InlineData("0")]
     [InlineData("1.5")]
@@ -255,7 +266,7 @@ public sealed class ValidatorTests
     }
 
     [Theory]
-    [InlineData("type: judge", "Unknown check type 'judge'")]
+    [InlineData("type: judge", "Missing required field: criteria")]
     [InlineData("tool: refund_order", "needs a 'type'")]
     [InlineData("type: tool-called\n    tool: refund_order\n    where: { turn: soon }", "turn must be")]
     [InlineData("type: tool-called\n    tool: refund_order\n    where: { turn: 0 }", "turn must be")]

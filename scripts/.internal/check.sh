@@ -33,7 +33,9 @@ format_server() {
 
 test_server() {
     # Includes ContractsTests: the import contracts, and every server namespace has a layer.
-    (cd "$ROOT" && dotnet test --solution Suwageval.slnx --no-build --no-progress)
+    # Tests marked [Trait("live", "true")] call a real outside service (the judge's model): they are left
+    # out here — the gate never calls a model — and run by scripts/.internal/live-check.sh.
+    (cd "$ROOT" && dotnet test --solution Suwageval.slnx --no-build --no-progress --filter-not-trait "live=true")
 }
 
 web() {

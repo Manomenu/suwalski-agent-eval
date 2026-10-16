@@ -19,6 +19,10 @@
     <PackageVersion Include="Npgsql" Version="10.0.3" />
     <!-- schema migrations: one-time SQL scripts, run once, edits detected (RoundhousE's successor) -->
     <PackageVersion Include="grate.postgresql" Version="2.1.6" />
+    <!-- Microsoft Agent Framework: the judge is a ChatClientAgent over a chat client -->
+    <PackageVersion Include="Microsoft.Agents.AI" Version="1.25.0" />
+    <!-- the OpenAI-compatible chat client (a vLLM server) behind IChatClient -->
+    <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="10.10.1" />
   </ItemGroup>
   <ItemGroup Label="cli">
     <!-- commands, arguments and options of the suwageval CLI -->

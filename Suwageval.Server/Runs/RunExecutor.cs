@@ -8,6 +8,7 @@ using Suwageval.Contracts.Runs;
 using Suwageval.Server.Agents;
 using Suwageval.Server.Checks;
 using Suwageval.Server.Invocation;
+using Suwageval.Server.Judges;
 using Suwageval.Server.Scenarios;
 
 namespace Suwageval.Server.Runs;
@@ -28,6 +29,7 @@ internal sealed partial class RunExecutor(
     CheckStore checks,
     AgentStore agents,
     AgentClient agent,
+    Judge judge,
     IOptions<RunOptions> options,
     ILogger<RunExecutor> logger
 )
@@ -134,6 +136,23 @@ internal sealed partial class RunExecutor(
         if (turn.Items is { } items)
         {
             var trace = new Trace([items]);
+            var results = new List<NewCheckResult>();
+            foreach (var (row, input) in scenario.Checks)
+            {
+                var verdict = input is JudgeCheck judgeCheck
+                    ? await judge.JudgeAsync(judgeCheck, scenario.Content.Conversation, trace, cancellationToken)
+                    : CheckEvaluator.Evaluate(input, trace);
+                results.Add(
+                    new NewCheckResult(
+                        row.Id,
+                        row.Revision,
+                        verdict.Passed,
+                        JsonSerializer.Serialize(verdict.Evidence, Json),
+                        verdict.Message,
+                        verdict.NotJudged
+                    )
+                );
+            }
             stored = new NewSample(
                 scenario.Row.Id,
                 scenario.Row.Revision,
@@ -142,19 +161,7 @@ internal sealed partial class RunExecutor(
                 JsonSerializer.Serialize(items, Json),
                 null,
                 UndeclaredOutput.Of(items, declared),
-                [
-                    .. scenario.Checks.Select(check =>
-                    {
-                        var verdict = CheckEvaluator.Evaluate(check.Input, trace);
-                        return new NewCheckResult(
-                            check.Row.Id,
-                            check.Row.Revision,
-                            verdict.Passed,
-                            JsonSerializer.Serialize(verdict.Evidence, Json),
-                            verdict.Message
-                        );
-                    }),
-                ]
+                results
             );
         }
         else

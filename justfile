@@ -21,7 +21,7 @@ default:
 [group('run')]
 server *args:
     @./scripts/.internal/free-port.sh 6230
-    DOTNET_WATCH_RESTART_ON_RUDE_EDIT=1 dotnet watch --project Suwageval.Server run {{ args }}
+    set -a && { [ ! -f .env ] || . ./.env; } && set +a && DOTNET_WATCH_RESTART_ON_RUDE_EDIT=1 dotnet watch --project Suwageval.Server run {{ args }}
 
 # Web UI on :3230 — proxies /api to the server, so run `just server` alongside
 [group('run')]

@@ -8,6 +8,7 @@ namespace Suwageval.Contracts.Checks;
 [JsonDerivedType(typeof(ToolNotCalledCheck), "tool-not-called")]
 [JsonDerivedType(typeof(EventCheck), "event")]
 [JsonDerivedType(typeof(TextCheck), "text")]
+[JsonDerivedType(typeof(JudgeCheck), "judge")]
 public abstract record CheckInput
 {
     /// <summary>Lowercase kebab-case, unique within the agent.</summary>
