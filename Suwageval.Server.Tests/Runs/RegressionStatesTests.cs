@@ -51,8 +51,18 @@ public sealed class RegressionStatesTests
     public void The_state_follows_the_history_and_the_verdict(bool[] history, int n, bool passed, RegressionState expected) =>
         Assert.Equal(expected, RegressionStates.State(history, n, passed));
 
-    private static RegressionStates.Point[] Runs(params bool[] history) =>
-        [.. history.Select(passed => new RegressionStates.Point(Guid.NewGuid(), passed))];
+    private static CheckHistoryPoint[] Runs(params bool[] history) =>
+        [
+            .. history.Select(
+                (passed, index) =>
+                    new CheckHistoryPoint
+                    {
+                        RunId = Guid.NewGuid(),
+                        CreatedAt = new DateTime(2026, 10, 1, 0, 0, 0, DateTimeKind.Utc).AddHours(index),
+                        Passed = passed,
+                    }
+            ),
+        ];
 
     [Fact]
     public void An_already_broken_check_names_the_first_run_of_its_failures_and_every_state_the_last_run_that_passed()
@@ -74,5 +84,17 @@ public sealed class RegressionStatesTests
 
         Assert.Equal((RegressionState.Regression, null, true), (regression.State, regression.FailingSince, regression.AgentFailed));
         Assert.Equal((RegressionState.KnownFailure, null, null), (known.State, known.FailingSince, known.LastPassedRun));
+    }
+
+    [Fact]
+    public void The_history_is_returned_in_order_exactly_as_the_state_was_computed_from()
+    {
+        var history = Runs(P, P, F, P, F);
+
+        var regression = RegressionStates.Of(history, 5, passed: false, agentFailed: false);
+
+        Assert.Equal(history, regression.History);
+        Assert.Equal([P, P, F, P, F], regression.History.Select(point => point.Passed));
+        Assert.Equal(regression.History.OrderBy(point => point.CreatedAt), regression.History);
     }
 }

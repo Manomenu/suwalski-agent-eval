@@ -363,6 +363,10 @@ over the newest *reference runs*.
   | Fixed | passes now after a failing streak |
   | Unstable | its history mixes passes and failures in no steady pattern |
 
+  A check also carries the `history` its state was computed from (run, time, passed). The web shows it as a strip of marks
+  (a green dot passed, a red ✗ failed; oldest first, this run last); the CLI prints it after each listed check as
+  `✓✓✓✗ → ✗`: the history oldest first, an arrow, this run.
+
   A check also says when the agent gave no answer in its scenario (`agentFailed`): then the agent failed, not the check.
 - **Exit codes** of `run --wait` (and `rerun`, `recheck`) when the results carry the comparison: 1 only when a check regressed
   or is new and failing; known failures, unstable and already broken checks leave the exit code 0. `--strict` brings back the old

@@ -238,11 +238,12 @@ public sealed class RegressionHistoryTests(TestDatabase database) : IAsyncDispos
     public async Task A_failing_run_on_a_branch_after_five_passing_reference_runs_is_a_regression()
     {
         var agent = await NewAgentAsync();
-        Guid last = default;
+        List<Guid> passed = [];
         for (var i = 0; i < 5; i++)
         {
-            last = await PassAsync(agent, Reference());
+            passed.Add(await PassAsync(agent, Reference()));
         }
+        var last = passed[^1];
         var current = await FailAsync(agent, OnBranch("feature/x"));
 
         var results = await ResultsAsync(current);
@@ -252,6 +253,9 @@ public sealed class RegressionHistoryTests(TestDatabase database) : IAsyncDispos
             (RegressionState.Regression, last, null, false),
             (check.Regression!.State, check.Regression.LastPassedRun, check.Regression.FailingSince, check.Regression.AgentFailed)
         );
+        Assert.Equal(passed, check.Regression.History.Select(point => point.RunId));
+        Assert.All(check.Regression.History, point => Assert.True(point.Passed));
+        Assert.Equal(check.Regression.History.OrderBy(point => point.CreatedAt), check.Regression.History);
         var summary = results.Regression!;
         Assert.Equal(("master", 5, 1, 0), (summary.ComparedWith, summary.History, summary.Regressions, summary.New));
     }

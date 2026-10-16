@@ -13,6 +13,7 @@ export type CheckRunResult = components["schemas"]["CheckRunResult"];
 export type UnstableCheck = components["schemas"]["UnstableCheck"];
 export type RecheckPlan = components["schemas"]["RecheckPlan"];
 export type ChangedCheck = components["schemas"]["ChangedCheck"];
+export type CheckRegression = components["schemas"]["CheckRegression"];
 export type RegressionState = components["schemas"]["RegressionState"];
 export type RegressionSummary = components["schemas"]["RegressionSummary"];
 export type ConversationItem = components["schemas"]["ConversationItem"];

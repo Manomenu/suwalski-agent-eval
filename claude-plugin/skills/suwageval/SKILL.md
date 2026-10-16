@@ -176,7 +176,8 @@ itself failed on that turn, which is not a check failing: say which.
 
 A run that finished has `results.regression` (what it was compared with, and counts) and each check a `regression`
 (`state`: `Passed`, `Regression`, `New`, `AlreadyBroken`, `KnownFailure`, `Fixed`, `Unstable`; `failingSince`, `lastPassedRun`,
-`agentFailed`). A regression is a check that passed steadily over the newest reference runs (clean tree, pushed commit,
+`agentFailed`, `history`: the verdicts the state follows from, oldest first; the CLI prints them as `✓✓✓✗ → ✗`, the last mark being
+this run). A regression is a check that passed steadily over the newest reference runs (clean tree, pushed commit,
 the default branch or `regression.branches` of `agent.yaml`) and fails now. Report in this order: **regressions and new
 failing checks** first (scenario, check, why; `lastPassedRun` is the run to compare with: `{SUWAGEVAL_URL}/compare?runs={lastPassedRun},{run.id}`),
 then **already broken** (not caused by this run), then fixed and unstable ones; known failures only as a count. A check with

@@ -1,6 +1,7 @@
 // What a check's state against its history means for the pages (the server decides the state): labels, colours, the order the run
 // page lists them in and the links to follow.
-import type { CheckRunResult, RegressionState, RegressionSummary, RunResults } from "./api";
+import type { CheckRegression, CheckRunResult, RegressionState, RegressionSummary, RunResults } from "./api";
+import { runHref, shortId } from "./results";
 
 export function stateLabel(state: RegressionState): string {
     switch (state) {
@@ -55,6 +56,65 @@ export function historyText(summary: RegressionSummary): string {
 /** The compare page of the last run the check passed in and this one, or null when it never passed in the history. */
 export function regressionCompareHref(runId: string, lastPassedRun: string | null | undefined): string | null {
     return lastPassedRun == null ? null : `/compare?runs=${lastPassedRun},${runId}`;
+}
+
+/**
+ * The link under a check of a run: Fixed compares with the last run the check failed in, the other states with the last run it
+ * passed in (an already broken check has none: it was not this run that broke it). Null when there is no such run.
+ */
+export function compareLink(runId: string, regression: CheckRegression | null | undefined): { label: string; href: string } | null {
+    if (regression == null || regression.state === "AlreadyBroken") return null;
+    if (regression.state === "Fixed") {
+        const failed = [...(regression.history ?? [])].reverse().find((point) => !point.passed);
+        return failed === undefined ? null : { label: "Compare with the last failing run", href: `/compare?runs=${failed.runId},${runId}` };
+    }
+    const href = regressionCompareHref(runId, regression.lastPassedRun);
+    return href === null ? null : { label: "Compare with the last passing run", href };
+}
+
+/** "17/10 00:03" in the viewer's time zone. */
+export function historyTime(iso: string): string {
+    const time = new Date(iso);
+    const two = (value: number) => String(value).padStart(2, "0");
+    return `${two(time.getDate())}/${two(time.getMonth() + 1)} ${two(time.getHours())}:${two(time.getMinutes())}`;
+}
+
+/** What the strip of marks is and how to read it, for someone who meets it for the first time. */
+export const CHECK_HISTORY_EXPLANATION =
+    "This check's verdict in the newest reference runs it is compared with, oldest first; the last mark is this run. Its state (regression, already broken, fixed, unstable…) follows from this pattern. Click a mark to open that run.";
+
+/** One dot of a check's history strip. A mark without `href` is the run being shown. */
+export interface HistoryMark {
+    key: string;
+    passed: boolean;
+    /** What a screen reader says: "run 725c66c4: passed" / "this run: failed". */
+    label: string;
+    /** The tooltip's first line: "17/10 00:03 · run 725c66c4 · passed" / "this run · failed". */
+    tooltip: string;
+    href: string | null;
+}
+
+/** The marks of a check's history oldest first and then this run's; none when the check has no history. */
+export function historyMarks(check: Pick<CheckRunResult, "passed" | "regression">): HistoryMark[] {
+    const history = check.regression?.history ?? [];
+    if (history.length === 0) return [];
+    const verdict = (passed: boolean) => (passed ? "passed" : "failed");
+    return [
+        ...history.map((point) => ({
+            key: point.runId,
+            passed: point.passed,
+            label: `run ${shortId(point.runId)}: ${verdict(point.passed)}`,
+            tooltip: `${historyTime(point.createdAt)} · run ${shortId(point.runId)} · ${verdict(point.passed)}`,
+            href: runHref(point.runId),
+        })),
+        {
+            key: "this-run",
+            passed: check.passed,
+            label: `this run: ${verdict(check.passed)}`,
+            tooltip: `this run · ${verdict(check.passed)}`,
+            href: null,
+        },
+    ];
 }
 
 export const AGENT_FAILED_NOTE = "the agent gave no answer";

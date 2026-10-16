@@ -7,19 +7,20 @@ import {
     groupChecks,
     historyText,
     knownFailuresText,
-    regressionCompareHref,
+    compareLink,
     stateColor,
     stateLabel,
     statedChecks,
     summaryChips,
     type StatedCheck,
 } from "./regression";
+import { CheckHistory } from "./CheckHistory";
 import { runHref, shortId } from "./results";
 
 /** What a check's state says about it: since when it fails, and what to compare with. */
 function CheckLine({ item, runId }: { item: StatedCheck; runId: string }) {
     const regression = item.check.regression;
-    const compare = regressionCompareHref(runId, regression?.lastPassedRun);
+    const compare = compareLink(runId, regression);
     const failingSince = regression?.failingSince;
     return (
         <List.Item>
@@ -28,6 +29,7 @@ function CheckLine({ item, runId }: { item: StatedCheck; runId: string }) {
                 <Text fw={600}>
                     {item.scenarioKey} / {item.check.key}
                 </Text>
+                <CheckHistory check={item.check} />
                 {failingSince != null && (
                     <Text span c="dimmed">
                         failing since <Anchor href={runHref(failingSince)}>run {shortId(failingSince)}</Anchor>
@@ -38,7 +40,7 @@ function CheckLine({ item, runId }: { item: StatedCheck; runId: string }) {
                         {AGENT_FAILED_NOTE}
                     </Text>
                 )}
-                {compare !== null && item.state !== "AlreadyBroken" && <Anchor href={compare}>Compare with the last passing run</Anchor>}
+                {compare !== null && <Anchor href={compare.href}>{compare.label}</Anchor>}
             </Group>
         </List.Item>
     );
