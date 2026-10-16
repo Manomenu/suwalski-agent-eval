@@ -1,6 +1,8 @@
 import { Accordion, Alert, Badge, Card, Group, List, Stack, Text, Title } from "@mantine/core";
 
 import { CheckDefinitionButton } from "../checks/CheckDefinitionButton";
+import { judgedByModel } from "../checks/definition";
+import { ModelJudgedIcon } from "../checks/ModelJudgedIcon";
 import type { ScenarioRunResult } from "./api";
 import { ConversationView } from "./ConversationView";
 import { checkSummary, failedEvidenceKeys, formatSeconds, notJudgedCount, num } from "./results";
@@ -41,6 +43,7 @@ export function ScenarioCard({ scenario }: { scenario: ScenarioRunResult }) {
                                 </Badge>
                             )}
                             <Text fw={600}>{check.key}</Text>
+                            {judgedByModel(check.definition) && <ModelJudgedIcon />}
                             <CheckDefinitionButton
                                 definition={check.definition}
                                 revision={num(check.revision)}
@@ -54,7 +57,13 @@ export function ScenarioCard({ scenario }: { scenario: ScenarioRunResult }) {
                                 .map((sample) => (
                                     <List.Item key={sample.sample}>
                                         {check.samples.length > 1 ? `sample ${num(sample.sample)}: ` : ""}
-                                        {sample.message}
+                                        {judgedByModel(check.definition) && !sample.notJudged ? (
+                                            <Text span fs="italic" inherit>
+                                                {sample.message}
+                                            </Text>
+                                        ) : (
+                                            sample.message
+                                        )}
                                     </List.Item>
                                 ))}
                         </List>

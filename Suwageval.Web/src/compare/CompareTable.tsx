@@ -3,6 +3,8 @@ import { useState } from "react";
 
 import { dataText, shortId, versionLabel } from "../agents/view";
 import { CheckDefinitionButton } from "../checks/CheckDefinitionButton";
+import { judgedByModel } from "../checks/definition";
+import { ModelJudgedIcon } from "../checks/ModelJudgedIcon";
 import { durationSummary, formatTime, num, percent } from "../runs/results";
 import type { Comparison } from "./api";
 import {
@@ -160,6 +162,7 @@ export function CompareTable({ comparison, firstBaseline }: { comparison: Compar
                                             </Text>
                                             <Group gap={4} wrap="nowrap">
                                                 <Text>{row.checkKey}</Text>
+                                                {check !== null && judgedByModel(check.definition) && <ModelJudgedIcon />}
                                                 {check !== null && (
                                                     <CheckDefinitionButton
                                                         definition={check.definition}
