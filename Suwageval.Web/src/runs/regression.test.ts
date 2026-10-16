@@ -60,8 +60,8 @@ describe("headings", () => {
         expect(comparedWithHeading({ ...summary, comparedWith: null })).toBe("Compared with every run of the agent");
     });
     it("says how long the history is", () => {
-        expect(historyText(summary)).toBe("last 5 reference runs");
-        expect(historyText({ ...summary, comparedWith: null })).toBe("last 5 runs");
+        expect(historyText(summary)).toBe("5 reference runs make a steady pass; the history shows up to 10");
+        expect(historyText({ ...summary, comparedWith: null })).toBe("5 runs make a steady pass; the history shows up to 10");
     });
 });
 
