@@ -10,6 +10,7 @@ import {
     asTrendRow,
     hasRechecks,
     legendColor,
+    measuredSeries,
     percent,
     seriesColor,
     toggleHidden,
@@ -54,10 +55,10 @@ describe("trendRows", () => {
         ]);
     });
 
-    it("names the version and the models for the tooltip", () => {
+    it("names what the run covered, the version and the models for the tooltip", () => {
         const rows = trendRows(points);
 
-        expect(rows.map((row) => row[DETAILS_KEY])).toEqual(["v1 · big, small", "no label · big, small"]);
+        expect(rows.map((row) => row[DETAILS_KEY])).toEqual(["all scenarios · v1 · big, small", "all scenarios · no label · big, small"]);
         expect(rows[0]?.[LABEL_KEY]).toMatch(/^\d{2}\/\d{2} \d{2}:\d{2}$/);
     });
 });
@@ -119,5 +120,19 @@ describe("re-checked points", () => {
         expect(trendRows(rechecked).map((row) => row[RECHECK_KEY])).toEqual(["r1-recheck", null]);
         expect(hasRechecks(rechecked)).toBe(true);
         expect(hasRechecks([point("r2", 1, [])])).toBe(false);
+    });
+});
+
+describe("measuredSeries", () => {
+    it("lists only the series the run measured, in the given order", () => {
+        const [row] = trendRows([point("smoke-only", 0.5, [["smoke", 0.5]], "v1", "smoke")]);
+        if (!row) throw new Error("one row");
+        expect(measuredSeries(row, [ALL_SERIES, "regression", "smoke"])).toEqual(["smoke"]);
+    });
+
+    it("says whether the run covered every scenario or one tag", () => {
+        const [full, tagged] = trendRows([point("full", 1, []), point("smoke-only", 1, [], "v1", "smoke")]);
+        expect(full?.[DETAILS_KEY]).toMatch(/^all scenarios · /);
+        expect(tagged?.[DETAILS_KEY]).toMatch(/^tag smoke · /);
     });
 });
