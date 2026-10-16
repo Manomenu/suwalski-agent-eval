@@ -119,7 +119,8 @@ the way production runs it. Consequences:
 
 `./scripts/.internal/check.sh` is **the** gate: CI runs exactly this script, `just check` is
 the same thing for humans. Run it before calling any change done. It prints a PASS/FAIL/SKIP
-report and exits non-zero on any failure.
+report, preceded by the last lines of each failed step's output (so `| tail` still shows why), and exits
+non-zero on any failure.
 
 | Step | Guards |
 | --- | --- |
