@@ -42,6 +42,8 @@ Run after the last message, on what the agent produced:
   - the answer contains the essential information (e.g. "states the refund period of 14 days");
   - the answer is grounded in the retrieved RAG chunks — nothing made up beyond them;
   - language, tone, what it must not promise.
+  - a free-text argument or event field is "roughly like this" (a `$judge` matcher with a description
+    and examples, only asked about calls whose exact parts already match).
 
   Each verdict carries pass/fail, a short justification and the evidence it relied on.
 

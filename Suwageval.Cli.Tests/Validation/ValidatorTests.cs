@@ -320,4 +320,90 @@ public sealed class ValidatorTests
 
         Assert.Equal(["conversation[0]", "conversation[1]", "checks[0]", "checks[1]"], paths);
     }
+
+    private static string WithChecks(string checks) => $"key: k\nconversation:\n  - user: hi\nchecks:\n{checks}";
+
+    [Fact]
+    public void Correct_judge_matchers_in_args_and_data_are_valid()
+    {
+        var result = Validate(
+            WithChecks(
+                """
+                  - key: reason-fits
+                    type: tool-called
+                    tool: refund_order
+                    args:
+                      order_id: A-17
+                      reason:
+                        $judge:
+                          description: "Says the item arrived damaged or broken"
+                          examples: ["kettle arrived broken", { code: 1 }]
+                      items:
+                        - note: { $judge: { examples: [x] } }
+                  - key: note-fits
+                    type: event
+                    event: state.changed
+                    data: { $judge: { description: "anything about a refund" } }
+                """
+            )
+        );
+
+        Assert.Empty(result.Problems);
+    }
+
+    [Theory]
+    [InlineData( /*lang=json*/
+        "{ $judge: {} }",
+        "checks[0].args.reason.$judge",
+        "needs 'description' and/or 'examples'"
+    )]
+    [InlineData("{ $judge: text }", "checks[0].args.reason.$judge", "is an object")]
+    [InlineData( /*lang=json*/
+        "{ $judge: { description: '  ' } }",
+        "checks[0].args.reason.$judge.description",
+        "non-empty string"
+    )]
+    [InlineData( /*lang=json*/
+        "{ $judge: { description: 3 } }",
+        "checks[0].args.reason.$judge.description",
+        "non-empty string"
+    )]
+    [InlineData( /*lang=json*/
+        "{ $judge: { examples: [] } }",
+        "checks[0].args.reason.$judge.examples",
+        "non-empty list"
+    )]
+    [InlineData("{ $judge: { examples: x } }", "checks[0].args.reason.$judge.examples", "non-empty list")]
+    [InlineData("{ $judge: { description: d, hint: 1 } }", "checks[0].args.reason.$judge", "no key 'hint'")]
+    [InlineData("{ $judge: { description: d }, other: 1 }", "checks[0].args.reason", "only property")]
+    public void A_malformed_judge_matcher_is_reported_at_its_path(string matcher, string path, string messagePart)
+    {
+        var result = Validate(
+            WithChecks($"  - key: c\n    type: tool-called\n    tool: refund_order\n    args:\n      reason: {matcher}\n")
+        );
+
+        AssertProblem(result, path, messagePart);
+    }
+
+    [Fact]
+    public void A_malformed_judge_matcher_in_event_data_is_reported_with_the_data_path()
+    {
+        var result = Validate(
+            WithChecks("  - key: c\n    type: event\n    event: state.changed\n    data:\n      list: [ { $judge: {} } ]\n")
+        );
+
+        AssertProblem(result, "checks[0].data.list[0].$judge", "needs 'description' and/or 'examples'");
+    }
+
+    [Fact]
+    public void A_judge_matcher_in_a_check_without_args_or_data_is_not_a_known_field()
+    {
+        var result = Validate(
+            WithChecks(
+                "  - key: c\n    type: tool-not-called\n    tool: refund_order\n    args: { reason: { $judge: { description: d } } }\n"
+            )
+        );
+
+        Assert.False(result.IsValid);
+    }
 }

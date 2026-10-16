@@ -28,8 +28,8 @@ internal static class RunEndpoints
     /// 202 with the run's id and its version once it is queued: the version is the contract the agent serves at that moment,
     /// registered here. 404: no such agent; 422: the request or what it selects is not runnable (a bad endpoint, no scenario
     /// with the tag); 502: the agent's contract could not be read or is not valid; 409: the version does not fit the scenarios
-    /// and checks — the mismatches are listed and nothing is queued; 409 also when a judge check is picked and no judge model is
-    /// configured.
+    /// and checks — the mismatches are listed and nothing is queued; 409 also when a judge check or a <c>$judge</c> argument matcher is
+    /// picked and no judge model is configured.
     /// </summary>
     private static async Task<IResult> CreateAsync(
         RunRequest request,
@@ -102,11 +102,14 @@ internal static class RunEndpoints
             );
         }
 
-        if (!judge.IsConfigured && pickedChecks.Any(check => StoredContent.Check(check) is JudgeCheck))
+        if (
+            !judge.IsConfigured
+            && pickedChecks.Any(check => StoredContent.Check(check) is JudgeCheck || CheckEvaluator.UsesJudge(StoredContent.Check(check)))
+        )
         {
             return Results.Problem(
                 title: "No judge model is configured",
-                detail: "The scenarios have judge checks, but the judge's model is not configured (Models:<Judge:Model>:BaseUrl and :Model); nothing was queued.",
+                detail: "The scenarios have judge checks or $judge argument matching, but the judge's model is not configured (Models:<Judge:Model>:BaseUrl and :Model); nothing was queued.",
                 statusCode: StatusCodes.Status409Conflict
             );
         }

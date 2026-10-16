@@ -30,6 +30,7 @@ internal sealed partial class RunExecutor(
     AgentStore agents,
     AgentClient agent,
     Judge judge,
+    ArgumentJudge argumentJudge,
     IOptions<RunOptions> options,
     ILogger<RunExecutor> logger
 )
@@ -139,9 +140,12 @@ internal sealed partial class RunExecutor(
             var results = new List<NewCheckResult>();
             foreach (var (row, input) in scenario.Checks)
             {
-                var verdict = input is JudgeCheck judgeCheck
-                    ? await judge.JudgeAsync(judgeCheck, scenario.Content.Conversation, trace, cancellationToken)
-                    : CheckEvaluator.Evaluate(input, trace);
+                var verdict = input switch
+                {
+                    JudgeCheck judgeCheck => await judge.JudgeAsync(judgeCheck, scenario.Content.Conversation, trace, cancellationToken),
+                    _ when CheckEvaluator.UsesJudge(input) => await argumentJudge.JudgeAsync(input, trace, cancellationToken),
+                    _ => CheckEvaluator.Evaluate(input, trace),
+                };
                 results.Add(
                     new NewCheckResult(
                         row.Id,

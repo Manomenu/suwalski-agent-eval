@@ -147,6 +147,68 @@ public sealed class CheckEndpointsTests(TestDatabase database) : IAsyncDisposabl
     }
 
     [Fact]
+    public async Task Malformed_judge_matchers_are_a_422_naming_the_path_of_each()
+    {
+        var agent = await AgentWithScenariosAsync("s");
+        var bad = new ToolCalledCheck
+        {
+            Key = "bad",
+            ScenarioKey = "s",
+            Tool = "get_order",
+            Args = Items.Json( /*lang=json,strict*/
+                """
+                {"a":{"$judge":{}},"b":{"$judge":{"description":" "}},"c":{"$judge":{"examples":[]}},
+                 "d":{"$judge":{"description":"x","hint":1}},"e":{"$judge":{"description":"x"},"f":1},"g":[{"$judge":"text"}]}
+                """
+            ),
+        };
+        var badEvent = new EventCheck
+        {
+            Key = "bad-event",
+            ScenarioKey = "s",
+            Event = "state.changed",
+            Data = Items.Json( /*lang=json,strict*/
+                """{"x":{"$judge":{"examples":"no"}}}"""
+            ),
+        };
+
+        var response = await server.Put($"/agents/{agent}/checks", new PutChecksRequest([bad, badEvent]));
+
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+        Assert.Equal(
+            [
+                "checks[0].args.a.$judge",
+                "checks[0].args.b.$judge.description",
+                "checks[0].args.c.$judge.examples",
+                "checks[0].args.d.$judge",
+                "checks[0].args.e",
+                "checks[0].args.g[0].$judge",
+                "checks[1].data.x.$judge.examples",
+            ],
+            await TestServer.ErrorFields(response)
+        );
+    }
+
+    [Fact]
+    public async Task A_correct_judge_matcher_is_stored_as_written()
+    {
+        var agent = await AgentWithScenariosAsync("s");
+        var check = new ToolCalledCheck
+        {
+            Key = "reason-fits",
+            ScenarioKey = "s",
+            Tool = "get_order",
+            Args = Items.Json( /*lang=json,strict*/
+                """{"reason":{"$judge":{"description":"Says it arrived damaged","examples":["kettle arrived broken"]}}}"""
+            ),
+        };
+
+        var response = await server.Put($"/agents/{agent}/checks", new PutChecksRequest([check]));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
     public async Task A_text_check_with_nothing_to_look_for_is_a_422()
     {
         var agent = await AgentWithScenariosAsync("s");

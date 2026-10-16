@@ -41,10 +41,22 @@ internal sealed class RecordedModel(Func<CancellationToken, Task<string>> answer
 
     public static Judge JudgeFailing(Exception error) => Failing(error).Judge();
 
+    /// <summary>Answers the first request with the first file, the second with the second, and so on; the last one repeats.</summary>
+    public static RecordedModel Sequence(params string[] files)
+    {
+        var answers = files.Select(file => File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Judges", "Answers", file))).ToArray();
+        var next = -1;
+        return new RecordedModel(_ => Task.FromResult(answers[Math.Min(Interlocked.Increment(ref next), answers.Length - 1)]));
+    }
+
     public static RecordedModel Failing(Exception error) => new(_ => Task.FromException<string>(error));
 
     /// <summary>A judge over this model, configured the way the server is: model "judge" under Models, named by Judge:Model.</summary>
     public Judge Judge(int maxConcurrency = 8) => new(Clients(maxConcurrency), Options.Create(new JudgeOptions { Model = "judge" }));
+
+    /// <summary>An argument judge over this model, configured the way the server is.</summary>
+    public ArgumentJudge ArgumentJudge(int maxConcurrency = 8) =>
+        new(Clients(maxConcurrency), Options.Create(new JudgeOptions { Model = "judge" }));
 
     public ModelClients Clients(int maxConcurrency = 8) =>
         new(

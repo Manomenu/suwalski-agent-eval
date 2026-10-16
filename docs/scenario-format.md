@@ -140,9 +140,9 @@ pass, above 0 up to 1, default `1.0`). The scenario is the file the check sits i
 
 | `type` | Fields | Passes when |
 | --- | --- | --- |
-| `tool-called` | `tool`, `args` (optional) | the agent called the tool; `args`, when given, is a subset of the call's arguments |
+| `tool-called` | `tool`, `args` (optional) | the agent called the tool; `args`, when given, is a subset of the call's arguments (a value may be a `$judge` matcher, below) |
 | `tool-not-called` | `tool` | the agent did not call the tool |
-| `event` | `event` (the type), `data` (optional) | the agent emitted the event; `data`, when given, is a subset of its data |
+| `event` | `event` (the type), `data` (optional) | the agent emitted the event; `data`, when given, is a subset of its data (a value may be a `$judge` matcher, below) |
 | `text` | `contains`, `notContains`, `pattern` (at least one) | the answer contains the text, does not contain the text, matches the regular expression |
 | `judge` | `criteria` (required, plain words) | a model judges that what the agent produced satisfies the criteria (below) |
 
@@ -171,7 +171,8 @@ How a check is evaluated (the server's `Checks/`; no model involved, except for 
   passes: nothing followed it.)
 - **`args` / `data`** match as a *subset*: an object has every given property (extras are fine, nested objects the same
   way); an array has the same length and each element matches at its position; strings, booleans and `null` are equal;
-  numbers are equal by value (`1` is `1.0`).
+  numbers are equal by value (`1` is `1.0`). An object whose only property is `$judge` is not a literal but a matcher: a
+  model decides it (below).
 - **`tool-called` / `event`** pass when any call or event in scope matches. **`text`** reads the assistant messages in scope,
   joined by a newline; `contains` and `notContains` are case-sensitive (use `(?i)` in `pattern` otherwise); every condition
   given must hold. An invalid `pattern` fails the check with a message.
@@ -206,6 +207,47 @@ is grounded or complete, whether a refusal was explained.
   `Model`, `MaxConcurrency` — default 8 calls at once to that model, shared by everything that calls it, and
   `TimeoutSeconds`). A run whose scenarios have a `judge` check is refused with 409 when no judge model is configured.
   `validate` checks only that `criteria` is not empty.
+
+### The `$judge` matcher
+
+Inside `args` (of `tool-called`) and `data` (of `event`), at any depth, an object whose **only** property is `$judge` says
+"roughly like this" instead of an exact value:
+
+```yaml
+- key: refund-reason-is-damage
+  type: tool-called
+  tool: refund_order
+  args:
+    order_id: A-17                       # exact, as always
+    reason:
+      $judge:
+        description: "Says the item arrived damaged or broken"
+        examples: ["kettle arrived broken", "damaged on delivery"]
+```
+
+- **Shape.** `$judge` has `description` (a non-empty string) and/or `examples` (a non-empty list of JSON values — strings
+  usually, but any JSON). At least one is required. With both, the value must satisfy the description **and** be similar in
+  kind and meaning to the examples (it need not equal one). An unknown key inside `$judge` is an error, and so is `$judge`
+  next to other properties in the same object (`{ $judge: …, other: 1 }`): a matcher is the only property of its object,
+  and `$`-names are reserved for matchers. The matcher takes the place of any value, including a whole object or list; a
+  `tool-not-called`, `text` or `judge` check has no `args` / `data`, so `$judge` is not a field there. `validate` and a push
+  report a wrong shape with its path (`checks[0].args.reason.$judge`).
+- **How it is evaluated.** First, without a model: every literal must match as above, and a `$judge` node only needs a value
+  to exist at its path (any JSON). A call or event that fails this is never sent to the model. Then, for each remaining
+  candidate in the order the agent produced them, ONE model request judges all the `$judge` values of that candidate together
+  (input: the tool name or event type and, per value, its path, the actual JSON, the description and the examples; answer:
+  `{ "results": [ { "path", "correct", "reason" } ] }` at temperature 0, exactly one entry per path given — anything else is an
+  unreadable answer). The candidate matches when every value is correct; the first match stops the search and passes the
+  check. The message says which value failed and the model's reason (or, on a pass, the reasons); the evidence is the matching
+  call or event, and the calls or events with that name when none matched.
+- **The cost.** One model call per candidate, only for candidates that passed the deterministic part. It uses the judge's
+  model (below), so a run with a `$judge` matcher is refused with 409 when no judge model is configured. Prefer an exact value
+  whenever it is known; use `$judge` for free text — a reason, a search query, a message to a customer.
+- **It can fail to judge.** As for the `judge` check: when the model is unreachable or too slow, or its answer is not the
+  JSON asked for, the sample counts as failed with a message starting `Not judged:` and `notJudged: true`. Run again before
+  concluding anything about the agent.
+- **Write it well.** A precise description of what the value must say, and two or three varied examples (different words,
+  same meaning); one value per `$judge`.
 
 Not checked yet: that `arguments` and `data` match the JSON Schemas the agent declares.
 

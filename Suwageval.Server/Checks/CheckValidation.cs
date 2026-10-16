@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using Suwageval.Contracts;
 using Suwageval.Contracts.Checks;
@@ -38,6 +39,14 @@ internal static class CheckValidation
             {
                 AddTextErrors(errors, text, path);
             }
+            else if (check is ToolCalledCheck { Args: { } args })
+            {
+                AddMatcherErrors(errors, args, $"{path}.args");
+            }
+            else if (check is EventCheck { Data: { } data })
+            {
+                AddMatcherErrors(errors, data, $"{path}.data");
+            }
             else if (check is JudgeCheck { Criteria: var criteria } && string.IsNullOrWhiteSpace(criteria))
             {
                 errors.Add(new FieldError($"{path}.criteria", "A judge check needs 'criteria': what the agent's output must satisfy."));
@@ -45,6 +54,9 @@ internal static class CheckValidation
         }
         return errors;
     }
+
+    private static void AddMatcherErrors(List<FieldError> errors, JsonElement expected, string path) =>
+        errors.AddRange(JudgeMatcher.Problems(expected, path).Select(problem => new FieldError(problem.Path, problem.Message)));
 
     private static void AddTextErrors(List<FieldError> errors, TextCheck text, string path)
     {

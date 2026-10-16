@@ -89,6 +89,18 @@ check, and narrow it with `where` (`turn: last`). A judge calls a model, so it c
 unreadably. That is not the agent failing — say so, and run again before drawing conclusions. A
 server without a judge model refuses a run with judge checks (409).
 
+## Exact value or `$judge`?
+
+In `args` (of `tool-called`) and `data` (of `event`) prefer the **exact value** whenever you know it
+(`order_id: A-17`): exact, free, repeatable. For free text whose wording varies — a refund reason, a
+search query, a message to a customer — use a matcher in place of the value:
+`reason: { $judge: { description: "Says the item arrived damaged or broken", examples: ["kettle arrived broken", "damaged on delivery"] } }`.
+Write a precise description (what the value must say) and 2–3 varied examples (different words, same
+meaning); `description` and/or `examples`, nothing else inside `$judge`, and `$judge` is the only
+property of its object. Literals around it still match exactly, and the model is asked only about calls
+that passed them — but each candidate call costs a model request, and it can come back **not judged**
+like a judge check. A server without a judge model refuses a run with `$judge` (409).
+
 ## Versions
 
 Every change of the agent's contract makes a new version, so the list grows. Versions are never
