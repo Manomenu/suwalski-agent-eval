@@ -24,6 +24,5 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Suwageval.Server.Tests" />
-    <InternalsVisibleTo Include="Suwageval.Cli.Tests" />
   </ItemGroup>
 </Project>

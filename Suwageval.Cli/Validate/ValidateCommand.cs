@@ -1,5 +1,6 @@
 using System.CommandLine;
 using Suwageval.Cli.Files;
+using Suwageval.Cli.Validation;
 
 namespace Suwageval.Cli.Validate;
 
@@ -54,7 +55,7 @@ internal static class ValidateCommand
         }
         if (Directory.Exists(path))
         {
-            return AgentFolder.Read(path).Validate();
+            return Validator.Validate(AgentFolder.Read(path));
         }
         return new ValidationResult([new Problem(path, "", "No such file or folder.", null, null)], 0, 0);
     }

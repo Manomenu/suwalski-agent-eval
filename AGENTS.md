@@ -77,10 +77,10 @@ app keeps its tests beside its code, so those folders would only split the .NET 
 | `global.json`, `Directory.Build.props`, `Directory.Packages.props` | the SDK band; the settings every C# project shares (nullable, analyzers, warnings as errors, lockfiles); every NuGet package and its version, named once |
 | `Suwageval.Server/` | the HTTP API (ASP.NET Core minimal APIs, PostgreSQL through Npgsql, SQL written by hand and mapped by Dapper). One folder — one namespace — per part: `Api/`, `Database/`, then one per feature. `Runs/` holds the queue's worker (`RunWorker`, a hosted service); the tests share one database, so they run the server without it (`RunTestApp`) and take runs themselves, per agent |
 | `Suwageval.Server/Database/Migrations/up/` | numbered SQL migrations, applied at start-up by grate (`Database/Migrator.cs`) |
-| `Suwageval.Server.Tests/` | the server's tests (xUnit v3), mirroring the server's folders; `ContractsTests.cs` holds the import contracts |
+| `Suwageval.Server.Tests/` | the server's tests (xUnit v3), mirroring the server's folders; `ContractsTests.cs` holds the import contracts, `ProjectReferencesTests.cs` the project graph. `EndToEnd/` is the one place where the CLI runs against the server in process (`push`, `run`); only its types may use the CLI (`EndToEndContractsTests.cs`) |
 | `Suwageval.Contracts/` | the records the API sends and receives and the CLI reads from YAML, with their JSON shape (System.Text.Json, camelCase, strict). Records only, public types (a library shared by projects); one folder — one namespace — per feature |
-| `Suwageval.Cli/` | the `suwageval` command, packed as a .NET tool (System.CommandLine, YamlDotNet). `Files/` reads the agent's YAML files into the contracts, `Validate/` is `suwageval validate`, `Run/` is `suwageval run` (its `RunClient` speaks the run endpoints) |
-| `Suwageval.Cli.Tests/` | the CLI's tests (xUnit v3), mirroring its folders; `Sample/` is an agent folder the happy-path tests validate |
+| `Suwageval.Cli/` | the `suwageval` command, packed as a .NET tool (System.CommandLine, YamlDotNet). `Files/` reads the agent's YAML files into the contracts, `Validate/` is `suwageval validate`, `Validation/` is the validator and its report (shared by `validate` and `push`), `Push/` is `suwageval push`, `Run/` is `suwageval run` (its `RunClient` speaks the run endpoints) |
+| `Suwageval.Cli.Tests/` | the CLI's tests (xUnit v3), mirroring its folders; pure unit tests — no server, no database (those are the server tests' `EndToEnd/`); `ContractsTests.cs` holds the CLI's import contracts; `Sample/` is the one agent folder the tests use (the server tests link it into their output) |
 | `docs/scenario-format.md` | the file format (v0) an agent's repository keeps in `suwageval/`: `agent.yaml`, scenarios with checks, shorthands |
 | `Suwageval.Web/` | the web app (React, Mantine, Vite). Source in `src/`, one folder per feature |
 | `deploy/chart/` | the Helm chart the cluster runs: server, web, ingress and `templates/smoke-test.yaml`, the post-deploy smoke test |
@@ -252,6 +252,22 @@ not by reviewers; a dependency against it fails with the types involved.
 | A new feature | **must** get a layer — `Every_server_namespace_has_a_layer` fails otherwise | is a folder `src/<feature>/`, independent of other features by default |
 | Inside a feature | a feature with several concerns declares its own order (e.g. endpoints → store → model) as a test beside the first | free |
 | Feature uses feature | only downwards, by its position in the layer list | only through an explicit policy in `eslint.config.js`, with a comment saying why |
+
+**The CLI** is layered the same way, by `Layers` in `Suwageval.Cli.Tests/ContractsTests.cs`:
+root (`Program`, `CliApp`) → the commands `Validate` \| `Push` \| `Run` (siblings: none uses another) →
+`Validation` → `Files`; `Every_cli_namespace_has_a_layer` fails for a namespace without one. What two commands
+share moves down into a layer of its own.
+
+**Projects** point one way, checked by `Suwageval.Server.Tests/ProjectReferencesTests.cs` (it reads the
+solution and the `.csproj` files; a project missing from its table fails too):
+
+| Project | May reference | `InternalsVisibleTo` |
+| --- | --- | --- |
+| `Suwageval.Contracts` | nothing | none |
+| `Suwageval.Server` | `Contracts` | `Server.Tests` |
+| `Suwageval.Cli` | `Contracts` | `Cli.Tests`, `Server.Tests` |
+| `Suwageval.Cli.Tests` | `Cli` | none |
+| `Suwageval.Server.Tests` | `Server`, `Cli` (alias `Cli`, only for `EndToEnd/`) | none |
 
 `ContractsTests.cs` and `eslint.config.js` each carry a commented example of adding a feature.
 

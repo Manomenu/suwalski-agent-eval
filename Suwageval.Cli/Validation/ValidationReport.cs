@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 
-namespace Suwageval.Cli.Validate;
+namespace Suwageval.Cli.Validation;
 
 /// <summary>A result written for a person (<c>file:line:col: path: message</c>) or for a program (<c>--json</c>).</summary>
 internal static class ValidationReport

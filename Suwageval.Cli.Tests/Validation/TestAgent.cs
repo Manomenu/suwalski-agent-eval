@@ -1,6 +1,6 @@
 using Suwageval.Cli.Files;
 
-namespace Suwageval.Cli.Tests.Validate;
+namespace Suwageval.Cli.Tests.Validation;
 
 /// <summary>A small agent the validation tests check scenarios against, and a way to read what they report.</summary>
 internal static class TestAgent

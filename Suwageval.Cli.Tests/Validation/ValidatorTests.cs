@@ -1,6 +1,7 @@
-using Suwageval.Cli.Validate;
+using Suwageval.Cli.Files;
+using Suwageval.Cli.Validation;
 
-namespace Suwageval.Cli.Tests.Validate;
+namespace Suwageval.Cli.Tests.Validation;
 
 public sealed class ValidatorTests
 {
