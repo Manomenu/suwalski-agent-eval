@@ -1,4 +1,4 @@
-import { Alert, Container, Loader } from "@mantine/core";
+import { Alert, Loader } from "@mantine/core";
 import type { ReactNode } from "react";
 
 import type { Loaded } from "./useLoaded";
@@ -15,26 +15,14 @@ export function Page<T>({
     notFound: string;
     children: (value: T) => ReactNode;
 }) {
-    if (state.kind === "loading") {
-        return (
-            <Container py="xl">
-                <Loader aria-label="Loading" />
-            </Container>
-        );
-    }
+    if (state.kind === "loading") return <Loader aria-label="Loading" />;
     if (state.kind === "error") {
         const missing = isNotFound(state.error);
         return (
-            <Container py="xl">
-                <Alert color="red" title={missing ? "Not found" : "Could not load the page"}>
-                    {missing ? notFound : state.error.message}
-                </Alert>
-            </Container>
+            <Alert color="red" title={missing ? "Not found" : "Could not load the page"}>
+                {missing ? notFound : state.error.message}
+            </Alert>
         );
     }
-    return (
-        <Container py="xl" size="lg">
-            {children(state.value)}
-        </Container>
-    );
+    return <>{children(state.value)}</>;
 }

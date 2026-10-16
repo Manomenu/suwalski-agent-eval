@@ -1,4 +1,4 @@
-import { Anchor, Stack, Table, Text, Title } from "@mantine/core";
+import { Anchor, Paper, Stack, Table, Text, Title } from "@mantine/core";
 
 import { formatTime } from "../runs/results";
 import { fetchAgents } from "./api";
@@ -18,26 +18,30 @@ export function AgentsPage() {
                     {agents.length === 0 ? (
                         <Text c="dimmed">There are no agents yet. Add the first one with suwageval push.</Text>
                     ) : (
-                        <Table>
-                            <Table.Thead>
-                                <Table.Tr>
-                                    <Table.Th>Name</Table.Th>
-                                    <Table.Th>Address</Table.Th>
-                                    <Table.Th>Created</Table.Th>
-                                </Table.Tr>
-                            </Table.Thead>
-                            <Table.Tbody>
-                                {agents.map((agent) => (
-                                    <Table.Tr key={agent.id}>
-                                        <Table.Td>
-                                            <Anchor href={agentHref(agent.name)}>{agent.name}</Anchor>
-                                        </Table.Td>
-                                        <Table.Td>{agent.endpointUrl}</Table.Td>
-                                        <Table.Td>{formatTime(agent.createdAt)}</Table.Td>
-                                    </Table.Tr>
-                                ))}
-                            </Table.Tbody>
-                        </Table>
+                        <Paper withBorder p="md">
+                            <Table.ScrollContainer minWidth={500}>
+                                <Table highlightOnHover>
+                                    <Table.Thead>
+                                        <Table.Tr>
+                                            <Table.Th>Name</Table.Th>
+                                            <Table.Th>Address</Table.Th>
+                                            <Table.Th>Created</Table.Th>
+                                        </Table.Tr>
+                                    </Table.Thead>
+                                    <Table.Tbody>
+                                        {agents.map((agent) => (
+                                            <Table.Tr key={agent.id}>
+                                                <Table.Td>
+                                                    <Anchor href={agentHref(agent.name)}>{agent.name}</Anchor>
+                                                </Table.Td>
+                                                <Table.Td>{agent.endpointUrl}</Table.Td>
+                                                <Table.Td>{formatTime(agent.createdAt)}</Table.Td>
+                                            </Table.Tr>
+                                        ))}
+                                    </Table.Tbody>
+                                </Table>
+                            </Table.ScrollContainer>
+                        </Paper>
                     )}
                 </Stack>
             )}
