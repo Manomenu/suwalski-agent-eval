@@ -47,7 +47,8 @@ export function App() {
                 />
             </AppShell.Navbar>
             <AppShell.Main>
-                <Box maw={CONTENT_MAX_WIDTH}>
+                {/* The agent's page sets its own widths: its analytics reach the right edge on a wide screen (app.css). */}
+                <Box maw={page.kind === "agent" ? undefined : CONTENT_MAX_WIDTH}>
                     {page.kind === "agents" && <AgentsPage />}
                     {page.kind === "agent" && <AgentPage name={page.name} />}
                     {page.kind === "version" && <VersionPage name={page.name} versionId={page.versionId} />}

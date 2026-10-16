@@ -481,6 +481,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         var point = Assert.Single(points);
         Assert.Equal((queued.RunId, agent.VersionId, 1.0), (point.RunId, point.AgentVersionId, point.PassRate));
         Assert.Equal([new TagPassRate("regression", 1.0)], point.Tags);
+        Assert.Equal("regression", point.Tag);
         Assert.NotEqual(done.RunId, point.RunId);
         Assert.Equal(
             HttpStatusCode.NotFound,

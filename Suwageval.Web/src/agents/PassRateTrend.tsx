@@ -1,5 +1,5 @@
 import { LineChart } from "@mantine/charts";
-import { Button, Group, Paper, Stack, Text, Title } from "@mantine/core";
+import { Button, ColorSwatch, Group, Paper, Stack, Text, Title } from "@mantine/core";
 import { useState } from "react";
 
 import type { RunPassRates } from "./api";
@@ -10,6 +10,7 @@ import {
     RUN_KEY,
     TREND_MIN_RUNS,
     asTrendRow,
+    legendColor,
     seriesColor,
     toggleHidden,
     trendRows,
@@ -48,7 +49,6 @@ export function PassRateTrend({ points }: { points: RunPassRates[] }) {
                             withLegend={false}
                             unit="%"
                             yAxisProps={{ domain: [0, 100] }}
-                            valueFormatter={(value) => `${String(value)}%`}
                             lineProps={(series) => ({ strokeWidth: series.name === ALL_SERIES ? ALL_STROKE_WIDTH : TAG_STROKE_WIDTH })}
                             lineChartProps={{
                                 onClick: (state) => {
@@ -82,8 +82,16 @@ export function PassRateTrend({ points }: { points: RunPassRates[] }) {
                                 <Button
                                     key={name}
                                     size="compact-sm"
-                                    color={seriesColor(name, names)}
-                                    variant={hidden.has(name) ? "subtle" : "light"}
+                                    variant={hidden.has(name) ? "subtle" : "default"}
+                                    c={hidden.has(name) ? "dimmed" : "var(--mantine-color-text)"}
+                                    leftSection={
+                                        <ColorSwatch
+                                            color={`var(--mantine-color-${legendColor(name, names)}-5)`}
+                                            size={10}
+                                            withShadow={false}
+                                            opacity={hidden.has(name) ? 0.3 : 1}
+                                        />
+                                    }
                                     aria-pressed={!hidden.has(name)}
                                     onClick={() => {
                                         setHidden(toggleHidden(hidden, name));

@@ -12,6 +12,9 @@ public sealed record RunPassRates
 
     public required Guid AgentVersionId { get; init; }
 
+    /// <summary>The tag the run was limited to; null when it ran every scenario. Only such a run says what "all checks" are.</summary>
+    public string? Tag { get; init; }
+
     /// <summary>The label the version's contract carries, if any.</summary>
     public string? VersionLabel { get; init; }
 

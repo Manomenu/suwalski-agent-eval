@@ -45,7 +45,13 @@ export function trendRows(points: RunPassRates[]): TrendRow[] {
                 .join(" · "),
         };
         for (const name of series) {
-            const rate = name === ALL_SERIES ? point.passRate : point.tags.find((tag) => tag.tag === name)?.passRate;
+            // A run limited to one tag says nothing about all checks: "All" comes only from runs of every scenario.
+            const rate =
+                name === ALL_SERIES
+                    ? point.tag == null
+                        ? point.passRate
+                        : undefined
+                    : point.tags.find((tag) => tag.tag === name)?.passRate;
             row[name] = rate === undefined ? null : percent(num(rate));
         }
         return row;
@@ -59,6 +65,11 @@ export function asTrendRow(value: unknown): TrendRow | null {
 
 /** Mocha accents after mauve ("All"), in the order the series come; the colours repeat when there are more tags. */
 const TAG_COLORS = ["blue", "green", "yellow", "orange", "teal", "pink", "red"];
+
+/** The colour without its shade (`yellow`), for the legend's swatches. */
+export function legendColor(name: string, series: string[]): string {
+    return seriesColor(name, series).split(".")[0] ?? "blue";
+}
 
 export function seriesColor(name: string, series: string[]): string {
     if (name === ALL_SERIES) return "mauve.5";

@@ -1,0 +1,44 @@
+/* The agent's page: one column, and from 1600px (the navbar included) the analytics in a column of their own beside the
+   agent and its runs, kept in view while the runs scroll. The runs keep the width of every other page (CONTENT_MAX_WIDTH,
+   shell/layout.ts); the analytics take the rest of the screen, up to its right edge. */
+.agent-layout {
+    max-width: 1100px;
+    display: grid;
+    gap: var(--mantine-spacing-lg);
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+        "header"
+        "analytics"
+        "main";
+}
+
+.agent-layout-header {
+    grid-area: header;
+}
+
+.agent-layout-analytics {
+    grid-area: analytics;
+    min-width: 0;
+}
+
+.agent-layout-main {
+    grid-area: main;
+    min-width: 0;
+}
+
+@media (min-width: 1600px) {
+    .agent-layout {
+        max-width: none;
+        grid-template-columns: minmax(0, 1100px) minmax(520px, 1fr);
+        grid-template-rows: auto 1fr;
+        grid-template-areas:
+            "header analytics"
+            "main analytics";
+        align-items: start;
+    }
+
+    .agent-layout-analytics {
+        position: sticky;
+        top: calc(var(--app-shell-header-height) + var(--mantine-spacing-md));
+    }
+}
