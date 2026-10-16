@@ -39,14 +39,714 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/agents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AgentDefinition"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agents/{agent}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    agent: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agents/{agent}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    agent: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    agent: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AgentVersionInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agents/{agent}/versions/{versionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    agent: string;
+                    versionId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agents/{agent}/scenarios": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    tag?: string;
+                };
+                header?: never;
+                path: {
+                    agent: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    agent: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PutScenariosRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agents/{agent}/scenarios/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    agent: string;
+                    key: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    agent: string;
+                    key: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agents/{agent}/scenarios/{key}/revisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    agent: string;
+                    key: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agents/{agent}/scenarios/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    agent: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["TagChangeRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agents/{agent}/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    agent: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agents/{agent}/checks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    scenario?: string;
+                };
+                header?: never;
+                path: {
+                    agent: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    agent: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PutChecksRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agents/{agent}/checks/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    agent: string;
+                    key: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AgentDefinition: {
+            name: string;
+            /** @description Where suwageval reaches the agent under test (`POST {endpointUrl}/suwageval/turn`). */
+            endpointUrl: string;
+        };
+        /** @description What the agent was configured as when a run happened. */
+        AgentVersionInput: {
+            label?: null | string;
+            systemPrompt: string;
+            model: components["schemas"]["ModelDefinition"];
+            tools?: components["schemas"]["ToolDefinition"][];
+            context?: components["schemas"]["ContextDefinition"];
+        };
+        /** @description A test on what the agent produced for a scenario, told apart by `type`. */
+        CheckInput: components["schemas"]["CheckInputToolCalledCheck"] | components["schemas"]["CheckInputToolNotCalledCheck"] | components["schemas"]["CheckInputEventCheck"] | components["schemas"]["CheckInputTextCheck"];
+        CheckInputEventCheck: {
+            /** @enum {string} */
+            type?: "event";
+            /** @description The event's type, one the agent declares. */
+            event: string;
+            data?: null | components["schemas"]["JsonElement"];
+            /** @description Lowercase kebab-case, unique within the agent. */
+            key: string;
+            scenarioKey: string;
+            where?: null | components["schemas"]["CheckWhere"];
+            /**
+             * Format: double
+             * @description The share of samples that must pass, from above 0 to 1.
+             */
+            passThreshold?: number | string;
+        };
+        /** @description On the agent's answer text; at least one of the three is given, all given must hold. */
+        CheckInputTextCheck: {
+            /** @enum {string} */
+            type?: "text";
+            contains?: null | string;
+            notContains?: null | string;
+            /** @description A regular expression the text must match. */
+            pattern?: null | string;
+            /** @description Lowercase kebab-case, unique within the agent. */
+            key: string;
+            scenarioKey: string;
+            where?: null | components["schemas"]["CheckWhere"];
+            /**
+             * Format: double
+             * @description The share of samples that must pass, from above 0 to 1.
+             */
+            passThreshold?: number | string;
+        };
+        CheckInputToolCalledCheck: {
+            /** @enum {string} */
+            type?: "tool-called";
+            tool: string;
+            args?: null | components["schemas"]["JsonElement"];
+            /** @description Lowercase kebab-case, unique within the agent. */
+            key: string;
+            scenarioKey: string;
+            where?: null | components["schemas"]["CheckWhere"];
+            /**
+             * Format: double
+             * @description The share of samples that must pass, from above 0 to 1.
+             */
+            passThreshold?: number | string;
+        };
+        CheckInputToolNotCalledCheck: {
+            /** @enum {string} */
+            type?: "tool-not-called";
+            tool: string;
+            /** @description Lowercase kebab-case, unique within the agent. */
+            key: string;
+            scenarioKey: string;
+            where?: null | components["schemas"]["CheckWhere"];
+            /**
+             * Format: double
+             * @description The share of samples that must pass, from above 0 to 1.
+             */
+            passThreshold?: number | string;
+        };
+        /** @description Narrows a check to a part of what the agent produced. */
+        CheckWhere: {
+            turn?: components["schemas"]["TurnSelector"];
+            /** @description A tool name or event type: only what came after it counts. */
+            after?: null | string;
+            /** @description A tool name or event type: only what came before it counts. */
+            before?: null | string;
+        };
+        /** @description What besides messages and tool calls may appear in the agent's conversation log. */
+        ContextDefinition: {
+            usesRetrieval?: boolean;
+            events?: components["schemas"]["EventDeclaration"][];
+        };
+        /** @description How the conversation goes on after its last message. */
+        Continuation: {
+            /**
+             * Format: int32
+             * @description How many agent turns are produced (one: the agent answers the last message).
+             */
+            turns?: number | string;
+        };
+        /** @description One entry of the conversation log, told apart by `kind`. */
+        ConversationItem: components["schemas"]["ConversationItemUserMessage"] | components["schemas"]["ConversationItemAssistantMessage"] | components["schemas"]["ConversationItemToolCall"] | components["schemas"]["ConversationItemToolResult"] | components["schemas"]["ConversationItemRetrieval"] | components["schemas"]["ConversationItemEvent"];
+        ConversationItemAssistantMessage: {
+            /** @enum {string} */
+            kind?: "AssistantMessage";
+            text: string;
+            /** @description The user cut the answer off before it was finished. */
+            interrupted?: null | boolean;
+        };
+        ConversationItemEvent: {
+            /** @enum {string} */
+            kind?: "Event";
+            /** @description One of the types the agent declares in its context contract. */
+            type: string;
+            /** @description Free JSON: its shape is the agent's, declared by the event's `dataSchema`. */
+            data: components["schemas"]["JsonElement"];
+        };
+        ConversationItemRetrieval: {
+            /** @enum {string} */
+            kind?: "Retrieval";
+            query: string;
+            chunks: components["schemas"]["RetrievedChunk"][];
+        };
+        ConversationItemToolCall: {
+            /** @enum {string} */
+            kind?: "ToolCall";
+            id: string;
+            name: string;
+            /** @description Free JSON: its shape is the agent's, declared by the tool's parameters in the agent's contract. */
+            arguments: components["schemas"]["JsonElement"];
+        };
+        ConversationItemToolResult: {
+            /** @enum {string} */
+            kind?: "ToolResult";
+            /** @description The string ToolCall.Id this answers. */
+            callId: string;
+            content: string;
+            isError?: boolean;
+        };
+        ConversationItemUserMessage: {
+            /** @enum {string} */
+            kind?: "UserMessage";
+            text: string;
+        };
+        EventDeclaration: {
+            type: string;
+            /** @description The shape of the event's `data`, as a JSON Schema document. */
+            dataSchema: components["schemas"]["JsonElement"];
+        };
         /** @description What /health answers. */
         Health: {
             status: string;
         };
+        JsonElement: unknown;
+        ModelDefinition: {
+            name: string;
+            parameters?: null | components["schemas"]["JsonElement"];
+        };
+        /** @description The checks to write for an agent; keys not listed are left alone. */
+        PutChecksRequest: {
+            checks: components["schemas"]["CheckInput"][];
+        };
+        /** @description The scenarios to write for an agent; keys not listed are left alone. */
+        PutScenariosRequest: {
+            scenarios: components["schemas"]["ScenarioInput"][];
+        };
+        RetrievedChunk: {
+            text: string;
+            source: string;
+            /** Format: double */
+            score: number | string;
+        };
+        /** @description A frozen moment of a conversation; the agent answers its last message. */
+        ScenarioInput: {
+            /** @description Lowercase kebab-case, unique within the agent. */
+            key: string;
+            /** @description Lowercase kebab-case; a run picks scenarios by tag. */
+            tags?: string[];
+            conversation: components["schemas"]["ConversationItem"][];
+            continuation?: components["schemas"]["Continuation"];
+            /**
+             * Format: int32
+             * @description How many times the conversation is repeated, for agents that do not answer the same way twice.
+             */
+            samples?: number | string;
+        };
+        /** @description Adds and removes tags on several scenarios at once; tags are metadata and make no new revision. */
+        TagChangeRequest: {
+            scenarioKeys: string[];
+            add: string[];
+            remove: string[];
+        };
+        ToolDefinition: {
+            name: string;
+            description: string;
+            /** @description The arguments the tool takes, as a JSON Schema document. */
+            parameters: components["schemas"]["JsonElement"];
+        };
+        /** @description Which turn a check looks at: a number (from 1), `"last"` or `"any"`. The default value is "any". */
+        TurnSelector: unknown;
     };
     responses: never;
     parameters: never;

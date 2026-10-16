@@ -1,0 +1,180 @@
+using System.Text.Json;
+using Suwageval.Contracts;
+using Suwageval.Contracts.Agents;
+using Suwageval.Server.Problems;
+
+namespace Suwageval.Server.Agents;
+
+/// <summary>The routes of agents and their versions.</summary>
+internal static class AgentEndpoints
+{
+    public static void MapAgents(this IEndpointRouteBuilder app)
+    {
+        app.MapPost("/agents", CreateAsync);
+        app.MapGet("/agents", ListAsync);
+        app.MapGet("/agents/{agent}", GetAsync);
+        app.MapPost("/agents/{agent}/versions", RegisterVersionAsync);
+        app.MapGet("/agents/{agent}/versions", ListVersionsAsync);
+        app.MapGet("/agents/{agent}/versions/{versionId:guid}", GetVersionAsync);
+    }
+
+    private static async Task<IResult> CreateAsync(AgentDefinition definition, AgentStore store, CancellationToken cancellationToken)
+    {
+        var errors = new List<FieldError>();
+        if (string.IsNullOrWhiteSpace(definition.Name))
+        {
+            errors.Add(new FieldError("name", "The name is empty."));
+        }
+        if (!Uri.TryCreate(definition.EndpointUrl, UriKind.Absolute, out var url) || url.Scheme is not ("http" or "https"))
+        {
+            errors.Add(new FieldError("endpointUrl", "The endpoint URL is an absolute http or https address."));
+        }
+        if (errors.Count > 0)
+        {
+            return ProblemResults.Invalid(errors);
+        }
+
+        var creation = await store.CreateAsync(definition.Name, definition.EndpointUrl, cancellationToken);
+        if (creation.Created)
+        {
+            return Results.Created($"/agents/{Uri.EscapeDataString(definition.Name)}", ToAgent(creation.Agent));
+        }
+        var agent =
+            creation.Agent.EndpointUrl == definition.EndpointUrl
+                ? creation.Agent
+                : await store.SetEndpointUrlAsync(creation.Agent.Id, definition.EndpointUrl, cancellationToken);
+        return Results.Ok(ToAgent(agent));
+    }
+
+    private static async Task<IResult> ListAsync(AgentStore store, CancellationToken cancellationToken) =>
+        Results.Ok((await store.ListAsync(cancellationToken)).Select(ToAgent));
+
+    private static async Task<IResult> GetAsync(string agent, AgentStore store, CancellationToken cancellationToken)
+    {
+        var row = await store.GetAsync(agent, cancellationToken);
+        if (row is null)
+        {
+            return ProblemResults.NotFound("Agent", agent);
+        }
+        var counts = await store.CountAsync(row.Id, cancellationToken);
+        return Results.Ok(
+            new AgentDetail
+            {
+                Id = row.Id,
+                Name = row.Name,
+                EndpointUrl = row.EndpointUrl,
+                CreatedAt = row.CreatedAt,
+                Versions = counts.Versions,
+                Scenarios = counts.Scenarios,
+                Checks = counts.Checks,
+            }
+        );
+    }
+
+    private static async Task<IResult> RegisterVersionAsync(
+        string agent,
+        AgentVersionInput input,
+        AgentStore store,
+        CancellationToken cancellationToken
+    )
+    {
+        var row = await store.GetAsync(agent, cancellationToken);
+        if (row is null)
+        {
+            return ProblemResults.NotFound("Agent", agent);
+        }
+        var errors = Validate(input);
+        if (errors.Count > 0)
+        {
+            return ProblemResults.Invalid(errors);
+        }
+
+        // The label names the version; it is no part of the content, so renaming alone is not a new version.
+        var content = JsonSerializer.Serialize(input with { Label = null }, ContractJson.Options);
+        var registration = await store.RegisterVersionAsync(row.Id, content, input.Label, cancellationToken);
+        var version = ToVersion(registration.Version);
+        return registration.Created
+            ? Results.Created($"/agents/{Uri.EscapeDataString(row.Name)}/versions/{version.Id}", version)
+            : Results.Ok(version);
+    }
+
+    private static async Task<IResult> ListVersionsAsync(string agent, AgentStore store, CancellationToken cancellationToken)
+    {
+        var row = await store.GetAsync(agent, cancellationToken);
+        if (row is null)
+        {
+            return ProblemResults.NotFound("Agent", agent);
+        }
+        return Results.Ok((await store.ListVersionsAsync(row.Id, cancellationToken)).Select(ToVersion));
+    }
+
+    private static async Task<IResult> GetVersionAsync(string agent, Guid versionId, AgentStore store, CancellationToken cancellationToken)
+    {
+        var row = await store.GetAsync(agent, cancellationToken);
+        if (row is null)
+        {
+            return ProblemResults.NotFound("Agent", agent);
+        }
+        var version = await store.GetVersionAsync(versionId, cancellationToken);
+        if (version is null || version.AgentId != row.Id)
+        {
+            return ProblemResults.NotFound("Version", versionId.ToString());
+        }
+        var content =
+            JsonSerializer.Deserialize<AgentVersionInput>(version.Content, ContractJson.Options)
+            ?? throw new InvalidOperationException($"Version {version.Id} has no content.");
+        return Results.Ok(
+            new AgentVersionDetail(
+                version.Id,
+                version.AgentId,
+                version.ContentHash,
+                version.CreatedAt,
+                content with
+                {
+                    Label = version.Label,
+                }
+            )
+        );
+    }
+
+    private static List<FieldError> Validate(AgentVersionInput input)
+    {
+        var errors = new List<FieldError>();
+        if (string.IsNullOrWhiteSpace(input.SystemPrompt))
+        {
+            errors.Add(new FieldError("systemPrompt", "The system prompt is empty."));
+        }
+        if (string.IsNullOrWhiteSpace(input.Model.Name))
+        {
+            errors.Add(new FieldError("model.name", "The model name is empty."));
+        }
+        var tools = new HashSet<string>();
+        for (var i = 0; i < input.Tools.Count; i++)
+        {
+            if (string.IsNullOrWhiteSpace(input.Tools[i].Name) || !tools.Add(input.Tools[i].Name))
+            {
+                errors.Add(new FieldError($"tools[{i}].name", "A tool has a name, and its name is unique."));
+            }
+        }
+        var events = new HashSet<string>();
+        for (var i = 0; i < input.Context.Events.Count; i++)
+        {
+            if (string.IsNullOrWhiteSpace(input.Context.Events[i].Type) || !events.Add(input.Context.Events[i].Type))
+            {
+                errors.Add(new FieldError($"context.events[{i}].type", "An event has a type, and its type is unique."));
+            }
+        }
+        return errors;
+    }
+
+    private static Agent ToAgent(AgentRow row) =>
+        new()
+        {
+            Id = row.Id,
+            Name = row.Name,
+            EndpointUrl = row.EndpointUrl,
+            CreatedAt = row.CreatedAt,
+        };
+
+    private static AgentVersion ToVersion(AgentVersionRow row) => new(row.Id, row.AgentId, row.Label, row.ContentHash, row.CreatedAt);
+}

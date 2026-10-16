@@ -12,16 +12,21 @@ public static class ContractJson
     /// </summary>
     public static JsonSerializerOptions Options { get; } = Create();
 
+    /// <summary>The same rules on options someone else owns (ASP.NET Core's), so the server reads requests as strictly as the CLI reads files.</summary>
+    public static void Configure(JsonSerializerOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        options.UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow;
+        options.RespectNullableAnnotations = true;
+        options.RespectRequiredConstructorParameters = true;
+        options.AllowOutOfOrderMetadataProperties = true;
+        options.PropertyNameCaseInsensitive = false;
+    }
+
     private static JsonSerializerOptions Create()
     {
-        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web)
-        {
-            UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
-            RespectNullableAnnotations = true,
-            RespectRequiredConstructorParameters = true,
-            AllowOutOfOrderMetadataProperties = true,
-            PropertyNameCaseInsensitive = false,
-        };
+        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        Configure(options);
         options.MakeReadOnly(populateMissingResolver: true);
         return options;
     }

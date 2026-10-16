@@ -1,9 +1,9 @@
 using System.Text.RegularExpressions;
 
-namespace Suwageval.Cli.Validate;
+namespace Suwageval.Contracts;
 
 /// <summary>Keys and tags are lowercase kebab-case: <c>refund-happy-path</c>.</summary>
-internal static partial class Kebab
+public static partial class Kebab
 {
     public static bool IsValid(string text) => Pattern().IsMatch(text);
 

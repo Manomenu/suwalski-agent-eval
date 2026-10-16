@@ -54,14 +54,7 @@ internal static class ValidateCommand
         }
         if (Directory.Exists(path))
         {
-            var scenarios = Path.Combine(path, "scenarios");
-            var files = Directory.Exists(scenarios)
-                ? Directory
-                    .EnumerateFiles(scenarios, "*.yaml")
-                    .Order(StringComparer.Ordinal)
-                    .Select(f => new SourceText(f, File.ReadAllText(f)))
-                : [];
-            return Validator.Validate(AgentFile(path), ReadIfExists(AgentFile(path)), [.. files]);
+            return AgentFolder.Read(path).Validate();
         }
         return new ValidationResult([new Problem(path, "", "No such file or folder.", null, null)], 0, 0);
     }

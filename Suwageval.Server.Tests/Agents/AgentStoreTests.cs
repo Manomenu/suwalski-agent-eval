@@ -117,5 +117,17 @@ public sealed class AgentStoreTests(TestDatabase database)
     }
 
     [Fact]
+    public async Task Set_endpoint_url_changes_only_the_url_and_count_starts_at_zero()
+    {
+        var store = Store();
+        var agent = (await store.CreateAsync(UniqueName(), "http://old.test", Cancellation)).Agent;
+
+        var moved = await store.SetEndpointUrlAsync(agent.Id, "http://new.test", Cancellation);
+
+        Assert.Equal(agent with { EndpointUrl = "http://new.test" }, moved);
+        Assert.Equal(new AgentCounts(0, 0, 0), await store.CountAsync(agent.Id, Cancellation));
+    }
+
+    [Fact]
     public async Task Get_version_of_an_unknown_id_is_null() => Assert.Null(await Store().GetVersionAsync(Guid.NewGuid(), Cancellation));
 }
