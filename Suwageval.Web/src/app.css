@@ -47,8 +47,8 @@
 }
 
 /* The line diff of two versions: a row is the two line numbers, the +/- marker and the text, which wraps (never scrolled
-   sideways) and hangs under its start (the row's inline padding, see agents/VersionDiffView.tsx). */
-.version-diff {
+   sideways) and hangs under its start (the row's inline padding, see diff/LineDiffView.tsx). */
+.line-diff {
     font-family: var(--mantine-font-family-monospace);
     font-size: var(--mantine-font-size-sm);
     border: 1px solid var(--mantine-color-default-border);
@@ -56,28 +56,28 @@
     overflow: hidden;
 }
 
-.version-diff-row {
+.line-diff-row {
     display: grid;
     grid-template-columns: 5ch 5ch 2ch minmax(0, 1fr);
     column-gap: var(--mantine-spacing-xs);
     padding-inline: var(--mantine-spacing-xs);
 }
 
-.version-diff-row-added {
+.line-diff-row-added {
     background: var(--mantine-color-green-light);
 }
 
-.version-diff-row-removed {
+.line-diff-row-removed {
     background: var(--mantine-color-red-light);
 }
 
-.version-diff-number {
+.line-diff-number {
     text-align: right;
     color: var(--mantine-color-dimmed);
     user-select: none;
 }
 
-.version-diff-text {
+.line-diff-text {
     white-space: pre-wrap;
     overflow-wrap: anywhere;
     min-height: 1lh;

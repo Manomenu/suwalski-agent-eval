@@ -103,7 +103,7 @@ run_step "test server (xunit, incl. import contracts)" test_server
 # tests). This checks the types of both; it does not run the e2e tests (that is `just e2e`).
 web_typecheck() { web tsc --noEmit -p tsconfig.app.json && web tsc --noEmit -p tsconfig.node.json; }
 run_step "typecheck Suwageval.Web (tsc: app, e2e tests, config)" web_typecheck
-run_step "lint Suwageval.Web (eslint strict + import contracts)" web eslint .
+run_step "lint Suwageval.Web (eslint strict + import contracts, no warnings)" web eslint . --max-warnings 0
 run_step "format Suwageval.Web (prettier --check)" web prettier --check .
 run_step "test Suwageval.Web (vitest)" web vitest run
 # Unused files, exports and dependencies. knip.json leaves out the generated API types and

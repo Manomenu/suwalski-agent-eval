@@ -22,6 +22,9 @@ interface Loaded {
     error: string | null;
 }
 
+/** The version ids of the comma-joined list; none for null (all versions) or "" (no version). */
+const idsOf = (versionIds: string | null) => (versionIds === null || versionIds === "" ? [] : versionIds.split(","));
+
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 /**
@@ -37,13 +40,14 @@ export function useRuns(agent: string, versionIds: string | null, key: string): 
     // The request in flight: aborted when the key changes or the page goes away, so a late answer never lands.
     const controller = useRef<AbortController | null>(null);
     const none = versionIds === "";
-    const ids = versionIds === null || none ? [] : versionIds.split(",");
+    const ids = idsOf(versionIds);
 
     useEffect(() => {
         if (none) return;
         const current = new AbortController();
         controller.current = current;
-        fetchRuns(agent, null, ids, current.signal)
+        // Split here, from the string: the effect depends on `versionIds`, not on a new array of each render.
+        fetchRuns(agent, null, idsOf(versionIds), current.signal)
             .then((page) => {
                 if (!current.signal.aborted) setLoaded({ key, runs: page.runs, next: page.next ?? null, error: null });
             })
@@ -53,7 +57,6 @@ export function useRuns(agent: string, versionIds: string | null, key: string): 
         return () => {
             current.abort();
         };
-        // `ids` is derived from `versionIds`, a string: the effect depends on that, not on the new array of each render.
     }, [agent, key, none, versionIds]);
 
     const current = loaded?.key === key ? loaded : null;
