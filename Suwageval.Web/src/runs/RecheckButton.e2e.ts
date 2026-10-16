@@ -48,7 +48,9 @@ test("Re-check shows what changed, starts only then, and leads to the page of th
         await expect(dialog.getByText("says-hello", { exact: true })).toBeVisible();
         await expect(dialog.getByLabel("says-hello change", { exact: true })).toHaveText("Changed");
         await dialog.getByRole("button", { name: "Show change of says-hello", exact: true }).click();
-        await expect(dialog.getByText("In the run", { exact: true })).toBeVisible();
+        // The change is a line diff: the run's line removed, the current one added.
+        await expect(dialog.locator(".line-diff-row-removed").getByText("contains: Hello", { exact: true })).toBeVisible();
+        await expect(dialog.locator(".line-diff-row-added").getByText("contains: there", { exact: true })).toBeVisible();
 
         await dialog.getByRole("button", { name: "Start re-check", exact: true }).click();
 
