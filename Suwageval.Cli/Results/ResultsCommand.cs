@@ -1,6 +1,4 @@
 using System.CommandLine;
-using System.ComponentModel;
-using System.Diagnostics;
 using Suwageval.Cli.Server;
 
 namespace Suwageval.Cli.Results;
@@ -43,15 +41,7 @@ internal static class ResultsCommand
                         return RunVerdict.ExitCode(results);
                     }
                     await client.GetAsync(id, cancellationToken);
-                    var page = ServerAddress.RunPage(site, id);
-                    await output.WriteLineAsync(page.ToString());
-                    (openBrowser ?? OpenInDefaultBrowser)(page);
-                    return 0;
-                }
-                catch (Win32Exception)
-                {
-                    // No browser here (an SSH session, CI): the link above is the way in.
-                    await parsed.InvocationConfiguration.Error.WriteLineAsync("No browser could be opened: open the link above.");
+                    await WebPage.ShowAsync(ServerAddress.RunPage(site, id), output, parsed.InvocationConfiguration.Error, openBrowser);
                     return 0;
                 }
                 catch (RunClientException failure)
@@ -70,8 +60,4 @@ internal static class ResultsCommand
         );
         return command;
     }
-
-    // With the shell, .NET hands a URL to the system's opener (xdg-open, open, start).
-    private static void OpenInDefaultBrowser(Uri page) =>
-        Process.Start(new ProcessStartInfo(page.ToString()) { UseShellExecute = true })?.Dispose();
 }

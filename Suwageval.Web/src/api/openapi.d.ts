@@ -271,7 +271,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["ScenarioSummary"][];
+                    };
                 };
             };
         };
@@ -778,7 +780,10 @@ export interface components {
             /** Format: int32 */
             checks: number | string;
         };
-        /** @description A registered version of an agent, without its content; `ArchivedAt` is set while the version is archived. */
+        /**
+         * @description A registered version of an agent, without its content (but with the model's name, so runs can be filtered by model);
+         *     `ArchivedAt` is set while the version is archived.
+         */
         AgentVersion: {
             /** Format: uuid */
             id: string;
@@ -790,6 +795,7 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             archivedAt: null | string;
+            modelName: string;
         };
         /** @description A registered version of an agent with its content (`Content.Label` is the version's label). */
         AgentVersionDetail: {
@@ -1135,6 +1141,15 @@ export interface components {
             revision: number | string;
             samples: components["schemas"]["SampleResult"][];
             checks: components["schemas"]["CheckRunResult"][];
+        };
+        /** @description A scenario as listed: its latest revision's number, without the conversation. */
+        ScenarioSummary: {
+            key: string;
+            tags: string[];
+            /** Format: int32 */
+            revision: number | string;
+            /** Format: date-time */
+            createdAt: string;
         };
         /** @description Adds and removes tags on several scenarios at once; tags are metadata and make no new revision. */
         TagChangeRequest: {

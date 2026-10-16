@@ -12,7 +12,7 @@ internal static class ScenarioEndpoints
     public static void MapScenarios(this IEndpointRouteBuilder app)
     {
         app.MapPut("/agents/{agent}/scenarios", PutAsync);
-        app.MapGet("/agents/{agent}/scenarios", ListAsync);
+        app.MapGet("/agents/{agent}/scenarios", ListAsync).Produces<IReadOnlyList<ScenarioSummary>>();
         app.MapGet("/agents/{agent}/scenarios/{key}", GetAsync);
         app.MapGet("/agents/{agent}/scenarios/{key}/revisions", ListRevisionsAsync);
         app.MapDelete("/agents/{agent}/scenarios/{key}", DeleteAsync);

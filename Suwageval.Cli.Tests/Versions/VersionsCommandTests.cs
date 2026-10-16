@@ -35,14 +35,15 @@ public sealed class VersionsCommandTests
                 JsonSerializer.Serialize(
                     new[]
                     {
-                        new AgentVersion(Active, Guid.NewGuid(), "v2", "hash2", DateTimeOffset.Parse("2026-10-02T10:00:00Z"), null),
+                        new AgentVersion(Active, Guid.NewGuid(), "v2", "hash2", DateTimeOffset.Parse("2026-10-02T10:00:00Z"), null, "m"),
                         new AgentVersion(
                             Archived,
                             Guid.NewGuid(),
                             null,
                             "hash1",
                             DateTimeOffset.Parse("2026-10-01T10:00:00Z"),
-                            DateTimeOffset.Parse("2026-10-03T10:00:00Z")
+                            DateTimeOffset.Parse("2026-10-03T10:00:00Z"),
+                            "m"
                         ),
                     },
                     ContractJson.Options

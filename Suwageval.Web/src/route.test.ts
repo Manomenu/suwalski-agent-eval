@@ -14,6 +14,12 @@ describe("pageOf", () => {
         expect(pageOf(`/runs/${ID}/`)).toEqual({ kind: "run", runId: ID });
     });
 
+    it("reads the runs query of /compare, as it is", () => {
+        expect(pageOf("/compare", "?runs=a,b")).toEqual({ kind: "compare", runs: "a,b" });
+        expect(pageOf("/compare/", "?runs=a,b&x=1")).toEqual({ kind: "compare", runs: "a,b" });
+        expect(pageOf("/compare")).toEqual({ kind: "compare", runs: "" });
+    });
+
     it("reads the name of /agents/<name>, decoded", () => {
         expect(pageOf("/agents/support-bot")).toEqual({ kind: "agent", name: "support-bot" });
         expect(pageOf("/agents/my%20bot/")).toEqual({ kind: "agent", name: "my bot" });

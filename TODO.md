@@ -83,7 +83,9 @@ belongs to.
 - **The contract for multi-agent systems (contract v1, replaces v0):** a system under test is
   often several LLM agents, not one prompt. The contract becomes:
   - `agents`: a list of LLM agents, each `{ name, model { name, parameters }, config, tools }`,
-    where `config` is free text for now — the system prompt, a scope policy, whatever defines
+    where `model { name, parameters }` stays a structured field, separate from the free-text
+    `config`, so runs can still be filtered and compared by model (the runs' model filter then
+    covers the models of all the system's agents), and `config` is free text for now — the system prompt, a scope policy, whatever defines
     that agent — and `tools` are the tools THAT agent may call;
   - `otherConfig`: free text for what belongs to the system, not to one agent (e.g. "retries
     on every LLM agent: 2");

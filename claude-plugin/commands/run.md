@@ -19,4 +19,9 @@ $ARGUMENTS
    key and why (its samples' `message`). A scenario sample with an `error` is the agent
    failing, not a check; say which. Add the run's link:
    `{SUWAGEVAL_URL or http://localhost:3230}/runs/{run.id}`.
-4. Do not change files or checks to make a failure go away; if you suspect a bad check, say so.
+4. Offer to compare with the agent's previous run: `suwageval runs --json` lists the agent's
+   newest runs, so the previous one is the next after `run.id`. If there is one, say how the
+   totals changed, and, if the user wants more, compare the two as the skill's "Comparing runs"
+   describes, ending with the link `{SUWAGEVAL_URL or http://localhost:3230}/compare?runs={previous},{run.id}`.
+   Do not run `suwageval compare` without asking: it opens a browser.
+5. Do not change files or checks to make a failure go away; if you suspect a bad check, say so.

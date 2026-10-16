@@ -10,6 +10,7 @@ export type Page =
     | { kind: "agent"; name: string }
     | { kind: "version"; name: string; versionId: string }
     | { kind: "run"; runId: string }
+    | { kind: "compare"; runs: string }
     | { kind: "unknown" };
 
 function decode(segment: string): string | null {
@@ -20,9 +21,14 @@ function decode(segment: string): string | null {
     }
 }
 
-/** The page a path opens: `/`, `/agents/<name>`, `/agents/<name>/versions/<guid>` or `/runs/<guid>` (which `suwageval results` opens). */
-export function pageOf(pathname: string): Page {
+/**
+ * The page a path opens: `/`, `/agents/<name>`, `/agents/<name>/versions/<guid>`, `/runs/<guid>` (which `suwageval results` opens)
+ * or `/compare?runs=<guid>,<guid>,…` (which `suwageval compare` opens; `runs` is passed on as it is, the page checks it).
+ */
+export function pageOf(pathname: string, search = ""): Page {
     if (pathname === "/") return { kind: "agents" };
+    if (pathname === "/compare" || pathname === "/compare/")
+        return { kind: "compare", runs: new URLSearchParams(search).get("runs") ?? "" };
 
     const run = RUN_PATH.exec(pathname);
     if (run?.[1]) return { kind: "run", runId: run[1] };

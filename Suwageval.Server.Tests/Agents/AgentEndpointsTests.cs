@@ -32,7 +32,7 @@ public sealed class AgentEndpointsTests(TestDatabase database) : IAsyncDisposabl
                 TestContext.Current.CancellationToken
             )
         ).Version;
-        return new AgentVersion(row.Id, row.AgentId, row.Label, row.ContentHash, row.CreatedAt, row.ArchivedAt);
+        return new AgentVersion(row.Id, row.AgentId, row.Label, row.ContentHash, row.CreatedAt, row.ArchivedAt, contract.Model.Name);
     }
 
     [Fact]
@@ -138,6 +138,7 @@ public sealed class AgentEndpointsTests(TestDatabase database) : IAsyncDisposabl
         var detail = await TestServer.Read<AgentVersionDetail>(await server.Get($"/agents/{name}/versions/{version.Id}"));
 
         Assert.Equal([version], listed);
+        Assert.Equal("some-model", listed[0].ModelName);
         Assert.Equal(version.Id, detail.Id);
         Assert.Equal("Be helpful.", detail.Content.SystemPrompt);
         Assert.Equal("v1", detail.Content.Label);

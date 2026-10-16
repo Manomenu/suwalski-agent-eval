@@ -4,6 +4,7 @@ import { useDisclosure } from "@mantine/hooks";
 import { AgentPage } from "./agents/AgentPage";
 import { AgentsPage } from "./agents/AgentsPage";
 import { VersionPage } from "./agents/VersionPage";
+import { ComparePage } from "./compare/ComparePage";
 import { ServerStatus } from "./health/ServerStatus";
 import { pageOf } from "./route";
 import { RunPage } from "./runs/RunPage";
@@ -12,7 +13,7 @@ import { CONTENT_MAX_WIDTH, HEADER_HEIGHT, NAVBAR_WIDTH } from "./shell/layout";
 
 /** Puts the page together from features: the shell (header, sidebar), then the page the path opens. */
 export function App() {
-    const page = pageOf(window.location.pathname);
+    const page = pageOf(window.location.pathname, window.location.search);
     const [navbarOpened, { toggle }] = useDisclosure(false);
 
     return (
@@ -47,6 +48,7 @@ export function App() {
                     {page.kind === "agent" && <AgentPage name={page.name} />}
                     {page.kind === "version" && <VersionPage name={page.name} versionId={page.versionId} />}
                     {page.kind === "run" && <RunPage runId={page.runId} />}
+                    {page.kind === "compare" && <ComparePage runs={page.runs} />}
                     {page.kind === "unknown" && <Anchor href="/">Page not found — back to the list of agents</Anchor>}
                 </Box>
             </AppShell.Main>

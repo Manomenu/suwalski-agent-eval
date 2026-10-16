@@ -3,9 +3,13 @@ import { describe, expect, it } from "vitest";
 import { ApiError } from "../api/client";
 import {
     agentHref,
+    canCompare,
+    compareHref,
     isNotFound,
     jsonText,
+    modelsOf,
     runHref,
+    runsToCompare,
     selectionActions,
     shortId,
     versionHref,
@@ -15,8 +19,8 @@ import {
     visibleVersions,
 } from "./view";
 
-const old = { id: "v-old", archivedAt: "2026-10-01T10:00:00Z" };
-const current = { id: "v-new", archivedAt: null };
+const old = { id: "v-old", archivedAt: "2026-10-01T10:00:00Z", modelName: "small" };
+const current = { id: "v-new", archivedAt: null, modelName: "large" };
 
 describe("visibleVersions", () => {
     it("hides the archived ones unless asked", () => {
@@ -82,5 +86,43 @@ describe("versionTitle", () => {
     it("is the label, or the start of the id without one", () => {
         expect(versionTitle("3f2b8c1e-5d4a", "v2")).toBe("v2");
         expect(versionTitle("3f2b8c1e-5d4a", null)).toBe("3f2b8c1e");
+    });
+});
+
+describe("visibleRuns with models", () => {
+    const runs = [{ agentVersionId: "v-old" }, { agentVersionId: "v-new" }, { agentVersionId: "v-unknown" }];
+
+    it("keeps the runs of the chosen models; no model chosen means all", () => {
+        expect(visibleRuns(runs, [old, current], true, ["small"])).toEqual([runs[0]]);
+        expect(visibleRuns(runs, [old, current], true, ["small", "large"])).toEqual([runs[0], runs[1]]);
+        expect(visibleRuns(runs, [old, current], true, [])).toEqual(runs);
+    });
+
+    it("works together with the archived filter", () => {
+        expect(visibleRuns(runs, [old, current], false, ["small"])).toEqual([]);
+        expect(visibleRuns(runs, [old, current], false, ["large"])).toEqual([runs[1]]);
+    });
+});
+
+describe("modelsOf", () => {
+    it("lists each model once, sorted", () => {
+        expect(modelsOf([{ modelName: "b" }, { modelName: "a" }, { modelName: "b" }])).toEqual(["a", "b"]);
+        expect(modelsOf([])).toEqual([]);
+    });
+});
+
+describe("comparing", () => {
+    it("accepts two to five runs", () => {
+        expect([0, 1, 2, 5, 6].map(canCompare)).toEqual([false, false, true, true, false]);
+    });
+
+    it("links the runs in the order given", () => {
+        expect(compareHref(["a", "b"])).toBe("/compare?runs=a,b");
+    });
+
+    it("puts the oldest selected run first, whatever the order of selecting", () => {
+        const newestFirst = [{ id: "c" }, { id: "b" }, { id: "a" }];
+        expect(runsToCompare(newestFirst, new Set(["c", "a"]))).toEqual(["a", "c"]);
+        expect(runsToCompare(newestFirst, new Set(["gone"]))).toEqual([]);
     });
 });

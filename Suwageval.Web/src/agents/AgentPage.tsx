@@ -1,4 +1,4 @@
-import { Anchor, Badge, Group, Paper, Stack, Table, Text, Title } from "@mantine/core";
+import { Anchor, Badge, Button, Checkbox, Group, MultiSelect, Paper, Stack, Table, Text, Title } from "@mantine/core";
 import { useState } from "react";
 
 import { fetchRuns } from "../runs/api";
@@ -6,12 +6,29 @@ import { formatTime, num, progress, statusColor, statusLabel } from "../runs/res
 import { fetchAgent, fetchVersions } from "./api";
 import { Page } from "./Page";
 import { useLoaded } from "./useLoaded";
-import { runHref, shortId, versionHref, visibleRuns } from "./view";
+import {
+    canCompare,
+    compareHref,
+    modelsOf,
+    runHref,
+    runsToCompare,
+    shortId,
+    versionHref,
+    visibleRuns,
+    COMPARE_MAX_RUNS,
+    COMPARE_MIN_RUNS,
+} from "./view";
 import { VersionsSection } from "./VersionsSection";
+
+const MODEL_FILTER_MIN_WIDTH = 260;
+const RUNS_TABLE_MIN_WIDTH = 940;
 
 /** `/agents/<name>`: the agent, its runs (newest first) and its versions. */
 export function AgentPage({ name }: { name: string }) {
     const [showArchived, setShowArchived] = useState(false);
+    // The model filter (empty: every model) and the runs ticked for comparison.
+    const [models, setModels] = useState<string[]>([]);
+    const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
     // Bumped after versions are archived or restored: the lists are loaded again (the page stays until the new ones arrive).
     const [reload, setReload] = useState(0);
     const state = useLoaded(`${name}/${reload}`, async (signal) => {
@@ -22,7 +39,9 @@ export function AgentPage({ name }: { name: string }) {
     return (
         <Page state={state} notFound={`There is no agent ${name}.`}>
             {({ agent, runs: allRuns, versions }) => {
-                const runs = visibleRuns(allRuns, versions, showArchived);
+                const runs = visibleRuns(allRuns, versions, showArchived, models);
+                // Only what is listed counts: a run the filter hides is not compared.
+                const toCompare = runsToCompare(runs, selected);
                 return (
                     <Stack gap="lg">
                         <Anchor href="/">← Agents</Anchor>
@@ -39,6 +58,26 @@ export function AgentPage({ name }: { name: string }) {
                         </Paper>
 
                         <Title order={3}>Runs</Title>
+                        <Group justify="space-between" align="flex-end">
+                            <MultiSelect
+                                label="Model"
+                                placeholder={models.length === 0 ? "All models" : undefined}
+                                data={modelsOf(versions)}
+                                value={models}
+                                onChange={setModels}
+                                clearable
+                                miw={MODEL_FILTER_MIN_WIDTH}
+                            />
+                            <Button
+                                disabled={!canCompare(toCompare.length)}
+                                title={`Select ${COMPARE_MIN_RUNS} to ${COMPARE_MAX_RUNS} runs to compare`}
+                                onClick={() => {
+                                    window.location.assign(compareHref(toCompare));
+                                }}
+                            >
+                                Compare ({toCompare.length})
+                            </Button>
+                        </Group>
                         {runs.length === 0 ? (
                             <Text c="dimmed">
                                 {allRuns.length === 0
@@ -47,10 +86,11 @@ export function AgentPage({ name }: { name: string }) {
                             </Text>
                         ) : (
                             <Paper withBorder p="md">
-                                <Table.ScrollContainer minWidth={900}>
+                                <Table.ScrollContainer minWidth={RUNS_TABLE_MIN_WIDTH}>
                                     <Table highlightOnHover>
                                         <Table.Thead>
                                             <Table.Tr>
+                                                <Table.Th />
                                                 <Table.Th>Run</Table.Th>
                                                 <Table.Th>Status</Table.Th>
                                                 <Table.Th>Tag</Table.Th>
@@ -64,6 +104,18 @@ export function AgentPage({ name }: { name: string }) {
                                         <Table.Tbody>
                                             {runs.map((run) => (
                                                 <Table.Tr key={run.id}>
+                                                    <Table.Td>
+                                                        <Checkbox
+                                                            aria-label={`Select run ${shortId(run.id)}`}
+                                                            checked={selected.has(run.id)}
+                                                            onChange={(event) => {
+                                                                const next = new Set(selected);
+                                                                if (event.currentTarget.checked) next.add(run.id);
+                                                                else next.delete(run.id);
+                                                                setSelected(next);
+                                                            }}
+                                                        />
+                                                    </Table.Td>
                                                     <Table.Td>
                                                         <Anchor href={runHref(run.id)}>{shortId(run.id)}</Anchor>
                                                     </Table.Td>
