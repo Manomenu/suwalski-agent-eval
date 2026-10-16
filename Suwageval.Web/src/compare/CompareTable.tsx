@@ -5,7 +5,10 @@ import { dataText, shortId, versionLabel } from "../agents/view";
 import { CheckDefinitionButton } from "../checks/CheckDefinitionButton";
 import { judgedByModel } from "../checks/definition";
 import { ModelJudgedIcon } from "../checks/ModelJudgedIcon";
+import { UnstableCheckIcon } from "../checks/UnstableCheckIcon";
 import { durationSummary, formatTime, num, percent } from "../runs/results";
+import { unstableInRuns, unstableRowTooltip } from "../runs/stability";
+import { useUnstableChecks } from "../runs/useUnstableChecks";
 import type { Comparison } from "./api";
 import {
     alignRows,
@@ -30,6 +33,10 @@ export function CompareTable({ comparison, firstBaseline }: { comparison: Compar
     const [baselineId, setBaselineId] = useState(firstBaseline);
     const [onlyDifferences, setOnlyDifferences] = useState(true);
     const [hideUncomparable, setHideUncomparable] = useState(false);
+
+    // The checks that are unstable in the version of any compared run.
+    const versionIds = [...new Set(runs.map((results) => results.run.agentVersionId))].sort();
+    const unstable = useUnstableChecks(runs[0]?.run.agent ?? null, versionIds);
 
     const columns = runs.length;
     const baseline = Math.max(
@@ -154,6 +161,7 @@ export function CompareTable({ comparison, firstBaseline }: { comparison: Compar
                             </Table.Tr>
                             {rows.map((row) => {
                                 const check = checkOfRow(runs, row, baseline);
+                                const unstableIn = unstableInRuns(unstable, runs, row.scenarioKey, row.checkKey);
                                 return (
                                     <Table.Tr key={JSON.stringify([row.scenarioKey, row.checkKey])}>
                                         <Table.Td>
@@ -163,6 +171,7 @@ export function CompareTable({ comparison, firstBaseline }: { comparison: Compar
                                             <Group gap={4} wrap="nowrap">
                                                 <Text>{row.checkKey}</Text>
                                                 {check !== null && judgedByModel(check.definition) && <ModelJudgedIcon />}
+                                                {unstableIn.length > 0 && <UnstableCheckIcon label={unstableRowTooltip(unstableIn)} />}
                                                 {check !== null && (
                                                     <CheckDefinitionButton
                                                         definition={check.definition}

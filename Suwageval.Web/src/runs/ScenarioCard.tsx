@@ -3,12 +3,23 @@ import { Accordion, Alert, Badge, Card, Group, List, Stack, Text, Title } from "
 import { CheckDefinitionButton } from "../checks/CheckDefinitionButton";
 import { judgedByModel } from "../checks/definition";
 import { ModelJudgedIcon } from "../checks/ModelJudgedIcon";
-import type { ScenarioRunResult } from "./api";
+import { UnstableCheckIcon } from "../checks/UnstableCheckIcon";
+import type { ScenarioRunResult, UnstableCheck } from "./api";
 import { ConversationView } from "./ConversationView";
+import { findUnstable, unstableTooltip } from "./stability";
 import { checkSummary, failedEvidenceKeys, formatSeconds, notJudgedCount, num } from "./results";
 
 /** One scenario: its checks with verdicts, the warnings of its samples, and what the agent produced. */
-export function ScenarioCard({ scenario }: { scenario: ScenarioRunResult }) {
+export function ScenarioCard({
+    scenario,
+    versionId,
+    unstable,
+}: {
+    scenario: ScenarioRunResult;
+    /** The agent version the run is of, and the agent's unstable checks: a check unstable in that version is marked. */
+    versionId: string;
+    unstable: UnstableCheck[];
+}) {
     return (
         <Card withBorder padding="md">
             <Stack gap="sm">
@@ -33,42 +44,46 @@ export function ScenarioCard({ scenario }: { scenario: ScenarioRunResult }) {
                 ))}
 
                 {scenario.checks.length === 0 && <Text c="dimmed">No checks.</Text>}
-                {scenario.checks.map((check) => (
-                    <Stack key={check.key} gap={4}>
-                        <Group gap="xs">
-                            <Badge color={check.passed ? "green" : "red"}>{check.passed ? "passed" : "failed"}</Badge>
-                            {notJudgedCount(check) > 0 && (
-                                <Badge color="yellow" variant="light">
-                                    {`not judged: ${notJudgedCount(check)} of ${check.samples.length} samples`}
-                                </Badge>
-                            )}
-                            <Text fw={600}>{check.key}</Text>
-                            {judgedByModel(check.definition) && <ModelJudgedIcon />}
-                            <CheckDefinitionButton
-                                definition={check.definition}
-                                revision={num(check.revision)}
-                                latestRevision={num(check.latestRevision)}
-                            />
-                            <Text c="dimmed">{checkSummary(check)}</Text>
-                        </Group>
-                        <List size="sm" listStyleType="none">
-                            {check.samples
-                                .filter((sample) => !sample.passed || check.samples.length === 1)
-                                .map((sample) => (
-                                    <List.Item key={sample.sample}>
-                                        {check.samples.length > 1 ? `sample ${num(sample.sample)}: ` : ""}
-                                        {judgedByModel(check.definition) && !sample.notJudged ? (
-                                            <Text span fs="italic" inherit>
-                                                {sample.message}
-                                            </Text>
-                                        ) : (
-                                            sample.message
-                                        )}
-                                    </List.Item>
-                                ))}
-                        </List>
-                    </Stack>
-                ))}
+                {scenario.checks.map((check) => {
+                    const unstableCheck = findUnstable(unstable, versionId, scenario.key, check.key, num(check.revision));
+                    return (
+                        <Stack key={check.key} gap={4}>
+                            <Group gap="xs">
+                                <Badge color={check.passed ? "green" : "red"}>{check.passed ? "passed" : "failed"}</Badge>
+                                {notJudgedCount(check) > 0 && (
+                                    <Badge color="yellow" variant="light">
+                                        {`not judged: ${notJudgedCount(check)} of ${check.samples.length} samples`}
+                                    </Badge>
+                                )}
+                                <Text fw={600}>{check.key}</Text>
+                                {judgedByModel(check.definition) && <ModelJudgedIcon />}
+                                {unstableCheck !== undefined && <UnstableCheckIcon label={unstableTooltip(unstableCheck)} />}
+                                <CheckDefinitionButton
+                                    definition={check.definition}
+                                    revision={num(check.revision)}
+                                    latestRevision={num(check.latestRevision)}
+                                />
+                                <Text c="dimmed">{checkSummary(check)}</Text>
+                            </Group>
+                            <List size="sm" listStyleType="none">
+                                {check.samples
+                                    .filter((sample) => !sample.passed || check.samples.length === 1)
+                                    .map((sample) => (
+                                        <List.Item key={sample.sample}>
+                                            {check.samples.length > 1 ? `sample ${num(sample.sample)}: ` : ""}
+                                            {judgedByModel(check.definition) && !sample.notJudged ? (
+                                                <Text span fs="italic" inherit>
+                                                    {sample.message}
+                                                </Text>
+                                            ) : (
+                                                sample.message
+                                            )}
+                                        </List.Item>
+                                    ))}
+                            </List>
+                        </Stack>
+                    );
+                })}
 
                 <Accordion multiple variant="contained">
                     {scenario.samples.map((sample) => (

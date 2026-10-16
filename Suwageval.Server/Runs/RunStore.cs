@@ -318,4 +318,51 @@ internal sealed class RunStore(Pool pool)
         );
         return [.. rows];
     }
+
+    /// <summary>
+    /// Per check, scenario and run the samples with a verdict and the passed ones, over the newest <paramref name="maxRuns"/> finished
+    /// runs of the agent (only those of <paramref name="versionIds"/> when not empty). The threshold is the one of the check revision that ran.
+    /// </summary>
+    public async Task<IReadOnlyList<RunCheckVerdictRow>> ListRunCheckVerdictsAsync(
+        Guid agentId,
+        IReadOnlyCollection<Guid> versionIds,
+        int maxRuns,
+        CancellationToken cancellationToken = default
+    )
+    {
+        await using var connection = await pool.OpenAsync(cancellationToken);
+        var rows = await connection.QueryAsync<RunCheckVerdictRow>(
+            new CommandDefinition(
+                """
+                WITH picked AS (
+                    SELECT id, created_at, agent_version_id FROM runs
+                    WHERE agent_id = @agentId AND status = 'Done'
+                      -- Runs that only re-judge stored answers (runs.recheck_of IS NOT NULL) must be excluded here: one more AND.
+                      AND (cardinality(@versionIds::uuid[]) = 0 OR agent_version_id = ANY(@versionIds::uuid[]))
+                    ORDER BY created_at DESC, id
+                    LIMIT @maxRuns
+                )
+                SELECT p.id AS RunId, p.created_at AS CreatedAt, p.agent_version_id AS AgentVersionId, s.key AS ScenarioKey,
+                       c.key AS CheckKey, cr.check_revision AS CheckRevision, count(*)::int AS Samples,
+                       (count(*) FILTER (WHERE cr.passed))::int AS SamplesPassed,
+                       COALESCE((rev.content->>'passThreshold')::float8, 1.0) AS PassThreshold
+                FROM picked p
+                JOIN scenario_results sr ON sr.run_id = p.id
+                JOIN scenarios s ON s.id = sr.scenario_id
+                JOIN check_results cr ON cr.scenario_result_id = sr.id
+                JOIN checks c ON c.id = cr.check_id
+                JOIN check_revisions rev ON rev.check_id = cr.check_id AND rev.revision = cr.check_revision
+                GROUP BY p.id, p.created_at, p.agent_version_id, s.key, c.key, cr.check_revision, rev.content->>'passThreshold'
+                """,
+                new
+                {
+                    agentId,
+                    versionIds = versionIds.ToArray(),
+                    maxRuns,
+                },
+                cancellationToken: cancellationToken
+            )
+        );
+        return [.. rows];
+    }
 }

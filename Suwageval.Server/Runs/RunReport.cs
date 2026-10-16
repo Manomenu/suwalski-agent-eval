@@ -12,6 +12,9 @@ internal static class RunReport
     /// <summary>Floating-point slack so that 4 of 5 samples reaching a threshold of 0.8 counts as reaching it.</summary>
     private const double Epsilon = 1e-9;
 
+    /// <summary>True when <paramref name="passed"/> of <paramref name="total"/> samples reach the pass <paramref name="threshold"/>.</summary>
+    public static bool Reaches(int passed, int total, double threshold) => (passed / (double)total) + Epsilon >= threshold;
+
     public static RunSummary Summary(RunRow run)
     {
         ArgumentNullException.ThrowIfNull(run);
@@ -67,7 +70,8 @@ internal static class RunReport
 
     private static CheckRunResult CheckResult(string key, IReadOnlyList<CheckResultRow> rows, Dictionary<Guid, int> sampleNumberOf)
     {
-        var passRate = rows.Count(row => row.Passed) / (double)rows.Count;
+        var passed = rows.Count(row => row.Passed);
+        var passRate = passed / (double)rows.Count;
         var threshold = rows[0].PassThreshold;
         return new CheckRunResult
         {
@@ -75,7 +79,7 @@ internal static class RunReport
             Revision = rows.Max(row => row.CheckRevision),
             LatestRevision = rows[0].LatestRevision,
             Definition = JsonSerializer.Deserialize<CheckInput>(rows.MaxBy(row => row.CheckRevision)!.Definition, ContractJson.Options)!,
-            Passed = passRate + Epsilon >= threshold,
+            Passed = Reaches(passed, rows.Count, threshold),
             PassRate = passRate,
             PassThreshold = threshold,
             Samples =

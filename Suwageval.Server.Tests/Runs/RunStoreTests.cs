@@ -313,4 +313,73 @@ public sealed class RunStoreTests(TestDatabase database)
         Assert.Equal([second, first], both.Select(run => run.Id).Where(id => id == first || id == second));
         Assert.Equal([second], onlyOther.Select(run => run.Id));
     }
+
+    private async Task<Guid> FinishedRunAsync(RunStore store, SeededAgent agent, bool[] samplePassed, RunStatus status = RunStatus.Done)
+    {
+        var id = await EnqueueAsync(store, agent);
+        var scenario = await new ScenarioStore(database.Pool).GetAsync(agent.Id, "refund", Cancellation);
+        var check = Assert.Single(await new CheckStore(database.Pool).ListAsync(agent.Id, cancellationToken: Cancellation));
+        for (var i = 0; i < samplePassed.Length; i++)
+        {
+            await store.AddSampleAsync(
+                id,
+                new NewSample(
+                    scenario!.Id,
+                    scenario.Revision,
+                    i + 1,
+                    SampleStatus.Done,
+                    "[]",
+                    null,
+                    1,
+                    [],
+                    [new NewCheckResult(check.Id, check.Revision, samplePassed[i], "[]", "m")]
+                ),
+                Cancellation
+            );
+        }
+        await store.FinishAsync(id, status, cancellationToken: Cancellation);
+        return id;
+    }
+
+    [Fact]
+    public async Task Run_check_verdicts_count_the_samples_of_finished_runs_of_the_agent_only()
+    {
+        var store = Store();
+        var agent = await NewAgentAsync(threshold: 0.5);
+        var other = await NewAgentAsync();
+        var done = await FinishedRunAsync(store, agent, [true, false, true]);
+        await FinishedRunAsync(store, agent, [true], RunStatus.Cancelled);
+        await FinishedRunAsync(store, other, [true]);
+
+        var row = Assert.Single(await store.ListRunCheckVerdictsAsync(agent.Id, [], 200, Cancellation));
+
+        Assert.Equal(
+            (done, agent.VersionId, "refund", "refund-called", 1, 3, 2, 0.5),
+            (
+                row.RunId,
+                row.AgentVersionId,
+                row.ScenarioKey,
+                row.CheckKey,
+                row.CheckRevision,
+                row.Samples,
+                row.SamplesPassed,
+                row.PassThreshold
+            )
+        );
+        Assert.Empty(await store.ListRunCheckVerdictsAsync(agent.Id, [Guid.NewGuid()], 200, Cancellation));
+        Assert.Single(await store.ListRunCheckVerdictsAsync(agent.Id, [agent.VersionId], 200, Cancellation));
+    }
+
+    [Fact]
+    public async Task Run_check_verdicts_look_at_the_newest_runs_only()
+    {
+        var store = Store();
+        var agent = await NewAgentAsync();
+        await FinishedRunAsync(store, agent, [true]);
+        var newest = await FinishedRunAsync(store, agent, [false]);
+
+        var row = Assert.Single(await store.ListRunCheckVerdictsAsync(agent.Id, [], 1, Cancellation));
+
+        Assert.Equal(newest, row.RunId);
+    }
 }

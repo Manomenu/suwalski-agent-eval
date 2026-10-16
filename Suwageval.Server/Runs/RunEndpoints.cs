@@ -25,7 +25,39 @@ internal static class RunEndpoints
         app.MapPost("/runs/{id:guid}/rerun", RerunAsync).Produces<RunCreated>(StatusCodes.Status202Accepted);
         app.MapPost("/runs/{id:guid}/cancel", CancelAsync).Produces(StatusCodes.Status202Accepted);
         app.MapGet("/agents/{agent}/pass-rates", PassRatesAsync).Produces<IReadOnlyList<RunPassRates>>();
+        app.MapGet("/agents/{agent}/unstable-checks", UnstableChecksAsync).Produces<IReadOnlyList<UnstableCheck>>();
         return app;
+    }
+
+    /// <summary>The unstable checks look at the newest this many finished runs of the agent.</summary>
+    internal const int UnstableCheckRuns = 200;
+
+    /// <summary>
+    /// The checks of an agent whose verdict differs between finished runs of the same version (<see cref="UnstableChecks"/>), over its
+    /// newest <see cref="UnstableCheckRuns"/> finished runs; <c>version</c> (repeatable agent version ids) limits it to those versions.
+    /// 404: no such agent.
+    /// </summary>
+    private static async Task<IResult> UnstableChecksAsync(
+        string agent,
+        [FromQuery] Guid[]? version,
+        AgentStore agents,
+        RunStore runs,
+        CancellationToken cancellationToken
+    )
+    {
+        var found = await agents.GetAsync(agent, cancellationToken);
+        if (found is null)
+        {
+            return NotFound($"There is no agent '{agent}'.");
+        }
+        var rows = await runs.ListRunCheckVerdictsAsync(found.Id, version ?? [], UnstableCheckRuns, cancellationToken);
+        var unstable = UnstableChecks.Find(rows);
+        if (unstable.Count == 0)
+        {
+            return Results.Ok(unstable);
+        }
+        var labels = (await agents.ListVersionsAsync(found.Id, cancellationToken)).ToDictionary(row => row.Id, row => row.Label);
+        return Results.Ok(unstable.Select(check => check with { VersionLabel = labels.GetValueOrDefault(check.AgentVersionId) }).ToList());
     }
 
     /// <summary>

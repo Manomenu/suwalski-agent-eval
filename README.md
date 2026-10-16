@@ -60,7 +60,7 @@ The server has one interface, its HTTP API. Three users reach it:
 | Who | Through | Does |
 | --- | --- | --- |
 | a person in the browser | the web app | browses agents, scenarios, runs, results, comparisons |
-| an agent's repository, by hand or in CI | the `suwageval` CLI (`Suwageval.Cli`) | `validate` the scenario files, `push` the agent, its scenarios and checks, `run --tag … --wait` with an exit code for CI, `rerun <runId>` to repeat a run, `cancel <runId>` to stop a queued or running one, `results <runId>` to open a run on the web, `runs` to list the agent's newest runs, `compare <runId> <runId> …` to open the comparison of 2 to 5 runs of one agent on the web, `versions` to list, archive and restore the agent's versions, `versions diff <a> <b>` to open what changed between two of them on the web |
+| an agent's repository, by hand or in CI | the `suwageval` CLI (`Suwageval.Cli`) | `validate` the scenario files, `push` the agent, its scenarios and checks, `run --tag … --wait` with an exit code for CI, `rerun <runId>` to repeat a run, `cancel <runId>` to stop a queued or running one, `results <runId>` to open a run on the web, `runs` to list the agent's newest runs, `unstable` to list the checks that pass in some runs of a version and fail in others, `compare <runId> <runId> …` to open the comparison of 2 to 5 runs of one agent on the web, `versions` to list, archive and restore the agent's versions, `versions diff <a> <b>` to open what changed between two of them on the web |
 | Claude Code | the Claude Code plugin in this repo (`claude-plugin/`) that drives the same CLI, like suwgit's | "build a scenario for this agent from this conversation", "run the regression tag on the new version", "why did scenario X fail" — writing the scenario as a file in the agent's repo, then `validate` and `push` |
 
 - **Anything the web can do, the CLI — and so Claude Code through the plugin — can do too; not the
@@ -86,6 +86,12 @@ The server has one interface, its HTTP API. Three users reach it:
   check, where the runs differ from the baseline (the oldest selected run, or the one you pick).
   `suwageval compare <runId> <runId> …` opens the same page; `suwageval runs` lists the runs to
   pick from. Claude compares through `results --json` of each run.
+- **Unstable checks are marked.** A model does not answer the same way twice, so a check can pass in
+  one run and fail in another of the same agent version: noise, not a regression. Such a check (among
+  the newest 200 finished runs, by its pass threshold over the samples; an edited check is another
+  check) gets a yellow wave icon next to its key on the run page and in the comparison, and the agent
+  page lists the worst ones in an "Unstable checks" card — nothing shows when all checks are stable.
+  `suwageval unstable` prints them; the cure is usually more `samples` for that scenario.
 - **A version is never written in a file: the running agent serves it.** `GET
   {endpointUrl}/suwageval/contract` returns its LLM agents (each with model, config and tools, with argument
   schemas), other system-wide config, the events (with data schemas), and a label. `suwageval run` makes the server read it,

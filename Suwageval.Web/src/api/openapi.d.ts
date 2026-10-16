@@ -820,6 +820,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/agents/{agent}/unstable-checks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    version?: string[];
+                };
+                header?: never;
+                path: {
+                    agent: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UnstableCheck"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1374,6 +1413,36 @@ export interface components {
         };
         /** @description Which turn a check looks at: a number (from 1), `"last"` or `"any"`. The default value is "any". */
         TurnSelector: unknown;
+        /**
+         * @description A check that passed in some finished runs of one agent version and failed in others: the model does not answer the same way
+         *     twice, so a failure of this check in a run is noise as much as a regression. A check counts per run by its threshold over the
+         *     samples; an edited check (another revision) is another check.
+         */
+        UnstableCheck: {
+            scenarioKey: string;
+            checkKey: string;
+            /** Format: int32 */
+            checkRevision: number | string;
+            /** Format: uuid */
+            agentVersionId: string;
+            /** @description The label the version's contract carries, if any. */
+            versionLabel?: null | string;
+            /**
+             * Format: int32
+             * @description The finished runs of the version that had a verdict of the check; at least 2.
+             */
+            runs: number | string;
+            /**
+             * Format: int32
+             * @description How many of int UnstableCheck.Runs the check passed in; more than 0 and less than int UnstableCheck.Runs.
+             */
+            passedRuns: number | string;
+            /**
+             * Format: uuid
+             * @description The newest of those runs in which the check failed.
+             */
+            newestFailedRunId: string;
+        };
     };
     responses: never;
     parameters: never;

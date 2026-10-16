@@ -40,6 +40,9 @@
     .agent-layout-analytics {
         position: sticky;
         top: calc(var(--app-shell-header-height) + var(--mantine-spacing-md));
+        /* Taller than the screen (the chart and the unstable checks): it scrolls within itself instead of being cut off. */
+        max-height: calc(100vh - var(--app-shell-header-height) - 2 * var(--mantine-spacing-md));
+        overflow-y: auto;
     }
 }
 

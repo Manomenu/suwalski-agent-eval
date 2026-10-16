@@ -1,6 +1,7 @@
 import { Alert, Anchor, Badge, Button, Checkbox, Group, Loader, MultiSelect, Paper, Stack, Table, Text, Title } from "@mantine/core";
 import { lazy, Suspense, useState } from "react";
 
+import { useUnstableChecks } from "../runs/useUnstableChecks";
 import { formatTime, num, progress, statusColor, statusLabel } from "../runs/results";
 import { fetchAgent, fetchPassRates, fetchVersions, type AgentVersion } from "./api";
 import { Page } from "./Page";
@@ -20,6 +21,7 @@ import {
     COMPARE_MAX_RUNS,
     COMPARE_MIN_RUNS,
 } from "./view";
+import { UnstableChecksCard } from "./UnstableChecksCard";
 import { VersionsSection } from "./VersionsSection";
 
 // The chart library is the largest part of the app: it loads only when an agent's page is opened.
@@ -84,6 +86,8 @@ function AgentView({
     const { runs, hasMore, loading, loadingMore, error, loadMore } = useRuns(agent.name, versionIds?.join(",") ?? null, `${reload}`);
     // Only what is listed counts: a run the filter hides is not compared.
     const toCompare = runsToCompare(runs, selected);
+    // Fetched once for all versions; the filters hide the rows of versions they leave out, as they do in the chart.
+    const unstable = visibleRuns(useUnstableChecks(agent.name, []), versions, showArchived, models, dataVersions);
     return (
         <Stack gap="lg">
             <Anchor href="/">← Agents</Anchor>
@@ -104,9 +108,12 @@ function AgentView({
                 </div>
 
                 <div className="agent-layout-analytics">
-                    <Suspense fallback={null}>
-                        <PassRateTrend points={visibleRuns(passRates, versions, showArchived, models, dataVersions)} />
-                    </Suspense>
+                    <Stack gap="lg">
+                        <Suspense fallback={null}>
+                            <PassRateTrend points={visibleRuns(passRates, versions, showArchived, models, dataVersions)} />
+                        </Suspense>
+                        <UnstableChecksCard checks={unstable} />
+                    </Stack>
                 </div>
 
                 <Stack gap="lg" className="agent-layout-main">

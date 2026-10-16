@@ -1,0 +1,84 @@
+import { describe, expect, it } from "vitest";
+
+import type { UnstableCheck } from "./api";
+import {
+    UNSTABLE_CARD_MAX_ROWS,
+    cardRows,
+    findUnstable,
+    passedOfRuns,
+    unstableChecksPath,
+    unstableInRuns,
+    unstableRowTooltip,
+    unstableTooltip,
+} from "./stability";
+
+const item = (over: Partial<UnstableCheck> = {}): UnstableCheck => ({
+    scenarioKey: "refund",
+    checkKey: "says-sorry",
+    checkRevision: 1,
+    agentVersionId: "v1",
+    runs: 9,
+    passedRuns: 7,
+    newestFailedRunId: "r1",
+    ...over,
+});
+
+describe("unstableChecksPath", () => {
+    it("asks for all versions without a query and for given ones with repeated parameters", () => {
+        expect(unstableChecksPath("my agent", [])).toBe("/agents/my%20agent/unstable-checks");
+        expect(unstableChecksPath("a", ["v1", "v2"])).toBe("/agents/a/unstable-checks?version=v1&version=v2");
+    });
+});
+
+describe("findUnstable", () => {
+    it("matches version, scenario, check and revision (an edited check is another check)", () => {
+        const list = [item()];
+        expect(findUnstable(list, "v1", "refund", "says-sorry", 1)).toBe(list[0]);
+        expect(findUnstable(list, "v2", "refund", "says-sorry", 1)).toBeUndefined();
+        expect(findUnstable(list, "v1", "other", "says-sorry", 1)).toBeUndefined();
+        expect(findUnstable(list, "v1", "refund", "other", 1)).toBeUndefined();
+        expect(findUnstable(list, "v1", "refund", "says-sorry", 2)).toBeUndefined();
+    });
+
+    it("reads numbers the API may send as strings", () => {
+        expect(findUnstable([item({ checkRevision: "2" })], "v1", "refund", "says-sorry", 2)).toBeDefined();
+    });
+});
+
+describe("tooltips and text", () => {
+    it("says how often the check failed among the runs of the version", () => {
+        expect(unstableTooltip(item())).toBe("Unstable: failed in 2 of 9 runs of this version");
+        expect(passedOfRuns(item())).toBe("7/9");
+    });
+
+    it("names the versions when a row is unstable in several", () => {
+        const second = item({ agentVersionId: "12345678-aaaa", runs: 3, passedRuns: 2 });
+        expect(unstableRowTooltip([item()])).toBe("Unstable: failed in 2 of 9 runs of this version");
+        expect(unstableRowTooltip([item({ versionLabel: "v-one" }), second])).toBe(
+            "Unstable: failed in 2 of 9 runs of version v-one; failed in 1 of 3 runs of version 12345678",
+        );
+    });
+});
+
+describe("unstableInRuns", () => {
+    const run = (agentVersionId: string, revision: number) => ({
+        run: { agentVersionId },
+        scenarios: [{ key: "refund", checks: [{ key: "says-sorry", revision }] }],
+    });
+
+    it("finds the check once per compared version, by the revision each run used", () => {
+        const list = [item(), item({ agentVersionId: "v2", checkRevision: 2 })];
+        const found = unstableInRuns(list, [run("v1", 1), run("v1", 1), run("v2", 2), run("v3", 1)], "refund", "says-sorry");
+        expect(found.map((x) => x.agentVersionId)).toEqual(["v1", "v2"]);
+        expect(unstableInRuns(list, [run("v2", 1)], "refund", "says-sorry")).toEqual([]);
+        expect(unstableInRuns(list, [run("v1", 1)], "refund", "missing")).toEqual([]);
+    });
+});
+
+describe("cardRows", () => {
+    it("keeps the first rows only", () => {
+        const many = Array.from({ length: UNSTABLE_CARD_MAX_ROWS + 3 }, (_, index) => item({ checkKey: `c${index}` }));
+        expect(cardRows(many)).toEqual(many.slice(0, UNSTABLE_CARD_MAX_ROWS));
+        expect(cardRows([])).toEqual([]);
+    });
+});
