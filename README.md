@@ -94,7 +94,8 @@ multi-turn simulation, no web views yet.
 
 1. **Contracts and `validate`** — done: `Suwageval.Contracts` (format v0) and the CLI's
    `validate`; the YAML files in the example agent.
-2. **Agents, Scenarios (with tags), Checks** — the slices that store them, and `suwageval push`.
+2. **Agents, Scenarios (with tags), Checks** — done: the slices that store them (HTTP endpoints
+   in `*Endpoints.cs`), and `suwageval push`.
 3. **Invocation and Runs** — the agent under test over HTTP (contract v0, `TODO.md`), the
    deterministic checks, and `suwageval run`. The MVP is reached here.
 4. **After the MVP** — the judge, multi-turn simulation, results and comparisons on the web,

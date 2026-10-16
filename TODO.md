@@ -88,8 +88,8 @@ belongs to.
   (its git SHA). At `POST /runs` the server fetches it and registers it as a version: the
   content hash already turns "same as before" into the existing version and "changed" into a
   new one. So a run always records what really ran, and `agent.yaml` shrinks to the agent's
-  name and `endpointUrl` (its `version:` stays only as a fallback for agents without the
-  endpoint).
+  name and `endpointUrl`. Its `version:` section goes away in the same change — one way to
+  pass a version, not two: an agent without the contract endpoint cannot be evaluated.
   - `suwageval validate` fetches the contract when the agent is reachable (`--endpoint`), to
     check tool and event names; offline it checks the files' structure and says it skipped
     the names.

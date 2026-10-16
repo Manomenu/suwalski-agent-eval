@@ -497,12 +497,16 @@
           "xunit.v3.runner.common": "[4.0.2]"
         }
       },
+      "suwageval.contracts": {
+        "type": "Project"
+      },
       "suwageval.server": {
         "type": "Project",
         "dependencies": {
           "Dapper": "[2.1.89, )",
           "Microsoft.AspNetCore.OpenApi": "[10.0.12, )",
           "Npgsql": "[10.0.3, )",
+          "Suwageval.Contracts": "[1.0.0, )",
           "grate.postgresql": "[2.1.6, )"
         }
       },

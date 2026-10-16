@@ -1,4 +1,5 @@
 using System.Reflection;
+using Suwageval.Contracts;
 using Suwageval.Server.Agents;
 using Suwageval.Server.Checks;
 using Suwageval.Server.Database;
@@ -24,15 +25,21 @@ internal static class ServerApp
         var builder = WebApplication.CreateBuilder(args);
         builder.Services.AddDatabase(builder.Configuration, migrateOnStart: !WritingOpenApiDocument);
         builder.Services.AddSingleton<AgentStore>().AddSingleton<ScenarioStore>().AddSingleton<CheckStore>();
+        builder.Services.ConfigureHttpJsonOptions(options => ContractJson.Configure(options.SerializerOptions));
+        builder.Services.AddProblemDetails();
         builder.Services.AddOpenApi();
 
         var app = builder.Build();
+        app.UseStatusCodePages();
         app.MapOpenApi();
 
         // Touches nothing outside the process, so it doubles as the cluster's liveness probe.
         app.MapGet("/health", () => new Health("ok"));
 
         // Features map their routes here: app.MapScenarios() — and get a layer in ContractsTests.cs.
+        app.MapAgents();
+        app.MapScenarios();
+        app.MapChecks();
         return app;
     }
 }

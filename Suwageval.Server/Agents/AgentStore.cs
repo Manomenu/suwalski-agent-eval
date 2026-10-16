@@ -35,6 +35,34 @@ internal sealed class AgentStore(Pool pool)
         return new AgentCreation(existing, Created: false);
     }
 
+    public async Task<AgentRow> SetEndpointUrlAsync(Guid id, string endpointUrl, CancellationToken cancellationToken = default)
+    {
+        await using var connection = await pool.OpenAsync(cancellationToken);
+        return await connection.QuerySingleAsync<AgentRow>(
+            new CommandDefinition(
+                $"UPDATE agents SET endpoint_url = @endpointUrl WHERE id = @id RETURNING {AgentColumns}",
+                new { id, endpointUrl },
+                cancellationToken: cancellationToken
+            )
+        );
+    }
+
+    public async Task<AgentCounts> CountAsync(Guid agentId, CancellationToken cancellationToken = default)
+    {
+        await using var connection = await pool.OpenAsync(cancellationToken);
+        return await connection.QuerySingleAsync<AgentCounts>(
+            new CommandDefinition(
+                """
+                SELECT (SELECT count(*) FROM agent_versions WHERE agent_id = @agentId)::int AS Versions,
+                       (SELECT count(*) FROM scenarios WHERE agent_id = @agentId AND deleted_at IS NULL)::int AS Scenarios,
+                       (SELECT count(*) FROM checks WHERE agent_id = @agentId AND deleted_at IS NULL)::int AS Checks
+                """,
+                new { agentId },
+                cancellationToken: cancellationToken
+            )
+        );
+    }
+
     /// <summary>The agent by its name or its id.</summary>
     public async Task<AgentRow?> GetAsync(string nameOrId, CancellationToken cancellationToken = default)
     {
