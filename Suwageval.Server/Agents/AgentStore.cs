@@ -53,7 +53,7 @@ internal sealed class AgentStore(Pool pool)
         return await connection.QuerySingleAsync<AgentCounts>(
             new CommandDefinition(
                 """
-                SELECT (SELECT count(*) FROM agent_versions WHERE agent_id = @agentId)::int AS Versions,
+                SELECT (SELECT count(*) FROM agent_versions WHERE agent_id = @agentId AND archived_at IS NULL)::int AS Versions,
                        (SELECT count(*) FROM scenarios WHERE agent_id = @agentId AND deleted_at IS NULL)::int AS Scenarios,
                        (SELECT count(*) FROM checks WHERE agent_id = @agentId AND deleted_at IS NULL)::int AS Checks
                 """,

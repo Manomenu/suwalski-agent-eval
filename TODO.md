@@ -57,6 +57,10 @@ belongs to.
 
 ## Later, after the MVP
 
+- **Paging the run list:** the agent page and `GET /runs?agent=` return every run. Page them
+  (newest first, a "Load more" or pages, the CLI's `runs --limit` already caps its output) once an
+  agent has hundreds of runs and the page gets slow — not before.
+
 - **`validate`: JSON Schema checks of free JSON.** `arguments` of a `ToolCall` and `data` of an
   `Event` (in the log, and `args` / `data` of the checks) are not yet validated against the
   `parameters` / `dataSchema` the agent declares in its served contract (`validate` already reads

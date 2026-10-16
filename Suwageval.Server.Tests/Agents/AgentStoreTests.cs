@@ -117,6 +117,29 @@ public sealed class AgentStoreTests(TestDatabase database)
     }
 
     [Fact]
+    public async Task Archived_versions_are_not_counted()
+    {
+        var store = Store();
+        var agent = (await store.CreateAsync(UniqueName(), "http://one.test", Cancellation)).Agent;
+        var first = await store.RegisterVersionAsync(
+            agent.Id, /*lang=json,strict*/
+            """{"model":"m1"}""",
+            null,
+            Cancellation
+        );
+        await store.RegisterVersionAsync(
+            agent.Id, /*lang=json,strict*/
+            """{"model":"m2"}""",
+            null,
+            Cancellation
+        );
+
+        await store.ArchiveVersionsAsync(agent.Id, [first.Version.Id], archived: true, Cancellation);
+
+        Assert.Equal(1, (await store.CountAsync(agent.Id, Cancellation)).Versions);
+    }
+
+    [Fact]
     public async Task Registering_the_content_of_an_archived_version_unarchives_it()
     {
         var store = Store();

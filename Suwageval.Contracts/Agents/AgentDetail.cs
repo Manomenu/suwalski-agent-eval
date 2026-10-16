@@ -1,6 +1,6 @@
 namespace Suwageval.Contracts.Agents;
 
-/// <summary>An agent with what is stored for it: counts of versions, live scenarios and live checks.</summary>
+/// <summary>An agent with what is stored for it: counts of active (not archived) versions, live scenarios and live checks.</summary>
 public sealed record AgentDetail
 {
     public required Guid Id { get; init; }
