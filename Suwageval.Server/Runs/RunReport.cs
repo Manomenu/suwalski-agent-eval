@@ -81,6 +81,7 @@ internal static class RunReport
                     {
                         Sample = sampleNumberOf[row.ScenarioResultId],
                         Passed = row.Passed,
+                        NotJudged = row.NotJudged,
                         Evidence = Items(row.Evidence) ?? [],
                         Message = row.Message,
                     }),

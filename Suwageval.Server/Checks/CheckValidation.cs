@@ -38,6 +38,10 @@ internal static class CheckValidation
             {
                 AddTextErrors(errors, text, path);
             }
+            else if (check is JudgeCheck { Criteria: var criteria } && string.IsNullOrWhiteSpace(criteria))
+            {
+                errors.Add(new FieldError($"{path}.criteria", "A judge check needs 'criteria': what the agent's output must satisfy."));
+            }
         }
         return errors;
     }

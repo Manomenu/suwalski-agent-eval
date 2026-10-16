@@ -20,6 +20,11 @@ internal static class RunVerdict
         }
         var checks = results.Scenarios.SelectMany(scenario => scenario.Checks).ToList();
         var failed = checks.Count(check => !check.Passed);
-        return failed == 0 ? $"{checks.Count} of {checks.Count} checks passed." : $"{failed} of {checks.Count} checks failed.";
+        // A judge check whose model could not be asked or answered unreadably is not the same as one judged failed.
+        var notJudged = checks.Count(check => check.Samples.Any(sample => sample.NotJudged));
+        var unjudged = notJudged == 0 ? "" : $" ({notJudged} not judged: the judge model could not give a verdict)";
+        return failed == 0
+            ? $"{checks.Count} of {checks.Count} checks passed{unjudged}."
+            : $"{failed} of {checks.Count} checks failed{unjudged}.";
     }
 }

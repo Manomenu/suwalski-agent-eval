@@ -74,6 +74,17 @@ A run's page is `{SUWAGEVAL_URL}/runs/{runId}`.
 `validate` exits 0 with a notice when the agent was unreachable: the names were then not
 checked (`namesChecked: false` in `--json`). Say so; do not call the scenarios verified.
 
+## Judge or deterministic check?
+
+Prefer a deterministic check (`tool-called`, `tool-not-called`, `event`, `text`) whenever one can
+say it: exact, free, repeatable. Use `type: judge` with `criteria:` only for what needs reading —
+tone, completeness, whether a refusal was explained. Write the criteria as one concrete, checkable
+statement about the output ("states the 14-day refund period", not "is helpful"), one thing per
+check, and narrow it with `where` (`turn: last`). A judge calls a model, so it can come back
+**not judged** (`notJudged: true`, message `Not judged: …`): the model was unreachable or answered
+unreadably. That is not the agent failing — say so, and run again before drawing conclusions. A
+server without a judge model refuses a run with judge checks (409).
+
 ## Versions
 
 Every change of the agent's contract makes a new version, so the list grows. Versions are never
@@ -86,7 +97,7 @@ asked for or confirmed: show the ids first. `/suwageval:versions` does this.
 `run --wait --json` prints `{ run, scenarios }`. `run` has the agent, `agentVersionId`, `status`,
 `error` and the totals (`checksPassed`, `checksFailed`). Each scenario has `key` and its
 `checks`; a check has `key`, `passed`, `passRate`, `passThreshold` and per-sample `message` and
-`evidence` — the message says why it failed. A scenario sample with an `error` means the agent
+`evidence` — the message says why it failed. A judge check's message is the judge's reason; a sample with `notJudged: true` was not judged at all. A scenario sample with an `error` means the agent
 itself failed on that turn, which is not a check failing: say which.
 
 ## Rules

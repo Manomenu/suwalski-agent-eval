@@ -144,10 +144,11 @@ pass, above 0 up to 1, default `1.0`). The scenario is the file the check sits i
 | `tool-not-called` | `tool` | the agent did not call the tool |
 | `event` | `event` (the type), `data` (optional) | the agent emitted the event; `data`, when given, is a subset of its data |
 | `text` | `contains`, `notContains`, `pattern` (at least one) | the answer contains the text, does not contain the text, matches the regular expression |
+| `judge` | `criteria` (required, plain words) | a model judges that what the agent produced satisfies the criteria (below) |
 
 A `tool` must be one of the agent's tools and an `event` one of its declared event types (checked
 by `validate` against the agent's contract, and by the server when a run starts).
-Other types (a judge) come after the MVP; an unknown `type` is an error.
+An unknown `type` is an error.
 
 `where` narrows a check to a part of what was produced:
 
@@ -157,7 +158,7 @@ Other types (a judge) come after the MVP; an unknown `type` is an error.
 | `after` | a tool name or event type: only what came after it counts |
 | `before` | a tool name or event type: only what came before it counts |
 
-How a check is evaluated (the server's `Checks/`, no model involved):
+How a check is evaluated (the server's `Checks/`; no model involved, except for `judge`, below):
 
 - **A turn** is the items one `POST {endpointUrl}/suwageval/turn` returned, in the order the agent produced them; turns
   are numbered from 1. For now a scenario has exactly one turn.
@@ -176,6 +177,35 @@ How a check is evaluated (the server's `Checks/`, no model involved):
   given must hold. An invalid `pattern` fails the check with a message.
 - **The pass rate** of a check is the share of its scenario's samples that passed; the check passes the run when the rate
   reaches `passThreshold`. A sample the agent did not answer (down, timeout, unreadable answer) counts as failed for every check.
+
+### The judge check
+
+```yaml
+- key: polite-refusal
+  type: judge
+  criteria: "The assistant refuses to refund an order older than 30 days and explains why, politely."
+  where: { turn: last }   # optional, like for any check
+```
+
+A `judge` check is the one check that calls a model. Prefer a deterministic check whenever one can say it (a tool called,
+a text contained): it is exact, free and repeatable. Use a judge for what only reading can tell — tone, whether an answer
+is grounded or complete, whether a refusal was explained.
+
+- **What the model sees:** the criteria, the conversation the agent was given, and the items in the check's scope (after
+  `where`), as JSON, one item per line. It answers `{ "passed": true|false, "reason": "…" }` at temperature 0; the `reason`
+  is the check's message in the results, and the items in scope are its evidence. Every sample is judged on its own, and
+  `passThreshold` works as for any check.
+- **Write criteria** as one or a few concrete, checkable statements about the output ("states the refund period of 14
+  days", "does not promise a delivery date"), never as a vague quality ("is good"). One thing per check: two things are two
+  checks. The judge judges only by what it is shown; it does not know the agent's tools or data beyond the log.
+- **A judge can fail to judge.** When the model is unreachable or too slow, or its answer is not the JSON asked for, that
+  sample counts as failed with a message starting `Not judged:`, and the results mark it `notJudged: true` (the web shows
+  "not judged"; the CLI's summary line counts them). The run goes on and other checks are unaffected. "Not judged" is
+  not "judged failed" — run again before concluding anything about the agent.
+- **The model** is the server's: `Judge:Model` names one of `Models:<name>` (`BaseUrl` of an OpenAI-compatible server,
+  `Model`, `MaxConcurrency` — default 8 calls at once to that model, shared by everything that calls it, and
+  `TimeoutSeconds`). A run whose scenarios have a `judge` check is refused with 409 when no judge model is configured.
+  `validate` checks only that `criteria` is not empty.
 
 Not checked yet: that `arguments` and `data` match the JSON Schemas the agent declares.
 

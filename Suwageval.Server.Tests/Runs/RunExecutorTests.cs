@@ -2,13 +2,16 @@ using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Suwageval.Contracts.Checks;
 using Suwageval.Contracts.Conversations;
 using Suwageval.Contracts.Runs;
 using Suwageval.Server.Agents;
 using Suwageval.Server.Checks;
 using Suwageval.Server.Invocation;
+using Suwageval.Server.Judges;
 using Suwageval.Server.Runs;
 using Suwageval.Server.Scenarios;
+using Suwageval.Server.Tests.Judges;
 
 namespace Suwageval.Server.Tests.Runs;
 
@@ -28,7 +31,8 @@ public sealed class RunExecutorTests(TestDatabase database)
         SeededAgent agent,
         string? tag = null,
         int parallel = 2,
-        Uri? endpoint = null
+        Uri? endpoint = null,
+        Judge? judge = null
     )
     {
         var store = Store();
@@ -40,15 +44,16 @@ public sealed class RunExecutorTests(TestDatabase database)
             new CheckStore(database.Pool),
             new AgentStore(database.Pool),
             new AgentClient(new HttpClient { Timeout = TimeSpan.FromSeconds(10) }),
+            judge ?? RecordedModel.JudgeAnswering("passed.json"),
             Options.Create(new RunOptions { MaxParallelScenarios = parallel }),
             NullLogger<RunExecutor>.Instance
         );
         return (run ?? throw new InvalidOperationException("nothing was queued"), executor);
     }
 
-    private async Task<RunResults> RunAsync(SeededAgent agent, string? tag = null, int parallel = 2)
+    private async Task<RunResults> RunAsync(SeededAgent agent, string? tag = null, int parallel = 2, Judge? judge = null)
     {
-        var (run, executor) = await ClaimAsync(agent, tag, parallel);
+        var (run, executor) = await ClaimAsync(agent, tag, parallel, judge: judge);
         await executor.ExecuteAsync(run, Cancellation);
         return await ResultsAsync(run.Id);
     }
@@ -91,6 +96,67 @@ public sealed class RunExecutorTests(TestDatabase database)
         Assert.Equal("refund_order", Assert.IsType<ToolCall>(Assert.Single(called.Samples[0].Evidence)).Name);
         var request = Assert.Single(fake.Requests);
         Assert.Contains("Please refund order A-17.", request, StringComparison.Ordinal);
+    }
+
+    private static JudgeCheck PoliteRefusal(string key, string scenarioKey) =>
+        new()
+        {
+            Key = key,
+            ScenarioKey = scenarioKey,
+            Criteria = "The assistant refuses to refund an order older than 30 days and explains why, politely.",
+        };
+
+    [Fact]
+    public async Task A_judge_check_gets_the_verdict_of_the_model_and_its_reason_is_the_message()
+    {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
+        var agent = await SeededAgent.CreateAsync(
+            database.Pool,
+            fake.Url.AbsoluteUri,
+            [SeededAgent.Scenario("refund")],
+            [PoliteRefusal("polite-refusal", "refund"), SeededAgent.RefundAfterLookup("refund-called", "refund")]
+        );
+
+        var results = await RunAsync(agent, judge: RecordedModel.JudgeAnswering("failed.json"));
+
+        Assert.Equal(RunStatus.Done, results.Run.Status);
+        var checks = Assert.Single(results.Scenarios).Checks.ToDictionary(check => check.Key);
+        var judged = Assert.Single(checks["polite-refusal"].Samples);
+        Assert.False(checks["polite-refusal"].Passed);
+        Assert.False(judged.Passed);
+        Assert.False(judged.NotJudged);
+        Assert.Contains("did not refuse", judged.Message, StringComparison.Ordinal);
+        Assert.True(checks["refund-called"].Passed);
+    }
+
+    [Fact]
+    public async Task A_judge_that_cannot_judge_is_a_not_judged_failure_of_that_check_and_the_run_goes_on()
+    {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
+        var agent = await SeededAgent.CreateAsync(
+            database.Pool,
+            fake.Url.AbsoluteUri,
+            [SeededAgent.Scenario("refund", samples: 2)],
+            [PoliteRefusal("polite-refusal", "refund"), SeededAgent.RefundAfterLookup("refund-called", "refund")]
+        );
+
+        var results = await RunAsync(agent, judge: RecordedModel.JudgeFailing(new HttpRequestException("connection refused")));
+
+        Assert.Equal(RunStatus.Done, results.Run.Status);
+        Assert.Equal((2, 2, 2), (results.Run.SamplesTotal, results.Run.SamplesDone, results.Run.ChecksPassed));
+        Assert.Equal(2, results.Run.ChecksFailed);
+        var checks = Assert.Single(results.Scenarios).Checks.ToDictionary(check => check.Key);
+        Assert.All(
+            checks["polite-refusal"].Samples,
+            sample =>
+            {
+                Assert.False(sample.Passed);
+                Assert.True(sample.NotJudged);
+                Assert.Contains("connection refused", sample.Message, StringComparison.Ordinal);
+            }
+        );
+        Assert.All(checks["refund-called"].Samples, sample => Assert.False(sample.NotJudged));
+        Assert.True(checks["refund-called"].Passed);
     }
 
     private const string UndeclaredTurn = /*lang=json,strict*/

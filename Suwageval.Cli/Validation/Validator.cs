@@ -153,6 +153,9 @@ internal static class Validator
             case TextCheck text:
                 CheckText(source, path, text, problems);
                 break;
+            case JudgeCheck { Criteria: var criteria } when string.IsNullOrWhiteSpace(criteria):
+                problems.Add(source.Problem($"{path}.criteria", "A judge check needs 'criteria': what the agent's output must satisfy."));
+                break;
             default:
                 break;
         }

@@ -1,0 +1,59 @@
+{{- /*
+The daily check of the judge's model, from the cluster's own network (Suwageval.Server/Judges/JudgeLiveCheck.cs): one
+judge call with a fixed tiny case, through the production code and the production model settings. The model is not ours and
+can change its answer without a commit here; asking from here, not from GitHub, because a service may block GitHub's runners
+while it still answers production. It writes nothing, so there is nothing to roll back. A problem fails the Job and, when a
+Discord webhook is configured, posts to the alerts channel.
+
+The same image as the server, another command. Right now, without waiting for the schedule:
+  kubectl -n <namespace> create job --from=cronjob/<release>-live-check <release>-live-check-now
+
+Rendered only when a judge model is configured: with none there is nothing to ask.
+*/ -}}
+{{- if .Values.judgeModel.baseUrl }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "app.name" . }}-live-check
+  labels:
+    {{- include "app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: live-check
+spec:
+  schedule: {{ .Values.liveCheck.schedule | quote }}
+  timeZone: Europe/Warsaw
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      # No retries: the next try is tomorrow or by hand; a retry would only double the alarm.
+      backoffLimit: 0
+      activeDeadlineSeconds: 300
+      template:
+        metadata:
+          labels:
+            {{- include "app.labels" . | nindent 12 }}
+            app.kubernetes.io/component: live-check
+        spec:
+          restartPolicy: Never
+          {{- with .Values.image.pullSecret }}
+          imagePullSecrets:
+            - name: {{ . }}
+          {{- end }}
+          containers:
+            - name: live-check
+              image: {{ include "app.image" (dict "Values" .Values "component" "server") }}
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              args: ["live-check"]
+              env:
+                {{- include "app.judgeEnv" . | nindent 16 }}
+              {{- with .Values.liveCheck.discordSecret }}
+              envFrom:
+                # Optional: without it the check still runs, it just tells nobody.
+                - secretRef:
+                    name: {{ . }}
+                    optional: true
+              {{- end }}
+              resources:
+                {{- toYaml .Values.liveCheck.resources | nindent 16 }}
+{{- end }}

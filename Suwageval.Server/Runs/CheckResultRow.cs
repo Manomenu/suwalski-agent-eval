@@ -7,6 +7,7 @@ internal sealed record CheckResultRow(
     int CheckRevision,
     double PassThreshold,
     bool Passed,
+    bool NotJudged,
     string Evidence,
     string Message
 );

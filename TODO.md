@@ -71,19 +71,15 @@ belongs to.
   repo keeps (the agent, its scenarios with their checks) and point VS Code's YAML extension
   at it, so fields are suggested and mistakes underlined while writing. Until then the CLI's
   `validate` command is the check.
-- **Parallel runs, with limits at two levels:**
-  - **scenarios per run:** a run processes its scenarios (and samples) in parallel, up to a
-    configured degree — the agent under test is a running system with its own capacity;
-  - **calls per model:** every model Suwageval itself calls (the judge, the user simulator) has
-    ONE shared pool of concurrent calls, whatever asks — two runs, a judge and a simulator
-    compete for the same slots. Configured per model (`Models:<name>:MaxConcurrency`).
-  - The agent under test calls its own model (possibly the same server): Suwageval cannot
-    count those calls, so the per-run limit is what protects it.
-- **The model Suwageval uses (judge, user simulator):** the same OpenAI-compatible server as
-  suwgit on the owner's laptop (`~/.config/suwgit/config.json`: base URL and model; no key —
-  the server does not ask for one). Configured in user secrets, never in a committed file,
-  in the change that brings the judge or the simulator. The example agent already uses it
-  through its gitignored `.env`.
+- **Parallel runs, the first level** (`Runs:MaxParallelScenarios`, built) **and the second:** the
+  per-model pool (`Models:<name>:MaxConcurrency`, built with the judge: one `LimitedChatClient`
+  per model in `Models/ModelClients.cs`) is what the judge uses today; the user simulator uses
+  the same pool when it arrives. Still open: more than one run at a time (`RunWorker` takes one);
+  the agent under test calls its own model, possibly the same server, which Suwageval cannot
+  count — the per-run limit is what protects it.
+- **Judge: later.** A per-model API key (the TODO "Secrets" checklist, when a model asks for one);
+  judging with several models or a panel; caching verdicts of identical (criteria, output) pairs;
+  streaming through `LimitedChatClient` (it refuses streaming until a caller needs it).
 - **The contract for multi-agent systems (contract v1, replaces v0):** a system under test is
   often several LLM agents, not one prompt. The contract becomes:
   - `agents`: a list of LLM agents, each `{ name, model { name, parameters }, config, tools }`,

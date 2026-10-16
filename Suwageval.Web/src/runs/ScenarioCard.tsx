@@ -2,7 +2,7 @@ import { Accordion, Alert, Badge, Card, Group, List, Stack, Text, Title } from "
 
 import type { ScenarioRunResult } from "./api";
 import { ConversationView } from "./ConversationView";
-import { checkSummary, failedEvidenceKeys, num } from "./results";
+import { checkSummary, failedEvidenceKeys, notJudgedCount, num } from "./results";
 
 /** One scenario: its checks with verdicts, the warnings of its samples, and what the agent produced. */
 export function ScenarioCard({ scenario }: { scenario: ScenarioRunResult }) {
@@ -34,6 +34,11 @@ export function ScenarioCard({ scenario }: { scenario: ScenarioRunResult }) {
                     <Stack key={check.key} gap={4}>
                         <Group gap="xs">
                             <Badge color={check.passed ? "green" : "red"}>{check.passed ? "passed" : "failed"}</Badge>
+                            {notJudgedCount(check) > 0 && (
+                                <Badge color="yellow" variant="light">
+                                    {`not judged: ${notJudgedCount(check)} of ${check.samples.length} samples`}
+                                </Badge>
+                            )}
                             <Text fw={600}>{check.key}</Text>
                             <Text c="dimmed">{checkSummary(check)}</Text>
                         </Group>

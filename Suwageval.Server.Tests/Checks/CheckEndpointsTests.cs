@@ -76,16 +76,23 @@ public sealed class CheckEndpointsTests(TestDatabase database) : IAsyncDisposabl
                 Contains = "refund",
                 PassThreshold = 0.8,
             },
+            new JudgeCheck
+            {
+                Key = "judge",
+                ScenarioKey = "s",
+                Criteria = "The assistant is polite.",
+            },
         ];
         await Put(agent, checks);
 
         var listed = await TestServer.Read<CheckDetail[]>(await server.Get($"/agents/{agent}/checks"));
 
         Assert.Equal(
-            [typeof(ToolCalledCheck), typeof(EventCheck), typeof(ToolNotCalledCheck), typeof(TextCheck)],
+            [typeof(ToolCalledCheck), typeof(EventCheck), typeof(JudgeCheck), typeof(ToolNotCalledCheck), typeof(TextCheck)],
             listed.Select(detail => detail.Check.GetType())
         );
-        Assert.Equal(0.8, Assert.IsType<TextCheck>(listed[3].Check).PassThreshold);
+        Assert.Equal(0.8, Assert.IsType<TextCheck>(listed[4].Check).PassThreshold);
+        Assert.Equal("The assistant is polite.", Assert.IsType<JudgeCheck>(listed[2].Check).Criteria);
     }
 
     [Fact]
@@ -123,11 +130,18 @@ public sealed class CheckEndpointsTests(TestDatabase database) : IAsyncDisposabl
             Pattern = "(",
         };
 
-        var response = await server.Put($"/agents/{agent}/checks", new PutChecksRequest([bad, empty, Called("empty", "s")]));
+        var judge = new JudgeCheck
+        {
+            Key = "judge",
+            ScenarioKey = "s",
+            Criteria = "  ",
+        };
+
+        var response = await server.Put($"/agents/{agent}/checks", new PutChecksRequest([bad, empty, Called("empty", "s"), judge]));
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
         Assert.Equal(
-            ["checks[0].key", "checks[0].passThreshold", "checks[1].pattern", "checks[2].key"],
+            ["checks[0].key", "checks[0].passThreshold", "checks[1].pattern", "checks[2].key", "checks[3].criteria"],
             await TestServer.ErrorFields(response)
         );
     }

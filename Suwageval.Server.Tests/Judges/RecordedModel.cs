@@ -1,0 +1,85 @@
+using System.Diagnostics.CodeAnalysis;
+using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Options;
+using Suwageval.Server.Judges;
+using Suwageval.Server.Models;
+
+namespace Suwageval.Server.Tests.Judges;
+
+/// <summary>
+/// A model that answers from recorded text, never over the network: the gate never calls a model (AGENTS.md, section 3). It keeps
+/// what it was asked, so tests can look at the prompt and the options.
+/// </summary>
+[SuppressMessage(
+    "Reliability",
+    "CA2000:Dispose objects before losing scope",
+    Justification = "The recorded model and the clients over it hold nothing but memory."
+)]
+internal sealed class RecordedModel(Func<CancellationToken, Task<string>> answer) : IChatClient
+{
+    private readonly List<(IReadOnlyList<ChatMessage> Messages, ChatOptions? Options)> requests = [];
+
+    public IReadOnlyList<(IReadOnlyList<ChatMessage> Messages, ChatOptions? Options)> Requests
+    {
+        get
+        {
+            lock (requests)
+            {
+                return [.. requests];
+            }
+        }
+    }
+
+    /// <summary>Answers with the text of a file under <c>Judges/Answers/</c>.</summary>
+    public static RecordedModel Answering(string file)
+    {
+        var text = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Judges", "Answers", file));
+        return new RecordedModel(_ => Task.FromResult(text));
+    }
+
+    public static Judge JudgeAnswering(string file) => Answering(file).Judge();
+
+    public static Judge JudgeFailing(Exception error) => Failing(error).Judge();
+
+    public static RecordedModel Failing(Exception error) => new(_ => Task.FromException<string>(error));
+
+    /// <summary>A judge over this model, configured the way the server is: model "judge" under Models, named by Judge:Model.</summary>
+    public Judge Judge(int maxConcurrency = 8) => new(Clients(maxConcurrency), Options.Create(new JudgeOptions { Model = "judge" }));
+
+    public ModelClients Clients(int maxConcurrency = 8) =>
+        new(
+            new ModelsOptions
+            {
+                ["judge"] = new ModelOptions
+                {
+                    BaseUrl = "http://model.invalid",
+                    Model = "recorded",
+                    MaxConcurrency = maxConcurrency,
+                },
+            },
+            _ => this
+        );
+
+    public async Task<ChatResponse> GetResponseAsync(
+        IEnumerable<ChatMessage> messages,
+        ChatOptions? options = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        lock (requests)
+        {
+            requests.Add(([.. messages], options));
+        }
+        return new ChatResponse(new ChatMessage(ChatRole.Assistant, await answer(cancellationToken)));
+    }
+
+    public IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
+        IEnumerable<ChatMessage> messages,
+        ChatOptions? options = null,
+        CancellationToken cancellationToken = default
+    ) => throw new NotSupportedException();
+
+    public object? GetService(Type serviceType, object? serviceKey = null) => null;
+
+    public void Dispose() { }
+}

@@ -49,7 +49,14 @@ public sealed class RunCommandTests
             CreatedAt = DateTime.UtcNow,
         };
 
-    private static CheckRunResult Check(string key, bool passed, string message, double threshold = 1.0, double rate = -1) =>
+    private static CheckRunResult Check(
+        string key,
+        bool passed,
+        string message,
+        double threshold = 1.0,
+        double rate = -1,
+        bool notJudged = false
+    ) =>
         new()
         {
             Key = key,
@@ -66,6 +73,7 @@ public sealed class RunCommandTests
                 {
                     Sample = 1,
                     Passed = passed,
+                    NotJudged = notJudged,
                     Evidence = [],
                     Message = message,
                 },
@@ -232,6 +240,21 @@ public sealed class RunCommandTests
 
         Assert.Equal(1, exit);
         Assert.Contains("1 of 2 checks failed.", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_judge_check_that_could_not_be_judged_fails_and_the_line_says_so()
+    {
+        var results = Results(
+            RunStatus.Done,
+            Check("refund-called", true, "ok"),
+            Check("polite", false, "Not judged: the judge model could not be asked (boom).", notJudged: true)
+        );
+
+        var (exit, output, _, _) = Run((request, _) => Server(request, Summary(RunStatus.Done), results), "--wait");
+
+        Assert.Equal(1, exit);
+        Assert.Contains("1 of 2 checks failed (1 not judged: the judge model could not give a verdict).", output, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -28,7 +28,16 @@ public sealed class ContractsTests
     private const string Root = "Suwageval.Server";
 
     /// <summary>Top to bottom.</summary>
-    private static readonly string[] Layers = ["Api", "Runs", "Checks | Invocation", "Scenarios", "Agents", "Database | Problems"];
+    private static readonly string[] Layers =
+    [
+        "Api",
+        "Runs",
+        "Judges",
+        "Checks | Invocation | Models",
+        "Scenarios",
+        "Agents",
+        "Database | Problems",
+    ];
 
     private static readonly Architecture Server = new ArchLoader().LoadAssemblies(typeof(ServerApp).Assembly).Build();
 

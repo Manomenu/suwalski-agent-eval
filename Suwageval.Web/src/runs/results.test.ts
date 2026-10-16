@@ -10,6 +10,7 @@ import {
     itemBody,
     itemKey,
     itemTitle,
+    notJudgedCount,
     percent,
     progress,
     statusLabel,
@@ -43,10 +44,18 @@ describe("results", () => {
 
     it("summarizes a check", () => {
         const c = check([
-            { sample: 1, passed: true, evidence: [], message: "" },
-            { sample: 2, passed: false, evidence: [], message: "" },
+            { sample: 1, passed: true, notJudged: false, evidence: [], message: "" },
+            { sample: 2, passed: false, notJudged: false, evidence: [], message: "" },
         ]);
         expect(checkSummary(c)).toBe("50% (1/2 samples, required 100%)");
+    });
+
+    it("counts the samples no judge could give a verdict on", () => {
+        const c = check([
+            { sample: 1, passed: false, notJudged: true, evidence: [], message: "Not judged: the judge model could not be asked." },
+            { sample: 2, passed: false, notJudged: false, evidence: [], message: "" },
+        ]);
+        expect(notJudgedCount(c)).toBe(1);
     });
 
     it("shows progress, with no total before the run starts", () => {
@@ -68,9 +77,9 @@ describe("results", () => {
             samples: [],
             checks: [
                 check([
-                    { sample: 1, passed: false, evidence: [call], message: "" },
-                    { sample: 2, passed: false, evidence: [reply], message: "" },
-                    { sample: 1, passed: true, evidence: [reply], message: "" },
+                    { sample: 1, passed: false, notJudged: false, evidence: [call], message: "" },
+                    { sample: 2, passed: false, notJudged: false, evidence: [reply], message: "" },
+                    { sample: 1, passed: true, notJudged: false, evidence: [reply], message: "" },
                 ]),
             ],
         };

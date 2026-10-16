@@ -20,5 +20,7 @@
     <Using Include="Xunit" />
     <!-- The sample agent folder the push tests push. Its one copy lives in the CLI's tests; this links it into this output, never copies it. -->
     <None Include="../Suwageval.Cli.Tests/Sample/**" LinkBase="Sample" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Stored answers of the judge model: the two real ones captured once from qwen38 (passed, failed), the others written by hand to be malformed. -->
+    <None Update="Judges/Answers/**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

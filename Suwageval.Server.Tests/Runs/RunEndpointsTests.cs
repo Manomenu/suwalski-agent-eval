@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Suwageval.Contracts;
 using Suwageval.Contracts.Agents;
+using Suwageval.Contracts.Checks;
 using Suwageval.Contracts.Conversations;
 using Suwageval.Contracts.Runs;
 using Suwageval.Server.Runs;
@@ -218,6 +219,33 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         var mismatches = problem.RootElement.GetProperty("mismatches").EnumerateArray().Select(m => m.GetString()).ToList();
         var one = Assert.Single(mismatches);
         Assert.Contains("refund_order", one, StringComparison.Ordinal);
+        Assert.Empty(await GetAsync<List<RunSummary>>(client, $"/runs?agent={agent.Name}"));
+    }
+
+    [Fact]
+    public async Task A_judge_check_without_a_configured_judge_model_is_409_and_nothing_is_queued()
+    {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
+        await using var withoutJudge = app.WithWebHostBuilder(host => host.UseSetting("Judge:Model", ""));
+        var client = withoutJudge.CreateClient();
+        var agent = await SeededAgent.CreateAsync(
+            database.Pool,
+            fake.Url.AbsoluteUri,
+            [SeededAgent.Scenario("refund")],
+            [
+                new JudgeCheck
+                {
+                    Key = "polite",
+                    ScenarioKey = "refund",
+                    Criteria = "The assistant is polite.",
+                },
+            ]
+        );
+
+        var response = await Post(client, new RunRequest { Agent = agent.Name });
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        Assert.Contains("No judge model is configured", await response.Content.ReadAsStringAsync(Cancellation), StringComparison.Ordinal);
         Assert.Empty(await GetAsync<List<RunSummary>>(client, $"/runs?agent={agent.Name}"));
     }
 
