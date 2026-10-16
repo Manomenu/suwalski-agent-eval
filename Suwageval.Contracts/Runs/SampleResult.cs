@@ -14,4 +14,10 @@ public sealed record SampleResult
     public IReadOnlyList<ConversationItem>? Output { get; init; }
 
     public string? Error { get; init; }
+
+    /// <summary>
+    /// Warnings: tool calls and events the agent produced that its version does not declare (<c>tool 'x'</c>, <c>event 'y'</c>).
+    /// Not a failure by itself.
+    /// </summary>
+    public IReadOnlyList<string> Undeclared { get; init; } = [];
 }

@@ -7,7 +7,8 @@ using Suwageval.Contracts.Runs;
 namespace Suwageval.Cli.Run;
 
 /// <summary>
-/// <c>suwageval run</c>: starts a run of the agent named in <c>suwageval/agent.yaml</c> on the server. Exit code with
+/// <c>suwageval run</c>: starts a run of the agent named in <c>suwageval/agent.yaml</c> on the server, which reads the
+/// agent's contract and runs against that version (the output says which, and whether it is new). Exit code with
 /// <c>--wait</c>: 0 when every check reached its threshold, 1 when one did not, 2 when the run could not be started,
 /// failed or was cancelled.
 /// </summary>
@@ -28,14 +29,9 @@ internal static class RunCommand
     public static Command Create(HttpClient? http = null)
     {
         var tag = new Option<string?>("--tag") { Description = "Only the scenarios with this tag; default every scenario." };
-        var version = new Option<string>("--version")
-        {
-            Description = "The agent version to run: its id, or 'latest' (the newest registered).",
-            DefaultValueFactory = _ => "latest",
-        };
         var endpoint = new Option<string?>("--endpoint")
         {
-            Description = "Reach the agent here instead of at the endpointUrl it was registered with.",
+            Description = "Reach the agent here (its contract is read from here too) instead of at the endpointUrl it was registered with.",
         };
         var wait = new Option<bool>("--wait") { Description = "Wait for the run to finish and print its results (see the exit codes)." };
         var json = new Option<bool>("--json") { Description = "Print JSON: the results with --wait, otherwise { runId }." };
@@ -51,7 +47,6 @@ internal static class RunCommand
         )
         {
             tag,
-            version,
             endpoint,
             wait,
             json,
@@ -68,12 +63,6 @@ internal static class RunCommand
                 {
                     return 2;
                 }
-                var versionText = parsed.GetRequiredValue(version);
-                if (versionText != "latest" && !Guid.TryParse(versionText, out _))
-                {
-                    await error.WriteLineAsync("--version is a version id or 'latest'.");
-                    return 2;
-                }
                 var transport = http ?? new HttpClient { BaseAddress = ServerAddress(parsed.GetValue(server)) };
                 try
                 {
@@ -82,7 +71,6 @@ internal static class RunCommand
                         new RunRequest
                         {
                             Agent = agent,
-                            AgentVersionId = versionText == "latest" ? null : Guid.Parse(versionText),
                             Tag = parsed.GetValue(tag),
                             EndpointUrl = parsed.GetValue(endpoint),
                         },
@@ -119,6 +107,11 @@ internal static class RunCommand
     )
     {
         var created = await client.CreateAsync(request, cancellationToken);
+        if (!json)
+        {
+            // The version is what the agent served just now; "new" means its contract differs from every earlier one.
+            await output.WriteLineAsync($"version {created.AgentVersionId}: {(created.VersionCreated ? "new" : "existing")}");
+        }
         if (!wait)
         {
             await output.WriteLineAsync(json ? JsonSerializer.Serialize(created, Pretty) : created.RunId.ToString());

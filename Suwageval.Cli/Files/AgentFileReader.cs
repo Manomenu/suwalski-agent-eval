@@ -3,7 +3,10 @@ using Suwageval.Contracts.Agents;
 
 namespace Suwageval.Cli.Files;
 
-/// <summary>Reads <c>agent.yaml</c>: the <see cref="AgentDefinition"/> fields and, under <c>version:</c>, the <see cref="AgentVersionInput"/>.</summary>
+/// <summary>
+/// Reads <c>agent.yaml</c>: the <see cref="AgentDefinition"/> fields, <c>name</c> and <c>endpointUrl</c>. What the agent
+/// is (prompt, model, tools) is not in the file: the running agent serves it at <c>/suwageval/contract</c>.
+/// </summary>
 internal static class AgentFileReader
 {
     /// <summary>The agent, or null when anything in the file is a problem (they are all added to <paramref name="problems"/>).</summary>
@@ -16,58 +19,21 @@ internal static class AgentFileReader
         }
         if (source.Root is not JsonObject root)
         {
-            problems.Add(source.Problem("", "The file is a mapping with 'name', 'endpointUrl' and 'version'."));
+            problems.Add(source.Problem("", "The file is a mapping with 'name' and 'endpointUrl'."));
+            return null;
+        }
+        if (root.ContainsKey("version"))
+        {
+            problems.Add(
+                source.Problem(
+                    "version",
+                    "A version is not written in a file: versions come from the agent's /suwageval/contract. Remove 'version:'."
+                )
+            );
             return null;
         }
 
-        var before = problems.Count;
-        var definitionFields = new JsonObject();
-        foreach (var (name, value) in root.Where(field => field.Key != "version"))
-        {
-            definitionFields[name] = value?.DeepClone();
-        }
-        var definition = ContractReader.Read<AgentDefinition>(source, definitionFields, "", problems);
-
-        if (!root.TryGetPropertyValue("version", out var versionNode))
-        {
-            problems.Add(source.Problem("", "Missing required field: version."));
-            return null;
-        }
-        if (versionNode is not JsonObject version)
-        {
-            problems.Add(source.Problem("version", "'version' is a mapping: systemPrompt, model, tools, context."));
-            return null;
-        }
-
-        // The contract reports the first mistake it meets in what it reads, so the lists are read item by item first:
-        // every broken tool and event is then reported, not only the first.
-        var rest = (JsonObject)version.DeepClone();
-        ReadItems<ToolDefinition>(source, rest, "tools", "version", problems);
-        if (rest["context"] is JsonObject context)
-        {
-            ReadItems<EventDeclaration>(source, context, "events", "version.context", problems);
-        }
-        ContractReader.Read<AgentVersionInput>(source, rest, "version", problems);
-
-        if (problems.Count != before || definition is null)
-        {
-            return null;
-        }
-        var versionInput = ContractReader.Read<AgentVersionInput>(source, version, "version", problems);
-        return versionInput is null ? null : new LoadedAgent(source, definition, versionInput);
-    }
-
-    private static void ReadItems<T>(YamlSource source, JsonObject parent, string name, string parentPath, List<Problem> problems)
-        where T : class
-    {
-        if (parent[name] is not JsonArray items)
-        {
-            return;
-        }
-        for (var i = 0; i < items.Count; i++)
-        {
-            ContractReader.Read<T>(source, items[i], $"{YamlSource.Child(parentPath, name)}[{i}]", problems);
-        }
-        parent[name] = new JsonArray();
+        var definition = ContractReader.Read<AgentDefinition>(source, root, "", problems);
+        return definition is null ? null : new LoadedAgent(source, definition);
     }
 }

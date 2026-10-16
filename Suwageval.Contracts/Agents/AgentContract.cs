@@ -1,7 +1,7 @@
 namespace Suwageval.Contracts.Agents;
 
 /// <summary>What the agent was configured as when a run happened.</summary>
-public sealed record AgentVersionInput
+public sealed record AgentContract
 {
     public string? Label { get; init; }
 

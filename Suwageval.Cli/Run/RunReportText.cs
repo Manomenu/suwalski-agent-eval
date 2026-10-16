@@ -14,8 +14,12 @@ internal static class RunReportText
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
         var run = results.Run;
         writer.WriteLine(
-            $"run {run.Id}  {run.Status}  (agent {run.Agent}{(run.Tag is null ? "" : $", tag {run.Tag}")}, {run.SamplesDone}/{run.SamplesTotal} samples)"
+            $"run {run.Id}  {run.Status}  (agent {run.Agent}, version {run.AgentVersionId}{(run.Tag is null ? "" : $", tag {run.Tag}")}, {run.SamplesDone}/{run.SamplesTotal} samples)"
         );
+        if (run.ContractChangedDuringRun)
+        {
+            writer.WriteLine("! the agent's contract changed while the run was going: some samples may not be of this version.");
+        }
         var checks = 0;
         var passed = 0;
         foreach (var scenario in results.Scenarios)
@@ -25,6 +29,12 @@ internal static class RunReportText
             foreach (var sample in scenario.Samples.Where(sample => sample.Status == SampleStatus.Failed))
             {
                 writer.WriteLine($"  ! sample {sample.Sample} produced nothing: {sample.Error}");
+            }
+            foreach (var sample in scenario.Samples.Where(sample => sample.Undeclared.Count > 0))
+            {
+                writer.WriteLine(
+                    $"  ! sample {sample.Sample} produced what its version does not declare: {string.Join(", ", sample.Undeclared)}"
+                );
             }
             if (scenario.Checks.Count == 0)
             {

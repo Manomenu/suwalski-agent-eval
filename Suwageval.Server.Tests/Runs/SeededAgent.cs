@@ -17,7 +17,7 @@ namespace Suwageval.Server.Tests.Runs;
 internal sealed record SeededAgent(Guid Id, string Name, Guid VersionId, string EndpointUrl)
 {
     /// <summary>The tools and event of the example agent.</summary>
-    public static AgentVersionInput ExampleVersion { get; } =
+    public static AgentContract ExampleVersion { get; } =
         new()
         {
             SystemPrompt = "You are a support agent.",
@@ -55,6 +55,9 @@ internal sealed record SeededAgent(Guid Id, string Name, Guid VersionId, string 
                 ],
             },
         };
+
+    /// <summary>A contract as an agent serves it.</summary>
+    public static string Serialized(AgentContract contract) => JsonSerializer.Serialize(contract, ContractJson.Options);
 
     public static ScenarioInput Scenario(string key, string[]? tags = null, int samples = 1, int turns = 1) =>
         new()
@@ -95,7 +98,7 @@ internal sealed record SeededAgent(Guid Id, string Name, Guid VersionId, string 
         string endpointUrl,
         IReadOnlyList<ScenarioInput> scenarios,
         IReadOnlyList<CheckInput> checks,
-        AgentVersionInput? version = null
+        AgentContract? version = null
     )
     {
         var agents = new AgentStore(pool);

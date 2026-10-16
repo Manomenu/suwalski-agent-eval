@@ -10,6 +10,7 @@ namespace Suwageval.Cli.Tests.Run;
 public sealed class RunCommandTests
 {
     private static readonly Guid RunId = Guid.Parse("11111111-2222-3333-4444-555555555555");
+    private static readonly Guid VersionId = Guid.Parse("66666666-7777-8888-9999-000000000000");
 
     private static string Sample => Path.Combine(AppContext.BaseDirectory, "Sample", "suwageval");
 
@@ -36,7 +37,7 @@ public sealed class RunCommandTests
         {
             Id = RunId,
             Agent = "example-agent",
-            AgentVersionId = Guid.NewGuid(),
+            AgentVersionId = VersionId,
             Tag = "regression",
             EndpointUrl = "http://localhost:7010",
             Status = status,
@@ -98,7 +99,15 @@ public sealed class RunCommandTests
     private static HttpResponseMessage Server(HttpRequestMessage request, RunSummary state, RunResults results) =>
         (request.Method.Method, request.RequestUri?.AbsolutePath) switch
         {
-            ("POST", "/runs") => Json(new RunCreated { RunId = RunId }, HttpStatusCode.Accepted),
+            ("POST", "/runs") => Json(
+                new RunCreated
+                {
+                    RunId = RunId,
+                    AgentVersionId = VersionId,
+                    VersionCreated = true,
+                },
+                HttpStatusCode.Accepted
+            ),
             ("GET", var path) when path == $"/runs/{RunId}" => Json(state),
             ("GET", var path) when path == $"/runs/{RunId}/results" => Json(results),
             _ => new HttpResponseMessage(HttpStatusCode.NotFound),
@@ -127,32 +136,86 @@ public sealed class RunCommandTests
         );
 
         Assert.Equal(0, exit);
-        Assert.Equal(RunId.ToString() + Environment.NewLine, output);
+        Assert.Equal($"version {VersionId}: new{Environment.NewLine}{RunId}{Environment.NewLine}", output);
         Assert.Empty(error);
         var (method, path, body) = Assert.Single(server.Requests);
         Assert.Equal(("POST", "/runs"), (method, path));
         using var sent = JsonDocument.Parse(body ?? "");
         Assert.Equal("example-agent", sent.RootElement.GetProperty("agent").GetString());
         Assert.Equal("regression", sent.RootElement.GetProperty("tag").GetString());
-        Assert.False(sent.RootElement.TryGetProperty("agentVersionId", out var version) && version.ValueKind != JsonValueKind.Null);
+        // A version is never sent: the server reads it from the agent.
+        Assert.False(sent.RootElement.TryGetProperty("agentVersionId", out _));
     }
 
     [Fact]
-    public void A_version_and_an_endpoint_are_passed_on()
+    public void An_endpoint_is_passed_on()
     {
-        var versionId = Guid.NewGuid();
-
         var (_, _, _, server) = Run(
             (request, _) => Server(request, Summary(RunStatus.Queued), Results(RunStatus.Queued)),
-            "--version",
-            versionId.ToString(),
             "--endpoint",
             "http://other:1"
         );
 
         using var sent = JsonDocument.Parse(server.Requests[0].Body ?? "");
-        Assert.Equal(versionId.ToString(), sent.RootElement.GetProperty("agentVersionId").GetString());
         Assert.Equal("http://other:1", sent.RootElement.GetProperty("endpointUrl").GetString());
+    }
+
+    [Fact]
+    public void The_version_of_the_run_is_printed_as_new_or_existing()
+    {
+        var (_, output, _, _) = Run(
+            (request, _) =>
+                request.Method == HttpMethod.Post
+                    ? Json(
+                        new RunCreated
+                        {
+                            RunId = RunId,
+                            AgentVersionId = VersionId,
+                            VersionCreated = false,
+                        },
+                        HttpStatusCode.Accepted
+                    )
+                    : Server(request, Summary(RunStatus.Done), Results(RunStatus.Done)),
+            "--wait"
+        );
+
+        Assert.StartsWith($"version {VersionId}: existing{Environment.NewLine}", output, StringComparison.Ordinal);
+        Assert.Contains($"version {VersionId}, tag regression", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_contract_that_changed_during_the_run_and_undeclared_output_are_shown()
+    {
+        var changed = Results(RunStatus.Done, Check("c", true, "ok"));
+        changed = changed with
+        {
+            Run = changed.Run with { ContractChangedDuringRun = true },
+            Scenarios =
+            [
+                changed.Scenarios[0] with
+                {
+                    Samples = [changed.Scenarios[0].Samples[0] with { Undeclared = ["tool 'cancel_order'"] }],
+                },
+            ],
+        };
+
+        var (_, output, _, _) = Run((request, _) => Server(request, Summary(RunStatus.Done), changed), "--wait");
+
+        Assert.Contains("the agent's contract changed while the run was going", output, StringComparison.Ordinal);
+        Assert.Contains("sample 1 produced what its version does not declare: tool 'cancel_order'", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_version_option_is_gone()
+    {
+        var (exit, _, _, server) = Run(
+            (request, _) => Server(request, Summary(RunStatus.Done), Results(RunStatus.Done)),
+            "--version",
+            Guid.NewGuid().ToString()
+        );
+
+        Assert.NotEqual(0, exit);
+        Assert.Empty(server.Requests);
     }
 
     [Fact]
@@ -288,20 +351,6 @@ public sealed class RunCommandTests
 
         Assert.Equal(2, exit);
         Assert.Contains("agent.yaml", error.ToString(), StringComparison.Ordinal);
-        Assert.Empty(server.Requests);
-    }
-
-    [Fact]
-    public void A_version_that_is_neither_an_id_nor_latest_exits_2()
-    {
-        var (exit, _, error, server) = Run(
-            (request, _) => Server(request, Summary(RunStatus.Done), Results(RunStatus.Done)),
-            "--version",
-            "v3"
-        );
-
-        Assert.Equal(2, exit);
-        Assert.Contains("--version", error, StringComparison.Ordinal);
         Assert.Empty(server.Requests);
     }
 }

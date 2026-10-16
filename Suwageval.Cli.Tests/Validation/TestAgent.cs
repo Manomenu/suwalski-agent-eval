@@ -1,4 +1,10 @@
+using System.Diagnostics.CodeAnalysis;
+using System.Net;
+using System.Text;
+using System.Text.Json;
 using Suwageval.Cli.Files;
+using Suwageval.Contracts;
+using Suwageval.Contracts.Agents;
 
 namespace Suwageval.Cli.Tests.Validation;
 
@@ -8,34 +14,39 @@ internal static class TestAgent
     public const string Yaml = """
         name: shop-agent
         endpointUrl: http://localhost:7010
-        version:
-          model:
-            name: some-model
-          systemPrompt: Be helpful.
-          tools:
-            - name: get_order
-              description: Look an order up.
-              parameters: { type: object }
-            - name: refund_order
-              description: Refund an order.
-              parameters: { type: object }
-          context:
-            usesRetrieval: false
-            events:
-              - type: state.changed
-                dataSchema: { type: object }
         """;
 
-    public const string WithRetrieval = """
-        name: shop-agent
-        endpointUrl: http://localhost:7010
-        version:
-          model:
-            name: some-model
-          systemPrompt: Be helpful.
-          context:
-            usesRetrieval: true
-        """;
+    /// <summary>What the running agent serves for <see cref="Yaml"/>: two tools and one event.</summary>
+    public static AgentContract Contract { get; } =
+        new()
+        {
+            SystemPrompt = "Be helpful.",
+            Model = new ModelDefinition { Name = "some-model" },
+            Tools =
+            [
+                new ToolDefinition
+                {
+                    Name = "get_order",
+                    Description = "Look an order up.",
+                    Parameters = Schema,
+                },
+                new ToolDefinition
+                {
+                    Name = "refund_order",
+                    Description = "Refund an order.",
+                    Parameters = Schema,
+                },
+            ],
+            Context = new ContextDefinition { Events = [new EventDeclaration { Type = "state.changed", DataSchema = Schema }] },
+        };
+
+    public static AgentContract WithRetrieval { get; } =
+        new()
+        {
+            SystemPrompt = "Be helpful.",
+            Model = new ModelDefinition { Name = "some-model" },
+            Context = new ContextDefinition { UsesRetrieval = true },
+        };
 
     public const string Scenario = """
         key: refund-happy-path
@@ -48,6 +59,33 @@ internal static class TestAgent
             tool: refund_order
         """;
 
+    private static JsonElement Schema => JsonDocument.Parse("""{"type":"object"}""").RootElement.Clone();
+
     /// <summary>Each problem as <c>path: message</c>, in the order found.</summary>
     public static string[] Lines(IEnumerable<Problem> problems) => [.. problems.Select(p => $"{p.Path}: {p.Message}")];
+
+    /// <summary>A stand-in for the running agent: answers <c>GET …/suwageval/contract</c> with the contract, or as the handler says.</summary>
+    public static HttpClient AgentServing(AgentContract contract, List<Uri>? requested = null) =>
+        Agent(request =>
+        {
+            requested?.Add(request.RequestUri!);
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(JsonSerializer.Serialize(contract, ContractJson.Options), Encoding.UTF8, "application/json"),
+            };
+        });
+
+    [SuppressMessage(
+        "Reliability",
+        "CA2000:Dispose objects before losing scope",
+        Justification = "The client owns its handler and disposes it."
+    )]
+    public static HttpClient Agent(Func<HttpRequestMessage, HttpResponseMessage> answer) =>
+        new(new Handler(answer), disposeHandler: true) { Timeout = TimeSpan.FromSeconds(5) };
+
+    private sealed class Handler(Func<HttpRequestMessage, HttpResponseMessage> answer) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            Task.FromResult(answer(request));
+    }
 }

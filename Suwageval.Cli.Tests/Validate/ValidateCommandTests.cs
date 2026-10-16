@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text.Json;
 using Suwageval.Cli.Tests.Validation;
 
@@ -11,11 +12,18 @@ public sealed class ValidateCommandTests : IDisposable
 
     public void Dispose() => Directory.Delete(work, recursive: true);
 
+    /// <summary>Against an agent that serves <see cref="TestAgent.Contract"/>.</summary>
     private static (int Exit, string Out, string Error) Run(string stdin, params string[] args)
+    {
+        using var agent = TestAgent.AgentServing(TestAgent.Contract);
+        return Run(agent, stdin, args);
+    }
+
+    private static (int Exit, string Out, string Error) Run(HttpClient agent, string stdin, params string[] args)
     {
         using var output = new StringWriter();
         using var error = new StringWriter();
-        var exit = CliApp.Run(args, new StringReader(stdin), output, error);
+        var exit = CliApp.Run(args, new StringReader(stdin), output, error, agent);
         return (exit, output.ToString(), error.ToString());
     }
 
@@ -147,6 +155,112 @@ public sealed class ValidateCommandTests : IDisposable
         using var document = JsonDocument.Parse(output);
         Assert.True(document.RootElement.GetProperty("valid").GetBoolean());
         Assert.Equal(0, document.RootElement.GetProperty("problems").GetArrayLength());
+    }
+
+    [Fact]
+    public void Json_output_says_the_names_were_checked_against_the_agents_contract()
+    {
+        var requested = new List<Uri>();
+        using var agent = TestAgent.AgentServing(TestAgent.Contract, requested);
+
+        var (exit, output, _) = Run(agent, "", "validate", Sample, "--json");
+
+        Assert.Equal(0, exit);
+        using var document = JsonDocument.Parse(output);
+        Assert.True(document.RootElement.GetProperty("namesChecked").GetBoolean());
+        Assert.Equal(new Uri("http://localhost:7010/suwageval/contract"), Assert.Single(requested));
+    }
+
+    [Fact]
+    public void A_tool_the_running_agent_does_not_have_is_a_problem()
+    {
+        var dir = Folder(TestAgent.Yaml, ("a.yaml", TestAgent.Scenario.Replace("refund_order", "refund_it", StringComparison.Ordinal)));
+
+        var (exit, output, _) = Run("", "validate", dir);
+
+        Assert.Equal(1, exit);
+        Assert.Contains("The agent has no tool 'refund_it' (its tools: get_order, refund_order)", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_endpoint_option_replaces_the_one_of_the_agent_file()
+    {
+        var requested = new List<Uri>();
+        using var agent = TestAgent.AgentServing(TestAgent.Contract, requested);
+
+        var (exit, _, _) = Run(agent, "", "validate", Sample, "--endpoint", "http://elsewhere.test:9000/base/");
+
+        Assert.Equal(0, exit);
+        Assert.Equal(new Uri("http://elsewhere.test:9000/base/suwageval/contract"), Assert.Single(requested));
+    }
+
+    [Fact]
+    public void An_agent_that_cannot_be_reached_is_a_notice_and_the_exit_stays_0()
+    {
+        using var agent = TestAgent.Agent(_ => throw new HttpRequestException("connection refused"));
+
+        var (exit, output, error) = Run(agent, "", "validate", Sample);
+
+        Assert.Equal(0, exit);
+        Assert.Empty(error);
+        Assert.Equal(
+            $"names not checked: agent at http://localhost:7010 unreachable (connection refused){Environment.NewLine}valid (3 scenarios, 5 checks){Environment.NewLine}",
+            output
+        );
+    }
+
+    [Fact]
+    public void An_unreachable_agent_is_namesChecked_false_in_json_and_does_not_hide_problems()
+    {
+        using var agent = TestAgent.Agent(_ => throw new HttpRequestException("connection refused"));
+        var dir = Folder(TestAgent.Yaml, ("a.yaml", "key: Bad\nconversation:\n  - user: hi\n"));
+
+        var (exit, output, _) = Run(agent, "", "validate", dir, "--json");
+
+        Assert.Equal(1, exit);
+        using var document = JsonDocument.Parse(output);
+        Assert.False(document.RootElement.GetProperty("namesChecked").GetBoolean());
+        Assert.Equal(1, document.RootElement.GetProperty("problems").GetArrayLength());
+    }
+
+    [Fact]
+    public void An_agent_without_a_contract_endpoint_is_a_notice_too()
+    {
+        using var agent = TestAgent.Agent(_ => new HttpResponseMessage(HttpStatusCode.NotFound));
+
+        var (exit, output, _) = Run(agent, "", "validate", Sample);
+
+        Assert.Equal(0, exit);
+        Assert.StartsWith("names not checked: agent at http://localhost:7010 has no readable contract", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Offline_asks_the_agent_nothing_and_says_names_were_not_checked()
+    {
+        var requested = new List<Uri>();
+        using var agent = TestAgent.AgentServing(TestAgent.Contract, requested);
+        var dir = Folder(TestAgent.Yaml, ("a.yaml", TestAgent.Scenario.Replace("refund_order", "refund_it", StringComparison.Ordinal)));
+
+        var (exit, output, _) = Run(agent, "", "validate", dir, "--offline");
+
+        Assert.Equal(0, exit);
+        Assert.Empty(requested);
+        Assert.Equal($"names not checked: --offline{Environment.NewLine}valid (1 scenarios, 1 checks){Environment.NewLine}", output);
+    }
+
+    [Fact]
+    public void A_version_key_in_the_agent_file_is_an_error()
+    {
+        var dir = Folder(TestAgent.Yaml + "\nversion:\n  systemPrompt: p\n  model: { name: m }\n");
+
+        var (exit, output, _) = Run("", "validate", dir);
+
+        Assert.Equal(1, exit);
+        Assert.Contains(
+            "version: A version is not written in a file: versions come from the agent's /suwageval/contract",
+            output,
+            StringComparison.Ordinal
+        );
     }
 
     [Fact]

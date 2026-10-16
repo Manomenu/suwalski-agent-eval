@@ -6,7 +6,7 @@ using Suwageval.Cli.Validation;
 
 namespace Suwageval.Cli.Push;
 
-/// <summary><c>suwageval push [dir]</c>: validates the agent's files, then writes the agent, its version, scenarios and checks to the server.</summary>
+/// <summary><c>suwageval push [dir]</c>: validates the agent's files, then writes the agent, its scenarios and checks to the server (its version is not pushed: a run reads it from the agent).</summary>
 internal static class PushCommand
 {
     private const string DefaultDir = "suwageval";
@@ -35,7 +35,7 @@ internal static class PushCommand
 
         var command = new Command(
             "push",
-            "Validate the agent's files, then write the agent, its version, scenarios and checks to the server. Pushing the same files again changes nothing."
+            "Validate the agent's files, then write the agent, its scenarios and checks to the server. Pushing the same files again changes nothing. (Versions are not pushed: a run reads them from the running agent.)"
         )
         {
             dir,
@@ -98,14 +98,13 @@ internal static class PushCommand
         try
         {
             var (savedAgent, agentCreated) = await client.PutAgentAsync(agent.Definition, cancellationToken);
-            var (version, versionCreated) = await client.RegisterVersionAsync(savedAgent.Name, agent.Version, cancellationToken);
             var scenarioResults = await client.PutScenariosAsync(
                 savedAgent.Name,
                 [.. scenarios.Select(s => s.Scenario)],
                 cancellationToken
             );
             var checkResults = await client.PutChecksAsync(savedAgent.Name, [.. scenarios.SelectMany(s => s.Checks)], cancellationToken);
-            var result = new PushResult(savedAgent, agentCreated, version, versionCreated, scenarioResults.Results, checkResults.Results);
+            var result = new PushResult(savedAgent, agentCreated, scenarioResults.Results, checkResults.Results);
             await console.Output.WriteAsync(json ? JsonSerializer.Serialize(result, JsonOptions) + Environment.NewLine : Text(result));
             return 0;
         }
@@ -127,7 +126,6 @@ internal static class PushCommand
     {
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
         writer.WriteLine($"agent {result.Agent.Name}: {(result.AgentCreated ? "created" : "existing")}");
-        writer.WriteLine($"version {result.Version.Id}: {(result.VersionCreated ? "created" : "existing")}");
         foreach (var scenario in result.Scenarios)
         {
             writer.WriteLine($"scenario {scenario.Key}: {Name(scenario.Outcome)}");

@@ -4,12 +4,10 @@ using Suwageval.Contracts.Scenarios;
 
 namespace Suwageval.Cli.Push;
 
-/// <summary>What a push did, as <c>--json</c> prints it: the agent and version as the server knows them, and each scenario's and check's outcome.</summary>
+/// <summary>What a push did, as <c>--json</c> prints it: the agent as the server knows it, and each scenario's and check's outcome.</summary>
 internal sealed record PushResult(
     Agent Agent,
     bool AgentCreated,
-    AgentVersion Version,
-    bool VersionCreated,
     IReadOnlyList<ScenarioResult> Scenarios,
     IReadOnlyList<CheckResult> Checks
 );

@@ -1,6 +1,6 @@
 using System.Net;
-using System.Text.Json;
 using Suwageval.Contracts.Agents;
+using Suwageval.Server.Agents;
 using Suwageval.Server.Tests.Api;
 
 namespace Suwageval.Server.Tests.Agents;
@@ -11,12 +11,29 @@ public sealed class AgentEndpointsTests(TestDatabase database) : IAsyncDisposabl
 
     public ValueTask DisposeAsync() => server.DisposeAsync();
 
-    private static AgentVersionInput Version(string prompt = "Be helpful.") =>
+    private static AgentContract Version(string prompt = "Be helpful.") =>
         new()
         {
             SystemPrompt = prompt,
             Model = new ModelDefinition { Name = "some-model" },
         };
+
+    /// <summary>What a run does when it starts: registers the contract the agent serves. The endpoint for it is gone.</summary>
+    private async Task<AgentVersion> RegisterAsync(string agentName, AgentContract contract)
+    {
+        var store = new AgentStore(database.Pool);
+        var agent =
+            await store.GetAsync(agentName, TestContext.Current.CancellationToken) ?? throw new InvalidOperationException("no agent");
+        var row = (
+            await store.RegisterVersionAsync(
+                agent.Id,
+                ContractContent.Json(contract),
+                contract.Label,
+                TestContext.Current.CancellationToken
+            )
+        ).Version;
+        return new AgentVersion(row.Id, row.AgentId, row.Label, row.ContentHash, row.CreatedAt);
+    }
 
     [Fact]
     public async Task Posting_an_agent_creates_it_then_returns_it_and_updates_the_endpoint()
@@ -65,7 +82,7 @@ public sealed class AgentEndpointsTests(TestDatabase database) : IAsyncDisposabl
     {
         var name = await server.NewAgent();
         var id = (await TestServer.Read<AgentDetail>(await server.Get($"/agents/{name}"))).Id;
-        await server.Post($"/agents/{name}/versions", Version());
+        await RegisterAsync(name, Version());
 
         var listed = await TestServer.Read<Agent[]>(await server.Get("/agents"));
         var byName = await TestServer.Read<AgentDetail>(await server.Get($"/agents/{name}"));
@@ -81,45 +98,20 @@ public sealed class AgentEndpointsTests(TestDatabase database) : IAsyncDisposabl
     {
         var response = await server.Get("/agents/no-such-agent");
         var versions = await server.Get("/agents/no-such-agent/versions");
-        var registered = await server.Post("/agents/no-such-agent/versions", Version());
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
         Assert.Equal(HttpStatusCode.NotFound, versions.StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, registered.StatusCode);
     }
 
     [Fact]
-    public async Task A_version_is_created_once_per_content_and_a_label_alone_is_not_new_content()
+    public async Task A_version_cannot_be_posted_because_it_comes_from_the_agent_when_a_run_starts()
     {
         var name = await server.NewAgent();
 
-        var first = await server.Post($"/agents/{name}/versions", Version() with { Label = "v1" });
-        var again = await server.Post($"/agents/{name}/versions", Version() with { Label = "renamed" });
-        var changed = await server.Post($"/agents/{name}/versions", Version("Be brief."));
+        var response = await server.Post($"/agents/{name}/versions", Version());
 
-        Assert.Equal(HttpStatusCode.Created, first.StatusCode);
-        Assert.Equal(HttpStatusCode.OK, again.StatusCode);
-        Assert.Equal(HttpStatusCode.Created, changed.StatusCode);
-        var firstVersion = await TestServer.Read<AgentVersion>(first);
-        Assert.Equal(firstVersion, await TestServer.Read<AgentVersion>(again));
-        Assert.Equal("v1", firstVersion.Label);
-        Assert.NotEqual(firstVersion.Id, (await TestServer.Read<AgentVersion>(changed)).Id);
-    }
-
-    [Fact]
-    public async Task Versions_are_listed_and_one_is_read_with_its_content()
-    {
-        var name = await server.NewAgent();
-        var version = await TestServer.Read<AgentVersion>(await server.Post($"/agents/{name}/versions", Version() with { Label = "v1" }));
-
-        var listed = await TestServer.Read<AgentVersion[]>(await server.Get($"/agents/{name}/versions"));
-        var detail = await TestServer.Read<AgentVersionDetail>(await server.Get($"/agents/{name}/versions/{version.Id}"));
-
-        Assert.Equal([version], listed);
-        Assert.Equal(version.Id, detail.Id);
-        Assert.Equal("Be helpful.", detail.Content.SystemPrompt);
-        Assert.Equal("v1", detail.Content.Label);
+        Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
     }
 
     [Fact]
@@ -127,7 +119,7 @@ public sealed class AgentEndpointsTests(TestDatabase database) : IAsyncDisposabl
     {
         var one = await server.NewAgent();
         var two = await server.NewAgent();
-        var version = await TestServer.Read<AgentVersion>(await server.Post($"/agents/{one}/versions", Version()));
+        var version = await RegisterAsync(one, Version());
 
         var other = await server.Get($"/agents/{two}/versions/{version.Id}");
         var missing = await server.Get($"/agents/{one}/versions/{Guid.NewGuid()}");
@@ -137,27 +129,17 @@ public sealed class AgentEndpointsTests(TestDatabase database) : IAsyncDisposabl
     }
 
     [Fact]
-    public async Task An_invalid_version_is_a_422_naming_the_fields()
+    public async Task Versions_are_listed_and_one_is_read_with_its_content()
     {
         var name = await server.NewAgent();
-        var tool = new ToolDefinition
-        {
-            Name = "t",
-            Description = "d",
-            Parameters = JsonDocument.Parse("{}").RootElement,
-        };
+        var version = await RegisterAsync(name, Version() with { Label = "v1" });
 
-        var response = await server.Post(
-            $"/agents/{name}/versions",
-            new AgentVersionInput
-            {
-                SystemPrompt = " ",
-                Model = new ModelDefinition { Name = "" },
-                Tools = [tool, tool],
-            }
-        );
+        var listed = await TestServer.Read<AgentVersion[]>(await server.Get($"/agents/{name}/versions"));
+        var detail = await TestServer.Read<AgentVersionDetail>(await server.Get($"/agents/{name}/versions/{version.Id}"));
 
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
-        Assert.Equal(["systemPrompt", "model.name", "tools[1].name"], await TestServer.ErrorFields(response));
+        Assert.Equal([version], listed);
+        Assert.Equal(version.Id, detail.Id);
+        Assert.Equal("Be helpful.", detail.Content.SystemPrompt);
+        Assert.Equal("v1", detail.Content.Label);
     }
 }

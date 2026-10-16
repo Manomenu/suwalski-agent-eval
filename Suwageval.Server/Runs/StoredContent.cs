@@ -21,8 +21,8 @@ internal static class StoredContent
     public static ScenarioContent Scenario(string json) =>
         JsonSerializer.Deserialize<ScenarioContent>(json, Lenient) ?? throw new InvalidOperationException("A stored scenario is empty.");
 
-    public static AgentVersionInput Version(string json) =>
-        JsonSerializer.Deserialize<AgentVersionInput>(json, Lenient) ?? throw new InvalidOperationException("A stored version is empty.");
+    public static AgentContract Version(string json) =>
+        JsonSerializer.Deserialize<AgentContract>(json, Lenient) ?? throw new InvalidOperationException("A stored version is empty.");
 
     /// <summary>The check's key and scenario are columns of the row; the stored content may or may not repeat them.</summary>
     public static CheckInput Check(CheckRow row)

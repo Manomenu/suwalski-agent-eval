@@ -1,4 +1,6 @@
+using System.Text.Json;
 using Dapper;
+using Suwageval.Contracts;
 using Suwageval.Contracts.Runs;
 using Suwageval.Server.Database;
 
@@ -15,6 +17,7 @@ internal sealed class RunStore(Pool pool)
                  WHERE s.run_id = r.id AND c.passed) AS ChecksPassed,
                (SELECT count(*)::int FROM check_results c JOIN scenario_results s ON s.id = c.scenario_result_id
                  WHERE s.run_id = r.id AND NOT c.passed) AS ChecksFailed,
+               r.contract_changed_during_run AS ContractChangedDuringRun,
                r.created_at AS CreatedAt, r.started_at AS StartedAt, r.finished_at AS FinishedAt
         FROM runs r
         JOIN agents a ON a.id = r.agent_id
@@ -137,6 +140,19 @@ internal sealed class RunStore(Pool pool)
         );
     }
 
+    /// <summary>Records that the agent's contract changed while the run was going.</summary>
+    public async Task MarkContractChangedAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        await using var connection = await pool.OpenAsync(cancellationToken);
+        await connection.ExecuteAsync(
+            new CommandDefinition(
+                "UPDATE runs SET contract_changed_during_run = true WHERE id = @id",
+                new { id },
+                cancellationToken: cancellationToken
+            )
+        );
+    }
+
     public async Task<bool> IsCancelRequestedAsync(Guid id, CancellationToken cancellationToken = default)
     {
         await using var connection = await pool.OpenAsync(cancellationToken);
@@ -170,8 +186,8 @@ internal sealed class RunStore(Pool pool)
         var resultId = await connection.QuerySingleAsync<Guid>(
             new CommandDefinition(
                 """
-                INSERT INTO scenario_results (run_id, scenario_id, scenario_revision, sample, status, output, error)
-                VALUES (@runId, @scenarioId, @scenarioRevision, @sampleNumber, @status, @outputJson::jsonb, @error)
+                INSERT INTO scenario_results (run_id, scenario_id, scenario_revision, sample, status, output, error, undeclared)
+                VALUES (@runId, @scenarioId, @scenarioRevision, @sampleNumber, @status, @outputJson::jsonb, @error, @undeclaredJson::jsonb)
                 RETURNING id
                 """,
                 new
@@ -183,6 +199,7 @@ internal sealed class RunStore(Pool pool)
                     status = sample.Status.ToString(),
                     outputJson = sample.OutputJson,
                     error = sample.Error,
+                    undeclaredJson = JsonSerializer.Serialize(sample.Undeclared, ContractJson.Options),
                 },
                 transaction,
                 cancellationToken: cancellationToken
@@ -221,7 +238,7 @@ internal sealed class RunStore(Pool pool)
             new CommandDefinition(
                 """
                 SELECT sr.id, s.key AS ScenarioKey, sr.scenario_revision AS ScenarioRevision, sr.sample, sr.status,
-                       sr.output::text AS Output, sr.error
+                       sr.output::text AS Output, sr.error, sr.undeclared::text AS Undeclared
                 FROM scenario_results sr
                 JOIN scenarios s ON s.id = sr.scenario_id
                 WHERE sr.run_id = @runId

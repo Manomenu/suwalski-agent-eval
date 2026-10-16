@@ -16,6 +16,7 @@ internal sealed record RunRow(
     int SamplesDone,
     int ChecksPassed,
     int ChecksFailed,
+    bool ContractChangedDuringRun,
     DateTime CreatedAt,
     DateTime? StartedAt,
     DateTime? FinishedAt

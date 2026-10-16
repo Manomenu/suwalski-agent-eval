@@ -4,13 +4,18 @@ using Suwageval.Cli.Validation;
 
 namespace Suwageval.Cli.Validate;
 
-/// <summary><c>suwageval validate [path]</c>: checks an agent's files; needs no server.</summary>
+/// <summary>
+/// <c>suwageval validate [path]</c>: checks an agent's files. The structure needs no server and no agent; tool and event
+/// names are checked against the contract the running agent serves, when it can be reached.
+/// </summary>
 internal static class ValidateCommand
 {
     private const string DefaultDir = "suwageval";
     private const string StdinName = "<stdin>";
 
-    public static Command Create(TextReader input)
+    /// <param name="input">Where a scenario read from stdin comes from.</param>
+    /// <param name="http">The client to reach the agent with; null makes one with a short timeout (tests pass a stub).</param>
+    public static Command Create(TextReader input, HttpClient? http = null)
     {
         var path = new Argument<string>("path")
         {
@@ -22,42 +27,106 @@ internal static class ValidateCommand
             Description = "The folder with agent.yaml, for a single scenario file or stdin.",
             DefaultValueFactory = _ => DefaultDir,
         };
-        var json = new Option<bool>("--json") { Description = "Print { valid, problems: [{ file, path, message }] } instead of text." };
+        var endpoint = new Option<string?>("--endpoint")
+        {
+            Description = "Read the agent's contract here instead of at the endpointUrl of agent.yaml.",
+        };
+        var offline = new Option<bool>("--offline") { Description = "Do not ask the agent for its contract: check the structure only." };
+        var json = new Option<bool>("--json")
+        {
+            Description = "Print { valid, namesChecked, notice, problems: [{ file, path, message }] } instead of text.",
+        };
 
         var command = new Command(
             "validate",
-            "Check the agent's files against the contract, without a server. Exit code 1 when anything is wrong."
+            "Check the agent's files against the contract. Tool and event names are checked against the contract the running agent serves (GET /suwageval/contract); if it cannot be reached they are not, and that is said. Exit code 1 when anything is wrong."
         )
         {
             path,
             dir,
+            endpoint,
+            offline,
             json,
         };
-        command.SetAction(parsed =>
-        {
-            var result = Run(parsed.GetRequiredValue(path), parsed.GetRequiredValue(dir), input);
-            var output = parsed.InvocationConfiguration.Output;
-            output.Write(parsed.GetValue(json) ? ValidationReport.Json(result) + Environment.NewLine : ValidationReport.Text(result));
-            return result.IsValid ? 0 : 1;
-        });
+        command.SetAction(
+            async (parsed, cancellationToken) =>
+            {
+                using var created = http is null && !parsed.GetValue(offline) ? new HttpClient { Timeout = ContractFetcher.Timeout } : null;
+                var result = await RunAsync(
+                    parsed.GetRequiredValue(path),
+                    parsed.GetRequiredValue(dir),
+                    parsed.GetValue(endpoint),
+                    parsed.GetValue(offline),
+                    input,
+                    http ?? created,
+                    cancellationToken
+                );
+                var output = parsed.InvocationConfiguration.Output;
+                await output.WriteAsync(
+                    parsed.GetValue(json) ? ValidationReport.Json(result) + Environment.NewLine : ValidationReport.Text(result)
+                );
+                return result.IsValid ? 0 : 1;
+            }
+        );
         return command;
     }
 
-    private static ValidationResult Run(string path, string dir, TextReader input)
+    private static async Task<ValidationResult> RunAsync(
+        string path,
+        string dir,
+        string? endpoint,
+        bool offline,
+        TextReader input,
+        HttpClient? http,
+        CancellationToken cancellationToken
+    )
     {
-        if (path == "-")
+        string agentFile;
+        string? agentText;
+        IReadOnlyList<SourceText> scenarios;
+        if (path == "-" || File.Exists(path))
         {
-            return Validator.Validate(AgentFile(dir), ReadIfExists(AgentFile(dir)), [new SourceText(StdinName, input.ReadToEnd())]);
+            agentFile = AgentFile(dir);
+            agentText = ReadIfExists(agentFile);
+            scenarios =
+            [
+                path == "-"
+                    ? new SourceText(StdinName, await input.ReadToEndAsync(cancellationToken))
+                    : new SourceText(path, await File.ReadAllTextAsync(path, cancellationToken)),
+            ];
         }
-        if (File.Exists(path))
+        else if (Directory.Exists(path))
         {
-            return Validator.Validate(AgentFile(dir), ReadIfExists(AgentFile(dir)), [new SourceText(path, File.ReadAllText(path))]);
+            var folder = AgentFolder.Read(path);
+            (agentFile, agentText, scenarios) = (folder.AgentFile, folder.AgentText, folder.Scenarios);
         }
-        if (Directory.Exists(path))
+        else
         {
-            return Validator.Validate(AgentFolder.Read(path));
+            return new ValidationResult([new Problem(path, "", "No such file or folder.", null, null)], 0, 0);
         }
-        return new ValidationResult([new Problem(path, "", "No such file or folder.", null, null)], 0, 0);
+
+        var structure = Validator.Validate(agentFile, agentText, scenarios);
+        if (!structure.IsValid)
+        {
+            return structure;
+        }
+        if (offline || http is null)
+        {
+            return structure with { Notice = "names not checked: --offline" };
+        }
+
+        var source = new List<Problem>();
+        var url = endpoint ?? AgentFileReader.Read(agentFile, agentText!, source)?.Definition.EndpointUrl;
+        if (url is null || !Uri.TryCreate(url, UriKind.Absolute, out var address) || address.Scheme is not ("http" or "https"))
+        {
+            return structure with { Notice = $"names not checked: '{url}' is not an http or https address for the agent" };
+        }
+        var (contract, failure) = await ContractFetcher.FetchAsync(http, address, cancellationToken);
+        if (contract is null)
+        {
+            return structure with { Notice = $"names not checked: {failure}" };
+        }
+        return Validator.Validate(agentFile, agentText, scenarios, contract) with { NamesChecked = true };
     }
 
     private static string AgentFile(string dir) => Path.Combine(dir, "agent.yaml");

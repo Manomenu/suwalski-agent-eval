@@ -66,10 +66,11 @@ public sealed class PushCommandEndToEndTests(TestDatabase database) : IAsyncDisp
 
         Assert.Equal(0, firstExit);
         Assert.Empty(firstError);
-        // The agent, the version, three scenarios, five checks.
-        Assert.Equal(10, Count(firstOut, ": created"));
+        // The agent, three scenarios, five checks; no version: that comes from the running agent when a run starts.
+        Assert.Equal(9, Count(firstOut, ": created"));
+        Assert.DoesNotContain("version", firstOut, StringComparison.Ordinal);
         Assert.Equal(0, secondExit);
-        Assert.Equal(2, Count(secondOut, ": existing"));
+        Assert.Equal(1, Count(secondOut, ": existing"));
         Assert.Equal(8, Count(secondOut, ": unchanged"));
     }
 
@@ -100,7 +101,7 @@ public sealed class PushCommandEndToEndTests(TestDatabase database) : IAsyncDisp
         Assert.Equal(0, exit);
         var result = JsonDocument.Parse(output).RootElement;
         Assert.True(result.GetProperty("agentCreated").GetBoolean());
-        Assert.True(result.GetProperty("versionCreated").GetBoolean());
+        Assert.False(result.TryGetProperty("versionCreated", out _));
         Assert.Equal(3, result.GetProperty("scenarios").GetArrayLength());
         Assert.Equal(5, result.GetProperty("checks").GetArrayLength());
         Assert.All(

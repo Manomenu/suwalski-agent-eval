@@ -155,6 +155,73 @@ public sealed class AgentClientTests
         Assert.Contains("did not answer within", result.Error, StringComparison.Ordinal);
     }
 
+    private const string ContractBody = /*lang=json,strict*/
+        """
+        {"label":"abc1234","systemPrompt":"Be helpful.","model":{"name":"m","parameters":{"temperature":0}},
+         "tools":[{"name":"get_order","description":"d","parameters":{"type":"object"}}],
+         "context":{"usesRetrieval":false,"events":[{"type":"state.changed","dataSchema":{"type":"object"}}]}}
+        """;
+
+    private static async Task<(ContractResult Result, Stub Stub)> ContractAsync(Func<HttpRequestMessage, Task<HttpResponseMessage>> answer)
+    {
+        using var stub = new Stub(answer);
+        using var http = new HttpClient(stub, disposeHandler: false) { Timeout = TimeSpan.FromSeconds(30) };
+        return (await new AgentClient(http).GetContractAsync(Agent, Cancellation), stub);
+    }
+
+    [Fact]
+    public async Task Gets_the_contract_from_the_contract_route_and_reads_it()
+    {
+        var (result, stub) = await ContractAsync(_ => Task.FromResult(Ok(ContractBody)));
+
+        Assert.Equal(new Uri("http://agent.test/base/suwageval/contract"), stub.RequestUri);
+        Assert.Null(result.Error);
+        var contract = result.Contract ?? throw new InvalidOperationException("no contract");
+        Assert.Equal(("abc1234", "Be helpful.", "m"), (contract.Label, contract.SystemPrompt, contract.Model.Name));
+        Assert.Equal("get_order", Assert.Single(contract.Tools).Name);
+        Assert.Equal("state.changed", Assert.Single(contract.Context.Events).Type);
+    }
+
+    [Theory]
+    [InlineData("not json")]
+    [InlineData("null")]
+    [InlineData( /*lang=json,strict*/
+        """{"systemPrompt":"p"}"""
+    )]
+    [InlineData( /*lang=json,strict*/
+        """{"systemPrompt":"p","model":{"name":"m"},"colour":"red"}"""
+    )]
+    public async Task An_unreadable_contract_is_a_failed_result_naming_the_url(string body)
+    {
+        var (result, _) = await ContractAsync(_ => Task.FromResult(Ok(body)));
+
+        Assert.Null(result.Contract);
+        Assert.Contains("http://agent.test/base/suwageval/contract", result.Error, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_contract_route_answering_an_error_or_down_is_a_failed_result()
+    {
+        var (notFound, _) = await ContractAsync(_ => Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound)));
+        var (down, _) = await ContractAsync(_ => throw new HttpRequestException("connection refused"));
+
+        Assert.Contains("404", notFound.Error, StringComparison.Ordinal);
+        Assert.Contains("connection refused", down.Error, StringComparison.Ordinal);
+        Assert.Contains("http://agent.test/base/suwageval/contract", down.Error, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_contract_that_takes_too_long_is_a_failed_result()
+    {
+        using var hanging = new Hanging();
+        using var http = new HttpClient(hanging, disposeHandler: false) { Timeout = TimeSpan.FromMilliseconds(200) };
+
+        var result = await new AgentClient(http).GetContractAsync(Agent, Cancellation);
+
+        Assert.Null(result.Contract);
+        Assert.Contains("no answer within", result.Error, StringComparison.Ordinal);
+    }
+
     [Fact]
     public async Task A_cancelled_call_stays_cancelled()
     {

@@ -27,6 +27,7 @@ internal static class RunReport
             SamplesDone = run.SamplesDone,
             ChecksPassed = run.ChecksPassed,
             ChecksFailed = run.ChecksFailed,
+            ContractChangedDuringRun = run.ContractChangedDuringRun,
             CreatedAt = run.CreatedAt,
             StartedAt = run.StartedAt,
             FinishedAt = run.FinishedAt,
@@ -94,6 +95,7 @@ internal static class RunReport
             Status = Enum.Parse<SampleStatus>(row.Status),
             Output = row.Output is null ? null : Items(row.Output),
             Error = row.Error,
+            Undeclared = JsonSerializer.Deserialize<IReadOnlyList<string>>(row.Undeclared, ContractJson.Options) ?? [],
         };
 
     private static IReadOnlyList<ConversationItem>? Items(string json) =>
