@@ -24,7 +24,16 @@ const call: ConversationItem = { kind: "ToolCall", id: "1", name: "search", argu
 const reply: ConversationItem = { kind: "AssistantMessage", text: "hi" };
 
 function check(samples: CheckRunResult["samples"]): CheckRunResult {
-    return { key: "c", revision: 1, passed: false, passRate: 0.5, passThreshold: 1, samples };
+    return {
+        key: "c",
+        revision: 1,
+        latestRevision: 1,
+        definition: { type: "text", key: "c", scenarioKey: "s", contains: "x" },
+        passed: false,
+        passRate: 0.5,
+        passThreshold: 1,
+        samples,
+    };
 }
 
 describe("results", () => {

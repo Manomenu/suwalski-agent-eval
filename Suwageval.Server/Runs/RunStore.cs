@@ -260,6 +260,8 @@ internal sealed class RunStore(Pool pool)
             new CommandDefinition(
                 """
                 SELECT cr.scenario_result_id AS ScenarioResultId, c.key AS CheckKey, cr.check_revision AS CheckRevision,
+                       (SELECT MAX(latest.revision) FROM check_revisions latest WHERE latest.check_id = cr.check_id) AS LatestRevision,
+                       rev.content::text AS Definition,
                        COALESCE((rev.content->>'passThreshold')::float8, 1.0) AS PassThreshold,
                        cr.passed, cr.not_judged AS NotJudged, cr.evidence::text AS Evidence, cr.message
                 FROM check_results cr

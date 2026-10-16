@@ -1,3 +1,5 @@
+using System.Text.Json;
+using Suwageval.Contracts;
 using Suwageval.Contracts.Runs;
 using Suwageval.Server.Checks;
 using Suwageval.Server.Runs;
@@ -131,6 +133,19 @@ public sealed class RunStoreTests(TestDatabase database)
             (verdict.CheckKey, verdict.PassThreshold, verdict.Passed, verdict.Message)
         );
         Assert.Equal(sample.Id, verdict.ScenarioResultId);
+        Assert.Equal(1, verdict.LatestRevision);
+        Assert.Contains("\"tool\": \"refund_order\"", verdict.Definition, StringComparison.Ordinal);
+
+        // The check changes after the run: the run keeps the revision it used and its definition, the latest moves on.
+        var changed = SeededAgent.RefundAfterLookup("refund-called", "refund", 0.5);
+        await new CheckStore(database.Pool).UpsertAsync(
+            agent.Id,
+            [new CheckItem(changed.Key, changed.ScenarioKey, JsonSerializer.Serialize(changed, ContractJson.Options))],
+            Cancellation
+        );
+        var later = Assert.Single(await store.ListCheckResultsAsync(id, Cancellation));
+        Assert.Equal((1, 2, 0.8), (later.CheckRevision, later.LatestRevision, later.PassThreshold));
+        Assert.Equal(verdict.Definition, later.Definition);
     }
 
     [Fact]

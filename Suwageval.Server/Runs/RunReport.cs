@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Suwageval.Contracts;
+using Suwageval.Contracts.Checks;
 using Suwageval.Contracts.Conversations;
 using Suwageval.Contracts.Runs;
 
@@ -72,6 +73,8 @@ internal static class RunReport
         {
             Key = key,
             Revision = rows.Max(row => row.CheckRevision),
+            LatestRevision = rows[0].LatestRevision,
+            Definition = JsonSerializer.Deserialize<CheckInput>(rows.MaxBy(row => row.CheckRevision)!.Definition, ContractJson.Options)!,
             Passed = passRate + Epsilon >= threshold,
             PassRate = passRate,
             PassThreshold = threshold,

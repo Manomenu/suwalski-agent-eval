@@ -18,7 +18,9 @@
         "@mantine/core": "^9.6.3",
         "@mantine/hooks": "^9.6.3",
         "react": "^19.3.0",
-        "react-dom": "^19.3.0"
+        "react-dom": "^19.3.0",
+        "shiki": "^4.5.0",
+        "yaml": "^2.9.1"
     },
     "devDependencies": {
         "@eslint/js": "^10.0.1",

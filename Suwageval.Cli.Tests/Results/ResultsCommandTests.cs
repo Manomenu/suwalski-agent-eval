@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using Suwageval.Contracts;
+using Suwageval.Contracts.Checks;
 using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Cli.Tests.Results;
@@ -60,6 +61,13 @@ public sealed class ResultsCommandTests
                         {
                             Key = "refund-called",
                             Revision = 1,
+                            LatestRevision = 1,
+                            Definition = new TextCheck
+                            {
+                                Key = "refund-called",
+                                ScenarioKey = "refund",
+                                Contains = "x",
+                            },
                             Passed = false,
                             PassRate = 0,
                             PassThreshold = 1,

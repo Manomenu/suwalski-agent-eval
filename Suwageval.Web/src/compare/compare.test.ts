@@ -4,6 +4,7 @@ import type { CheckRunResult, ScenarioRunResult } from "../runs/api";
 import {
     alignRows,
     cellOf,
+    checkOfRow,
     cellText,
     cellTone,
     checksPassedText,
@@ -30,6 +31,8 @@ function check(key: string, passes: number, samples: number, threshold = 1): Che
     return {
         key,
         revision: 1,
+        latestRevision: 1,
+        definition: { type: "text", key, scenarioKey: "s", contains: "x" },
         passed: passes / samples >= threshold,
         passRate: passes / samples,
         passThreshold: threshold,
@@ -46,6 +49,18 @@ function check(key: string, passes: number, samples: number, threshold = 1): Che
 function scenario(key: string, ...checks: CheckRunResult[]): ScenarioRunResult {
     return { key, revision: 1, samples: [], checks };
 }
+
+describe("checkOfRow", () => {
+    const row = { scenarioKey: "s", checkKey: "c", cells: [] };
+    const run = (...checks: CheckRunResult[]) => ({ scenarios: [scenario("s", ...checks)] });
+
+    it("takes the baseline's check, else the first run that has it", () => {
+        const runs = [run(check("c", 1, 1)), run({ ...check("c", 1, 1), revision: 2 })];
+        expect(checkOfRow(runs, row, 1)?.revision).toBe(2);
+        expect(checkOfRow([run(), run({ ...check("c", 1, 1), revision: 2 })], row, 0)?.revision).toBe(2);
+        expect(checkOfRow([run(), run()], row, 0)).toBeNull();
+    });
+});
 
 describe("parseRunIds", () => {
     it("reads two to five ids in the order given, each once", () => {

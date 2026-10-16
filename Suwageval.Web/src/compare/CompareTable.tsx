@@ -2,12 +2,14 @@ import { Anchor, Badge, Button, Group, Paper, Stack, Switch, Table, Text } from 
 import { useState } from "react";
 
 import { shortId, versionLabel } from "../agents/view";
-import { formatTime, percent } from "../runs/results";
+import { CheckDefinitionButton } from "../checks/CheckDefinitionButton";
+import { formatTime, num, percent } from "../runs/results";
 import type { Comparison } from "./api";
 import {
     alignRows,
     cellText,
     cellTone,
+    checkOfRow,
     checksPassedText,
     delta,
     deltaText,
@@ -139,19 +141,31 @@ export function CompareTable({ comparison, firstBaseline }: { comparison: Compar
                                     </Group>
                                 </Table.Th>
                             </Table.Tr>
-                            {rows.map((row) => (
-                                <Table.Tr key={JSON.stringify([row.scenarioKey, row.checkKey])}>
-                                    <Table.Td>
-                                        <Text size="xs" c="dimmed">
-                                            {row.scenarioKey}
-                                        </Text>
-                                        <Text>{row.checkKey}</Text>
-                                    </Table.Td>
-                                    {row.cells.map((cell, column) => (
-                                        <CheckCellView key={runs[column]?.run.id} cell={cell} baseline={row.cells[baseline] ?? null} />
-                                    ))}
-                                </Table.Tr>
-                            ))}
+                            {rows.map((row) => {
+                                const check = checkOfRow(runs, row, baseline);
+                                return (
+                                    <Table.Tr key={JSON.stringify([row.scenarioKey, row.checkKey])}>
+                                        <Table.Td>
+                                            <Text size="xs" c="dimmed">
+                                                {row.scenarioKey}
+                                            </Text>
+                                            <Group gap={4} wrap="nowrap">
+                                                <Text>{row.checkKey}</Text>
+                                                {check !== null && (
+                                                    <CheckDefinitionButton
+                                                        definition={check.definition}
+                                                        revision={num(check.revision)}
+                                                        latestRevision={num(check.latestRevision)}
+                                                    />
+                                                )}
+                                            </Group>
+                                        </Table.Td>
+                                        {row.cells.map((cell, column) => (
+                                            <CheckCellView key={runs[column]?.run.id} cell={cell} baseline={row.cells[baseline] ?? null} />
+                                        ))}
+                                    </Table.Tr>
+                                );
+                            })}
                         </Table.Tbody>
                     </Table>
                 </Table.ScrollContainer>

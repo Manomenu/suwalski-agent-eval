@@ -447,6 +447,11 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         Assert.Equal(6, scenario.Samples[0].Output?.Count);
         Assert.Empty(scenario.Samples[0].Undeclared);
         Assert.All(scenario.Checks, check => Assert.True(check.Passed && check.PassRate == 1.0 && check.PassThreshold == 1.0));
+        Assert.All(scenario.Checks, check => Assert.Equal((check.Revision, check.Key), (check.LatestRevision, check.Definition.Key)));
+        Assert.Equal(
+            "refund_order",
+            Assert.IsType<ToolCalledCheck>(scenario.Checks.Single(check => check.Key == "refund-called").Definition).Tool
+        );
         Assert.IsType<Event>(Assert.Single(scenario.Checks.Single(check => check.Key == "refund-event").Samples[0].Evidence));
     }
 
