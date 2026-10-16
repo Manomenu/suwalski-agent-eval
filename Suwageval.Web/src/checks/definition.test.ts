@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { CheckDefinition } from "./api";
-import { definitionSummary, definitionYaml, revisionNote } from "./definition";
+import { definitionSummary, definitionYaml, hangingIndent, revisionNote } from "./definition";
 
 // `where.turn` is typed `unknown` by the API schema; the JSON carries a number, "last" or "any".
 const toolCalled: CheckDefinition = {
@@ -15,6 +15,18 @@ const toolCalled: CheckDefinition = {
 };
 
 describe("definitionYaml", () => {
+    it("leaves out the scenario's key and what is unset, but keeps a null the check expects", () => {
+        const check: CheckDefinition = {
+            type: "tool-called",
+            key: "k",
+            scenarioKey: "s",
+            tool: "t",
+            args: { note: null },
+            where: { turn: null, after: null, before: null },
+        };
+        expect(definitionYaml(check)).toBe(["key: k", "type: tool-called", "tool: t", "args:", "  note: null", ""].join("\n"));
+    });
+
     it("puts key and type first, the rest as stored, where and passThreshold last", () => {
         expect(definitionYaml(toolCalled)).toBe(
             [
@@ -23,7 +35,6 @@ describe("definitionYaml", () => {
                 "args:",
                 "  order_id: A-17",
                 "tool: refund_order",
-                "scenarioKey: refund",
                 "where:",
                 "  turn: 1",
                 "  after: get_order",
@@ -32,6 +43,12 @@ describe("definitionYaml", () => {
             ].join("\n"),
         );
     });
+});
+
+it("keeps long text on one line, for the drawer to wrap", () => {
+    const criteria = "The answer tells the customer that the order has already been refunded and offers nothing else at all.";
+    const yaml = definitionYaml({ type: "judge", key: "j", scenarioKey: "s", criteria });
+    expect(yaml).toContain(`criteria: ${criteria}\n`);
 });
 
 describe("definitionSummary", () => {
@@ -87,5 +104,21 @@ describe("revisionNote", () => {
 
     it("says the check changed since the run", () => {
         expect(revisionNote(2, 3)).toBe("Changed since this run (rev 2 → 3)");
+    });
+});
+
+describe("hangingIndent", () => {
+    it("hangs under the value: indentation, list dashes and the key", () => {
+        expect(hangingIndent("criteria: The answer tells")).toBe("criteria: ".length);
+        expect(hangingIndent("    description: Says the item")).toBe("    description: ".length);
+        expect(hangingIndent("  - kettle arrived broken")).toBe("  - ".length);
+        expect(hangingIndent("- key: x")).toBe("- key: ".length);
+        expect(hangingIndent('  "a:b": value')).toBe('  "a:b": '.length);
+    });
+
+    it("hangs only by the indentation when the line has no key", () => {
+        expect(hangingIndent("  plain text: no, a key")).toBe("  plain text: ".length);
+        expect(hangingIndent("    just text")).toBe(4);
+        expect(hangingIndent("pattern: (?i)^a:b$")).toBe("pattern: ".length);
     });
 });
