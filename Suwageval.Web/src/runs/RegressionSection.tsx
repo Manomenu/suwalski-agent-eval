@@ -1,16 +1,8 @@
-import { Accordion, Anchor, Group, List, Paper, Stack, Text, Title } from "@mantine/core";
+import { Anchor, Collapse, Group, List, Paper, Stack, Text, Title } from "@mantine/core";
+import { useState } from "react";
 
 import type { RunResults } from "./api";
-import {
-    comparedWithHeading,
-    groupChecks,
-    historyText,
-    knownFailuresText,
-    compareLink,
-    stateLabel,
-    statedChecks,
-    type StatedCheck,
-} from "./regression";
+import { comparedWithHeading, groupChecks, historyText, compareLink, stateLabel, statedChecks, type StatedCheck } from "./regression";
 import { CheckHistory } from "./CheckHistory";
 import { runHref, shortId } from "./results";
 import { StateBadge } from "./StateBadge";
@@ -35,6 +27,33 @@ function CheckLine({ item, runId }: { item: StatedCheck; runId: string }) {
                 {compare !== null && <Anchor href={compare.href}>{compare.label}</Anchor>}
             </Group>
         </List.Item>
+    );
+}
+
+/** Known failures are not news: the same header as the other groups, the checks folded until asked for. */
+function KnownFailures({ known, runId }: { known: readonly StatedCheck[]; runId: string }) {
+    const [opened, setOpened] = useState(false);
+    return (
+        <Stack gap="xs">
+            <Group gap="xs">
+                <StateBadge state="KnownFailure" variant="light">
+                    {stateLabel("KnownFailure")}
+                </StateBadge>
+                <Text span c="dimmed">
+                    ({known.length})
+                </Text>
+                <Anchor component="button" type="button" size="sm" aria-expanded={opened} onClick={() => setOpened((open) => !open)}>
+                    {opened ? "hide" : "show"}
+                </Anchor>
+            </Group>
+            <Collapse expanded={opened}>
+                <List listStyleType="none" spacing="xs" ml="md">
+                    {known.map((item) => (
+                        <CheckLine key={`${item.scenarioKey}/${item.check.key}`} item={item} runId={runId} />
+                    ))}
+                </List>
+            </Collapse>
+        </Stack>
     );
 }
 
@@ -68,20 +87,7 @@ export function RegressionSection({ results }: { results: RunResults }) {
                         </List>
                     </Stack>
                 ))}
-                {groups.known.length > 0 && (
-                    <Accordion variant="contained">
-                        <Accordion.Item value="known">
-                            <Accordion.Control>{knownFailuresText(groups.known.length)}</Accordion.Control>
-                            <Accordion.Panel>
-                                <List listStyleType="none" size="sm">
-                                    {groups.known.map((item) => (
-                                        <CheckLine key={`${item.scenarioKey}/${item.check.key}`} item={item} runId={runId} />
-                                    ))}
-                                </List>
-                            </Accordion.Panel>
-                        </Accordion.Item>
-                    </Accordion>
-                )}
+                {groups.known.length > 0 && <KnownFailures known={groups.known} runId={runId} />}
             </Stack>
         </Paper>
     );

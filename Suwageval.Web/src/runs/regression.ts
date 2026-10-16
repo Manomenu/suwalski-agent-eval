@@ -180,8 +180,3 @@ export function groupChecks(checks: readonly StatedCheck[]): {
         known: checks.filter((c) => c.state === "KnownFailure"),
     };
 }
-
-/** "5 known failures" / "1 known failure". */
-export function knownFailuresText(count: number): string {
-    return `${count} known failure${count === 1 ? "" : "s"}`;
-}
