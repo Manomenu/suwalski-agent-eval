@@ -58,14 +58,18 @@ The server has one interface, its HTTP API. Three users reach it:
 | Who | Through | Does |
 | --- | --- | --- |
 | a person in the browser | the web app | browses agents, scenarios, runs, results, comparisons |
-| an agent's repository, by hand or in CI | the `suwageval` CLI (`Suwageval.Cli`) | `validate` the scenario files, `push` the agent, its scenarios and checks, `run --tag … --wait` with an exit code for CI |
+| an agent's repository, by hand or in CI | the `suwageval` CLI (`Suwageval.Cli`) | `validate` the scenario files, `push` the agent, its scenarios and checks, `run --tag … --wait` with an exit code for CI, `results <runId>` to open a run on the web |
 | Claude Code | a Claude Code plugin in this repo that drives the same CLI, like suwgit's | "build a scenario for this agent from this conversation", "run the regression tag on the new version", "why did scenario X fail" — writing the scenario as a file in the agent's repo, then `validate` and `push` |
 
 - **The scenario files live in the agent's repository**, in `suwageval/`: `agent.yaml` (the
   agent: `name` and `endpointUrl`, nothing else) and
   `scenarios/*.yaml` (a scenario with its checks inside; `user:` / `assistant:` shorthands for
-  the log). The server's address is not in them: `SUWAGEVAL_URL` (default
-  `http://localhost:6230`) or `--server`.
+  the log). Suwageval's address is not in them: `SUWAGEVAL_URL` (default
+  `http://localhost:3230`) or `--server` — the web app's address, the API is under its `/api`
+  (so on a laptop the CLI needs `just web` running too).
+- **The results are read on the web.** `suwageval run --wait` prints one line of totals and the
+  link to the run's page, with its exit code; `suwageval results <runId>` opens that page in
+  the browser. For machines, `--json` on either prints the results (and opens nothing).
 - **A version is never written in a file: the running agent serves it.** `GET
   {endpointUrl}/suwageval/contract` returns its system prompt, model, tools (with argument
   schemas) and events (with data schemas), and a label. `suwageval run` makes the server read it,

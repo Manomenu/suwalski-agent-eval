@@ -1,31 +1,21 @@
 using System.CommandLine;
-using System.Text.Json;
 using Suwageval.Cli.Files;
-using Suwageval.Contracts;
+using Suwageval.Cli.Server;
 using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Cli.Run;
 
 /// <summary>
 /// <c>suwageval run</c>: starts a run of the agent named in <c>suwageval/agent.yaml</c> on the server, which reads the
-/// agent's contract and runs against that version (the output says which, and whether it is new). Exit code with
-/// <c>--wait</c>: 0 when every check reached its threshold, 1 when one did not, 2 when the run could not be started,
-/// failed or was cancelled.
+/// agent's contract and runs against that version (the output says which, and whether it is new). With <c>--wait</c> it prints
+/// one line of totals and the link to the run's page (the results are read there, or with <c>--json</c>), and exits 0 when every
+/// check reached its threshold, 1 when one did not, 2 when the run could not be started, failed or was cancelled.
 /// </summary>
 internal static class RunCommand
 {
     private const string DefaultDir = "suwageval";
-    private const string DefaultServer = "http://localhost:6230";
-    private const string ServerVariable = "SUWAGEVAL_URL";
-    private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(1);
 
-    private static readonly JsonSerializerOptions Pretty = new(ContractJson.Options)
-    {
-        WriteIndented = true,
-        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-    };
-
-    /// <param name="http">The client to the server; none means one is made from <c>--server</c> or <c>SUWAGEVAL_URL</c> (the tests pass their own).</param>
+    /// <param name="http">The client to the API; none means one is made from <c>--server</c> or <c>SUWAGEVAL_URL</c> (the tests pass their own).</param>
     public static Command Create(HttpClient? http = null)
     {
         var tag = new Option<string?>("--tag") { Description = "Only the scenarios with this tag; default every scenario." };
@@ -33,12 +23,12 @@ internal static class RunCommand
         {
             Description = "Reach the agent here (its contract is read from here too) instead of at the endpointUrl it was registered with.",
         };
-        var wait = new Option<bool>("--wait") { Description = "Wait for the run to finish and print its results (see the exit codes)." };
-        var json = new Option<bool>("--json") { Description = "Print JSON: the results with --wait, otherwise { runId }." };
-        var server = new Option<string?>("--server")
+        var wait = new Option<bool>("--wait")
         {
-            Description = $"The server's address; default ${ServerVariable} or {DefaultServer}.",
+            Description = "Wait for the run to finish and print its totals and the link to its page (see the exit codes).",
         };
+        var json = new Option<bool>("--json") { Description = "Print JSON: the results with --wait, otherwise { runId }." };
+        var server = new Option<string?>("--server") { Description = ServerAddress.OptionDescription };
         var dir = new Option<string>("--dir") { Description = "The folder with agent.yaml.", DefaultValueFactory = _ => DefaultDir };
 
         var command = new Command(
@@ -63,7 +53,8 @@ internal static class RunCommand
                 {
                     return 2;
                 }
-                var transport = http ?? new HttpClient { BaseAddress = ServerAddress(parsed.GetValue(server)) };
+                var site = ServerAddress.Site(parsed.GetValue(server));
+                var transport = http ?? new HttpClient { BaseAddress = ServerAddress.Api(site) };
                 try
                 {
                     return await ExecuteAsync(
@@ -76,6 +67,7 @@ internal static class RunCommand
                         },
                         parsed.GetValue(wait),
                         parsed.GetValue(json),
+                        site,
                         output,
                         cancellationToken
                     );
@@ -102,6 +94,7 @@ internal static class RunCommand
         RunRequest request,
         bool wait,
         bool json,
+        Uri site,
         TextWriter output,
         CancellationToken cancellationToken
     )
@@ -114,31 +107,22 @@ internal static class RunCommand
         }
         if (!wait)
         {
-            await output.WriteLineAsync(json ? JsonSerializer.Serialize(created, Pretty) : created.RunId.ToString());
+            await output.WriteLineAsync(json ? OutputJson.Of(created) : created.RunId.ToString());
             return 0;
         }
 
-        RunSummary run;
-        while (true)
-        {
-            run = await client.GetAsync(created.RunId, cancellationToken);
-            if (run.Status is RunStatus.Done or RunStatus.Failed or RunStatus.Cancelled)
-            {
-                break;
-            }
-            await Task.Delay(PollInterval, cancellationToken);
-        }
-
+        await client.WaitForEndAsync(created.RunId, cancellationToken);
         var results = await client.ResultsAsync(created.RunId, cancellationToken);
-        await output.WriteAsync(json ? JsonSerializer.Serialize(results, Pretty) + Environment.NewLine : RunReportText.Format(results));
-        if (run.Status != RunStatus.Done)
+        if (json)
         {
-            await output.WriteLineAsync(
-                json ? "" : $"The run {run.Status.ToString().ToLowerInvariant()}{(run.Error is null ? "." : $": {run.Error}")}"
-            );
-            return 2;
+            await output.WriteLineAsync(OutputJson.Of(results));
         }
-        return RunReportText.AllPassed(results) ? 0 : 1;
+        else
+        {
+            await output.WriteLineAsync(RunVerdict.Line(results));
+            await output.WriteLineAsync(ServerAddress.RunPage(site, created.RunId).ToString());
+        }
+        return RunVerdict.ExitCode(results);
     }
 
     private static string? ReadAgentName(string dir, TextWriter error)
@@ -156,12 +140,5 @@ internal static class RunCommand
             error.WriteLine($"{problem.File}: {problem.Message}");
         }
         return agent?.Definition.Name;
-    }
-
-    private static Uri ServerAddress(string? option)
-    {
-        var address = option ?? Environment.GetEnvironmentVariable(ServerVariable) ?? DefaultServer;
-        // A base address needs its trailing slash, or the last path segment is replaced by a relative request.
-        return new Uri(address.TrimEnd('/') + "/");
     }
 }

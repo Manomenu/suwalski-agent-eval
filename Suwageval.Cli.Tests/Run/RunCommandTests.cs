@@ -180,29 +180,6 @@ public sealed class RunCommandTests
         );
 
         Assert.StartsWith($"version {VersionId}: existing{Environment.NewLine}", output, StringComparison.Ordinal);
-        Assert.Contains($"version {VersionId}, tag regression", output, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void A_contract_that_changed_during_the_run_and_undeclared_output_are_shown()
-    {
-        var changed = Results(RunStatus.Done, Check("c", true, "ok"));
-        changed = changed with
-        {
-            Run = changed.Run with { ContractChangedDuringRun = true },
-            Scenarios =
-            [
-                changed.Scenarios[0] with
-                {
-                    Samples = [changed.Scenarios[0].Samples[0] with { Undeclared = ["tool 'cancel_order'"] }],
-                },
-            ],
-        };
-
-        var (_, output, _, _) = Run((request, _) => Server(request, Summary(RunStatus.Done), changed), "--wait");
-
-        Assert.Contains("the agent's contract changed while the run was going", output, StringComparison.Ordinal);
-        Assert.Contains("sample 1 produced what its version does not declare: tool 'cancel_order'", output, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -228,21 +205,22 @@ public sealed class RunCommandTests
     }
 
     [Fact]
-    public void Every_check_passing_exits_0_and_prints_each_with_its_pass_rate()
+    public void Every_check_passing_exits_0_and_prints_the_totals_and_the_runs_page()
     {
         var results = Results(RunStatus.Done, Check("refund-called", true, "refund_order was called after get_order."));
 
         var (exit, output, _, server) = Run((request, _) => Server(request, Summary(RunStatus.Done), results), "--wait");
 
         Assert.Equal(0, exit);
-        Assert.Contains("refund-happy-path", output, StringComparison.Ordinal);
-        Assert.Contains("✓ refund-called  100% (1/1 samples, needs 100%)", output, StringComparison.Ordinal);
-        Assert.Contains("1 of 1 checks passed.", output, StringComparison.Ordinal);
+        Assert.Equal(
+            $"version {VersionId}: new{Environment.NewLine}1 of 1 checks passed.{Environment.NewLine}http://localhost:3230/runs/{RunId}{Environment.NewLine}",
+            output
+        );
         Assert.Contains(("GET", $"/runs/{RunId}/results", null), server.Requests);
     }
 
     [Fact]
-    public void A_failing_check_exits_1_and_prints_its_message()
+    public void A_failing_check_exits_1_and_counts_it()
     {
         var results = Results(
             RunStatus.Done,
@@ -253,9 +231,7 @@ public sealed class RunCommandTests
         var (exit, output, _, _) = Run((request, _) => Server(request, Summary(RunStatus.Done), results), "--wait");
 
         Assert.Equal(1, exit);
-        Assert.Contains("✗ refunded-event  0%", output, StringComparison.Ordinal);
-        Assert.Contains("Event state.changed was not emitted.", output, StringComparison.Ordinal);
-        Assert.Contains("1 of 2 checks passed.", output, StringComparison.Ordinal);
+        Assert.Contains("1 of 2 checks failed.", output, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -266,7 +242,7 @@ public sealed class RunCommandTests
         var (exit, output, _, _) = Run((request, _) => Server(request, Summary(RunStatus.Done), results), "--wait");
 
         Assert.Equal(0, exit);
-        Assert.Contains("80% (1/1 samples, needs 80%)", output, StringComparison.Ordinal);
+        Assert.Contains("1 of 1 checks passed.", output, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -274,7 +250,7 @@ public sealed class RunCommandTests
     {
         var state = Summary(RunStatus.Failed, "the database went away");
 
-        var (exit, output, _, _) = Run((request, _) => Server(request, state, Results(RunStatus.Failed)), "--wait");
+        var (exit, output, _, _) = Run((request, _) => Server(request, state, Results(RunStatus.Failed) with { Run = state }), "--wait");
 
         Assert.Equal(2, exit);
         Assert.Contains("the database went away", output, StringComparison.Ordinal);

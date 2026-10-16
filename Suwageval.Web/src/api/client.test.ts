@@ -6,7 +6,10 @@ describe("toError", () => {
     it("carries the server's detail", async () => {
         const response = new Response(JSON.stringify({ detail: "not found" }), { status: 404 });
 
-        expect((await toError(response)).message).toBe("not found");
+        const error = await toError(response);
+
+        expect(error.message).toBe("not found");
+        expect(error.status).toBe(404);
     });
 
     it("falls back to the status when the body says nothing", async () => {

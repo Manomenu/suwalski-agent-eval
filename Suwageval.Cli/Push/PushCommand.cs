@@ -2,6 +2,7 @@ using System.CommandLine;
 using System.Globalization;
 using System.Text.Json;
 using Suwageval.Cli.Files;
+using Suwageval.Cli.Server;
 using Suwageval.Cli.Validation;
 
 namespace Suwageval.Cli.Push;
@@ -10,8 +11,6 @@ namespace Suwageval.Cli.Push;
 internal static class PushCommand
 {
     private const string DefaultDir = "suwageval";
-    private const string DefaultServer = "http://localhost:6230";
-    private const string ServerVariable = "SUWAGEVAL_URL";
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
@@ -27,10 +26,7 @@ internal static class PushCommand
             Description = "The suwageval folder with agent.yaml and scenarios/.",
             DefaultValueFactory = _ => DefaultDir,
         };
-        var server = new Option<string?>("--server")
-        {
-            Description = $"The server's address. Default: ${ServerVariable}, else {DefaultServer}.",
-        };
+        var server = new Option<string?>("--server") { Description = ServerAddress.OptionDescription };
         var json = new Option<bool>("--json") { Description = "Print one JSON object with the result instead of text." };
 
         var command = new Command(
@@ -93,7 +89,7 @@ internal static class PushCommand
             return 1;
         }
 
-        using var created = http is null ? new HttpClient { BaseAddress = ServerAddress(server) } : null;
+        using var created = http is null ? new HttpClient { BaseAddress = ServerAddress.Api(ServerAddress.Site(server)) } : null;
         var client = new SuwagevalClient(http ?? created!);
         try
         {
@@ -113,13 +109,6 @@ internal static class PushCommand
             await console.Error.WriteLineAsync(error.Message);
             return 1;
         }
-    }
-
-    private static Uri ServerAddress(string? server)
-    {
-        var address = server ?? Environment.GetEnvironmentVariable(ServerVariable);
-        // A trailing slash keeps the relative routes under the address's own path.
-        return new Uri((string.IsNullOrWhiteSpace(address) ? DefaultServer : address).TrimEnd('/') + "/");
     }
 
     private static string Text(PushResult result)

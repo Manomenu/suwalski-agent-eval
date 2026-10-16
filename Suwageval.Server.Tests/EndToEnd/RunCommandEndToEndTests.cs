@@ -1,8 +1,11 @@
 extern alias Cli;
 
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
+using Suwageval.Contracts;
 using Suwageval.Contracts.Agents;
+using Suwageval.Contracts.Runs;
 using Suwageval.Server.Runs;
 using Suwageval.Server.Tests.Runs;
 using CliApp = Cli::Suwageval.Cli.CliApp;
@@ -76,7 +79,7 @@ public sealed class RunCommandEndToEndTests(TestDatabase database) : IAsyncDispo
         );
 
     [Fact]
-    public async Task All_checks_passing_exits_0_and_prints_them()
+    public async Task All_checks_passing_exits_0_and_prints_the_totals_and_the_runs_page()
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
         var agent = await SeedAsync(fake.Url.AbsoluteUri);
@@ -84,24 +87,24 @@ public sealed class RunCommandEndToEndTests(TestDatabase database) : IAsyncDispo
         var (exit, output, error) = await RunCliAsync(agent, "--tag", "regression", "--wait");
 
         Assert.Equal(0, exit);
-        Assert.Contains("✓ refund-called  100%", output, StringComparison.Ordinal);
-        Assert.Contains("✓ refund-event", output, StringComparison.Ordinal);
         Assert.Contains("2 of 2 checks passed.", output, StringComparison.Ordinal);
+        Assert.Contains("/runs/", output, StringComparison.Ordinal);
         Assert.Empty(error);
     }
 
     [Fact]
-    public async Task A_failing_check_exits_1_and_says_why()
+    public async Task A_failing_check_exits_1_and_its_json_says_why()
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.PlainTurn);
         var agent = await SeedAsync(fake.Url.AbsoluteUri);
 
-        var (exit, output, _) = await RunCliAsync(agent, "--tag", "regression", "--wait");
+        var (exit, output, _) = await RunCliAsync(agent, "--tag", "regression", "--wait", "--json");
 
         Assert.Equal(1, exit);
-        Assert.Contains("✗ refund-called  0%", output, StringComparison.Ordinal);
-        Assert.Contains("refund_order was not called", output, StringComparison.Ordinal);
-        Assert.Contains("0 of 2 checks passed.", output, StringComparison.Ordinal);
+        var results = JsonSerializer.Deserialize<RunResults>(output, ContractJson.Options);
+        var check = Assert.Single(results?.Scenarios.Single().Checks ?? [], check => check.Key == "refund-called");
+        Assert.False(check.Passed);
+        Assert.Contains("refund_order was not called", check.Samples.Single().Message, StringComparison.Ordinal);
     }
 
     [Fact]
