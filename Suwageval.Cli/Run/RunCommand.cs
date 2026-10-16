@@ -9,14 +9,16 @@ namespace Suwageval.Cli.Run;
 /// <c>suwageval run</c>: starts a run of the agent named in <c>suwageval/agent.yaml</c> on the server, which reads the
 /// agent's contract and runs against that version (the output says which, and whether it is new). With <c>--wait</c> it prints
 /// one line of totals and the link to the run's page (the results are read there, or with <c>--json</c>), and exits 0 when every
-/// check reached its threshold, 1 when one did not, 2 when the run could not be started, failed or was cancelled.
+/// check reached its threshold, 1 when one did not, 2 when the run could not be started, failed or was cancelled. Ctrl+C while
+/// waiting asks whether to cancel the run on the server too (<see cref="RunOutput"/>); left running, the exit code is 130.
 /// </summary>
 internal static class RunCommand
 {
     private const string DefaultDir = "suwageval";
 
+    /// <param name="terminal">Where Ctrl+C during <c>--wait</c> asks whether to cancel the run too.</param>
     /// <param name="http">The client to the API; none means one is made from <c>--server</c> or <c>SUWAGEVAL_URL</c> (the tests pass their own).</param>
-    public static Command Create(HttpClient? http = null)
+    public static Command Create(Terminal terminal, HttpClient? http = null)
     {
         var tag = new Option<string?>("--tag") { Description = "Only the scenarios with this tag; default every scenario." };
         var endpoint = new Option<string?>("--endpoint")
@@ -25,7 +27,8 @@ internal static class RunCommand
         };
         var wait = new Option<bool>("--wait")
         {
-            Description = "Wait for the run to finish and print its totals and the link to its page (see the exit codes).",
+            Description =
+                "Wait for the run to finish and print its totals and the link to its page (see the exit codes). Ctrl+C asks whether to cancel the run too.",
         };
         var json = new Option<bool>("--json") { Description = "Print JSON: the results with --wait, otherwise { runId }." };
         var server = new Option<string?>("--server") { Description = ServerAddress.OptionDescription };
@@ -74,6 +77,8 @@ internal static class RunCommand
                         parsed.GetValue(json),
                         site,
                         output,
+                        error,
+                        terminal,
                         cancellationToken
                     );
                 }
@@ -81,6 +86,14 @@ internal static class RunCommand
                 {
                     await error.WriteLineAsync(failure.Message);
                     return 2;
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    // Ctrl+C before the server answered: the run may exist already, and is then left as it is.
+                    await parsed.InvocationConfiguration.Error.WriteLineAsync(
+                        "Interrupted; if the run was started, `suwageval runs` lists it."
+                    );
+                    return RunOutput.Interrupted;
                 }
                 finally
                 {

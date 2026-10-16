@@ -9,8 +9,9 @@ namespace Suwageval.Cli.Rerun;
 /// </summary>
 internal static class RerunCommand
 {
+    /// <param name="terminal">Where Ctrl+C during <c>--wait</c> asks whether to cancel the run too.</param>
     /// <param name="http">The client to the API; none means one is made from <c>--server</c> or <c>SUWAGEVAL_URL</c> (the tests pass their own).</param>
-    public static Command Create(HttpClient? http = null)
+    public static Command Create(Terminal terminal, HttpClient? http = null)
     {
         var runId = new Argument<Guid>("runId") { Description = "The run to repeat." };
         var endpoint = new Option<string?>("--endpoint")
@@ -19,7 +20,8 @@ internal static class RerunCommand
         };
         var wait = new Option<bool>("--wait")
         {
-            Description = "Wait for the run to finish and print its totals and the link to its page (see the exit codes).",
+            Description =
+                "Wait for the run to finish and print its totals and the link to its page (see the exit codes). Ctrl+C asks whether to cancel the run too.",
         };
         var json = new Option<bool>("--json") { Description = "Print JSON: the results with --wait, otherwise { runId }." };
         var server = new Option<string?>("--server") { Description = ServerAddress.OptionDescription };
@@ -51,6 +53,8 @@ internal static class RerunCommand
                         parsed.GetValue(json),
                         site,
                         parsed.InvocationConfiguration.Output,
+                        parsed.InvocationConfiguration.Error,
+                        terminal,
                         cancellationToken
                     );
                 }
@@ -58,6 +62,14 @@ internal static class RerunCommand
                 {
                     await parsed.InvocationConfiguration.Error.WriteLineAsync(failure.Message);
                     return 2;
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    // Ctrl+C before the server answered: the run may exist already, and is then left as it is.
+                    await parsed.InvocationConfiguration.Error.WriteLineAsync(
+                        "Interrupted; if the run was started, `suwageval runs` lists it."
+                    );
+                    return RunOutput.Interrupted;
                 }
                 finally
                 {

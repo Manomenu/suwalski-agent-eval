@@ -353,11 +353,112 @@ public sealed class RunCommandTests
             new StringReader(""),
             output,
             error,
-            http
+            http,
+            interrupt: TestContext.Current.CancellationToken
         );
 
         Assert.Equal(2, exit);
         Assert.Contains("agent.yaml", error.ToString(), StringComparison.Ordinal);
         Assert.Empty(server.Requests);
+    }
+
+    /// <summary>
+    /// <c>run --wait</c> where Ctrl+C is pressed while the run is still going: the stand-in server cancels the interrupt the first
+    /// time it is asked for the run's state, and answers that it is running; <paramref name="typed"/> is what the person answers.
+    /// </summary>
+    private static (int Exit, string Output, string Error, FakeServer Server) Interrupted(
+        string typed,
+        bool interactive,
+        params string[] args
+    )
+    {
+        using var interrupt = new CancellationTokenSource();
+        var server = new FakeServer(
+            (request, _) =>
+            {
+                if (request.Method == HttpMethod.Get)
+                {
+                    interrupt.Cancel();
+                }
+                return request.RequestUri?.AbsolutePath == $"/runs/{RunId}/cancel"
+                    ? new HttpResponseMessage(HttpStatusCode.Accepted)
+                    : Server(request, Summary(RunStatus.Running), Results(RunStatus.Running));
+            }
+        );
+        using var http = new HttpClient(server, disposeHandler: false) { BaseAddress = new Uri("http://server.test/") };
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        var exit = CliApp.Run(
+            ["run", "--dir", Sample, "--wait", .. args],
+            new StringReader(typed),
+            output,
+            error,
+            http,
+            interactive: interactive,
+            interrupt: interrupt.Token
+        );
+        return (exit, output.ToString(), error.ToString(), server);
+    }
+
+    private static bool AskedToCancel(FakeServer server) =>
+        server.Requests.Any(request => request == ("POST", $"/runs/{RunId}/cancel", null));
+
+    [Fact]
+    public void Ctrl_c_while_waiting_cancels_the_run_when_the_person_says_yes()
+    {
+        var (exit, _, error, server) = Interrupted("y\n", interactive: true);
+
+        Assert.Equal(2, exit);
+        Assert.Contains($"Cancel run {RunId} on the server too? [y/N]", error, StringComparison.Ordinal);
+        Assert.Contains($"Cancelling run {RunId}.", error, StringComparison.Ordinal);
+        Assert.True(AskedToCancel(server));
+    }
+
+    [Theory]
+    [InlineData("n\n")]
+    [InlineData("\n")]
+    [InlineData("")]
+    public void Ctrl_c_while_waiting_leaves_the_run_going_unless_the_person_says_yes(string typed)
+    {
+        var (exit, _, error, server) = Interrupted(typed, interactive: true);
+
+        Assert.Equal(130, exit);
+        Assert.Contains($"suwageval cancel {RunId}", error, StringComparison.Ordinal);
+        Assert.False(AskedToCancel(server));
+    }
+
+    [Fact]
+    public void Ctrl_c_with_nobody_to_ask_cancels_the_run_without_asking()
+    {
+        var (exit, _, error, server) = Interrupted("", interactive: false);
+
+        Assert.Equal(2, exit);
+        Assert.DoesNotContain("[y/N]", error, StringComparison.Ordinal);
+        Assert.True(AskedToCancel(server));
+    }
+
+    [Fact]
+    public void With_json_the_question_goes_to_the_error_stream_and_nothing_to_the_output()
+    {
+        var (_, output, error, _) = Interrupted("y\n", interactive: true, "--json");
+
+        Assert.Empty(output);
+        Assert.Contains("[y/N]", error, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Ctrl_c_before_the_server_answered_says_the_run_may_exist()
+    {
+        using var server = new FakeServer((request, _) => Server(request, Summary(RunStatus.Running), Results(RunStatus.Running)));
+        using var http = new HttpClient(server, disposeHandler: false) { BaseAddress = new Uri("http://server.test/") };
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        using var interrupt = new CancellationTokenSource();
+        interrupt.Cancel();
+
+        var exit = CliApp.Run(["run", "--dir", Sample, "--wait"], new StringReader(""), output, error, http, interrupt: interrupt.Token);
+
+        Assert.Equal(130, exit);
+        Assert.Contains("suwageval runs", error.ToString(), StringComparison.Ordinal);
     }
 }
