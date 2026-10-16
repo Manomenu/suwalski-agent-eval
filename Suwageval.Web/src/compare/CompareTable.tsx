@@ -90,7 +90,7 @@ export function CompareTable({ comparison, firstBaseline }: { comparison: Compar
                         </Table.Thead>
                         <Table.Tbody>
                             <Table.Tr>
-                                <Table.Th colSpan={columns + 1} bg="var(--mantine-color-default-hover)">
+                                <Table.Th colSpan={columns + 1} bg="var(--mantine-color-default)">
                                     Pass rate per tag
                                 </Table.Th>
                             </Table.Tr>
@@ -117,7 +117,7 @@ export function CompareTable({ comparison, firstBaseline }: { comparison: Compar
                         </Table.Tbody>
                         <Table.Tbody>
                             <Table.Tr>
-                                <Table.Th colSpan={columns + 1} bg="var(--mantine-color-default-hover)">
+                                <Table.Th colSpan={columns + 1} bg="var(--mantine-color-default)">
                                     <Group justify="space-between">
                                         Checks
                                         <Group gap="lg">
