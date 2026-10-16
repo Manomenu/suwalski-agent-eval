@@ -5,7 +5,9 @@ import { definitionYaml, judgedByModel } from "../checks/definition";
 import { HighlightedYaml } from "../checks/HighlightedYaml";
 import { ModelJudgedIcon } from "../checks/ModelJudgedIcon";
 import { fetchRecheckPlan, recheck, type ChangedCheck, type RecheckPlan, type RunSummary } from "./api";
-import { CHANGE_LABELS, changesByScenario, judgedNote, planHeadline, recheckDisabledReason } from "./recheck";
+import { CHANGE_LABELS, changesByScenario, judgedNote, planHeadline, recheckDisabledReason, recheckTooltip } from "./recheck";
+
+const RECHECK_TOOLTIP_WIDTH = 340;
 import { runHref } from "./results";
 
 type PlanState = { kind: "loading" } | { kind: "error"; message: string } | { kind: "loaded"; plan: RecheckPlan };
@@ -19,7 +21,7 @@ export function RecheckButton({ run }: { run: Pick<RunSummary, "id" | "status"> 
     const disabledReason = recheckDisabledReason(run.status);
     return (
         <>
-            <Tooltip label={disabledReason} disabled={disabledReason === null}>
+            <Tooltip label={recheckTooltip(run.status)} multiline w={RECHECK_TOOLTIP_WIDTH}>
                 <Button
                     variant="default"
                     disabled={disabledReason !== null}
