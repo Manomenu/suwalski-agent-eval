@@ -2,13 +2,24 @@
 # `just tmux-dev`: the local stack in one tmux session.
 #   left:  a shell in the example agent's repo, for the suwageval CLI
 #   right: server (+ database) | web  /  example agent | a spare shell
-# The session is reused when it exists; inside tmux the client is switched, not nested.
+# The session is reused when it exists; --restart kills it (and everything running in it) first.
+# Inside tmux the client is switched, not nested.
 # TMUX_DEV_NO_ATTACH=1 builds the session and stops there (used to inspect the layout).
 set -euo pipefail
 
 SESSION=suwageval-dev
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 AGENT_DIR="${SUWAGEVAL_AGENT_DIR:-$HOME/repos/suwalski-example-agent}"
+
+restart=0
+case "${1:-}" in
+  "") ;;
+  --restart) restart=1 ;;
+  *)
+    echo "usage: just tmux-dev [--restart]" >&2
+    exit 2
+    ;;
+esac
 
 if ! command -v tmux >/dev/null 2>&1; then
   echo "tmux is not installed. Install it: sudo dnf install tmux" >&2
@@ -25,6 +36,14 @@ attach() {
     tmux attach-session -t "$SESSION"
   fi
 }
+
+if ((restart)) && tmux has-session -t "=$SESSION" 2>/dev/null; then
+  if [[ -n "${TMUX:-}" && "$(tmux display-message -p '#S')" == "$SESSION" ]]; then
+    echo "Run --restart from outside the $SESSION session: killing it would kill this shell too." >&2
+    exit 1
+  fi
+  tmux kill-session -t "=$SESSION"
+fi
 
 if tmux has-session -t "=$SESSION" 2>/dev/null; then
   attach
