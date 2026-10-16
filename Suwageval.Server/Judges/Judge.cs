@@ -1,7 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
-using Microsoft.Agents.AI;
-using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Options;
 using Suwageval.Contracts;
 using Suwageval.Contracts.Checks;
@@ -31,8 +29,6 @@ internal sealed class Judge(ModelClients models, IOptions<JudgeOptions> options)
         Answer with JSON only: passed (true when the criteria hold) and reason (one or two sentences saying why).
         """;
 
-    private const int MaxErrorLength = 300;
-
     private static readonly JsonSerializerOptions Json = ContractJson.Options;
 
     /// <summary>Whether judge checks can run: <c>Judge:Model</c> names a model that is configured under <c>Models</c>.</summary>
@@ -61,7 +57,13 @@ internal sealed class Judge(ModelClients models, IOptions<JudgeOptions> options)
         string text;
         try
         {
-            text = await AskAsync(models.Get(model), Prompt(check, conversation, scope), cancellationToken);
+            text = await JudgeModel.AskAsync<JudgeAnswer>(
+                models.Get(model),
+                "judge",
+                Instructions,
+                Prompt(check, conversation, scope),
+                cancellationToken
+            );
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -69,38 +71,17 @@ internal sealed class Judge(ModelClients models, IOptions<JudgeOptions> options)
         }
         catch (Exception error)
         {
-            return NotJudged(scope, $"the judge model could not be asked ({Shorten(error.Message)})");
+            return NotJudged(scope, $"the judge model could not be asked ({JudgeModel.Shorten(error.Message)})");
         }
 
         var answer = Read(text);
         return answer is null
-            ? NotJudged(scope, $"the judge model's answer is not the JSON asked for ({Shorten(text)})")
+            ? NotJudged(scope, $"the judge model's answer is not the JSON asked for ({JudgeModel.Shorten(text)})")
             : new CheckVerdict(
                 answer.Passed,
                 scope.Items,
                 string.IsNullOrWhiteSpace(answer.Reason) ? "The judge gave no reason." : answer.Reason
             );
-    }
-
-    /// <summary>Asks the model one judging question; the text of its answer.</summary>
-    private static async Task<string> AskAsync(IChatClient client, string prompt, CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(client);
-        var agent = new ChatClientAgent(
-            client,
-            new ChatClientAgentOptions
-            {
-                Name = "judge",
-                ChatOptions = new ChatOptions
-                {
-                    Instructions = Instructions,
-                    Temperature = 0,
-                    ResponseFormat = ChatResponseFormat.ForJsonSchema<JudgeAnswer>(Json),
-                },
-            }
-        );
-        var response = await agent.RunAsync(prompt, cancellationToken: cancellationToken);
-        return response.Text;
     }
 
     /// <summary>The answer as the contract wants it, or null when it is anything else.</summary>
@@ -135,11 +116,5 @@ internal sealed class Judge(ModelClients models, IOptions<JudgeOptions> options)
     private static string Lines(IReadOnlyList<ConversationItem> items) =>
         items.Count == 0 ? "(nothing)" : string.Join('\n', items.Select(item => JsonSerializer.Serialize(item, Json)));
 
-    private static CheckVerdict NotJudged(CheckScope scope, string why) => new(false, scope.Items, $"Not judged: {why}.", NotJudged: true);
-
-    private static string Shorten(string text)
-    {
-        var line = text.ReplaceLineEndings(" ").Trim();
-        return line.Length <= MaxErrorLength ? line : line[..MaxErrorLength] + "…";
-    }
+    private static CheckVerdict NotJudged(CheckScope scope, string why) => JudgeModel.NotJudged(scope.Items, why);
 }

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using Suwageval.Cli.Files;
 using Suwageval.Contracts;
@@ -143,12 +144,23 @@ internal static class Validator
         {
             case ToolCalledCheck called:
                 CheckTool(source, $"{path}.tool", called.Tool, contract, problems);
+                if (called.Args is { } args)
+                {
+                    CheckMatchers(source, args, $"{path}.args", problems);
+                }
                 break;
             case ToolNotCalledCheck notCalled:
                 CheckTool(source, $"{path}.tool", notCalled.Tool, contract, problems);
                 break;
-            case EventCheck eventCheck when contract is not null && !EventTypes(contract).Contains(eventCheck.Event):
-                problems.Add(source.Problem($"{path}.event", UnknownEvent(eventCheck.Event, contract)));
+            case EventCheck eventCheck:
+                if (contract is not null && !EventTypes(contract).Contains(eventCheck.Event))
+                {
+                    problems.Add(source.Problem($"{path}.event", UnknownEvent(eventCheck.Event, contract)));
+                }
+                if (eventCheck.Data is { } data)
+                {
+                    CheckMatchers(source, data, $"{path}.data", problems);
+                }
                 break;
             case TextCheck text:
                 CheckText(source, path, text, problems);
@@ -202,6 +214,9 @@ internal static class Validator
             problems.Add(source.Problem(path, $"'{name}' is neither a tool of the agent nor one of its event types."));
         }
     }
+
+    private static void CheckMatchers(YamlSource source, JsonElement expected, string path, List<Problem> problems) =>
+        problems.AddRange(JudgeMatchers.Problems(expected, path).Select(problem => source.Problem(problem.Path, problem.Message)));
 
     private static void CheckText(YamlSource source, string path, TextCheck text, List<Problem> problems)
     {

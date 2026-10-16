@@ -20,7 +20,10 @@ last user message is the one the agent answers next.
    the agent is not reachable, use `suwageval validate --offline` and say the names are unchecked.
    Prefer deterministic checks. Add a `type: judge` check (`criteria:` — one concrete, checkable
    statement, one thing per check, `where` to narrow it) only for what needs reading, like tone or
-   whether a refusal was explained.
+   whether a refusal was explained. In `args` / `data` use the exact value when it is known; for
+   free-text arguments (a reason, a search query, a message to a customer) use
+   `{ $judge: { description: "…", examples: ["…", "…"] } }` — a precise description and 2–3 varied
+   examples; it costs a model call per candidate, so use it sparingly.
 3. Write the scenario as one new file in `suwageval/scenarios/`, named after what it checks
    (`refund-happy-path.yaml`), with the checks inside. Use the `user:` / `assistant:`
    shorthands where they fit.

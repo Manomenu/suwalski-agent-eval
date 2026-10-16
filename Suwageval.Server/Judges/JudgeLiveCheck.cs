@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
 using Microsoft.Extensions.Options;
 using Suwageval.Contracts.Checks;
 using Suwageval.Contracts.Conversations;
@@ -7,8 +8,8 @@ using Suwageval.Server.Checks;
 namespace Suwageval.Server.Judges;
 
 /// <summary>
-/// The daily check from production's network (<c>Suwageval.Server live-check</c>, the chart's CronJob): one judge call with a
-/// fixed tiny case, through the production registration of the model and the judge. The model is not ours, so it can change
+/// The daily check from production's network (<c>Suwageval.Server live-check</c>, the chart's CronJob): two calls with fixed tiny
+/// cases — one <c>judge</c> check and one <c>$judge</c> argument — through the production registration of the model and the judges. The model is not ours, so it can change
 /// its answer without a commit here; this is what notices. A problem is logged, posted to the Discord alerts channel when a
 /// webhook is configured, and makes the process exit non-zero. It writes nothing anywhere, so there is nothing to roll back.
 /// </summary>
@@ -23,24 +24,58 @@ internal static class JudgeLiveCheck
         Criteria = Criteria,
     };
 
+    private static readonly ToolCalledCheck ArgumentCheck = new()
+    {
+        Key = "live-check-argument",
+        ScenarioKey = "live-check",
+        Tool = "send_message",
+        Args = JsonSerializer.Deserialize<JsonElement>(
+            /*lang=json,strict*/
+            """{"text":{"$judge":{"description":"A polite greeting","examples":["Hello! How can I help you today?"]}}}"""
+        ),
+    };
+
+    private static readonly Trace ArgumentOutput = new([
+        [
+            new ToolCall
+            {
+                Id = "live-check-call",
+                Name = "send_message",
+                Arguments = JsonSerializer.Deserialize<JsonElement>(
+                    /*lang=json,strict*/
+                    """{"text":"Hello! It is nice to hear from you."}"""
+                ),
+            },
+        ],
+    ]);
+
     private static readonly UserMessage[] Conversation = [new UserMessage { Text = "Hello!" }];
 
     private static readonly Trace Output = new([
         [new AssistantMessage { Text = "Hello! It is nice to hear from you. How can I help?" }],
     ]);
 
-    /// <summary>What is wrong with the judge right now, in a sentence, or null when it judged the fixed case as expected (passed).</summary>
-    public static async Task<string?> ProblemAsync(Judge judge, CancellationToken cancellationToken)
+    /// <summary>What is wrong with the judges right now, in a sentence, or null when both judged their fixed case as expected (passed).</summary>
+    public static async Task<string?> ProblemAsync(Judge judge, ArgumentJudge argumentJudge, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(judge);
+        ArgumentNullException.ThrowIfNull(argumentJudge);
         var verdict = await judge.JudgeAsync(Check, Conversation, Output, cancellationToken);
-        return (verdict.NotJudged, verdict.Passed) switch
+        if (Problem(verdict, "The judge failed a plainly polite greeting") is { } problem)
+        {
+            return problem;
+        }
+        var argument = await argumentJudge.JudgeAsync(ArgumentCheck, ArgumentOutput, cancellationToken);
+        return Problem(argument, "The $judge argument matcher failed a plainly polite greeting");
+    }
+
+    private static string? Problem(CheckVerdict verdict, string failed) =>
+        (verdict.NotJudged, verdict.Passed) switch
         {
             (true, _) => verdict.Message,
-            (false, false) => $"The judge failed a plainly polite greeting: {verdict.Message}",
+            (false, false) => $"{failed}: {verdict.Message}",
             _ => null,
         };
-    }
 
     [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Whatever goes wrong is the check's result.")]
     public static async Task<int> RunAsync(string[] args)
@@ -52,10 +87,14 @@ internal static class JudgeLiveCheck
         using var host = builder.Build();
         await host.StartAsync(); // validates the options (ValidateOnStart) and runs no service of ours
 
-        var problem = await ProblemAsync(host.Services.GetRequiredService<Judge>(), CancellationToken.None);
+        var problem = await ProblemAsync(
+            host.Services.GetRequiredService<Judge>(),
+            host.Services.GetRequiredService<ArgumentJudge>(),
+            CancellationToken.None
+        );
         if (problem is null)
         {
-            await Console.Out.WriteLineAsync("The judge model answered as expected.");
+            await Console.Out.WriteLineAsync("The judge model answered as expected (a judge check and a $judge argument).");
             return 0;
         }
 

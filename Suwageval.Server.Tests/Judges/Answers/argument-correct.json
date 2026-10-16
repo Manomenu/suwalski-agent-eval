@@ -1,0 +1,9 @@
+{
+  "results": [
+    {
+      "path": "args.reason",
+      "correct": true,
+      "reason": "The statement says the kettle was cracked when the box was opened, indicating it arrived damaged or broken."
+    }
+  ]
+}

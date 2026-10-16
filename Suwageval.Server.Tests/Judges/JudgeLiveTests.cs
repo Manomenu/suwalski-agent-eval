@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Suwageval.Contracts.Checks;
@@ -28,13 +29,13 @@ public sealed class JudgeLiveTests
 
     [Fact]
     [Trait("live", "true")]
-    public async Task The_real_judge_model_judges_the_fixed_case_the_daily_check_uses()
+    public async Task The_real_judge_model_judges_the_fixed_cases_the_daily_check_uses()
     {
         using var services = Services();
         var judge = services.GetRequiredService<Judge>();
         Assert.SkipUnless(judge.IsConfigured, "No judge model configured: set Models__judge__BaseUrl and Models__judge__Model (.env).");
 
-        var problem = await JudgeLiveCheck.ProblemAsync(judge, Cancellation);
+        var problem = await JudgeLiveCheck.ProblemAsync(judge, services.GetRequiredService<ArgumentJudge>(), Cancellation);
 
         Assert.Null(problem);
     }
@@ -62,5 +63,39 @@ public sealed class JudgeLiveTests
 
         Assert.False(verdict.NotJudged, verdict.Message);
         Assert.False(verdict.Passed, verdict.Message);
+    }
+
+    private static readonly ToolCalledCheck ReasonCheck = new()
+    {
+        Key = "reason",
+        ScenarioKey = "s",
+        Tool = "refund_order",
+        Args = Json(
+            /*lang=json,strict*/
+            """
+            {"order_id":"A-17","reason":{"$judge":{"description":"Says the item arrived damaged or broken","examples":["kettle arrived broken","damaged on delivery"]}}}
+            """
+        ),
+    };
+
+    [Theory]
+    [Trait("live", "true")]
+    [InlineData("The kettle was cracked when I opened the box.", true)]
+    [InlineData("I changed my mind and want my money back.", false)]
+    public async Task The_real_judge_model_judges_an_argument_against_a_description_and_examples(string reason, bool fits)
+    {
+        using var services = Services();
+        Assert.SkipUnless(
+            services.GetRequiredService<Judge>().IsConfigured,
+            "No judge model configured: set Models__judge__BaseUrl and Models__judge__Model (.env)."
+        );
+        var arguments = JsonSerializer.Serialize(new { order_id = "A-17", reason });
+
+        var verdict = await services
+            .GetRequiredService<ArgumentJudge>()
+            .JudgeAsync(ReasonCheck, Turn(Call("refund_order", arguments)), Cancellation);
+
+        Assert.False(verdict.NotJudged, verdict.Message);
+        Assert.Equal(fits, verdict.Passed);
     }
 }

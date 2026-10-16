@@ -317,6 +317,40 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
     }
 
     [Fact]
+    public async Task A_judge_matcher_without_a_configured_judge_model_is_409_and_nothing_is_queued()
+    {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
+        await using var withoutJudge = app.WithWebHostBuilder(host => host.UseSetting("Judge:Model", ""));
+        var client = withoutJudge.CreateClient();
+        var agent = await SeededAgent.CreateAsync(
+            database.Pool,
+            fake.Url.AbsoluteUri,
+            [SeededAgent.Scenario("refund")],
+            [
+                new ToolCalledCheck
+                {
+                    Key = "reason-fits",
+                    ScenarioKey = "refund",
+                    Tool = "refund_order",
+                    Args = JsonDocument
+                        .Parse( /*lang=json,strict*/
+                            """{"reason":{"$judge":{"description":"damaged"}}}"""
+                        )
+                        .RootElement.Clone(),
+                },
+            ]
+        );
+
+        var response = await Post(client, new RunRequest { Agent = agent.Name });
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        var body = await response.Content.ReadAsStringAsync(Cancellation);
+        Assert.Contains("No judge model is configured", body, StringComparison.Ordinal);
+        Assert.Contains("argument matching", body, StringComparison.Ordinal);
+        Assert.Empty(await GetAsync<List<RunSummary>>(client, $"/runs?agent={agent.Name}"));
+    }
+
+    [Fact]
     public async Task Runs_of_an_agent_are_listed_newest_first()
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);

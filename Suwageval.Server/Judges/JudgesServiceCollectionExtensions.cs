@@ -9,7 +9,7 @@ internal static class JudgesServiceCollectionExtensions
     {
         services.AddModels(configuration);
         services.AddOptions<JudgeOptions>().Bind(configuration.GetSection(JudgeOptions.Section)).ValidateOnStart();
-        services.AddSingleton<Judge>();
+        services.AddSingleton<Judge>().AddSingleton<ArgumentJudge>();
         return services;
     }
 }

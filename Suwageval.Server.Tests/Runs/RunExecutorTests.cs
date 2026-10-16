@@ -32,7 +32,8 @@ public sealed class RunExecutorTests(TestDatabase database)
         string? tag = null,
         int parallel = 2,
         Uri? endpoint = null,
-        Judge? judge = null
+        Judge? judge = null,
+        ArgumentJudge? argumentJudge = null
     )
     {
         var store = Store();
@@ -45,6 +46,7 @@ public sealed class RunExecutorTests(TestDatabase database)
             new AgentStore(database.Pool),
             new AgentClient(new HttpClient { Timeout = TimeSpan.FromSeconds(10) }),
             judge ?? RecordedModel.JudgeAnswering("passed.json"),
+            argumentJudge ?? RecordedModel.Answering("passed.json").ArgumentJudge(),
             Options.Create(new RunOptions { MaxParallelScenarios = parallel }),
             NullLogger<RunExecutor>.Instance
         );
@@ -156,6 +158,70 @@ public sealed class RunExecutorTests(TestDatabase database)
             }
         );
         Assert.All(checks["refund-called"].Samples, sample => Assert.False(sample.NotJudged));
+        Assert.True(checks["refund-called"].Passed);
+    }
+
+    private static ToolCalledCheck ReasonFits(string key, string scenarioKey) =>
+        new()
+        {
+            Key = key,
+            ScenarioKey = scenarioKey,
+            Tool = "refund_order",
+            Args = Checks.Items.Json( /*lang=json,strict*/
+                """{"order_id":"A-17","reason":{"$judge":{"description":"Says the item arrived damaged or broken"}}}"""
+            ),
+        };
+
+    [Fact]
+    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "The recorded model holds only memory.")]
+    public async Task A_check_with_a_judge_matcher_gets_its_verdict_from_the_argument_judge_not_from_the_judge_check_model()
+    {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
+        var agent = await SeededAgent.CreateAsync(
+            database.Pool,
+            fake.Url.AbsoluteUri,
+            [SeededAgent.Scenario("refund")],
+            [ReasonFits("reason-fits", "refund"), SeededAgent.RefundAfterLookup("refund-called", "refund")]
+        );
+        var arguments = RecordedModel.Answering("argument-incorrect.json");
+
+        var (run, executor) = await ClaimAsync(agent, argumentJudge: arguments.ArgumentJudge());
+        await executor.ExecuteAsync(run, Cancellation);
+        var results = await ResultsAsync(run.Id);
+
+        var checks = Assert.Single(results.Scenarios).Checks.ToDictionary(check => check.Key);
+        var sample = Assert.Single(checks["reason-fits"].Samples);
+        Assert.False(sample.Passed);
+        Assert.False(sample.NotJudged);
+        Assert.Contains("args.reason does not fit", sample.Message, StringComparison.Ordinal);
+        Assert.Equal("refund_order", Assert.IsType<ToolCall>(Assert.Single(sample.Evidence)).Name);
+        Assert.True(checks["refund-called"].Passed);
+        Assert.Single(arguments.Requests);
+    }
+
+    [Fact]
+    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "The recorded model holds only memory.")]
+    public async Task A_judge_matcher_the_model_cannot_judge_is_not_judged_and_the_run_goes_on()
+    {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
+        var agent = await SeededAgent.CreateAsync(
+            database.Pool,
+            fake.Url.AbsoluteUri,
+            [SeededAgent.Scenario("refund")],
+            [ReasonFits("reason-fits", "refund"), SeededAgent.RefundAfterLookup("refund-called", "refund")]
+        );
+        var failing = RecordedModel.Failing(new HttpRequestException("connection refused")).ArgumentJudge();
+
+        var (run, executor) = await ClaimAsync(agent, argumentJudge: failing);
+        await executor.ExecuteAsync(run, Cancellation);
+        var results = await ResultsAsync(run.Id);
+
+        Assert.Equal(RunStatus.Done, results.Run.Status);
+        var checks = Assert.Single(results.Scenarios).Checks.ToDictionary(check => check.Key);
+        var sample = Assert.Single(checks["reason-fits"].Samples);
+        Assert.True(sample.NotJudged);
+        Assert.False(sample.Passed);
+        Assert.Contains("connection refused", sample.Message, StringComparison.Ordinal);
         Assert.True(checks["refund-called"].Passed);
     }
 

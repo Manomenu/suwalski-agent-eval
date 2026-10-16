@@ -1,0 +1,14 @@
+{
+  "results": [
+    {
+      "path": "args.subject",
+      "correct": true,
+      "reason": "It is a short, relevant, and professionally neutral subject line about the order."
+    },
+    {
+      "path": "args.body",
+      "correct": false,
+      "reason": "It does not apologize for the delay and uses a sarcastic, unprofessional tone."
+    }
+  ]
+}

@@ -358,4 +358,122 @@ public sealed class CheckEvaluatorTests
             ).Passed
         );
     }
+
+    private const string ReasonMatcher = /*lang=json,strict*/
+        """{"order_id":"A-17","reason":{"$judge":{"description":"damaged"}}}""";
+
+    [Fact]
+    public void A_check_with_a_judge_matcher_is_not_evaluated_here_because_a_model_has_the_last_word()
+    {
+        var check = Called("refund_order", ReasonMatcher);
+
+        Assert.True(CheckEvaluator.UsesJudge(check));
+        Assert.Throws<ArgumentException>(() => Run(check, Turn(Call("refund_order"))));
+    }
+
+    [Fact]
+    public void Only_tool_called_and_event_checks_with_a_matcher_use_the_judge()
+    {
+        Assert.False(CheckEvaluator.UsesJudge(Called("refund_order")));
+        Assert.False(
+            CheckEvaluator.UsesJudge(
+                Called(
+                    "refund_order", /*lang=json,strict*/
+                    """{"order_id":"A-17"}"""
+                )
+            )
+        );
+        Assert.False(CheckEvaluator.UsesJudge(TextOf(contains: "x")));
+        Assert.True(
+            CheckEvaluator.UsesJudge(
+                EventOf(
+                    "state.changed", /*lang=json,strict*/
+                    """{"x":[{"$judge":{"description":"d"}}]}"""
+                )
+            )
+        );
+        Assert.Null(CheckEvaluator.Search(Called("refund_order"), Turn(Call("refund_order"))));
+    }
+
+    [Fact]
+    public void Search_keeps_as_candidates_the_calls_whose_literals_match_in_order_with_their_pending_judgements()
+    {
+        var wrongOrder = Call(
+            "refund_order", /*lang=json,strict*/
+            """{"order_id":"B-1","reason":"x"}"""
+        );
+        var noReason = Call(
+            "refund_order", /*lang=json,strict*/
+            """{"order_id":"A-17"}"""
+        );
+        var first = Call(
+            "refund_order", /*lang=json,strict*/
+            """{"order_id":"A-17","reason":"cracked"}""",
+            "first"
+        );
+        var second = Call(
+            "refund_order", /*lang=json,strict*/
+            """{"order_id":"A-17","reason":"late"}""",
+            "second"
+        );
+
+        var search = CheckEvaluator.Search(
+            Called("refund_order", ReasonMatcher),
+            Turn(wrongOrder, Call("get_order"), noReason, first, second)
+        );
+
+        Assert.NotNull(search);
+        Assert.Equal([first, second], search.Candidates.Select(candidate => candidate.Item));
+        Assert.Equal(["cracked", "late"], search.Candidates.Select(candidate => Assert.Single(candidate.Judgements).Actual.GetString()));
+        Assert.Equal("args.reason", search.Candidates[0].Judgements[0].Path);
+        Assert.Equal([wrongOrder, noReason, first, second], search.Named);
+        Assert.Equal("refund_order was called", search.Subject);
+        Assert.Equal("tool call refund_order", search.Context);
+    }
+
+    [Fact]
+    public void Search_says_why_when_there_is_no_candidate()
+    {
+        var noReason = Call(
+            "refund_order", /*lang=json,strict*/
+            """{"order_id":"A-17"}"""
+        );
+
+        var withCalls = CheckEvaluator.Search(Called("refund_order", ReasonMatcher), Turn(noReason));
+        var withoutCalls = CheckEvaluator.Search(Called("refund_order", ReasonMatcher), Turn(Say("hi")));
+
+        Assert.Empty(withCalls!.Candidates);
+        Assert.False(withCalls.WhenNoCandidate.Passed);
+        Assert.Equal([noReason], withCalls.WhenNoCandidate.Evidence);
+        Assert.Contains("but not with arguments containing", withCalls.WhenNoCandidate.Message, StringComparison.Ordinal);
+        Assert.Equal("refund_order was not called.", withoutCalls!.WhenNoCandidate.Message);
+    }
+
+    [Fact]
+    public void Search_respects_where_and_covers_events()
+    {
+        var early = Emit(
+            "state.changed", /*lang=json,strict*/
+            """{"x":"early"}"""
+        );
+        var late = Emit(
+            "state.changed", /*lang=json,strict*/
+            """{"x":"late"}"""
+        );
+        var where = new CheckWhere { Turn = new TurnSelector(TurnSelectorKind.Last) };
+
+        var search = CheckEvaluator.Search(
+            EventOf(
+                "state.changed", /*lang=json,strict*/
+                """{"x":{"$judge":{"description":"d"}}}""",
+                where
+            ),
+            Turns([early], [late])
+        );
+
+        Assert.Same(late, Assert.Single(search!.Candidates).Item);
+        Assert.Equal("data.x", Assert.Single(search.Candidates[0].Judgements).Path);
+        Assert.Equal("Event state.changed was emitted in the last turn", search.Subject);
+        Assert.Equal("event state.changed", search.Context);
+    }
 }
