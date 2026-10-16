@@ -319,7 +319,8 @@ public sealed class RunStoreTests(TestDatabase database)
         SeededAgent agent,
         bool[] samplePassed,
         RunStatus status = RunStatus.Done,
-        Guid? recheckOf = null
+        Guid? recheckOf = null,
+        bool[]? errored = null
     )
     {
         var id = await store.EnqueueAsync(agent.Id, agent.VersionId, null, agent.EndpointUrl, recheckOf, cancellationToken: Cancellation);
@@ -333,9 +334,9 @@ public sealed class RunStoreTests(TestDatabase database)
                     scenario!.Id,
                     scenario.Revision,
                     i + 1,
-                    SampleStatus.Done,
+                    errored?[i] == true ? SampleStatus.Failed : SampleStatus.Done,
                     "[]",
-                    null,
+                    errored?[i] == true ? "HTTP 500" : null,
                     1,
                     [],
                     [new NewCheckResult(check.Id, check.Revision, samplePassed[i], "[]", "m")]
@@ -415,5 +416,20 @@ public sealed class RunStoreTests(TestDatabase database)
         await FinishedRunAsync(store, agent, [true], recheckOf: failed);
 
         Assert.Empty(UnstableChecks.Find(await VerdictsAsync(store, agent)));
+    }
+
+    [Fact]
+    public async Task Run_check_verdicts_leave_out_samples_where_the_agent_gave_no_answer()
+    {
+        var store = Store();
+        var agent = await NewAgentAsync();
+        await FinishedRunAsync(store, agent, [true, false, false], errored: [false, true, true]);
+        await FinishedRunAsync(store, agent, [false, false], errored: [true, true]);
+        var failed = await FinishedRunAsync(store, agent, [false]);
+
+        var rows = await VerdictsAsync(store, agent);
+
+        Assert.Equal([(1, 1), (1, 0)], rows.OrderByDescending(row => row.SamplesPassed).Select(row => (row.Samples, row.SamplesPassed)));
+        Assert.Equal(failed, Assert.Single(UnstableChecks.Find(rows)).NewestFailedRunId);
     }
 }

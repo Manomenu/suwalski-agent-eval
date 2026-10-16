@@ -60,6 +60,7 @@ internal static class KnownFailureResults
                 KnownFailures = 1,
                 Fixed = 0,
                 Unstable = 0,
+                AgentErrors = 0,
             },
         };
 }

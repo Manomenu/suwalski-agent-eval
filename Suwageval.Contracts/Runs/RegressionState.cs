@@ -29,4 +29,10 @@ public enum RegressionState
 
     /// <summary>Its history is mixed: a verdict now says little either way.</summary>
     Unstable,
+
+    /// <summary>
+    /// Fails only because the agent gave no answer for some samples of the scenario: its samples with an answer alone reach the pass
+    /// threshold, or there are none. Says nothing about the check, and the run is not a point of the check's history.
+    /// </summary>
+    AgentError,
 }

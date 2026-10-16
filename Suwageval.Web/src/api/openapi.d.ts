@@ -1154,8 +1154,6 @@ export interface components {
             lastPassedRun?: null | string;
             /** @description The verdicts the state was computed from, oldest first: the newest reference runs of the check's history. */
             history?: components["schemas"]["CheckHistoryPoint"][];
-            /** @description True when the scenario's samples in this run have an agent error instead of an answer: the agent failed, not the check. */
-            agentFailed?: boolean;
         };
         /** @description One check over the samples of its scenario: the pass rate against the threshold. */
         CheckRunResult: {
@@ -1350,7 +1348,7 @@ export interface components {
          *     the check and its scenario).
          * @enum {unknown}
          */
-        RegressionState: "Passed" | "Regression" | "New" | "AlreadyBroken" | "KnownFailure" | "Fixed" | "Unstable";
+        RegressionState: "Passed" | "Regression" | "New" | "AlreadyBroken" | "KnownFailure" | "Fixed" | "Unstable" | "AgentError";
         /** @description How a run's checks stand against their history: what the run is compared with and how many checks are in each state. */
         RegressionSummary: {
             /** @description The branch whose reference runs make the history; none means every run of the agent (the run has no git origin). */
@@ -1372,6 +1370,8 @@ export interface components {
             fixed: number;
             /** Format: int32 */
             unstable: number;
+            /** Format: int32 */
+            agentErrors: number;
         };
         /** @description The optional body of a rerun: everything else (agent, tag) is taken from the run being repeated. */
         RerunRequest: {

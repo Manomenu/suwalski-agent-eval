@@ -6,7 +6,7 @@ namespace Suwageval.Cli.Server;
 
 /// <summary>
 /// What <c>run --wait</c> prints about a run that has a regression summary: what it was compared with, then the checks that need attention
-/// (regressions and new failures first, then already broken, fixed and unstable ones), known failures only as a count, and the totals.
+/// (regressions, new failures and agent errors first, then already broken, fixed and unstable ones), known failures only as a count, and the totals.
 /// </summary>
 internal static class RegressionText
 {
@@ -17,9 +17,15 @@ internal static class RegressionText
     {
         var summary = results.Regression ?? throw new ArgumentException("The results have no regression summary.", nameof(results));
         var checks = results
-            .Scenarios.SelectMany(scenario => scenario.Checks.Select(check => (Label: $"{scenario.Key} / {check.Key}", Check: check)))
+            .Scenarios.SelectMany(scenario =>
+                scenario.Checks.Select(check => (Scenario: scenario.Key, Label: $"{scenario.Key} / {check.Key}", Check: check))
+            )
             .Where(item => item.Check.Regression is not null)
             .ToList();
+        var agentErrors = results.Scenarios.ToDictionary(
+            scenario => scenario.Key,
+            scenario => scenario.Samples.FirstOrDefault(sample => sample.Status == SampleStatus.Failed)?.Error
+        );
         var text = new StringBuilder();
         text.AppendLine(
             summary.ComparedWith is null
@@ -33,6 +39,16 @@ internal static class RegressionText
         var sections = new StringBuilder();
         Section(sections, checks, RegressionState.Regression, summary.Regressions, "✗", "regression", "regressions", withMessage: true);
         Section(sections, checks, RegressionState.New, summary.New, "✗", "new check failing", "new checks failing", withMessage: true);
+        Section(
+            sections,
+            checks,
+            RegressionState.AgentError,
+            summary.AgentErrors,
+            "✗",
+            "agent error",
+            "agent errors",
+            detail: item => agentErrors[item.Scenario] ?? "the agent gave no answer"
+        );
         Section(
             sections,
             checks,
@@ -65,7 +81,7 @@ internal static class RegressionText
 
     private static void Section(
         StringBuilder text,
-        List<(string Label, CheckRunResult Check)> checks,
+        List<(string Scenario, string Label, CheckRunResult Check)> checks,
         RegressionState state,
         int count,
         string mark,
@@ -73,7 +89,7 @@ internal static class RegressionText
         string plural,
         string? note = null,
         bool withMessage = false,
-        Func<(string Label, CheckRunResult Check), string?>? detail = null
+        Func<(string Scenario, string Label, CheckRunResult Check), string?>? detail = null
     )
     {
         if (count == 0)
@@ -85,7 +101,7 @@ internal static class RegressionText
         // A section of one check with nothing to explain is one line: easier to read than a heading with a list under it.
         if (items.Count == 1 && !withMessage && detail is null)
         {
-            text.AppendLine($"{heading.PadRight(HeadingWidth)}{items[0].Label}{Strip(items[0].Check, "  ")}{AgentFailed(items[0].Check)}");
+            text.AppendLine($"{heading.PadRight(HeadingWidth)}{items[0].Label}{Strip(items[0].Check, "  ")}");
             return;
         }
         text.AppendLine(note is null ? heading : heading.PadRight(HeadingWidth) + note);
@@ -95,12 +111,12 @@ internal static class RegressionText
             var why = withMessage ? FirstFailure(item.Check) : detail?.Invoke(item);
             var strip = Strip(item.Check, "  ");
             var line = why is null ? $"  {item.Label}{strip}" : $"  {item.Label.PadRight(width)}{strip}  {why}";
-            text.AppendLine(line + AgentFailed(item.Check));
+            text.AppendLine(line);
         }
     }
 
     /// <summary>
-    /// The check's history oldest first, then this run after an arrow: <c>✓✓✓✗ → ✗</c> (✓ passed, ✗ failed). Empty, with no prefix,
+    /// The check's history oldest first, then this run after an arrow: <c>✓✓✓✗ → ✗</c> (✓ passed, ✗ failed, – the agent gave no answer in this run). Empty, with no prefix,
     /// when the check has no history.
     /// </summary>
     internal static string Strip(CheckRunResult check, string prefix = "")
@@ -111,12 +127,10 @@ internal static class RegressionText
             return "";
         }
         var past = string.Concat(history.Select(point => point.Passed ? "✓" : "✗"));
-        return $"{prefix}{past} → {(check.Passed ? "✓" : "✗")}";
+        return $"{prefix}{past} → {(check.Regression?.State == RegressionState.AgentError ? "–" : check.Passed ? "✓" : "✗")}";
     }
 
     private static string? FirstFailure(CheckRunResult check) => check.Samples.FirstOrDefault(sample => !sample.Passed)?.Message;
-
-    private static string AgentFailed(CheckRunResult check) => check.Regression?.AgentFailed == true ? " (the agent gave no answer)" : "";
 
     private static string Short(Guid id) => id.ToString()[..8];
 }

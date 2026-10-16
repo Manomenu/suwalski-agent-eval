@@ -75,8 +75,8 @@ The comparison of two versions is `{SUWAGEVAL_URL}/agents/{agent}/versions/compa
 
 | code | `validate` | `run --wait`, `results --json` |
 | --- | --- | --- |
-| 0 | the files are valid | no regression and no new failing check (with `--strict`: every check passed its threshold) |
-| 1 | something is wrong | a check regressed or is new and failing (with `--strict`: any check failed) |
+| 0 | the files are valid | no regression, no new failing check and no agent error (with `--strict`: every check passed its threshold) |
+| 1 | something is wrong | a check regressed, is new and failing, or is an agent error (with `--strict`: any check failed) |
 | 2 | — | the run could not be started or finished |
 
 `validate` exits 0 with a notice when the agent was unreachable: the names were then not
@@ -175,13 +175,14 @@ itself failed on that turn, which is not a check failing: say which.
 ## Regressions
 
 A run that finished has `results.regression` (what it was compared with, and counts) and each check a `regression`
-(`state`: `Passed`, `Regression`, `New`, `AlreadyBroken`, `KnownFailure`, `Fixed`, `Unstable`; `failingSince`, `lastPassedRun`,
-`agentFailed`, `history`: the verdicts the state follows from, oldest first; the CLI prints them as `✓✓✓✗ → ✗`, the last mark being
+(`state`: `Passed`, `Regression`, `New`, `AlreadyBroken`, `KnownFailure`, `Fixed`, `Unstable`, `AgentError`; `failingSince`, `lastPassedRun`,
+`history`: the verdicts the state follows from, oldest first; the CLI prints them as `✓✓✓✗ → ✗`, the last mark being
 this run). A regression is a check that passed steadily over the newest reference runs (clean tree, pushed commit,
 the default branch or `regression.branches` of `agent.yaml`) and fails now. Report in this order: **regressions and new
 failing checks** first (scenario, check, why; `lastPassedRun` is the run to compare with: `{SUWAGEVAL_URL}/compare?runs={lastPassedRun},{run.id}`),
-then **already broken** (not caused by this run), then fixed and unstable ones; known failures only as a count. A check with
-`agentFailed` failed because the agent gave no answer: say so. Never change a check to hide a regression. When a behaviour
+then **already broken** (not caused by this run), then fixed and unstable ones; known failures only as a count. An
+**agent error** failed only because the agent gave no answer (the CLI prints the agent's error): report it as the agent failing,
+not the check; it is not counted in the check's history. Never change a check to hide a regression. When a behaviour
 change was intended, the check is what is out of date: update it (`/suwageval:fix`), push, and run again; it starts a new
 history, so it is *new* until it has run enough times.
 

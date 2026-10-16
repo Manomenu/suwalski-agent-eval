@@ -69,7 +69,7 @@ public sealed class RegressionStatesTests
     {
         var history = Runs(P, P, P, P, P, F, F);
 
-        var broken = RegressionStates.Of(history, 5, passed: false, agentFailed: false);
+        var broken = RegressionStates.Of(history, 5, passed: false, onlyAgentErrors: false);
 
         Assert.Equal(RegressionState.AlreadyBroken, broken.State);
         Assert.Equal(history[5].RunId, broken.FailingSince);
@@ -79,10 +79,10 @@ public sealed class RegressionStatesTests
     [Fact]
     public void Only_an_already_broken_check_has_a_failing_since_and_a_check_that_never_passed_has_no_last_passed_run()
     {
-        var regression = RegressionStates.Of(Runs(P, P, P, P, P), 5, passed: false, agentFailed: true);
-        var known = RegressionStates.Of(Runs(F, F), 2, passed: false, agentFailed: false);
+        var regression = RegressionStates.Of(Runs(P, P, P, P, P), 5, passed: false, onlyAgentErrors: false);
+        var known = RegressionStates.Of(Runs(F, F), 2, passed: false, onlyAgentErrors: false);
 
-        Assert.Equal((RegressionState.Regression, null, true), (regression.State, regression.FailingSince, regression.AgentFailed));
+        Assert.Equal((RegressionState.Regression, null), (regression.State, regression.FailingSince));
         Assert.Equal((RegressionState.KnownFailure, null, null), (known.State, known.FailingSince, known.LastPassedRun));
     }
 
@@ -91,10 +91,18 @@ public sealed class RegressionStatesTests
     {
         var history = Runs(P, P, F, P, F);
 
-        var regression = RegressionStates.Of(history, 5, passed: false, agentFailed: false);
+        var regression = RegressionStates.Of(history, 5, passed: false, onlyAgentErrors: false);
 
         Assert.Equal(history, regression.History);
         Assert.Equal([P, P, F, P, F], regression.History.Select(point => point.Passed));
         Assert.Equal(regression.History.OrderBy(point => point.CreatedAt), regression.History);
+    }
+
+    [Fact]
+    public void A_failure_caused_only_by_agent_errors_is_an_agent_error_whatever_the_history_and_a_pass_stays_passed()
+    {
+        Assert.Equal(RegressionState.AgentError, RegressionStates.Of(Runs(P, P, P, P, P), 5, passed: false, onlyAgentErrors: true).State);
+        Assert.Equal(RegressionState.AgentError, RegressionStates.Of(Runs(F, F), 2, passed: false, onlyAgentErrors: true).State);
+        Assert.Equal(RegressionState.Passed, RegressionStates.Of(Runs(P, P, P, P, P), 5, passed: true, onlyAgentErrors: true).State);
     }
 }

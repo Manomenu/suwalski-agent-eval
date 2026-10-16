@@ -8,15 +8,24 @@ const TOOLTIP_WIDTH = 340;
 /** The size of a mark, in pixels: small enough to sit in a line of text. */
 const MARK_SIZE = 12;
 
-/** A passed check is a filled green dot, a failed one a red cross: told apart by shape, not only by colour. */
-function Glyph({ passed }: { passed: boolean }) {
-    return passed ? (
-        <Box w={MARK_SIZE - 2} h={MARK_SIZE - 2} bg="green" style={{ borderRadius: "50%" }} />
-    ) : (
-        <Text span c="red" fw={900} fz={MARK_SIZE + 2} lh={1}>
-            ✗
-        </Text>
-    );
+/** A passed check is a filled green dot, a failed one a red cross, an agent error a grey dash: told apart by shape, not only by colour. */
+function Glyph({ outcome }: { outcome: HistoryMark["outcome"] }) {
+    switch (outcome) {
+        case "passed":
+            return <Box w={MARK_SIZE - 2} h={MARK_SIZE - 2} bg="green" style={{ borderRadius: "50%" }} />;
+        case "failed":
+            return (
+                <Text span c="red" fw={900} fz={MARK_SIZE + 2} lh={1}>
+                    ✗
+                </Text>
+            );
+        case "agentError":
+            return (
+                <Text span c="gray" fw={900} fz={MARK_SIZE + 2} lh={1}>
+                    –
+                </Text>
+            );
+    }
 }
 
 function Mark({ mark }: { mark: HistoryMark }) {
@@ -37,11 +46,11 @@ function Mark({ mark }: { mark: HistoryMark }) {
         >
             {mark.href === null ? (
                 <Box component="span" aria-label={mark.label} role="img" display="inline-flex">
-                    <Glyph passed={mark.passed} />
+                    <Glyph outcome={mark.outcome} />
                 </Box>
             ) : (
                 <Anchor href={mark.href} aria-label={mark.label} display="inline-flex">
-                    <Glyph passed={mark.passed} />
+                    <Glyph outcome={mark.outcome} />
                 </Anchor>
             )}
         </Tooltip>

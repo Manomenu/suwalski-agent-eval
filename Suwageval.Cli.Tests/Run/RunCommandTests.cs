@@ -157,7 +157,6 @@ public sealed class RunCommandTests
         CheckRunResult check,
         RegressionState state,
         Guid? failingSince = null,
-        bool agentFailed = false,
         params bool[] history
     ) =>
         check with
@@ -166,7 +165,6 @@ public sealed class RunCommandTests
             {
                 State = state,
                 FailingSince = failingSince,
-                AgentFailed = agentFailed,
                 History =
                 [
                     .. history.Select(
@@ -201,6 +199,7 @@ public sealed class RunCommandTests
                 KnownFailures = 0,
                 Fixed = 0,
                 Unstable = 0,
+                AgentErrors = 0,
             },
         };
 
@@ -319,7 +318,7 @@ public sealed class RunCommandTests
     public void A_new_failing_check_exits_1()
     {
         var results = WithSummary(
-            Results(RunStatus.Done, WithState(Check("asks", false, "no question"), RegressionState.New, agentFailed: true)),
+            Results(RunStatus.Done, WithState(Check("asks", false, "no question"), RegressionState.New)),
             null,
             @new: 1
         );
@@ -329,7 +328,41 @@ public sealed class RunCommandTests
         Assert.Equal(1, exit);
         Assert.Contains("compared with every run of the agent (no git)", output, StringComparison.Ordinal);
         Assert.Contains("1 new check failing", output, StringComparison.Ordinal);
-        Assert.Contains("(the agent gave no answer)", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_agent_error_exits_1_and_names_the_agents_error()
+    {
+        var results = Results(
+            RunStatus.Done,
+            WithState(Check("asks", false, "Not evaluated: boom"), RegressionState.AgentError, null, true)
+        );
+        results = results with
+        {
+            Scenarios =
+            [
+                results.Scenarios[0] with
+                {
+                    Samples =
+                    [
+                        new SampleResult
+                        {
+                            Sample = 1,
+                            Status = SampleStatus.Failed,
+                            Error = "HTTP 500",
+                        },
+                    ],
+                },
+            ],
+            Regression = WithSummary(results, "master").Regression! with { AgentErrors = 1 },
+        };
+
+        var (exit, output, _, _) = Run((request, _) => Server(request, Summary(RunStatus.Done), results), "--wait");
+
+        Assert.Equal(1, exit);
+        Assert.Contains("\u2717 1 agent error", output, StringComparison.Ordinal);
+        Assert.Contains("refund-happy-path / asks", output, StringComparison.Ordinal);
+        Assert.Contains("\u2713 \u2192 \u2013  HTTP 500", output, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -355,6 +388,7 @@ public sealed class RunCommandTests
                 KnownFailures = 1,
                 Fixed = 1,
                 Unstable = 1,
+                AgentErrors = 0,
             },
         };
 

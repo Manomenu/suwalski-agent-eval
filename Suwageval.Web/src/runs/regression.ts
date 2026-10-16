@@ -19,6 +19,8 @@ export function stateLabel(state: RegressionState): string {
             return "Fixed";
         case "Unstable":
             return "Unstable";
+        case "AgentError":
+            return "Agent error";
     }
 }
 
@@ -39,6 +41,8 @@ export function stateExplanation(state: RegressionState): string {
             return "Passes now after failing in the reference runs before it.";
         case "Unstable":
             return "Its history mixes passes and failures with no steady pattern, so a failure may be noise. Does not fail the CLI's exit code.";
+        case "AgentError":
+            return "The agent gave no answer in this scenario, so the check was not evaluated. It says nothing about the check, and the run is not counted in the check's history. Fails the CLI's exit code.";
     }
 }
 
@@ -59,6 +63,8 @@ export function stateColor(state: RegressionState): string {
             return "green";
         case "Unstable":
             return "yellow";
+        case "AgentError":
+            return "grape";
     }
 }
 
@@ -107,7 +113,7 @@ export const CHECK_HISTORY_EXPLANATION =
 /** One dot of a check's history strip. A mark without `href` is the run being shown. */
 export interface HistoryMark {
     key: string;
-    passed: boolean;
+    outcome: "passed" | "failed" | "agentError";
     /** What a screen reader says: "run 725c66c4: passed" / "this run: failed". */
     label: string;
     /** The tooltip's first line: "17/10 00:03 · run 725c66c4 · passed" / "this run · failed". */
@@ -119,26 +125,28 @@ export interface HistoryMark {
 export function historyMarks(check: Pick<CheckRunResult, "passed" | "regression">): HistoryMark[] {
     const history = check.regression?.history ?? [];
     if (history.length === 0) return [];
-    const verdict = (passed: boolean) => (passed ? "passed" : "failed");
+    const wording = { passed: "passed", failed: "failed", agentError: "agent error" } as const;
+    const current = check.regression?.state === "AgentError" ? "agentError" : check.passed ? "passed" : "failed";
     return [
-        ...history.map((point) => ({
-            key: point.runId,
-            passed: point.passed,
-            label: `run ${shortId(point.runId)}: ${verdict(point.passed)}`,
-            tooltip: `${historyTime(point.createdAt)} · run ${shortId(point.runId)} · ${verdict(point.passed)}`,
-            href: runHref(point.runId),
-        })),
+        ...history.map((point) => {
+            const outcome = point.passed ? "passed" : "failed";
+            return {
+                key: point.runId,
+                outcome,
+                label: `run ${shortId(point.runId)}: ${wording[outcome]}`,
+                tooltip: `${historyTime(point.createdAt)} · run ${shortId(point.runId)} · ${wording[outcome]}`,
+                href: runHref(point.runId),
+            } satisfies HistoryMark;
+        }),
         {
             key: "this-run",
-            passed: check.passed,
-            label: `this run: ${verdict(check.passed)}`,
-            tooltip: `this run · ${verdict(check.passed)}`,
+            outcome: current,
+            label: `this run: ${wording[current]}`,
+            tooltip: `this run · ${wording[current]}`,
             href: null,
         },
     ];
 }
-
-export const AGENT_FAILED_NOTE = "the agent gave no answer";
 
 /** One check of the run with the scenario it belongs to. */
 export interface StatedCheck {
@@ -158,10 +166,10 @@ export function statedChecks(results: RunResults): StatedCheck[] {
     );
 }
 
-const ATTENTION_ORDER: readonly RegressionState[] = ["Regression", "New", "AlreadyBroken"];
+const ATTENTION_ORDER: readonly RegressionState[] = ["Regression", "New", "AgentError", "AlreadyBroken"];
 const BRIEF_ORDER: readonly RegressionState[] = ["Fixed", "Unstable"];
 
-/** What the run page lists: the attention states in order (Regression, New, Already broken), then Fixed and Unstable, known failures apart. */
+/** What the run page lists: the attention states in order (Regression, New, Agent error, Already broken), then Fixed and Unstable, known failures apart. */
 export function groupChecks(checks: readonly StatedCheck[]): {
     attention: StatedCheck[];
     brief: StatedCheck[];
@@ -181,6 +189,7 @@ export function summaryChips(summary: RegressionSummary): { state: RegressionSta
     const counts: [RegressionState, number][] = [
         ["Regression", summary.regressions],
         ["New", summary.new],
+        ["AgentError", summary.agentErrors],
         ["AlreadyBroken", summary.alreadyBroken],
         ["Fixed", summary.fixed],
         ["Unstable", summary.unstable],
