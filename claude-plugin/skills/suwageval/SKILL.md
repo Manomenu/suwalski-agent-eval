@@ -58,6 +58,8 @@ its `/api`. The address is `SUWAGEVAL_URL`, or `--server` on a command; the defa
 | run the scenarios and wait | `suwageval run --wait --json` (`--tag <tag>` for some scenarios only) |
 | open a run on the web | `suwageval results <runId>` |
 | a run's results as JSON | `suwageval results <runId> --json` |
+| list the agent's versions | `suwageval versions` (`--archived` to include archived ones, `--json`) |
+| archive or restore versions | `suwageval versions archive <versionId>...`, `suwageval versions unarchive <versionId>...` |
 
 A run's page is `{SUWAGEVAL_URL}/runs/{runId}`.
 
@@ -71,6 +73,13 @@ A run's page is `{SUWAGEVAL_URL}/runs/{runId}`.
 
 `validate` exits 0 with a notice when the agent was unreachable: the names were then not
 checked (`namesChecked: false` in `--json`). Say so; do not call the scenarios verified.
+
+## Versions
+
+Every change of the agent's contract makes a new version, so the list grows. Versions are never
+deleted (every run points at one): they are **archived**, hidden by default and restorable. A new
+run on a contract that matches an archived version unarchives it. Archive only what the user
+asked for or confirmed: show the ids first. `/suwageval:versions` does this.
 
 ## Reading results
 

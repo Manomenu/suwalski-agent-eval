@@ -3,6 +3,7 @@ using Suwageval.Cli.Push;
 using Suwageval.Cli.Results;
 using Suwageval.Cli.Run;
 using Suwageval.Cli.Validate;
+using Suwageval.Cli.Versions;
 
 namespace Suwageval.Cli;
 
@@ -26,6 +27,7 @@ internal static class CliApp
             PushCommand.Create(http),
             RunCommand.Create(http),
             ResultsCommand.Create(http, openBrowser),
+            VersionsCommand.Create(http),
         };
         return root.Parse(args).Invoke(new InvocationConfiguration { Output = output, Error = error });
     }

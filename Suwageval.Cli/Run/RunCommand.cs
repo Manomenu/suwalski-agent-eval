@@ -48,7 +48,7 @@ internal static class RunCommand
             {
                 var output = parsed.InvocationConfiguration.Output;
                 var error = parsed.InvocationConfiguration.Error;
-                var agent = ReadAgentName(parsed.GetRequiredValue(dir), error);
+                var agent = AgentName.Read(parsed.GetRequiredValue(dir), error);
                 if (agent is null)
                 {
                     return 2;
@@ -123,22 +123,5 @@ internal static class RunCommand
             await output.WriteLineAsync(ServerAddress.RunPage(site, created.RunId).ToString());
         }
         return RunVerdict.ExitCode(results);
-    }
-
-    private static string? ReadAgentName(string dir, TextWriter error)
-    {
-        var file = Path.Combine(dir, "agent.yaml");
-        if (!File.Exists(file))
-        {
-            error.WriteLine($"{file} not found: run this in an agent's repository, or point --dir at its suwageval folder.");
-            return null;
-        }
-        var problems = new List<Problem>();
-        var agent = AgentFileReader.Read(file, File.ReadAllText(file), problems);
-        foreach (var problem in problems)
-        {
-            error.WriteLine($"{problem.File}: {problem.Message}");
-        }
-        return agent?.Definition.Name;
     }
 }

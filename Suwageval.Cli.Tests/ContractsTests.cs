@@ -15,7 +15,7 @@ public sealed class ContractsTests
     private const string Root = "Suwageval.Cli";
 
     /// <summary>Top to bottom. The commands are siblings; what two of them share goes into a layer below.</summary>
-    private static readonly string[] Layers = [".", "Validate | Push | Run | Results", "Validation | Server", "Files"];
+    private static readonly string[] Layers = [".", "Validate | Push | Run | Results | Versions", "Validation | Server", "Files"];
 
     private static readonly Architecture Cli = new ArchLoader().LoadAssemblies(typeof(CliApp).Assembly).Build();
 

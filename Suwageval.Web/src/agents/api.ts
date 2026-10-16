@@ -21,6 +21,12 @@ export function fetchVersions(name: string, signal: AbortSignal): Promise<AgentV
     return request<AgentVersion[]>(`${agentPath(name)}/versions`, { signal });
 }
 
+/** Archives (`archived: true`) or restores versions of the agent; nothing is deleted. */
+export async function archiveVersions(name: string, versionIds: string[], archived: boolean): Promise<void> {
+    const body: components["schemas"]["ArchiveVersionsRequest"] = { versionIds, archived };
+    await request<undefined>(`${agentPath(name)}/versions/archive`, { method: "POST", body: JSON.stringify(body) });
+}
+
 export function fetchVersion(name: string, versionId: string, signal: AbortSignal): Promise<AgentVersionDetail> {
     return request<AgentVersionDetail>(`${agentPath(name)}/versions/${versionId}`, { signal });
 }

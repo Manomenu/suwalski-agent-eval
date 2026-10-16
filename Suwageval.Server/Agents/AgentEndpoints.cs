@@ -14,6 +14,7 @@ internal static class AgentEndpoints
         app.MapGet("/agents", ListAsync).Produces<IReadOnlyList<Agent>>();
         app.MapGet("/agents/{agent}", GetAsync).Produces<AgentDetail>();
         app.MapGet("/agents/{agent}/versions", ListVersionsAsync).Produces<IReadOnlyList<AgentVersion>>();
+        app.MapPost("/agents/{agent}/versions/archive", ArchiveVersionsAsync).Produces(StatusCodes.Status204NoContent);
         app.MapGet("/agents/{agent}/versions/{versionId:guid}", GetVersionAsync).Produces<AgentVersionDetail>();
     }
 
@@ -80,6 +81,28 @@ internal static class AgentEndpoints
         return Results.Ok((await store.ListVersionsAsync(row.Id, cancellationToken)).Select(ToVersion));
     }
 
+    private static async Task<IResult> ArchiveVersionsAsync(
+        string agent,
+        ArchiveVersionsRequest request,
+        AgentStore store,
+        CancellationToken cancellationToken
+    )
+    {
+        var row = await store.GetAsync(agent, cancellationToken);
+        if (row is null)
+        {
+            return ProblemResults.NotFound("Agent", agent);
+        }
+        // Looked up first, so that one unknown id changes nothing at all.
+        var unknown = await store.UnknownVersionsAsync(row.Id, request.VersionIds, cancellationToken);
+        if (unknown.Count > 0)
+        {
+            return ProblemResults.NotFound("Version", string.Join(", ", unknown));
+        }
+        await store.ArchiveVersionsAsync(row.Id, request.VersionIds, request.Archived, cancellationToken);
+        return Results.NoContent();
+    }
+
     private static async Task<IResult> GetVersionAsync(string agent, Guid versionId, AgentStore store, CancellationToken cancellationToken)
     {
         var row = await store.GetAsync(agent, cancellationToken);
@@ -101,6 +124,7 @@ internal static class AgentEndpoints
                 version.AgentId,
                 version.ContentHash,
                 version.CreatedAt,
+                version.ArchivedAt,
                 content with
                 {
                     Label = version.Label,
@@ -118,5 +142,6 @@ internal static class AgentEndpoints
             CreatedAt = row.CreatedAt,
         };
 
-    private static AgentVersion ToVersion(AgentVersionRow row) => new(row.Id, row.AgentId, row.Label, row.ContentHash, row.CreatedAt);
+    private static AgentVersion ToVersion(AgentVersionRow row) =>
+        new(row.Id, row.AgentId, row.Label, row.ContentHash, row.CreatedAt, row.ArchivedAt);
 }

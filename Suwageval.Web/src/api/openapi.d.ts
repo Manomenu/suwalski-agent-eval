@@ -169,6 +169,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/agents/{agent}/versions/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    agent: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ArchiveVersionsRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/agents/{agent}/versions/{versionId}": {
         parameters: {
             query?: never;
@@ -739,7 +778,7 @@ export interface components {
             /** Format: int32 */
             checks: number | string;
         };
-        /** @description A registered version of an agent, without its content. */
+        /** @description A registered version of an agent, without its content; `ArchivedAt` is set while the version is archived. */
         AgentVersion: {
             /** Format: uuid */
             id: string;
@@ -749,6 +788,8 @@ export interface components {
             contentHash: string;
             /** Format: date-time */
             createdAt: string;
+            /** Format: date-time */
+            archivedAt: null | string;
         };
         /** @description A registered version of an agent with its content (`Content.Label` is the version's label). */
         AgentVersionDetail: {
@@ -759,7 +800,14 @@ export interface components {
             contentHash: string;
             /** Format: date-time */
             createdAt: string;
+            /** Format: date-time */
+            archivedAt: null | string;
             content: components["schemas"]["AgentContract"];
+        };
+        /** @description Archives (`Archived: true`) or restores (`false`) versions of one agent; nothing is deleted. */
+        ArchiveVersionsRequest: {
+            versionIds: string[];
+            archived: boolean;
         };
         /** @description A test on what the agent produced for a scenario, told apart by `type`. */
         CheckInput: components["schemas"]["CheckInputToolCalledCheck"] | components["schemas"]["CheckInputToolNotCalledCheck"] | components["schemas"]["CheckInputEventCheck"] | components["schemas"]["CheckInputTextCheck"];
