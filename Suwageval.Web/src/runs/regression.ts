@@ -70,7 +70,8 @@ export function comparedWithHeading(summary: RegressionSummary): string {
 /** The history in words: "last 5 reference runs" (or "last 5 runs" without git). */
 export function historyText(summary: RegressionSummary): string {
     const runs = summary.comparedWith == null ? "runs" : "reference runs";
-    return `last ${summary.history} ${runs}`;
+    // The state reads up to twice that many runs (a failure after a steady pass needs both), and so does the history strip.
+    return `${summary.history} ${runs} make a steady pass; the history shows up to ${summary.history * 2}`;
 }
 
 /** The compare page of the last run the check passed in and this one, or null when it never passed in the history. */

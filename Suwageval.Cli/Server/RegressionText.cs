@@ -26,7 +26,7 @@ internal static class RegressionText
                 ? "compared with every run of the agent (no git)"
                 : string.Create(
                     CultureInfo.InvariantCulture,
-                    $"compared with {summary.ComparedWith} (last {summary.History} reference runs)"
+                    $"compared with {summary.ComparedWith} ({summary.History} reference runs make a steady pass; history up to {summary.History * 2})"
                 )
         );
 

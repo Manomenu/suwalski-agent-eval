@@ -302,7 +302,7 @@ public sealed class RunCommandTests
 
         Assert.Equal(1, exit);
         var lines = output.ReplaceLineEndings("\n");
-        Assert.Contains("compared with master (last 5 reference runs)\n", lines, StringComparison.Ordinal);
+        Assert.Contains("compared with master (5 reference runs make a steady pass; history up to 10)\n", lines, StringComparison.Ordinal);
         Assert.Contains(
             "\u2717 1 regression\n  refund-happy-path / refund-tool-called  \u2713\u2713\u2713\u2713\u2713 \u2192 \u2717  tool 'issue_refund' was not called\n",
             lines,
