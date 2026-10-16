@@ -7,9 +7,11 @@ import {
     ALL_SERIES,
     DETAILS_KEY,
     LABEL_KEY,
+    RECHECK_KEY,
     RUN_KEY,
     TREND_MIN_RUNS,
     asTrendRow,
+    hasRechecks,
     legendColor,
     seriesColor,
     toggleHidden,
@@ -67,6 +69,11 @@ export function PassRateTrend({ points }: { points: RunPassRates[] }) {
                                             <Text size="xs" c="dimmed">
                                                 {row[DETAILS_KEY]}
                                             </Text>
+                                            {typeof row[RECHECK_KEY] === "string" && (
+                                                <Text size="xs" c="dimmed">
+                                                    Re-checked: these are the results of its latest re-check
+                                                </Text>
+                                            )}
                                             {shown.map((name) => (
                                                 <Text key={name} size="sm" c={seriesColor(name, names)}>
                                                     {name}: {row[name] === null || row[name] === undefined ? "—" : `${String(row[name])}%`}
@@ -101,6 +108,11 @@ export function PassRateTrend({ points }: { points: RunPassRates[] }) {
                                 </Button>
                             ))}
                         </Group>
+                        {hasRechecks(points) && (
+                            <Text size="xs" c="dimmed">
+                                A point of a re-checked run shows the results of its latest re-check; the run keeps its place and time.
+                            </Text>
+                        )}
                     </>
                 )}
             </Stack>

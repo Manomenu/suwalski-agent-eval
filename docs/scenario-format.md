@@ -134,6 +134,17 @@ version; the answer to `POST /runs` and `suwageval run` say which version and wh
   tool call's `agent` and a check's `by` name an agent that has the tool, a
   retrieval needs `usesRetrieval`): otherwise 409 with the mismatches, nothing is queued.
 - A scenario with `fixtures` needs a version that declares `context.fixturesSchema`; otherwise it is a mismatch too.
+- A **re-check** (`POST /runs/{id}/recheck`, `suwageval recheck`) is a run that does not call the agent: it copies the stored
+  samples of a finished run (output, error, undeclared, `durationMs` — the turn times are the source's, copied, not measured
+  again) and judges them with the *current* checks. A check whose revision already judged the source keeps that verdict (a
+  judge is not asked again); a changed or new check is evaluated on the stored output exactly as in a normal run; a removed
+  check is absent. A scenario whose latest revision is not the one the source ran, or that was deleted, is skipped and listed
+  in `skippedScenarios` with its reason. `recheckOf` names the source, always a run that called the agent (a re-check of a
+  re-check points at the original). Unchanged verdicts are copied from the run the re-check was asked for, so a re-check of a re-check does not ask the judge again for what the earlier one already judged. `GET /runs/{id}/recheck` previews it (`possible`, `changedChecks`, `skippedScenarios`,
+  `mismatches`); a re-check that would change nothing (no check changed, was added or removed — a changed pass threshold
+  counts), whose scenarios are all skipped, whose checks do not fit the source's version or whose source is not `Done` is
+  refused with 409. The agent's current contract plays no role. In the pass-rate trend a re-check is never a point of its own:
+  the point of its source run shows the results of the latest finished re-check (`recheckedBy`).
 - At the end of a run the contract is read again. If it differs from the run's version (the agent
   was redeployed mid-run) the run says `contractChangedDuringRun: true`.
 - A `ToolCall` or `Event` the agent produces during a run that its version does not declare is

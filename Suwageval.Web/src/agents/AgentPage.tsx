@@ -202,7 +202,14 @@ function AgentView({
                                                     <Anchor href={runHref(run.id)}>{shortId(run.id)}</Anchor>
                                                 </Table.Td>
                                                 <Table.Td>
-                                                    <Badge color={statusColor(run.status)}>{statusLabel(run.status)}</Badge>
+                                                    <Group gap={4}>
+                                                        <Badge color={statusColor(run.status)}>{statusLabel(run.status)}</Badge>
+                                                        {run.recheckOf != null && (
+                                                            <Badge variant="outline" color="gray">
+                                                                Re-check
+                                                            </Badge>
+                                                        )}
+                                                    </Group>
                                                 </Table.Td>
                                                 <Table.Td>{run.tag ?? "—"}</Table.Td>
                                                 <Table.Td>

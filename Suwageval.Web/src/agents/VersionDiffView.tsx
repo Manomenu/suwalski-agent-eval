@@ -21,7 +21,7 @@ function Row({ row }: { row: DiffRow }) {
 }
 
 /** The unified line diff of two texts: changes with their context, long unchanged runs folded until clicked. */
-export function VersionDiff({ from, to }: { from: string; to: string }) {
+export function VersionDiffView({ from, to }: { from: string; to: string }) {
     const blocks = useMemo(() => diffBlocks(diffRows(from, to)), [from, to]);
     const [expanded, setExpanded] = useState<ReadonlySet<number>>(new Set());
 

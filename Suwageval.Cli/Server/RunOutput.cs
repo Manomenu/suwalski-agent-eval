@@ -2,7 +2,7 @@ using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Cli.Server;
 
-/// <summary>What <c>run</c> and <c>rerun</c> print once the server has queued a run, and the exit code they give.</summary>
+/// <summary>What <c>run</c>, <c>rerun</c> and <c>recheck</c> print once the server has queued a run, and the exit code they give.</summary>
 internal static class RunOutput
 {
     /// <summary>The exit code of a wait interrupted with Ctrl+C while the run goes on on the server (128 + SIGINT, as shells report it).</summary>

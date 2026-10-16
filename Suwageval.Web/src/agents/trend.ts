@@ -11,6 +11,8 @@ export const TREND_MIN_RUNS = 2;
 export const RUN_KEY = "$run";
 export const LABEL_KEY = "$label";
 export const DETAILS_KEY = "$details";
+/** The run whose re-check the point shows; null when it shows the run's own results. */
+export const RECHECK_KEY = "$recheck";
 
 /** A point of the chart: the run, its short date, its version and model, and a percentage per series (`null`: no check with that tag). */
 export type TrendRow = Record<string, string | number | null>;
@@ -43,6 +45,7 @@ export function trendRows(points: RunPassRates[]): TrendRow[] {
             [DETAILS_KEY]: [point.versionLabel?.trim() ? point.versionLabel : "no label", point.modelNames.join(", ")]
                 .filter((part) => part !== "")
                 .join(" · "),
+            [RECHECK_KEY]: point.recheckedBy ?? null,
         };
         for (const name of series) {
             // A run limited to one tag says nothing about all checks: "All" comes only from runs of every scenario.
@@ -82,4 +85,9 @@ export function toggleHidden(hidden: ReadonlySet<string>, name: string): Readonl
     const next = new Set(hidden);
     if (!next.delete(name)) next.add(name);
     return next;
+}
+
+/** Some point shows the results of a re-check, not of its own run: the chart says so. */
+export function hasRechecks(points: readonly RunPassRates[]): boolean {
+    return points.some((point) => point.recheckedBy != null);
 }

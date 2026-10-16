@@ -60,7 +60,7 @@ The server has one interface, its HTTP API. Three users reach it:
 | Who | Through | Does |
 | --- | --- | --- |
 | a person in the browser | the web app | browses agents, scenarios, runs, results, comparisons |
-| an agent's repository, by hand or in CI | the `suwageval` CLI (`Suwageval.Cli`) | `validate` the scenario files, `push` the agent, its scenarios and checks, `run --tag … --wait` with an exit code for CI, `rerun <runId>` to repeat a run, `cancel <runId>` to stop a queued or running one, `results <runId>` to open a run on the web, `runs` to list the agent's newest runs, `unstable` to list the checks that pass in some runs of a version and fail in others, `compare <runId> <runId> …` to open the comparison of 2 to 5 runs of one agent on the web, `versions` to list, archive and restore the agent's versions, `versions diff <a> <b>` to open what changed between two of them on the web |
+| an agent's repository, by hand or in CI | the `suwageval` CLI (`Suwageval.Cli`) | `validate` the scenario files, `push` the agent, its scenarios and checks, `run --tag … --wait` with an exit code for CI, `rerun <runId>` to repeat a run, `recheck <runId>` to judge a finished run's stored answers again with the current checks (`--dry-run` shows what would be evaluated), `cancel <runId>` to stop a queued or running one, `results <runId>` to open a run on the web, `runs` to list the agent's newest runs, `unstable` to list the checks that pass in some runs of a version and fail in others, `compare <runId> <runId> …` to open the comparison of 2 to 5 runs of one agent on the web, `versions` to list, archive and restore the agent's versions, `versions diff <a> <b>` to open what changed between two of them on the web |
 | Claude Code | the Claude Code plugin in this repo (`claude-plugin/`) that drives the same CLI, like suwgit's | "build a scenario for this agent from this conversation", "run the regression tag on the new version", "why did scenario X fail" — writing the scenario as a file in the agent's repo, then `validate` and `push` |
 
 - **Anything the web can do, the CLI — and so Claude Code through the plugin — can do too; not the
@@ -76,9 +76,16 @@ The server has one interface, its HTTP API. Three users reach it:
   link to the run's page, with its exit code; `suwageval results <runId>` opens that page in
   the browser. A "Run again" button on the run's page (and `suwageval rerun <runId>`, same flags as
   `run`) starts a new run with the same agent, tag and endpoint, against the version the agent
-  serves now. A "Cancel run" button on the page of a queued or running run (and `suwageval cancel <runId>`)
+  serves now. A "Re-check" button beside it (and `suwageval recheck <runId>`) judges the run's *stored answers* again with the
+  *current* checks, without calling the agent: use it after fixing a check (a `$pattern`, a judge's criteria) to see the
+  effect on the same answers, so any difference comes from the checks alone. It first shows what would be evaluated again
+  (the checks that changed, were added or removed, how many a model judges, the scenarios left out) and is refused when
+  nothing changed. A check that did not change keeps its verdict from the run, so no judge model is asked again; a scenario
+  edited or deleted since is skipped, its answers belong to another conversation. The re-check is a run of its own ("Re-check
+  of …" on its page, a badge in the run list) whose turn times are the source's, copied. On the pass-rate trend a re-check
+  is no point of its own: its run's point shows the results of its latest re-check. A "Cancel run" button on the page of a queued or running run (and `suwageval cancel <runId>`)
   stops it: samples already in flight finish, no new one starts, and the run ends as cancelled. Ctrl+C
-  while `run --wait` (or `rerun --wait`) waits asks whether to cancel the run on the server too; answered
+  while `run --wait` (or `rerun --wait`, `recheck --wait`) waits asks whether to cancel the run on the server too; answered
   no, the run goes on and the exit code is 130. Without a terminal to ask on (a CI job being stopped) the
   run is cancelled, since nobody would read its results. For machines, `--json` on either prints the results (and opens nothing).
 - **Runs are compared on the web.** On an agent's page, tick 2 to 5 runs (the model filter narrows

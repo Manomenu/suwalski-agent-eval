@@ -45,4 +45,14 @@ public sealed record RunSummary
     public DateTime? StartedAt { get; init; }
 
     public DateTime? FinishedAt { get; init; }
+
+    /// <summary>
+    /// The run whose stored answers this run evaluated again with the current checks, without calling the agent (a re-check); null for a
+    /// run that called the agent. Always a run that called the agent: a re-check of a re-check points at the original. The turn times
+    /// of a re-check are the source's, copied, not measured again.
+    /// </summary>
+    public Guid? RecheckOf { get; init; }
+
+    /// <summary>The scenarios of the source a re-check left out, with the reason; empty for a run that called the agent.</summary>
+    public IReadOnlyList<SkippedScenario> SkippedScenarios { get; init; } = [];
 }

@@ -1,9 +1,11 @@
-import { Alert, Anchor, Badge, Group, Loader, Paper, Stack, Text, Title } from "@mantine/core";
+import { Alert, Anchor, Badge, Group, List, Loader, Paper, Stack, Text, Title } from "@mantine/core";
 
 import { CancelButton } from "./CancelButton";
+import { RecheckButton } from "./RecheckButton";
 import { RerunButton } from "./RerunButton";
+import { recheckSource } from "./recheck";
 import { ScenarioCard } from "./ScenarioCard";
-import { durationSummary, formatTime, isActive, isRunNotFound, num, progress, runStatusLabel, statusColor } from "./results";
+import { durationSummary, formatTime, isActive, isRunNotFound, num, progress, runHref, runStatusLabel, statusColor } from "./results";
 import { useRunResults } from "./useRunResults";
 import { useUnstableChecks } from "./useUnstableChecks";
 
@@ -42,8 +44,32 @@ export function RunPage({ runId }: { runId: string }) {
                     id {run.id} · version {run.agentVersionId}
                     {run.tag ? ` · tag ${run.tag}` : ""} · {run.endpointUrl}
                 </Text>
+                {recheckSource(run) !== null && (
+                    <Alert color="blue" title="Re-check">
+                        <Text>
+                            Re-check of <Anchor href={runHref(recheckSource(run) ?? "")}>run {recheckSource(run)}</Anchor>: its stored
+                            answers judged again by the current checks, without calling the agent. The turn times are the source's, copied,
+                            not measured again.
+                        </Text>
+                        {(run.skippedScenarios?.length ?? 0) > 0 && (
+                            <>
+                                <Text fw={600} mt="xs">
+                                    Skipped scenarios
+                                </Text>
+                                <List size="sm">
+                                    {run.skippedScenarios?.map((skipped) => (
+                                        <List.Item key={skipped.key}>
+                                            {skipped.key}: {skipped.reason}
+                                        </List.Item>
+                                    ))}
+                                </List>
+                            </>
+                        )}
+                    </Alert>
+                )}
                 <Group gap="sm" align="flex-start">
                     <RerunButton runId={run.id} />
+                    <RecheckButton run={run} />
                     <CancelButton run={run} />
                 </Group>
                 <Paper withBorder p="md">

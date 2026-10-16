@@ -8,11 +8,31 @@ internal static class PassRateTrend
     /// <summary>The trend shows at most this many runs, the newest.</summary>
     public const int MaxRuns = 50;
 
-    /// <summary>The finished runs among <paramref name="newestFirst"/>, at most <see cref="MaxRuns"/> of them, oldest first.</summary>
-    public static IReadOnlyList<RunRow> Pick(IReadOnlyList<RunRow> newestFirst)
+    /// <summary>
+    /// One point of the trend: a run that called the agent (it gives the point its place and time) and, when it has been re-checked,
+    /// its newest finished re-check, whose results the point shows.
+    /// </summary>
+    internal sealed record Point(RunRow Run, RunRow? RecheckedBy);
+
+    /// <summary>
+    /// The finished runs that called the agent among <paramref name="newestFirst"/>, at most <see cref="MaxRuns"/> of them, oldest
+    /// first. A re-check is never a point of its own; the newest finished one of a run replaces that run's results.
+    /// </summary>
+    public static IReadOnlyList<Point> Pick(IReadOnlyList<RunRow> newestFirst)
     {
         ArgumentNullException.ThrowIfNull(newestFirst);
-        return [.. newestFirst.Where(run => run.State == RunStatus.Done).Take(MaxRuns).Reverse()];
+        var latestRecheck = newestFirst
+            .Where(run => run.State == RunStatus.Done && run.RecheckOf is not null)
+            .GroupBy(run => run.RecheckOf!.Value)
+            .ToDictionary(group => group.Key, group => group.First());
+        return
+        [
+            .. newestFirst
+                .Where(run => run.State == RunStatus.Done && run.RecheckOf is null)
+                .Take(MaxRuns)
+                .Select(run => new Point(run, latestRecheck.GetValueOrDefault(run.Id)))
+                .Reverse(),
+        ];
     }
 
     /// <summary>
