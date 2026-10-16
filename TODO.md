@@ -57,6 +57,15 @@ belongs to.
 
 ## Later, after the MVP
 
+- **Scenarios from real conversations of a connected agent** (the owner's idea). The agents send their conversations
+  (the context they had, the turns, tool calls and results) to Suwageval, kept per agent version; on the web a person picks a
+  conversation and turns it into a scenario. Two parts to design: the integration — how an agent system sends its
+  conversation logs (an endpoint the agent calls, or an import from its traces, e.g. Langfuse/OpenTelemetry), with what
+  retention and what to strip (personal data); and the way back into the agent's repository, since Suwageval runs on another
+  machine than the repo: the page gives the scenario as ready YAML with a "Copy YAML" button and the file's path
+  (`suwageval/scenarios/<key>.yaml`) with its own copy button — and/or a CLI command run in the agent's repo that writes
+  the file there (`validate`, then `push`).
+
 - **Runs from an agent's CI** (needs Suwageval on the cluster first, and the CLI speaking Cloudflare Access with a
   service token). Not a run on every PR: a series of small PRs, or one big MR split into many, would start the whole
   evaluation again and again, each time calling the agent's model and the judge, while most PRs (refactors, tests, CI, docs)
