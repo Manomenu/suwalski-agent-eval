@@ -19,7 +19,12 @@ import {
     trendRows,
     trendSeries,
 } from "./trend";
+import { HeaderHelp } from "./HeaderHelp";
 import { runHref } from "./view";
+
+/** What the chart shows, said on hover over its heading. */
+const PASS_RATE_HELP =
+    "The share of checks that passed in each finished run, oldest to newest. A check counts once per scenario: passed when enough of its samples passed. All comes only from runs of every scenario; a tag's line also takes runs limited to that tag. A line joins the runs that measured it, so a point is a reading, the line between is not. A re-checked run shows its latest re-check. Click a point to open the run.";
 
 const TREND_HEIGHT = 300;
 const ALL_STROKE_WIDTH = 4;
@@ -36,7 +41,9 @@ export function PassRateTrend({ points }: { points: RunPassRates[] }) {
     return (
         <Paper withBorder p="md">
             <Stack gap="sm">
-                <Title order={3}>Pass rate</Title>
+                <Title order={3}>
+                    <HeaderHelp label="Pass rate" help={PASS_RATE_HELP} />
+                </Title>
                 {points.length < TREND_MIN_RUNS ? (
                     <Text c="dimmed">The trend appears after two finished runs.</Text>
                 ) : (
