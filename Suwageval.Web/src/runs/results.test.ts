@@ -1,0 +1,86 @@
+import { describe, expect, it } from "vitest";
+
+import { ApiError } from "../api/client";
+import type { CheckRunResult, ConversationItem, RunSummary, ScenarioRunResult } from "./api";
+import {
+    checkSummary,
+    failedEvidenceKeys,
+    isActive,
+    isRunNotFound,
+    itemBody,
+    itemKey,
+    itemTitle,
+    percent,
+    progress,
+    statusLabel,
+} from "./results";
+
+const call: ConversationItem = { kind: "ToolCall", id: "1", name: "search", arguments: { q: "x" } };
+const reply: ConversationItem = { kind: "AssistantMessage", text: "hi" };
+
+function check(samples: CheckRunResult["samples"]): CheckRunResult {
+    return { key: "c", revision: 1, passed: false, passRate: 0.5, passThreshold: 1, samples };
+}
+
+describe("results", () => {
+    it("knows which runs are still going", () => {
+        expect(isActive("Queued")).toBe(true);
+        expect(isActive("Running")).toBe(true);
+        expect(isActive("Done")).toBe(false);
+        expect(isActive("Failed")).toBe(false);
+        expect(isActive("Cancelled")).toBe(false);
+    });
+
+    it("labels statuses in Polish", () => {
+        expect(statusLabel("Done")).toBe("zakończony");
+    });
+
+    it("writes shares as percent without trailing zeros", () => {
+        expect(percent(1)).toBe("100%");
+        expect(percent(0.5)).toBe("50%");
+        expect(percent("0.6667")).toBe("66.7%");
+    });
+
+    it("summarizes a check", () => {
+        const c = check([
+            { sample: 1, passed: true, evidence: [], message: "" },
+            { sample: 2, passed: false, evidence: [], message: "" },
+        ]);
+        expect(checkSummary(c)).toBe("50% (1/2 próbek, wymagane 100%)");
+    });
+
+    it("shows progress, with no total before the run starts", () => {
+        const run = { samplesTotal: 0, samplesDone: 0 } as RunSummary;
+        expect(progress(run)).toBe("0");
+        expect(progress({ ...run, samplesTotal: 4, samplesDone: 3 })).toBe("3/4");
+    });
+
+    it("recognizes the server's not-found answer", () => {
+        expect(isRunNotFound(new ApiError("There is no run abc.", 404))).toBe(true);
+        expect(isRunNotFound(new ApiError("Internal Server Error", 500))).toBe(false);
+        expect(isRunNotFound(new Error("There is no run abc."))).toBe(false);
+    });
+
+    it("collects the evidence of failed check samples of one sample only", () => {
+        const scenario: ScenarioRunResult = {
+            key: "s",
+            revision: 1,
+            samples: [],
+            checks: [
+                check([
+                    { sample: 1, passed: false, evidence: [call], message: "" },
+                    { sample: 2, passed: false, evidence: [reply], message: "" },
+                    { sample: 1, passed: true, evidence: [reply], message: "" },
+                ]),
+            ],
+        };
+        expect(failedEvidenceKeys(scenario, 1)).toEqual(new Set([itemKey(call)]));
+    });
+
+    it("titles and bodies items", () => {
+        expect(itemTitle(call)).toBe("wywołanie: search");
+        expect(itemBody(call)).toBe('{\n  "q": "x"\n}');
+        expect(itemBody(reply)).toBe("hi");
+        expect(itemTitle({ kind: "ToolResult", callId: "1", content: "", isError: true })).toBe("wynik narzędzia (błąd)");
+    });
+});

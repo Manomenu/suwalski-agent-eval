@@ -5,11 +5,13 @@ using System.Text.Json;
 using Suwageval.Contracts;
 using Suwageval.Contracts.Runs;
 
-namespace Suwageval.Cli.Run;
+namespace Suwageval.Cli.Server;
 
 /// <summary>The server's run endpoints, spoken with the contract records. Anything that goes wrong is a <see cref="RunClientException"/>.</summary>
 internal sealed class RunClient(HttpClient http)
 {
+    private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(1);
+
     public Task<RunCreated> CreateAsync(RunRequest request, CancellationToken cancellationToken) =>
         SendAsync<RunCreated>(
             () => http.PostAsJsonAsync(new Uri("runs", UriKind.Relative), request, ContractJson.Options, cancellationToken),
@@ -24,6 +26,15 @@ internal sealed class RunClient(HttpClient http)
             () => http.GetAsync(new Uri($"runs/{runId}/results", UriKind.Relative), cancellationToken),
             cancellationToken
         );
+
+    /// <summary>Asks for the run until it is done, failed or cancelled.</summary>
+    public async Task WaitForEndAsync(Guid runId, CancellationToken cancellationToken)
+    {
+        while ((await GetAsync(runId, cancellationToken)).Status is RunStatus.Queued or RunStatus.Running)
+        {
+            await Task.Delay(PollInterval, cancellationToken);
+        }
+    }
 
     private static async Task<T> SendAsync<T>(Func<Task<HttpResponseMessage>> send, CancellationToken cancellationToken)
     {
