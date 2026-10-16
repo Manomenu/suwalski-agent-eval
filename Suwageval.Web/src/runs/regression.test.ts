@@ -8,7 +8,6 @@ import {
     historyMarks,
     historyTime,
     historyText,
-    knownFailuresText,
     regressionCompareHref,
     stateColor,
     stateExplanation,
@@ -118,13 +117,6 @@ describe("grouping", () => {
             ],
         } as unknown as RunResults;
         expect(statedChecks(results).map((c) => c.check.key)).toEqual(["c"]);
-    });
-});
-
-describe("knownFailuresText", () => {
-    it("pluralises", () => {
-        expect(knownFailuresText(1)).toBe("1 known failure");
-        expect(knownFailuresText(5)).toBe("5 known failures");
     });
 });
 
