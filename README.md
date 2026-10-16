@@ -115,9 +115,6 @@ with its live test and the recorded answers the gate uses instead of a model.
 - **Around them:** PostgreSQL 17, a container per part, compose for the whole stack on a
   laptop, a Helm chart with a post-deploy smoke test for the cluster.
 
-The repository follows [solid-app-tpl](https://github.com/Manomenu/solid-app-tpl) — the same
-layout, rules and gates, translated from Python to .NET.
-
 ## Requirements
 
 .NET SDK 10, `pnpm` (via corepack), `just`, `docker` with `docker compose` (on Fedora:

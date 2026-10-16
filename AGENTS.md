@@ -205,12 +205,8 @@ through the list and add what fits — or say in the change why something does n
     missing field or a new shape is handled like the service being down (keep the last good data,
     say it may be old), and nothing stored is replaced until the new answer has been read whole.
 
-  `grzyby-mcp` is the reference — read it in `~/repos/grzyby-mcp/`, or at
-  https://github.com/Manomenu/grzyby-mcp when it is not on this machine:
-  `grzyby_server/grzyby_server/miejsca/live.py` (the check), `deploy/chart/templates/live-check.yaml`,
-  `grzyby_server/tests/live/`, `grzyby_server/grzyby_server/lasy/zakazy.py`. Its daily check caught
-  a public dataset dropping a field the day it happened — and, run from GitHub, was then blocked
-  there, which is why it moved to the cluster.
+  Why from the cluster and not from GitHub: a service can block GitHub's runners while it
+  still answers production — the alarm would then be about GitHub, not the service.
   For a model the "recorded answer" matters twice: an evaluation must be repeatable, so the
   gate never calls a model, and a judge's verdicts are tested against stored model output.
 - **Deployment:** compose and the chart learn about the new service or setting (section 2).
@@ -454,10 +450,9 @@ the platform repo:
   `Cf-Access-Jwt-Assertion` header. The server **verifies** it (signature from the team's
   public keys, the application's audience tag) and takes the email from it — never trusts a
   plain email header. The team domain and audience come in as config (a ConfigMap from the
-  platform repo), not secrets. `automat-operat`'s `identity.py` (Python) is the reference
-  implementation — here the same checks become an ASP.NET Core authentication handler: the
-  current user for the endpoints, `/me` for the web app, and logout as
-  a link to `/cdn-cgi/access/logout`.
+  platform repo), not secrets. In ASP.NET Core that is an authentication handler
+  (validating the JWT against the team's JWKS and the audience), the current user available
+  to the endpoints, `/me` for the web app, and logout as a link to `/cdn-cgi/access/logout`.
 - **On a laptop** there is no Cloudflare: a `DEV_USER_EMAIL` setting stands in for the token,
   only when set, and never on the cluster.
 - **Public parts** (a landing page, a public API or MCP endpoint) get an Access *bypass*
@@ -520,49 +515,14 @@ Two vocabularies, chosen word by word:
 
 ## 11. Behavioral guidelines
 
-Guidelines to reduce common LLM coding mistakes.
+- **Think before coding:** state assumptions; with several readings, name them instead of
+  picking one silently; say so when a simpler way exists; when something is unclear, ask.
+- **Surgical changes:** every changed line traces to the task. No "improving" adjacent code;
+  remove only what your change made unused, and mention other dead code instead of deleting it.
+- **Goal-driven:** turn a task into a check that proves it (a failing test first for a bug,
+  tests green before and after a refactor), and loop until the check passes.
 
-**Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
-
-### 11.1 Think Before Coding
-
-**Don't assume. Don't hide confusion. Surface tradeoffs.**
-
-Before implementing:
-- State your assumptions explicitly. If uncertain, ask.
-- If multiple interpretations exist, present them - don't pick silently.
-- If a simpler approach exists, say so. Push back when warranted.
-- If something is unclear, stop. Name what's confusing. Ask.
-
-### 11.2 Surgical Changes
-
-**Touch only what you must. Clean up only your own mess.**
-
-When editing existing code:
-- Don't "improve" adjacent code, comments, or formatting.
-- Don't refactor things that aren't broken.
-- Match existing style, even if you'd do it differently.
-- If you notice unrelated dead code, mention it - don't delete it.
-
-When your changes create orphans:
-- Remove imports/variables/functions that YOUR changes made unused.
-- Don't remove pre-existing dead code unless asked.
-
-The test: Every changed line should trace directly to the user's request.
-
-### 11.3 Goal-Driven Execution
-
-**Define success criteria. Loop until verified.**
-
-Transform tasks into verifiable goals:
-- "Add validation" → "Write tests for invalid inputs, then make them pass"
-- "Fix the bug" → "Write a test that reproduces it, then make it pass"
-- "Refactor X" → "Ensure tests pass before and after"
-
-For multi-step tasks, state a brief plan with a check per step. Simplicity rules are in
-section 0.
-
-### 11.4 Delegate well-defined work to a cheaper model
+### Delegate well-defined work to a cheaper model
 
 **Larger, well-defined tasks go to a subagent on Sonnet** — to save tokens. Well defined
 means: a clear goal, the files it touches are known, and a check says when it is done
