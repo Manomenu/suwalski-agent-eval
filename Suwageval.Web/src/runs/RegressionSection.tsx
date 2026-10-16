@@ -9,7 +9,6 @@ import {
     compareLink,
     stateLabel,
     statedChecks,
-    summaryChips,
     type StatedCheck,
 } from "./regression";
 import { CheckHistory } from "./CheckHistory";
@@ -24,7 +23,6 @@ function CheckLine({ item, runId }: { item: StatedCheck; runId: string }) {
     return (
         <List.Item>
             <Group gap="xs">
-                <StateBadge state={item.state}>{stateLabel(item.state)}</StateBadge>
                 <Text fw={600}>
                     {item.scenarioKey} / {item.check.key}
                 </Text>
@@ -53,27 +51,23 @@ export function RegressionSection({ results }: { results: RunResults }) {
                 <Text c="dimmed" size="sm">
                     {historyText(summary)}
                 </Text>
-                <Group gap="xs">
-                    {summaryChips(summary).map((chip) => (
-                        <StateBadge key={chip.state} state={chip.state} variant="light">
-                            {chip.count} {chip.label.toLowerCase()}
-                        </StateBadge>
-                    ))}
-                </Group>
-                {groups.attention.length > 0 && (
-                    <List listStyleType="none" spacing="xs">
-                        {groups.attention.map((item) => (
-                            <CheckLine key={`${item.scenarioKey}/${item.check.key}`} item={item} runId={runId} />
-                        ))}
-                    </List>
-                )}
-                {groups.brief.length > 0 && (
-                    <List listStyleType="none" size="sm">
-                        {groups.brief.map((item) => (
-                            <CheckLine key={`${item.scenarioKey}/${item.check.key}`} item={item} runId={runId} />
-                        ))}
-                    </List>
-                )}
+                {groups.groups.map((group) => (
+                    <Stack key={group.state} gap="xs">
+                        <Group gap="xs">
+                            <StateBadge state={group.state} variant="light">
+                                {stateLabel(group.state)}
+                            </StateBadge>
+                            <Text span c="dimmed">
+                                ({group.checks.length})
+                            </Text>
+                        </Group>
+                        <List listStyleType="none" spacing="xs" ml="md">
+                            {group.checks.map((item) => (
+                                <CheckLine key={`${item.scenarioKey}/${item.check.key}`} item={item} runId={runId} />
+                            ))}
+                        </List>
+                    </Stack>
+                ))}
                 {groups.known.length > 0 && (
                     <Accordion variant="contained">
                         <Accordion.Item value="known">

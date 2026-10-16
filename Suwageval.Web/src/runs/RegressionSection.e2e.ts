@@ -56,7 +56,9 @@ test("A check that passed in the reference runs and fails now is a regression wi
         await expect(page.getByRole("heading", { name: "Compared with master", exact: true })).toBeVisible();
         await expect(page.getByText("greets / says-hello", { exact: true })).toBeVisible();
         // A state's badge says what the state means.
-        await page.getByText("Regression", { exact: true }).last().hover();
+        const section = page.getByLabel("Compared with master", { exact: true });
+        await expect(section.getByText("(1)", { exact: true })).toBeVisible();
+        await section.getByText("Regression", { exact: true }).hover();
         await expect(page.getByText("Fails now after passing in every one of the newest reference runs", { exact: false })).toBeVisible();
         const link = page.getByRole("link", { name: "Compare with the last passing run", exact: true });
         await expect(link).toHaveAttribute("href", `/compare?runs=${lastPassed},${failing}`);
@@ -114,7 +116,9 @@ test("A check that fails because the agent gave no answer is an agent error, not
 
         await page.goto(`/runs/${failing}`);
         await expect(page.getByText("greets / says-hello", { exact: true })).toBeVisible();
-        await expect(page.getByText("Agent error", { exact: true }).first()).toBeVisible();
+        const section = page.getByLabel("Compared with master", { exact: true });
+        await expect(section.getByText("Agent error", { exact: true })).toBeVisible();
+        await expect(section.getByText("(1)", { exact: true })).toBeVisible();
         await expect(page.getByText("Regression", { exact: true })).toHaveCount(0);
         const strip = page.getByRole("group", { name: "History of the check", exact: true }).first();
         await expect(strip.getByRole("img", { name: "this run: agent error", exact: true })).toBeVisible();

@@ -166,36 +166,19 @@ export function statedChecks(results: RunResults): StatedCheck[] {
     );
 }
 
-const ATTENTION_ORDER: readonly RegressionState[] = ["Regression", "New", "AgentError", "AlreadyBroken"];
-const BRIEF_ORDER: readonly RegressionState[] = ["Fixed", "Unstable"];
+const LISTED_ORDER: readonly RegressionState[] = ["Regression", "New", "AgentError", "AlreadyBroken", "Fixed", "Unstable"];
 
-/** What the run page lists: the attention states in order (Regression, New, Agent error, Already broken), then Fixed and Unstable, known failures apart. */
+/** What the run page lists: a group per state in the page's order (Regression, New, Agent error, Already broken, Fixed, Unstable; empty ones left out), known failures apart. */
 export function groupChecks(checks: readonly StatedCheck[]): {
-    attention: StatedCheck[];
-    brief: StatedCheck[];
+    groups: { state: RegressionState; checks: StatedCheck[] }[];
     known: StatedCheck[];
 } {
-    const inOrder = (order: readonly RegressionState[]) =>
-        checks.filter((c) => order.includes(c.state)).sort((a, b) => order.indexOf(a.state) - order.indexOf(b.state));
     return {
-        attention: inOrder(ATTENTION_ORDER),
-        brief: inOrder(BRIEF_ORDER),
+        groups: LISTED_ORDER.map((state) => ({ state, checks: checks.filter((c) => c.state === state) })).filter(
+            (group) => group.checks.length > 0,
+        ),
         known: checks.filter((c) => c.state === "KnownFailure"),
     };
-}
-
-/** The chips of the summary: the states with a non-zero count, in the run page's order. */
-export function summaryChips(summary: RegressionSummary): { state: RegressionState; label: string; count: number }[] {
-    const counts: [RegressionState, number][] = [
-        ["Regression", summary.regressions],
-        ["New", summary.new],
-        ["AgentError", summary.agentErrors],
-        ["AlreadyBroken", summary.alreadyBroken],
-        ["Fixed", summary.fixed],
-        ["Unstable", summary.unstable],
-        ["KnownFailure", summary.knownFailures],
-    ];
-    return counts.filter(([, count]) => count > 0).map(([state, count]) => ({ state, label: stateLabel(state), count }));
 }
 
 /** "5 known failures" / "1 known failure". */
