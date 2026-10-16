@@ -806,7 +806,7 @@ export interface components {
             /** @description Where suwageval reaches the agent under test (`POST {endpointUrl}/suwageval/turn`). */
             endpointUrl: string;
         };
-        /** @description An agent with what is stored for it: counts of versions, live scenarios and live checks. */
+        /** @description An agent with what is stored for it: counts of active (not archived) versions, live scenarios and live checks. */
         AgentDetail: {
             /** Format: uuid */
             id: string;
