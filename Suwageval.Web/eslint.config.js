@@ -94,6 +94,12 @@ export default defineConfig(
                             from: { element: { type: "feature", captured: { name: "compare" } } },
                             allow: { to: { element: { type: "feature", captured: { name: "checks" } } } },
                         },
+                        // The agent page marks its "Unstable checks" card with the icon the run page and the comparison use
+                        // for an unstable check: checks/ owns the icon, agents/ places it in the heading.
+                        {
+                            from: { element: { type: "feature", captured: { name: "agents" } } },
+                            allow: { to: { element: { type: "feature", captured: { name: "checks" } } } },
+                        },
                         // diff/ is the line diff of two texts: agents/ shows two versions of an agent with it, runs/ the
                         // checks a re-check changes. It wraps a long line of YAML under the start of its value the way the
                         // definition drawer does: checks/ owns that rule (`hangingIndent`).

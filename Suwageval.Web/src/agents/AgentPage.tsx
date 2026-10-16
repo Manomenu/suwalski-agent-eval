@@ -1,24 +1,10 @@
-import {
-    Alert,
-    Anchor,
-    Badge,
-    Button,
-    Checkbox,
-    Group,
-    Loader,
-    MultiSelect,
-    Paper,
-    Stack,
-    Table,
-    Text,
-    Title,
-    Tooltip,
-} from "@mantine/core";
+import { Alert, Anchor, Badge, Button, Checkbox, Group, Loader, MultiSelect, Paper, Stack, Table, Text, Title } from "@mantine/core";
 import { lazy, Suspense, useState } from "react";
 
 import { useUnstableChecks } from "../runs/useUnstableChecks";
 import { formatTime, num, progress, statusColor, statusLabel } from "../runs/results";
 import { fetchAgent, fetchPassRates, fetchVersions, type AgentVersion } from "./api";
+import { HeaderHelp } from "./HeaderHelp";
 import { Page } from "./Page";
 import { useLoaded } from "./useLoaded";
 import { useRuns } from "./useRuns";
@@ -40,10 +26,18 @@ import { UnstableChecksCard } from "./UnstableChecksCard";
 import { VersionsSection } from "./VersionsSection";
 
 // The chart library is the largest part of the app: it loads only when an agent's page is opened.
-/** What the Samples column counts, said on hover over its header. */
+/** What the filters and the runs table's columns mean, said on hover over their labels. */
+const MODEL_HELP =
+    "Show only runs of agent versions that use these models (any of the system's LLM agents). The chart and the unstable checks follow the filter.";
+const DATA_VERSION_HELP =
+    "Show only runs of agent versions whose retrieval data is one of these: the dataVersion the agent declares, a fingerprint of what its retrieval can return (content and indexing). New data is a new agent version. Agents without retrieval have none. The chart and the unstable checks follow the filter.";
+const TAG_HELP = "The scenario tag the run was limited to (run --tag); — means every scenario of the agent ran.";
+const VERSION_HELP =
+    "The agent version the run used: its contract as the agent served it when the run started (LLM agents, prompts, models, tools, events, data version). Any change there is a new version; open it to see the contract, or tick two in Versions to compare them.";
+const CHECKS_HELP =
+    "Checks passed and failed in this run. A check is one condition on the agent's answer, written in a scenario file: a tool called or not, an event, a text, a cited source, a judge's verdict. It passes when its share of passing samples reaches its threshold.";
 const SAMPLES_HELP =
     "Answers of the agent in this run: done / planned. A sample is one play of a scenario's conversation; a scenario is played as many times as its samples field says (1 by default), so a check's pass rate is the share of its samples that passed.";
-const HEADER_HELP_WIDTH = 320;
 
 const PassRateTrend = lazy(() => import("./PassRateTrend").then((module) => ({ default: module.PassRateTrend })));
 
@@ -141,7 +135,7 @@ function AgentView({
                     <Group justify="space-between" align="flex-end">
                         <Group align="flex-end">
                             <MultiSelect
-                                label="Model"
+                                label={<HeaderHelp label="Model" help={MODEL_HELP} />}
                                 placeholder={models.length === 0 ? "All models" : undefined}
                                 data={modelsOf(versions)}
                                 value={models}
@@ -150,7 +144,7 @@ function AgentView({
                                 miw={MODEL_FILTER_MIN_WIDTH}
                             />
                             <MultiSelect
-                                label="Data version"
+                                label={<HeaderHelp label="Data version" help={DATA_VERSION_HELP} />}
                                 placeholder={dataVersions.length === 0 ? "All data versions" : undefined}
                                 data={dataVersionsOf(versions)}
                                 value={dataVersions}
@@ -195,20 +189,17 @@ function AgentView({
                                             <Table.Th />
                                             <Table.Th>Run</Table.Th>
                                             <Table.Th>Status</Table.Th>
-                                            <Table.Th>Tag</Table.Th>
-                                            <Table.Th>Version</Table.Th>
-                                            <Table.Th>Checks</Table.Th>
                                             <Table.Th>
-                                                <Tooltip label={SAMPLES_HELP} multiline w={HEADER_HELP_WIDTH}>
-                                                    <Text
-                                                        span
-                                                        inherit
-                                                        td="underline"
-                                                        style={{ textDecorationStyle: "dotted", cursor: "help" }}
-                                                    >
-                                                        Samples
-                                                    </Text>
-                                                </Tooltip>
+                                                <HeaderHelp label="Tag" help={TAG_HELP} />
+                                            </Table.Th>
+                                            <Table.Th>
+                                                <HeaderHelp label="Version" help={VERSION_HELP} />
+                                            </Table.Th>
+                                            <Table.Th>
+                                                <HeaderHelp label="Checks" help={CHECKS_HELP} />
+                                            </Table.Th>
+                                            <Table.Th>
+                                                <HeaderHelp label="Samples" help={SAMPLES_HELP} />
                                             </Table.Th>
                                             <Table.Th>Created</Table.Th>
                                             <Table.Th>Finished</Table.Th>
