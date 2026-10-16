@@ -4,6 +4,7 @@ import { lazy, Suspense, useState } from "react";
 import { useUnstableChecks } from "../runs/useUnstableChecks";
 import { formatTime, progress, runHref, shortId, statusColor, statusLabel } from "../runs/results";
 import { fetchAgent, fetchPassRates, fetchVersions, type AgentVersion } from "./api";
+import { ConfigurationSection } from "./ConfigurationSection";
 import { HeaderHelp } from "./HeaderHelp";
 import { Page } from "./Page";
 import { useLoaded } from "./useLoaded";
@@ -280,6 +281,8 @@ function AgentView({
                         onShowArchivedChange={setShowArchived}
                         onChanged={onChanged}
                     />
+
+                    <ConfigurationSection endpointUrl={agent.endpointUrl} regression={agent.regression} />
                 </Stack>
             </div>
         </Stack>
