@@ -100,6 +100,7 @@ public sealed class AgentEndpointsTests(TestDatabase database) : IAsyncDisposabl
             }
         );
         var stored = (await store.GetAsync(name, TestContext.Current.CancellationToken))!.Regression;
+        var detail = await TestServer.Read<AgentDetail>(await server.Get($"/agents/{name}"));
         await server.Post(
             "/agents",
             new AgentDefinition
@@ -114,10 +115,13 @@ public sealed class AgentEndpointsTests(TestDatabase database) : IAsyncDisposabl
         var cleared = (await store.GetAsync(name, TestContext.Current.CancellationToken))!.Regression;
 
         Assert.Equal(["master", "release"], stored!.Branches);
+        Assert.Equal(3, detail.Regression!.History);
+        Assert.Equal(["master", "release"], detail.Regression.Branches);
         Assert.Equal(3, stored.History);
         Assert.Null(changed!.Branches);
         Assert.Equal(7, changed.History);
         Assert.Null(cleared);
+        Assert.Null((await TestServer.Read<AgentDetail>(await server.Get($"/agents/{name}"))).Regression);
     }
 
     [Fact]

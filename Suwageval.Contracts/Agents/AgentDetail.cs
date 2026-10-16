@@ -16,4 +16,7 @@ public sealed record AgentDetail
     public required int Scenarios { get; init; }
 
     public required int Checks { get; init; }
+
+    /// <summary>The regression settings from <c>agent.yaml</c>; none when it has no <c>regression:</c>.</summary>
+    public RegressionSettings? Regression { get; init; }
 }

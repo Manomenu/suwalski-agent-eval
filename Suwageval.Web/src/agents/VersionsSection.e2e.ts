@@ -21,6 +21,9 @@ function serveContract(prompt: { current: string; label: string }): Promise<Serv
     return new Promise((resolve) => server.listen(0, "localhost", () => resolve(server)));
 }
 
+/** The rows of the Configuration section's table: endpoint, regression branches, regression history. */
+const CONFIGURATION_ROWS = 3;
+
 async function run(request: APIRequestContext, agent: string) {
     const created = await request.post("/api/runs", { data: { agent } });
     expect(created.ok()).toBe(true);
@@ -50,12 +53,12 @@ test("versions are archived, shown again on request and restored", async ({ page
 
         await expect(page.getByRole("checkbox", { name: "Select version e2e-old", exact: true })).toHaveCount(0);
         await expect(page.getByRole("checkbox", { name: "Select version e2e-new", exact: true })).toBeVisible();
-        await expect(page.getByRole("row")).toHaveCount(1 + 1 + 1 + 1); // runs: header + the new version's run; versions: header + one row
+        await expect(page.getByRole("row")).toHaveCount(1 + 1 + 1 + 1 + CONFIGURATION_ROWS); // runs: header + the new version's run; versions: header + one row
 
         await page.getByRole("switch", { name: "Show archived", exact: true }).check();
         await expect(page.getByRole("checkbox", { name: "Select version e2e-old", exact: true })).toBeVisible();
         await expect(page.getByText("Archived", { exact: true })).toBeVisible();
-        await expect(page.getByRole("row")).toHaveCount(3 + 3);
+        await expect(page.getByRole("row")).toHaveCount(3 + 3 + CONFIGURATION_ROWS);
 
         await page.getByRole("checkbox", { name: "Select version e2e-old", exact: true }).check();
         await page.getByRole("button", { name: "Unarchive selected", exact: true }).click();

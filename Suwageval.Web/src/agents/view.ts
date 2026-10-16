@@ -143,3 +143,15 @@ export function jsonText(value: unknown): string {
 /** What an agent version is, said on hover where versions are listed (the runs table, the Versions section). */
 export const VERSION_HELP =
     "The agent version the run used: its contract as the agent served it when the run started (LLM agents, prompts, models, tools, events, data version). Any change there is a new version; open it to see the contract, or tick two in Versions to compare them.";
+
+/** What the Configuration section's heading says on hover. */
+export const CONFIGURATION_HELP =
+    "Settings from agent.yaml in the agent's repository. They change with suwageval push and are not part of a version (a version is the contract the running agent serves).";
+
+/** What the regression branches row says on hover. */
+export const REGRESSION_BRANCHES_HELP =
+    "Whose runs are reference runs: runs from these branches, with a clean tree and a pushed commit. A check's history is built from them.";
+
+/** What the regression history row says on hover. */
+export const REGRESSION_HISTORY_HELP =
+    "How many of the newest reference runs make a check's history. A steady pass, then a failure: a Regression. That many failures in a row: a Known failure.";

@@ -959,6 +959,7 @@ export interface components {
             scenarios: number;
             /** Format: int32 */
             checks: number;
+            regression?: null | components["schemas"]["RegressionSettings"];
         };
         /**
          * @description A registered version of an agent, without its content (but with the names of the models its LLM agents use, so runs can be

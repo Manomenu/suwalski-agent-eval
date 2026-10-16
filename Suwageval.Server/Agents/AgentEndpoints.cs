@@ -75,6 +75,7 @@ internal static class AgentEndpoints
                 Versions = counts.Versions,
                 Scenarios = counts.Scenarios,
                 Checks = counts.Checks,
+                Regression = row.Regression,
             }
         );
     }
