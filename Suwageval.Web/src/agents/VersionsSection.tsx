@@ -3,7 +3,18 @@ import { useState } from "react";
 
 import { formatTime } from "../runs/results";
 import { archiveVersions, type AgentVersion } from "./api";
-import { firstPages, hasMorePages, selectionActions, versionHref, versionLabel, versionTitle, visibleVersions } from "./view";
+import {
+    firstPages,
+    hasMorePages,
+    compareVersionsTitle,
+    selectionActions,
+    versionCompareHref,
+    versionHref,
+    versionLabel,
+    versionsToCompare,
+    versionTitle,
+    visibleVersions,
+} from "./view";
 
 /** The agent's versions: select some to archive them (hidden, never deleted), switch "Show archived" to see and restore them. */
 export function VersionsSection({
@@ -28,6 +39,7 @@ export function VersionsSection({
 
     const listed = visibleVersions(versions, showArchived);
     const { toArchive, toRestore } = selectionActions(listed, selected);
+    const toCompare = versionsToCompare(listed, selected);
 
     function toggle(id: string, checked: boolean) {
         const next = new Set(selected);
@@ -68,6 +80,17 @@ export function VersionsSection({
                                     }}
                                 >
                                     Archive selected
+                                </Button>
+                                <Button
+                                    variant="light"
+                                    disabled={toCompare === null}
+                                    title={compareVersionsTitle(toCompare !== null)}
+                                    onClick={() => {
+                                        if (toCompare !== null)
+                                            window.location.assign(versionCompareHref(agentName, toCompare[0], toCompare[1]));
+                                    }}
+                                >
+                                    Compare versions
                                 </Button>
                                 {showArchived && (
                                     <Button

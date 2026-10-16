@@ -94,6 +94,12 @@ export default defineConfig(
                             from: { element: { type: "feature", captured: { name: "compare" } } },
                             allow: { to: { element: { type: "feature", captured: { name: "checks" } } } },
                         },
+                        // The version diff wraps a long line of YAML under the start of its value the way the definition
+                        // drawer does: checks/ owns that rule (`hangingIndent`), agents/ uses it.
+                        {
+                            from: { element: { type: "feature", captured: { name: "agents" } } },
+                            allow: { to: { element: { type: "feature", captured: { name: "checks" } } } },
+                        },
                         // Example of an explicit edge — a feature's screen embedding another feature:
                         // {
                         //     from: { element: { type: "feature", captured: { name: "notes" } } },

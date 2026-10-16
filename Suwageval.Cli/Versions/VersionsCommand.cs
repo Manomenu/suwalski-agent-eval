@@ -9,14 +9,15 @@ namespace Suwageval.Cli.Versions;
 /// <summary>
 /// <c>suwageval versions</c>: lists the versions of the agent named in <c>suwageval/agent.yaml</c> (the active ones; with
 /// <c>--archived</c> the archived ones too), and <c>versions archive|unarchive &lt;versionId&gt;...</c> hides or restores them.
-/// A version is never deleted — every run points at one. Exits 0, or 2 when the agent file, the server or a version is wrong.
+/// <c>versions diff &lt;a&gt; &lt;b&gt;</c> opens the page showing what changed between two versions. A version is never deleted — every run points at one. Exits 0, or 2 when the agent file, the server or a version is wrong.
 /// </summary>
 internal static class VersionsCommand
 {
     private const string DefaultDir = "suwageval";
 
     /// <param name="http">The client to the API; none means one is made from <c>--server</c> or <c>SUWAGEVAL_URL</c> (the tests pass their own).</param>
-    public static Command Create(HttpClient? http = null)
+    /// <param name="openBrowser">Opens a page for <c>diff</c>; none means the system's default browser (the tests record the page instead).</param>
+    public static Command Create(HttpClient? http = null, Action<Uri>? openBrowser = null)
     {
         var archived = new Option<bool>("--archived") { Description = "Also list the archived versions (marked archived)." };
         var json = new Option<bool>("--json") { Description = "Print the versions as JSON." };
@@ -31,6 +32,7 @@ internal static class VersionsCommand
             dir,
             Change("archive", "Archive versions: hidden from the web's default views, kept with their runs.", archive: true, http),
             Change("unarchive", "Restore archived versions.", archive: false, http),
+            Diff(http, openBrowser),
         };
         command.SetAction(
             (parsed, cancellationToken) =>
@@ -102,6 +104,48 @@ internal static class VersionsCommand
                                 CultureInfo.InvariantCulture,
                                 $"{(archive ? "archived" : "unarchived")} {versionIds.Length} version(s)"
                             )
+                        );
+                    }
+                )
+        );
+        return command;
+    }
+
+    private static Command Diff(HttpClient? http, Action<Uri>? openBrowser)
+    {
+        var first = new Argument<Guid>("versionA") { Description = "One version of the agent, as `versions` lists it." };
+        var second = new Argument<Guid>("versionB") { Description = "The other version; the older one of the two is the base." };
+        var server = new Option<string?>("--server") { Description = ServerAddress.OptionDescription };
+        var dir = new Option<string>("--dir") { Description = "The folder with agent.yaml.", DefaultValueFactory = _ => DefaultDir };
+        var command = new Command("diff", "Open the page showing what changed between two versions of the agent on the web.")
+        {
+            first,
+            second,
+            server,
+            dir,
+        };
+        command.SetAction(
+            (parsed, cancellationToken) =>
+                WithClient(
+                    parsed,
+                    parsed.GetValue(server),
+                    parsed.GetRequiredValue(dir),
+                    http,
+                    async (client, agent) =>
+                    {
+                        var a = parsed.GetRequiredValue(first);
+                        var b = parsed.GetRequiredValue(second);
+                        if (a == b)
+                        {
+                            throw new RunClientException("Give two different versions.");
+                        }
+                        await client.VersionAsync(agent, a, cancellationToken);
+                        await client.VersionAsync(agent, b, cancellationToken);
+                        await WebPage.ShowAsync(
+                            ServerAddress.VersionComparePage(ServerAddress.Site(parsed.GetValue(server)), agent, a, b),
+                            parsed.InvocationConfiguration.Output,
+                            parsed.InvocationConfiguration.Error,
+                            openBrowser
                         );
                     }
                 )

@@ -84,6 +84,13 @@ internal sealed class RunClient(HttpClient http)
             cancellationToken
         );
 
+    /// <summary>One version of the agent with its contract; the server answers 404 for a version the agent does not have.</summary>
+    public Task<AgentVersionDetail> VersionAsync(string agent, Guid versionId, CancellationToken cancellationToken) =>
+        SendAsync<AgentVersionDetail>(
+            () => http.GetAsync(new Uri($"agents/{Uri.EscapeDataString(agent)}/versions/{versionId}", UriKind.Relative), cancellationToken),
+            cancellationToken
+        );
+
     public Task ArchiveVersionsAsync(string agent, ArchiveVersionsRequest request, CancellationToken cancellationToken) =>
         SendAsync(
             () =>
