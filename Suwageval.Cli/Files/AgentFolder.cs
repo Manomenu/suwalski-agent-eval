@@ -1,5 +1,3 @@
-using Suwageval.Cli.Validate;
-
 namespace Suwageval.Cli.Files;
 
 /// <summary>The files of an agent's <c>suwageval/</c> folder, read as text: <c>agent.yaml</c> and <c>scenarios/*.yaml</c>.</summary>
@@ -18,6 +16,4 @@ internal sealed record AgentFolder(string AgentFile, string? AgentText, IReadOnl
             : [];
         return new AgentFolder(agentFile, File.Exists(agentFile) ? File.ReadAllText(agentFile) : null, [.. files]);
     }
-
-    public ValidationResult Validate() => Validator.Validate(AgentFile, AgentText, Scenarios);
 }

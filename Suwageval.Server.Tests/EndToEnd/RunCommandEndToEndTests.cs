@@ -4,9 +4,10 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Suwageval.Contracts.Agents;
 using Suwageval.Server.Runs;
+using Suwageval.Server.Tests.Runs;
 using CliApp = Cli::Suwageval.Cli.CliApp;
 
-namespace Suwageval.Server.Tests.Runs;
+namespace Suwageval.Server.Tests.EndToEnd;
 
 /// <summary>
 /// <c>suwageval run --wait</c> from the CLI through the server in process to a fake agent over HTTP and back — the MVP's path

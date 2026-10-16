@@ -2,7 +2,7 @@ using System.CommandLine;
 using System.Globalization;
 using System.Text.Json;
 using Suwageval.Cli.Files;
-using Suwageval.Cli.Validate;
+using Suwageval.Cli.Validation;
 
 namespace Suwageval.Cli.Push;
 
@@ -66,7 +66,7 @@ internal static class PushCommand
     )
     {
         var folder = AgentFolder.Read(dir);
-        var validation = folder.Validate();
+        var validation = Validator.Validate(folder);
         if (!validation.IsValid)
         {
             if (json)

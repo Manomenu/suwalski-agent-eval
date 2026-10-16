@@ -501,6 +501,7 @@
         "type": "Project",
         "dependencies": {
           "Suwageval.Contracts": "[1.0.0, )",
+          "Suwageval.Server": "[1.0.0, )",
           "System.CommandLine": "[2.0.13, )",
           "YamlDotNet": "[18.1.0, )"
         }

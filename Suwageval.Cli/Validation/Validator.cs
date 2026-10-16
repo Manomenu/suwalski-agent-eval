@@ -4,7 +4,7 @@ using Suwageval.Contracts;
 using Suwageval.Contracts.Checks;
 using Suwageval.Contracts.Conversations;
 
-namespace Suwageval.Cli.Validate;
+namespace Suwageval.Cli.Validation;
 
 /// <summary>
 /// Everything that can be said about an agent's files without a server: the files match the contract, and what they
@@ -12,6 +12,8 @@ namespace Suwageval.Cli.Validate;
 /// </summary>
 internal static class Validator
 {
+    public static ValidationResult Validate(AgentFolder folder) => Validate(folder.AgentFile, folder.AgentText, folder.Scenarios);
+
     /// <param name="agentFile">Name of the agent file, for the problem when <paramref name="agent"/> is missing.</param>
     /// <param name="agent">The agent file, or null when it does not exist; then what depends on it is not checked.</param>
     /// <param name="scenarioFiles">The scenario files to check, each by its name and content.</param>

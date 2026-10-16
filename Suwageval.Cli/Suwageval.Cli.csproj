@@ -22,7 +22,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Suwageval.Cli.Tests" />
-    <!-- The server's tests run `suwageval run` against the server in process. -->
+    <!-- The server's end-to-end tests run the CLI against the server in process. -->
     <InternalsVisibleTo Include="Suwageval.Server.Tests" />
   </ItemGroup>
 </Project>

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Suwageval.Cli.Tests.Validation;
 
 namespace Suwageval.Cli.Tests.Validate;
 

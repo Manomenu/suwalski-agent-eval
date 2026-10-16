@@ -18,5 +18,7 @@
 
   <ItemGroup>
     <Using Include="Xunit" />
+    <!-- The sample agent folder the push tests push. Its one copy lives in the CLI's tests; this links it into this output, never copies it. -->
+    <None Include="../Suwageval.Cli.Tests/Sample/**" LinkBase="Sample" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
