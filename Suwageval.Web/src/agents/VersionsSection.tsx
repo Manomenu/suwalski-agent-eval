@@ -3,6 +3,7 @@ import { useState } from "react";
 
 import { formatTime } from "../runs/results";
 import { archiveVersions, type AgentVersion } from "./api";
+import { HeaderHelp } from "./HeaderHelp";
 import {
     firstPages,
     hasMorePages,
@@ -12,6 +13,7 @@ import {
     versionHref,
     versionLabel,
     versionsToCompare,
+    VERSION_HELP,
     versionTitle,
     visibleVersions,
 } from "./view";
@@ -64,7 +66,9 @@ export function VersionsSection({
 
     return (
         <Stack gap="sm">
-            <Title order={3}>Versions</Title>
+            <Title order={3}>
+                <HeaderHelp label="Versions" help={VERSION_HELP} />
+            </Title>
             {versions.length === 0 ? (
                 <Text c="dimmed">This agent has no versions yet — one is created on the first run.</Text>
             ) : (

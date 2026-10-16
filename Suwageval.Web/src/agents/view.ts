@@ -156,3 +156,7 @@ export function versionTitle(id: string, label: string | null | undefined): stri
 export function shortId(id: string): string {
     return id.slice(0, 8);
 }
+
+/** What an agent version is, said on hover where versions are listed (the runs table, the Versions section). */
+export const VERSION_HELP =
+    "The agent version the run used: its contract as the agent served it when the run started (LLM agents, prompts, models, tools, events, data version). Any change there is a new version; open it to see the contract, or tick two in Versions to compare them.";
