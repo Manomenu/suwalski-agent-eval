@@ -5,10 +5,14 @@ import { RerunButton } from "./RerunButton";
 import { ScenarioCard } from "./ScenarioCard";
 import { durationSummary, formatTime, isActive, isRunNotFound, num, progress, runStatusLabel, statusColor } from "./results";
 import { useRunResults } from "./useRunResults";
+import { useUnstableChecks } from "./useUnstableChecks";
 
 /** One run's results at `/runs/<id>`: the header, then a card per scenario. */
 export function RunPage({ runId }: { runId: string }) {
     const state = useRunResults(runId);
+    // Asked once the run is known: the agent's unstable checks of this run's version.
+    const loadedRun = state.kind === "loaded" ? state.results.run : null;
+    const unstable = useUnstableChecks(loadedRun?.agent ?? null, loadedRun === null ? [] : [loadedRun.agentVersionId]);
 
     if (state.kind === "loading") return <Loader aria-label="Loading results" />;
     if (state.kind === "error") {
@@ -64,7 +68,7 @@ export function RunPage({ runId }: { runId: string }) {
                     </Alert>
                 )}
                 {scenarios.map((scenario) => (
-                    <ScenarioCard key={scenario.key} scenario={scenario} />
+                    <ScenarioCard key={scenario.key} scenario={scenario} versionId={run.agentVersionId} unstable={unstable} />
                 ))}
             </Stack>
         </>

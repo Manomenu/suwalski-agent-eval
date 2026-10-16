@@ -7,6 +7,7 @@ using Suwageval.Cli.Results;
 using Suwageval.Cli.Run;
 using Suwageval.Cli.Runs;
 using Suwageval.Cli.Server;
+using Suwageval.Cli.Unstable;
 using Suwageval.Cli.Validate;
 using Suwageval.Cli.Versions;
 
@@ -41,6 +42,7 @@ internal static class CliApp
             ResultsCommand.Create(http, openBrowser),
             CompareCommand.Create(http, openBrowser),
             RunsCommand.Create(http),
+            UnstableCommand.Create(http),
             VersionsCommand.Create(http, openBrowser),
         };
         // No termination timeout: System.CommandLine would otherwise handle Ctrl+C itself and end the process two seconds later,

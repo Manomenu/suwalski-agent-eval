@@ -61,6 +61,7 @@ its `/api`. The address is `SUWAGEVAL_URL`, or `--server` on a command; the defa
 | open a run on the web | `suwageval results <runId>` |
 | a run's results as JSON | `suwageval results <runId> --json` |
 | list the agent's newest runs | `suwageval runs` (`--limit N`, `--json`) |
+| list the checks that pass in some runs of a version and fail in others | `suwageval unstable` (`--json`): per check `scenarioKey`, `checkKey`, `passedRuns` of `runs`, the version; "No unstable checks." when none |
 | open the comparison of 2 to 5 runs of one agent | `suwageval compare <runId> <runId>...` (the first is the baseline; exit 2 for an unknown run or runs of different agents) |
 | list the agent's versions | `suwageval versions` (`--archived` to include archived ones, `--json`) |
 | archive or restore versions | `suwageval versions archive <versionId>...`, `suwageval versions unarchive <versionId>...` |
@@ -169,6 +170,15 @@ asked for or confirmed: show the ids first. `/suwageval:versions` does this.
 `checks`; a check has `key`, `passed`, `passRate`, `passThreshold` and per-sample `message` and
 `evidence` — the message says why it failed. A judge check's message is the judge's reason; a sample with `notJudged: true` was not judged at all. A scenario sample with an `error` means the agent
 itself failed on that turn, which is not a check failing: say which.
+
+## Unstable checks
+
+A model does not answer the same way twice: a check can pass in one run and fail in another of the
+**same** agent version. Before suggesting a fix for a failing check, run `suwageval unstable --json`
+and look for it (by `scenarioKey`, `checkKey` and the run's version). When it is listed, say so first:
+the failure may be noise, not a regression. Do not change the agent for it; suggest raising `samples`
+of that scenario (so the pass rate over samples decides) or loosening `passThreshold`, and leave the
+choice to the user.
 
 ## Comparing runs
 

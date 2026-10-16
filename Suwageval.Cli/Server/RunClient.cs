@@ -63,6 +63,13 @@ internal sealed class RunClient(HttpClient http)
         return runs;
     }
 
+    /// <summary>The agent's unstable checks: passed in some finished runs of one version and failed in others, most often failing first.</summary>
+    public Task<IReadOnlyList<UnstableCheck>> UnstableChecksAsync(string agent, CancellationToken cancellationToken) =>
+        SendAsync<IReadOnlyList<UnstableCheck>>(
+            () => http.GetAsync(new Uri($"agents/{Uri.EscapeDataString(agent)}/unstable-checks", UriKind.Relative), cancellationToken),
+            cancellationToken
+        );
+
     public Task<RunResults> ResultsAsync(Guid runId, CancellationToken cancellationToken) =>
         SendAsync<RunResults>(
             () => http.GetAsync(new Uri($"runs/{runId}/results", UriKind.Relative), cancellationToken),

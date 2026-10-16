@@ -9,7 +9,9 @@ using Suwageval.Contracts.Agents;
 using Suwageval.Contracts.Checks;
 using Suwageval.Contracts.Conversations;
 using Suwageval.Contracts.Runs;
+using Suwageval.Server.Checks;
 using Suwageval.Server.Runs;
+using Suwageval.Server.Scenarios;
 
 namespace Suwageval.Server.Tests.Runs;
 
@@ -520,6 +522,59 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         Assert.Equal(
             HttpStatusCode.NotFound,
             (await client.GetAsync(new Uri("/agents/no-such-agent/pass-rates", UriKind.Relative), Cancellation)).StatusCode
+        );
+    }
+
+    [Fact]
+    public async Task Unstable_checks_list_a_check_that_passed_in_one_finished_run_and_failed_in_another()
+    {
+        var client = Client();
+        var agent = await NewAgentAsync("http://agent.test");
+        var store = app.Services.GetRequiredService<RunStore>();
+        var scenario = await app.Services.GetRequiredService<ScenarioStore>().GetAsync(agent.Id, "refund", Cancellation);
+        var check = (await app.Services.GetRequiredService<CheckStore>().ListAsync(agent.Id, cancellationToken: Cancellation)).First(
+            check => check.Key == "refund-called"
+        );
+        var failedRun = Guid.Empty;
+        foreach (var passed in new[] { true, false })
+        {
+            var id = await store.EnqueueAsync(agent.Id, agent.VersionId, null, agent.EndpointUrl, Cancellation);
+            await store.AddSampleAsync(
+                id,
+                new NewSample(
+                    scenario!.Id,
+                    scenario.Revision,
+                    1,
+                    SampleStatus.Done,
+                    "[]",
+                    null,
+                    1,
+                    [],
+                    [new NewCheckResult(check.Id, check.Revision, passed, "[]", "m")]
+                ),
+                Cancellation
+            );
+            await store.FinishAsync(id, RunStatus.Done, cancellationToken: Cancellation);
+            failedRun = passed ? failedRun : id;
+        }
+
+        var unstable = Assert.Single(await GetAsync<List<UnstableCheck>>(client, $"/agents/{agent.Name}/unstable-checks"));
+
+        Assert.Equal(
+            ("refund", "refund-called", agent.VersionId, 2, 1, failedRun),
+            (
+                unstable.ScenarioKey,
+                unstable.CheckKey,
+                unstable.AgentVersionId,
+                unstable.Runs,
+                unstable.PassedRuns,
+                unstable.NewestFailedRunId
+            )
+        );
+        Assert.Empty(await GetAsync<List<UnstableCheck>>(client, $"/agents/{agent.Name}/unstable-checks?version={Guid.NewGuid()}"));
+        Assert.Equal(
+            HttpStatusCode.NotFound,
+            (await client.GetAsync(new Uri("/agents/no-such-agent/unstable-checks", UriKind.Relative), Cancellation)).StatusCode
         );
     }
 

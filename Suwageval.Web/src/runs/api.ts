@@ -2,6 +2,7 @@
 import { request } from "../api/client";
 import type { components } from "../api/openapi";
 import { runsPath } from "./paging";
+import { unstableChecksPath } from "./stability";
 
 export type RunResults = components["schemas"]["RunResults"];
 export type RunCreated = components["schemas"]["RunCreated"];
@@ -9,6 +10,7 @@ export type RunList = components["schemas"]["RunList"];
 export type RunSummary = components["schemas"]["RunSummary"];
 export type ScenarioRunResult = components["schemas"]["ScenarioRunResult"];
 export type CheckRunResult = components["schemas"]["CheckRunResult"];
+export type UnstableCheck = components["schemas"]["UnstableCheck"];
 export type ConversationItem = components["schemas"]["ConversationItem"];
 
 /** One page of the runs of one agent (by name), newest first; see `runsPath`. */
@@ -28,4 +30,9 @@ export function cancelRun(runId: string): Promise<void> {
 /** A new run with the agent, tag and endpoint of this one, against the version the agent serves now. */
 export function rerun(runId: string): Promise<RunCreated> {
     return request<RunCreated>(`/runs/${runId}/rerun`, { method: "POST" });
+}
+
+/** The agent's unstable checks (see `stability.ts`), limited to the given versions (none: all of them). */
+export function fetchUnstableChecks(agent: string, versionIds: readonly string[], signal: AbortSignal): Promise<UnstableCheck[]> {
+    return request<UnstableCheck[]>(unstableChecksPath(agent, versionIds), { signal });
 }
