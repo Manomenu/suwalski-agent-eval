@@ -16,7 +16,7 @@ namespace Suwageval.Cli;
 internal static class CliApp
 {
     // http: the client the commands reach the outside with (the API for push, run and results, the agent for validate); null makes their own.
-    // openBrowser: how results and compare open a page; null is the system's browser.
+    // openBrowser: how results, compare and versions diff open a page; null is the system's browser.
     // interactive: whether a person answers on input; without one, nothing is asked.
     // interrupt: Ctrl+C (Program.cs). It cancels what a command does; run and rerun --wait ask then whether to cancel the run too.
     public static int Run(
@@ -41,7 +41,7 @@ internal static class CliApp
             ResultsCommand.Create(http, openBrowser),
             CompareCommand.Create(http, openBrowser),
             RunsCommand.Create(http),
-            VersionsCommand.Create(http),
+            VersionsCommand.Create(http, openBrowser),
         };
         // No termination timeout: System.CommandLine would otherwise handle Ctrl+C itself and end the process two seconds later,
         // in the middle of the question run --wait asks. Ctrl+C reaches the commands through interrupt instead.

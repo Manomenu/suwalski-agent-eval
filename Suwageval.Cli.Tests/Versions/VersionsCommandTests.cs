@@ -195,4 +195,96 @@ public sealed class VersionsCommandTests
         Assert.NotEqual(0, exit);
         Assert.Empty(api.Calls);
     }
+
+    private static (int Exit, string Output, string Error, FakeApi Api, List<Uri> Opened) Diff(
+        Func<HttpRequestMessage, HttpResponseMessage> answer,
+        params string[] args
+    )
+    {
+        var api = new FakeApi(answer);
+        using var http = new HttpClient(api, disposeHandler: false) { BaseAddress = new Uri("http://api.test/") };
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        var opened = new List<Uri>();
+        var exit = CliApp.Run(["versions", "diff", .. args, "--dir", Sample], new StringReader(""), output, error, http, opened.Add);
+        return (exit, output.ToString(), error.ToString(), api, opened);
+    }
+
+    private static HttpResponseMessage Detail(HttpRequestMessage request)
+    {
+        var id = Guid.Parse(request.RequestUri?.AbsolutePath.Split('/').Last() ?? "");
+        return new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(
+                JsonSerializer.Serialize(
+                    new AgentVersionDetail(
+                        id,
+                        Guid.NewGuid(),
+                        "hash",
+                        DateTimeOffset.Parse("2026-10-01T10:00:00Z"),
+                        null,
+                        new AgentContract
+                        {
+                            Agents =
+                            [
+                                new LlmAgentDefinition
+                                {
+                                    Name = "main",
+                                    Model = new ModelDefinition { Name = "m" },
+                                    Config = "c",
+                                },
+                            ],
+                        }
+                    ),
+                    ContractJson.Options
+                ),
+                Encoding.UTF8,
+                "application/json"
+            ),
+        };
+    }
+
+    [Fact]
+    public void Diff_checks_both_versions_then_prints_and_opens_the_page()
+    {
+        var (exit, output, error, api, opened) = Diff(Detail, Archived.ToString(), Active.ToString());
+
+        Assert.Equal(0, exit);
+        Assert.Empty(error);
+        Assert.Equal(
+            [$"/agents/example-agent/versions/{Archived}", $"/agents/example-agent/versions/{Active}"],
+            api.Calls.Select(call => call.Path)
+        );
+        var page = $"http://localhost:3230/agents/example-agent/versions/compare?a={Archived}&b={Active}";
+        Assert.Equal(page, output.Trim());
+        Assert.Equal(page, opened.Single().ToString());
+    }
+
+    [Fact]
+    public void Diff_of_a_version_the_agent_does_not_have_exits_2_and_opens_nothing()
+    {
+        var (exit, output, error, _, opened) = Diff(
+            request =>
+                request.RequestUri?.AbsolutePath.EndsWith(Active.ToString(), StringComparison.Ordinal) == true
+                    ? new HttpResponseMessage(HttpStatusCode.NotFound)
+                    : Detail(request),
+            Archived.ToString(),
+            Active.ToString()
+        );
+
+        Assert.Equal(2, exit);
+        Assert.Empty(output);
+        Assert.Contains("404", error, StringComparison.Ordinal);
+        Assert.Empty(opened);
+    }
+
+    [Fact]
+    public void Diff_of_the_same_version_twice_exits_2_without_any_request()
+    {
+        var (exit, _, error, api, _) = Diff(Detail, Active.ToString(), Active.ToString());
+
+        Assert.Equal(2, exit);
+        Assert.Contains("two different versions", error, StringComparison.Ordinal);
+        Assert.Empty(api.Calls);
+    }
 }

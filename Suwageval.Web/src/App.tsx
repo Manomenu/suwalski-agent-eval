@@ -1,5 +1,6 @@
 import { Anchor, AppShell, Box, Burger, Group, Image, Title } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
+import { lazy, Suspense } from "react";
 
 import { AgentPage } from "./agents/AgentPage";
 import { AgentsPage } from "./agents/AgentsPage";
@@ -10,6 +11,9 @@ import { pageOf } from "./route";
 import { RunPage } from "./runs/RunPage";
 import { AppNavbar } from "./shell/AppNavbar";
 import { CONTENT_MAX_WIDTH, HEADER_HEIGHT, LOGO_SIZE, NAVBAR_WIDTH } from "./shell/layout";
+
+// The diff library is needed only here: the page loads when a comparison of versions is opened.
+const VersionComparePage = lazy(() => import("./agents/VersionComparePage").then((module) => ({ default: module.VersionComparePage })));
 
 /** Puts the page together from features: the shell (header, sidebar), then the page the path opens. */
 export function App() {
@@ -42,7 +46,7 @@ export function App() {
             <AppShell.Navbar p="xs">
                 <AppNavbar
                     agentsActive={page.kind === "agents"}
-                    agentName={page.kind === "agent" || page.kind === "version" ? page.name : null}
+                    agentName={page.kind === "agent" || page.kind === "version" || page.kind === "versionCompare" ? page.name : null}
                     agentActive={page.kind === "agent"}
                 />
             </AppShell.Navbar>
@@ -52,6 +56,11 @@ export function App() {
                     {page.kind === "agents" && <AgentsPage />}
                     {page.kind === "agent" && <AgentPage name={page.name} />}
                     {page.kind === "version" && <VersionPage name={page.name} versionId={page.versionId} />}
+                    {page.kind === "versionCompare" && (
+                        <Suspense fallback={null}>
+                            <VersionComparePage name={page.name} a={page.a} b={page.b} />
+                        </Suspense>
+                    )}
                     {page.kind === "run" && <RunPage runId={page.runId} />}
                     {page.kind === "compare" && <ComparePage runs={page.runs} />}
                     {page.kind === "unknown" && <Anchor href="/">Page not found — back to the list of agents</Anchor>}

@@ -64,8 +64,10 @@ its `/api`. The address is `SUWAGEVAL_URL`, or `--server` on a command; the defa
 | open the comparison of 2 to 5 runs of one agent | `suwageval compare <runId> <runId>...` (the first is the baseline; exit 2 for an unknown run or runs of different agents) |
 | list the agent's versions | `suwageval versions` (`--archived` to include archived ones, `--json`) |
 | archive or restore versions | `suwageval versions archive <versionId>...`, `suwageval versions unarchive <versionId>...` |
+| open what changed between two versions of the agent | `suwageval versions diff <versionA> <versionB>` (checks both exist; the older is the base; exit 2 for an unknown version) |
 
 A run's page is `{SUWAGEVAL_URL}/runs/{runId}`; the comparison of runs is `{SUWAGEVAL_URL}/compare?runs={id},{id},...`.
+The comparison of two versions is `{SUWAGEVAL_URL}/agents/{agent}/versions/compare?a={id}&b={id}`.
 
 ### Exit codes
 

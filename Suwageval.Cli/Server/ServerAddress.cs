@@ -26,4 +26,8 @@ internal static class ServerAddress
 
     /// <summary>The web page comparing runs; the first is the baseline.</summary>
     public static Uri ComparePage(Uri site, IEnumerable<Guid> runIds) => new(site, $"compare?runs={string.Join(',', runIds)}");
+
+    /// <summary>The web page showing what changed between two versions of an agent.</summary>
+    public static Uri VersionComparePage(Uri site, string agent, Guid a, Guid b) =>
+        new(site, $"agents/{Uri.EscapeDataString(agent)}/versions/compare?a={a}&b={b}");
 }

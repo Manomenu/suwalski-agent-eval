@@ -17,6 +17,9 @@ import {
     runHref,
     runsToCompare,
     selectionActions,
+    compareVersionsTitle,
+    versionCompareHref,
+    versionsToCompare,
     shortId,
     versionHref,
     versionLabel,
@@ -208,5 +211,29 @@ describe("firstPages", () => {
         expect(hasMorePages(items, 3)).toBe(false);
         expect(hasMorePages(items.slice(0, PAGE_SIZE), 1)).toBe(false);
         expect(hasMorePages([], 1)).toBe(false);
+    });
+});
+
+describe("versionsToCompare", () => {
+    const versions = [{ id: "a" }, { id: "b" }, { id: "c" }];
+
+    it("gives the two selected versions in the list's order", () => {
+        expect(versionsToCompare(versions, new Set(["c", "a"]))).toEqual(["a", "c"]);
+    });
+
+    it("gives nothing for fewer or more than two", () => {
+        expect(versionsToCompare(versions, new Set())).toBeNull();
+        expect(versionsToCompare(versions, new Set(["a"]))).toBeNull();
+        expect(versionsToCompare(versions, new Set(["a", "b", "c"]))).toBeNull();
+    });
+
+    it("ignores a selected version the list no longer shows", () => {
+        expect(versionsToCompare(versions, new Set(["a", "gone"]))).toBeNull();
+    });
+
+    it("names the page and says why it cannot open yet", () => {
+        expect(versionCompareHref("my bot", "a", "b")).toBe("/agents/my%20bot/versions/compare?a=a&b=b");
+        expect(compareVersionsTitle(false)).toContain("exactly two");
+        expect(compareVersionsTitle(true)).toContain("changed");
     });
 });

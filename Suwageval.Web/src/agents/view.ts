@@ -127,6 +127,21 @@ export function selectionActions(
     };
 }
 
+/** The page showing what changed between two versions of the agent. */
+export const versionCompareHref = (name: string, a: string, b: string) => `${agentHref(name)}/versions/compare?a=${a}&b=${b}`;
+
+/** The two selected versions to compare, or null unless exactly two are selected. */
+export function versionsToCompare(versions: { id: string }[], selected: ReadonlySet<string>): [string, string] | null {
+    const chosen = versions.filter((version) => selected.has(version.id));
+    const [first, second] = chosen;
+    return first && second && chosen.length === 2 ? [first.id, second.id] : null;
+}
+
+/** The tooltip of "Compare versions": what it does, or why it cannot yet. */
+export function compareVersionsTitle(ready: boolean): string {
+    return ready ? "Show what changed between the two selected versions" : "Select exactly two versions to compare them";
+}
+
 /** A JSON value (a schema, model parameters) as indented text for a code block. */
 export function jsonText(value: unknown): string {
     return JSON.stringify(value, null, 2);
