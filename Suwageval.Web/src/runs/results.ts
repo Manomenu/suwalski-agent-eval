@@ -19,15 +19,15 @@ export function isActive(status: Status): boolean {
 export function statusLabel(status: Status): string {
     switch (status) {
         case "Queued":
-            return "w kolejce";
+            return "queued";
         case "Running":
-            return "trwa";
+            return "running";
         case "Done":
-            return "zakończony";
+            return "done";
         case "Failed":
-            return "nieudany";
+            return "failed";
         case "Cancelled":
-            return "anulowany";
+            return "cancelled";
     }
 }
 
@@ -57,12 +57,12 @@ export function isRunNotFound(error: Error): boolean {
 
 export function formatTime(iso: string | null | undefined): string {
     if (!iso) return "—";
-    return new Date(iso).toLocaleString("pl-PL");
+    return new Date(iso).toLocaleString("en-GB");
 }
 
 export function checkSummary(check: CheckRunResult): string {
     const passes = check.samples.filter((sample) => sample.passed).length;
-    return `${percent(check.passRate)} (${passes}/${check.samples.length} próbek, wymagane ${percent(check.passThreshold)})`;
+    return `${percent(check.passRate)} (${passes}/${check.samples.length} samples, required ${percent(check.passThreshold)})`;
 }
 
 /** A run's progress: `3/10`, or just `0` before the total is known. */
@@ -91,17 +91,17 @@ export function failedEvidenceKeys(scenario: ScenarioRunResult, sample: number):
 export function itemTitle(item: ConversationItem): string {
     switch (item.kind) {
         case "UserMessage":
-            return "użytkownik";
+            return "user";
         case "AssistantMessage":
-            return item.interrupted === true ? "agent (przerwano)" : "agent";
+            return item.interrupted === true ? "agent (interrupted)" : "agent";
         case "ToolCall":
-            return `wywołanie: ${item.name}`;
+            return `call: ${item.name}`;
         case "ToolResult":
-            return item.isError === true ? "wynik narzędzia (błąd)" : "wynik narzędzia";
+            return item.isError === true ? "tool result (error)" : "tool result";
         case "Retrieval":
-            return `wyszukiwanie: ${item.query}`;
+            return `retrieval: ${item.query}`;
         case "Event":
-            return `zdarzenie: ${item.type}`;
+            return `event: ${item.type}`;
         default:
             return "?";
     }

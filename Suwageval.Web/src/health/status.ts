@@ -11,10 +11,10 @@ export function statusOf(result: Health | Error): ServerStatus {
 export function describe(status: ServerStatus): string {
     switch (status.kind) {
         case "checking":
-            return "sprawdzam…";
+            return "checking…";
         case "up":
-            return "działa";
+            return "up";
         case "down":
-            return `nie działa (${status.reason})`;
+            return `down (${status.reason})`;
     }
 }

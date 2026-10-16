@@ -11,14 +11,14 @@ export function Page<T>({
     children,
 }: {
     state: Loaded<T>;
-    /** What a 404 says, e.g. "Nie ma agenta x." */
+    /** What a 404 says, e.g. "There is no agent x." */
     notFound: string;
     children: (value: T) => ReactNode;
 }) {
     if (state.kind === "loading") {
         return (
             <Container py="xl">
-                <Loader aria-label="Ładuję" />
+                <Loader aria-label="Loading" />
             </Container>
         );
     }
@@ -26,7 +26,7 @@ export function Page<T>({
         const missing = isNotFound(state.error);
         return (
             <Container py="xl">
-                <Alert color="red" title={missing ? "Nie znaleziono" : "Nie udało się wczytać strony"}>
+                <Alert color="red" title={missing ? "Not found" : "Could not load the page"}>
                     {missing ? notFound : state.error.message}
                 </Alert>
             </Container>

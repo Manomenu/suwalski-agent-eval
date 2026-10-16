@@ -5,7 +5,7 @@ import { itemBody, itemKey, itemTitle } from "./results";
 
 /** The items of a turn, one under another; `highlight` marks the ones a failed check points at. */
 export function ConversationView({ items, highlight }: { items: ConversationItem[]; highlight: Set<string> }) {
-    if (items.length === 0) return <Text c="dimmed">Brak wyniku.</Text>;
+    if (items.length === 0) return <Text c="dimmed">No output.</Text>;
     return (
         <Stack gap="xs">
             {items.map((item, index) => {
@@ -15,7 +15,7 @@ export function ConversationView({ items, highlight }: { items: ConversationItem
                     <Paper key={index} withBorder p="xs" style={marked ? { borderColor: "var(--mantine-color-red-6)" } : undefined}>
                         <Badge variant="light" color={marked ? "red" : "gray"} mb={4}>
                             {itemTitle(item)}
-                            {marked ? " · dowód" : ""}
+                            {marked ? " · evidence" : ""}
                         </Badge>
                         <Code block>{itemBody(item)}</Code>
                     </Paper>

@@ -41,6 +41,11 @@ api-types:
 cli *args:
     dotnet run --project Suwageval.Cli -- {{ args }}
 
+# Open a tmux layout with the local stack: server, web, example agent, spare shell and a CLI shell
+[group('dev')]
+tmux-dev:
+    @./scripts/.internal/tmux-dev.sh
+
 # Pack the CLI and install (or update) it as the global `suwageval` command
 [group('dev')]
 cli-install:

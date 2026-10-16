@@ -12,14 +12,14 @@ test("an agent is listed and opens its page", async ({ page, request }) => {
     await page.getByRole("link", { name, exact: true }).click();
 
     await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();
-    await expect(page.getByText("Ten agent nie miał jeszcze runu.", { exact: true })).toBeVisible();
-    await expect(page.getByText("Ten agent nie ma jeszcze wersji — powstaje przy pierwszym runie.", { exact: true })).toBeVisible();
+    await expect(page.getByText("This agent has no runs yet.", { exact: true })).toBeVisible();
+    await expect(page.getByText("This agent has no versions yet — one is created on the first run.", { exact: true })).toBeVisible();
 
     await page.getByRole("link", { name: "suwageval", exact: true }).click();
-    await expect(page.getByRole("heading", { name: "Agenci", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Agents", exact: true })).toBeVisible();
 });
 
 test("an unknown agent shows that it was not found", async ({ page }) => {
     await page.goto("/agents/no-such-agent");
-    await expect(page.getByText("Nie ma agenta no-such-agent.", { exact: true })).toBeVisible();
+    await expect(page.getByText("There is no agent no-such-agent.", { exact: true })).toBeVisible();
 });

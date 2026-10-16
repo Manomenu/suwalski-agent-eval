@@ -10,12 +10,14 @@ WORKDIR /src
 # Manifests and lockfiles first — this layer is the expensive one and it only rebuilds when a
 # dependency moves. Locked mode: a lockfile out of date with the packages fails the image.
 COPY global.json Directory.Build.props Directory.Packages.props ./
+COPY Suwageval.Contracts/Suwageval.Contracts.csproj Suwageval.Contracts/packages.lock.json Suwageval.Contracts/
 COPY Suwageval.Server/Suwageval.Server.csproj Suwageval.Server/packages.lock.json Suwageval.Server/
 RUN --mount=type=cache,target=/root/.nuget/packages \
     dotnet restore Suwageval.Server --locked-mode
 
 # Then the sources, which change every commit.
 COPY .editorconfig ./
+COPY Suwageval.Contracts/ Suwageval.Contracts/
 COPY Suwageval.Server/ Suwageval.Server/
 RUN --mount=type=cache,target=/root/.nuget/packages \
     dotnet publish Suwageval.Server --no-restore -c Release -o /app
