@@ -38,8 +38,8 @@ internal static class AgentFileReader
         {
             return null;
         }
-        var regression = RegressionRules.Problems(definition.Regression);
-        problems.AddRange(regression.Select(problem => source.Problem(problem.Path, problem.Message)));
-        return regression.Count == 0 ? new LoadedAgent(source, definition) : null;
+        var found = AgentRules.Problems(definition);
+        problems.AddRange(found.Select(problem => source.Problem(problem.Path, problem.Message)));
+        return found.Count == 0 ? new LoadedAgent(source, definition) : null;
     }
 }

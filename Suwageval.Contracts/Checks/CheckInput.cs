@@ -22,4 +22,11 @@ public abstract record CheckInput
 
     /// <summary>The share of samples that must pass, from above 0 to 1.</summary>
     public double PassThreshold { get; init; } = 1.0;
+
+    /// <summary>
+    /// How many of its scenario's samples the check is judged on (the first ones, 1 to 20), and the number its pass rate and threshold
+    /// count over. Not set: the scenario's samples.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? Samples { get; init; }
 }

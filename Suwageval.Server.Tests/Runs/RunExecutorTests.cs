@@ -428,6 +428,95 @@ public sealed class RunExecutorTests(TestDatabase database)
         Assert.Equal(5, results.Run.SamplesTotal);
     }
 
+    [Fact]
+    public async Task A_scenario_is_called_as_often_as_its_most_demanding_check_and_each_check_is_judged_on_its_first_samples_only()
+    {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
+        var agent = await SeededAgent.CreateAsync(
+            database.Pool,
+            fake.Url.AbsoluteUri,
+            [SeededAgent.Scenario("refund", samples: 3)],
+            [
+                SeededAgent.RefundAfterLookup("once", "refund") with
+                {
+                    Samples = 1,
+                },
+                SeededAgent.RefundAfterLookup("twice", "refund") with
+                {
+                    Samples = 2,
+                },
+                SeededAgent.RefundedEvent("as-scenario", "refund"),
+            ]
+        );
+
+        var results = await RunAsync(agent, parallel: 1);
+
+        Assert.Equal(3, fake.Requests.Count);
+        Assert.Equal((3, 3), (results.Run.SamplesTotal, results.Run.SamplesDone));
+        var scenario = Assert.Single(results.Scenarios);
+        Assert.Equal([1, 2, 3], scenario.Samples.Select(sample => sample.Sample));
+        var checks = scenario.Checks.ToDictionary(check => check.Key);
+        Assert.Equal([1], checks["once"].Samples.Select(sample => sample.Sample));
+        Assert.Equal([1, 2], checks["twice"].Samples.Select(sample => sample.Sample));
+        Assert.Equal([1, 2, 3], checks["as-scenario"].Samples.Select(sample => sample.Sample));
+        Assert.All(checks.Values, check => Assert.True(check.Passed));
+        Assert.Equal(6, results.Run.ChecksPassed); // verdicts: 1 + 2 + 3
+    }
+
+    [Fact]
+    public async Task A_check_that_asks_for_more_samples_than_its_scenario_raises_the_calls()
+    {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
+        var agent = await SeededAgent.CreateAsync(
+            database.Pool,
+            fake.Url.AbsoluteUri,
+            [SeededAgent.Scenario("refund", samples: 1)],
+            [SeededAgent.RefundAfterLookup("many", "refund") with { Samples = 4 }]
+        );
+
+        var results = await RunAsync(agent, parallel: 1);
+
+        Assert.Equal(4, fake.Requests.Count);
+        Assert.Equal(4, Assert.Single(Assert.Single(results.Scenarios).Checks).Samples.Count);
+    }
+
+    [Theory]
+    [InlineData(null, 3)]
+    [InlineData(2, 2)]
+    public async Task A_scenario_without_samples_takes_the_agents_and_then_three(int? agentSamples, int expected)
+    {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
+        var agent = await SeededAgent.CreateAsync(
+            database.Pool,
+            fake.Url.AbsoluteUri,
+            [SeededAgent.Scenario("refund", samples: null)],
+            [SeededAgent.RefundAfterLookup("refund-called", "refund")],
+            agentSamples: agentSamples
+        );
+
+        var results = await RunAsync(agent, parallel: 1);
+
+        Assert.Equal(expected, fake.Requests.Count);
+        Assert.Equal(expected, Assert.Single(Assert.Single(results.Scenarios).Checks).Samples.Count);
+    }
+
+    [Fact]
+    public async Task A_scenario_without_checks_is_called_its_own_number_of_times()
+    {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
+        var agent = await SeededAgent.CreateAsync(
+            database.Pool,
+            fake.Url.AbsoluteUri,
+            [SeededAgent.Scenario("refund", samples: null)],
+            [],
+            agentSamples: 4
+        );
+
+        await RunAsync(agent, parallel: 1);
+
+        Assert.Equal(4, fake.Requests.Count);
+    }
+
     private int calls;
 
     [Fact]

@@ -92,6 +92,28 @@ public sealed class ValidatorTests
     }
 
     [Fact]
+    public void An_agents_samples_are_read_into_the_agent()
+    {
+        var result = ValidateAgentFile("name: x\nendpointUrl: http://x\nsamples: 5\n");
+
+        Assert.True(result.IsValid);
+        Assert.Equal(5, result.Agent?.Definition.Samples);
+        Assert.Null(ValidateAgentFile("name: x\nendpointUrl: http://x\n").Agent?.Definition.Samples);
+    }
+
+    [Theory]
+    [InlineData("samples: 0")]
+    [InlineData("samples: 21")]
+    public void An_agents_samples_out_of_range_are_a_problem_at_their_line(string field)
+    {
+        var result = ValidateAgentFile("name: x\nendpointUrl: http://x\n" + field + "\n");
+
+        var problem = Assert.Single(result.Problems);
+        Assert.Equal(("agent.yaml", "samples", 3L), (problem.File, problem.Path, problem.Line));
+        Assert.Contains("from 1 to 20", problem.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_version_in_the_agent_file_is_refused_because_versions_come_from_the_agent()
     {
         var result = ValidateAgentFile("name: x\nendpointUrl: http://x\nversion:\n  systemPrompt: p\n  model: { name: m }\n");
@@ -189,11 +211,35 @@ public sealed class ValidatorTests
             "kebab-case"
         );
 
+    [Fact]
+    public void Turns_are_at_least_one() =>
+        AssertProblem(Validate("key: k\ncontinuation: { turns: 0 }\nconversation:\n  - user: hi\n"), "continuation.turns", "at least 1");
+
     [Theory]
-    [InlineData("samples: 0", "samples")]
-    [InlineData("continuation: { turns: 0 }", "continuation.turns")]
-    public void Counts_are_at_least_one(string field, string path) =>
-        AssertProblem(Validate($"key: k\n{field}\nconversation:\n  - user: hi\n"), path, "at least 1");
+    [InlineData("samples: 0")]
+    [InlineData("samples: 21")]
+    public void A_scenarios_samples_are_from_one_to_twenty(string field) =>
+        AssertProblem(Validate($"key: k\n{field}\nconversation:\n  - user: hi\n"), "samples", "from 1 to 20 (the default is 3)");
+
+    [Theory]
+    [InlineData("0")]
+    [InlineData("21")]
+    public void A_checks_samples_are_from_one_to_twenty(string samples) =>
+        AssertProblem(
+            Validate($"key: k\nconversation:\n  - user: hi\nchecks:\n  - {{ key: c, type: text, contains: x, samples: {samples} }}\n"),
+            "checks[0].samples",
+            "checks[0].samples is from 1 to 20"
+        );
+
+    [Fact]
+    public void Samples_set_on_a_scenario_and_a_check_are_read()
+    {
+        var result = Validate(
+            "key: k\nsamples: 5\nconversation:\n  - user: hi\nchecks:\n  - { key: c, type: text, contains: x, samples: 1 }\n"
+        );
+
+        Assert.True(result.IsValid);
+    }
 
     [Fact]
     public void A_tool_result_must_answer_an_earlier_tool_call()

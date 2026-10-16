@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Suwageval.Contracts.Agents;
 
 public sealed record AgentDefinition
@@ -6,6 +8,10 @@ public sealed record AgentDefinition
 
     /// <summary>Where suwageval reaches the agent under test (<c>POST {endpointUrl}/suwageval/turn</c>).</summary>
     public required string EndpointUrl { get; init; }
+
+    /// <summary>How many times each scenario's conversation is sent to the agent by default (1 to 20); none means 3.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? Samples { get; init; }
 
     /// <summary>How the agent's regressions are found; none means the defaults.</summary>
     public RegressionSettings? Regression { get; init; }

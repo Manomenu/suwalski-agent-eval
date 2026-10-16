@@ -17,6 +17,9 @@ public sealed record AgentDetail
 
     public required int Checks { get; init; }
 
+    /// <summary>The agent's default number of samples from <c>agent.yaml</c>; none when it has no <c>samples:</c> (3 then).</summary>
+    public int? Samples { get; init; }
+
     /// <summary>The regression settings from <c>agent.yaml</c>; none when it has no <c>regression:</c>.</summary>
     public RegressionSettings? Regression { get; init; }
 }

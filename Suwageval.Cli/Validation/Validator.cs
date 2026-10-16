@@ -3,6 +3,7 @@ using Suwageval.Contracts;
 using Suwageval.Contracts.Agents;
 using Suwageval.Contracts.Checks;
 using Suwageval.Contracts.Conversations;
+using Suwageval.Contracts.Samples;
 
 namespace Suwageval.Cli.Validation;
 
@@ -76,9 +77,9 @@ internal static class Validator
                 );
             }
         }
-        if (scenario.Samples < 1)
+        if (SampleRules.Problem(scenario.Samples, "samples") is { } samplesProblem)
         {
-            problems.Add(source.Problem("samples", "samples is at least 1."));
+            problems.Add(source.Problem("samples", samplesProblem));
         }
         if (scenario.Continuation.Turns < 1)
         {

@@ -51,6 +51,20 @@ it("keeps long text on one line, for the drawer to wrap", () => {
     expect(yaml).toContain(`criteria: ${criteria}\n`);
 });
 
+describe("a check's own samples", () => {
+    const withSamples: CheckDefinition = { ...toolCalled, samples: 1 };
+
+    it("closes the YAML after passThreshold", () => {
+        expect(definitionYaml(withSamples).endsWith("passThreshold: 1\nsamples: 1\n")).toBe(true);
+    });
+
+    it("is said in the summary only when the check sets it", () => {
+        expect(definitionSummary(withSamples)).toBe("tool-called refund_order · turn 1 · after get_order · threshold 100% · 1 sample");
+        expect(definitionSummary({ ...toolCalled, samples: 5 }).endsWith("· 5 samples")).toBe(true);
+        expect(definitionSummary(toolCalled)).not.toContain("sample");
+    });
+});
+
 describe("definitionSummary", () => {
     it("names the tool, turn, after and threshold", () => {
         expect(definitionSummary(toolCalled)).toBe("tool-called refund_order · turn 1 · after get_order · threshold 100%");

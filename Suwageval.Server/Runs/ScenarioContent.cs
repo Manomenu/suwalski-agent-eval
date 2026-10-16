@@ -14,5 +14,6 @@ internal sealed record ScenarioContent
 
     public Continuation Continuation { get; init; } = new();
 
-    public int Samples { get; init; } = 1;
+    /// <summary>Not set (null): the agent's default, else 3.</summary>
+    public int? Samples { get; init; }
 }

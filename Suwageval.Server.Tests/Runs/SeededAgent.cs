@@ -85,7 +85,13 @@ internal sealed record SeededAgent(Guid Id, string Name, Guid VersionId, string 
             },
         };
 
-    public static ScenarioInput Scenario(string key, string[]? tags = null, int samples = 1, int turns = 1, JsonElement? fixtures = null) =>
+    public static ScenarioInput Scenario(
+        string key,
+        string[]? tags = null,
+        int? samples = 1,
+        int turns = 1,
+        JsonElement? fixtures = null
+    ) =>
         new()
         {
             Key = key,
@@ -125,7 +131,8 @@ internal sealed record SeededAgent(Guid Id, string Name, Guid VersionId, string 
         string endpointUrl,
         IReadOnlyList<ScenarioInput> scenarios,
         IReadOnlyList<CheckInput> checks,
-        AgentContract? version = null
+        AgentContract? version = null,
+        int? agentSamples = null
     )
     {
         var agents = new AgentStore(pool);
@@ -136,6 +143,10 @@ internal sealed record SeededAgent(Guid Id, string Name, Guid VersionId, string 
             null,
             cancellationToken: TestContext.Current.CancellationToken
         );
+        if (agentSamples is not null)
+        {
+            await agents.SetSettingsAsync(agent.Id, agentSamples, null, TestContext.Current.CancellationToken);
+        }
         await new ScenarioStore(pool).UpsertAsync(
             agent.Id,
             [

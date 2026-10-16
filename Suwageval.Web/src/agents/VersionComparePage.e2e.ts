@@ -46,7 +46,7 @@ test("two ticked versions open a comparison with a summary and a line diff", asy
         const name = `e2e-versions-compare-${Date.now()}`;
         const endpointUrl = `http://localhost:${(agentServer.address() as AddressInfo).port}`;
         expect((await request.post("/api/agents", { data: { name, endpointUrl } })).ok()).toBe(true);
-        const scenario = { key: "greets", conversation: [{ kind: "UserMessage", text: "Hello" }] };
+        const scenario = { key: "greets", samples: 1, conversation: [{ kind: "UserMessage", text: "Hello" }] };
         expect((await request.put(`/api/agents/${name}/scenarios`, { data: { scenarios: [scenario] } })).ok()).toBe(true);
         await run(request, name);
         Object.assign(served, { label: "e2e-cmp-new", model: "model-b", config: "Be helpful.\nBe kind.\nAnswer in English.\n" });

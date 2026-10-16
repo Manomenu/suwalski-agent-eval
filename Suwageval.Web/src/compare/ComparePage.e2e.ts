@@ -43,7 +43,7 @@ test("two runs are compared from the agent page", async ({ page, request }) => {
         const name = `e2e-compare-${Date.now()}`;
         const endpointUrl = `http://localhost:${(agentServer.address() as AddressInfo).port}`;
         expect((await request.post("/api/agents", { data: { name, endpointUrl } })).ok()).toBe(true);
-        const scenario = { key: "greets", tags: ["smoke"], conversation: [{ kind: "UserMessage", text: "Hello" }] };
+        const scenario = { key: "greets", tags: ["smoke"], samples: 1, conversation: [{ kind: "UserMessage", text: "Hello" }] };
         expect((await request.put(`/api/agents/${name}/scenarios`, { data: { scenarios: [scenario] } })).ok()).toBe(true);
         const checks = [
             { type: "text", key: "says-hello", scenarioKey: "greets", contains: "Hello" },

@@ -4,6 +4,7 @@ using Suwageval.Contracts;
 using Suwageval.Contracts.Checks;
 using Suwageval.Contracts.Conversations;
 using Suwageval.Contracts.Runs;
+using Suwageval.Server.Agents;
 using Suwageval.Server.Checks;
 using Suwageval.Server.Judges;
 using Suwageval.Server.Scenarios;
@@ -20,6 +21,7 @@ internal sealed partial class RunRechecker(
     RunStore runs,
     ScenarioStore scenarios,
     CheckStore checks,
+    AgentStore agents,
     Judge judge,
     ArgumentJudge argumentJudge,
     IOptions<RunOptions> options,
@@ -47,6 +49,7 @@ internal sealed partial class RunRechecker(
                 var verdictsOf = (await runs.ListCheckResultsAsync(verdictsId, cancellationToken)).ToLookup(verdict =>
                     verdict.ScenarioResultId
                 );
+                var agentSamples = (await agents.GetAsync(run.AgentId.ToString(), cancellationToken))?.Samples;
                 var plan = RecheckScope.Of(sourceSamples, await scenarios.ListAsync(run.AgentId, cancellationToken: cancellationToken));
                 var checksByScenario = (await checks.ListAsync(run.AgentId, cancellationToken: cancellationToken)).ToLookup(check =>
                     check.ScenarioKey
@@ -68,6 +71,7 @@ internal sealed partial class RunRechecker(
                             run.Id,
                             kept[sample.ScenarioId],
                             sample,
+                            agentSamples,
                             [
                                 .. verdictSampleOf.TryGetValue((sample.ScenarioId, sample.Sample), out var verdictSample)
                                     ? verdictsOf[verdictSample]
@@ -86,6 +90,7 @@ internal sealed partial class RunRechecker(
         Guid runId,
         Rechecked scenario,
         ScenarioResultRow sample,
+        int? agentSamples,
         IReadOnlyList<CheckResultRow> sourceVerdicts,
         CancellationToken cancellationToken
     )
@@ -94,7 +99,7 @@ internal sealed partial class RunRechecker(
         if (sample.Output is { } output)
         {
             var trace = new Trace([JsonSerializer.Deserialize<IReadOnlyList<ConversationItem>>(output, Json) ?? []]);
-            foreach (var (row, input) in scenario.Checks)
+            foreach (var (row, input) in SamplePlan.JudgedOn(sample.Sample, scenario.Content, scenario.Checks, agentSamples))
             {
                 var same = sourceVerdicts.FirstOrDefault(verdict => verdict.CheckId == row.Id && verdict.CheckRevision == row.Revision);
                 results.Add(
@@ -107,7 +112,11 @@ internal sealed partial class RunRechecker(
         else
         {
             var reason = sample.Error ?? "The agent produced nothing.";
-            results.AddRange(scenario.Checks.Select(check => CheckEvaluation.NotEvaluated(check.Row, reason)));
+            results.AddRange(
+                SamplePlan
+                    .JudgedOn(sample.Sample, scenario.Content, scenario.Checks, agentSamples)
+                    .Select(check => CheckEvaluation.NotEvaluated(check.Row, reason))
+            );
         }
         await runs.AddSampleAsync(
             runId,

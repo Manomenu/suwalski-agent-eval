@@ -44,7 +44,7 @@ The server has one interface, its HTTP API. Three users reach it:
   the newest 200 finished runs, by its pass threshold over the samples; an edited check is another
   check) gets a yellow wave icon next to its key on the run page and in the comparison, and the agent
   page lists the worst ones in an "Unstable checks" card — nothing shows when all checks are stable.
-  `suwageval unstable` prints them; the cure is usually more `samples` for that scenario.
+  `suwageval unstable` prints them; the cure is usually more `samples` (the agent's in `agent.yaml`, a scenario's or a check's; 3 by default).
 - **A version is never written in a file: the running agent serves it.** `GET
   {endpointUrl}/suwageval/contract` returns its LLM agents (each with model, config and tools, with argument
   schemas), other system-wide config, the events (with data schemas), and a label. `suwageval run` makes the server read it,

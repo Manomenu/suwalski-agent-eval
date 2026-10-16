@@ -943,6 +943,11 @@ export interface components {
             name: string;
             /** @description Where suwageval reaches the agent under test (`POST {endpointUrl}/suwageval/turn`). */
             endpointUrl: string;
+            /**
+             * Format: int32
+             * @description How many times each scenario's conversation is sent to the agent by default (1 to 20); none means 3.
+             */
+            samples?: null | number;
             regression?: null | components["schemas"]["RegressionSettings"];
         };
         /** @description An agent with what is stored for it: counts of active (not archived) versions, live scenarios and live checks. */
@@ -959,6 +964,11 @@ export interface components {
             scenarios: number;
             /** Format: int32 */
             checks: number;
+            /**
+             * Format: int32
+             * @description The agent's default number of samples from `agent.yaml`; none when it has no `samples:` (3 then).
+             */
+            samples?: null | number;
             regression?: null | components["schemas"]["RegressionSettings"];
         };
         /**
@@ -1038,6 +1048,12 @@ export interface components {
              * @description The share of samples that must pass, from above 0 to 1.
              */
             passThreshold?: number;
+            /**
+             * Format: int32
+             * @description How many of its scenario's samples the check is judged on (the first ones, 1 to 20), and the number its pass rate and threshold
+             *     count over. Not set: the scenario's samples.
+             */
+            samples?: null | number;
         };
         CheckInputEventCheck: {
             /** @enum {string} */
@@ -1054,6 +1070,12 @@ export interface components {
              * @description The share of samples that must pass, from above 0 to 1.
              */
             passThreshold?: number;
+            /**
+             * Format: int32
+             * @description How many of its scenario's samples the check is judged on (the first ones, 1 to 20), and the number its pass rate and threshold
+             *     count over. Not set: the scenario's samples.
+             */
+            samples?: null | number;
         };
         CheckInputEventNotEmittedCheck: {
             /** @enum {string} */
@@ -1070,6 +1092,12 @@ export interface components {
              * @description The share of samples that must pass, from above 0 to 1.
              */
             passThreshold?: number;
+            /**
+             * Format: int32
+             * @description How many of its scenario's samples the check is judged on (the first ones, 1 to 20), and the number its pass rate and threshold
+             *     count over. Not set: the scenario's samples.
+             */
+            samples?: null | number;
         };
         /** @description A model's verdict on what the agent produced, against criteria written in plain words. */
         CheckInputJudgeCheck: {
@@ -1086,6 +1114,12 @@ export interface components {
              * @description The share of samples that must pass, from above 0 to 1.
              */
             passThreshold?: number;
+            /**
+             * Format: int32
+             * @description How many of its scenario's samples the check is judged on (the first ones, 1 to 20), and the number its pass rate and threshold
+             *     count over. Not set: the scenario's samples.
+             */
+            samples?: null | number;
         };
         /** @description On the agent's answer text; at least one of the three is given, all given must hold. */
         CheckInputTextCheck: {
@@ -1104,6 +1138,12 @@ export interface components {
              * @description The share of samples that must pass, from above 0 to 1.
              */
             passThreshold?: number;
+            /**
+             * Format: int32
+             * @description How many of its scenario's samples the check is judged on (the first ones, 1 to 20), and the number its pass rate and threshold
+             *     count over. Not set: the scenario's samples.
+             */
+            samples?: null | number;
         };
         CheckInputToolCalledCheck: {
             /** @enum {string} */
@@ -1122,6 +1162,12 @@ export interface components {
              * @description The share of samples that must pass, from above 0 to 1.
              */
             passThreshold?: number;
+            /**
+             * Format: int32
+             * @description How many of its scenario's samples the check is judged on (the first ones, 1 to 20), and the number its pass rate and threshold
+             *     count over. Not set: the scenario's samples.
+             */
+            samples?: null | number;
         };
         CheckInputToolNotCalledCheck: {
             /** @enum {string} */
@@ -1138,6 +1184,12 @@ export interface components {
              * @description The share of samples that must pass, from above 0 to 1.
              */
             passThreshold?: number;
+            /**
+             * Format: int32
+             * @description How many of its scenario's samples the check is judged on (the first ones, 1 to 20), and the number its pass rate and threshold
+             *     count over. Not set: the scenario's samples.
+             */
+            samples?: null | number;
         };
         /** @description A check's verdict in a run against its history. */
         CheckRegression: {
@@ -1601,9 +1653,10 @@ export interface components {
             continuation?: components["schemas"]["Continuation"];
             /**
              * Format: int32
-             * @description How many times the conversation is repeated, for agents that do not answer the same way twice.
+             * @description How many times the conversation is repeated, for agents that do not answer the same way twice (1 to 20); a check can set its own.
+             *     Not set: the agent's `samples`, else 3.
              */
-            samples?: number;
+            samples?: null | number;
         };
         /** @description One scenario in a run: its samples and, per check, how many of them passed. */
         ScenarioRunResult: {

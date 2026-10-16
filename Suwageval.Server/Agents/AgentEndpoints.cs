@@ -27,7 +27,7 @@ internal static class AgentEndpoints
         {
             errors.Add(new FieldError("endpointUrl", "The endpoint URL is an absolute http or https address."));
         }
-        errors.AddRange(RegressionRules.Problems(definition.Regression).Select(problem => new FieldError(problem.Path, problem.Message)));
+        errors.AddRange(AgentRules.Problems(definition).Select(problem => new FieldError(problem.Path, problem.Message)));
         if (errors.Count > 0)
         {
             return ProblemResults.Invalid(errors);
@@ -39,10 +39,10 @@ internal static class AgentEndpoints
         {
             agent = await store.SetEndpointUrlAsync(agent.Id, definition.EndpointUrl, cancellationToken);
         }
-        // The pushed definition is the source of truth: leaving regression: out puts the defaults back.
-        if (!SameRegression(agent.Regression, definition.Regression))
+        // The pushed definition is the source of truth: leaving samples: or regression: out puts the defaults back.
+        if (agent.Samples != definition.Samples || !SameRegression(agent.Regression, definition.Regression))
         {
-            agent = await store.SetRegressionAsync(agent.Id, definition.Regression, cancellationToken);
+            agent = await store.SetSettingsAsync(agent.Id, definition.Samples, definition.Regression, cancellationToken);
         }
         return creation.Created
             ? Results.Created($"/agents/{Uri.EscapeDataString(definition.Name)}", ToAgent(agent))
@@ -75,6 +75,7 @@ internal static class AgentEndpoints
                 Versions = counts.Versions,
                 Scenarios = counts.Scenarios,
                 Checks = counts.Checks,
+                Samples = row.Samples,
                 Regression = row.Regression,
             }
         );

@@ -192,8 +192,14 @@ A model does not answer the same way twice: a check can pass in one run and fail
 **same** agent version. Before suggesting a fix for a failing check, run `suwageval unstable --json`
 and look for it (by `scenarioKey`, `checkKey` and the run's version). When it is listed, say so first:
 the failure may be noise, not a regression. Do not change the agent for it; suggest raising `samples`
-of that scenario (so the pass rate over samples decides) or loosening `passThreshold`, and leave the
+of that scenario or that check (so the pass rate over samples decides) or loosening `passThreshold`, and leave the
 choice to the user.
+
+`samples` (an integer from 1 to 20, default 3) can be set on three levels, the most specific wins: a
+check's, its scenario's, `agent.yaml`'s. The agent is called as many times as the scenario's most
+demanding check needs, and each check is judged on its first N samples only (its pass rate and
+`passThreshold` are over those). Raise it on a flaky scenario; put `samples: 1` on a check that does not
+vary to keep runs fast.
 
 ## Comparing runs
 

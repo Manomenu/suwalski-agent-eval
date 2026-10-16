@@ -93,6 +93,7 @@ public sealed class RunRecheckTests(TestDatabase database) : IAsyncDisposable
                 store,
                 scenarios,
                 checks,
+                new AgentStore(database.Pool),
                 answering,
                 argumentJudge,
                 options,
@@ -173,6 +174,29 @@ public sealed class RunRecheckTests(TestDatabase database) : IAsyncDisposable
         Assert.Equal(2, checks["refund-called"].Revision);
         Assert.True(checks["refund-event"].Passed);
         Assert.Equal(1, checks["refund-event"].Revision);
+    }
+
+    [Fact]
+    public async Task A_recheck_judges_a_check_on_its_first_samples_only()
+    {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
+        var agent = await SeededAgent.CreateAsync(
+            database.Pool,
+            fake.Url.AbsoluteUri,
+            [SeededAgent.Scenario("refund", samples: 2)],
+            [SeededAgent.RefundAfterLookup("refund-called", "refund"), SeededAgent.RefundedEvent("refund-event", "refund")]
+        );
+        var source = await FinishedRunAsync(agent);
+        await UpsertCheckAsync(agent, SeededAgent.RefundAfterLookup("refund-called", "refund") with { Samples = 1 });
+
+        var recheckId = await RecheckAsync(Client(), source);
+        await ExecuteNextAsync(agent);
+
+        var scenario = Assert.Single((await ResultsAsync(recheckId)).Scenarios);
+        Assert.Equal([1, 2], scenario.Samples.Select(sample => sample.Sample));
+        var checks = scenario.Checks.ToDictionary(check => check.Key);
+        Assert.Equal([1], checks["refund-called"].Samples.Select(sample => sample.Sample));
+        Assert.Equal([1, 2], checks["refund-event"].Samples.Select(sample => sample.Sample));
     }
 
     [Fact]

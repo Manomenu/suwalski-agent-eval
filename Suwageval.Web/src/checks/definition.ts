@@ -6,13 +6,13 @@ import type { CheckDefinition } from "./api";
 
 /** Keys that open the YAML, in this order; the rest follow as stored, and these two close it. */
 const FIRST_KEYS = ["key", "type"];
-const LAST_KEYS = ["where", "passThreshold"];
+const LAST_KEYS = ["where", "passThreshold", "samples"];
 
 /** Said by the page around the drawer already. */
 const LEFT_OUT = ["scenarioKey"];
 
 /**
- * The definition as YAML: `key` and `type` first, the check's own fields as stored, `where` and `passThreshold` last; without
+ * The definition as YAML: `key` and `type` first, the check's own fields as stored, `where`, `passThreshold` and `samples` last; without
  * the scenario's key and the fields left unset.
  */
 export function definitionYaml(definition: CheckDefinition): string {
@@ -59,7 +59,7 @@ function turnPart(turn: unknown): string | null {
     return null;
 }
 
-/** One line: `tool-called refund_order · turn 1 · after get_order · threshold 100%`; absent parts are left out. */
+/** One line: `tool-called refund_order · turn 1 · after get_order · threshold 100%`; absent parts are left out; `samples` shows only when the check sets its own. */
 export function definitionSummary(definition: CheckDefinition): string {
     const where = definition.where;
     const threshold = definition.passThreshold;
@@ -69,6 +69,7 @@ export function definitionSummary(definition: CheckDefinition): string {
         where?.after == null ? null : `after ${where.after}`,
         where?.before == null ? null : `before ${where.before}`,
         threshold === undefined ? null : `threshold ${String(Math.round(threshold * 100))}%`,
+        definition.samples == null ? null : `${String(definition.samples)} ${definition.samples === 1 ? "sample" : "samples"}`,
     ];
     return parts.filter((part) => part !== null).join(" · ");
 }
