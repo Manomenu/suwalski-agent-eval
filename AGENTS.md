@@ -488,7 +488,7 @@ Two vocabularies, chosen word by word:
 ## 10. Commands: `justfile` vs `scripts/.internal/`
 
 - **`justfile` is for humans.** `just` lists every recipe, grouped: `run` (dev servers),
-  `dev` (code generation, `just cli …` to run the CLI from source, `just cli-install` to install it as the global `suwageval`, `just tmux-dev` for the interactive tmux layout of the local stack, humans only, via `scripts/.internal/tmux-dev.sh`), `infra` (the container stack), `maintenance` (check, e2e, fmt,
+  `dev` (code generation, `just cli …` to run the CLI from source, `just cli-install` to install it as the global `suwageval`, `just tmux-dev [--restart]` for the interactive tmux layout of the local stack (`--restart` kills the old session first), humans only, via `scripts/.internal/tmux-dev.sh`), `infra` (the container stack), `maintenance` (check, e2e, fmt,
   sync), plus modules in `.just/`: `db` (`.just/db.just`: the local PostgreSQL) and
   `secrets` (`.just/secrets.just`: the `.env` files in Bitwarden). New human-facing commands
   go there, into the matching group; a family of related commands becomes a module of its
