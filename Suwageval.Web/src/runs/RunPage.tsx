@@ -1,4 +1,4 @@
-import { Alert, Badge, Container, Group, Loader, Stack, Text, Title } from "@mantine/core";
+import { Alert, Anchor, Badge, Container, Group, Loader, Stack, Text, Title } from "@mantine/core";
 
 import { ScenarioCard } from "./ScenarioCard";
 import { formatTime, isActive, isRunNotFound, num, progress, statusColor, statusLabel } from "./results";
@@ -30,6 +30,9 @@ export function RunPage({ runId }: { runId: string }) {
     return (
         <Container py="xl" size="lg">
             <Stack gap="md">
+                <Group gap="xs">
+                    <Anchor href="/">Agenci</Anchor>/<Anchor href={`/agents/${encodeURIComponent(run.agent)}`}>{run.agent}</Anchor>
+                </Group>
                 <Group gap="sm">
                     <Title order={2}>Run {run.agent}</Title>
                     <Badge size="lg" color={statusColor(run.status)}>
