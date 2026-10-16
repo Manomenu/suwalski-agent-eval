@@ -8,3 +8,4 @@ record of how we got there.
 | Artifact | What it holds |
 | --- | --- |
 | [suwageval — organizacja projektu i API](https://claude.ai/artifact/UfjpCwDbQJVW9dd9zqwUGY) | The plan of suwageval: repo layout, server layers and feature slices, the inside of a slice, the data model with the context contract and events, the API manifest, checks as conditions on a run's turns, and diagrams of preparing an evaluation (API calls) and of a run. |
+| [Suwageval — jak przetestować z example-agent](https://claude.ai/artifact/5TcYJo3qwtnxqXcQn3B3ow) | The manual end-to-end test with `suwalski-example-agent` on the local model: one-time setup, the three processes, `validate` / `push` / `run` with the output to expect, what else to try, and what to do when a step fails. |
