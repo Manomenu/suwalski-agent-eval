@@ -1,7 +1,7 @@
 # AGENTS.md
 
 Rules for anyone — human or AI agent — changing this repository. `CLAUDE.md` only points
-here; this file is the one to edit. What the project is for: [README.md](README.md).
+here; this file is the one to edit. What the project is for and how to start using it: [README.md](README.md) (user-facing; everything for people working on the repo is in `docs/`).
 
 ## Git: agents commit and push through suwgit
 
@@ -33,7 +33,7 @@ every moving part is a part someone has to keep alive.
 
 - **No dependencies "for later".** A package is added in the same change as the first code
   that uses it — Microsoft Agent Framework included: it arrives with the first evaluator
-  that calls a model (README, "Roadmap"). (The base's own packages are the exception: they
+  that calls a model ([docs/roadmap.md](docs/roadmap.md)). (The base's own packages are the exception: they
   are what the gate below runs on.)
 - **No configuration for scenarios that do not exist yet.** No settings, env vars, chart
   values, nginx directives or compose services until something reads them.
@@ -63,6 +63,9 @@ app keeps its tests beside its code, so those folders would only split the .NET 
 | `Suwageval.Cli/` | the `suwageval` command, packed as a .NET tool (System.CommandLine, YamlDotNet). `Files/` reads the agent's YAML files into the contracts, `Validate/` is `suwageval validate`, `Validation/` is the validator and its report (shared by `validate` and `push`), `Push/` is `suwageval push`, `Run/` is `suwageval run`, `Rerun/` is `suwageval rerun` (a new run with the agent, tag and endpoint of an earlier one), `Recheck/` is `suwageval recheck` (judges a finished run's stored answers again with the current checks, no agent call; `--dry-run` prints the plan), `Cancel/` is `suwageval cancel` (stops a queued or running run), `Results/` is `suwageval results` (opens the run's page on the web), `Compare/` is `suwageval compare` (opens the comparison of 2 to 5 runs of one agent), `Runs/` is `suwageval runs` (lists the agent's newest runs, to pick runs to compare), `Unstable/` is `suwageval unstable` (the checks that pass in some runs of one agent version and fail in others), `Versions/` is `suwageval versions` (list, archive, unarchive an agent's versions; `diff` opens the page showing what changed between two), `Server/` is what they share: Suwageval's address (the web's, the API under its `/api`), the server's endpoints (`ServerClient`), what each command does around its request (`ServerCall`) and the options they share (`CommandOptions`), the page opening (`WebPage`, shared by `results`, `compare` and `versions diff`), the verdict, what `run`, `rerun` and `recheck` print (`RunOutput`) and the JSON output |
 | `Suwageval.Cli.Tests/` | the CLI's tests (xUnit v3), mirroring its folders; pure unit tests — no server, no database (those are the server tests' `EndToEnd/`); `ContractsTests.cs` holds the CLI's import contracts; `Sample/` is the one agent folder the tests use (the server tests link it into their output) |
 | `docs/scenario-format.md` | the file format an agent's repository keeps in `suwageval/` and the agent contract (v1): `agent.yaml`, scenarios with checks, shorthands |
+| `docs/concepts.md`, `docs/front-doors.md` | what Suwageval works with (scenario, run, checks, results, regressions) and the front doors table: the web, every CLI command, the Claude Code plugin |
+| `docs/architecture.md`, `docs/development.md`, `docs/roadmap.md` | the stack and how the parts fit; requirements and everyday commands for working on the repo; status, open questions and the roadmap |
+| `docs/images/` | the screenshots the README shows (PNG, demo data only: never an address of the owner's infrastructure) |
 | `docs/universal-approach.md` | why contract v1 and its checks look the way they do: each element, the need it answers, what was left out on purpose |
 | `.claude-plugin/`, `claude-plugin/` | the Claude Code plugin: `.claude-plugin/marketplace.json` is the marketplace (`suwalski-agent-eval`), `claude-plugin/` the plugin `suwageval` — one skill and the commands (`/suwageval:scenario`, `fix`, `run`) that drive the CLI. Text only, checked by `ClaudePluginTests.cs`; the file format is linked from the skill, not copied |
 | `Suwageval.Web/` | the web app (React, Mantine, Vite). Source in `src/`, one folder per feature |
@@ -303,8 +306,7 @@ A change to one feature should touch one place on each side.
   sends and receives); a single concern stays one file. Types are `internal` (the analyzers
   insist); the tests see them through `InternalsVisibleTo`.
 - **One interface: HTTP. Its records live in `Suwageval.Contracts`.** The server is used by
-  the web app and by the `suwageval` CLI (and Claude Code through the CLI, README "Front
-  doors"); there is no MCP endpoint. A record the API sends or receives is declared once, in
+  the web app and by the `suwageval` CLI (and Claude Code through the CLI, [docs/front-doors.md](docs/front-doors.md)); there is no MCP endpoint. A record the API sends or receives is declared once, in
   `Suwageval.Contracts/<Feature>/` — the server's endpoints, the CLI and the OpenAPI document
   (so the web's types) all come from it. So are the rules that say whether such a record is valid (`CheckRules`): written once there,
   both the CLI and the server map their problems to their own error type; a new kind of check is handled in them, in the evaluator
@@ -316,7 +318,7 @@ A change to one feature should touch one place on each side.
   change, the `suwageval` command for it (its own folder in `Suwageval.Cli/`, with tests and its
   layer in `ContractsTests.cs`), its line in the plugin (`claude-plugin/skills/suwageval/SKILL.md`,
   and a command in `claude-plugin/commands/` when it takes judgment or confirmation) and its row in
-  the README's "Front doors".
+  the table in [docs/front-doors.md](docs/front-doors.md) (and, when it is a main action, the README's "Front doors" summary).
 - **Queries: SQL by hand, Dapper maps it.** A store writes plain SQL and lets Dapper map the
   rows onto its row records (`connection.QueryAsync<ScenarioRow>(sql, new { suiteId })`).
   Parameters always as `@name`, never concatenated into the text. No ORM (EF Core, linq2db)
