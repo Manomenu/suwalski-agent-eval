@@ -2,3 +2,5 @@
 export const HEADER_HEIGHT = 60;
 export const NAVBAR_WIDTH = 220;
 export const CONTENT_MAX_WIDTH = 1100;
+/** The app icon beside its name in the header. */
+export const LOGO_SIZE = 28;

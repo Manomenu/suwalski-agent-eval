@@ -1,4 +1,4 @@
-import { Anchor, AppShell, Box, Burger, Group, Title } from "@mantine/core";
+import { Anchor, AppShell, Box, Burger, Group, Image, Title } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 
 import { AgentPage } from "./agents/AgentPage";
@@ -9,7 +9,7 @@ import { ServerStatus } from "./health/ServerStatus";
 import { pageOf } from "./route";
 import { RunPage } from "./runs/RunPage";
 import { AppNavbar } from "./shell/AppNavbar";
-import { CONTENT_MAX_WIDTH, HEADER_HEIGHT, NAVBAR_WIDTH } from "./shell/layout";
+import { CONTENT_MAX_WIDTH, HEADER_HEIGHT, LOGO_SIZE, NAVBAR_WIDTH } from "./shell/layout";
 
 /** Puts the page together from features: the shell (header, sidebar), then the page the path opens. */
 export function App() {
@@ -27,9 +27,13 @@ export function App() {
                     <Group gap="sm" wrap="nowrap">
                         <Burger opened={navbarOpened} onClick={toggle} hiddenFrom="sm" size="sm" aria-label="Menu" />
                         <Anchor href="/" underline="never" c="inherit">
-                            <Title order={4} component="span">
-                                suwageval
-                            </Title>
+                            <Group gap="xs" wrap="nowrap">
+                                {/* The app icon, decorative: the name beside it is the link's text. */}
+                                <Image src="/favicon.svg" alt="" w={LOGO_SIZE} h={LOGO_SIZE} />
+                                <Title order={4} component="span">
+                                    suwageval
+                                </Title>
+                            </Group>
                         </Anchor>
                     </Group>
                     <ServerStatus />
