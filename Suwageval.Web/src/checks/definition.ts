@@ -8,12 +8,25 @@ import type { CheckDefinition } from "./api";
 const FIRST_KEYS = ["key", "type"];
 const LAST_KEYS = ["where", "passThreshold"];
 
-/** The definition as YAML: `key` and `type` first, the check's own fields as stored, `where` and `passThreshold` last. */
+/** Said by the page around the drawer already. */
+const LEFT_OUT = ["scenarioKey"];
+
+/** Fields the check did not set: absent or null at the top and in `where`. A null inside `args` or `data` is a value and stays. */
+function isSet([name, value]: [string, unknown]): boolean {
+    return value != null && !LEFT_OUT.includes(name);
+}
+
+/**
+ * The definition as YAML: `key` and `type` first, the check's own fields as stored, `where` and `passThreshold` last; without
+ * the scenario's key and the fields left unset.
+ */
 export function definitionYaml(definition: CheckDefinition): string {
-    const entries = Object.entries(definition);
+    const where = definition.where == null ? null : Object.fromEntries(Object.entries(definition.where).filter(isSet));
+    const entries = Object.entries({ ...definition, where: where && Object.keys(where).length > 0 ? where : null }).filter(isSet);
     const take = (names: string[]) => names.flatMap((name) => entries.filter(([entryName]) => entryName === name));
     const middle = entries.filter(([name]) => !FIRST_KEYS.includes(name) && !LAST_KEYS.includes(name));
-    return stringify(Object.fromEntries([...take(FIRST_KEYS), ...middle, ...take(LAST_KEYS)]));
+    // No folding: long text stays on one line in the YAML and the drawer wraps it on screen.
+    return stringify(Object.fromEntries([...take(FIRST_KEYS), ...middle, ...take(LAST_KEYS)]), { lineWidth: 0 });
 }
 
 function subject(definition: CheckDefinition): string {
@@ -66,4 +79,13 @@ export function definitionSummary(definition: CheckDefinition): string {
 /** Said when the check has a newer revision than the run used; `null` when the run saw the latest. */
 export function revisionNote(revision: number, latest: number): string | null {
     return latest > revision ? `Changed since this run (rev ${String(revision)} → ${String(latest)})` : null;
+}
+
+/**
+ * How far a wrapped YAML line hangs, in characters: its indentation, a list item's `- ` and a `key: `, so the rest of a long
+ * value wraps under the value's start, the way YAML itself indents.
+ */
+export function hangingIndent(line: string): number {
+    const match = /^(\s*(?:- )*)(?:(?:"[^"]*"|[^\s:"#][^:#]*?):(?: |$))?/.exec(line);
+    return match?.[0].length ?? 0;
 }
