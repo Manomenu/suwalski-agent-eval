@@ -82,9 +82,17 @@ belongs to.
   the server does not ask for one). Configured in user secrets, never in a committed file,
   in the change that brings the judge or the simulator. The example agent already uses it
   through its gitignored `.env`.
-- **`agent.yaml` drifting from the agent's code:** the tools and event types an agent really
-  has live in its code; `agent.yaml` repeats them by hand. Two guards, after the MVP:
-  - the agent serves its contract (`GET {agentUrl}/suwageval/contract`: tools with argument
-    schemas, event types with data schemas) and `suwageval push` takes the version's tools and
-    events from there instead of the file;
-  - a run marks a produced `ToolCall` or `Event` that the version does not declare.
+- **Automatic versions, taken from the running agent (right after the MVP):** the agent serves
+  its contract — `GET {agentUrl}/suwageval/contract`: system prompt (or its template), model
+  and parameters, tools with argument schemas, event types with data schemas, and a label
+  (its git SHA). At `POST /runs` the server fetches it and registers it as a version: the
+  content hash already turns "same as before" into the existing version and "changed" into a
+  new one. So a run always records what really ran, and `agent.yaml` shrinks to the agent's
+  name and `endpointUrl` (its `version:` stays only as a fallback for agents without the
+  endpoint).
+  - `suwageval validate` fetches the contract when the agent is reachable (`--endpoint`), to
+    check tool and event names; offline it checks the files' structure and says it skipped
+    the names.
+  - The run fetches the contract again at the end; if it changed mid-run (a redeploy), the
+    run says so.
+  - A run also marks a produced `ToolCall` or `Event` that the contract does not declare.
