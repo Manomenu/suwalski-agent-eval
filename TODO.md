@@ -82,3 +82,9 @@ belongs to.
   the server does not ask for one). Configured in user secrets, never in a committed file,
   in the change that brings the judge or the simulator. The example agent already uses it
   through its gitignored `.env`.
+- **`agent.yaml` drifting from the agent's code:** the tools and event types an agent really
+  has live in its code; `agent.yaml` repeats them by hand. Two guards, after the MVP:
+  - the agent serves its contract (`GET {agentUrl}/suwageval/contract`: tools with argument
+    schemas, event types with data schemas) and `suwageval push` takes the version's tools and
+    events from there instead of the file;
+  - a run marks a produced `ToolCall` or `Event` that the version does not declare.
