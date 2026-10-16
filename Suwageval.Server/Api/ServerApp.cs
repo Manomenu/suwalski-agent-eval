@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text.Json.Serialization;
 using Suwageval.Contracts;
 using Suwageval.Server.Agents;
 using Suwageval.Server.Checks;
@@ -26,7 +27,12 @@ internal static class ServerApp
         var builder = WebApplication.CreateBuilder(args);
         builder.Services.AddDatabase(builder.Configuration, migrateOnStart: !WritingOpenApiDocument);
         builder.Services.AddSingleton<AgentStore>().AddSingleton<ScenarioStore>().AddSingleton<CheckStore>();
-        builder.Services.ConfigureHttpJsonOptions(options => ContractJson.Configure(options.SerializerOptions));
+        builder.Services.ConfigureHttpJsonOptions(options =>
+        {
+            ContractJson.Configure(options.SerializerOptions);
+            // An unset field is absent from a response, not null. (Not in ContractJson.Options: it also serializes what is hashed.)
+            options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+        });
         builder.Services.AddProblemDetails();
         builder.Services.AddRuns(builder.Configuration, startWorker: !WritingOpenApiDocument);
         builder.Services.AddOpenApi();

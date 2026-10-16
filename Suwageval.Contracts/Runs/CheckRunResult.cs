@@ -16,6 +16,9 @@ public sealed record CheckRunResult
     /// <summary>The check as it was stored in <see cref="Revision"/>: the definition the run used.</summary>
     public required CheckInput Definition { get; init; }
 
+    /// <summary>Whether a model gives the verdict of the check: a <c>judge</c> check, or one with a <c>$judge</c> matcher.</summary>
+    public required bool JudgedByModel { get; init; }
+
     /// <summary>True when <see cref="PassRate"/> reaches <see cref="PassThreshold"/>.</summary>
     public required bool Passed { get; init; }
 

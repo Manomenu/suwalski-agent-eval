@@ -347,6 +347,9 @@ public sealed class RunStoreTests(TestDatabase database)
         return id;
     }
 
+    private static async Task<IReadOnlyList<RunCheckVerdictRow>> VerdictsAsync(RunStore store, SeededAgent agent, int maxRuns = 200) =>
+        await store.ListRunCheckVerdictsAsync(EffectiveRuns.Pick(await store.ListAsync(agent.Id), maxRuns));
+
     [Fact]
     public async Task Run_check_verdicts_count_the_samples_of_finished_runs_of_the_agent_only()
     {
@@ -357,7 +360,7 @@ public sealed class RunStoreTests(TestDatabase database)
         await FinishedRunAsync(store, agent, [true], RunStatus.Cancelled);
         await FinishedRunAsync(store, other, [true]);
 
-        var row = Assert.Single(await store.ListRunCheckVerdictsAsync(agent.Id, [], 200, Cancellation));
+        var row = Assert.Single(await VerdictsAsync(store, agent));
 
         Assert.Equal(
             (done, agent.VersionId, "refund", "refund-called", 1, 3, 2, 0.5),
@@ -372,8 +375,6 @@ public sealed class RunStoreTests(TestDatabase database)
                 row.PassThreshold
             )
         );
-        Assert.Empty(await store.ListRunCheckVerdictsAsync(agent.Id, [Guid.NewGuid()], 200, Cancellation));
-        Assert.Single(await store.ListRunCheckVerdictsAsync(agent.Id, [agent.VersionId], 200, Cancellation));
     }
 
     [Fact]
@@ -384,21 +385,35 @@ public sealed class RunStoreTests(TestDatabase database)
         await FinishedRunAsync(store, agent, [true]);
         var newest = await FinishedRunAsync(store, agent, [false]);
 
-        var row = Assert.Single(await store.ListRunCheckVerdictsAsync(agent.Id, [], 1, Cancellation));
+        var row = Assert.Single(await VerdictsAsync(store, agent, 1));
 
         Assert.Equal(newest, row.RunId);
     }
 
     [Fact]
-    public async Task Run_check_verdicts_leave_out_rechecks_that_only_repeat_stored_answers()
+    public async Task Run_check_verdicts_of_a_re_checked_run_are_the_re_checks_and_count_once()
     {
         var store = Store();
         var agent = await NewAgentAsync();
         var source = await FinishedRunAsync(store, agent, [true]);
         await FinishedRunAsync(store, agent, [false], recheckOf: source);
 
-        var row = Assert.Single(await store.ListRunCheckVerdictsAsync(agent.Id, [], 200, Cancellation));
+        var row = Assert.Single(await VerdictsAsync(store, agent));
 
-        Assert.Equal(source, row.RunId);
+        Assert.Equal((source, 1, 0), (row.RunId, row.Samples, row.SamplesPassed));
+    }
+
+    [Fact]
+    public async Task A_check_fixed_and_re_checked_is_no_longer_unstable()
+    {
+        var store = Store();
+        var agent = await NewAgentAsync();
+        await FinishedRunAsync(store, agent, [true]);
+        var failed = await FinishedRunAsync(store, agent, [false]);
+        Assert.Single(UnstableChecks.Find(await VerdictsAsync(store, agent)));
+
+        await FinishedRunAsync(store, agent, [true], recheckOf: failed);
+
+        Assert.Empty(UnstableChecks.Find(await VerdictsAsync(store, agent)));
     }
 }

@@ -53,31 +53,26 @@ internal static class RunCompatibility
 
         foreach (var check in checks)
         {
-            var (tool, by) = check switch
+            if (CheckRules.NamedTool(check) is { } named && ToolProblem(agents, named.Tool, named.By) is { } problem)
             {
-                ToolCalledCheck called => (called.Tool, called.By),
-                ToolNotCalledCheck notCalled => (notCalled.Tool, notCalled.By),
-                _ => (null, null),
-            };
-            if (tool is not null && ToolProblem(agents, tool, by) is { } problem)
-            {
-                mismatches.Add($"check '{check.Key}': it names tool '{tool}'{problem}");
+                mismatches.Add($"check '{check.Key}': it names tool '{named.Tool}'{problem}");
             }
-            else if (EventOf(check) is { } emitted && !events.Contains(emitted))
+            else if (CheckRules.NamedEvent(check) is { } emitted && !events.Contains(emitted))
             {
                 mismatches.Add($"check '{check.Key}': it names event '{emitted}', which the version does not declare");
+            }
+            foreach (var (path, name) in CheckRules.Anchors(check))
+            {
+                if (!events.Contains(name) && !agents.Values.Any(tools => tools.Contains(name)))
+                {
+                    mismatches.Add(
+                        $"check '{check.Key}': {path} names '{name}', which is neither a tool of the version nor one of its event types"
+                    );
+                }
             }
         }
         return [.. mismatches.Distinct()];
     }
-
-    private static string? EventOf(CheckInput check) =>
-        check switch
-        {
-            EventCheck emitted => emitted.Event,
-            EventNotEmittedCheck notEmitted => notEmitted.Event,
-            _ => null,
-        };
 
     /// <summary>Why the tool cannot be had from that agent (or from any agent, when none is named); null when it can.</summary>
     private static string? ToolProblem(Dictionary<string, HashSet<string>> agents, string tool, string? agent)

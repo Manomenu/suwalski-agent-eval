@@ -8,11 +8,11 @@ namespace Suwageval.Contracts.Agents;
 public sealed record AgentVersion(
     Guid Id,
     Guid AgentId,
-    string? Label,
     string ContentHash,
     DateTimeOffset CreatedAt,
-    DateTimeOffset? ArchivedAt,
     IReadOnlyList<string> ModelNames,
-    string? DataVersion,
-    string? DataDescription
+    string? Label = null,
+    DateTimeOffset? ArchivedAt = null,
+    string? DataVersion = null,
+    string? DataDescription = null
 );

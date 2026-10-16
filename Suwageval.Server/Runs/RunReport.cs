@@ -3,6 +3,7 @@ using Suwageval.Contracts;
 using Suwageval.Contracts.Checks;
 using Suwageval.Contracts.Conversations;
 using Suwageval.Contracts.Runs;
+using Suwageval.Server.Checks;
 
 namespace Suwageval.Server.Runs;
 
@@ -67,7 +68,9 @@ internal static class RunReport
                     Checks = [.. checks],
                 };
             });
-        return new RunResults { Run = Summary(run), Scenarios = [.. scenarios] };
+        var results = new RunResults { Run = Summary(run), Scenarios = [.. scenarios] };
+        var durations = TurnTimes.Durations(results.Scenarios);
+        return results with { MedianMs = TurnTimes.Median(durations), P95Ms = TurnTimes.P95(durations) };
     }
 
     private static CheckRunResult CheckResult(string key, IReadOnlyList<CheckResultRow> rows, Dictionary<Guid, int> sampleNumberOf)
@@ -75,12 +78,14 @@ internal static class RunReport
         var passed = rows.Count(row => row.Passed);
         var passRate = passed / (double)rows.Count;
         var threshold = rows[0].PassThreshold;
+        var definition = JsonSerializer.Deserialize<CheckInput>(rows.MaxBy(row => row.CheckRevision)!.Definition, ContractJson.Options)!;
         return new CheckRunResult
         {
             Key = key,
             Revision = rows.Max(row => row.CheckRevision),
             LatestRevision = rows[0].LatestRevision,
-            Definition = JsonSerializer.Deserialize<CheckInput>(rows.MaxBy(row => row.CheckRevision)!.Definition, ContractJson.Options)!,
+            Definition = definition,
+            JudgedByModel = CheckEvaluator.JudgedByModel(definition),
             Passed = Reaches(passed, rows.Count, threshold),
             PassRate = passRate,
             PassThreshold = threshold,

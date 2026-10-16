@@ -10,8 +10,8 @@ export function versionLabel(version: { label?: string | null }): string {
 }
 
 /** The versions to list: all of them with "Show archived" on, otherwise the active ones. */
-export function visibleVersions<T extends { archivedAt: string | null }>(versions: T[], showArchived: boolean): T[] {
-    return showArchived ? versions : versions.filter((version) => version.archivedAt === null);
+export function visibleVersions<T extends { archivedAt?: string | null }>(versions: T[], showArchived: boolean): T[] {
+    return showArchived ? versions : versions.filter((version) => version.archivedAt == null);
 }
 
 /** The models (the `model.name` of every LLM agent) of the versions, sorted, each once — what the model filter offers. */
@@ -40,12 +40,12 @@ export function dataText(version: { dataVersion?: string | null; dataDescription
  */
 export function visibleRuns<T extends { agentVersionId: string }>(
     runs: T[],
-    versions: { id: string; archivedAt: string | null; modelNames: string[]; dataVersion?: string | null }[],
+    versions: { id: string; archivedAt?: string | null; modelNames: string[]; dataVersion?: string | null }[],
     showArchived: boolean,
     models: readonly string[] = [],
     dataVersions: readonly string[] = [],
 ): T[] {
-    const archived = new Set(versions.filter((version) => version.archivedAt !== null).map((version) => version.id));
+    const archived = new Set(versions.filter((version) => version.archivedAt != null).map((version) => version.id));
     const chosen = new Set(models);
     const chosenData = new Set(dataVersions);
     const byId = new Map(versions.map((version) => [version.id, version]));
@@ -63,7 +63,7 @@ export function visibleRuns<T extends { agentVersionId: string }>(
  * version needs to be asked for). An empty list means no version qualifies.
  */
 export function allowedVersionIds(
-    versions: { id: string; archivedAt: string | null; modelNames: string[]; dataVersion?: string | null }[],
+    versions: { id: string; archivedAt?: string | null; modelNames: string[]; dataVersion?: string | null }[],
     showArchived: boolean,
     models: readonly string[],
     dataVersions: readonly string[],
@@ -110,13 +110,13 @@ export function runsToCompare(runs: { id: string }[], selected: ReadonlySet<stri
 
 /** What the selected versions need: the active ones can be archived, the archived ones restored. */
 export function selectionActions(
-    versions: { id: string; archivedAt: string | null }[],
+    versions: { id: string; archivedAt?: string | null }[],
     selected: ReadonlySet<string>,
 ): { toArchive: string[]; toRestore: string[] } {
     const chosen = versions.filter((version) => selected.has(version.id));
     return {
-        toArchive: chosen.filter((version) => version.archivedAt === null).map((version) => version.id),
-        toRestore: chosen.filter((version) => version.archivedAt !== null).map((version) => version.id),
+        toArchive: chosen.filter((version) => version.archivedAt == null).map((version) => version.id),
+        toRestore: chosen.filter((version) => version.archivedAt != null).map((version) => version.id),
     };
 }
 

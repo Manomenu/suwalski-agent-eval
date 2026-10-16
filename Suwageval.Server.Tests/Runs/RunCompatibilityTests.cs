@@ -111,6 +111,28 @@ public sealed class RunCompatibilityTests
     }
 
     [Fact]
+    public void Where_after_and_before_must_name_a_tool_or_event_of_the_version()
+    {
+        var fits = new TextCheck
+        {
+            Key = "a",
+            ScenarioKey = "s",
+            Contains = "x",
+            Where = new CheckWhere { After = "get_order", Before = "state.changed" },
+        };
+        var nope = fits with
+        {
+            Key = "b",
+            Where = new CheckWhere { After = "nope", Before = "state.changed" },
+        };
+
+        var one = Assert.Single(Mismatches([], [fits, nope]));
+
+        Assert.Contains("check 'b'", one, StringComparison.Ordinal);
+        Assert.Contains("where.after names 'nope'", one, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_check_must_name_a_tool_or_event_of_the_version()
     {
         var mismatches = Mismatches(

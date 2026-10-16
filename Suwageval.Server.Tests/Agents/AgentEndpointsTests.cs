@@ -43,11 +43,11 @@ public sealed class AgentEndpointsTests(TestDatabase database) : IAsyncDisposabl
         return new AgentVersion(
             row.Id,
             row.AgentId,
-            row.Label,
             row.ContentHash,
             row.CreatedAt,
-            row.ArchivedAt,
             ContractContent.ModelNames(contract),
+            row.Label,
+            row.ArchivedAt,
             contract.Context.Retrieval?.DataVersion,
             contract.Context.Retrieval?.Description
         );

@@ -969,15 +969,15 @@ export interface components {
             id: string;
             /** Format: uuid */
             agentId: string;
-            label: null | string;
             contentHash: string;
             /** Format: date-time */
             createdAt: string;
-            /** Format: date-time */
-            archivedAt: null | string;
             modelNames: string[];
-            dataVersion: null | string;
-            dataDescription: null | string;
+            label?: null | string;
+            /** Format: date-time */
+            archivedAt?: null | string;
+            dataVersion?: null | string;
+            dataDescription?: null | string;
         };
         /** @description A registered version of an agent with its content (`Content.Label` is the version's label). */
         AgentVersionDetail: {
@@ -988,9 +988,9 @@ export interface components {
             contentHash: string;
             /** Format: date-time */
             createdAt: string;
-            /** Format: date-time */
-            archivedAt: null | string;
             content: components["schemas"]["AgentContract"];
+            /** Format: date-time */
+            archivedAt?: null | string;
         };
         /** @description Archives (`Archived: true`) or restores (`false`) versions of one agent; nothing is deleted. */
         ArchiveVersionsRequest: {
@@ -1004,6 +1004,8 @@ export interface components {
             change: components["schemas"]["CheckChange"];
             before?: null | components["schemas"]["CheckInput"];
             after?: null | components["schemas"]["CheckInput"];
+            /** @description Whether a model gives the verdict of CheckInput? ChangedCheck.After; false for a removed check. */
+            afterJudgedByModel: boolean;
         };
         /**
          * @description What happened to a check since a run. A changed pass threshold is a change: it is part of the check's revision.
@@ -1142,6 +1144,8 @@ export interface components {
             latestRevision: number;
             /** @description The check as it was stored in int CheckRunResult.Revision: the definition the run used. */
             definition: components["schemas"]["CheckInput"];
+            /** @description Whether a model gives the verdict of the check: a `judge` check, or one with a `$judge` matcher. */
+            judgedByModel: boolean;
             /** @description True when double CheckRunResult.PassRate reaches double CheckRunResult.PassThreshold. */
             passed: boolean;
             /**
@@ -1392,6 +1396,16 @@ export interface components {
         RunResults: {
             run: components["schemas"]["RunSummary"];
             scenarios: components["schemas"]["ScenarioRunResult"][];
+            /**
+             * Format: double
+             * @description The median turn time over all samples that made a call, in milliseconds; null when none did.
+             */
+            medianMs?: null | number;
+            /**
+             * Format: double
+             * @description The 95th percentile (nearest rank) of the same turn times, in milliseconds; null when none did.
+             */
+            p95Ms?: null | number;
         };
         /**
          * @description Where a run stands. `Failed` is the run itself breaking down; a scenario the agent did not answer is a result,
@@ -1533,9 +1547,9 @@ export interface components {
             /** Format: double */
             passRate: number;
             /** Format: double */
-            medianMs: null | number;
+            medianMs?: null | number;
             /** Format: double */
-            p95Ms: null | number;
+            p95Ms?: null | number;
         };
         ToolDefinition: {
             name: string;

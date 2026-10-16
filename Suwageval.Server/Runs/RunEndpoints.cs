@@ -36,7 +36,7 @@ internal static class RunEndpoints
 
     /// <summary>
     /// The checks of an agent whose verdict differs between finished runs of the same version (<see cref="UnstableChecks"/>), over its
-    /// newest <see cref="UnstableCheckRuns"/> finished runs; <c>version</c> (repeatable agent version ids) limits it to those versions.
+    /// newest <see cref="UnstableCheckRuns"/> finished runs, each with the verdicts it shows (<see cref="EffectiveRuns"/>); <c>version</c> (repeatable agent version ids) limits it to those versions.
     /// 404: no such agent.
     /// </summary>
     private static async Task<IResult> UnstableChecksAsync(
@@ -52,7 +52,10 @@ internal static class RunEndpoints
         {
             return ProblemResults.NotFound("Agent", agent);
         }
-        var rows = await runs.ListRunCheckVerdictsAsync(found.Id, version ?? [], UnstableCheckRuns, cancellationToken);
+        var newestFirst = (await runs.ListAsync(found.Id, cancellationToken)).Where(run =>
+            version is not { Length: > 0 } || version.Contains(run.AgentVersionId)
+        );
+        var rows = await runs.ListRunCheckVerdictsAsync(EffectiveRuns.Pick([.. newestFirst], UnstableCheckRuns), cancellationToken);
         var unstable = UnstableChecks.Find(rows);
         if (unstable.Count == 0)
         {
@@ -79,7 +82,7 @@ internal static class RunEndpoints
         {
             return ProblemResults.NotFound("Agent", agent);
         }
-        var picked = PassRateTrend.Pick(await runs.ListAsync(found.Id, cancellationToken));
+        var picked = EffectiveRuns.Pick(await runs.ListAsync(found.Id, cancellationToken), PassRateTrend.MaxRuns);
         var versions = (await agents.ListVersionsAsync(found.Id, cancellationToken)).ToDictionary(version => version.Id);
         var tagsOf = (await scenarios.ListAsync(found.Id, cancellationToken: cancellationToken)).ToDictionary(
             scenario => scenario.Key,

@@ -55,6 +55,7 @@ public sealed class RecheckCommandTests
                 ScenarioKey = "refund",
                 CheckKey = "refund-called",
                 Change = CheckChange.Changed,
+                AfterJudgedByModel = false,
             },
         ],
         JudgedChecks = 0,

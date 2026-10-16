@@ -3,7 +3,12 @@ import { describe, expect, it } from "vitest";
 import type { ChangedCheck } from "./api";
 import { changesByScenario, judgedNote, planHeadline, recheckDisabledReason, RECHECK_EXPLANATION, recheckTooltip } from "./recheck";
 
-const change = (scenarioKey: string, checkKey: string): ChangedCheck => ({ scenarioKey, checkKey, change: "Changed" });
+const change = (scenarioKey: string, checkKey: string): ChangedCheck => ({
+    scenarioKey,
+    checkKey,
+    change: "Changed",
+    afterJudgedByModel: false,
+});
 
 describe("recheckDisabledReason", () => {
     it("lets only a finished run be re-checked", () => {

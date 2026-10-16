@@ -338,13 +338,12 @@ internal sealed class RunStore(Pool pool)
     }
 
     /// <summary>
-    /// Per check, scenario and run the samples with a verdict and the passed ones, over the newest <paramref name="maxRuns"/> finished
-    /// runs of the agent (only those of <paramref name="versionIds"/> when not empty). The threshold is the one of the check revision that ran.
+    /// Per check, scenario and run the samples with a verdict and the passed ones, for the given effective runs. A row carries the
+    /// original run's id, time and version and the verdicts of the run it shows (<see cref="EffectiveRuns.Point.Shown"/>). The threshold
+    /// is the one of the check revision that ran.
     /// </summary>
     public async Task<IReadOnlyList<RunCheckVerdictRow>> ListRunCheckVerdictsAsync(
-        Guid agentId,
-        IReadOnlyCollection<Guid> versionIds,
-        int maxRuns,
+        IReadOnlyCollection<EffectiveRuns.Point> points,
         CancellationToken cancellationToken = default
     )
     {
@@ -352,31 +351,23 @@ internal sealed class RunStore(Pool pool)
         var rows = await connection.QueryAsync<RunCheckVerdictRow>(
             new CommandDefinition(
                 """
-                WITH picked AS (
-                    SELECT id, created_at, agent_version_id FROM runs
-                    WHERE agent_id = @agentId AND status = 'Done'
-                      AND recheck_of IS NULL -- a re-check repeats its source run's stored answers: not an independent sample
-                      AND (cardinality(@versionIds::uuid[]) = 0 OR agent_version_id = ANY(@versionIds::uuid[]))
-                    ORDER BY created_at DESC, id
-                    LIMIT @maxRuns
-                )
-                SELECT p.id AS RunId, p.created_at AS CreatedAt, p.agent_version_id AS AgentVersionId, s.key AS ScenarioKey,
+                SELECT r.id AS RunId, r.created_at AS CreatedAt, r.agent_version_id AS AgentVersionId, s.key AS ScenarioKey,
                        c.key AS CheckKey, cr.check_revision AS CheckRevision, count(*)::int AS Samples,
                        (count(*) FILTER (WHERE cr.passed))::int AS SamplesPassed,
                        COALESCE((rev.content->>'passThreshold')::float8, 1.0) AS PassThreshold
-                FROM picked p
-                JOIN scenario_results sr ON sr.run_id = p.id
+                FROM unnest(@runIds::uuid[], @shownIds::uuid[]) AS p(run_id, shown_id)
+                JOIN runs r ON r.id = p.run_id
+                JOIN scenario_results sr ON sr.run_id = p.shown_id
                 JOIN scenarios s ON s.id = sr.scenario_id
                 JOIN check_results cr ON cr.scenario_result_id = sr.id
                 JOIN checks c ON c.id = cr.check_id
                 JOIN check_revisions rev ON rev.check_id = cr.check_id AND rev.revision = cr.check_revision
-                GROUP BY p.id, p.created_at, p.agent_version_id, s.key, c.key, cr.check_revision, rev.content->>'passThreshold'
+                GROUP BY r.id, r.created_at, r.agent_version_id, s.key, c.key, cr.check_revision, rev.content->>'passThreshold'
                 """,
                 new
                 {
-                    agentId,
-                    versionIds = versionIds.ToArray(),
-                    maxRuns,
+                    runIds = points.Select(point => point.Run.Id).ToArray(),
+                    shownIds = points.Select(point => point.Shown.Id).ToArray(),
                 },
                 cancellationToken: cancellationToken
             )

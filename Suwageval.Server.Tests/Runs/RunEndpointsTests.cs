@@ -293,8 +293,9 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
         using var problem = JsonDocument.Parse(await response.Content.ReadAsStringAsync(Cancellation));
         var mismatches = problem.RootElement.GetProperty("mismatches").EnumerateArray().Select(m => m.GetString()).ToList();
-        var one = Assert.Single(mismatches);
-        Assert.Contains("refund_order", one, StringComparison.Ordinal);
+        Assert.Equal(2, mismatches.Count);
+        Assert.Contains(mismatches, m => m!.Contains("refund_order", StringComparison.Ordinal));
+        Assert.Contains(mismatches, m => m!.Contains("where.after", StringComparison.Ordinal));
         Assert.Empty((await GetAsync<RunList>(client, $"/runs?agent={agent.Name}")).Runs);
     }
 
@@ -457,6 +458,8 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
 
         Assert.Equal(RunStatus.Queued, results.Run.Status);
         Assert.Empty(results.Scenarios);
+        Assert.Null(results.MedianMs);
+        Assert.Null(results.P95Ms);
     }
 
     [Fact]
@@ -496,6 +499,10 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
             Assert.IsType<ToolCalledCheck>(scenario.Checks.Single(check => check.Key == "refund-called").Definition).Tool
         );
         Assert.IsType<Event>(Assert.Single(scenario.Checks.Single(check => check.Key == "refund-event").Samples[0].Evidence));
+        Assert.All(scenario.Checks, check => Assert.False(check.JudgedByModel));
+        var duration = Assert.NotNull(scenario.Samples[0].DurationMs);
+        Assert.Equal(duration, results.MedianMs);
+        Assert.Equal(duration, results.P95Ms);
     }
 
     [Fact]

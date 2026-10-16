@@ -11,18 +11,14 @@ const LAST_KEYS = ["where", "passThreshold"];
 /** Said by the page around the drawer already. */
 const LEFT_OUT = ["scenarioKey"];
 
-/** Fields the check did not set: absent or null at the top and in `where`. A null inside `args` or `data` is a value and stays. */
-function isSet([name, value]: [string, unknown]): boolean {
-    return value != null && !LEFT_OUT.includes(name);
-}
-
 /**
  * The definition as YAML: `key` and `type` first, the check's own fields as stored, `where` and `passThreshold` last; without
  * the scenario's key and the fields left unset.
  */
 export function definitionYaml(definition: CheckDefinition): string {
-    const where = definition.where == null ? null : Object.fromEntries(Object.entries(definition.where).filter(isSet));
-    const entries = Object.entries({ ...definition, where: where && Object.keys(where).length > 0 ? where : null }).filter(isSet);
+    // The server leaves unset fields out; `where` with none of its own is left out too.
+    const where = definition.where != null && Object.keys(definition.where).length > 0 ? definition.where : undefined;
+    const entries = Object.entries({ ...definition, where }).filter(([name, value]) => value !== undefined && !LEFT_OUT.includes(name));
     const take = (names: string[]) => names.flatMap((name) => entries.filter(([entryName]) => entryName === name));
     const middle = entries.filter(([name]) => !FIRST_KEYS.includes(name) && !LAST_KEYS.includes(name));
     // No folding: long text stays on one line in the YAML and the drawer wraps it on screen.
@@ -51,9 +47,10 @@ function subject(definition: CheckDefinition): string {
         }
         case "judge":
             return "judge";
-        default:
-            return "check";
+        case undefined:
+            break;
     }
+    return "check";
 }
 
 /** The turn of `where` is a number, "last" or "any" (the default, not worth saying). */
@@ -88,21 +85,4 @@ export function revisionNote(revision: number, latest: number): string | null {
 export function hangingIndent(line: string): number {
     const match = /^(\s*(?:- )*)(?:(?:"[^"]*"|[^\s:"#][^:#]*?):(?: |$))?/.exec(line);
     return match?.[0].length ?? 0;
-}
-
-/** Whether `$judge` appears anywhere in a check's expected JSON. */
-function hasJudgeMatcher(value: unknown): boolean {
-    if (Array.isArray(value)) return value.some(hasJudgeMatcher);
-    if (value !== null && typeof value === "object") {
-        return Object.entries(value).some(([name, inner]) => name === "$judge" || hasJudgeMatcher(inner));
-    }
-    return false;
-}
-
-/** A model has the last word on the check (a `judge` check, or `$judge` in its args, result or data): its verdict and reason are not deterministic. */
-export function judgedByModel(definition: CheckDefinition): boolean {
-    if (definition.type === "judge") return true;
-    if (definition.type === "tool-called") return hasJudgeMatcher(definition.args) || hasJudgeMatcher(definition.result);
-    if (definition.type === "event") return hasJudgeMatcher(definition.data);
-    return false;
 }

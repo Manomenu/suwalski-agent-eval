@@ -35,6 +35,7 @@ function check(key: string, passes: number, samples: number, threshold = 1): Che
         key,
         revision: 1,
         latestRevision: 1,
+        judgedByModel: false,
         definition: { type: "text", key, scenarioKey: "s", contains: "x" },
         passed: passes / samples >= threshold,
         passRate: passes / samples,

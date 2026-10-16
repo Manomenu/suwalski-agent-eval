@@ -62,6 +62,7 @@ public sealed class ResultsCommandTests
                             Key = "refund-called",
                             Revision = 1,
                             LatestRevision = 1,
+                            JudgedByModel = false,
                             Definition = new TextCheck
                             {
                                 Key = "refund-called",

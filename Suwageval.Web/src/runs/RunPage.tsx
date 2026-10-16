@@ -77,7 +77,7 @@ export function RunPage({ runId }: { runId: string }) {
                         <Text c="green">Checks passed: {run.checksPassed}</Text>
                         <Text c={run.checksFailed > 0 ? "red" : "dimmed"}>Checks failed: {run.checksFailed}</Text>
                     </Group>
-                    {durationSummary(scenarios) && <Text>{durationSummary(scenarios)}</Text>}
+                    {durationSummary(state.results) && <Text>{durationSummary(state.results)}</Text>}
                     <Text c="dimmed" size="sm">
                         created {formatTime(run.createdAt)} · start {formatTime(run.startedAt)} · finished {formatTime(run.finishedAt)}
                     </Text>

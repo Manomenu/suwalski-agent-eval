@@ -284,6 +284,10 @@ public sealed class RunRecheckTests(TestDatabase database) : IAsyncDisposable
             plan.ChangedChecks.Select(change => (change.CheckKey, change.Change))
         );
         Assert.Equal(1, plan.JudgedChecks);
+        Assert.Equal(
+            [("polite", true), ("refund-called", false), ("refund-event", false)],
+            plan.ChangedChecks.Select(change => (change.CheckKey, change.AfterJudgedByModel))
+        );
         var changed = plan.ChangedChecks.Single(change => change.Change == CheckChange.Changed);
         Assert.NotNull(changed.Before);
         Assert.NotNull(changed.After);

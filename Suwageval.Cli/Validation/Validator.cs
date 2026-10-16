@@ -1,5 +1,3 @@
-using System.Text.Json;
-using System.Text.RegularExpressions;
 using Suwageval.Cli.Files;
 using Suwageval.Contracts;
 using Suwageval.Contracts.Agents;
@@ -143,48 +141,22 @@ internal static class Validator
         List<Problem> problems
     )
     {
-        CheckKey(source, $"{path}.key", check.Key, checkKeys, "check", problems);
-        if (check.PassThreshold is <= 0 or > 1 || double.IsNaN(check.PassThreshold))
+        problems.AddRange(CheckRules.Problems(check, path).Select(problem => source.Problem(problem.Path, problem.Message)));
+        CheckUnique(source, $"{path}.key", check.Key, checkKeys, "check", problems);
+        if (contract is not null)
         {
-            problems.Add(source.Problem($"{path}.passThreshold", "passThreshold is above 0 and at most 1."));
-        }
-
-        switch (check)
-        {
-            case ToolCalledCheck called:
-                CheckTool(source, called.By is null ? $"{path}.tool" : $"{path}.by", called.Tool, called.By, contract, problems);
-                CheckMatchers(source, called.Args, $"{path}.args", problems);
-                CheckMatchers(source, called.Result, $"{path}.result", problems);
-                break;
-            case ToolNotCalledCheck notCalled:
-                CheckTool(source, notCalled.By is null ? $"{path}.tool" : $"{path}.by", notCalled.Tool, notCalled.By, contract, problems);
-                break;
-            case EventCheck eventCheck:
-                CheckEvent(source, $"{path}.event", eventCheck.Event, contract, problems);
-                CheckMatchers(source, eventCheck.Data, $"{path}.data", problems);
-                break;
-            case EventNotEmittedCheck notEmitted:
-                CheckEvent(source, $"{path}.event", notEmitted.Event, contract, problems);
-                CheckMatchers(source, notEmitted.Data, $"{path}.data", problems);
-                CheckNoJudge(source, notEmitted.Data, $"{path}.data", problems);
-                break;
-            case CitedCheck cited:
-                CheckCited(source, path, cited, problems);
-                break;
-            case TextCheck text:
-                CheckText(source, path, text, problems);
-                break;
-            case JudgeCheck { Criteria: var criteria } when string.IsNullOrWhiteSpace(criteria):
-                problems.Add(source.Problem($"{path}.criteria", "A judge check needs 'criteria': what the agent's output must satisfy."));
-                break;
-            default:
-                break;
-        }
-
-        if (check.Where is { } where && contract is not null)
-        {
-            CheckAnchor(source, $"{path}.where.after", where.After, contract, problems);
-            CheckAnchor(source, $"{path}.where.before", where.Before, contract, problems);
+            if (CheckRules.NamedTool(check) is { } named)
+            {
+                CheckTool(source, named.By is null ? $"{path}.tool" : $"{path}.by", named.Tool, named.By, contract, problems);
+            }
+            if (CheckRules.NamedEvent(check) is { } eventType)
+            {
+                CheckEvent(source, $"{path}.event", eventType, contract, problems);
+            }
+            foreach (var (anchorPath, name) in CheckRules.Anchors(check))
+            {
+                CheckAnchor(source, $"{path}.{anchorPath}", name, contract, problems);
+            }
         }
     }
 
@@ -201,6 +173,18 @@ internal static class Validator
         {
             problems.Add(source.Problem(path, $"The {what} key '{key}' is not lowercase kebab-case (like 'refund-happy-path')."));
         }
+        CheckUnique(source, path, key, seen, what, problems);
+    }
+
+    private static void CheckUnique(
+        YamlSource source,
+        string path,
+        string key,
+        Dictionary<string, string> seen,
+        string what,
+        List<Problem> problems
+    )
+    {
         if (!seen.TryAdd(key, source.File))
         {
             problems.Add(source.Problem(path, $"The {what} key '{key}' is already used in {seen[key]}."));
@@ -259,66 +243,6 @@ internal static class Validator
         if (contract is not null && !EventTypes(contract).Contains(type))
         {
             problems.Add(source.Problem(path, UnknownEvent(type, contract)));
-        }
-    }
-
-    /// <summary>The matchers in <c>args</c> / <c>result</c> / <c>data</c>: every <c>$pattern</c> compiles, every <c>$judge</c> is well formed.</summary>
-    private static void CheckMatchers(YamlSource source, JsonElement? expected, string path, List<Problem> problems)
-    {
-        if (expected is not { } json)
-        {
-            return;
-        }
-        problems.AddRange(
-            PatternMatchers
-                .Invalid(json, path)
-                .Select(invalid => source.Problem(invalid.Path, $"The pattern is not a valid regular expression: {invalid.Error}"))
-        );
-        problems.AddRange(JudgeMatchers.Problems(json, path).Select(problem => source.Problem(problem.Path, problem.Message)));
-    }
-
-    /// <summary>"No event whose data a model would accept" would need a model call per event and turn its verdict upside down: not offered.</summary>
-    private static void CheckNoJudge(YamlSource source, JsonElement? expected, string path, List<Problem> problems)
-    {
-        if (expected is { } json && JudgeMatchers.IsIn(json))
-        {
-            problems.Add(
-                source.Problem(path, "'$judge' is not allowed in an event-not-emitted check; use a $pattern, or a literal value.")
-            );
-        }
-    }
-
-    private static void CheckCited(YamlSource source, string path, CitedCheck cited, List<Problem> problems)
-    {
-        if (cited.Sources.Count == 0)
-        {
-            problems.Add(source.Problem($"{path}.sources", "A cited check needs at least one source."));
-        }
-        for (var i = 0; i < cited.Sources.Count; i++)
-        {
-            if (string.IsNullOrWhiteSpace(cited.Sources[i]))
-            {
-                problems.Add(source.Problem($"{path}.sources[{i}]", "A source is not empty."));
-            }
-        }
-    }
-
-    private static void CheckText(YamlSource source, string path, TextCheck text, List<Problem> problems)
-    {
-        if (text.Contains is null && text.NotContains is null && text.Pattern is null)
-        {
-            problems.Add(source.Problem(path, "A text check needs at least one of 'contains', 'notContains', 'pattern'."));
-        }
-        if (text.Pattern is not null)
-        {
-            try
-            {
-                _ = new Regex(text.Pattern, RegexOptions.None, TimeSpan.FromSeconds(1));
-            }
-            catch (ArgumentException e)
-            {
-                problems.Add(source.Problem($"{path}.pattern", $"The pattern is not a valid regular expression: {e.Message}"));
-            }
         }
     }
 
