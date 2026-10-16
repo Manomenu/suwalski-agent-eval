@@ -16,6 +16,9 @@ import {
     rowDiffers,
     sameAgent,
     tagRows,
+    TIME_SAME_MS,
+    timeDelta,
+    timeDeltaText,
     trend,
     trendColor,
     trendMarker,
@@ -262,5 +265,30 @@ describe("delta", () => {
 describe("checksPassedText", () => {
     it("is passed over all checks", () => {
         expect(checksPassedText({ checksPassed: 7, checksFailed: 3 })).toBe("7/10 checks passed");
+    });
+});
+
+describe("timeDelta", () => {
+    it("is better when faster and worse when slower: lower is better", () => {
+        expect(timeDelta(8000, 10_000)).toEqual({ milliseconds: -2000, trend: "better" });
+        expect(timeDelta(12_000, 10_000)).toEqual({ milliseconds: 2000, trend: "worse" });
+    });
+
+    it("is the same under 5 % of the baseline or under the noise floor", () => {
+        expect(timeDelta(10_400, 10_000)?.trend).toBe("same");
+        expect(timeDelta(10_500, 10_000)?.trend).toBe("worse");
+        expect(timeDelta(400 + TIME_SAME_MS - 1, 400)?.trend).toBe("same");
+        expect(timeDelta(400 + TIME_SAME_MS, 400)?.trend).toBe("worse");
+    });
+
+    it("is none when either run made no call", () => {
+        expect(timeDelta(null, 1000)).toBeNull();
+        expect(timeDelta(1000, null)).toBeNull();
+    });
+
+    it("is written with an arrow that follows the time", () => {
+        expect(timeDeltaText({ milliseconds: -1200, trend: "better" })).toBe("▼ 1.2 s");
+        expect(timeDeltaText({ milliseconds: 3000, trend: "worse" })).toBe("▲ 3.0 s");
+        expect(timeDeltaText({ milliseconds: 30, trend: "same" })).toBe("±0 s");
     });
 });

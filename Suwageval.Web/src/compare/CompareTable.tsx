@@ -1,4 +1,4 @@
-import { Anchor, Badge, Button, Group, Paper, Stack, Switch, Table, Text } from "@mantine/core";
+import { Anchor, Badge, Button, Group, Paper, Stack, Switch, Table, Text, Tooltip } from "@mantine/core";
 import { useState } from "react";
 
 import { dataText, shortId, versionLabel } from "../agents/view";
@@ -6,9 +6,10 @@ import { CheckDefinitionButton } from "../checks/CheckDefinitionButton";
 import { judgedByModel } from "../checks/definition";
 import { ModelJudgedIcon } from "../checks/ModelJudgedIcon";
 import { UnstableCheckIcon } from "../checks/UnstableCheckIcon";
-import { durationSummary, formatTime, num, percent } from "../runs/results";
+import { durationSummary, formatTime, num, percent, turnTimes } from "../runs/results";
 import { unstableInRuns, unstableRowTooltip } from "../runs/stability";
 import { useUnstableChecks } from "../runs/useUnstableChecks";
+import type { ScenarioRunResult } from "../runs/api";
 import type { Comparison } from "./api";
 import {
     alignRows,
@@ -19,6 +20,9 @@ import {
     delta,
     deltaText,
     tagRows,
+    TIME_DELTA_HELP,
+    timeDelta,
+    timeDeltaText,
     trend,
     trendColor,
     trendMarker,
@@ -26,6 +30,17 @@ import {
     type CheckCell,
 } from "./compare";
 import { COLUMN_MIN_WIDTH, LABEL_COLUMN_WIDTH, tableMinWidth } from "./layout";
+
+const TIME_HELP_WIDTH = 280;
+
+/** The median and p95 change of a run's turn time against the baseline's; none when either run made no call. */
+function timeChanges(scenarios: ScenarioRunResult[], baseline: ScenarioRunResult[]) {
+    const times = turnTimes(scenarios);
+    const base = turnTimes(baseline);
+    const median = timeDelta(times?.medianMs ?? null, base?.medianMs ?? null);
+    const p95 = timeDelta(times?.p95Ms ?? null, base?.p95Ms ?? null);
+    return [...(median === null ? [] : [{ label: "median", change: median }]), ...(p95 === null ? [] : [{ label: "p95", change: p95 }])];
+}
 
 /** One table, so the columns line up: a header per run, the pass rate per tag, then the checks. */
 export function CompareTable({ comparison, firstBaseline }: { comparison: Comparison; firstBaseline: string }) {
@@ -88,6 +103,19 @@ export function CompareTable({ comparison, firstBaseline }: { comparison: Compar
                                                 <Text size="xs" fw="normal">
                                                     {durationSummary(results.scenarios) ?? "Turn time: —"}
                                                 </Text>
+                                                {!isBaseline && (
+                                                    <Tooltip label={TIME_DELTA_HELP} multiline w={TIME_HELP_WIDTH}>
+                                                        <Group gap="xs" wrap="nowrap" w="fit-content" style={{ cursor: "help" }}>
+                                                            {timeChanges(results.scenarios, runs[baseline]?.scenarios ?? []).map(
+                                                                ({ label, change }) => (
+                                                                    <Text key={label} size="xs" fw="normal" c={trendColor(change.trend)}>
+                                                                        {label} {timeDeltaText(change)}
+                                                                    </Text>
+                                                                ),
+                                                            )}
+                                                        </Group>
+                                                    </Tooltip>
+                                                )}
                                                 {isBaseline ? (
                                                     <Badge variant="filled" w="fit-content">
                                                         Baseline

@@ -176,9 +176,15 @@ export function p95(values: readonly number[]): number {
     return sorted[Math.max(1, Math.ceil(0.95 * sorted.length)) - 1] ?? 0;
 }
 
-/** "Turn time: median 9.8 s · p95 109.1 s" over all samples that made a call; null when none did. */
-export function durationSummary(scenarios: readonly ScenarioRunResult[]): string | null {
+/** The median and p95 turn time over all samples that made a call, in milliseconds; null when none did. */
+export function turnTimes(scenarios: readonly ScenarioRunResult[]): { medianMs: number; p95Ms: number } | null {
     const durations = sampleDurations(scenarios);
     if (durations.length === 0) return null;
-    return `Turn time: median ${formatSeconds(median(durations))} · p95 ${formatSeconds(p95(durations))}`;
+    return { medianMs: median(durations), p95Ms: p95(durations) };
+}
+
+/** "Turn time: median 9.8 s · p95 109.1 s" over all samples that made a call; null when none did. */
+export function durationSummary(scenarios: readonly ScenarioRunResult[]): string | null {
+    const times = turnTimes(scenarios);
+    return times === null ? null : `Turn time: median ${formatSeconds(times.medianMs)} · p95 ${formatSeconds(times.p95Ms)}`;
 }

@@ -30,13 +30,45 @@ export function percent(rate: number): number {
     return Math.round(rate * 1000) / 10;
 }
 
+/** What a chart reads from a point or from one of its tags (`RunPassRates` and `TagPassRate` both have these). */
+interface Reading {
+    passRate: number | string;
+    medianMs?: number | string | null;
+    p95Ms?: number | string | null;
+}
+
+/** The number a chart plots from a reading, in the chart's own unit; null when the reading has none. */
+export type Measure = (reading: Reading) => number | null;
+
+const passRateMeasure: Measure = (reading) => percent(num(reading.passRate));
+
+/** Which turn time a chart shows. */
+export type TurnTimeStat = "median" | "p95";
+
+/** Milliseconds as seconds rounded to one decimal (the run page's rule). */
+export function seconds(milliseconds: number): number {
+    return Math.round(milliseconds / 100) / 10;
+}
+
+export function turnTimeMeasure(stat: TurnTimeStat): Measure {
+    return (reading) => {
+        const milliseconds = stat === "median" ? reading.medianMs : reading.p95Ms;
+        return milliseconds == null ? null : seconds(num(milliseconds));
+    };
+}
+
+/** The runs that made a call: only they have a turn time. */
+export function withTurnTimes(points: RunPassRates[]): RunPassRates[] {
+    return points.filter((point) => point.medianMs != null);
+}
+
 /** "All" first, then every tag any run has, sorted. */
 export function trendSeries(points: RunPassRates[]): string[] {
     const tags = new Set(points.flatMap((point) => point.tags.map((tag) => tag.tag)));
     return [ALL_SERIES, ...[...tags].sort((a, b) => a.localeCompare(b))];
 }
 
-export function trendRows(points: RunPassRates[]): TrendRow[] {
+export function trendRows(points: RunPassRates[], measure: Measure = passRateMeasure): TrendRow[] {
     const series = trendSeries(points);
     return points.map((point) => {
         const row: TrendRow = {
@@ -53,13 +85,9 @@ export function trendRows(points: RunPassRates[]): TrendRow[] {
         };
         for (const name of series) {
             // A run limited to one tag says nothing about all checks: "All" comes only from runs of every scenario.
-            const rate =
-                name === ALL_SERIES
-                    ? point.tag == null
-                        ? point.passRate
-                        : undefined
-                    : point.tags.find((tag) => tag.tag === name)?.passRate;
-            row[name] = rate === undefined ? null : percent(num(rate));
+            const reading: Reading | undefined =
+                name === ALL_SERIES ? (point.tag == null ? point : undefined) : point.tags.find((tag) => tag.tag === name);
+            row[name] = reading === undefined ? null : measure(reading);
         }
         return row;
     });

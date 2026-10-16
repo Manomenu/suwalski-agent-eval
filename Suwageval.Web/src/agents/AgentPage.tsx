@@ -39,6 +39,7 @@ const SAMPLES_HELP =
     "Answers of the agent in this run: done / planned. A sample is one play of a scenario's conversation; a scenario is played as many times as its samples field says (1 by default), so a check's pass rate is the share of its samples that passed.";
 
 const PassRateTrend = lazy(() => import("./PassRateTrend").then((module) => ({ default: module.PassRateTrend })));
+const TurnTimeTrend = lazy(() => import("./TurnTimeTrend").then((module) => ({ default: module.TurnTimeTrend })));
 
 const MODEL_FILTER_MIN_WIDTH = 260;
 const RUNS_TABLE_MIN_WIDTH = 940;
@@ -101,6 +102,7 @@ function AgentView({
     const toCompare = runsToCompare(runs, selected);
     // Fetched once for all versions; the filters hide the rows of versions they leave out, as they do in the chart.
     const unstable = visibleRuns(useUnstableChecks(agent.name, []), versions, showArchived, models, dataVersions);
+    const trendPoints = visibleRuns(passRates, versions, showArchived, models, dataVersions);
     return (
         <Stack gap="lg">
             <Anchor href="/">← Agents</Anchor>
@@ -123,7 +125,8 @@ function AgentView({
                 <div className="agent-layout-analytics">
                     <Stack gap="lg">
                         <Suspense fallback={null}>
-                            <PassRateTrend points={visibleRuns(passRates, versions, showArchived, models, dataVersions)} />
+                            <PassRateTrend points={trendPoints} />
+                            <TurnTimeTrend points={trendPoints} />
                         </Suspense>
                         <UnstableChecksCard checks={unstable} />
                     </Stack>

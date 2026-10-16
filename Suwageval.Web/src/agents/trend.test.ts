@@ -12,10 +12,13 @@ import {
     legendColor,
     measuredSeries,
     percent,
+    seconds,
     seriesColor,
     toggleHidden,
     trendRows,
     trendSeries,
+    turnTimeMeasure,
+    withTurnTimes,
 } from "./trend";
 
 function point(
@@ -24,6 +27,7 @@ function point(
     tags: [string, number][],
     versionLabel: string | null = "v1",
     tag: string | null = null,
+    medianMs: number | null = null,
 ): RunPassRates {
     return {
         runId: id,
@@ -33,7 +37,9 @@ function point(
         versionLabel,
         modelNames: ["big", "small"],
         passRate,
-        tags: tags.map(([tag, rate]) => ({ tag, passRate: rate })),
+        medianMs,
+        p95Ms: medianMs === null ? null : medianMs * 3,
+        tags: tags.map(([tag, rate]) => ({ tag, passRate: rate, medianMs: medianMs === null ? null : medianMs / 2, p95Ms: null })),
     };
 }
 
@@ -134,5 +140,37 @@ describe("measuredSeries", () => {
         const [full, tagged] = trendRows([point("full", 1, []), point("smoke-only", 1, [], "v1", "smoke")]);
         expect(full?.[DETAILS_KEY]).toMatch(/^all scenarios · /);
         expect(tagged?.[DETAILS_KEY]).toMatch(/^tag smoke · /);
+    });
+});
+
+describe("turn time", () => {
+    const timed = [
+        point("r1", 0.5, [["smoke", 1]], "v1", null, 1240),
+        point("r2", 0.5, [["smoke", 1]], "v1", "smoke", 2000),
+        point("r3", 1, []),
+    ];
+
+    it("rounds milliseconds to seconds with one decimal", () => {
+        expect(seconds(1240)).toBe(1.2);
+        expect(seconds(1250)).toBe(1.3);
+        expect(seconds(0)).toBe(0);
+    });
+
+    it("keeps the runs that made a call", () => {
+        expect(withTurnTimes(timed).map((run) => run.runId)).toEqual(["r1", "r2"]);
+    });
+
+    it("plots the median or the p95, All only from runs of every scenario, a tag from any run that has it", () => {
+        const median = trendRows(withTurnTimes(timed), turnTimeMeasure("median"));
+        const p95 = trendRows(withTurnTimes(timed), turnTimeMeasure("p95"));
+
+        expect(median.map((row) => [row[ALL_SERIES], row["smoke"]])).toEqual([
+            [1.2, 0.6],
+            [null, 1],
+        ]);
+        expect(p95.map((row) => [row[ALL_SERIES], row["smoke"]])).toEqual([
+            [3.7, null],
+            [null, null],
+        ]);
     });
 });

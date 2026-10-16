@@ -1340,7 +1340,7 @@ export interface components {
         };
         /**
          * @description The pass rate of one finished run, over all its checks and per scenario tag: a point of the agent's trend. A check counts once
-         *     per scenario (passed or not by its threshold over the samples), the way the results page counts it.
+         *     per scenario (passed or not by its threshold over the samples), the way the results page counts it, with the turn time of its samples.
          */
         RunPassRates: {
             /** Format: uuid */
@@ -1366,6 +1366,16 @@ export interface components {
              * @description Checks passed over checks, from 0 to 1.
              */
             passRate: number | string;
+            /**
+             * Format: double
+             * @description The median turn time over the run's samples that made a call, in milliseconds; null when none did.
+             */
+            medianMs?: null | number | string;
+            /**
+             * Format: double
+             * @description The 95th percentile (nearest rank) of the same turn times, in milliseconds; null when none.
+             */
+            p95Ms?: null | number | string;
             /** @description One rate per tag the run's scenarios carry now, sorted by tag; a scenario without checks adds nothing to its tags. */
             tags: components["schemas"]["TagPassRate"][];
         };
@@ -1514,11 +1524,18 @@ export interface components {
             add: string[];
             remove: string[];
         };
-        /** @description The pass rate of a run over the checks of the scenarios that carry one tag, from 0 to 1. */
+        /**
+         * @description The pass rate of a run over the checks of the scenarios that carry one tag, from 0 to 1, and the turn time of those scenarios'
+         *     samples (milliseconds; null when none of them made a call).
+         */
         TagPassRate: {
             tag: string;
             /** Format: double */
             passRate: number | string;
+            /** Format: double */
+            medianMs: null | number | string;
+            /** Format: double */
+            p95Ms: null | number | string;
         };
         ToolDefinition: {
             name: string;
