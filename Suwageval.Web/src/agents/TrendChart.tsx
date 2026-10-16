@@ -17,7 +17,7 @@ import {
     toggleHidden,
     type TrendRow,
 } from "./trend";
-import { runHref } from "./view";
+import { runHref } from "../runs/results";
 
 const TREND_HEIGHT = 300;
 const ALL_STROKE_WIDTH = 4;

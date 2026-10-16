@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
 using Suwageval.Contracts;
@@ -29,99 +28,78 @@ internal sealed partial class RunRechecker(
 {
     private static readonly JsonSerializerOptions Json = ContractJson.Options;
 
-    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Whatever breaks a run is recorded on it.")]
-    public async Task ExecuteAsync(RunRow run, CancellationToken cancellationToken)
+    public Task ExecuteAsync(RunRow run, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(run);
-        try
-        {
-            var sourceId = run.RecheckOf ?? throw new InvalidOperationException("The run is not a re-check.");
-            var sourceSamples = await runs.ListScenarioResultsAsync(sourceId, cancellationToken);
-            // Unchanged verdicts come from the run the person looked at (an earlier re-check has the same answers, already judged).
-            var verdictsId = run.VerdictsFrom ?? sourceId;
-            var verdictSamples =
-                verdictsId == sourceId ? sourceSamples : await runs.ListScenarioResultsAsync(verdictsId, cancellationToken);
-            var verdictSampleOf = verdictSamples.ToDictionary(sample => (sample.ScenarioId, sample.Sample), sample => sample.Id);
-            var verdictsOf = (await runs.ListCheckResultsAsync(verdictsId, cancellationToken)).ToLookup(verdict =>
-                verdict.ScenarioResultId
-            );
-            var plan = RecheckScope.Of(sourceSamples, await scenarios.ListAsync(run.AgentId, cancellationToken: cancellationToken));
-            var checksByScenario = (await checks.ListAsync(run.AgentId, cancellationToken: cancellationToken)).ToLookup(check =>
-                check.ScenarioKey
-            );
-            var kept = plan.Kept.ToDictionary(scenario => scenario.Id);
-            var work = sourceSamples.Where(sample => kept.ContainsKey(sample.ScenarioId)).ToList();
-            await runs.SetSkippedAsync(run.Id, plan.Skipped, cancellationToken);
-            await runs.SetTotalAsync(run.Id, work.Count, cancellationToken);
-
-            using var stop = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            try
+        return RunLoop.ExecuteAsync(
+            runs,
+            options.Value.MaxParallelScenarios,
+            run,
+            async () =>
             {
-                await Parallel.ForEachAsync(
+                var sourceId = run.RecheckOf ?? throw new InvalidOperationException("The run is not a re-check.");
+                var sourceSamples = await runs.ListScenarioResultsAsync(sourceId, cancellationToken);
+                // Unchanged verdicts come from the run the person looked at (an earlier re-check has the same answers, already judged).
+                var verdictsId = run.VerdictsFrom ?? sourceId;
+                var verdictSamples =
+                    verdictsId == sourceId ? sourceSamples : await runs.ListScenarioResultsAsync(verdictsId, cancellationToken);
+                var verdictSampleOf = verdictSamples.ToDictionary(sample => (sample.ScenarioId, sample.Sample), sample => sample.Id);
+                var verdictsOf = (await runs.ListCheckResultsAsync(verdictsId, cancellationToken)).ToLookup(verdict =>
+                    verdict.ScenarioResultId
+                );
+                var plan = RecheckScope.Of(sourceSamples, await scenarios.ListAsync(run.AgentId, cancellationToken: cancellationToken));
+                var checksByScenario = (await checks.ListAsync(run.AgentId, cancellationToken: cancellationToken)).ToLookup(check =>
+                    check.ScenarioKey
+                );
+                var kept = plan.Kept.ToDictionary(
+                    scenario => scenario.Id,
+                    scenario => new Rechecked(
+                        scenario,
+                        StoredContent.Scenario(scenario.Content),
+                        [.. checksByScenario[scenario.Key].Select(row => (row, StoredContent.Check(row)))]
+                    )
+                );
+                var work = sourceSamples.Where(sample => kept.ContainsKey(sample.ScenarioId)).ToList();
+                await runs.SetSkippedAsync(run.Id, plan.Skipped, cancellationToken);
+                return new RunLoop.Plan<ScenarioResultRow>(
                     work,
-                    new ParallelOptions { MaxDegreeOfParallelism = options.Value.MaxParallelScenarios, CancellationToken = stop.Token },
-                    async (sample, _) =>
-                    {
-                        if (await runs.IsCancelRequestedAsync(run.Id, cancellationToken))
-                        {
-                            await stop.CancelAsync();
-                            return;
-                        }
-                        var scenario = kept[sample.ScenarioId];
-                        var current = checksByScenario[scenario.Key].Select(row => (row, StoredContent.Check(row))).ToList();
-                        await RecheckSampleAsync(
+                    sample =>
+                        RecheckSampleAsync(
                             run.Id,
-                            scenario,
+                            kept[sample.ScenarioId],
                             sample,
                             [
                                 .. verdictSampleOf.TryGetValue((sample.ScenarioId, sample.Sample), out var verdictSample)
                                     ? verdictsOf[verdictSample]
                                     : [],
                             ],
-                            current,
                             cancellationToken
-                        );
-                    }
+                        )
                 );
-            }
-            catch (OperationCanceledException) when (stop.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
-            {
-                // Cancelled by request: the status is set below.
-            }
-            var cancelled = stop.IsCancellationRequested && !cancellationToken.IsCancellationRequested;
-            await runs.FinishAsync(run.Id, cancelled ? RunStatus.Cancelled : RunStatus.Done, cancellationToken: CancellationToken.None);
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch (Exception error)
-        {
-            LogRecheckFailed(error, run.Id);
-            await runs.FinishAsync(run.Id, RunStatus.Failed, error.Message, CancellationToken.None);
-        }
+            },
+            error => LogRecheckFailed(error, run.Id),
+            cancellationToken
+        );
     }
 
     private async Task RecheckSampleAsync(
         Guid runId,
-        ScenarioRow scenario,
+        Rechecked scenario,
         ScenarioResultRow sample,
         IReadOnlyList<CheckResultRow> sourceVerdicts,
-        IReadOnlyList<(CheckRow Row, CheckInput Input)> current,
         CancellationToken cancellationToken
     )
     {
-        var content = StoredContent.Scenario(scenario.Content);
         var results = new List<NewCheckResult>();
         if (sample.Output is { } output)
         {
             var trace = new Trace([JsonSerializer.Deserialize<IReadOnlyList<ConversationItem>>(output, Json) ?? []]);
-            foreach (var (row, input) in current)
+            foreach (var (row, input) in scenario.Checks)
             {
                 var same = sourceVerdicts.FirstOrDefault(verdict => verdict.CheckId == row.Id && verdict.CheckRevision == row.Revision);
                 results.Add(
                     same is null
-                        ? await CheckEvaluation.EvaluateAsync(judge, argumentJudge, row, input, content, trace, cancellationToken)
+                        ? await CheckEvaluation.EvaluateAsync(judge, argumentJudge, row, input, scenario.Content, trace, cancellationToken)
                         : new NewCheckResult(row.Id, row.Revision, same.Passed, same.Evidence, same.Message, same.NotJudged)
                 );
             }
@@ -129,13 +107,13 @@ internal sealed partial class RunRechecker(
         else
         {
             var reason = sample.Error ?? "The agent produced nothing.";
-            results.AddRange(current.Select(check => CheckEvaluation.NotEvaluated(check.Row, reason)));
+            results.AddRange(scenario.Checks.Select(check => CheckEvaluation.NotEvaluated(check.Row, reason)));
         }
         await runs.AddSampleAsync(
             runId,
             new NewSample(
-                scenario.Id,
-                scenario.Revision,
+                scenario.Row.Id,
+                scenario.Row.Revision,
                 sample.Sample,
                 Enum.Parse<SampleStatus>(sample.Status),
                 sample.Output,
@@ -150,4 +128,6 @@ internal sealed partial class RunRechecker(
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Re-check {RunId} failed")]
     private partial void LogRecheckFailed(Exception error, Guid runId);
+
+    private sealed record Rechecked(ScenarioRow Row, ScenarioContent Content, IReadOnlyList<(CheckRow Row, CheckInput Input)> Checks);
 }

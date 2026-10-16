@@ -1,6 +1,5 @@
 using System.CommandLine;
 using System.Globalization;
-using Suwageval.Cli.Files;
 using Suwageval.Cli.Server;
 
 namespace Suwageval.Cli.Runs;
@@ -12,7 +11,6 @@ namespace Suwageval.Cli.Runs;
 /// </summary>
 internal static class RunsCommand
 {
-    private const string DefaultDir = "suwageval";
     private const int DefaultLimit = 10;
 
     /// <param name="http">The client to the API; none means one is made from <c>--server</c> or <c>SUWAGEVAL_URL</c> (the tests pass their own).</param>
@@ -23,53 +21,39 @@ internal static class RunsCommand
             Description = "How many of the newest runs to list.",
             DefaultValueFactory = _ => DefaultLimit,
         };
-        var json = new Option<bool>("--json") { Description = "Print the runs as JSON." };
-        var server = new Option<string?>("--server") { Description = ServerAddress.OptionDescription };
-        var dir = new Option<string>("--dir") { Description = "The folder with agent.yaml.", DefaultValueFactory = _ => DefaultDir };
+        var json = CommandOptions.Json("Print the runs as JSON.");
+        var server = CommandOptions.Server();
+        var dir = CommandOptions.Dir();
 
         var command = new Command("runs", "List the agent's newest runs.") { limit, json, server, dir };
         command.SetAction(
-            async (parsed, cancellationToken) =>
-            {
-                var error = parsed.InvocationConfiguration.Error;
-                var agent = AgentName.Read(parsed.GetRequiredValue(dir), error);
-                if (agent is null)
-                {
-                    return 2;
-                }
-                HttpClient? owned = null;
-                try
-                {
-                    var transport =
-                        http ?? (owned = new HttpClient { BaseAddress = ServerAddress.Api(ServerAddress.Site(parsed.GetValue(server))) });
-                    var runs = await new RunClient(transport).RunsAsync(agent, parsed.GetValue(limit), cancellationToken);
-                    var output = parsed.InvocationConfiguration.Output;
-                    if (parsed.GetValue(json))
+            (parsed, cancellationToken) =>
+                ServerCall.ForAgentAsync(
+                    parsed.GetRequiredValue(dir),
+                    parsed.GetValue(server),
+                    http,
+                    parsed.InvocationConfiguration.Error,
+                    async (client, agent, _) =>
                     {
-                        await output.WriteLineAsync(OutputJson.Of(runs));
+                        var runs = await client.RunsAsync(agent, parsed.GetValue(limit), cancellationToken);
+                        var output = parsed.InvocationConfiguration.Output;
+                        if (parsed.GetValue(json))
+                        {
+                            await output.WriteLineAsync(OutputJson.Of(runs));
+                            return 0;
+                        }
+                        foreach (var run in runs)
+                        {
+                            await output.WriteLineAsync(
+                                string.Create(
+                                    CultureInfo.InvariantCulture,
+                                    $"{run.Id}  {run.Status}  {run.Tag ?? "-"}  version {run.AgentVersionId}  {run.ChecksPassed}/{run.ChecksPassed + run.ChecksFailed} checks passed  {run.CreatedAt:yyyy-MM-dd HH:mm}Z"
+                                )
+                            );
+                        }
                         return 0;
                     }
-                    foreach (var run in runs)
-                    {
-                        await output.WriteLineAsync(
-                            string.Create(
-                                CultureInfo.InvariantCulture,
-                                $"{run.Id}  {run.Status}  {run.Tag ?? "-"}  version {run.AgentVersionId}  {run.ChecksPassed}/{run.ChecksPassed + run.ChecksFailed} checks passed  {run.CreatedAt:yyyy-MM-dd HH:mm}Z"
-                            )
-                        );
-                    }
-                    return 0;
-                }
-                catch (RunClientException failure)
-                {
-                    await error.WriteLineAsync(failure.Message);
-                    return 2;
-                }
-                finally
-                {
-                    owned?.Dispose();
-                }
-            }
+                )
         );
         return command;
     }

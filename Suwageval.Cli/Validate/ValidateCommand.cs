@@ -10,7 +10,6 @@ namespace Suwageval.Cli.Validate;
 /// </summary>
 internal static class ValidateCommand
 {
-    private const string DefaultDir = "suwageval";
     private const string StdinName = "<stdin>";
 
     /// <param name="input">Where a scenario read from stdin comes from.</param>
@@ -20,12 +19,12 @@ internal static class ValidateCommand
         var path = new Argument<string>("path")
         {
             Description = "The suwageval folder, one scenario file, or '-' for one scenario read from stdin.",
-            DefaultValueFactory = _ => DefaultDir,
+            DefaultValueFactory = _ => AgentFolder.DefaultDir,
         };
         var dir = new Option<string>("--dir")
         {
             Description = "The folder with agent.yaml, for a single scenario file or stdin.",
-            DefaultValueFactory = _ => DefaultDir,
+            DefaultValueFactory = _ => AgentFolder.DefaultDir,
         };
         var endpoint = new Option<string?>("--endpoint")
         {

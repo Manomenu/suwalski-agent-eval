@@ -17,7 +17,7 @@ internal static class RunOutput
     /// <paramref name="terminal"/> whether to cancel the run too.
     /// </summary>
     public static async Task<int> ReportAsync(
-        RunClient client,
+        ServerClient client,
         RunCreated created,
         bool wait,
         bool json,
@@ -62,11 +62,33 @@ internal static class RunOutput
     }
 
     /// <summary>
+    /// Runs <paramref name="action"/>, which starts a run; Ctrl+C before it ends leaves the run as it is (it may exist on the server already).
+    /// </summary>
+    /// <param name="action">Starts the run and reports on it; its exit code.</param>
+    /// <param name="error">Where the interruption is said.</param>
+    /// <param name="what">What was being started: "run" or "re-check".</param>
+    /// <param name="cancellationToken">Cancelled by Ctrl+C.</param>
+    public static async Task<int> GuardAsync(Func<Task<int>> action, TextWriter error, string what, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(action);
+        ArgumentNullException.ThrowIfNull(error);
+        try
+        {
+            return await action();
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            await error.WriteLineAsync($"Interrupted; if the {what} was started, `suwageval runs` lists it.");
+            return Interrupted;
+        }
+    }
+
+    /// <summary>
     /// Ctrl+C stopped the waiting, not the run: the server would go on with nobody watching. A person is asked whether to cancel it
     /// too; without anyone to ask (a CI job being stopped), it is cancelled, since nobody would read its results. Everything goes to
     /// the error stream, so <c>--json</c> output stays JSON.
     /// </summary>
-    private static async Task<int> InterruptedAsync(RunClient client, Guid runId, Uri site, TextWriter error, Terminal terminal)
+    private static async Task<int> InterruptedAsync(ServerClient client, Guid runId, Uri site, TextWriter error, Terminal terminal)
     {
         await error.WriteLineAsync();
         var cancel = true;

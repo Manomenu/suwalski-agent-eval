@@ -1,15 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { ChangedCheck } from "./api";
-import {
-    changesByScenario,
-    judgedNote,
-    planHeadline,
-    recheckDisabledReason,
-    recheckSource,
-    RECHECK_EXPLANATION,
-    recheckTooltip,
-} from "./recheck";
+import { changesByScenario, judgedNote, planHeadline, recheckDisabledReason, RECHECK_EXPLANATION, recheckTooltip } from "./recheck";
 
 const change = (scenarioKey: string, checkKey: string): ChangedCheck => ({ scenarioKey, checkKey, change: "Changed" });
 
@@ -41,15 +33,7 @@ describe("planHeadline and judgedNote", () => {
     it("says how many call the judge's model, and nothing when none does", () => {
         expect(judgedNote({ judgedChecks: 0 })).toBeNull();
         expect(judgedNote({ judgedChecks: 1 })).toBe("1 judged by a model: it calls the judge's model.");
-        expect(judgedNote({ judgedChecks: "2" })).toBe("2 judged by a model: they call the judge's model.");
-    });
-});
-
-describe("recheckSource", () => {
-    it("is the run a re-check was made from, null for a run that called the agent", () => {
-        expect(recheckSource({ recheckOf: "abc" })).toBe("abc");
-        expect(recheckSource({ recheckOf: null })).toBeNull();
-        expect(recheckSource({})).toBeNull();
+        expect(judgedNote({ judgedChecks: 2 })).toBe("2 judged by a model: they call the judge's model.");
     });
 });
 

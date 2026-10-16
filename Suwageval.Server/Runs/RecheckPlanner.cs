@@ -40,7 +40,7 @@ internal static class RecheckPlanner
         ArgumentNullException.ThrowIfNull(version);
         if (status != RunStatus.Done)
         {
-            return Blocked(RecheckBlocker.NotFinished, $"Only a finished run can be re-checked; this one is {status}.", [], [], []);
+            return Blocked(RecheckBlocker.NotFinished, $"Only a finished run can be re-checked; this one is {status}.", [], 0, [], []);
         }
 
         var scope = RecheckScope.Of(originalSamples, scenarios);
@@ -50,6 +50,7 @@ internal static class RecheckPlanner
                 RecheckBlocker.AllSkipped,
                 "Every scenario of the run changed or was deleted since, so its stored answers answer other conversations.",
                 [],
+                0,
                 scope.Skipped,
                 []
             );
@@ -64,7 +65,7 @@ internal static class RecheckPlanner
         );
         HashSet<Guid> keptIds = [.. scope.Kept.Select(scenario => scenario.Id)];
         var changed = Changes(shownSamples, shownVerdicts, keptIds, current);
-        var judged = changed.Count(change => change.Change != CheckChange.Removed && change.After is { } after && UsesJudge(after));
+        var judged = JudgedCount(changed);
 
         if (mismatches.Count > 0)
         {
@@ -72,6 +73,7 @@ internal static class RecheckPlanner
                 RecheckBlocker.Mismatches,
                 "The current checks do not fit the version the run was under test.",
                 changed,
+                judged,
                 scope.Skipped,
                 mismatches
             );
@@ -82,6 +84,7 @@ internal static class RecheckPlanner
                 RecheckBlocker.NothingChanged,
                 "No check of the run's scenarios changed since the run, so a re-check would give the same results.",
                 changed,
+                judged,
                 scope.Skipped,
                 []
             );
@@ -100,6 +103,7 @@ internal static class RecheckPlanner
         RecheckBlocker blocker,
         string reason,
         IReadOnlyList<ChangedCheck> changed,
+        int judged,
         IReadOnlyList<SkippedScenario> skipped,
         IReadOnlyList<string> mismatches
     ) =>
@@ -109,12 +113,13 @@ internal static class RecheckPlanner
             Blocker = blocker,
             Reason = reason,
             ChangedChecks = changed,
-            JudgedChecks = changed.Count(change => change.Change != CheckChange.Removed && change.After is { } after && UsesJudge(after)),
+            JudgedChecks = judged,
             SkippedScenarios = skipped,
             Mismatches = mismatches,
         };
 
-    private static bool UsesJudge(CheckInput check) => check is JudgeCheck || CheckEvaluator.UsesJudge(check);
+    private static int JudgedCount(IReadOnlyList<ChangedCheck> changed) =>
+        changed.Count(change => change.Change != CheckChange.Removed && change.After is { } after && CheckEvaluator.JudgedByModel(after));
 
     /// <summary>
     /// The checks of the re-checked scenarios (those the shown run has samples of) that differ from the verdicts of the shown run:

@@ -29,19 +29,20 @@ internal static class Validator
     )
     {
         var problems = new List<Problem>();
+        LoadedAgent? loadedAgent = null;
         if (agent is null)
         {
             problems.Add(new Problem(agentFile, "", "The agent file does not exist.", null, null));
         }
         else
         {
-            AgentFileReader.Read(agentFile, agent, problems);
+            loadedAgent = AgentFileReader.Read(agentFile, agent, problems);
         }
 
         var scenarioKeys = new Dictionary<string, string>();
         var checkKeys = new Dictionary<string, string>();
         var checkCount = 0;
-        var scenarioCount = 0;
+        var loadedScenarios = new List<LoadedScenario>();
         foreach (var file in scenarioFiles)
         {
             var loaded = ScenarioFileReader.Read(file.File, file.Text, problems);
@@ -49,11 +50,11 @@ internal static class Validator
             {
                 continue;
             }
-            scenarioCount++;
+            loadedScenarios.Add(loaded);
             checkCount += loaded.Checks.Count;
             CheckScenario(loaded, contract, scenarioKeys, checkKeys, problems);
         }
-        return new ValidationResult(problems, scenarioCount, checkCount);
+        return new ValidationResult(problems, loadedScenarios.Count, checkCount) { Agent = loadedAgent, LoadedScenarios = loadedScenarios };
     }
 
     private static void CheckScenario(

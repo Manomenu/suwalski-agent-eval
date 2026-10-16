@@ -22,7 +22,7 @@ internal static class CheckEvaluation
         var verdict = input switch
         {
             JudgeCheck judgeCheck => await judge.JudgeAsync(judgeCheck, scenario.Conversation, trace, cancellationToken),
-            _ when CheckEvaluator.UsesJudge(input) => await argumentJudge.JudgeAsync(input, trace, cancellationToken),
+            _ when CheckEvaluator.JudgedByModel(input) => await argumentJudge.JudgeAsync(input, trace, cancellationToken),
             _ => CheckEvaluator.Evaluate(input, trace),
         };
         return new NewCheckResult(

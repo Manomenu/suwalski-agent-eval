@@ -15,5 +15,11 @@ internal sealed record ValidationResult(
     string? Notice = null
 )
 {
+    /// <summary>The agent file as read, for a caller that goes on with it (push); null when it could not be read.</summary>
+    public LoadedAgent? Agent { get; init; }
+
+    /// <summary>The scenario files as read, each with its checks.</summary>
+    public IReadOnlyList<LoadedScenario> LoadedScenarios { get; init; } = [];
+
     public bool IsValid => Problems.Count == 0;
 }

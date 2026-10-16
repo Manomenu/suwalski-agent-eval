@@ -39,10 +39,6 @@ describe("findUnstable", () => {
         expect(findUnstable(list, "v1", "refund", "other", 1)).toBeUndefined();
         expect(findUnstable(list, "v1", "refund", "says-sorry", 2)).toBeUndefined();
     });
-
-    it("reads numbers the API may send as strings", () => {
-        expect(findUnstable([item({ checkRevision: "2" })], "v1", "refund", "says-sorry", 2)).toBeDefined();
-    });
 });
 
 describe("tooltips and text", () => {

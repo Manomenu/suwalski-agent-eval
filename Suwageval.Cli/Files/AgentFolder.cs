@@ -4,6 +4,9 @@ namespace Suwageval.Cli.Files;
 /// <remarks>AgentFile is the name of the agent file, for the problem when AgentText (null: the file does not exist) is missing.</remarks>
 internal sealed record AgentFolder(string AgentFile, string? AgentText, IReadOnlyList<SourceText> Scenarios)
 {
+    /// <summary>Where a command looks for the agent's files when it is not told.</summary>
+    public const string DefaultDir = "suwageval";
+
     public static AgentFolder Read(string dir)
     {
         var agentFile = Path.Combine(dir, "agent.yaml");

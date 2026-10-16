@@ -45,6 +45,9 @@ internal static class CheckEvaluator
             _ => false,
         };
 
+    /// <summary>Whether a model gives the verdict of the check: a <c>judge</c> check, or one with a <c>$judge</c> matcher (<see cref="UsesJudge"/>).</summary>
+    public static bool JudgedByModel(CheckInput check) => check is JudgeCheck || UsesJudge(check);
+
     private static bool IsJudged(JsonElement? expected) => expected is { } json && JudgeMatcher.IsIn(json);
 
     /// <summary>

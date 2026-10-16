@@ -24,18 +24,7 @@ internal static class CompareCommand
             Arity = new ArgumentArity(MinRuns, MaxRuns),
             CustomParser = result =>
             {
-                var ids = new List<Guid>();
-                foreach (var token in result.Tokens)
-                {
-                    if (Guid.TryParse(token.Value, out var id))
-                    {
-                        ids.Add(id);
-                    }
-                    else
-                    {
-                        result.AddError($"'{token.Value}' is not a run id.");
-                    }
-                }
+                var ids = CommandOptions.ParseIds(result, "run");
                 var distinct = ids.Distinct().ToArray();
                 if (ids.Count > 0 && distinct.Length < MinRuns)
                 {
@@ -44,51 +33,41 @@ internal static class CompareCommand
                 return distinct;
             },
         };
-        var server = new Option<string?>("--server") { Description = ServerAddress.OptionDescription };
+        var server = CommandOptions.Server();
 
         var command = new Command("compare", "Open the comparison of 2 to 5 runs of one agent on the web.") { runIds, server };
         command.SetAction(
-            async (parsed, cancellationToken) =>
+            (parsed, cancellationToken) =>
             {
-                var site = ServerAddress.Site(parsed.GetValue(server));
-                var transport = http ?? new HttpClient { BaseAddress = ServerAddress.Api(site) };
-                var client = new RunClient(transport);
-                var ids = parsed.GetRequiredValue(runIds);
                 var error = parsed.InvocationConfiguration.Error;
-                try
-                {
-                    var agents = new List<string>();
-                    foreach (var id in ids)
+                return ServerCall.RunAsync(
+                    parsed.GetValue(server),
+                    http,
+                    error,
+                    async (client, site) =>
                     {
-                        agents.Add((await client.GetAsync(id, cancellationToken)).Agent);
-                    }
-                    if (agents.Distinct().Count() > 1)
-                    {
-                        await error.WriteLineAsync(
-                            $"Runs of different agents cannot be compared: {string.Join(", ", ids.Zip(agents, (id, agent) => $"{id} is of {agent}"))}."
+                        var ids = parsed.GetRequiredValue(runIds);
+                        var agents = new List<string>();
+                        foreach (var id in ids)
+                        {
+                            agents.Add((await client.GetAsync(id, cancellationToken)).Agent);
+                        }
+                        if (agents.Distinct().Count() > 1)
+                        {
+                            await error.WriteLineAsync(
+                                $"Runs of different agents cannot be compared: {string.Join(", ", ids.Zip(agents, (id, agent) => $"{id} is of {agent}"))}."
+                            );
+                            return 2;
+                        }
+                        await WebPage.ShowAsync(
+                            ServerAddress.ComparePage(site, ids),
+                            parsed.InvocationConfiguration.Output,
+                            error,
+                            openBrowser
                         );
-                        return 2;
+                        return 0;
                     }
-                    await WebPage.ShowAsync(
-                        ServerAddress.ComparePage(site, ids),
-                        parsed.InvocationConfiguration.Output,
-                        error,
-                        openBrowser
-                    );
-                    return 0;
-                }
-                catch (RunClientException failure)
-                {
-                    await error.WriteLineAsync(failure.Message);
-                    return 2;
-                }
-                finally
-                {
-                    if (http is null)
-                    {
-                        transport.Dispose();
-                    }
-                }
+                );
             }
         );
         return command;

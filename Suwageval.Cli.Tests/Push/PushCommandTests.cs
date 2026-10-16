@@ -40,7 +40,7 @@ public sealed class PushCommandTests
         var (exit, error) = Run(http, "push", Sample);
 
         Assert.Equal(1, exit);
-        Assert.Contains("Cannot reach the server at http://nowhere.test/", error, StringComparison.Ordinal);
+        Assert.Contains("The server could not be reached", error, StringComparison.Ordinal);
     }
 
     private sealed class TempFolder : IDisposable

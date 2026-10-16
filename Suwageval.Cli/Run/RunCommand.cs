@@ -14,8 +14,6 @@ namespace Suwageval.Cli.Run;
 /// </summary>
 internal static class RunCommand
 {
-    private const string DefaultDir = "suwageval";
-
     /// <param name="terminal">Where Ctrl+C during <c>--wait</c> asks whether to cancel the run too.</param>
     /// <param name="http">The client to the API; none means one is made from <c>--server</c> or <c>SUWAGEVAL_URL</c> (the tests pass their own).</param>
     public static Command Create(Terminal terminal, HttpClient? http = null)
@@ -25,14 +23,10 @@ internal static class RunCommand
         {
             Description = "Reach the agent here (its contract is read from here too) instead of at the endpointUrl it was registered with.",
         };
-        var wait = new Option<bool>("--wait")
-        {
-            Description =
-                "Wait for the run to finish and print its totals and the link to its page (see the exit codes). Ctrl+C asks whether to cancel the run too.",
-        };
-        var json = new Option<bool>("--json") { Description = "Print JSON: the results with --wait, otherwise { runId }." };
-        var server = new Option<string?>("--server") { Description = ServerAddress.OptionDescription };
-        var dir = new Option<string>("--dir") { Description = "The folder with agent.yaml.", DefaultValueFactory = _ => DefaultDir };
+        var wait = CommandOptions.Wait("run");
+        var json = CommandOptions.Json("Print JSON: the results with --wait, otherwise { runId }.");
+        var server = CommandOptions.Server();
+        var dir = CommandOptions.Dir();
 
         var command = new Command(
             "run",
@@ -47,61 +41,49 @@ internal static class RunCommand
             dir,
         };
         command.SetAction(
-            async (parsed, cancellationToken) =>
+            (parsed, cancellationToken) =>
             {
                 var output = parsed.InvocationConfiguration.Output;
                 var error = parsed.InvocationConfiguration.Error;
                 var agent = AgentName.Read(parsed.GetRequiredValue(dir), error);
                 if (agent is null)
                 {
-                    return 2;
+                    return Task.FromResult(2);
                 }
-                var site = ServerAddress.Site(parsed.GetValue(server));
-                var transport = http ?? new HttpClient { BaseAddress = ServerAddress.Api(site) };
-                try
-                {
-                    var client = new RunClient(transport);
-                    var created = await client.CreateAsync(
-                        new RunRequest
-                        {
-                            Agent = agent,
-                            Tag = parsed.GetValue(tag),
-                            EndpointUrl = parsed.GetValue(endpoint),
-                        },
-                        cancellationToken
-                    );
-                    return await RunOutput.ReportAsync(
-                        client,
-                        created,
-                        parsed.GetValue(wait),
-                        parsed.GetValue(json),
-                        site,
-                        output,
-                        error,
-                        terminal,
-                        cancellationToken
-                    );
-                }
-                catch (RunClientException failure)
-                {
-                    await error.WriteLineAsync(failure.Message);
-                    return 2;
-                }
-                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-                {
-                    // Ctrl+C before the server answered: the run may exist already, and is then left as it is.
-                    await parsed.InvocationConfiguration.Error.WriteLineAsync(
-                        "Interrupted; if the run was started, `suwageval runs` lists it."
-                    );
-                    return RunOutput.Interrupted;
-                }
-                finally
-                {
-                    if (http is null)
-                    {
-                        transport.Dispose();
-                    }
-                }
+                return ServerCall.RunAsync(
+                    parsed.GetValue(server),
+                    http,
+                    error,
+                    (client, site) =>
+                        RunOutput.GuardAsync(
+                            async () =>
+                            {
+                                var created = await client.CreateAsync(
+                                    new RunRequest
+                                    {
+                                        Agent = agent,
+                                        Tag = parsed.GetValue(tag),
+                                        EndpointUrl = parsed.GetValue(endpoint),
+                                    },
+                                    cancellationToken
+                                );
+                                return await RunOutput.ReportAsync(
+                                    client,
+                                    created,
+                                    parsed.GetValue(wait),
+                                    parsed.GetValue(json),
+                                    site,
+                                    output,
+                                    error,
+                                    terminal,
+                                    cancellationToken
+                                );
+                            },
+                            error,
+                            "run",
+                            cancellationToken
+                        )
+                );
             }
         );
         return command;

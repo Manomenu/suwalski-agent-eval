@@ -1,5 +1,3 @@
-using System.Text.Json;
-using Suwageval.Contracts;
 using Suwageval.Contracts.Agents;
 using Suwageval.Server.Problems;
 
@@ -115,7 +113,7 @@ internal static class AgentEndpoints
         {
             return ProblemResults.NotFound("Version", versionId.ToString());
         }
-        var content = ReadContract(version);
+        var content = ContractContent.Read(version.Content);
         return Results.Ok(
             new AgentVersionDetail(
                 version.Id,
@@ -149,20 +147,19 @@ internal static class AgentEndpoints
             CreatedAt = row.CreatedAt,
         };
 
-    private static AgentVersion ToVersion(AgentVersionRow row) =>
-        new(
+    private static AgentVersion ToVersion(AgentVersionRow row)
+    {
+        var contract = ContractContent.Read(row.Content);
+        return new AgentVersion(
             row.Id,
             row.AgentId,
             row.Label,
             row.ContentHash,
             row.CreatedAt,
             row.ArchivedAt,
-            ContractContent.ModelNames(ReadContract(row)),
-            ContractContent.DataVersion(ReadContract(row)),
+            ContractContent.ModelNames(contract),
+            contract.Context.Retrieval?.DataVersion,
             row.DataDescription
         );
-
-    private static AgentContract ReadContract(AgentVersionRow row) =>
-        JsonSerializer.Deserialize<AgentContract>(row.Content, ContractJson.Options)
-        ?? throw new InvalidOperationException($"Version {row.Id} has no content.");
+    }
 }

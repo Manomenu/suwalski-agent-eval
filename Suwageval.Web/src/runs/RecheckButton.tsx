@@ -5,7 +5,7 @@ import { definitionYaml, judgedByModel } from "../checks/definition";
 import { ModelJudgedIcon } from "../checks/ModelJudgedIcon";
 import { LineDiffView } from "../diff/LineDiffView";
 import { fetchRecheckPlan, recheck, type ChangedCheck, type RecheckPlan, type RunSummary } from "./api";
-import { CHANGE_LABELS, changesByScenario, judgedNote, planHeadline, recheckDisabledReason, recheckTooltip } from "./recheck";
+import { changesByScenario, judgedNote, planHeadline, recheckDisabledReason, recheckTooltip } from "./recheck";
 
 const RECHECK_TOOLTIP_WIDTH = 340;
 import { runHref } from "./results";
@@ -185,7 +185,7 @@ function ChangedCheckRow({ check }: { check: ChangedCheck }) {
             <Group gap="xs">
                 <Text span>{check.checkKey}</Text>
                 <Text span c="dimmed" aria-label={`${check.checkKey} change`}>
-                    {CHANGE_LABELS[check.change]}
+                    {check.change}
                 </Text>
                 {judgedNow && <ModelJudgedIcon />}
             </Group>

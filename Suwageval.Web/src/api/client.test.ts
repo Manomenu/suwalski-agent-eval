@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { toError } from "./client";
+import { ApiError, isNotFound, toError } from "./client";
 
 describe("toError", () => {
     it("carries the server's detail", async () => {
@@ -16,5 +16,13 @@ describe("toError", () => {
         const response = new Response("oops", { status: 502, statusText: "Bad Gateway" });
 
         expect((await toError(response)).message).toBe("502 Bad Gateway");
+    });
+});
+
+describe("isNotFound", () => {
+    it("is true only for a 404 from the server", () => {
+        expect(isNotFound(new ApiError("x", 404))).toBe(true);
+        expect(isNotFound(new ApiError("x", 500))).toBe(false);
+        expect(isNotFound(new Error("x"))).toBe(false);
     });
 });

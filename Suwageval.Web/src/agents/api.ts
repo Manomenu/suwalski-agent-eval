@@ -7,6 +7,8 @@ export type AgentDetail = components["schemas"]["AgentDetail"];
 export type AgentVersion = components["schemas"]["AgentVersion"];
 export type AgentVersionDetail = components["schemas"]["AgentVersionDetail"];
 
+type ScenarioSummary = components["schemas"]["ScenarioSummary"];
+
 const agentPath = (name: string) => `/agents/${encodeURIComponent(name)}`;
 
 export function fetchAgents(signal: AbortSignal): Promise<Agent[]> {
@@ -36,4 +38,8 @@ export function fetchPassRates(name: string, signal: AbortSignal): Promise<RunPa
 
 export function fetchVersion(name: string, versionId: string, signal: AbortSignal): Promise<AgentVersionDetail> {
     return request<AgentVersionDetail>(`${agentPath(name)}/versions/${versionId}`, { signal });
+}
+
+export function fetchScenarios(name: string, signal: AbortSignal): Promise<ScenarioSummary[]> {
+    return request<ScenarioSummary[]>(`${agentPath(name)}/scenarios`, { signal });
 }

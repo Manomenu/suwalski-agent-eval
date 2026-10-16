@@ -1,6 +1,5 @@
 using System.CommandLine;
 using System.Globalization;
-using Suwageval.Cli.Files;
 using Suwageval.Cli.Server;
 using Suwageval.Contracts.Runs;
 
@@ -13,14 +12,12 @@ namespace Suwageval.Cli.Unstable;
 /// </summary>
 internal static class UnstableCommand
 {
-    private const string DefaultDir = "suwageval";
-
     /// <param name="http">The client to the API; none means one is made from <c>--server</c> or <c>SUWAGEVAL_URL</c> (the tests pass their own).</param>
     public static Command Create(HttpClient? http = null)
     {
-        var json = new Option<bool>("--json") { Description = "Print the unstable checks as JSON." };
-        var server = new Option<string?>("--server") { Description = ServerAddress.OptionDescription };
-        var dir = new Option<string>("--dir") { Description = "The folder with agent.yaml.", DefaultValueFactory = _ => DefaultDir };
+        var json = CommandOptions.Json("Print the unstable checks as JSON.");
+        var server = CommandOptions.Server();
+        var dir = CommandOptions.Dir();
 
         var command = new Command("unstable", "List the checks that pass in some runs of a version and fail in others.")
         {
@@ -29,47 +26,33 @@ internal static class UnstableCommand
             dir,
         };
         command.SetAction(
-            async (parsed, cancellationToken) =>
-            {
-                var error = parsed.InvocationConfiguration.Error;
-                var agent = AgentName.Read(parsed.GetRequiredValue(dir), error);
-                if (agent is null)
-                {
-                    return 2;
-                }
-                HttpClient? owned = null;
-                try
-                {
-                    var transport =
-                        http ?? (owned = new HttpClient { BaseAddress = ServerAddress.Api(ServerAddress.Site(parsed.GetValue(server))) });
-                    var unstable = await new RunClient(transport).UnstableChecksAsync(agent, cancellationToken);
-                    var output = parsed.InvocationConfiguration.Output;
-                    if (parsed.GetValue(json))
+            (parsed, cancellationToken) =>
+                ServerCall.ForAgentAsync(
+                    parsed.GetRequiredValue(dir),
+                    parsed.GetValue(server),
+                    http,
+                    parsed.InvocationConfiguration.Error,
+                    async (client, agent, _) =>
                     {
-                        await output.WriteLineAsync(OutputJson.Of(unstable));
+                        var unstable = await client.UnstableChecksAsync(agent, cancellationToken);
+                        var output = parsed.InvocationConfiguration.Output;
+                        if (parsed.GetValue(json))
+                        {
+                            await output.WriteLineAsync(OutputJson.Of(unstable));
+                            return 0;
+                        }
+                        if (unstable.Count == 0)
+                        {
+                            await output.WriteLineAsync("No unstable checks.");
+                            return 0;
+                        }
+                        foreach (var check in unstable)
+                        {
+                            await output.WriteLineAsync(Line(check));
+                        }
                         return 0;
                     }
-                    if (unstable.Count == 0)
-                    {
-                        await output.WriteLineAsync("No unstable checks.");
-                        return 0;
-                    }
-                    foreach (var check in unstable)
-                    {
-                        await output.WriteLineAsync(Line(check));
-                    }
-                    return 0;
-                }
-                catch (RunClientException failure)
-                {
-                    await error.WriteLineAsync(failure.Message);
-                    return 2;
-                }
-                finally
-                {
-                    owned?.Dispose();
-                }
-            }
+                )
         );
         return command;
     }

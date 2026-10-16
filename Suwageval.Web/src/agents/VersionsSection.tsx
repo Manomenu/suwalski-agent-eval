@@ -1,7 +1,7 @@
 import { Alert, Anchor, Badge, Button, Checkbox, Group, Paper, Stack, Switch, Table, Text, Title } from "@mantine/core";
 import { useState } from "react";
 
-import { formatTime } from "../runs/results";
+import { formatTime, versionTitle } from "../runs/results";
 import { archiveVersions, type AgentVersion } from "./api";
 import { HeaderHelp } from "./HeaderHelp";
 import {
@@ -14,7 +14,6 @@ import {
     versionLabel,
     versionsToCompare,
     VERSION_HELP,
-    versionTitle,
     visibleVersions,
 } from "./view";
 

@@ -18,13 +18,9 @@ internal static class RerunCommand
         {
             Description = "Reach the agent here (its contract is read from here too) instead of at the endpoint of that run.",
         };
-        var wait = new Option<bool>("--wait")
-        {
-            Description =
-                "Wait for the run to finish and print its totals and the link to its page (see the exit codes). Ctrl+C asks whether to cancel the run too.",
-        };
-        var json = new Option<bool>("--json") { Description = "Print JSON: the results with --wait, otherwise { runId }." };
-        var server = new Option<string?>("--server") { Description = ServerAddress.OptionDescription };
+        var wait = CommandOptions.Wait("run");
+        var json = CommandOptions.Json("Print JSON: the results with --wait, otherwise { runId }.");
+        var server = CommandOptions.Server();
 
         var command = new Command(
             "rerun",
@@ -38,46 +34,39 @@ internal static class RerunCommand
             server,
         };
         command.SetAction(
-            async (parsed, cancellationToken) =>
+            (parsed, cancellationToken) =>
             {
-                var site = ServerAddress.Site(parsed.GetValue(server));
-                var transport = http ?? new HttpClient { BaseAddress = ServerAddress.Api(site) };
-                try
-                {
-                    var client = new RunClient(transport);
-                    var created = await client.RerunAsync(parsed.GetRequiredValue(runId), parsed.GetValue(endpoint), cancellationToken);
-                    return await RunOutput.ReportAsync(
-                        client,
-                        created,
-                        parsed.GetValue(wait),
-                        parsed.GetValue(json),
-                        site,
-                        parsed.InvocationConfiguration.Output,
-                        parsed.InvocationConfiguration.Error,
-                        terminal,
-                        cancellationToken
-                    );
-                }
-                catch (RunClientException failure)
-                {
-                    await parsed.InvocationConfiguration.Error.WriteLineAsync(failure.Message);
-                    return 2;
-                }
-                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-                {
-                    // Ctrl+C before the server answered: the run may exist already, and is then left as it is.
-                    await parsed.InvocationConfiguration.Error.WriteLineAsync(
-                        "Interrupted; if the run was started, `suwageval runs` lists it."
-                    );
-                    return RunOutput.Interrupted;
-                }
-                finally
-                {
-                    if (http is null)
-                    {
-                        transport.Dispose();
-                    }
-                }
+                var error = parsed.InvocationConfiguration.Error;
+                return ServerCall.RunAsync(
+                    parsed.GetValue(server),
+                    http,
+                    error,
+                    (client, site) =>
+                        RunOutput.GuardAsync(
+                            async () =>
+                            {
+                                var created = await client.RerunAsync(
+                                    parsed.GetRequiredValue(runId),
+                                    parsed.GetValue(endpoint),
+                                    cancellationToken
+                                );
+                                return await RunOutput.ReportAsync(
+                                    client,
+                                    created,
+                                    parsed.GetValue(wait),
+                                    parsed.GetValue(json),
+                                    site,
+                                    parsed.InvocationConfiguration.Output,
+                                    error,
+                                    terminal,
+                                    cancellationToken
+                                );
+                            },
+                            error,
+                            "run",
+                            cancellationToken
+                        )
+                );
             }
         );
         return command;

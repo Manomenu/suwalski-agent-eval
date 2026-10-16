@@ -16,6 +16,11 @@ export class ApiError extends Error {
     }
 }
 
+/** The server's 404 — the only error the pages tell apart. */
+export function isNotFound(error: Error): boolean {
+    return error instanceof ApiError && error.status === 404;
+}
+
 export async function toError(response: Response): Promise<ApiError> {
     const body = (await response.json().catch(() => null)) as { detail?: unknown } | null;
     const detail = body?.detail;

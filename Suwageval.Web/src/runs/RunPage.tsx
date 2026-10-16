@@ -1,11 +1,11 @@
 import { Alert, Anchor, Badge, Group, List, Loader, Paper, Stack, Text, Title } from "@mantine/core";
 
+import { isNotFound } from "../api/client";
 import { CancelButton } from "./CancelButton";
 import { RecheckButton } from "./RecheckButton";
 import { RerunButton } from "./RerunButton";
-import { recheckSource } from "./recheck";
 import { ScenarioCard } from "./ScenarioCard";
-import { durationSummary, formatTime, isActive, isRunNotFound, num, progress, runHref, runStatusLabel, statusColor } from "./results";
+import { durationSummary, formatTime, isActive, progress, runHref, runStatusLabel, statusColor } from "./results";
 import { useRunResults } from "./useRunResults";
 import { useUnstableChecks } from "./useUnstableChecks";
 
@@ -18,7 +18,7 @@ export function RunPage({ runId }: { runId: string }) {
 
     if (state.kind === "loading") return <Loader aria-label="Loading results" />;
     if (state.kind === "error") {
-        const notFound = isRunNotFound(state.error);
+        const notFound = isNotFound(state.error);
         return (
             <Alert color="red" title={notFound ? "Run not found" : "Could not load the results"}>
                 {notFound ? `There is no run ${runId}.` : state.error.message}
@@ -44,12 +44,11 @@ export function RunPage({ runId }: { runId: string }) {
                     id {run.id} · version {run.agentVersionId}
                     {run.tag ? ` · tag ${run.tag}` : ""} · {run.endpointUrl}
                 </Text>
-                {recheckSource(run) !== null && (
+                {run.recheckOf != null && (
                     <Alert color="blue" title="Re-check">
                         <Text>
-                            Re-check of <Anchor href={runHref(recheckSource(run) ?? "")}>run {recheckSource(run)}</Anchor>: its stored
-                            answers judged again by the current checks, without calling the agent. The turn times are the source's, copied,
-                            not measured again.
+                            Re-check of <Anchor href={runHref(run.recheckOf)}>run {run.recheckOf}</Anchor>: its stored answers judged again
+                            by the current checks, without calling the agent. The turn times are the source's, copied, not measured again.
                         </Text>
                         {(run.skippedScenarios?.length ?? 0) > 0 && (
                             <>
@@ -75,8 +74,8 @@ export function RunPage({ runId }: { runId: string }) {
                 <Paper withBorder p="md">
                     <Group gap="lg">
                         <Text>Samples: {progress(run)}</Text>
-                        <Text c="green">Checks passed: {num(run.checksPassed)}</Text>
-                        <Text c={num(run.checksFailed) > 0 ? "red" : "dimmed"}>Checks failed: {num(run.checksFailed)}</Text>
+                        <Text c="green">Checks passed: {run.checksPassed}</Text>
+                        <Text c={run.checksFailed > 0 ? "red" : "dimmed"}>Checks failed: {run.checksFailed}</Text>
                     </Group>
                     {durationSummary(scenarios) && <Text>{durationSummary(scenarios)}</Text>}
                     <Text c="dimmed" size="sm">

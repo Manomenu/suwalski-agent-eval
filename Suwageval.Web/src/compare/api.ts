@@ -1,13 +1,9 @@
 // This feature's HTTP calls, typed from the generated OpenAPI types. A comparison is made from the runs' own results (no
 // endpoint of its own: the server has nothing to add to them), the agent's versions (label, model) and its scenarios (tags).
-import { fetchVersions, type AgentVersion } from "../agents/api";
-import { isNotFound } from "../agents/view";
-import { request } from "../api/client";
-import type { components } from "../api/openapi";
+import { fetchScenarios, fetchVersions, type AgentVersion } from "../agents/api";
+import { isNotFound } from "../api/client";
 import { fetchRunResults, type RunResults } from "../runs/api";
 import { DIFFERENT_AGENTS, sameAgent } from "./compare";
-
-type ScenarioSummary = components["schemas"]["ScenarioSummary"];
 
 export interface Comparison {
     /** One per run, in the order asked for. */
@@ -15,10 +11,6 @@ export interface Comparison {
     versions: AgentVersion[];
     /** Scenario key to its current tags. */
     tags: ReadonlyMap<string, readonly string[]>;
-}
-
-function fetchScenarios(agent: string, signal: AbortSignal): Promise<ScenarioSummary[]> {
-    return request<ScenarioSummary[]>(`/agents/${encodeURIComponent(agent)}/scenarios`, { signal });
 }
 
 /** Everything the page shows; an `Error` with words for the user when the runs cannot be compared. */

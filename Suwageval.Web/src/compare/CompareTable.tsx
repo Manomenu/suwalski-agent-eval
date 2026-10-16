@@ -1,12 +1,12 @@
 import { Anchor, Badge, Button, Group, Paper, Stack, Switch, Table, Text, Tooltip } from "@mantine/core";
 import { useState } from "react";
 
-import { dataText, shortId, versionLabel } from "../agents/view";
+import { dataText, versionLabel } from "../agents/view";
 import { CheckDefinitionButton } from "../checks/CheckDefinitionButton";
 import { judgedByModel } from "../checks/definition";
 import { ModelJudgedIcon } from "../checks/ModelJudgedIcon";
 import { UnstableCheckIcon } from "../checks/UnstableCheckIcon";
-import { durationSummary, formatTime, num, percent, turnTimes } from "../runs/results";
+import { durationSummary, formatTime, percent, runHref, shortId, turnTimes } from "../runs/results";
 import { unstableInRuns, unstableRowTooltip } from "../runs/stability";
 import { useUnstableChecks } from "../runs/useUnstableChecks";
 import type { ScenarioRunResult } from "../runs/api";
@@ -82,7 +82,7 @@ export function CompareTable({ comparison, firstBaseline }: { comparison: Compar
                                             style={{ cursor: isBaseline ? "default" : "pointer", verticalAlign: "top" }}
                                         >
                                             <Stack gap={2}>
-                                                <Anchor href={`/runs/${run.id}`}>Run {shortId(run.id)}</Anchor>
+                                                <Anchor href={runHref(run.id)}>Run {shortId(run.id)}</Anchor>
                                                 <Text size="xs" c="dimmed" fw="normal">
                                                     version {version === undefined ? shortId(run.agentVersionId) : versionLabel(version)}
                                                 </Text>
@@ -203,8 +203,8 @@ export function CompareTable({ comparison, firstBaseline }: { comparison: Compar
                                                 {check !== null && (
                                                     <CheckDefinitionButton
                                                         definition={check.definition}
-                                                        revision={num(check.revision)}
-                                                        latestRevision={num(check.latestRevision)}
+                                                        revision={check.revision}
+                                                        latestRevision={check.latestRevision}
                                                     />
                                                 )}
                                             </Group>

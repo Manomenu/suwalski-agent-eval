@@ -171,8 +171,8 @@ internal sealed class ScenarioStore(Pool pool)
         return deleted > 0;
     }
 
-    /// <summary>Adds and removes tags on live scenarios, with no new revision. Keys that match no live scenario are reported.</summary>
-    public async Task<TagChange> ChangeTagsAsync(
+    /// <summary>Adds and removes tags on live scenarios, with no new revision. Keys that match no live scenario change nothing.</summary>
+    public async Task<IReadOnlyList<ScenarioTags>> ChangeTagsAsync(
         Guid agentId,
         IReadOnlyList<string> keys,
         IReadOnlyList<string> add,
@@ -201,9 +201,7 @@ internal sealed class ScenarioStore(Pool pool)
                 cancellationToken: cancellationToken
             )
         );
-        var rows = changed.OrderBy(row => row.Key, StringComparer.Ordinal).ToList();
-        var known = rows.Select(row => row.Key).ToHashSet();
-        return new TagChange(rows, [.. keys.Distinct().Where(key => !known.Contains(key))]);
+        return [.. changed.OrderBy(row => row.Key, StringComparer.Ordinal)];
     }
 
     /// <summary>Every tag in use on live scenarios, with how many scenarios carry it.</summary>

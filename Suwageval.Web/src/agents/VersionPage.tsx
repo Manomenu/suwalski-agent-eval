@@ -4,7 +4,8 @@ import { formatTime } from "../runs/results";
 import { fetchVersion } from "./api";
 import { Page } from "./Page";
 import { useLoaded } from "./useLoaded";
-import { agentHref, jsonText, versionTitle } from "./view";
+import { versionTitle } from "../runs/results";
+import { agentHref, jsonText } from "./view";
 
 /** `/agents/<name>/versions/<id>`: the contract the agent served in that version. */
 export function VersionPage({ name, versionId }: { name: string; versionId: string }) {

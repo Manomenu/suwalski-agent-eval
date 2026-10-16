@@ -27,37 +27,24 @@ internal sealed class AgentClient(HttpClient http)
     };
 
     /// <summary>The agent's contract: its prompt, model, tools and context as it runs now. Never throws for what the agent does.</summary>
-    public async Task<ContractResult> GetContractAsync(Uri endpointUrl, CancellationToken cancellationToken = default)
+    public Task<ContractResult> GetContractAsync(Uri endpointUrl, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(endpointUrl);
         var url = new Uri(endpointUrl.AbsoluteUri.TrimEnd('/') + "/suwageval/contract");
         var problem = $"The agent's contract could not be read from {url}: ";
-        try
-        {
-            using var response = await http.GetAsync(url, cancellationToken);
-            if (!response.IsSuccessStatusCode)
-            {
-                var body = await response.Content.ReadAsStringAsync(cancellationToken);
-                var excerpt = body.Length > BodyExcerptLength ? body[..BodyExcerptLength] + "…" : body;
-                return ContractResult.Failed(
-                    $"{problem}the agent answered {(int)response.StatusCode} {response.ReasonPhrase}: {excerpt}".TrimEnd(' ', ':')
-                );
-            }
-            var contract = await response.Content.ReadFromJsonAsync<AgentContract>(ContractJson.Options, cancellationToken);
-            return contract is null ? ContractResult.Failed($"{problem}the answer was empty.") : ContractResult.Succeeded(contract);
-        }
-        catch (HttpRequestException error)
-        {
-            return ContractResult.Failed($"{problem}{error.Message}");
-        }
-        catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            return ContractResult.Failed($"{problem}no answer within {http.Timeout.TotalSeconds:0.##} s.");
-        }
-        catch (Exception error) when (error is JsonException or NotSupportedException)
-        {
-            return ContractResult.Failed($"{problem}it does not match the contract: {error.Message}");
-        }
+        return SendAsync<AgentContract, ContractResult>(
+            new HttpRequestMessage(HttpMethod.Get, url),
+            new Messages(
+                Answered: $"{problem}the agent answered",
+                Empty: $"{problem}the answer was empty.",
+                Unreachable: problem,
+                NoAnswer: $"{problem}no answer within",
+                Unreadable: $"{problem}it does not match the contract: "
+            ),
+            ContractResult.Succeeded,
+            ContractResult.Failed,
+            cancellationToken
+        );
     }
 
     /// <summary>
@@ -76,7 +63,7 @@ internal sealed class AgentClient(HttpClient http)
         return result with { DurationMs = (int)clock.ElapsedMilliseconds };
     }
 
-    private async Task<TurnResult> CallAsync(
+    private Task<TurnResult> CallAsync(
         Uri endpointUrl,
         IReadOnlyList<ConversationItem> conversation,
         TurnContext context,
@@ -86,41 +73,70 @@ internal sealed class AgentClient(HttpClient http)
         ArgumentNullException.ThrowIfNull(endpointUrl);
         ArgumentNullException.ThrowIfNull(context);
         var url = new Uri(endpointUrl.AbsoluteUri.TrimEnd('/') + "/suwageval/turn");
-        try
+        var request = new HttpRequestMessage(HttpMethod.Post, url)
         {
-            using var request = new HttpRequestMessage(HttpMethod.Post, url)
+            Content = JsonContent.Create(new TurnRequest { Conversation = conversation, Fixtures = context.Fixtures }, options: Request),
+        };
+        request.Headers.Add("Suwageval-Run-Id", context.RunId.ToString());
+        request.Headers.Add("Suwageval-Scenario", context.ScenarioKey);
+        request.Headers.Add("Suwageval-Sample", context.Sample.ToString(CultureInfo.InvariantCulture));
+        return SendAsync<TurnResponse, TurnResult>(
+            request,
+            new Messages(
+                Answered: "The agent answered",
+                Empty: "The agent's answer was empty.",
+                Unreachable: $"The agent could not be reached at {url}: ",
+                NoAnswer: "The agent did not answer within",
+                Unreadable: "The agent's answer could not be read as the contract's items: "
+            ),
+            turn => TurnResult.Succeeded(turn.Items),
+            TurnResult.Failed,
+            cancellationToken
+        );
+    }
+
+    /// <summary>
+    /// Sends the request and reads the answer as <typeparamref name="T"/>; whatever goes wrong becomes <paramref name="failed"/>
+    /// with the sentence from <paramref name="messages"/>.
+    /// </summary>
+    private async Task<TResult> SendAsync<T, TResult>(
+        HttpRequestMessage request,
+        Messages messages,
+        Func<T, TResult> succeeded,
+        Func<string, TResult> failed,
+        CancellationToken cancellationToken
+    )
+        where T : class
+    {
+        using (request)
+        {
+            try
             {
-                Content = JsonContent.Create(
-                    new TurnRequest { Conversation = conversation, Fixtures = context.Fixtures },
-                    options: Request
-                ),
-            };
-            request.Headers.Add("Suwageval-Run-Id", context.RunId.ToString());
-            request.Headers.Add("Suwageval-Scenario", context.ScenarioKey);
-            request.Headers.Add("Suwageval-Sample", context.Sample.ToString(CultureInfo.InvariantCulture));
-            using var response = await http.SendAsync(request, cancellationToken);
-            if (!response.IsSuccessStatusCode)
-            {
-                var body = await response.Content.ReadAsStringAsync(cancellationToken);
-                var excerpt = body.Length > BodyExcerptLength ? body[..BodyExcerptLength] + "…" : body;
-                return TurnResult.Failed(
-                    $"The agent answered {(int)response.StatusCode} {response.ReasonPhrase}: {excerpt}".TrimEnd(' ', ':')
-                );
+                using var response = await http.SendAsync(request, cancellationToken);
+                if (!response.IsSuccessStatusCode)
+                {
+                    var body = await response.Content.ReadAsStringAsync(cancellationToken);
+                    var excerpt = body.Length > BodyExcerptLength ? body[..BodyExcerptLength] + "…" : body;
+                    return failed($"{messages.Answered} {(int)response.StatusCode} {response.ReasonPhrase}: {excerpt}".TrimEnd(' ', ':'));
+                }
+                var answer = await response.Content.ReadFromJsonAsync<T>(ContractJson.Options, cancellationToken);
+                return answer is null ? failed(messages.Empty) : succeeded(answer);
             }
-            var turn = await response.Content.ReadFromJsonAsync<TurnResponse>(ContractJson.Options, cancellationToken);
-            return turn is null ? TurnResult.Failed("The agent's answer was empty.") : TurnResult.Succeeded(turn.Items);
-        }
-        catch (HttpRequestException error)
-        {
-            return TurnResult.Failed($"The agent could not be reached at {url}: {error.Message}");
-        }
-        catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            return TurnResult.Failed($"The agent did not answer within {http.Timeout.TotalSeconds:0.##} s.");
-        }
-        catch (Exception error) when (error is JsonException or NotSupportedException)
-        {
-            return TurnResult.Failed($"The agent's answer could not be read as the contract's items: {error.Message}");
+            catch (HttpRequestException error)
+            {
+                return failed($"{messages.Unreachable}{error.Message}");
+            }
+            catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                return failed($"{messages.NoAnswer} {http.Timeout.TotalSeconds:0.##} s.");
+            }
+            catch (Exception error) when (error is JsonException or NotSupportedException)
+            {
+                return failed($"{messages.Unreadable}{error.Message}");
+            }
         }
     }
+
+    /// <summary>The sentences of the failures; a message that continues with the cause or a number ends where that begins.</summary>
+    private sealed record Messages(string Answered, string Empty, string Unreachable, string NoAnswer, string Unreadable);
 }
