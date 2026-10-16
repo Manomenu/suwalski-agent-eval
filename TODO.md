@@ -40,7 +40,7 @@ belongs to.
   `POST /agents/{agentId}/scenarios/tags` with `{ scenarioKeys, add, remove }` sets and
   removes tags on a list of scenarios at once. Tags are metadata: changing them makes no new
   revision.
-- **The agent under test (Invocation):** first an external agent over HTTP, contract v0:
+- **The agent under test (Invocation):** first an external agent over HTTP, contract v1:
   `POST {agentUrl}/suwageval/turn` with `{ conversation }` → `{ items }` (the turn's tool
   calls, tool results, events and final message, as log items with `kind`). The agent runs
   its own tools against test data. Example: `~/repos/suwalski-example-agent` (Python,
@@ -84,45 +84,18 @@ belongs to.
 - **Judge: later.** A per-model API key (the TODO "Secrets" checklist, when a model asks for one);
   judging with several models or a panel; caching verdicts of identical (criteria, output) pairs;
   streaming through `LimitedChatClient` (it refuses streaming until a caller needs it).
-- **The contract for multi-agent systems (contract v1, replaces v0):** a system under test is
-  often several LLM agents, not one prompt. The contract becomes:
-  - `agents`: a list of LLM agents, each `{ name, model { name, parameters }, config, tools }`,
-    where `model { name, parameters }` stays a structured field, separate from the free-text
-    `config`, so runs can still be filtered and compared by model (the runs' model filter then
-    covers the models of all the system's agents), and `config` is free text for now — the system prompt, a scope policy, whatever defines
-    that agent — and `tools` are the tools THAT agent may call;
-  - `otherConfig`: free text for what belongs to the system, not to one agent (e.g. "retries
-    on every LLM agent: 2");
-  - `context` (events, retrieval) stays as in v0, plus **the version of the retrieval data**.
-    Today a changed knowledge base leaves the contract — and so the agent version — unchanged, and
-    two runs of "the same version" are compared over different data. Suwageval does not store the
-    data, only a fingerprint the agent computes. With `usesRetrieval: true` the contract requires
-    `context.retrieval`:
-    - `dataVersion` (required): an opaque string, part of the content hash, so new data makes a
-      new agent version that can be filtered and compared like a model;
-    - `description` (optional): for people (`1832 articles, help center + returns policy`), shown on
-      the web and in the comparison header, outside the hash like `label`.
-    How the agent computes `dataVersion` is its business, but it must change whenever what retrieval
-    can return changes: the content AND how it was indexed. Recommended: the id of the index build
-    (every rebuild gets a new one), or a hash over (document id, content hash) for every document plus
-    the pipeline settings (chunking, embedding model, index parameters). Not "last updated": a
-    deletion or a re-index with other chunking or embeddings does not move it. For repeatable runs the
-    agent serves a frozen snapshot of its data in test mode (the "same test data" rule of the
-    contract), so `dataVersion` changes only when the snapshot is swapped on purpose.
-    **The Claude Code plugin carries this guidance** (`claude-plugin/skills/suwageval/SKILL.md`, and
-    the command that helps wire an agent to the contract): when Claude adds `dataVersion` to an
-    agent, it computes it from the index build or the content-and-pipeline hash as above, never from
-    a timestamp alone, and points the agent at a frozen snapshot for evaluation.
-  Free text is enough to start: it is part of the content hash, so any change makes a new
-  version, and it is shown when comparing versions. Structure comes later, once real systems
-  show which parts checks or comparisons need.
-  - **A `ToolCall` names its agent** (`agent` field), and `tool-called` / `tool-not-called`
-    checks can require it: `by: refunds-agent` — the right tool from the wrong agent fails.
-    `validate` and the 409 at `POST /runs` check that the tool belongs to that agent.
-  - **The state a call was made in is read from the log, not stamped on the call:** the state
-    at any point is the `data` of the last `state.changed` event before it. A check can then
-    say `where: { state: { node: awaiting_payment } }` — one source of truth, nothing the
-    agent has to repeat on every call.
-  - **v0 becomes invalid; no compatibility:** the agent contract, the files, the stored
-    versions and the scenarios move to v1 in one change; the development and test databases
-    are recreated (nothing in them is worth migrating yet).
+- **Multi-turn evaluation with a simulated user** (a design note; not to be built now). More than one agent turn is reserved
+  for a user played by an LLM, who answers each real reply of the agent. The scenario says what that user wants to achieve and
+  how they behave — e.g. tries to hack the system, or is frustrated and wants a refund — through `continuation`: `turns` plus a
+  goal/persona description. Fixed, scripted user messages are deliberately NOT supported: a message written before the agent's
+  real answer is known may not fit that answer, and the scenario then measures noise. A conversation of several steps is split
+  into several scenarios instead, each with the earlier agent answers predefined in its `conversation`. This is a different kind
+  of evaluation than regression scenarios, which do not need it. It calls a model, so it
+  arrives with the outside-service rules of AGENTS.md section 3 (a live test, the daily check from the cluster, degrade rather
+  than break) and with the per-model pool the judge already uses; until then `continuation.turns` above 1 fails the sample without a
+  call.
+- **A check on the state a call was made in** (what is left of the multi-agent contract, whose
+  rest — agents, `by`, `agent` on a call — is built): the state at any point is the `data` of the
+  last `state.changed` event before it, read from the log, not stamped on the call. A check can
+  then say `where: { state: { node: awaiting_payment } }` — one source of truth, nothing the
+  agent has to repeat on every call. Built with its first user.

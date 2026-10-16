@@ -68,6 +68,16 @@ describe("definitionSummary", () => {
             'text contains "refund" pattern "^Hi"',
         );
     });
+
+    it("names the agent of a call, an event that must not be emitted and the cited sources", () => {
+        expect(definitionSummary({ type: "tool-called", key: "c", scenarioKey: "s", tool: "lookup", by: "router" })).toBe(
+            "tool-called lookup by router",
+        );
+        expect(definitionSummary({ type: "event-not-emitted", key: "e", scenarioKey: "s", event: "handoff" })).toBe(
+            "event-not-emitted handoff",
+        );
+        expect(definitionSummary({ type: "cited", key: "c", scenarioKey: "s", sources: ["faq-1", "faq-2"] })).toBe("cited faq-1, faq-2");
+    });
 });
 
 describe("revisionNote", () => {

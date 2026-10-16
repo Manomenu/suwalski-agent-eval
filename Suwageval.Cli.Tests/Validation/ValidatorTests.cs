@@ -217,6 +217,144 @@ public sealed class ValidatorTests
         AssertProblem(result, path, "nope");
     }
 
+    [Fact]
+    public void A_tool_call_or_check_by_an_agent_needs_that_agent_to_exist_and_have_the_tool()
+    {
+        var scenario = """
+            key: k
+            conversation:
+              - tool_call: { id: c1, name: charge_card, arguments: {}, agent: billing-agent }
+              - tool_call: { id: c2, name: charge_card, arguments: {}, agent: support-agent }
+              - tool_call: { id: c3, name: get_order, arguments: {}, agent: ghost }
+              - tool_call: { id: c4, name: charge_card, arguments: {} }
+            checks:
+              - key: a
+                type: tool-called
+                tool: charge_card
+                by: billing-agent
+              - key: b
+                type: tool-called
+                tool: charge_card
+                by: support-agent
+              - key: c
+                type: tool-not-called
+                tool: get_order
+                by: ghost
+            """;
+
+        var result = Validate(scenario);
+
+        AssertProblem(result, "conversation[1].tool_call.agent", "The agent 'support-agent' has no tool 'charge_card'");
+        AssertProblem(result, "conversation[2].tool_call.agent", "The system has no agent 'ghost'");
+        AssertProblem(result, "checks[1].by", "The agent 'support-agent' has no tool 'charge_card'");
+        AssertProblem(result, "checks[2].by", "The system has no agent 'ghost'");
+        Assert.Equal(4, result.Problems.Count);
+    }
+
+    [Fact]
+    public void A_tool_no_agent_has_is_a_problem_in_the_conversation_too()
+    {
+        var scenario = """
+            key: k
+            conversation:
+              - tool_call: { id: c1, name: nope, arguments: {} }
+            """;
+
+        AssertProblem(Validate(scenario), "conversation[0].tool_call.name", "No agent has the tool 'nope'");
+    }
+
+    [Fact]
+    public void Sources_and_an_optional_score_are_read()
+    {
+        var scenario = """
+            key: k
+            conversation:
+              - kind: AssistantMessage
+                text: hi
+                sources: [plans, faq]
+              - kind: Retrieval
+                query: q
+                chunks: [{ text: t, source: s }]
+            """;
+
+        Assert.True(Validate(scenario, TestAgent.WithRetrieval).IsValid);
+    }
+
+    [Fact]
+    public void Fixtures_are_read_and_need_an_agent_that_declares_a_fixtures_schema()
+    {
+        var scenario = "key: k\nfixtures:\n  pinnedResources: [plans]\nconversation:\n  - user: hi\n";
+
+        Assert.True(Validate(scenario, TestAgent.WithFixtures).IsValid);
+        AssertProblem(Validate(scenario), "fixtures", "fixturesSchema");
+        Assert.True(Validate(scenario, offline: true).IsValid);
+    }
+
+    [Fact]
+    public void A_scenario_without_fixtures_needs_no_schema() => Assert.True(Validate("key: k\nconversation:\n  - user: hi\n").IsValid);
+
+    [Fact]
+    public void An_event_not_emitted_check_needs_a_declared_event()
+    {
+        var scenario =
+            "key: k\nconversation:\n  - user: hi\nchecks:\n  - { key: c, type: event-not-emitted, event: state.changed, data: { node: x } }\n";
+        var undeclared = scenario.Replace("state.changed", "nope", StringComparison.Ordinal);
+
+        Assert.True(Validate(scenario).IsValid);
+        AssertProblem(Validate(undeclared), "checks[0].event", "nope");
+        Assert.True(Validate(undeclared, offline: true).IsValid);
+    }
+
+    [Fact]
+    public void A_cited_check_needs_sources_and_none_empty()
+    {
+        const string Head = "key: k\nconversation:\n  - user: hi\nchecks:\n";
+
+        Assert.True(Validate(Head + "  - { key: c, type: cited, sources: [plans, faq] }\n").IsValid);
+        AssertProblem(Validate(Head + "  - { key: c, type: cited, sources: [] }\n"), "checks[0].sources", "at least one");
+        AssertProblem(Validate(Head + "  - { key: c, type: cited, sources: [plans, ' '] }\n"), "checks[0].sources[1]", "not empty");
+        Assert.False(Validate(Head + "  - { key: c, type: cited }\n").IsValid);
+    }
+
+    [Fact]
+    public void A_result_on_tool_called_is_read_and_its_patterns_are_checked()
+    {
+        const string Head = "key: k\nconversation:\n  - user: hi\nchecks:\n";
+
+        Assert.True(
+            Validate(
+                Head + "  - key: c\n    type: tool-called\n    tool: get_order\n    result: { status: { $pattern: 'deliv' } }\n"
+            ).IsValid
+        );
+        AssertProblem(
+            Validate(Head + "  - key: c\n    type: tool-called\n    tool: get_order\n    result: { items: [{ $pattern: '([' }] }\n"),
+            "checks[0].result.items[0].$pattern",
+            "regular expression"
+        );
+    }
+
+    [Fact]
+    public void An_invalid_pattern_in_args_or_data_is_a_problem_at_its_path()
+    {
+        const string Head = "key: k\nconversation:\n  - user: hi\nchecks:\n";
+
+        AssertProblem(
+            Validate(Head + "  - key: c\n    type: tool-called\n    tool: get_order\n    args: { zip: { $pattern: '(' } }\n"),
+            "checks[0].args.zip.$pattern",
+            "regular expression"
+        );
+        AssertProblem(
+            Validate(Head + "  - key: c\n    type: event\n    event: state.changed\n    data: { node: { $pattern: '*' } }\n"),
+            "checks[0].data.node.$pattern",
+            "regular expression"
+        );
+        AssertProblem(
+            Validate(Head + "  - key: c\n    type: event-not-emitted\n    event: state.changed\n    data: { $pattern: '(' }\n"),
+            "checks[0].data.$pattern",
+            "regular expression"
+        );
+    }
+
     [Theory]
     [InlineData("after", "refund_order")]
     [InlineData("before", "state.changed")]
@@ -405,5 +543,50 @@ public sealed class ValidatorTests
         );
 
         Assert.False(result.IsValid);
+    }
+
+    [Fact]
+    public void A_judge_matcher_is_valid_in_a_tool_result_and_checked_there_too()
+    {
+        Assert.Empty(
+            Validate(
+                WithChecks(
+                    "  - key: c\n    type: tool-called\n    tool: get_order\n    result: { note: { $judge: { description: d } }, id: { $pattern: '^A' } }\n"
+                )
+            ).Problems
+        );
+        AssertProblem(
+            Validate(WithChecks("  - key: c\n    type: tool-called\n    tool: get_order\n    result: { note: { $judge: {} } }\n")),
+            "checks[0].result.note.$judge",
+            "needs 'description' and/or 'examples'"
+        );
+    }
+
+    [Fact]
+    public void A_judge_matcher_next_to_a_pattern_matcher_is_ambiguous_and_rejected()
+    {
+        var result = Validate(
+            WithChecks(
+                "  - key: c\n    type: tool-called\n    tool: get_order\n    args: { reason: { $judge: { description: d }, $pattern: x } }\n"
+            )
+        );
+
+        AssertProblem(result, "checks[0].args.reason", "only property");
+    }
+
+    [Fact]
+    public void A_judge_matcher_in_an_event_not_emitted_check_is_rejected_but_a_pattern_is_fine()
+    {
+        var judged = Validate(
+            WithChecks(
+                "  - key: c\n    type: event-not-emitted\n    event: state.changed\n    data: { note: { $judge: { description: d } } }\n"
+            )
+        );
+        var patterned = Validate(
+            WithChecks("  - key: c\n    type: event-not-emitted\n    event: state.changed\n    data: { note: { $pattern: x } }\n")
+        );
+
+        AssertProblem(judged, "checks[0].data", "not allowed in an event-not-emitted check");
+        Assert.Empty(patterned.Problems);
     }
 }

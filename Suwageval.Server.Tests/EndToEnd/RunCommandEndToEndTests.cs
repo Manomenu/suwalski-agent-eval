@@ -138,12 +138,12 @@ public sealed class RunCommandEndToEndTests(TestDatabase database) : IAsyncDispo
     public async Task The_version_comes_from_the_running_agent_new_once_and_existing_again_until_it_changes()
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
-        fake.ServeContract(SeededAgent.ExampleVersion with { SystemPrompt = "Fresh for this test." });
+        fake.ServeContract(SeededAgent.ExampleVersionConfigured("Fresh for this test."));
         var agent = await SeedAsync(fake.Url.AbsoluteUri);
 
         var (_, first, _) = await RunCliAsync(agent, "--tag", "regression", "--wait");
         var (_, second, _) = await RunCliAsync(agent, "--tag", "regression", "--wait");
-        fake.ServeContract(SeededAgent.ExampleVersion with { SystemPrompt = "Redeployed." });
+        fake.ServeContract(SeededAgent.ExampleVersionConfigured("Redeployed."));
         var (_, third, _) = await RunCliAsync(agent, "--tag", "regression", "--wait");
 
         Assert.Contains(": new", first.Split('\n')[0], StringComparison.Ordinal);
@@ -171,8 +171,15 @@ public sealed class RunCommandEndToEndTests(TestDatabase database) : IAsyncDispo
         fake.ServeContract(
             new AgentContract
             {
-                SystemPrompt = "p",
-                Model = new ModelDefinition { Name = "m" },
+                Agents =
+                [
+                    new LlmAgentDefinition
+                    {
+                        Name = "a",
+                        Model = new ModelDefinition { Name = "m" },
+                        Config = "p",
+                    },
+                ],
             }
         );
         var agent = await SeededAgent.CreateAsync(

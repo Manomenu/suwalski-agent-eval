@@ -112,6 +112,7 @@ public sealed class RunStoreTests(TestDatabase database)
                 /*lang=json,strict*/
                 """[{"kind":"AssistantMessage","text":"hi"}]""",
                 null,
+                1234,
                 ["tool 'cancel_order'"],
                 [new NewCheckResult(check.Id, check.Revision, false, "[]", "refund_order was not called.")]
             ),
@@ -123,6 +124,7 @@ public sealed class RunStoreTests(TestDatabase database)
         var sample = Assert.Single(await store.ListScenarioResultsAsync(id, Cancellation));
         Assert.Equal(("refund", scenario.Revision, 1, "Done"), (sample.ScenarioKey, sample.ScenarioRevision, sample.Sample, sample.Status));
         Assert.Contains("hi", sample.Output, StringComparison.Ordinal);
+        Assert.Equal(1234, sample.DurationMs);
         Assert.Equal( /*lang=json,strict*/
             """["tool 'cancel_order'"]""",
             sample.Undeclared
@@ -149,13 +151,30 @@ public sealed class RunStoreTests(TestDatabase database)
     }
 
     [Fact]
+    public async Task A_sample_with_no_call_has_no_duration()
+    {
+        var store = Store();
+        var agent = await NewAgentAsync();
+        var id = await EnqueueAsync(store, agent);
+        var scenario = await new ScenarioStore(database.Pool).GetAsync(agent.Id, "refund", Cancellation);
+
+        await store.AddSampleAsync(
+            id,
+            new NewSample(scenario!.Id, scenario.Revision, 1, SampleStatus.Failed, null, "no", null, [], []),
+            Cancellation
+        );
+
+        Assert.Null(Assert.Single(await store.ListScenarioResultsAsync(id, Cancellation)).DurationMs);
+    }
+
+    [Fact]
     public async Task A_sample_is_stored_once_per_scenario_and_number()
     {
         var store = Store();
         var agent = await NewAgentAsync();
         var id = await EnqueueAsync(store, agent);
         var scenario = await new ScenarioStore(database.Pool).GetAsync(agent.Id, "refund", Cancellation);
-        var sample = new NewSample(scenario!.Id, scenario.Revision, 1, SampleStatus.Failed, null, "down", [], []);
+        var sample = new NewSample(scenario!.Id, scenario.Revision, 1, SampleStatus.Failed, null, "down", null, [], []);
         await store.AddSampleAsync(id, sample, Cancellation);
 
         await Assert.ThrowsAnyAsync<Exception>(() => store.AddSampleAsync(id, sample, Cancellation));

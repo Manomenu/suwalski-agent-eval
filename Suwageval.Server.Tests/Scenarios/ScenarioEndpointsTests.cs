@@ -42,6 +42,56 @@ public sealed class ScenarioEndpointsTests(TestDatabase database) : IAsyncDispos
     }
 
     [Fact]
+    public async Task Fixtures_are_stored_with_the_revision_and_changing_them_is_a_new_revision()
+    {
+        var agent = await server.NewAgent();
+        var plain = Scenario("a");
+        var pinned = plain with
+        {
+            Fixtures = System
+                .Text.Json.JsonDocument.Parse( /*lang=json,strict*/
+                    """{"pinned":["plans"]}"""
+                )
+                .RootElement.Clone(),
+        };
+        var other = plain with
+        {
+            Fixtures = System
+                .Text.Json.JsonDocument.Parse( /*lang=json,strict*/
+                    """{"pinned":["faq"]}"""
+                )
+                .RootElement.Clone(),
+        };
+
+        var first = await Put(agent, plain);
+        var withFixtures = await Put(agent, pinned);
+        var again = await Put(agent, pinned);
+        var changed = await Put(agent, other);
+
+        Assert.Equal(UpsertOutcome.Created, first.Results[0].Outcome);
+        Assert.Equal(UpsertOutcome.Updated, withFixtures.Results[0].Outcome);
+        Assert.Equal(UpsertOutcome.Unchanged, again.Results[0].Outcome);
+        Assert.Equal(UpsertOutcome.Updated, changed.Results[0].Outcome);
+        var detail = await TestServer.Read<ScenarioDetail>(await server.Get($"/agents/{agent}/scenarios/a"));
+        Assert.Equal( /*lang=json,strict*/
+            """{"pinned":["faq"]}""",
+            detail.Scenario.Fixtures?.GetRawText()
+        );
+    }
+
+    [Fact]
+    public async Task A_scenario_without_fixtures_is_stored_without_the_field_so_old_revisions_stay_unchanged()
+    {
+        var agent = await server.NewAgent();
+        await Put(agent, Scenario("a"));
+
+        var revision = Assert.Single(await TestServer.Read<ScenarioRevision[]>(await server.Get($"/agents/{agent}/scenarios/a/revisions")));
+
+        Assert.Null(revision.Scenario.Fixtures);
+        Assert.Equal(UpsertOutcome.Unchanged, (await Put(agent, Scenario("a"))).Results[0].Outcome);
+    }
+
+    [Fact]
     public async Task The_outcome_is_written_by_name_in_camel_case()
     {
         var agent = await server.NewAgent();

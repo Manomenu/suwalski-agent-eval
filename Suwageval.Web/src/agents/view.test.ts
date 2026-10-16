@@ -6,6 +6,8 @@ import {
     canCompare,
     compareHref,
     isNotFound,
+    dataText,
+    dataVersionsOf,
     jsonText,
     modelsOf,
     runHref,
@@ -19,8 +21,8 @@ import {
     visibleVersions,
 } from "./view";
 
-const old = { id: "v-old", archivedAt: "2026-10-01T10:00:00Z", modelName: "small" };
-const current = { id: "v-new", archivedAt: null, modelName: "large" };
+const old = { id: "v-old", archivedAt: "2026-10-01T10:00:00Z", modelNames: ["small"] };
+const current = { id: "v-new", archivedAt: null, modelNames: ["large"] };
 
 describe("visibleVersions", () => {
     it("hides the archived ones unless asked", () => {
@@ -98,15 +100,53 @@ describe("visibleRuns with models", () => {
         expect(visibleRuns(runs, [old, current], true, [])).toEqual(runs);
     });
 
+    it("keeps the runs of a version when any of its agents uses a chosen model", () => {
+        const mixed = { id: "v-mixed", archivedAt: null, modelNames: ["large", "small"] };
+        const mixedRun = { id: "r-mixed", agentVersionId: "v-mixed" };
+        expect(visibleRuns([mixedRun], [mixed], false, ["small"])).toEqual([mixedRun]);
+        expect(visibleRuns([mixedRun], [mixed], false, ["tiny"])).toEqual([]);
+    });
+
     it("works together with the archived filter", () => {
         expect(visibleRuns(runs, [old, current], false, ["small"])).toEqual([]);
         expect(visibleRuns(runs, [old, current], false, ["large"])).toEqual([runs[1]]);
     });
 });
 
+describe("data versions", () => {
+    const runs = [{ agentVersionId: "v-a" }, { agentVersionId: "v-b" }, { agentVersionId: "v-none" }];
+    const versions = [
+        { id: "v-a", archivedAt: null, modelNames: ["large"], dataVersion: "build-1" },
+        { id: "v-b", archivedAt: null, modelNames: ["small"], dataVersion: "build-2" },
+        { id: "v-none", archivedAt: null, modelNames: ["large"], dataVersion: null },
+    ];
+
+    it("lists each data version once, sorted, leaving out versions without retrieval", () => {
+        expect(dataVersionsOf([...versions, { dataVersion: "build-1" }])).toEqual(["build-1", "build-2"]);
+        expect(dataVersionsOf([])).toEqual([]);
+    });
+
+    it("keeps the runs of the chosen data versions; none chosen means all", () => {
+        expect(visibleRuns(runs, versions, false, [], ["build-2"])).toEqual([runs[1]]);
+        expect(visibleRuns(runs, versions, false, [], ["build-1", "build-2"])).toEqual([runs[0], runs[1]]);
+        expect(visibleRuns(runs, versions, false, [], [])).toEqual(runs);
+    });
+
+    it("combines with the model filter", () => {
+        expect(visibleRuns(runs, versions, false, ["large"], ["build-2"])).toEqual([]);
+        expect(visibleRuns(runs, versions, false, ["large"], ["build-1"])).toEqual([runs[0]]);
+    });
+
+    it("says the data version with its description when there is one", () => {
+        expect(dataText({ dataVersion: "build-7", dataDescription: "1832 articles" })).toBe("data build-7 · 1832 articles");
+        expect(dataText({ dataVersion: "build-7", dataDescription: " " })).toBe("data build-7");
+        expect(dataText({ dataVersion: null })).toBeNull();
+    });
+});
+
 describe("modelsOf", () => {
     it("lists each model once, sorted", () => {
-        expect(modelsOf([{ modelName: "b" }, { modelName: "a" }, { modelName: "b" }])).toEqual(["a", "b"]);
+        expect(modelsOf([{ modelNames: ["b"] }, { modelNames: ["a", "b"] }, { modelNames: ["b"] }])).toEqual(["a", "b"]);
         expect(modelsOf([])).toEqual([]);
     });
 });

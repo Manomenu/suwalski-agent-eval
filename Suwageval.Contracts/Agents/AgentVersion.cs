@@ -1,7 +1,8 @@
 namespace Suwageval.Contracts.Agents;
 
 /// <summary>
-/// A registered version of an agent, without its content (but with the model's name, so runs can be filtered by model);
+/// A registered version of an agent, without its content (but with the names of the models its LLM agents use, so runs can be
+/// filtered by model, the version of its retrieval data and its description, if it has any);
 /// <c>ArchivedAt</c> is set while the version is archived.
 /// </summary>
 public sealed record AgentVersion(
@@ -11,5 +12,7 @@ public sealed record AgentVersion(
     string ContentHash,
     DateTimeOffset CreatedAt,
     DateTimeOffset? ArchivedAt,
-    string ModelName
+    IReadOnlyList<string> ModelNames,
+    string? DataVersion,
+    string? DataDescription
 );

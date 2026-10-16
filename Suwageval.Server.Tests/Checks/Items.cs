@@ -9,12 +9,13 @@ internal static class Items
 {
     public static JsonElement Json(string json) => JsonDocument.Parse(json).RootElement.Clone();
 
-    public static ToolCall Call(string name, string argumentsJson = "{}", string? id = null) =>
+    public static ToolCall Call(string name, string argumentsJson = "{}", string? id = null, string? agent = null) =>
         new()
         {
             Id = id ?? $"call-{name}",
             Name = name,
             Arguments = Json(argumentsJson),
+            Agent = agent,
         };
 
     public static ToolResult Result(string callId, string content = "{}") => new() { CallId = callId, Content = content };

@@ -9,6 +9,7 @@ import { useLoaded } from "./useLoaded";
 import {
     canCompare,
     compareHref,
+    dataVersionsOf,
     modelsOf,
     runHref,
     runsToCompare,
@@ -28,6 +29,7 @@ export function AgentPage({ name }: { name: string }) {
     const [showArchived, setShowArchived] = useState(false);
     // The model filter (empty: every model) and the runs ticked for comparison.
     const [models, setModels] = useState<string[]>([]);
+    const [dataVersions, setDataVersions] = useState<string[]>([]);
     const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
     // Bumped after versions are archived or restored: the lists are loaded again (the page stays until the new ones arrive).
     const [reload, setReload] = useState(0);
@@ -39,7 +41,7 @@ export function AgentPage({ name }: { name: string }) {
     return (
         <Page state={state} notFound={`There is no agent ${name}.`}>
             {({ agent, runs: allRuns, versions }) => {
-                const runs = visibleRuns(allRuns, versions, showArchived, models);
+                const runs = visibleRuns(allRuns, versions, showArchived, models, dataVersions);
                 // Only what is listed counts: a run the filter hides is not compared.
                 const toCompare = runsToCompare(runs, selected);
                 return (
@@ -59,15 +61,26 @@ export function AgentPage({ name }: { name: string }) {
 
                         <Title order={3}>Runs</Title>
                         <Group justify="space-between" align="flex-end">
-                            <MultiSelect
-                                label="Model"
-                                placeholder={models.length === 0 ? "All models" : undefined}
-                                data={modelsOf(versions)}
-                                value={models}
-                                onChange={setModels}
-                                clearable
-                                miw={MODEL_FILTER_MIN_WIDTH}
-                            />
+                            <Group align="flex-end">
+                                <MultiSelect
+                                    label="Model"
+                                    placeholder={models.length === 0 ? "All models" : undefined}
+                                    data={modelsOf(versions)}
+                                    value={models}
+                                    onChange={setModels}
+                                    clearable
+                                    miw={MODEL_FILTER_MIN_WIDTH}
+                                />
+                                <MultiSelect
+                                    label="Data version"
+                                    placeholder={dataVersions.length === 0 ? "All data versions" : undefined}
+                                    data={dataVersionsOf(versions)}
+                                    value={dataVersions}
+                                    onChange={setDataVersions}
+                                    clearable
+                                    miw={MODEL_FILTER_MIN_WIDTH}
+                                />
+                            </Group>
                             <Button
                                 disabled={!canCompare(toCompare.length)}
                                 title={`Select ${COMPARE_MIN_RUNS} to ${COMPARE_MAX_RUNS} runs to compare`}

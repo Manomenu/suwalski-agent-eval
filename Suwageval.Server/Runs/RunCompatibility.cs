@@ -6,7 +6,8 @@ namespace Suwageval.Server.Runs;
 
 /// <summary>
 /// Whether an agent version can be run against scenarios and checks written for it: every tool call and tool a check names
-/// must be a tool of the version, every event a type its context declares, and a retrieval needs a version that retrieves.
+/// must be a tool of the version, every event a type its context declares, a retrieval needs a version that retrieves and
+/// fixtures need a version that declares a fixtures schema.
 /// A run that fails these only after the agent was called would waste the call and say nothing useful.
 /// </summary>
 internal static class RunCompatibility
@@ -19,18 +20,22 @@ internal static class RunCompatibility
     )
     {
         ArgumentNullException.ThrowIfNull(version);
-        var tools = version.Tools.Select(tool => tool.Name).ToHashSet();
+        var agents = version.Agents.ToDictionary(agent => agent.Name, agent => agent.Tools.Select(tool => tool.Name).ToHashSet());
         var events = version.Context.Events.Select(declared => declared.Type).ToHashSet();
         var mismatches = new List<string>();
 
         foreach (var (key, content) in scenarios)
         {
+            if (content.Fixtures is not null && version.Context.FixturesSchema is null)
+            {
+                mismatches.Add($"scenario '{key}': it has fixtures, but the version declares no context.fixturesSchema");
+            }
             foreach (var item in content.Conversation)
             {
                 switch (item)
                 {
-                    case ToolCall call when !tools.Contains(call.Name):
-                        mismatches.Add($"scenario '{key}': the conversation calls tool '{call.Name}', which the version does not have");
+                    case ToolCall call when ToolProblem(agents, call.Name, call.Agent) is { } problem:
+                        mismatches.Add($"scenario '{key}': the conversation calls tool '{call.Name}'{problem}");
                         break;
                     case Event emitted when !events.Contains(emitted.Type):
                         mismatches.Add(
@@ -48,21 +53,43 @@ internal static class RunCompatibility
 
         foreach (var check in checks)
         {
-            var tool = check switch
+            var (tool, by) = check switch
             {
-                ToolCalledCheck called => called.Tool,
-                ToolNotCalledCheck notCalled => notCalled.Tool,
-                _ => null,
+                ToolCalledCheck called => (called.Tool, called.By),
+                ToolNotCalledCheck notCalled => (notCalled.Tool, notCalled.By),
+                _ => (null, null),
             };
-            if (tool is not null && !tools.Contains(tool))
+            if (tool is not null && ToolProblem(agents, tool, by) is { } problem)
             {
-                mismatches.Add($"check '{check.Key}': it names tool '{tool}', which the version does not have");
+                mismatches.Add($"check '{check.Key}': it names tool '{tool}'{problem}");
             }
-            else if (check is EventCheck emitted && !events.Contains(emitted.Event))
+            else if (EventOf(check) is { } emitted && !events.Contains(emitted))
             {
-                mismatches.Add($"check '{check.Key}': it names event '{emitted.Event}', which the version does not declare");
+                mismatches.Add($"check '{check.Key}': it names event '{emitted}', which the version does not declare");
             }
         }
         return [.. mismatches.Distinct()];
+    }
+
+    private static string? EventOf(CheckInput check) =>
+        check switch
+        {
+            EventCheck emitted => emitted.Event,
+            EventNotEmittedCheck notEmitted => notEmitted.Event,
+            _ => null,
+        };
+
+    /// <summary>Why the tool cannot be had from that agent (or from any agent, when none is named); null when it can.</summary>
+    private static string? ToolProblem(Dictionary<string, HashSet<string>> agents, string tool, string? agent)
+    {
+        if (agent is null)
+        {
+            return agents.Values.Any(tools => tools.Contains(tool)) ? null : ", which no agent of the version has";
+        }
+        if (!agents.TryGetValue(agent, out var own))
+        {
+            return $", by agent '{agent}', which the version does not have";
+        }
+        return own.Contains(tool) ? null : $", which agent '{agent}' does not have";
     }
 }

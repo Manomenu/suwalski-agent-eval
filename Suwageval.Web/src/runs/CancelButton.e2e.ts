@@ -14,7 +14,9 @@ test("Cancel run asks first, then the run ends as cancelled", async ({ page, req
     const agentServer = createServer((req, response) => {
         response.setHeader("content-type", "application/json");
         if (req.url === "/suwageval/contract") {
-            response.end(JSON.stringify({ label: "e2e-cancel", systemPrompt: "Be helpful.", model: { name: "e2e-model" } }));
+            response.end(
+                JSON.stringify({ label: "e2e-cancel", agents: [{ name: "main", model: { name: "e2e-model" }, config: "Be helpful." }] }),
+            );
             return;
         }
         asked++;

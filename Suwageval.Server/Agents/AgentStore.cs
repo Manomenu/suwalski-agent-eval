@@ -9,7 +9,7 @@ internal sealed class AgentStore(Pool pool)
     private const string AgentColumns = "id, name, endpoint_url AS EndpointUrl, created_at AS CreatedAt";
 
     private const string VersionColumns =
-        "id, agent_id AS AgentId, content::text AS Content, content_hash AS ContentHash, label, created_at AS CreatedAt, archived_at AS ArchivedAt";
+        "id, agent_id AS AgentId, content::text AS Content, content_hash AS ContentHash, label, data_description AS DataDescription, created_at AS CreatedAt, archived_at AS ArchivedAt";
 
     public async Task<AgentCreation> CreateAsync(string name, string endpointUrl, CancellationToken cancellationToken = default)
     {
@@ -90,6 +90,7 @@ internal sealed class AgentStore(Pool pool)
         Guid agentId,
         string contentJson,
         string? label,
+        string? dataDescription = null,
         CancellationToken cancellationToken = default
     )
     {
@@ -98,8 +99,8 @@ internal sealed class AgentStore(Pool pool)
         var created = await connection.QuerySingleOrDefaultAsync<AgentVersionRow>(
             new CommandDefinition(
                 $"""
-                INSERT INTO agent_versions (agent_id, content, content_hash, label)
-                VALUES (@agentId, @contentJson::jsonb, @hash, @label)
+                INSERT INTO agent_versions (agent_id, content, content_hash, label, data_description)
+                VALUES (@agentId, @contentJson::jsonb, @hash, @label, @dataDescription)
                 ON CONFLICT (agent_id, content_hash) DO NOTHING
                 RETURNING {VersionColumns}
                 """,
@@ -109,6 +110,7 @@ internal sealed class AgentStore(Pool pool)
                     contentJson,
                     hash,
                     label,
+                    dataDescription,
                 },
                 cancellationToken: cancellationToken
             )

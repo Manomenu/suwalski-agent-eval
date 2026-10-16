@@ -76,6 +76,24 @@ public sealed class CheckEndpointsTests(TestDatabase database) : IAsyncDisposabl
                 Contains = "refund",
                 PassThreshold = 0.8,
             },
+            new EventNotEmittedCheck
+            {
+                Key = "no-event",
+                ScenarioKey = "s",
+                Event = "procedure.started",
+            },
+            new CitedCheck
+            {
+                Key = "cited",
+                ScenarioKey = "s",
+                Sources = ["plans"],
+            },
+            Called("with-result", "s") with
+            {
+                Result = Items.Json( /*lang=json,strict*/
+                    """{"status":{"$pattern":"deliv"}}"""
+                ),
+            },
             new JudgeCheck
             {
                 Key = "judge",
@@ -88,11 +106,20 @@ public sealed class CheckEndpointsTests(TestDatabase database) : IAsyncDisposabl
         var listed = await TestServer.Read<CheckDetail[]>(await server.Get($"/agents/{agent}/checks"));
 
         Assert.Equal(
-            [typeof(ToolCalledCheck), typeof(EventCheck), typeof(JudgeCheck), typeof(ToolNotCalledCheck), typeof(TextCheck)],
+            [
+                typeof(ToolCalledCheck),
+                typeof(CitedCheck),
+                typeof(EventCheck),
+                typeof(JudgeCheck),
+                typeof(EventNotEmittedCheck),
+                typeof(ToolNotCalledCheck),
+                typeof(TextCheck),
+                typeof(ToolCalledCheck),
+            ],
             listed.Select(detail => detail.Check.GetType())
         );
-        Assert.Equal(0.8, Assert.IsType<TextCheck>(listed[4].Check).PassThreshold);
-        Assert.Equal("The assistant is polite.", Assert.IsType<JudgeCheck>(listed[2].Check).Criteria);
+        Assert.Equal(0.8, Assert.IsType<TextCheck>(listed[6].Check).PassThreshold);
+        Assert.Equal("The assistant is polite.", Assert.IsType<JudgeCheck>(listed[3].Check).Criteria);
     }
 
     [Fact]
@@ -233,5 +260,43 @@ public sealed class CheckEndpointsTests(TestDatabase database) : IAsyncDisposabl
         Assert.Equal(HttpStatusCode.NotFound, (await server.Get("/agents/none/checks")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await server.Delete("/agents/none/checks/a")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await server.Put("/agents/none/checks", new PutChecksRequest([]))).StatusCode);
+    }
+
+    [Fact]
+    public async Task A_judge_in_a_result_is_checked_and_one_in_event_not_emitted_or_mixed_with_a_pattern_is_a_422()
+    {
+        var agent = await AgentWithScenariosAsync("s");
+        var badResult = new ToolCalledCheck
+        {
+            Key = "bad-result",
+            ScenarioKey = "s",
+            Tool = "get_order",
+            Result = Items.Json( /*lang=json,strict*/
+                """{"note":{"$judge":{}}}"""
+            ),
+        };
+        var mixed = new ToolCalledCheck
+        {
+            Key = "mixed",
+            ScenarioKey = "s",
+            Tool = "get_order",
+            Args = Items.Json( /*lang=json,strict*/
+                """{"reason":{"$judge":{"description":"d"},"$pattern":"x"}}"""
+            ),
+        };
+        var inverted = new EventNotEmittedCheck
+        {
+            Key = "inverted",
+            ScenarioKey = "s",
+            Event = "state.changed",
+            Data = Items.Json( /*lang=json,strict*/
+                """{"x":{"$judge":{"description":"d"}}}"""
+            ),
+        };
+
+        var response = await server.Put($"/agents/{agent}/checks", new PutChecksRequest([badResult, mixed, inverted]));
+
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+        Assert.Equal(["checks[0].result.note.$judge", "checks[1].args.reason", "checks[2].data"], await TestServer.ErrorFields(response));
     }
 }

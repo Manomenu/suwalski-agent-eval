@@ -1,4 +1,4 @@
-# The scenario files (format v0)
+# The scenario files (format v1)
 
 What an agent's repository keeps for Suwageval, and what `suwageval validate` checks. The
 files are YAML in a folder `suwageval/` at the root of the agent's repository (`--dir` or the
@@ -38,7 +38,7 @@ skips the fetch.
 
 ## `agent.yaml`
 
-Only the agent's name and where it runs. **What the agent is** — prompt, model, tools, events —
+Only the agent's name and where it runs. **What the agent is** — its LLM agents with their prompts, models and tools, and its events —
 is not written in any file: the running agent serves it (next section), so a run always records
 what really ran. A `version:` key is an error.
 
@@ -47,26 +47,34 @@ what really ran. A `version:` key is an error.
 | `name` | required | the agent's name |
 | `endpointUrl` | required | where the agent is reached: `POST {endpointUrl}/suwageval/turn`, `GET {endpointUrl}/suwageval/contract` |
 
-## The agent contract (contract v0)
+## The agent contract (contract v1)
 
-An agent under test serves two routes. `POST /suwageval/turn` runs a turn (the conversation in,
-the items it produced out). `GET /suwageval/contract` says what the agent is:
+An agent under test is a system of one or more LLM agents. It serves two routes. `POST /suwageval/turn` runs a
+turn (the conversation in, the items it produced out). `GET /suwageval/contract` says what the system is:
 
 ```json
 {
   "label": "3f2a9c1",
-  "systemPrompt": "You are a polite customer support agent ...",
-  "model": { "name": "gpt-4o-mini", "parameters": { "temperature": 0 } },
-  "tools": [
+  "agents": [
     {
-      "name": "get_order",
-      "description": "Look up an order: its status, items and total.",
-      "parameters": { "type": "object", "properties": { "order_id": { "type": "string" } }, "required": ["order_id"] }
+      "name": "support-agent",
+      "model": { "name": "gpt-4o-mini", "parameters": { "temperature": 0 } },
+      "config": "You are a polite customer support agent ...",
+      "tools": [
+        {
+          "name": "get_order",
+          "description": "Look up an order: its status, items and total.",
+          "parameters": { "type": "object", "properties": { "order_id": { "type": "string" } }, "required": ["order_id"] }
+        }
+      ]
     }
   ],
+  "otherConfig": "retries on every LLM agent: 2",
   "context": {
-    "usesRetrieval": false,
-    "events": [{ "type": "state.changed", "dataSchema": { "type": "object" } }]
+    "usesRetrieval": true,
+    "retrieval": { "dataVersion": "index-build-2026-10-14.3", "description": "1832 articles, help center + returns policy" },
+    "events": [{ "type": "state.changed", "dataSchema": { "type": "object" } }],
+    "fixturesSchema": { "type": "object" }
   }
 }
 ```
@@ -74,13 +82,40 @@ the items it produced out). `GET /suwageval/contract` says what the agent is:
 | Field | | |
 | --- | --- | --- |
 | `label` | | a name for this version, e.g. the git SHA; no part of the content: renaming alone is not a new version |
-| `systemPrompt` | required | the agent's system prompt |
-| `model` | required | `name` (required) and `parameters` (free mapping, e.g. `temperature`) |
-| `tools` | | the tools the agent may call: `name`, `description`, `parameters` (a JSON Schema) |
+| `agents` | required | the LLM agents of the system, at least one |
+| `agents[].name` | required | non-empty, unique among the agents; what a tool call's `agent` and a check's `by` refer to |
+| `agents[].model` | required | `name` (required, non-empty) and `parameters` (free mapping, e.g. `temperature`) |
+| `agents[].config` | required | free text that defines this agent: its system prompt, a scope policy, whatever it is; may be empty |
+| `agents[].tools` | | the tools THIS agent may call: `name` (unique within the agent; two agents may share a name), `description`, `parameters` (a JSON Schema) |
+| `otherConfig` | | free text for what belongs to the system, not to one agent (e.g. "retries on every LLM agent: 2") |
 | `context.usesRetrieval` | | `true` if the agent retrieves chunks (RAG); default `false` |
+| `context.retrieval` | with `usesRetrieval: true` | the data retrieval reads. Required exactly when `usesRetrieval` is `true`, and an error when it is `false` |
+| `context.retrieval.dataVersion` | required | a non-empty, opaque string: a fingerprint of what retrieval can return, the content AND how it was indexed. Part of the content hash: new data is a new version, which can be filtered and compared like a model |
+| `context.retrieval.description` | | for people (e.g. `1832 articles, help center + returns policy`), shown on the web and in the comparison header; no part of the content, like `label` |
 | `context.events` | | the events the agent emits: `type` and `dataSchema` (a JSON Schema for `data`) |
+| `context.fixturesSchema` | | a JSON Schema: present means the agent accepts scenario fixtures (below). Declared only: the fixtures are not validated against it yet |
+
+Everything but `label` and `context.retrieval.description` is part of the content hash, so any change of a `config`, of `otherConfig` or of
+`context.retrieval.dataVersion` is a new version.
+
+How the agent computes `dataVersion` is its business, but it must change whenever what retrieval can return changes. Recommended: the id
+of the index build (every rebuild gets a new one), or a hash over (document id, content hash) of every document plus the pipeline
+settings (chunking, embedding model, index parameters). Not "last updated": a deletion, or a re-index with other chunking or embeddings,
+does not move it. For repeatable runs the agent serves a frozen snapshot of its data in test mode, so `dataVersion` changes only when the
+snapshot is swapped on purpose.
 
 Unknown fields are an error, like everywhere in the contracts.
+
+**The turn.** `POST /suwageval/turn` gets `{ "conversation": [...], "fixtures": {...} }` and answers `{ "items": [...] }`, everything
+the agent produced in that turn, in order (never a `UserMessage`). `fixtures` is the scenario's `fixtures`, verbatim, and is left out
+when the scenario has none. Every call also carries three headers, for correlation only (the agent's traces and logs): they never
+change what the agent does.
+
+| Header | Value |
+| --- | --- |
+| `Suwageval-Run-Id` | the run's id (a GUID) |
+| `Suwageval-Scenario` | the scenario's key |
+| `Suwageval-Sample` | the sample's number, from 1 |
 
 **Every conversation starts from the same test data.** Suwageval runs scenarios in parallel and
 one run after another; an agent that carried state from one `POST /suwageval/turn` to the next
@@ -96,11 +131,13 @@ version; the answer to `POST /runs` and `suwageval run` say which version and wh
 - An agent that cannot be reached, or whose contract cannot be read or is not valid, is a 502
   that names the URL and the cause; nothing is queued.
 - The scenarios and checks must fit that version (every tool and event they name is in it, a
+  tool call's `agent` and a check's `by` name an agent that has the tool, a
   retrieval needs `usesRetrieval`): otherwise 409 with the mismatches, nothing is queued.
+- A scenario with `fixtures` needs a version that declares `context.fixturesSchema`; otherwise it is a mismatch too.
 - At the end of a run the contract is read again. If it differs from the run's version (the agent
   was redeployed mid-run) the run says `contractChangedDuringRun: true`.
 - A `ToolCall` or `Event` the agent produces during a run that its version does not declare is
-  recorded on the sample as `undeclared` (`tool 'x'`, `event 'y'`) and shown in the results. It
+  recorded on the sample as `undeclared` (`tool 'x'` when no agent has it, `agent 'y'` for an agent the contract does not have, `tool 'x' of agent 'y'` for an agent without that tool, `event 'z'`) and shown in the results. It
   is a warning, not a failure by itself.
 
 ## A scenario file
@@ -112,6 +149,7 @@ version; the answer to `POST /runs` and `suwageval run` say which version and wh
 | `conversation` | required | the log up to the agent's turn, at least one item |
 | `continuation.turns` | | how many agent turns are produced, default `1` |
 | `samples` | | how many times the conversation is repeated, default `1` |
+| `fixtures` | | free mapping, sent verbatim with every turn of the scenario (e.g. which documents are pinned for the conversation); shaped by the agent's `context.fixturesSchema`, which the agent must declare. Part of the scenario's content: changing it is a new revision |
 | `checks` | | a list of checks, below |
 
 ### The conversation log
@@ -122,11 +160,11 @@ full with `kind:`.
 | Shorthand | Full form (`kind:`) |
 | --- | --- |
 | `- user: "text"` | `UserMessage` with `text` |
-| `- assistant: "text"` | `AssistantMessage` with `text` and optionally `interrupted` |
-| `- tool_call: { id, name, arguments }` | `ToolCall`; `arguments` is free mapping |
+| `- assistant: "text"` | `AssistantMessage` with `text` and optionally `interrupted` (full form also `sources`: the ids of the documents the answer is grounded on, a list of strings) |
+| `- tool_call: { id, name, arguments, agent }` | `ToolCall`; `arguments` is free mapping; `agent` (optional) is the LLM agent, from the contract's `agents`, that made the call |
 | `- tool_result: { call_id, content, isError }` | `ToolResult` with `callId`; `isError` defaults to `false` |
 | `- event: { type, data }` | `Event`; `data` is free mapping |
-| | `Retrieval` with `query` and `chunks: [{ text, source, score }]` (full form only) |
+| | `Retrieval` with `query` and `chunks: [{ text, source, score }]` (full form only; `score` is optional, not every retriever reports one) |
 
 Rules: a `tool_result` answers an earlier `tool_call` with the same id; an `event` has a
 type declared in the agent's `context.events`; a `Retrieval` needs `usesRetrieval: true` in its
@@ -140,13 +178,15 @@ pass, above 0 up to 1, default `1.0`). The scenario is the file the check sits i
 
 | `type` | Fields | Passes when |
 | --- | --- | --- |
-| `tool-called` | `tool`, `args` (optional) | the agent called the tool; `args`, when given, is a subset of the call's arguments (a value may be a `$judge` matcher, below) |
-| `tool-not-called` | `tool` | the agent did not call the tool |
-| `event` | `event` (the type), `data` (optional) | the agent emitted the event; `data`, when given, is a subset of its data (a value may be a `$judge` matcher, below) |
+| `tool-called` | `tool`, `by` (optional), `args` (optional), `result` (optional) | the agent called the tool; `by`, when given, names the LLM agent that must have made the call (a call that names no agent never satisfies it); `args`, when given, is a subset of the call's arguments; `result`, when given, is a subset of the call's result (a value may be a `$pattern` or `$judge` matcher, below) |
+| `tool-not-called` | `tool`, `by` (optional) | the agent did not call the tool; with `by`, only calls made by that LLM agent count |
+| `event` | `event` (the type), `data` (optional) | the agent emitted the event; `data`, when given, is a subset of its data (a value may be a `$pattern` or `$judge` matcher, below) |
+| `event-not-emitted` | `event`, `data` (optional) | no event of that type was emitted (with `data`: none whose data contains it; a `$pattern` may be used there, a `$judge` may not) |
+| `cited` | `sources` (a list of ids, at least one, none empty) | every listed source appears in the `sources` of some assistant message |
 | `text` | `contains`, `notContains`, `pattern` (at least one) | the answer contains the text, does not contain the text, matches the regular expression |
 | `judge` | `criteria` (required, plain words) | a model judges that what the agent produced satisfies the criteria (below) |
 
-A `tool` must be one of the agent's tools and an `event` one of its declared event types (checked
+A `tool` must be a tool of some agent (of the agent named by `by`, when given; `by` must be an agent of the contract) and an `event` one of its declared event types (checked
 by `validate` against the agent's contract, and by the server when a run starts).
 An unknown `type` is an error.
 
@@ -169,11 +209,26 @@ How a check is evaluated (the server's `Checks/`; no model involved, except for 
   is never kept, and an anchor that does not occur leaves nothing. With both, what lies between. (So `tool-called refund_order
   where: {after: get_order}` needs a `get_order` call first, and `tool-not-called` after an anchor that never happened
   passes: nothing followed it.)
-- **`args` / `data`** match as a *subset*: an object has every given property (extras are fine, nested objects the same
+- **`args` / `data` / `result`** match as a *subset*: an object has every given property (extras are fine, nested objects the same
   way); an array has the same length and each element matches at its position; strings, booleans and `null` are equal;
-  numbers are equal by value (`1` is `1.0`). An object whose only property is `$judge` is not a literal but a matcher: a
-  model decides it (below).
-- **`tool-called` / `event`** pass when any call or event in scope matches. **`text`** reads the assistant messages in scope,
+  numbers are equal by value (`1` is `1.0`).
+- **`$pattern`**: anywhere inside `args`, `data` or `result`, an object whose *only* property is `$pattern` (a .NET regular
+  expression, as a string) matches an actual JSON string the expression matches (a match may be anywhere in the string; anchor
+  it with `^` and `$`; `(?i)` makes it case-insensitive). It takes at most one second; a pattern that takes longer matches
+  nothing. A pattern that is not a valid regular expression is an error in `validate` and when checks are pushed, reported with
+  its path (`checks[0].args.zipCode.$pattern`). Written in YAML: `args: { zipCode: { $pattern: "(?i)^\\s*12345\\s*$" } }`.
+  Use it for a value that is written loosely but can be checked by its form; for free text whose meaning matters use
+  `$judge` (below).
+- **`$judge`**: an object whose only property is `$judge` is not a literal but a matcher a model decides (below), in `args`,
+  `result` or `data`. Both matchers are recognised only as the *only* property of their object; an object holding `$judge`
+  next to `$pattern` (or any other property) is neither, and validation rejects it.
+- **`result`** is read from the `ToolResult` whose `callId` is the matching call's `id`, searched in everything the agent
+  produced (not only inside `where`). Its `content` is parsed as JSON and must contain `result` as a subset; content that is not
+  JSON counts as the JSON string of itself (so `{ $pattern: "not found" }` can match a plain-text result). A call with no
+  `ToolResult` never matches, and the evidence of a passing check includes the result.
+- **`tool-called` / `event`** pass when any call or event in scope matches; **`event-not-emitted`** passes when none does.
+  **`cited`** reads the `sources` of the assistant messages in scope: it passes when every listed source is among them, its
+  evidence is the messages that cite any of the listed sources, and its message names the missing ones. **`text`** reads the assistant messages in scope,
   joined by a newline; `contains` and `notContains` are case-sensitive (use `(?i)` in `pattern` otherwise); every condition
   given must hold. An invalid `pattern` fails the check with a message.
 - **The pass rate** of a check is the share of its scenario's samples that passed; the check passes the run when the rate
@@ -210,8 +265,8 @@ is grounded or complete, whether a refusal was explained.
 
 ### The `$judge` matcher
 
-Inside `args` (of `tool-called`) and `data` (of `event`), at any depth, an object whose **only** property is `$judge` says
-"roughly like this" instead of an exact value:
+Inside `args` and `result` (of `tool-called`) and `data` (of `event`), at any depth, an object whose **only** property is
+`$judge` says "roughly like this" instead of an exact value:
 
 ```yaml
 - key: refund-reason-is-damage
@@ -228,12 +283,15 @@ Inside `args` (of `tool-called`) and `data` (of `event`), at any depth, an objec
 - **Shape.** `$judge` has `description` (a non-empty string) and/or `examples` (a non-empty list of JSON values — strings
   usually, but any JSON). At least one is required. With both, the value must satisfy the description **and** be similar in
   kind and meaning to the examples (it need not equal one). An unknown key inside `$judge` is an error, and so is `$judge`
-  next to other properties in the same object (`{ $judge: …, other: 1 }`): a matcher is the only property of its object,
-  and `$`-names are reserved for matchers. The matcher takes the place of any value, including a whole object or list; a
-  `tool-not-called`, `text` or `judge` check has no `args` / `data`, so `$judge` is not a field there. `validate` and a push
-  report a wrong shape with its path (`checks[0].args.reason.$judge`).
-- **How it is evaluated.** First, without a model: every literal must match as above, and a `$judge` node only needs a value
-  to exist at its path (any JSON). A call or event that fails this is never sent to the model. Then, for each remaining
+  next to other properties in the same object (`{ $judge: …, other: 1 }`, `{ $judge: …, $pattern: … }`): a matcher is the
+  only property of its object, and `$`-names are reserved for matchers. The matcher takes the place of any value, including
+  a whole object or list. It is not allowed in `event-not-emitted` (a model call per event, and a verdict turned upside
+  down); `tool-not-called`, `text` and `judge` checks have no `args` / `data`. `validate` and a push report a wrong shape
+  or place with its path (`checks[0].args.reason.$judge`).
+- **How it is evaluated.** First, without a model: every literal and `$pattern` must match as above, and a `$judge` node only
+  needs a value to exist at its path (any JSON). A call or event that fails this is never sent to the model; with `by`, a call
+  made by another agent is never a candidate. In `result` the value is the parsed content of the call's `ToolResult`
+  (paths `result.…`); a call with no result is not a candidate. Then, for each remaining
   candidate in the order the agent produced them, ONE model request judges all the `$judge` values of that candidate together
   (input: the tool name or event type and, per value, its path, the actual JSON, the description and the examples; answer:
   `{ "results": [ { "path", "correct", "reason" } ] }` at temperature 0, exactly one entry per path given — anything else is an
@@ -242,14 +300,22 @@ Inside `args` (of `tool-called`) and `data` (of `event`), at any depth, an objec
   call or event, and the calls or events with that name when none matched.
 - **The cost.** One model call per candidate, only for candidates that passed the deterministic part. It uses the judge's
   model (below), so a run with a `$judge` matcher is refused with 409 when no judge model is configured. Prefer an exact value
-  whenever it is known; use `$judge` for free text — a reason, a search query, a message to a customer.
+  whenever it is known, `$pattern` when its form can be checked; use `$judge` for free text — a reason, a search query, a
+  message to a customer.
 - **It can fail to judge.** As for the `judge` check: when the model is unreachable or too slow, or its answer is not the
   JSON asked for, the sample counts as failed with a message starting `Not judged:` and `notJudged: true`. Run again before
   concluding anything about the agent.
 - **Write it well.** A precise description of what the value must say, and two or three varied examples (different words,
   same meaning); one value per `$judge`.
 
-Not checked yet: that `arguments` and `data` match the JSON Schemas the agent declares.
+Not checked yet: that `arguments`, `data` and `fixtures` match the JSON Schemas the agent declares.
+
+## Results: how long a turn took
+
+Suwageval measures the wall-clock time of every `POST /suwageval/turn` call itself, whether the agent answered or not, and stores
+it on the sample: `durationMs` in `GET /runs/{id}/results` (`SampleResult`). It is absent when no call was made (a scenario with
+`continuation.turns` above 1 still fails without one). The run page shows it per sample, and the median and 95th percentile
+(nearest rank) of the samples that made a call.
 
 ## One complete example
 
@@ -260,8 +326,8 @@ name: example-agent
 endpointUrl: http://localhost:7010
 ```
 
-The agent at that address serves the contract of the section above, with the tools `get_order`
-and `refund_order` and the event `state.changed` that this scenario uses.
+The agent at that address serves a contract like the one above, with the tools `get_order`
+and `refund_order` on its `support-agent` and the event `state.changed` that this scenario uses.
 
 `suwageval/scenarios/refund-follow-up.yaml`:
 
@@ -270,7 +336,7 @@ key: refund-follow-up
 tags: [regression, refunds]
 conversation:
   - user: "Hi, my kettle from order A-17 arrived broken."
-  - tool_call: { id: call-1, name: get_order, arguments: { order_id: A-17 } }
+  - tool_call: { id: call-1, name: get_order, arguments: { order_id: A-17 }, agent: support-agent }
   - tool_result: { call_id: call-1, content: '{"status": "delivered"}' }
   - assistant: "I can refund it. Shall I go ahead?"
   - user: "Yes, please."
@@ -278,6 +344,7 @@ checks:
   - key: follow-up-refunds
     type: tool-called
     tool: refund_order
+    by: support-agent
     args: { order_id: A-17 }
     where: { turn: 1, after: get_order }
   - key: follow-up-state-event
@@ -288,4 +355,29 @@ checks:
     type: text
     pattern: "(?i)refund"
     passThreshold: 0.8
+```
+
+A scenario with fixtures, a call checked by its result and a pattern, and the two newer checks (the agent must declare
+`context.fixturesSchema` and the event `procedure.started`):
+
+```yaml
+key: delivery-to-exact-address
+samples: 3
+fixtures:
+  pinnedResources: [shipping-policy]
+conversation:
+  - user: "Can you deliver order A-17 to 12 Oak St, 12345?"
+checks:
+  - key: address-checked-exactly
+    type: tool-called
+    tool: check_delivery
+    by: support-agent
+    args: { zipCode: { $pattern: "^\\s*12345\\s*$" } }
+    result: { delivery: { checkedAddress: { $pattern: "(?i)12 Oak Street" } } }
+  - key: no-procedure
+    type: event-not-emitted
+    event: procedure.started
+  - key: plans-cited
+    type: cited
+    sources: [shipping-policy]
 ```

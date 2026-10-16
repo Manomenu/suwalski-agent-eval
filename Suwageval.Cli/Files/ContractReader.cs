@@ -34,7 +34,7 @@ internal static partial class ContractReader
                 source.Problem(
                     path,
                     typeof(T) == typeof(CheckInput)
-                        ? "A check needs a 'type' (tool-called, tool-not-called, event, text)."
+                        ? "A check needs a 'type' (tool-called, tool-not-called, event, event-not-emitted, cited, text)."
                         : "A conversation item needs a 'kind'."
                 )
             );
@@ -79,7 +79,10 @@ internal static partial class ContractReader
         {
             var value = discriminator.Groups[1].Value;
             return target == typeof(CheckInput)
-                ? (path, $"Unknown check type '{value}' (the types: tool-called, tool-not-called, event, text; judge checks come later).")
+                ? (
+                    path,
+                    $"Unknown check type '{value}' (the types: tool-called, tool-not-called, event, event-not-emitted, cited, text; judge checks come later)."
+                )
                 : (path, $"Unknown kind '{value}' (the kinds: UserMessage, AssistantMessage, ToolCall, ToolResult, Retrieval, Event).");
         }
         return (path, message);

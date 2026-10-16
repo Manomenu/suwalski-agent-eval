@@ -6,5 +6,5 @@ public sealed record RetrievedChunk
 
     public required string Source { get; init; }
 
-    public required double Score { get; init; }
+    public double? Score { get; init; }
 }

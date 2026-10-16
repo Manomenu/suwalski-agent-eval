@@ -4,13 +4,17 @@ import { ApiError } from "../api/client";
 import type { CheckRunResult, ConversationItem, RunSummary, ScenarioRunResult } from "./api";
 import {
     checkSummary,
+    durationSummary,
+    formatSeconds,
     failedEvidenceKeys,
     isActive,
     isRunNotFound,
     itemBody,
     itemKey,
     itemTitle,
+    median,
     notJudgedCount,
+    p95,
     percent,
     progress,
     runHref,
@@ -121,7 +125,54 @@ describe("results", () => {
         expect(itemTitle(call)).toBe("call: search");
         expect(itemBody(call)).toBe('{\n  "q": "x"\n}');
         expect(itemBody(reply)).toBe("hi");
+        expect(
+            itemBody({
+                kind: "Retrieval",
+                query: "q",
+                chunks: [
+                    { text: "a", source: "s1", score: 0.5 },
+                    { text: "b", source: "s2" },
+                ],
+            }),
+        ).toBe("[s1, 0.50] a\n\n[s2] b");
         expect(itemTitle({ kind: "ToolResult", callId: "1", content: "", isError: true })).toBe("tool result (error)");
+    });
+
+    describe("durations", () => {
+        function scenarioWith(...durations: (number | null)[]): ScenarioRunResult {
+            return {
+                key: "s",
+                revision: 1,
+                checks: [],
+                samples: durations.map((durationMs, index) => ({ sample: index + 1, status: "Done", durationMs })),
+            };
+        }
+
+        it("writes seconds with one decimal", () => {
+            expect(formatSeconds(9800)).toBe("9.8 s");
+            expect(formatSeconds(109_050)).toBe("109.1 s");
+        });
+
+        it("takes the median, the mean of the middle two for an even count", () => {
+            expect(median([5, 1, 3])).toBe(3);
+            expect(median([4, 1, 2, 3])).toBe(2.5);
+        });
+
+        it("takes p95 by nearest rank", () => {
+            const values = Array.from({ length: 20 }, (_, index) => index + 1);
+            expect(p95(values)).toBe(19);
+            expect(p95([7])).toBe(7);
+            expect(p95([3, 1, 2])).toBe(3);
+        });
+
+        it("summarizes the samples that made a call, across scenarios", () => {
+            expect(durationSummary([scenarioWith(1000, null), scenarioWith(3000, 20_000)])).toBe("Turn time: median 3.0 s · p95 20.0 s");
+        });
+
+        it("says nothing when no sample made a call", () => {
+            expect(durationSummary([scenarioWith(null)])).toBeNull();
+            expect(durationSummary([])).toBeNull();
+        });
     });
 });
 

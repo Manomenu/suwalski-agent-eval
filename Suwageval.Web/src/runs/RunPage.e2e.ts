@@ -18,7 +18,9 @@ test("Run again starts a new run of the same agent and opens its page", async ({
     const agentServer = createServer((req, response) => {
         response.setHeader("content-type", "application/json");
         if (req.url === "/suwageval/contract") {
-            response.end(JSON.stringify({ label: "e2e-rerun", systemPrompt: "Be helpful.", model: { name: "e2e-model" } }));
+            response.end(
+                JSON.stringify({ label: "e2e-rerun", agents: [{ name: "main", model: { name: "e2e-model" }, config: "Be helpful." }] }),
+            );
         } else {
             response.end(JSON.stringify({ items: [{ kind: "AssistantMessage", text: "Hello there." }] }));
         }
@@ -50,7 +52,12 @@ test("a check's definition opens on demand, as the revision the run used", async
     const agentServer = createServer((req, response) => {
         response.setHeader("content-type", "application/json");
         if (req.url === "/suwageval/contract") {
-            response.end(JSON.stringify({ label: "e2e-definition", systemPrompt: "Be helpful.", model: { name: "e2e-model" } }));
+            response.end(
+                JSON.stringify({
+                    label: "e2e-definition",
+                    agents: [{ name: "main", model: { name: "e2e-model" }, config: "Be helpful." }],
+                }),
+            );
         } else {
             response.end(JSON.stringify({ items: [{ kind: "AssistantMessage", text: "Hello there." }] }));
         }

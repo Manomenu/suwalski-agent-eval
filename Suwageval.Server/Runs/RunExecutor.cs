@@ -131,7 +131,12 @@ internal sealed partial class RunExecutor(
                 ? TurnResult.Failed(
                     $"continuation.turns is {scenario.Content.Continuation.Turns}: more than one turn is not supported yet (multi-turn simulation comes after the MVP)."
                 )
-                : await agent.TurnAsync(new Uri(run.EndpointUrl), scenario.Content.Conversation, cancellationToken);
+                : await agent.TurnAsync(
+                    new Uri(run.EndpointUrl),
+                    scenario.Content.Conversation,
+                    new TurnContext(run.Id, scenario.Row.Key, sample, scenario.Content.Fixtures),
+                    cancellationToken
+                );
 
         NewSample stored;
         if (turn.Items is { } items)
@@ -164,6 +169,7 @@ internal sealed partial class RunExecutor(
                 SampleStatus.Done,
                 JsonSerializer.Serialize(items, Json),
                 null,
+                turn.DurationMs,
                 UndeclaredOutput.Of(items, declared),
                 results
             );
@@ -178,6 +184,7 @@ internal sealed partial class RunExecutor(
                 SampleStatus.Failed,
                 null,
                 reason,
+                turn.DurationMs,
                 [],
                 [
                     .. scenario.Checks.Select(check => new NewCheckResult(

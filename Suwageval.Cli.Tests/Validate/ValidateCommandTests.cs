@@ -179,7 +179,11 @@ public sealed class ValidateCommandTests : IDisposable
         var (exit, output, _) = Run("", "validate", dir);
 
         Assert.Equal(1, exit);
-        Assert.Contains("The agent has no tool 'refund_it' (its tools: get_order, refund_order)", output, StringComparison.Ordinal);
+        Assert.Contains(
+            "No agent has the tool 'refund_it' (the tools: get_order, refund_order, charge_card)",
+            output,
+            StringComparison.Ordinal
+        );
     }
 
     [Fact]

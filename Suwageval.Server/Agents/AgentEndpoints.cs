@@ -126,6 +126,15 @@ internal static class AgentEndpoints
                 content with
                 {
                     Label = version.Label,
+                    Context = content.Context with
+                    {
+                        Retrieval = content.Context.Retrieval is { } retrieval
+                            ? retrieval with
+                            {
+                                Description = version.DataDescription,
+                            }
+                            : null,
+                    },
                 }
             )
         );
@@ -141,7 +150,17 @@ internal static class AgentEndpoints
         };
 
     private static AgentVersion ToVersion(AgentVersionRow row) =>
-        new(row.Id, row.AgentId, row.Label, row.ContentHash, row.CreatedAt, row.ArchivedAt, ReadContract(row).Model.Name);
+        new(
+            row.Id,
+            row.AgentId,
+            row.Label,
+            row.ContentHash,
+            row.CreatedAt,
+            row.ArchivedAt,
+            ContractContent.ModelNames(ReadContract(row)),
+            ContractContent.DataVersion(ReadContract(row)),
+            row.DataDescription
+        );
 
     private static AgentContract ReadContract(AgentVersionRow row) =>
         JsonSerializer.Deserialize<AgentContract>(row.Content, ContractJson.Options)

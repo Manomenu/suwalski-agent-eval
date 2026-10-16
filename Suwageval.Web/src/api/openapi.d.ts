@@ -793,12 +793,13 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
         };
-        /** @description What the agent was configured as when a run happened. */
+        /** @description What the system under test was configured as when a run happened: its LLM agents, and what belongs to the system as a whole. */
         AgentContract: {
             label?: null | string;
-            systemPrompt: string;
-            model: components["schemas"]["ModelDefinition"];
-            tools?: components["schemas"]["ToolDefinition"][];
+            /** @description The LLM agents the system is made of, at least one; each has its own model, config and tools. */
+            agents: components["schemas"]["LlmAgentDefinition"][];
+            /** @description Free text for what belongs to the system, not to one agent. */
+            otherConfig?: null | string;
             context?: components["schemas"]["ContextDefinition"];
         };
         AgentDefinition: {
@@ -822,7 +823,8 @@ export interface components {
             checks: number | string;
         };
         /**
-         * @description A registered version of an agent, without its content (but with the model's name, so runs can be filtered by model);
+         * @description A registered version of an agent, without its content (but with the names of the models its LLM agents use, so runs can be
+         *     filtered by model, the version of its retrieval data and its description, if it has any);
          *     `ArchivedAt` is set while the version is archived.
          */
         AgentVersion: {
@@ -836,7 +838,9 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             archivedAt: null | string;
-            modelName: string;
+            modelNames: string[];
+            dataVersion: null | string;
+            dataDescription: null | string;
         };
         /** @description A registered version of an agent with its content (`Content.Label` is the version's label). */
         AgentVersionDetail: {
@@ -857,10 +861,41 @@ export interface components {
             archived: boolean;
         };
         /** @description A test on what the agent produced for a scenario, told apart by `type`. */
-        CheckInput: components["schemas"]["CheckInputToolCalledCheck"] | components["schemas"]["CheckInputToolNotCalledCheck"] | components["schemas"]["CheckInputEventCheck"] | components["schemas"]["CheckInputTextCheck"] | components["schemas"]["CheckInputJudgeCheck"];
+        CheckInput: components["schemas"]["CheckInputToolCalledCheck"] | components["schemas"]["CheckInputToolNotCalledCheck"] | components["schemas"]["CheckInputEventCheck"] | components["schemas"]["CheckInputEventNotEmittedCheck"] | components["schemas"]["CheckInputCitedCheck"] | components["schemas"]["CheckInputTextCheck"] | components["schemas"]["CheckInputJudgeCheck"];
+        CheckInputCitedCheck: {
+            /** @enum {string} */
+            type?: "cited";
+            /** @description The ids of the documents the answer must be grounded on: every one must appear in the `sources` of some assistant message. At least one, none empty. */
+            sources: string[];
+            /** @description Lowercase kebab-case, unique within the agent. */
+            key: string;
+            scenarioKey: string;
+            where?: null | components["schemas"]["CheckWhere"];
+            /**
+             * Format: double
+             * @description The share of samples that must pass, from above 0 to 1.
+             */
+            passThreshold?: number | string;
+        };
         CheckInputEventCheck: {
             /** @enum {string} */
             type?: "event";
+            /** @description The event's type, one the agent declares. */
+            event: string;
+            data?: null | components["schemas"]["JsonElement"];
+            /** @description Lowercase kebab-case, unique within the agent. */
+            key: string;
+            scenarioKey: string;
+            where?: null | components["schemas"]["CheckWhere"];
+            /**
+             * Format: double
+             * @description The share of samples that must pass, from above 0 to 1.
+             */
+            passThreshold?: number | string;
+        };
+        CheckInputEventNotEmittedCheck: {
+            /** @enum {string} */
+            type?: "event-not-emitted";
             /** @description The event's type, one the agent declares. */
             event: string;
             data?: null | components["schemas"]["JsonElement"];
@@ -912,7 +947,10 @@ export interface components {
             /** @enum {string} */
             type?: "tool-called";
             tool: string;
+            /** @description The LLM agent that must have made the call; a call that names no agent never satisfies it. */
+            by?: null | string;
             args?: null | components["schemas"]["JsonElement"];
+            result?: null | components["schemas"]["JsonElement"];
             /** @description Lowercase kebab-case, unique within the agent. */
             key: string;
             scenarioKey: string;
@@ -927,6 +965,8 @@ export interface components {
             /** @enum {string} */
             type?: "tool-not-called";
             tool: string;
+            /** @description Only calls made by this LLM agent count; a call that names no agent is never one of them. */
+            by?: null | string;
             /** @description Lowercase kebab-case, unique within the agent. */
             key: string;
             scenarioKey: string;
@@ -992,7 +1032,9 @@ export interface components {
         /** @description What besides messages and tool calls may appear in the agent's conversation log. */
         ContextDefinition: {
             usesRetrieval?: boolean;
+            retrieval?: null | components["schemas"]["RetrievalDefinition"];
             events?: components["schemas"]["EventDeclaration"][];
+            fixturesSchema?: null | components["schemas"]["JsonElement"];
         };
         /** @description How the conversation goes on after its last message. */
         Continuation: {
@@ -1010,6 +1052,8 @@ export interface components {
             text: string;
             /** @description The user cut the answer off before it was finished. */
             interrupted?: null | boolean;
+            /** @description The ids of the documents the answer is grounded on, as the agent reports them. */
+            sources?: null | string[];
         };
         ConversationItemEvent: {
             /** @enum {string} */
@@ -1032,6 +1076,8 @@ export interface components {
             name: string;
             /** @description Free JSON: its shape is the agent's, declared by the tool's parameters in the agent's contract. */
             arguments: components["schemas"]["JsonElement"];
+            /** @description The name of the LLM agent (from the contract's agents) that made the call. */
+            agent?: null | string;
         };
         ConversationItemToolResult: {
             /** @enum {string} */
@@ -1056,6 +1102,15 @@ export interface components {
             status: string;
         };
         JsonElement: unknown;
+        /** @description One LLM agent of the system under test. */
+        LlmAgentDefinition: {
+            name: string;
+            model: components["schemas"]["ModelDefinition"];
+            /** @description Free text: the system prompt, a scope policy, whatever defines this agent. May be empty. */
+            config: string;
+            /** @description The tools this agent may call. */
+            tools?: components["schemas"]["ToolDefinition"][];
+        };
         ModelDefinition: {
             name: string;
             parameters?: null | components["schemas"]["JsonElement"];
@@ -1073,11 +1128,21 @@ export interface components {
             /** @description Where to reach the agent for the new run; none means the endpoint the repeated run used. */
             endpointUrl?: null | string;
         };
+        /** @description The data an agent's retrieval reads, as the agent describes it. */
+        RetrievalDefinition: {
+            /**
+             * @description An opaque fingerprint of what retrieval can return (the content and how it was indexed). Part of the content hash:
+             *     new data is a new agent version.
+             */
+            dataVersion: string;
+            /** @description For people (what the data is, how much of it). Outside the content hash, like the label. */
+            description?: null | string;
+        };
         RetrievedChunk: {
             text: string;
             source: string;
             /** Format: double */
-            score: number | string;
+            score?: null | number | string;
         };
         RunCreated: {
             /** Format: uuid */
@@ -1165,6 +1230,11 @@ export interface components {
             output?: null | components["schemas"]["ConversationItem"][];
             error?: null | string;
             /**
+             * Format: int32
+             * @description How long the call to the agent took, measured by Suwageval (wall-clock, whether it answered or not); null when no call was made.
+             */
+            durationMs?: null | number | string;
+            /**
              * @description Warnings: tool calls and events the agent produced that its version does not declare (`tool 'x'`, `event 'y'`).
              *     Not a failure by itself.
              */
@@ -1182,6 +1252,7 @@ export interface components {
             /** @description Lowercase kebab-case; a run picks scenarios by tag. */
             tags?: string[];
             conversation: components["schemas"]["ConversationItem"][];
+            fixtures?: null | components["schemas"]["JsonElement"];
             continuation?: components["schemas"]["Continuation"];
             /**
              * Format: int32

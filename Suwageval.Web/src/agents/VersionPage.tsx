@@ -14,7 +14,6 @@ export function VersionPage({ name, versionId }: { name: string; versionId: stri
         <Page state={state} notFound={`There is no version ${versionId} of agent ${name}.`}>
             {(version) => {
                 const { content } = version;
-                const tools = content.tools ?? [];
                 const events = content.context?.events ?? [];
                 return (
                     <Stack gap="md">
@@ -29,34 +28,36 @@ export function VersionPage({ name, versionId }: { name: string; versionId: stri
                             </Badge>
                         )}
 
-                        <Paper withBorder p="md">
-                            <Stack gap="sm">
-                                <Title order={3}>System prompt</Title>
-                                <Code block>{content.systemPrompt}</Code>
-                            </Stack>
-                        </Paper>
+                        {content.agents.map((agent) => (
+                            <Paper key={agent.name} withBorder p="md">
+                                <Stack gap="sm">
+                                    <Title order={3}>Agent {agent.name}</Title>
+                                    <Title order={4}>Config</Title>
+                                    <Code block>{agent.config}</Code>
+                                    <Title order={4}>Model</Title>
+                                    <Text>{agent.model.name}</Text>
+                                    {agent.model.parameters != null && <Code block>{jsonText(agent.model.parameters)}</Code>}
+                                    <Title order={4}>Tools</Title>
+                                    {(agent.tools ?? []).length === 0 && <Text c="dimmed">No tools.</Text>}
+                                    {(agent.tools ?? []).map((tool) => (
+                                        <Stack key={tool.name} gap="xs">
+                                            <Text fw={600}>{tool.name}</Text>
+                                            <Text>{tool.description}</Text>
+                                            <Code block>{jsonText(tool.parameters)}</Code>
+                                        </Stack>
+                                    ))}
+                                </Stack>
+                            </Paper>
+                        ))}
 
-                        <Paper withBorder p="md">
-                            <Stack gap="sm">
-                                <Title order={3}>Model</Title>
-                                <Text>{content.model.name}</Text>
-                                {content.model.parameters != null && <Code block>{jsonText(content.model.parameters)}</Code>}
-                            </Stack>
-                        </Paper>
-
-                        <Paper withBorder p="md">
-                            <Stack gap="sm">
-                                <Title order={3}>Tools</Title>
-                                {tools.length === 0 && <Text c="dimmed">No tools.</Text>}
-                                {tools.map((tool) => (
-                                    <Stack key={tool.name} gap="xs">
-                                        <Text fw={600}>{tool.name}</Text>
-                                        <Text>{tool.description}</Text>
-                                        <Code block>{jsonText(tool.parameters)}</Code>
-                                    </Stack>
-                                ))}
-                            </Stack>
-                        </Paper>
+                        {content.otherConfig != null && content.otherConfig !== "" && (
+                            <Paper withBorder p="md">
+                                <Stack gap="sm">
+                                    <Title order={3}>Other config</Title>
+                                    <Code block>{content.otherConfig}</Code>
+                                </Stack>
+                            </Paper>
+                        )}
 
                         <Paper withBorder p="md">
                             <Stack gap="sm">
@@ -64,6 +65,12 @@ export function VersionPage({ name, versionId }: { name: string; versionId: stri
                                 <Badge variant="light" w="fit-content">
                                     {content.context?.usesRetrieval === true ? "uses retrieval" : "no retrieval"}
                                 </Badge>
+                                {content.context?.retrieval != null && (
+                                    <Text>
+                                        Data version <Code>{content.context.retrieval.dataVersion}</Code>
+                                        {content.context.retrieval.description ? ` · ${content.context.retrieval.description}` : ""}
+                                    </Text>
+                                )}
                                 {events.length === 0 && <Text c="dimmed">No events.</Text>}
                                 {events.map((event) => (
                                     <Stack key={event.type} gap="xs">

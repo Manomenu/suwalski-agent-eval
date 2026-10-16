@@ -3,7 +3,7 @@ import { Alert, Anchor, Badge, Group, Loader, Paper, Stack, Text, Title } from "
 import { CancelButton } from "./CancelButton";
 import { RerunButton } from "./RerunButton";
 import { ScenarioCard } from "./ScenarioCard";
-import { formatTime, isActive, isRunNotFound, num, progress, runStatusLabel, statusColor } from "./results";
+import { durationSummary, formatTime, isActive, isRunNotFound, num, progress, runStatusLabel, statusColor } from "./results";
 import { useRunResults } from "./useRunResults";
 
 /** One run's results at `/runs/<id>`: the header, then a card per scenario. */
@@ -48,6 +48,7 @@ export function RunPage({ runId }: { runId: string }) {
                         <Text c="green">Checks passed: {num(run.checksPassed)}</Text>
                         <Text c={num(run.checksFailed) > 0 ? "red" : "dimmed"}>Checks failed: {num(run.checksFailed)}</Text>
                     </Group>
+                    {durationSummary(scenarios) && <Text>{durationSummary(scenarios)}</Text>}
                     <Text c="dimmed" size="sm">
                         created {formatTime(run.createdAt)} · start {formatTime(run.startedAt)} · finished {formatTime(run.finishedAt)}
                     </Text>

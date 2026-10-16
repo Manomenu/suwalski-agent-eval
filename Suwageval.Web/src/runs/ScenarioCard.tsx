@@ -3,7 +3,7 @@ import { Accordion, Alert, Badge, Card, Group, List, Stack, Text, Title } from "
 import { CheckDefinitionButton } from "../checks/CheckDefinitionButton";
 import type { ScenarioRunResult } from "./api";
 import { ConversationView } from "./ConversationView";
-import { checkSummary, failedEvidenceKeys, notJudgedCount, num } from "./results";
+import { checkSummary, failedEvidenceKeys, formatSeconds, notJudgedCount, num } from "./results";
 
 /** One scenario: its checks with verdicts, the warnings of its samples, and what the agent produced. */
 export function ScenarioCard({ scenario }: { scenario: ScenarioRunResult }) {
@@ -64,7 +64,10 @@ export function ScenarioCard({ scenario }: { scenario: ScenarioRunResult }) {
                 <Accordion multiple variant="contained">
                     {scenario.samples.map((sample) => (
                         <Accordion.Item key={sample.sample} value={String(num(sample.sample))}>
-                            <Accordion.Control>Agent output, sample {num(sample.sample)}</Accordion.Control>
+                            <Accordion.Control>
+                                Agent output, sample {num(sample.sample)}
+                                {sample.durationMs != null && ` · ${formatSeconds(num(sample.durationMs))}`}
+                            </Accordion.Control>
                             <Accordion.Panel>
                                 <ConversationView
                                     items={sample.output ?? []}
