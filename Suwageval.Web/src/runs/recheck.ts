@@ -3,6 +3,15 @@ import type { ChangedCheck, RecheckPlan, RunSummary } from "./api";
 import { num } from "./results";
 
 /** Only a finished run has all its answers: the button is offered disabled for any other. */
+/** What the Re-check button does, said on hover. */
+export const RECHECK_EXPLANATION =
+    "Judges this run's stored answers again with the current checks, without calling the agent. Use it after changing or adding checks: unchanged checks keep their verdicts, changed and new ones are evaluated, and scenarios changed since the run are skipped.";
+
+/** The button's tooltip: why it is disabled, else what it does. */
+export function recheckTooltip(status: RunSummary["status"]): string {
+    return recheckDisabledReason(status) ?? RECHECK_EXPLANATION;
+}
+
 export function recheckDisabledReason(status: RunSummary["status"]): string | null {
     return status === "Done" ? null : "Only a finished run can be re-checked.";
 }

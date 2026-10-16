@@ -1,7 +1,15 @@
 import { describe, expect, it } from "vitest";
 
 import type { ChangedCheck } from "./api";
-import { changesByScenario, judgedNote, planHeadline, recheckDisabledReason, recheckSource } from "./recheck";
+import {
+    changesByScenario,
+    judgedNote,
+    planHeadline,
+    recheckDisabledReason,
+    recheckSource,
+    RECHECK_EXPLANATION,
+    recheckTooltip,
+} from "./recheck";
 
 const change = (scenarioKey: string, checkKey: string): ChangedCheck => ({ scenarioKey, checkKey, change: "Changed" });
 
@@ -42,5 +50,12 @@ describe("recheckSource", () => {
         expect(recheckSource({ recheckOf: "abc" })).toBe("abc");
         expect(recheckSource({ recheckOf: null })).toBeNull();
         expect(recheckSource({})).toBeNull();
+    });
+});
+
+describe("recheckTooltip", () => {
+    it("says what a re-check does, or why it cannot run", () => {
+        expect(recheckTooltip("Done")).toBe(RECHECK_EXPLANATION);
+        expect(recheckTooltip("Running")).toBe("Only a finished run can be re-checked.");
     });
 });
