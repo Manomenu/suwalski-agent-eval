@@ -173,7 +173,14 @@ public sealed class VersionsCommandTests
         using var output = new StringWriter();
         using var error = new StringWriter();
 
-        var exit = CliApp.Run(["versions", "--dir", Path.Combine(Sample, "nowhere")], new StringReader(""), output, error, http);
+        var exit = CliApp.Run(
+            ["versions", "--dir", Path.Combine(Sample, "nowhere")],
+            new StringReader(""),
+            output,
+            error,
+            http,
+            interrupt: TestContext.Current.CancellationToken
+        );
 
         Assert.Equal(2, exit);
         Assert.Contains("agent.yaml not found", error.ToString(), StringComparison.Ordinal);

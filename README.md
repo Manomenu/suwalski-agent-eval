@@ -77,7 +77,10 @@ The server has one interface, its HTTP API. Three users reach it:
   the browser. A "Run again" button on the run's page (and `suwageval rerun <runId>`, same flags as
   `run`) starts a new run with the same agent, tag and endpoint, against the version the agent
   serves now. A "Cancel run" button on the page of a queued or running run (and `suwageval cancel <runId>`)
-  stops it: samples already in flight finish, no new one starts, and the run ends as cancelled. For machines, `--json` on either prints the results (and opens nothing).
+  stops it: samples already in flight finish, no new one starts, and the run ends as cancelled. Ctrl+C
+  while `run --wait` (or `rerun --wait`) waits asks whether to cancel the run on the server too; answered
+  no, the run goes on and the exit code is 130. Without a terminal to ask on (a CI job being stopped) the
+  run is cancelled, since nobody would read its results. For machines, `--json` on either prints the results (and opens nothing).
 - **Runs are compared on the web.** On an agent's page, tick 2 to 5 runs (the model filter narrows
   the list) and press Compare: the page shows each run's pass rate per scenario tag and, per
   check, where the runs differ from the baseline (the oldest selected run, or the one you pick).

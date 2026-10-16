@@ -6,6 +6,7 @@ using Suwageval.Cli.Rerun;
 using Suwageval.Cli.Results;
 using Suwageval.Cli.Run;
 using Suwageval.Cli.Runs;
+using Suwageval.Cli.Server;
 using Suwageval.Cli.Validate;
 using Suwageval.Cli.Versions;
 
@@ -16,27 +17,45 @@ internal static class CliApp
 {
     // http: the client the commands reach the outside with (the API for push, run and results, the agent for validate); null makes their own.
     // openBrowser: how results and compare open a page; null is the system's browser.
+    // interactive: whether a person answers on input; without one, nothing is asked.
+    // interrupt: Ctrl+C (Program.cs). It cancels what a command does; run and rerun --wait ask then whether to cancel the run too.
     public static int Run(
         string[] args,
         TextReader input,
         TextWriter output,
         TextWriter error,
         HttpClient? http = null,
-        Action<Uri>? openBrowser = null
+        Action<Uri>? openBrowser = null,
+        bool interactive = false,
+        CancellationToken interrupt = default
     )
     {
+        var terminal = new Terminal(input, interactive);
         var root = new RootCommand("Suwageval: the evaluation files of an agent's repository.")
         {
             ValidateCommand.Create(input, http),
             PushCommand.Create(http),
-            RunCommand.Create(http),
-            RerunCommand.Create(http),
+            RunCommand.Create(terminal, http),
+            RerunCommand.Create(terminal, http),
             CancelCommand.Create(http),
             ResultsCommand.Create(http, openBrowser),
             CompareCommand.Create(http, openBrowser),
             RunsCommand.Create(http),
             VersionsCommand.Create(http),
         };
-        return root.Parse(args).Invoke(new InvocationConfiguration { Output = output, Error = error });
+        // No termination timeout: System.CommandLine would otherwise handle Ctrl+C itself and end the process two seconds later,
+        // in the middle of the question run --wait asks. Ctrl+C reaches the commands through interrupt instead.
+        return root.Parse(args)
+            .InvokeAsync(
+                new InvocationConfiguration
+                {
+                    Output = output,
+                    Error = error,
+                    ProcessTerminationTimeout = null,
+                },
+                interrupt
+            )
+            .GetAwaiter()
+            .GetResult();
     }
 }

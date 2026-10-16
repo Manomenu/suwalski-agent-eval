@@ -16,8 +16,9 @@ $ARGUMENTS
    endpoint and uses the version the agent serves now. Summarise as for a run, and offer the comparison
    with the original run (`{SUWAGEVAL_URL or http://localhost:3230}/compare?runs={original},{run.id}`).
    Otherwise run `suwageval run --wait --json`, with `--tag <name>` if the user named a tag. Exit code 0
-   means every check passed, 1 some failed, 2 the run could not finish. 1 is a result, not an
-   error; for 2 show `run.error` or the message and stop.
+   means every check passed, 1 some failed, 2 the run could not finish (or was cancelled). 1 is a
+   result, not an error; for 2 show `run.error` or the message and stop. 130 means the waiting was
+   interrupted and the run goes on: say so, with its id.
    If the user asks to stop a run, cancel it with `suwageval cancel <id>` (find the id with
    `suwageval runs --json`): only the run they named, never one on your own initiative.
 3. Summarise from the JSON: the agent version (`run.agentVersionId`), the totals
