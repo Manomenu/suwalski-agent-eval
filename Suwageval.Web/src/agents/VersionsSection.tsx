@@ -1,0 +1,142 @@
+import { Alert, Anchor, Badge, Button, Checkbox, Group, Paper, Stack, Switch, Table, Text, Title } from "@mantine/core";
+import { useState } from "react";
+
+import { formatTime } from "../runs/results";
+import { archiveVersions, type AgentVersion } from "./api";
+import { selectionActions, versionHref, versionLabel, versionTitle, visibleVersions } from "./view";
+
+/** The agent's versions: select some to archive them (hidden, never deleted), switch "Show archived" to see and restore them. */
+export function VersionsSection({
+    agentName,
+    versions,
+    showArchived,
+    onShowArchivedChange,
+    onChanged,
+}: {
+    agentName: string;
+    versions: AgentVersion[];
+    showArchived: boolean;
+    onShowArchivedChange: (show: boolean) => void;
+    /** Called after the server archived or restored versions, so the page loads the list again. */
+    onChanged: () => void;
+}) {
+    const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
+    const [busy, setBusy] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const listed = visibleVersions(versions, showArchived);
+    const { toArchive, toRestore } = selectionActions(listed, selected);
+
+    function toggle(id: string, checked: boolean) {
+        const next = new Set(selected);
+        if (checked) next.add(id);
+        else next.delete(id);
+        setSelected(next);
+    }
+
+    async function change(ids: string[], archived: boolean) {
+        setBusy(true);
+        setError(null);
+        try {
+            await archiveVersions(agentName, ids, archived);
+            setSelected(new Set());
+            onChanged();
+        } catch (e: unknown) {
+            setError(e instanceof Error ? e.message : String(e));
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    return (
+        <Stack gap="sm">
+            <Title order={3}>Versions</Title>
+            {versions.length === 0 ? (
+                <Text c="dimmed">This agent has no versions yet — one is created on the first run.</Text>
+            ) : (
+                <Paper withBorder p="md">
+                    <Stack gap="sm">
+                        <Group justify="space-between">
+                            <Group gap="sm">
+                                <Button
+                                    variant="light"
+                                    disabled={toArchive.length === 0 || busy}
+                                    onClick={() => {
+                                        void change(toArchive, true);
+                                    }}
+                                >
+                                    Archive selected
+                                </Button>
+                                {showArchived && (
+                                    <Button
+                                        variant="light"
+                                        disabled={toRestore.length === 0 || busy}
+                                        onClick={() => {
+                                            void change(toRestore, false);
+                                        }}
+                                    >
+                                        Unarchive selected
+                                    </Button>
+                                )}
+                            </Group>
+                            <Switch
+                                label="Show archived"
+                                checked={showArchived}
+                                onChange={(event) => {
+                                    onShowArchivedChange(event.currentTarget.checked);
+                                }}
+                            />
+                        </Group>
+                        {error !== null && (
+                            <Alert color="red" title="Could not change the versions">
+                                {error}
+                            </Alert>
+                        )}
+                        <Table.ScrollContainer minWidth={500}>
+                            <Table highlightOnHover>
+                                <Table.Thead>
+                                    <Table.Tr>
+                                        <Table.Th />
+                                        <Table.Th>Label</Table.Th>
+                                        <Table.Th>Created</Table.Th>
+                                        <Table.Th>Id</Table.Th>
+                                    </Table.Tr>
+                                </Table.Thead>
+                                <Table.Tbody>
+                                    {listed.map((version) => (
+                                        <Table.Tr key={version.id}>
+                                            <Table.Td>
+                                                <Checkbox
+                                                    aria-label={`Select version ${versionTitle(version.id, version.label)}`}
+                                                    checked={selected.has(version.id)}
+                                                    onChange={(event) => {
+                                                        toggle(version.id, event.currentTarget.checked);
+                                                    }}
+                                                />
+                                            </Table.Td>
+                                            <Table.Td>
+                                                <Group gap="xs">
+                                                    {versionLabel(version)}
+                                                    {version.archivedAt !== null && (
+                                                        <Badge color="gray" variant="light">
+                                                            Archived
+                                                        </Badge>
+                                                    )}
+                                                </Group>
+                                            </Table.Td>
+                                            <Table.Td>{formatTime(version.createdAt)}</Table.Td>
+                                            <Table.Td>
+                                                <Anchor href={versionHref(agentName, version.id)}>{version.id}</Anchor>
+                                            </Table.Td>
+                                        </Table.Tr>
+                                    ))}
+                                </Table.Tbody>
+                            </Table>
+                        </Table.ScrollContainer>
+                        {listed.length === 0 && <Text c="dimmed">All versions are archived — switch on Show archived to see them.</Text>}
+                    </Stack>
+                </Paper>
+            )}
+        </Stack>
+    );
+}

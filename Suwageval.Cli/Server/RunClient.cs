@@ -3,11 +3,12 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using Suwageval.Contracts;
+using Suwageval.Contracts.Agents;
 using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Cli.Server;
 
-/// <summary>The server's run endpoints, spoken with the contract records. Anything that goes wrong is a <see cref="RunClientException"/>.</summary>
+/// <summary>The server's run endpoints and the agent version ones, spoken with the contract records. Anything that goes wrong is a <see cref="RunClientException"/>.</summary>
 internal sealed class RunClient(HttpClient http)
 {
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(1);
@@ -36,7 +37,42 @@ internal sealed class RunClient(HttpClient http)
         }
     }
 
-    private static async Task<T> SendAsync<T>(Func<Task<HttpResponseMessage>> send, CancellationToken cancellationToken)
+    public Task<IReadOnlyList<AgentVersion>> VersionsAsync(string agent, CancellationToken cancellationToken) =>
+        SendAsync<IReadOnlyList<AgentVersion>>(
+            () => http.GetAsync(new Uri($"agents/{Uri.EscapeDataString(agent)}/versions", UriKind.Relative), cancellationToken),
+            cancellationToken
+        );
+
+    public Task ArchiveVersionsAsync(string agent, ArchiveVersionsRequest request, CancellationToken cancellationToken) =>
+        SendAsync(
+            () =>
+                http.PostAsJsonAsync(
+                    new Uri($"agents/{Uri.EscapeDataString(agent)}/versions/archive", UriKind.Relative),
+                    request,
+                    ContractJson.Options,
+                    cancellationToken
+                ),
+            cancellationToken
+        );
+
+    private static async Task<T> SendAsync<T>(Func<Task<HttpResponseMessage>> send, CancellationToken cancellationToken) =>
+        await ReadAsync(
+            send,
+            async response =>
+                await response.Content.ReadFromJsonAsync<T>(ContractJson.Options, cancellationToken)
+                ?? throw new RunClientException("The server's answer was empty."),
+            cancellationToken
+        );
+
+    /// <summary>For an answer with no body.</summary>
+    private static async Task SendAsync(Func<Task<HttpResponseMessage>> send, CancellationToken cancellationToken) =>
+        await ReadAsync(send, _ => Task.FromResult(0), cancellationToken);
+
+    private static async Task<T> ReadAsync<T>(
+        Func<Task<HttpResponseMessage>> send,
+        Func<HttpResponseMessage, Task<T>> read,
+        CancellationToken cancellationToken
+    )
     {
         try
         {
@@ -45,8 +81,7 @@ internal sealed class RunClient(HttpClient http)
             {
                 throw new RunClientException(Describe(response.StatusCode, await response.Content.ReadAsStringAsync(cancellationToken)));
             }
-            return await response.Content.ReadFromJsonAsync<T>(ContractJson.Options, cancellationToken)
-                ?? throw new RunClientException("The server's answer was empty.");
+            return await read(response);
         }
         catch (HttpRequestException error)
         {

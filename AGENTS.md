@@ -60,7 +60,7 @@ app keeps its tests beside its code, so those folders would only split the .NET 
 | `Suwageval.Server/Database/Migrations/up/` | numbered SQL migrations, applied at start-up by grate (`Database/Migrator.cs`) |
 | `Suwageval.Server.Tests/` | the server's tests (xUnit v3), mirroring the server's folders; `ContractsTests.cs` holds the import contracts, `ProjectReferencesTests.cs` the project graph. `EndToEnd/` is the one place where the CLI runs against the server in process (`push`, `run`); only its types may use the CLI (`EndToEndContractsTests.cs`) |
 | `Suwageval.Contracts/` | the records the API sends and receives and the CLI reads from YAML, with their JSON shape (System.Text.Json, camelCase, strict). Records only, public types (a library shared by projects); one folder — one namespace — per feature |
-| `Suwageval.Cli/` | the `suwageval` command, packed as a .NET tool (System.CommandLine, YamlDotNet). `Files/` reads the agent's YAML files into the contracts, `Validate/` is `suwageval validate`, `Validation/` is the validator and its report (shared by `validate` and `push`), `Push/` is `suwageval push`, `Run/` is `suwageval run`, `Results/` is `suwageval results` (opens the run's page on the web), `Server/` is what they share: Suwageval's address (the web's, the API under its `/api`), the run endpoints (`RunClient`), the verdict and the JSON output |
+| `Suwageval.Cli/` | the `suwageval` command, packed as a .NET tool (System.CommandLine, YamlDotNet). `Files/` reads the agent's YAML files into the contracts, `Validate/` is `suwageval validate`, `Validation/` is the validator and its report (shared by `validate` and `push`), `Push/` is `suwageval push`, `Run/` is `suwageval run`, `Results/` is `suwageval results` (opens the run's page on the web), `Versions/` is `suwageval versions` (list, archive, unarchive an agent's versions), `Server/` is what they share: Suwageval's address (the web's, the API under its `/api`), the run endpoints (`RunClient`), the verdict and the JSON output |
 | `Suwageval.Cli.Tests/` | the CLI's tests (xUnit v3), mirroring its folders; pure unit tests — no server, no database (those are the server tests' `EndToEnd/`); `ContractsTests.cs` holds the CLI's import contracts; `Sample/` is the one agent folder the tests use (the server tests link it into their output) |
 | `docs/scenario-format.md` | the file format (v0) an agent's repository keeps in `suwageval/`: `agent.yaml`, scenarios with checks, shorthands |
 | `.claude-plugin/`, `claude-plugin/` | the Claude Code plugin: `.claude-plugin/marketplace.json` is the marketplace (`suwalski-agent-eval`), `claude-plugin/` the plugin `suwageval` — one skill and the commands (`/suwageval:scenario`, `fix`, `run`) that drive the CLI. Text only, checked by `ClaudePluginTests.cs`; the file format is linked from the skill, not copied |
@@ -231,7 +231,7 @@ not by reviewers; a dependency against it fails with the types involved.
 | Feature uses feature | only downwards, by its position in the layer list | only through an explicit policy in `eslint.config.js`, with a comment saying why |
 
 **The CLI** is layered the same way, by `Layers` in `Suwageval.Cli.Tests/ContractsTests.cs`:
-root (`Program`, `CliApp`) → the commands `Validate` \| `Push` \| `Run` \| `Results` (siblings: none uses another) →
+root (`Program`, `CliApp`) → the commands `Validate` \| `Push` \| `Run` \| `Results` \| `Versions` (siblings: none uses another) →
 `Validation` \| `Server` → `Files`; `Every_cli_namespace_has_a_layer` fails for a namespace without one. What two commands
 share moves down into a layer of its own.
 
@@ -307,6 +307,12 @@ A change to one feature should touch one place on each side.
   (so the web's types) all come from it. An operation's logic lives once, in the slice (the
   store, or `ScenarioOperations.cs` when there is more than a query); the endpoint only maps
   it to HTTP (status codes, Problem Details).
+- **Anything the web can do, the CLI can do — and the plugin knows it.** The CLI may do more than
+  the web (push scenarios), never less. A change that adds an action to the web adds, in the same
+  change, the `suwageval` command for it (its own folder in `Suwageval.Cli/`, with tests and its
+  layer in `ContractsTests.cs`), its line in the plugin (`claude-plugin/skills/suwageval/SKILL.md`,
+  and a command in `claude-plugin/commands/` when it takes judgment or confirmation) and its row in
+  the README's "Front doors".
 - **Queries: SQL by hand, Dapper maps it.** A store writes plain SQL and lets Dapper map the
   rows onto its row records (`connection.QueryAsync<ScenarioRow>(sql, new { suiteId })`).
   Parameters always as `@name`, never concatenated into the text. No ORM (EF Core, linq2db)

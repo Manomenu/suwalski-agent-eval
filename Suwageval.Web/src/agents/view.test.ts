@@ -1,7 +1,46 @@
 import { describe, expect, it } from "vitest";
 
 import { ApiError } from "../api/client";
-import { agentHref, isNotFound, jsonText, runHref, shortId, versionHref, versionLabel, versionTitle } from "./view";
+import {
+    agentHref,
+    isNotFound,
+    jsonText,
+    runHref,
+    selectionActions,
+    shortId,
+    versionHref,
+    versionLabel,
+    versionTitle,
+    visibleRuns,
+    visibleVersions,
+} from "./view";
+
+const old = { id: "v-old", archivedAt: "2026-10-01T10:00:00Z" };
+const current = { id: "v-new", archivedAt: null };
+
+describe("visibleVersions", () => {
+    it("hides the archived ones unless asked", () => {
+        expect(visibleVersions([old, current], false)).toEqual([current]);
+        expect(visibleVersions([old, current], true)).toEqual([old, current]);
+    });
+});
+
+describe("visibleRuns", () => {
+    const runs = [{ agentVersionId: "v-old" }, { agentVersionId: "v-new" }, { agentVersionId: "v-unknown" }];
+
+    it("hides the runs of an archived version unless asked, and keeps a run of an unknown version", () => {
+        expect(visibleRuns(runs, [old, current], false)).toEqual([runs[1], runs[2]]);
+        expect(visibleRuns(runs, [old, current], true)).toEqual(runs);
+    });
+});
+
+describe("selectionActions", () => {
+    it("splits the selection into what can be archived and what restored", () => {
+        expect(selectionActions([old, current], new Set(["v-old", "v-new"]))).toEqual({ toArchive: ["v-new"], toRestore: ["v-old"] });
+        expect(selectionActions([old, current], new Set())).toEqual({ toArchive: [], toRestore: [] });
+        expect(selectionActions([old, current], new Set(["gone"]))).toEqual({ toArchive: [], toRestore: [] });
+    });
+});
 
 describe("links", () => {
     it("encodes the agent name", () => {

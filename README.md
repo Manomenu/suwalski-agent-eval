@@ -58,9 +58,12 @@ The server has one interface, its HTTP API. Three users reach it:
 | Who | Through | Does |
 | --- | --- | --- |
 | a person in the browser | the web app | browses agents, scenarios, runs, results, comparisons |
-| an agent's repository, by hand or in CI | the `suwageval` CLI (`Suwageval.Cli`) | `validate` the scenario files, `push` the agent, its scenarios and checks, `run --tag … --wait` with an exit code for CI, `results <runId>` to open a run on the web |
+| an agent's repository, by hand or in CI | the `suwageval` CLI (`Suwageval.Cli`) | `validate` the scenario files, `push` the agent, its scenarios and checks, `run --tag … --wait` with an exit code for CI, `results <runId>` to open a run on the web, `versions` to list, archive and restore the agent's versions |
 | Claude Code | the Claude Code plugin in this repo (`claude-plugin/`) that drives the same CLI, like suwgit's | "build a scenario for this agent from this conversation", "run the regression tag on the new version", "why did scenario X fail" — writing the scenario as a file in the agent's repo, then `validate` and `push` |
 
+- **Anything the web can do, the CLI — and so Claude Code through the plugin — can do too; not the
+  other way round.** The CLI may do things the web cannot (push scenarios, say). A new action on
+  the web arrives with its CLI command and the plugin's knowledge of it, in the same change.
 - **The scenario files live in the agent's repository**, in `suwageval/`: `agent.yaml` (the
   agent: `name` and `endpointUrl`, nothing else) and
   `scenarios/*.yaml` (a scenario with its checks inside; `user:` / `assistant:` shorthands for
@@ -112,6 +115,7 @@ Then ask in plain words, or use the commands:
 | `/suwageval:scenario` | `/suwageval:scenario the agent refuses a refund after 14 days` |
 | `/suwageval:fix` | `/suwageval:fix` — validate, then repair the scenarios the agent's change broke |
 | `/suwageval:run` | `/suwageval:run tag regression` — push, run, and explain what failed |
+| `/suwageval:versions` | `/suwageval:versions archive all but the last 3` — list versions, archive or restore them after you confirm |
 
 The plugin needs the CLI: without it, Claude gives you the lines to install it. To update the
 plugin later:

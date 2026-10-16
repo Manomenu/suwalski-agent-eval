@@ -117,6 +117,56 @@ public sealed class AgentStoreTests(TestDatabase database)
     }
 
     [Fact]
+    public async Task Registering_the_content_of_an_archived_version_unarchives_it()
+    {
+        var store = Store();
+        var agent = (await store.CreateAsync(UniqueName(), "http://one.test", Cancellation)).Agent;
+        var first = await store.RegisterVersionAsync(
+            agent.Id, /*lang=json,strict*/
+            """{"model":"m1"}""",
+            null,
+            Cancellation
+        );
+        await store.ArchiveVersionsAsync(agent.Id, [first.Version.Id], archived: true, Cancellation);
+        Assert.NotNull((await store.GetVersionAsync(first.Version.Id, Cancellation))?.ArchivedAt);
+
+        var again = await store.RegisterVersionAsync(
+            agent.Id, /*lang=json,strict*/
+            """{"model":"m1"}""",
+            null,
+            Cancellation
+        );
+
+        Assert.False(again.Created);
+        Assert.Equal(first.Version.Id, again.Version.Id);
+        Assert.Null(again.Version.ArchivedAt);
+        Assert.Null((await store.GetVersionAsync(first.Version.Id, Cancellation))?.ArchivedAt);
+    }
+
+    [Fact]
+    public async Task Archiving_keeps_the_first_time_and_unknown_versions_are_reported()
+    {
+        var store = Store();
+        var agent = (await store.CreateAsync(UniqueName(), "http://one.test", Cancellation)).Agent;
+        var version = (
+            await store.RegisterVersionAsync(
+                agent.Id, /*lang=json,strict*/
+                """{"model":"m1"}""",
+                null,
+                Cancellation
+            )
+        ).Version;
+        await store.ArchiveVersionsAsync(agent.Id, [version.Id], archived: true, Cancellation);
+        var firstTime = (await store.GetVersionAsync(version.Id, Cancellation))?.ArchivedAt;
+
+        await store.ArchiveVersionsAsync(agent.Id, [version.Id], archived: true, Cancellation);
+        var missing = Guid.NewGuid();
+
+        Assert.Equal(firstTime, (await store.GetVersionAsync(version.Id, Cancellation))?.ArchivedAt);
+        Assert.Equal([missing], await store.UnknownVersionsAsync(agent.Id, [version.Id, missing], Cancellation));
+    }
+
+    [Fact]
     public async Task Set_endpoint_url_changes_only_the_url_and_count_starts_at_zero()
     {
         var store = Store();

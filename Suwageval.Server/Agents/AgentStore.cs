@@ -9,7 +9,7 @@ internal sealed class AgentStore(Pool pool)
     private const string AgentColumns = "id, name, endpoint_url AS EndpointUrl, created_at AS CreatedAt";
 
     private const string VersionColumns =
-        "id, agent_id AS AgentId, content::text AS Content, content_hash AS ContentHash, label, created_at AS CreatedAt";
+        "id, agent_id AS AgentId, content::text AS Content, content_hash AS ContentHash, label, created_at AS CreatedAt, archived_at AS ArchivedAt";
 
     public async Task<AgentCreation> CreateAsync(string name, string endpointUrl, CancellationToken cancellationToken = default)
     {
@@ -117,9 +117,10 @@ internal sealed class AgentStore(Pool pool)
         {
             return new AgentVersionRegistration(created, Created: true);
         }
+        // An archived version the agent serves again is back in use.
         var existing = await connection.QuerySingleAsync<AgentVersionRow>(
             new CommandDefinition(
-                $"SELECT {VersionColumns} FROM agent_versions WHERE agent_id = @agentId AND content_hash = @hash",
+                $"UPDATE agent_versions SET archived_at = NULL WHERE agent_id = @agentId AND content_hash = @hash RETURNING {VersionColumns}",
                 new { agentId, hash },
                 cancellationToken: cancellationToken
             )
@@ -139,6 +140,51 @@ internal sealed class AgentStore(Pool pool)
             )
         );
         return [.. rows];
+    }
+
+    /// <summary>The ids among <paramref name="versionIds"/> that are not versions of the agent.</summary>
+    public async Task<IReadOnlyList<Guid>> UnknownVersionsAsync(
+        Guid agentId,
+        IReadOnlyList<Guid> versionIds,
+        CancellationToken cancellationToken = default
+    )
+    {
+        await using var connection = await pool.OpenAsync(cancellationToken);
+        var known = await connection.QueryAsync<Guid>(
+            new CommandDefinition(
+                "SELECT id FROM agent_versions WHERE agent_id = @agentId AND id = ANY(@versionIds)",
+                new { agentId, versionIds = versionIds.ToArray() },
+                cancellationToken: cancellationToken
+            )
+        );
+        return [.. versionIds.Distinct().Except(known)];
+    }
+
+    /// <summary>Archives or restores versions of the agent in one statement; an already archived version keeps its first time.</summary>
+    public async Task ArchiveVersionsAsync(
+        Guid agentId,
+        IReadOnlyList<Guid> versionIds,
+        bool archived,
+        CancellationToken cancellationToken = default
+    )
+    {
+        await using var connection = await pool.OpenAsync(cancellationToken);
+        await connection.ExecuteAsync(
+            new CommandDefinition(
+                """
+                UPDATE agent_versions
+                SET archived_at = CASE WHEN @archived THEN COALESCE(archived_at, now()) END
+                WHERE agent_id = @agentId AND id = ANY(@versionIds)
+                """,
+                new
+                {
+                    agentId,
+                    versionIds = versionIds.ToArray(),
+                    archived,
+                },
+                cancellationToken: cancellationToken
+            )
+        );
     }
 
     public async Task<AgentVersionRow?> GetVersionAsync(Guid versionId, CancellationToken cancellationToken = default)
