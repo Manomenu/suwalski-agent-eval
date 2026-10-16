@@ -1,4 +1,4 @@
-import { Anchor, Badge, Code, Stack, Text, Title } from "@mantine/core";
+import { Anchor, Badge, Code, Paper, Stack, Text, Title } from "@mantine/core";
 
 import { formatTime } from "../runs/results";
 import { fetchVersion } from "./api";
@@ -24,34 +24,50 @@ export function VersionPage({ name, versionId }: { name: string; versionId: stri
                             id {version.id} · created {formatTime(version.createdAt)} · hash {version.contentHash}
                         </Text>
 
-                        <Title order={3}>System prompt</Title>
-                        <Code block>{content.systemPrompt}</Code>
-
-                        <Title order={3}>Model</Title>
-                        <Text>{content.model.name}</Text>
-                        {content.model.parameters != null && <Code block>{jsonText(content.model.parameters)}</Code>}
-
-                        <Title order={3}>Tools</Title>
-                        {tools.length === 0 && <Text c="dimmed">No tools.</Text>}
-                        {tools.map((tool) => (
-                            <Stack key={tool.name} gap="xs">
-                                <Text fw={600}>{tool.name}</Text>
-                                <Text>{tool.description}</Text>
-                                <Code block>{jsonText(tool.parameters)}</Code>
+                        <Paper withBorder p="md">
+                            <Stack gap="sm">
+                                <Title order={3}>System prompt</Title>
+                                <Code block>{content.systemPrompt}</Code>
                             </Stack>
-                        ))}
+                        </Paper>
 
-                        <Title order={3}>Context</Title>
-                        <Badge variant="light" w="fit-content">
-                            {content.context?.usesRetrieval === true ? "uses retrieval" : "no retrieval"}
-                        </Badge>
-                        {events.length === 0 && <Text c="dimmed">No events.</Text>}
-                        {events.map((event) => (
-                            <Stack key={event.type} gap="xs">
-                                <Text fw={600}>Event {event.type}</Text>
-                                <Code block>{jsonText(event.dataSchema)}</Code>
+                        <Paper withBorder p="md">
+                            <Stack gap="sm">
+                                <Title order={3}>Model</Title>
+                                <Text>{content.model.name}</Text>
+                                {content.model.parameters != null && <Code block>{jsonText(content.model.parameters)}</Code>}
                             </Stack>
-                        ))}
+                        </Paper>
+
+                        <Paper withBorder p="md">
+                            <Stack gap="sm">
+                                <Title order={3}>Tools</Title>
+                                {tools.length === 0 && <Text c="dimmed">No tools.</Text>}
+                                {tools.map((tool) => (
+                                    <Stack key={tool.name} gap="xs">
+                                        <Text fw={600}>{tool.name}</Text>
+                                        <Text>{tool.description}</Text>
+                                        <Code block>{jsonText(tool.parameters)}</Code>
+                                    </Stack>
+                                ))}
+                            </Stack>
+                        </Paper>
+
+                        <Paper withBorder p="md">
+                            <Stack gap="sm">
+                                <Title order={3}>Context</Title>
+                                <Badge variant="light" w="fit-content">
+                                    {content.context?.usesRetrieval === true ? "uses retrieval" : "no retrieval"}
+                                </Badge>
+                                {events.length === 0 && <Text c="dimmed">No events.</Text>}
+                                {events.map((event) => (
+                                    <Stack key={event.type} gap="xs">
+                                        <Text fw={600}>Event {event.type}</Text>
+                                        <Code block>{jsonText(event.dataSchema)}</Code>
+                                    </Stack>
+                                ))}
+                            </Stack>
+                        </Paper>
                     </Stack>
                 );
             }}
