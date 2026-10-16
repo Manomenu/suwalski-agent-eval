@@ -10,5 +10,6 @@ internal sealed record ScenarioResultRow(
     string? Output,
     string? Error,
     string Undeclared,
-    int? DurationMs
+    int? DurationMs,
+    Guid ScenarioId
 );

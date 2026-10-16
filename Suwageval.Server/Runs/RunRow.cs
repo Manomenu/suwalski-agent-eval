@@ -20,7 +20,10 @@ internal sealed record RunRow(
     bool CancelRequested,
     DateTime CreatedAt,
     DateTime? StartedAt,
-    DateTime? FinishedAt
+    DateTime? FinishedAt,
+    Guid? RecheckOf = null,
+    string SkippedScenarios = "[]",
+    Guid? VerdictsFrom = null
 )
 {
     public RunStatus State => Enum.Parse<RunStatus>(Status);

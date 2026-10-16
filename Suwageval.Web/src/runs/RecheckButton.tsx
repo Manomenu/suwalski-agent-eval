@@ -1,0 +1,215 @@
+import { Accordion, Alert, Button, Group, List, Loader, Modal, Stack, Text, Tooltip } from "@mantine/core";
+import { useEffect, useState } from "react";
+
+import { definitionYaml, judgedByModel } from "../checks/definition";
+import { HighlightedYaml } from "../checks/HighlightedYaml";
+import { ModelJudgedIcon } from "../checks/ModelJudgedIcon";
+import { fetchRecheckPlan, recheck, type ChangedCheck, type RecheckPlan, type RunSummary } from "./api";
+import { CHANGE_LABELS, changesByScenario, judgedNote, planHeadline, recheckDisabledReason } from "./recheck";
+import { runHref } from "./results";
+
+type PlanState = { kind: "loading" } | { kind: "error"; message: string } | { kind: "loaded"; plan: RecheckPlan };
+
+/**
+ * "Re-check": judges this run's stored answers again with the current checks — the agent is not asked. Enabled for a finished run;
+ * a click opens a dialog that fetches what would be evaluated again, and only then offers "Start re-check".
+ */
+export function RecheckButton({ run }: { run: Pick<RunSummary, "id" | "status"> }) {
+    const [asking, setAsking] = useState(false);
+    const disabledReason = recheckDisabledReason(run.status);
+    return (
+        <>
+            <Tooltip label={disabledReason} disabled={disabledReason === null}>
+                <Button
+                    variant="default"
+                    disabled={disabledReason !== null}
+                    onClick={() => {
+                        setAsking(true);
+                    }}
+                >
+                    Re-check
+                </Button>
+            </Tooltip>
+            <Modal
+                opened={asking}
+                onClose={() => {
+                    setAsking(false);
+                }}
+                title="Re-check this run?"
+                size="lg"
+            >
+                <RecheckDialog
+                    runId={run.id}
+                    onClose={() => {
+                        setAsking(false);
+                    }}
+                />
+            </Modal>
+        </>
+    );
+}
+
+/** Mounted only while the dialog is open: it asks for the plan when it opens and abandons the request when it closes. */
+function RecheckDialog({ runId, onClose }: { runId: string; onClose: () => void }) {
+    const [state, setState] = useState<PlanState>({ kind: "loading" });
+    const [busy, setBusy] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        // StrictMode runs effects twice in development: abort the first request, ignore its result.
+        const controller = new AbortController();
+        fetchRecheckPlan(runId, controller.signal).then(
+            (plan) => {
+                setState({ kind: "loaded", plan });
+            },
+            (failure: unknown) => {
+                if (!controller.signal.aborted)
+                    setState({ kind: "error", message: failure instanceof Error ? failure.message : "The plan could not be loaded." });
+            },
+        );
+        return () => {
+            controller.abort();
+        };
+    }, [runId]);
+
+    const start = () => {
+        setBusy(true);
+        setError(null);
+        recheck(runId).then(
+            (created) => {
+                window.location.assign(runHref(created.runId));
+            },
+            (failure: unknown) => {
+                setError(failure instanceof Error ? failure.message : "The re-check could not be started.");
+                setBusy(false);
+            },
+        );
+    };
+
+    if (state.kind === "loading") {
+        return (
+            <Stack align="center" p="md">
+                <Loader aria-label="Loading the re-check plan" />
+            </Stack>
+        );
+    }
+    if (state.kind === "error") {
+        return (
+            <Stack>
+                <Alert color="red" title="The plan could not be loaded">
+                    {state.message}
+                </Alert>
+                <CloseRow onClose={onClose} />
+            </Stack>
+        );
+    }
+
+    const { plan } = state;
+    const judged = judgedNote(plan);
+    return (
+        <Stack>
+            {plan.possible ? (
+                <>
+                    <Text>{planHeadline(plan)}</Text>
+                    {judged && <Text fw={500}>{judged}</Text>}
+                    <Text size="sm" c="dimmed">
+                        The agent is not called: the answers stored in this run are judged again, and the turn times stay the run's.
+                    </Text>
+                </>
+            ) : (
+                <Alert color="yellow" title="Nothing to re-check">
+                    {plan.reason}
+                </Alert>
+            )}
+            {plan.mismatches.length > 0 && (
+                <List size="sm" aria-label="Mismatches">
+                    {plan.mismatches.map((mismatch) => (
+                        <List.Item key={mismatch}>{mismatch}</List.Item>
+                    ))}
+                </List>
+            )}
+            {changesByScenario(plan.changedChecks).map((group) => (
+                <Stack key={group.scenarioKey} gap={4}>
+                    <Text fw={600}>{group.scenarioKey}</Text>
+                    {group.checks.map((check) => (
+                        <ChangedCheckRow key={check.checkKey} check={check} />
+                    ))}
+                </Stack>
+            ))}
+            {plan.skippedScenarios.length > 0 && (
+                <Stack gap={4}>
+                    <Text fw={600}>Skipped scenarios</Text>
+                    <List size="sm">
+                        {plan.skippedScenarios.map((skipped) => (
+                            <List.Item key={skipped.key}>
+                                {skipped.key}: {skipped.reason}
+                            </List.Item>
+                        ))}
+                    </List>
+                </Stack>
+            )}
+            {error && (
+                <Alert color="red" title="The re-check could not be started">
+                    {error}
+                </Alert>
+            )}
+            <CloseRow onClose={onClose} busy={busy}>
+                {plan.possible && (
+                    <Button onClick={start} loading={busy} disabled={busy}>
+                        Start re-check
+                    </Button>
+                )}
+            </CloseRow>
+        </Stack>
+    );
+}
+
+function CloseRow({ onClose, busy = false, children }: { onClose: () => void; busy?: boolean; children?: React.ReactNode }) {
+    return (
+        <Group justify="flex-end">
+            <Button variant="default" disabled={busy} onClick={onClose}>
+                Close
+            </Button>
+            {children}
+        </Group>
+    );
+}
+
+/** One check of the plan with how it changed; a changed check can show the definition the run used next to the current one. */
+function ChangedCheckRow({ check }: { check: ChangedCheck }) {
+    const judgedNow = check.after != null && judgedByModel(check.after);
+    return (
+        <Stack gap={4}>
+            <Group gap="xs">
+                <Text span>{check.checkKey}</Text>
+                <Text span c="dimmed" aria-label={`${check.checkKey} change`}>
+                    {CHANGE_LABELS[check.change]}
+                </Text>
+                {judgedNow && <ModelJudgedIcon />}
+            </Group>
+            {check.change === "Changed" && check.before != null && check.after != null && (
+                <Accordion variant="contained">
+                    <Accordion.Item value="change">
+                        <Accordion.Control aria-label={`Show change of ${check.checkKey}`}>Show change</Accordion.Control>
+                        <Accordion.Panel>
+                            <Group align="flex-start" grow wrap="nowrap">
+                                <Stack gap={4}>
+                                    <Text size="sm" c="dimmed">
+                                        In the run
+                                    </Text>
+                                    <HighlightedYaml yaml={definitionYaml(check.before)} />
+                                </Stack>
+                                <Stack gap={4}>
+                                    <Text size="sm" c="dimmed">
+                                        Now
+                                    </Text>
+                                    <HighlightedYaml yaml={definitionYaml(check.after)} />
+                                </Stack>
+                            </Group>
+                        </Accordion.Panel>
+                    </Accordion.Item>
+                </Accordion>
+            )}
+        </Stack>
+    );
+}

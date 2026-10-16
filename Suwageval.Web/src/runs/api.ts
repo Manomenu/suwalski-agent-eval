@@ -9,6 +9,8 @@ export type RunList = components["schemas"]["RunList"];
 export type RunSummary = components["schemas"]["RunSummary"];
 export type ScenarioRunResult = components["schemas"]["ScenarioRunResult"];
 export type CheckRunResult = components["schemas"]["CheckRunResult"];
+export type RecheckPlan = components["schemas"]["RecheckPlan"];
+export type ChangedCheck = components["schemas"]["ChangedCheck"];
 export type ConversationItem = components["schemas"]["ConversationItem"];
 
 /** One page of the runs of one agent (by name), newest first; see `runsPath`. */
@@ -28,4 +30,14 @@ export function cancelRun(runId: string): Promise<void> {
 /** A new run with the agent, tag and endpoint of this one, against the version the agent serves now. */
 export function rerun(runId: string): Promise<RunCreated> {
     return request<RunCreated>(`/runs/${runId}/rerun`, { method: "POST" });
+}
+
+/** What a re-check of the run would do and whether it can start; nothing is started. */
+export function fetchRecheckPlan(runId: string, signal: AbortSignal): Promise<RecheckPlan> {
+    return request<RecheckPlan>(`/runs/${runId}/recheck`, { signal });
+}
+
+/** A new run that judges this run's stored answers again with the current checks; the agent is not called. */
+export function recheck(runId: string): Promise<RunCreated> {
+    return request<RunCreated>(`/runs/${runId}/recheck`, { method: "POST" });
 }

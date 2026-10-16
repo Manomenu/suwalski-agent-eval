@@ -11,5 +11,6 @@ internal sealed record CheckResultRow(
     bool Passed,
     bool NotJudged,
     string Evidence,
-    string Message
+    string Message,
+    Guid CheckId
 );

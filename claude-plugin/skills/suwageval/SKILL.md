@@ -57,6 +57,7 @@ its `/api`. The address is `SUWAGEVAL_URL`, or `--server` on a command; the defa
 | send the agent, scenarios and checks to the server | `suwageval push [dir]` |
 | run the scenarios and wait | `suwageval run --wait --json` (`--tag <tag>` for some scenarios only) |
 | run an earlier run again | `suwageval rerun <runId> --wait --json` (`--endpoint URL`): same agent, tag and endpoint, the version the agent serves now |
+| judge a finished run's stored answers again with the current checks (no agent call) | `suwageval recheck <runId> --wait --json`; `--dry-run` first prints what would be evaluated again (exit 0 when no check changed: nothing is started). Use it after fixing a check; `rerun` is for when the agent changed |
 | stop a queued or running run | `suwageval cancel <runId>`: samples in flight finish, no new one starts; a finished run stays as it is. Only for a run the user asked to stop |
 | open a run on the web | `suwageval results <runId>` |
 | a run's results as JSON | `suwageval results <runId> --json` |

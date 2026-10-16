@@ -1,0 +1,47 @@
+// What the re-check button and its dialog show, as plain functions.
+import type { ChangedCheck, RecheckPlan, RunSummary } from "./api";
+import { num } from "./results";
+
+/** Only a finished run has all its answers: the button is offered disabled for any other. */
+export function recheckDisabledReason(status: RunSummary["status"]): string | null {
+    return status === "Done" ? null : "Only a finished run can be re-checked.";
+}
+
+export const CHANGE_LABELS: Record<ChangedCheck["change"], string> = {
+    Changed: "Changed",
+    Added: "Added",
+    Removed: "Removed",
+};
+
+export interface ScenarioChanges {
+    scenarioKey: string;
+    checks: ChangedCheck[];
+}
+
+/** The changed checks grouped by scenario, in the order the plan has them. */
+export function changesByScenario(checks: readonly ChangedCheck[]): ScenarioChanges[] {
+    const groups: ScenarioChanges[] = [];
+    for (const check of checks) {
+        const group = groups.find((existing) => existing.scenarioKey === check.scenarioKey);
+        if (group) group.checks.push(check);
+        else groups.push({ scenarioKey: check.scenarioKey, checks: [check] });
+    }
+    return groups;
+}
+
+/** "2 checks are evaluated again" for a plan that can start. */
+export function planHeadline(plan: Pick<RecheckPlan, "changedChecks">): string {
+    const count = plan.changedChecks.length;
+    return `${count} ${count === 1 ? "check is" : "checks are"} evaluated again; every other check keeps its verdict from the run.`;
+}
+
+/** Said when some of the checks to evaluate call the judge's model; null when none does. */
+export function judgedNote(plan: Pick<RecheckPlan, "judgedChecks">): string | null {
+    const judged = num(plan.judgedChecks);
+    return judged > 0 ? `${judged} judged by a model: ${judged === 1 ? "it calls" : "they call"} the judge's model.` : null;
+}
+
+/** A re-check run: the run page says whose answers it holds. */
+export function recheckSource(run: Pick<RunSummary, "recheckOf">): string | null {
+    return run.recheckOf ?? null;
+}

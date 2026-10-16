@@ -23,13 +23,15 @@ internal static class RunEndpoints
         app.MapGet("/runs/{id:guid}", GetAsync).Produces<RunSummary>();
         app.MapGet("/runs/{id:guid}/results", ResultsAsync).Produces<RunResults>();
         app.MapPost("/runs/{id:guid}/rerun", RerunAsync).Produces<RunCreated>(StatusCodes.Status202Accepted);
+        app.MapGet("/runs/{id:guid}/recheck", RecheckPlanAsync).Produces<RecheckPlan>();
+        app.MapPost("/runs/{id:guid}/recheck", RecheckAsync).Produces<RunCreated>(StatusCodes.Status202Accepted);
         app.MapPost("/runs/{id:guid}/cancel", CancelAsync).Produces(StatusCodes.Status202Accepted);
         app.MapGet("/agents/{agent}/pass-rates", PassRatesAsync).Produces<IReadOnlyList<RunPassRates>>();
         return app;
     }
 
     /// <summary>
-    /// The pass-rate trend of an agent: its finished runs (the newest <see cref="PassRateTrend.MaxRuns"/>, oldest first) with
+    /// The pass-rate trend of an agent: its finished runs that called the agent (the newest <see cref="PassRateTrend.MaxRuns"/>, oldest first) with
     /// the rate over all checks and per tag. Tags are the scenarios' current ones; a run with no check is left out. 404: no such agent.
     /// </summary>
     private static async Task<IResult> PassRatesAsync(
@@ -52,12 +54,13 @@ internal static class RunEndpoints
             scenario => (IReadOnlyList<string>)scenario.Tags
         );
         var points = new List<RunPassRates>();
-        foreach (var run in picked)
+        foreach (var (run, recheck) in picked)
         {
+            var shown = recheck ?? run;
             var results = RunReport.Results(
-                run,
-                await runs.ListScenarioResultsAsync(run.Id, cancellationToken),
-                await runs.ListCheckResultsAsync(run.Id, cancellationToken)
+                shown,
+                await runs.ListScenarioResultsAsync(shown.Id, cancellationToken),
+                await runs.ListCheckResultsAsync(shown.Id, cancellationToken)
             );
             if (PassRateTrend.Rates(results, tagsOf) is not { } rates)
             {
@@ -69,6 +72,7 @@ internal static class RunEndpoints
                 {
                     RunId = run.Id,
                     CreatedAt = run.CreatedAt,
+                    RecheckedBy = recheck?.Id,
                     AgentVersionId = version.Id,
                     Tag = run.Tag,
                     VersionLabel = version.Label,
@@ -177,7 +181,7 @@ internal static class RunEndpoints
             );
         }
 
-        var id = await runs.EnqueueAsync(agent.Id, version.Id, request.Tag, endpoint, cancellationToken);
+        var id = await runs.EnqueueAsync(agent.Id, version.Id, request.Tag, endpoint, cancellationToken: cancellationToken);
         return Results.Accepted(
             $"/runs/{id}",
             new RunCreated
@@ -226,6 +230,104 @@ internal static class RunEndpoints
             judge,
             cancellationToken
         );
+    }
+
+    /// <summary>What a re-check of the run would do and whether it can start (read-only). 404 for an unknown run.</summary>
+    private static async Task<IResult> RecheckPlanAsync(
+        Guid id,
+        AgentStore agents,
+        ScenarioStore scenarios,
+        CheckStore checks,
+        RunStore runs,
+        CancellationToken cancellationToken
+    )
+    {
+        var planned = await PlanRecheckAsync(id, agents, scenarios, checks, runs, cancellationToken);
+        return planned is null ? NotFound($"There is no run {id}.") : Results.Ok(planned.Plan);
+    }
+
+    /// <summary>
+    /// Queues a re-check: the stored answers of run <paramref name="id"/> (of the run that called the agent, when that is itself a
+    /// re-check) judged again by the current checks, without calling the agent. 404 for an unknown run; 409 with the reason (and the
+    /// mismatches) when the plan says it cannot start.
+    /// </summary>
+    private static async Task<IResult> RecheckAsync(
+        Guid id,
+        AgentStore agents,
+        ScenarioStore scenarios,
+        CheckStore checks,
+        RunStore runs,
+        CancellationToken cancellationToken
+    )
+    {
+        var planned = await PlanRecheckAsync(id, agents, scenarios, checks, runs, cancellationToken);
+        if (planned is null)
+        {
+            return NotFound($"There is no run {id}.");
+        }
+        if (!planned.Plan.Possible)
+        {
+            return Results.Problem(
+                title: "The run cannot be re-checked",
+                detail: string.Join("; ", [planned.Plan.Reason, .. planned.Plan.Mismatches]),
+                statusCode: StatusCodes.Status409Conflict,
+                extensions: planned.Plan.Mismatches.Count > 0
+                    ? new Dictionary<string, object?> { ["mismatches"] = planned.Plan.Mismatches }
+                    : null
+            );
+        }
+        var source = planned.Original;
+        var created = await runs.EnqueueAsync(
+            source.AgentId,
+            source.AgentVersionId,
+            source.Tag,
+            source.EndpointUrl,
+            source.Id,
+            planned.Shown.Id,
+            cancellationToken
+        );
+        return Results.Accepted(
+            $"/runs/{created}",
+            new RunCreated
+            {
+                RunId = created,
+                AgentVersionId = source.AgentVersionId,
+                VersionCreated = false,
+            }
+        );
+    }
+
+    private sealed record PlannedRecheck(RunRow Shown, RunRow Original, RecheckPlan Plan);
+
+    private static async Task<PlannedRecheck?> PlanRecheckAsync(
+        Guid id,
+        AgentStore agents,
+        ScenarioStore scenarios,
+        CheckStore checks,
+        RunStore runs,
+        CancellationToken cancellationToken
+    )
+    {
+        var shown = await runs.GetAsync(id, cancellationToken);
+        if (shown is null)
+        {
+            return null;
+        }
+        // A re-check has the answers of the run it was made from: that one is what is re-checked again.
+        var original = shown.RecheckOf is { } originalId ? await runs.GetAsync(originalId, cancellationToken) ?? shown : shown;
+        var version = await agents.GetVersionAsync(original.AgentVersionId, cancellationToken);
+        var originalSamples = await runs.ListScenarioResultsAsync(original.Id, cancellationToken);
+        var shownSamples = original.Id == shown.Id ? originalSamples : await runs.ListScenarioResultsAsync(shown.Id, cancellationToken);
+        var plan = RecheckPlanner.Of(
+            shown.State,
+            originalSamples,
+            shownSamples,
+            await runs.ListCheckResultsAsync(shown.Id, cancellationToken),
+            await scenarios.ListAsync(original.AgentId, cancellationToken: cancellationToken),
+            await checks.ListAsync(original.AgentId, cancellationToken: cancellationToken),
+            StoredContent.Version(version?.Content ?? throw new InvalidOperationException("The run's version is gone."))
+        );
+        return new PlannedRecheck(shown, original, plan);
     }
 
     /// <summary>

@@ -10,6 +10,12 @@ public sealed record RunPassRates
 
     public required DateTime CreatedAt { get; init; }
 
+    /// <summary>
+    /// The re-check whose results the point shows (the newest finished one of this run); null when the point shows the run's own
+    /// results. A re-check is never a point of its own.
+    /// </summary>
+    public Guid? RecheckedBy { get; init; }
+
     public required Guid AgentVersionId { get; init; }
 
     /// <summary>The tag the run was limited to; null when it ran every scenario. Only such a run says what "all checks" are.</summary>

@@ -6,7 +6,8 @@ namespace Suwageval.Server.Runs;
 /// The queue's consumer, inside the server: takes the oldest queued run, carries it out, looks again; sleeps a second when
 /// there is nothing to do. One run at a time per server — a run already fills its own degree of parallelism.
 /// </summary>
-internal sealed partial class RunWorker(RunStore runs, RunExecutor executor, ILogger<RunWorker> logger) : BackgroundService
+internal sealed partial class RunWorker(RunStore runs, RunExecutor executor, RunRechecker rechecker, ILogger<RunWorker> logger)
+    : BackgroundService
 {
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(1);
 
@@ -24,7 +25,7 @@ internal sealed partial class RunWorker(RunStore runs, RunExecutor executor, ILo
                 var run = await runs.ClaimNextAsync(cancellationToken: stoppingToken);
                 if (run is not null)
                 {
-                    await executor.ExecuteAsync(run, stoppingToken);
+                    await (run.RecheckOf is null ? executor.ExecuteAsync(run, stoppingToken) : rechecker.ExecuteAsync(run, stoppingToken));
                     continue;
                 }
                 await Task.Delay(PollInterval, stoppingToken);

@@ -23,7 +23,7 @@ public sealed class RunStoreTests(TestDatabase database)
         );
 
     private static Task<Guid> EnqueueAsync(RunStore store, SeededAgent agent, string? tag = null) =>
-        store.EnqueueAsync(agent.Id, agent.VersionId, tag, agent.EndpointUrl, Cancellation);
+        store.EnqueueAsync(agent.Id, agent.VersionId, tag, agent.EndpointUrl, cancellationToken: Cancellation);
 
     [Fact]
     public async Task An_enqueued_run_is_queued_with_no_results()

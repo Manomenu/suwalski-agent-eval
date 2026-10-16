@@ -145,21 +145,8 @@ internal sealed partial class RunExecutor(
             var results = new List<NewCheckResult>();
             foreach (var (row, input) in scenario.Checks)
             {
-                var verdict = input switch
-                {
-                    JudgeCheck judgeCheck => await judge.JudgeAsync(judgeCheck, scenario.Content.Conversation, trace, cancellationToken),
-                    _ when CheckEvaluator.UsesJudge(input) => await argumentJudge.JudgeAsync(input, trace, cancellationToken),
-                    _ => CheckEvaluator.Evaluate(input, trace),
-                };
                 results.Add(
-                    new NewCheckResult(
-                        row.Id,
-                        row.Revision,
-                        verdict.Passed,
-                        JsonSerializer.Serialize(verdict.Evidence, Json),
-                        verdict.Message,
-                        verdict.NotJudged
-                    )
+                    await CheckEvaluation.EvaluateAsync(judge, argumentJudge, row, input, scenario.Content, trace, cancellationToken)
                 );
             }
             stored = new NewSample(
@@ -186,15 +173,7 @@ internal sealed partial class RunExecutor(
                 reason,
                 turn.DurationMs,
                 [],
-                [
-                    .. scenario.Checks.Select(check => new NewCheckResult(
-                        check.Row.Id,
-                        check.Row.Revision,
-                        false,
-                        "[]",
-                        $"Not evaluated: {reason}"
-                    )),
-                ]
+                [.. scenario.Checks.Select(check => CheckEvaluation.NotEvaluated(check.Row, reason))]
             );
         }
         await runs.AddSampleAsync(run.Id, stored, cancellationToken);
