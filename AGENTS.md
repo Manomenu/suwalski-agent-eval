@@ -156,6 +156,8 @@ real secrets, database and routing. It stays small and fast: status codes and a 
 the body, no logging in, no writes. Today it checks that nginx answers (`/healthz`) and that
 the page reaches the server, which only starts with its database (`/api/health`).
 
+Checkouts running the gate at the same time (git worktrees of AI agents) do not collide: a linked worktree gets its own test and e2e databases and e2e ports, derived from its directory name by `scripts/.internal/checkout-env.sh`; its databases are left behind, not dropped.
+
 A step that cannot run (a tool missing on a fresh machine) reports **SKIP**, never PASS.
 Never weaken a step to make a change pass — fix the change.
 
@@ -527,6 +529,7 @@ Two vocabularies, chosen word by word:
   | --- | --- |
   | `scripts/.internal/check.sh` | verify a change — the whole gate (section 3) |
   | `scripts/.internal/live-check.sh [test args]` | the live tests (`[Trait("live", "true")]`): one or two real calls to the judge's model, from `Models__judge__*` in the gitignored `.env` (section 7). The gate leaves them out; run it after changing the judge, its prompt or the model, and when the model's server changed |
+  | `scripts/.internal/checkout-env.sh` | sourced by `check.sh` and `e2e.sh`, never run: a linked git worktree gets its own test databases (`suwageval_test_<name>`, `suwageval_e2e_<name>`) and e2e ports; the main checkout and CI keep the plain ones |
   | `scripts/.internal/e2e.sh [playwright args]` | browser tests (`Suwageval.Web/src/**/*.e2e.ts`) against a real server and an empty `suwageval_e2e` database, on ports 6231/3231. Run it after changing anything a user clicks |
   | `scripts/.internal/db.sh up\|down\|status\|psql` | the local PostgreSQL on `localhost:5463` (docker container `suwageval-postgres`). `check.sh` runs `up` itself; tests create their own `suwageval_test` database |
   | `scripts/.internal/api-types.sh [--check]` | regenerate `Suwageval.Web/src/api/openapi.d.ts` after changing a record the API exposes. Never edit that file by hand |

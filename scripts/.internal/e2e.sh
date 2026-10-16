@@ -4,12 +4,14 @@
 #   e2e.sh --headed        watch the browser
 #   e2e.sh -g "health"     only the tests whose name matches
 #
-# Every run starts from an empty database of its own (suwageval_e2e), next to the development
+# Every run starts from an empty database of its own (suwageval_e2e; a linked worktree gets a suffixed name and its own ports, checkout-env.sh), next to the development
 # one, and its own server and web app (playwright.config.ts) — what you run by hand is not
 # touched. Locally it starts PostgreSQL (just db); CI provides it as a service. A service the
 # app gains later (a converter, a cache) gets started here the same way.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+# shellcheck source=scripts/.internal/checkout-env.sh
+source "$ROOT/scripts/.internal/checkout-env.sh"
 
 if [ -z "${CI:-}" ]; then
     "$ROOT/scripts/.internal/db.sh" up >/dev/null
@@ -17,7 +19,7 @@ fi
 
 # A fresh database for the run: the tests may then assume nothing but what they create. Two
 # commands, not one: CREATE DATABASE cannot run inside the transaction a single -c would be.
-recreate=(-c "DROP DATABASE IF EXISTS suwageval_e2e WITH (FORCE)" -c "CREATE DATABASE suwageval_e2e")
+recreate=(-c "DROP DATABASE IF EXISTS $E2E_DATABASE WITH (FORCE)" -c "CREATE DATABASE $E2E_DATABASE")
 if [ -n "${CI:-}" ]; then
     psql -q "postgresql://suwageval:suwageval@localhost:5463/postgres" "${recreate[@]}"
 else
