@@ -29,5 +29,7 @@ export async function request<T>(path: string, init: RequestInit = {}): Promise<
         headers: init.body === undefined ? {} : { "content-type": "application/json" },
     });
     if (!response.ok) throw await toError(response);
-    return (response.status === 204 ? undefined : await response.json()) as T;
+    // An answer with no body (204, or a bare 202) is `undefined`.
+    const body = await response.text();
+    return (body === "" ? undefined : JSON.parse(body)) as T;
 }

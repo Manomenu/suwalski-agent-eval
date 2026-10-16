@@ -1134,6 +1134,11 @@ export interface components {
              *             (a redeploy mid-run): the results may not all be of that version.
              */
             contractChangedDuringRun?: boolean;
+            /**
+             * @description `true` once a stop was asked for. A run still RunStatus.Running with this set is finishing the samples in
+             *             flight; it becomes RunStatus.Cancelled when they are done.
+             */
+            cancelRequested?: boolean;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */

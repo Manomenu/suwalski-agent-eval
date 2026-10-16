@@ -14,6 +14,9 @@ import {
     percent,
     progress,
     runHref,
+    canCancel,
+    isCancelling,
+    runStatusLabel,
     statusLabel,
 } from "./results";
 
@@ -31,6 +34,24 @@ describe("results", () => {
         expect(isActive("Done")).toBe(false);
         expect(isActive("Failed")).toBe(false);
         expect(isActive("Cancelled")).toBe(false);
+    });
+
+    it("offers cancelling only for a queued or running run that nobody asked to stop", () => {
+        expect(canCancel({ status: "Queued" })).toBe(true);
+        expect(canCancel({ status: "Running", cancelRequested: false })).toBe(true);
+        expect(canCancel({ status: "Running", cancelRequested: true })).toBe(false);
+        expect(canCancel({ status: "Done" })).toBe(false);
+        expect(canCancel({ status: "Failed" })).toBe(false);
+        expect(canCancel({ status: "Cancelled", cancelRequested: true })).toBe(false);
+    });
+
+    it("says cancelling only while a stopped run is still running", () => {
+        expect(isCancelling({ status: "Running", cancelRequested: true })).toBe(true);
+        expect(isCancelling({ status: "Running" })).toBe(false);
+        expect(isCancelling({ status: "Cancelled", cancelRequested: true })).toBe(false);
+        expect(runStatusLabel({ status: "Running", cancelRequested: true })).toBe("cancelling…");
+        expect(runStatusLabel({ status: "Running" })).toBe("running");
+        expect(runStatusLabel({ status: "Cancelled", cancelRequested: true })).toBe("cancelled");
     });
 
     it("labels statuses in English", () => {

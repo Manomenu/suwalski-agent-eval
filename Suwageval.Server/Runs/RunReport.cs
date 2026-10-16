@@ -28,6 +28,7 @@ internal static class RunReport
             ChecksPassed = run.ChecksPassed,
             ChecksFailed = run.ChecksFailed,
             ContractChangedDuringRun = run.ContractChangedDuringRun,
+            CancelRequested = run.CancelRequested,
             CreatedAt = run.CreatedAt,
             StartedAt = run.StartedAt,
             FinishedAt = run.FinishedAt,

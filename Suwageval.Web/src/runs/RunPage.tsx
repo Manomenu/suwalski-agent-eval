@@ -1,8 +1,9 @@
 import { Alert, Anchor, Badge, Group, Loader, Paper, Stack, Text, Title } from "@mantine/core";
 
+import { CancelButton } from "./CancelButton";
 import { RerunButton } from "./RerunButton";
 import { ScenarioCard } from "./ScenarioCard";
-import { formatTime, isActive, isRunNotFound, num, progress, statusColor, statusLabel } from "./results";
+import { formatTime, isActive, isRunNotFound, num, progress, runStatusLabel, statusColor } from "./results";
 import { useRunResults } from "./useRunResults";
 
 /** One run's results at `/runs/<id>`: the header, then a card per scenario. */
@@ -29,7 +30,7 @@ export function RunPage({ runId }: { runId: string }) {
                 <Group gap="sm">
                     <Title order={2}>Run {run.agent}</Title>
                     <Badge size="lg" color={statusColor(run.status)}>
-                        {statusLabel(run.status)}
+                        {runStatusLabel(run)}
                     </Badge>
                     {isActive(run.status) && <Loader size="sm" aria-label="Run in progress" />}
                 </Group>
@@ -37,7 +38,10 @@ export function RunPage({ runId }: { runId: string }) {
                     id {run.id} · version {run.agentVersionId}
                     {run.tag ? ` · tag ${run.tag}` : ""} · {run.endpointUrl}
                 </Text>
-                <RerunButton runId={run.id} />
+                <Group gap="sm" align="flex-start">
+                    <RerunButton runId={run.id} />
+                    <CancelButton run={run} />
+                </Group>
                 <Paper withBorder p="md">
                     <Group gap="lg">
                         <Text>Samples: {progress(run)}</Text>
