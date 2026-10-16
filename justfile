@@ -20,11 +20,13 @@ default:
 # HTTP API on :6230 (OpenAPI document at /openapi/v1.json), rebuilt on every change — needs `just db up`
 [group('run')]
 server *args:
+    @./scripts/.internal/free-port.sh 6230
     DOTNET_WATCH_RESTART_ON_RUDE_EDIT=1 dotnet watch --project Suwageval.Server run {{ args }}
 
 # Web UI on :3230 — proxies /api to the server, so run `just server` alongside
 [group('run')]
 web *args:
+    @./scripts/.internal/free-port.sh 3230
     cd Suwageval.Web && { [ -d node_modules ] || pnpm install; } && pnpm dev {{ args }}
 
 # ---------------------------------------------------------------------------------------
