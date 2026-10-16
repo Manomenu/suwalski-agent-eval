@@ -66,6 +66,12 @@ export default defineConfig(
                             from: { element: { type: "feature" } },
                             allow: { to: { element: { type: "feature", captured: { name: "{{from.element.captured.name}}" } } } },
                         },
+                        // The agent page lists the agent's runs: it reads them through runs/ and shows them
+                        // with that feature's labels (status, progress, time) instead of copying them.
+                        {
+                            from: { element: { type: "feature", captured: { name: "agents" } } },
+                            allow: { to: { element: { type: "feature", captured: { name: "runs" } } } },
+                        },
                         // Example of an explicit edge — a feature's screen embedding another feature:
                         // {
                         //     from: { element: { type: "feature", captured: { name: "notes" } } },

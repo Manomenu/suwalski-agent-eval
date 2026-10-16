@@ -11,10 +11,10 @@ internal static class AgentEndpoints
     public static void MapAgents(this IEndpointRouteBuilder app)
     {
         app.MapPost("/agents", CreateAsync);
-        app.MapGet("/agents", ListAsync);
-        app.MapGet("/agents/{agent}", GetAsync);
-        app.MapGet("/agents/{agent}/versions", ListVersionsAsync);
-        app.MapGet("/agents/{agent}/versions/{versionId:guid}", GetVersionAsync);
+        app.MapGet("/agents", ListAsync).Produces<IReadOnlyList<Agent>>();
+        app.MapGet("/agents/{agent}", GetAsync).Produces<AgentDetail>();
+        app.MapGet("/agents/{agent}/versions", ListVersionsAsync).Produces<IReadOnlyList<AgentVersion>>();
+        app.MapGet("/agents/{agent}/versions/{versionId:guid}", GetVersionAsync).Produces<AgentVersionDetail>();
     }
 
     private static async Task<IResult> CreateAsync(AgentDefinition definition, AgentStore store, CancellationToken cancellationToken)

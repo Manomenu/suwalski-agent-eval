@@ -60,7 +60,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["Agent"][];
+                    };
                 };
             };
         };
@@ -116,7 +118,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["AgentDetail"];
+                    };
                 };
             };
         };
@@ -151,7 +155,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["AgentVersion"][];
+                    };
                 };
             };
         };
@@ -187,7 +193,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["AgentVersionDetail"];
+                    };
                 };
             };
         };
@@ -694,10 +702,64 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description An agent under test. The request that creates it is AgentDefinition. */
+        Agent: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            endpointUrl: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        /** @description What the agent was configured as when a run happened. */
+        AgentContract: {
+            label?: null | string;
+            systemPrompt: string;
+            model: components["schemas"]["ModelDefinition"];
+            tools?: components["schemas"]["ToolDefinition"][];
+            context?: components["schemas"]["ContextDefinition"];
+        };
         AgentDefinition: {
             name: string;
             /** @description Where suwageval reaches the agent under test (`POST {endpointUrl}/suwageval/turn`). */
             endpointUrl: string;
+        };
+        /** @description An agent with what is stored for it: counts of versions, live scenarios and live checks. */
+        AgentDetail: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            endpointUrl: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: int32 */
+            versions: number | string;
+            /** Format: int32 */
+            scenarios: number | string;
+            /** Format: int32 */
+            checks: number | string;
+        };
+        /** @description A registered version of an agent, without its content. */
+        AgentVersion: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            agentId: string;
+            label: null | string;
+            contentHash: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        /** @description A registered version of an agent with its content (`Content.Label` is the version's label). */
+        AgentVersionDetail: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            agentId: string;
+            contentHash: string;
+            /** Format: date-time */
+            createdAt: string;
+            content: components["schemas"]["AgentContract"];
         };
         /** @description A test on what the agent produced for a scenario, told apart by `type`. */
         CheckInput: components["schemas"]["CheckInputToolCalledCheck"] | components["schemas"]["CheckInputToolNotCalledCheck"] | components["schemas"]["CheckInputEventCheck"] | components["schemas"]["CheckInputTextCheck"];
@@ -803,6 +865,11 @@ export interface components {
             /** @description A tool name or event type: only what came before it counts. */
             before?: null | string;
         };
+        /** @description What besides messages and tool calls may appear in the agent's conversation log. */
+        ContextDefinition: {
+            usesRetrieval?: boolean;
+            events?: components["schemas"]["EventDeclaration"][];
+        };
         /** @description How the conversation goes on after its last message. */
         Continuation: {
             /**
@@ -855,11 +922,20 @@ export interface components {
             kind?: "UserMessage";
             text: string;
         };
+        EventDeclaration: {
+            type: string;
+            /** @description The shape of the event's `data`, as a JSON Schema document. */
+            dataSchema: components["schemas"]["JsonElement"];
+        };
         /** @description What /health answers. */
         Health: {
             status: string;
         };
         JsonElement: unknown;
+        ModelDefinition: {
+            name: string;
+            parameters?: null | components["schemas"]["JsonElement"];
+        };
         /** @description The checks to write for an agent; keys not listed are left alone. */
         PutChecksRequest: {
             checks: components["schemas"]["CheckInput"][];
@@ -995,6 +1071,12 @@ export interface components {
             scenarioKeys: string[];
             add: string[];
             remove: string[];
+        };
+        ToolDefinition: {
+            name: string;
+            description: string;
+            /** @description The arguments the tool takes, as a JSON Schema document. */
+            parameters: components["schemas"]["JsonElement"];
         };
         /** @description Which turn a check looks at: a number (from 1), `"last"` or `"any"`. The default value is "any". */
         TurnSelector: unknown;

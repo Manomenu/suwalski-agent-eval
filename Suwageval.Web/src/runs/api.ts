@@ -8,6 +8,11 @@ export type ScenarioRunResult = components["schemas"]["ScenarioRunResult"];
 export type CheckRunResult = components["schemas"]["CheckRunResult"];
 export type ConversationItem = components["schemas"]["ConversationItem"];
 
+/** The runs of one agent (by name), newest first. */
+export function fetchRuns(agent: string, signal: AbortSignal): Promise<RunSummary[]> {
+    return request<RunSummary[]>(`/runs?agent=${encodeURIComponent(agent)}`, { signal });
+}
+
 export function fetchRunResults(runId: string, signal: AbortSignal): Promise<RunResults> {
     return request<RunResults>(`/runs/${runId}/results`, { signal });
 }
