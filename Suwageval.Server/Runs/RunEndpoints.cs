@@ -64,7 +64,7 @@ internal static class RunEndpoints
 
     /// <summary>
     /// The pass-rate trend of an agent: its finished runs that called the agent (the newest <see cref="PassRateTrend.MaxRuns"/>, oldest first) with
-    /// the rate over all checks and per tag. Tags are the scenarios' current ones; a run with no check is left out. 404: no such agent.
+    /// the rate over all checks and per tag and the turn time (median, p95) over the same samples. Tags are the scenarios' current ones; a run with no check is left out. 404: no such agent.
     /// </summary>
     private static async Task<IResult> PassRatesAsync(
         string agent,
@@ -110,6 +110,8 @@ internal static class RunEndpoints
                     VersionLabel = version.Label,
                     ModelNames = ContractContent.ModelNames(StoredContent.Version(version.Content)),
                     PassRate = rates.PassRate,
+                    MedianMs = rates.MedianMs,
+                    P95Ms = rates.P95Ms,
                     Tags = rates.Tags,
                 }
             );

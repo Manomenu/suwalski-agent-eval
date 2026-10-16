@@ -6,7 +6,7 @@
 // check counts once, however many samples it has.
 import { COMPARE_MAX_RUNS, COMPARE_MIN_RUNS } from "../agents/view";
 import type { CheckRunResult, RunSummary, ScenarioRunResult } from "../runs/api";
-import { notJudgedCount, num, percent } from "../runs/results";
+import { formatSeconds, notJudgedCount, num, percent } from "../runs/results";
 
 const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -217,3 +217,30 @@ export function checksPassedText(run: Pick<RunSummary, "checksPassed" | "checksF
     const passed = num(run.checksPassed);
     return `${passed}/${passed + num(run.checksFailed)} checks passed`;
 }
+
+/** A turn time within this share of the baseline's counts as the same... */
+const TIME_SAME_SHARE = 0.05;
+/** ...and so does one within this many milliseconds (a fast agent's noise). */
+export const TIME_SAME_MS = 100;
+
+/** A turn time against the baseline's; for time lower is better, so `better` is faster. */
+export interface TimeDelta {
+    milliseconds: number;
+    trend: "better" | "worse" | "same";
+}
+
+export function timeDelta(milliseconds: number | null, baseline: number | null): TimeDelta | null {
+    if (milliseconds === null || baseline === null) return null;
+    const change = milliseconds - baseline;
+    const small = Math.abs(change) < TIME_SAME_MS || Math.abs(change) < TIME_SAME_SHARE * baseline;
+    return { milliseconds: change, trend: small ? "same" : change < 0 ? "better" : "worse" };
+}
+
+/** `▼ 1.2 s` for a faster run, `▲ 3.0 s` for a slower one, `±0 s` for the same: the arrow follows the time, not the verdict. */
+export function timeDeltaText(value: TimeDelta): string {
+    if (value.trend === "same") return "±0 s";
+    return `${value.milliseconds < 0 ? "▼" : "▲"} ${formatSeconds(Math.abs(value.milliseconds))}`;
+}
+
+/** Said on hover over a turn time change. */
+export const TIME_DELTA_HELP = `Change of the turn time against the baseline. Lower is better: a green ▼ is faster, a red ▲ is slower. A change under ${String(TIME_SAME_SHARE * 100)} % or ${String(TIME_SAME_MS)} ms counts as the same.`;

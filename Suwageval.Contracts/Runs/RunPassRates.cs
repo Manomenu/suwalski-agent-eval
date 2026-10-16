@@ -2,7 +2,7 @@ namespace Suwageval.Contracts.Runs;
 
 /// <summary>
 /// The pass rate of one finished run, over all its checks and per scenario tag: a point of the agent's trend. A check counts once
-/// per scenario (passed or not by its threshold over the samples), the way the results page counts it.
+/// per scenario (passed or not by its threshold over the samples), the way the results page counts it, with the turn time of its samples.
 /// </summary>
 public sealed record RunPassRates
 {
@@ -29,6 +29,12 @@ public sealed record RunPassRates
 
     /// <summary>Checks passed over checks, from 0 to 1.</summary>
     public required double PassRate { get; init; }
+
+    /// <summary>The median turn time over the run's samples that made a call, in milliseconds; null when none did.</summary>
+    public double? MedianMs { get; init; }
+
+    /// <summary>The 95th percentile (nearest rank) of the same turn times, in milliseconds; null when none.</summary>
+    public double? P95Ms { get; init; }
 
     /// <summary>One rate per tag the run's scenarios carry now, sorted by tag; a scenario without checks adds nothing to its tags.</summary>
     public required IReadOnlyList<TagPassRate> Tags { get; init; }

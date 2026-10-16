@@ -1,4 +1,4 @@
-// The "Pass rate" section of the agent page: a hint until two runs have finished, then the chart with a legend that toggles lines.
+// The "Pass rate" and "Turn time" sections of the agent page: a hint until two runs have finished, then the chart with a legend that toggles lines.
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 
@@ -37,18 +37,26 @@ test("the pass rate chart appears with the second finished run and its legend hi
         await finishedRun(request, name);
         await page.goto(`/agents/${name}`);
         await expect(page.getByRole("heading", { name: "Pass rate", exact: true })).toBeVisible();
+        await expect(page.getByRole("heading", { name: "Turn time", exact: true })).toBeVisible();
         await expect(page.getByText("The trend appears after two finished runs.", { exact: true })).toBeVisible();
 
         await finishedRun(request, name);
         await page.reload();
         await expect(page.getByText("The trend appears after two finished runs.", { exact: true })).toHaveCount(0);
-        await expect(page.locator(".recharts-line")).toHaveCount(2);
+        const passRate = page.locator(".mantine-Paper-root").filter({ has: page.getByRole("heading", { name: "Pass rate", exact: true }) });
+        const turnTime = page.locator(".mantine-Paper-root").filter({ has: page.getByRole("heading", { name: "Turn time", exact: true }) });
+        await expect(passRate.locator(".recharts-line")).toHaveCount(2);
+        await expect(turnTime.locator(".recharts-line")).toHaveCount(2);
+        await expect(turnTime.getByRole("radio", { name: "Median", exact: true })).toBeChecked();
+        await turnTime.getByText("p95", { exact: true }).click();
+        await expect(turnTime.getByRole("radio", { name: "p95", exact: true })).toBeChecked();
+        await expect(turnTime.locator(".recharts-line")).toHaveCount(2);
 
-        const smoke = page.getByRole("button", { name: "smoke", exact: true });
+        const smoke = passRate.getByRole("button", { name: "smoke", exact: true });
         await expect(smoke).toHaveAttribute("aria-pressed", "true");
         await smoke.click();
         await expect(smoke).toHaveAttribute("aria-pressed", "false");
-        await expect(page.locator(".recharts-line")).toHaveCount(1);
+        await expect(passRate.locator(".recharts-line")).toHaveCount(1);
     } finally {
         agentServer.close();
     }
