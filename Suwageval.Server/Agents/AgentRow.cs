@@ -10,7 +10,8 @@ internal sealed record AgentRow(
     string EndpointUrl,
     DateTime CreatedAt,
     string? RegressionBranches = null,
-    int? RegressionHistory = null
+    int? RegressionHistory = null,
+    int? Samples = null
 )
 {
     /// <summary>The regression settings the agent was pushed with (the branches arrive as a JSON array); none when it names neither branches nor a history.</summary>

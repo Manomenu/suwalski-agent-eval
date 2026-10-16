@@ -47,14 +47,12 @@ internal sealed partial class RunExecutor(
             {
                 var version = await agents.GetVersionAsync(run.AgentVersionId, cancellationToken);
                 var declared = ContractContent.Read(version?.Content ?? throw new InvalidOperationException("The run's version is gone."));
-                var plan = await PlanAsync(run, cancellationToken);
-                var work = plan.SelectMany(scenario =>
-                        Enumerable.Range(1, Math.Max(1, scenario.Content.Samples)).Select(sample => (scenario, sample))
-                    )
-                    .ToList();
+                var agentSamples = (await agents.GetAsync(run.AgentId.ToString(), cancellationToken))?.Samples;
+                var plan = await PlanAsync(run, agentSamples, cancellationToken);
+                var work = plan.SelectMany(scenario => Enumerable.Range(1, scenario.Calls).Select(sample => (scenario, sample))).ToList();
                 return new RunLoop.Plan<(PlannedScenario scenario, int sample)>(
                     work,
-                    item => RunSampleAsync(run, declared, item.scenario, item.sample, cancellationToken),
+                    item => RunSampleAsync(run, declared, item.scenario, item.sample, agentSamples, cancellationToken),
                     () => CheckContractUnchangedAsync(run, version.ContentHash, cancellationToken)
                 );
             },
@@ -76,7 +74,7 @@ internal sealed partial class RunExecutor(
         }
     }
 
-    private async Task<IReadOnlyList<PlannedScenario>> PlanAsync(RunRow run, CancellationToken cancellationToken)
+    private async Task<IReadOnlyList<PlannedScenario>> PlanAsync(RunRow run, int? agentSamples, CancellationToken cancellationToken)
     {
         var picked = await scenarios.ListAsync(run.AgentId, run.Tag, cancellationToken);
         var checksByScenario = (await checks.ListAsync(run.AgentId, cancellationToken: cancellationToken)).ToLookup(check =>
@@ -84,11 +82,12 @@ internal sealed partial class RunExecutor(
         );
         return
         [
-            .. picked.Select(scenario => new PlannedScenario(
-                scenario,
-                StoredContent.Scenario(scenario.Content),
-                [.. checksByScenario[scenario.Key].Select(check => (check, StoredContent.Check(check)))]
-            )),
+            .. picked.Select(scenario =>
+            {
+                var content = StoredContent.Scenario(scenario.Content);
+                var scenarioChecks = checksByScenario[scenario.Key].Select(check => (check, StoredContent.Check(check))).ToList();
+                return new PlannedScenario(scenario, content, scenarioChecks, SamplePlan.Calls(content, scenarioChecks, agentSamples));
+            }),
         ];
     }
 
@@ -97,6 +96,7 @@ internal sealed partial class RunExecutor(
         AgentContract declared,
         PlannedScenario scenario,
         int sample,
+        int? agentSamples,
         CancellationToken cancellationToken
     )
     {
@@ -117,7 +117,7 @@ internal sealed partial class RunExecutor(
         {
             var trace = new Trace([items]);
             var results = new List<NewCheckResult>();
-            foreach (var (row, input) in scenario.Checks)
+            foreach (var (row, input) in SamplePlan.JudgedOn(sample, scenario.Content, scenario.Checks, agentSamples))
             {
                 results.Add(
                     await CheckEvaluation.EvaluateAsync(judge, argumentJudge, row, input, scenario.Content, trace, cancellationToken)
@@ -147,7 +147,11 @@ internal sealed partial class RunExecutor(
                 reason,
                 turn.DurationMs,
                 [],
-                [.. scenario.Checks.Select(check => CheckEvaluation.NotEvaluated(check.Row, reason))]
+                [
+                    .. SamplePlan
+                        .JudgedOn(sample, scenario.Content, scenario.Checks, agentSamples)
+                        .Select(check => CheckEvaluation.NotEvaluated(check.Row, reason)),
+                ]
             );
         }
         await runs.AddSampleAsync(run.Id, stored, cancellationToken);
@@ -156,5 +160,10 @@ internal sealed partial class RunExecutor(
     [LoggerMessage(Level = LogLevel.Error, Message = "Run {RunId} failed")]
     private partial void LogRunFailed(Exception error, Guid runId);
 
-    private sealed record PlannedScenario(ScenarioRow Row, ScenarioContent Content, IReadOnlyList<(CheckRow Row, CheckInput Input)> Checks);
+    private sealed record PlannedScenario(
+        ScenarioRow Row,
+        ScenarioContent Content,
+        IReadOnlyList<(CheckRow Row, CheckInput Input)> Checks,
+        int Calls
+    );
 }

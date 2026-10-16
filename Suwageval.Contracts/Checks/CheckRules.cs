@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Suwageval.Contracts.Samples;
 
 namespace Suwageval.Contracts.Checks;
 
@@ -33,6 +34,10 @@ public static class CheckRules
         if (check.PassThreshold is <= 0 or > 1 || double.IsNaN(check.PassThreshold))
         {
             problems.Add(new CheckProblem($"{path}.passThreshold", "passThreshold is above 0 and at most 1."));
+        }
+        if (SampleRules.Problem(check.Samples, $"{path}.samples") is { } samplesProblem)
+        {
+            problems.Add(new CheckProblem($"{path}.samples", samplesProblem));
         }
 
         switch (check)

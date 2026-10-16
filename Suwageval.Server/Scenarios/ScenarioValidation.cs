@@ -1,4 +1,5 @@
 using Suwageval.Contracts;
+using Suwageval.Contracts.Samples;
 using Suwageval.Contracts.Scenarios;
 using Suwageval.Server.Problems;
 
@@ -29,9 +30,9 @@ internal static class ScenarioValidation
                 errors.Add(new FieldError($"{path}.key", $"The scenario key '{scenario.Key}' is used twice in the request."));
             }
             AddTagErrors(errors, scenario.Tags, $"{path}.tags");
-            if (scenario.Samples < 1)
+            if (SampleRules.Problem(scenario.Samples, "samples") is { } samplesProblem)
             {
-                errors.Add(new FieldError($"{path}.samples", "samples is at least 1."));
+                errors.Add(new FieldError($"{path}.samples", samplesProblem));
             }
             if (scenario.Continuation.Turns < 1)
             {

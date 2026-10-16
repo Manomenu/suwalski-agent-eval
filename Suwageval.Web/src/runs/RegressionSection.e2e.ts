@@ -40,7 +40,7 @@ test("A check that passed in the reference runs and fails now is a regression wi
         const name = `e2e-regression-${Date.now()}`;
         const endpointUrl = `http://localhost:${(agentServer.address() as AddressInfo).port}`;
         expect((await request.post("/api/agents", { data: { name, endpointUrl } })).ok()).toBe(true);
-        const scenario = { key: "greets", conversation: [{ kind: "UserMessage", text: "Hello" }] };
+        const scenario = { key: "greets", samples: 1, conversation: [{ kind: "UserMessage", text: "Hello" }] };
         expect((await request.put(`/api/agents/${name}/scenarios`, { data: { scenarios: [scenario] } })).ok()).toBe(true);
         const check = { type: "text", key: "says-hello", scenarioKey: "greets", contains: "Hello" };
         expect((await request.put(`/api/agents/${name}/checks`, { data: { checks: [check] } })).ok()).toBe(true);
@@ -109,7 +109,7 @@ test("A check that fails because the agent gave no answer is an agent error, not
         const name = `e2e-agent-error-${Date.now()}`;
         const endpointUrl = `http://localhost:${(agentServer.address() as AddressInfo).port}`;
         expect((await request.post("/api/agents", { data: { name, endpointUrl } })).ok()).toBe(true);
-        const scenario = { key: "greets", conversation: [{ kind: "UserMessage", text: "Hello" }] };
+        const scenario = { key: "greets", samples: 1, conversation: [{ kind: "UserMessage", text: "Hello" }] };
         expect((await request.put(`/api/agents/${name}/scenarios`, { data: { scenarios: [scenario] } })).ok()).toBe(true);
         const check = { type: "text", key: "says-hello", scenarioKey: "greets", contains: "Hello" };
         expect((await request.put(`/api/agents/${name}/checks`, { data: { checks: [check] } })).ok()).toBe(true);

@@ -148,6 +148,10 @@ export const VERSION_HELP =
 export const CONFIGURATION_HELP =
     "Settings from agent.yaml in the agent's repository. They change with suwageval push and are not part of a version (a version is the contract the running agent serves).";
 
+/** What the samples row says on hover. */
+export const SAMPLES_HELP =
+    "How many times each scenario's conversation is sent to the agent by default. A scenario or a single check can set its own. A check passes when its share of passing samples reaches its threshold (100% by default).";
+
 /** What the regression branches row says on hover. */
 export const REGRESSION_BRANCHES_HELP =
     "Whose runs are reference runs: runs from these branches, with a clean tree and a pushed commit. A check's history is built from them.";

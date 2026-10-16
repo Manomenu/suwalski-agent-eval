@@ -46,6 +46,7 @@ what really ran. A `version:` key is an error.
 | --- | --- | --- |
 | `name` | required | the agent's name |
 | `endpointUrl` | required | where the agent is reached: `POST {endpointUrl}/suwageval/turn`, `GET {endpointUrl}/suwageval/contract` |
+| `samples` | optional | how many times each scenario's conversation is sent to the agent by default: 1 to 20, default `3` (see "Samples" under Scenarios; a scenario or a check can set its own) |
 | `regression` | optional | how regressions are found (next block, section "Regressions") |
 
 ```yaml
@@ -173,9 +174,29 @@ version; the answer to `POST /runs` and `suwageval run` say which version and wh
 | `tags` | | lowercase kebab-case; a run picks scenarios by tag |
 | `conversation` | required | the log up to the agent's turn, at least one item |
 | `continuation.turns` | | how many agent turns are produced, default `1` |
-| `samples` | | how many times the conversation is repeated, default `1` |
+| `samples` | | how many times the conversation is repeated: 1 to 20; not set means the agent's `samples`, else `3` (see "Samples" below) |
 | `fixtures` | | free mapping, sent verbatim with every turn of the scenario (e.g. which documents are pinned for the conversation); shaped by the agent's `context.fixturesSchema`, which the agent must declare. Part of the scenario's content: changing it is a new revision |
 | `checks` | | a list of checks, below |
+
+### Samples
+
+A model does not answer the same way twice, so a conversation is sent to the agent several times: each time is a **sample**,
+numbered from 1. `samples` is an integer from 1 to 20 and can be written on three levels; the most specific one wins:
+
+1. the check's `samples`,
+2. the scenario's `samples`,
+3. the agent's `samples` in `agent.yaml`,
+4. `3` when none is set.
+
+The agent is called for a scenario as many times as its most demanding check is judged on (a scenario with no check: its own
+number). Each check is judged on its **first N samples** (numbers 1 to N, N being its own number of samples, as resolved above):
+its pass rate, its `passThreshold` and the "x/y samples" shown are over those N only, and the samples after N get no verdict from
+that check. So a scenario of 3 samples with one check that sets `samples: 1` is called 3 times, the check judges sample 1, the
+others judge all three. Raise `samples` where the agent is flaky (a lone failure then no longer fails a check with a lower
+threshold); set `samples: 1` on a check whose result does not vary, to keep the run fast.
+
+Changing `samples` of a check or a scenario is a new revision of it (it is part of its content); changing the agent's does not
+create one. A re-check judges the stored samples with the current number of samples of each check.
 
 ### The conversation log
 
@@ -199,7 +220,8 @@ contract.
 
 A check tests what the agent produced in its turn(s). Common fields: `key` (kebab-case,
 unique within the agent), `type`, `where` and `passThreshold` (the share of samples that must
-pass, above 0 up to 1, default `1.0`). The scenario is the file the check sits in.
+pass, above 0 up to 1, default `1.0`) and `samples` (how many of its scenario's samples it is judged on, 1 to 20; not set means the
+scenario's, see "Samples"). The scenario is the file the check sits in.
 
 | `type` | Fields | Passes when |
 | --- | --- | --- |
@@ -256,8 +278,8 @@ How a check is evaluated (the server's `Checks/`; no model involved, except for 
   evidence is the messages that cite any of the listed sources, and its message names the missing ones. **`text`** reads the assistant messages in scope,
   joined by a newline; `contains` and `notContains` are case-sensitive (use `(?i)` in `pattern` otherwise); every condition
   given must hold. An invalid `pattern` fails the check with a message.
-- **The pass rate** of a check is the share of its scenario's samples that passed; the check passes the run when the rate
-  reaches `passThreshold`. A sample the agent did not answer (down, timeout, unreadable answer) counts as failed for every check.
+- **The pass rate** of a check is the share of the samples it is judged on that passed (its first N, N being its `samples`, see
+  "Samples"); the check passes the run when the rate reaches `passThreshold`. A sample the agent did not answer (down, timeout, unreadable answer) counts as failed for every check.
 
 ### The judge check
 
@@ -428,7 +450,7 @@ A scenario with fixtures, a call checked by its result and a pattern, and the tw
 
 ```yaml
 key: delivery-to-exact-address
-samples: 3
+samples: 5
 fixtures:
   pinnedResources: [shipping-policy]
 conversation:

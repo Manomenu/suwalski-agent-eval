@@ -8,7 +8,7 @@ namespace Suwageval.Server.Agents;
 internal sealed class AgentStore(Pool pool)
 {
     private const string AgentColumns =
-        "id, name, endpoint_url AS EndpointUrl, created_at AS CreatedAt, to_json(regression_branches)::text AS RegressionBranches, regression_history AS RegressionHistory";
+        "id, name, endpoint_url AS EndpointUrl, created_at AS CreatedAt, to_json(regression_branches)::text AS RegressionBranches, regression_history AS RegressionHistory, samples";
 
     private const string VersionColumns =
         "id, agent_id AS AgentId, content::text AS Content, content_hash AS ContentHash, label, data_description AS DataDescription, created_at AS CreatedAt, archived_at AS ArchivedAt";
@@ -49,16 +49,22 @@ internal sealed class AgentStore(Pool pool)
         );
     }
 
-    /// <summary>Stores the agent's regression settings; none puts the defaults back.</summary>
-    public async Task<AgentRow> SetRegressionAsync(Guid id, RegressionSettings? settings, CancellationToken cancellationToken = default)
+    /// <summary>Stores the agent's default samples and regression settings; none puts the defaults back.</summary>
+    public async Task<AgentRow> SetSettingsAsync(
+        Guid id,
+        int? samples,
+        RegressionSettings? settings,
+        CancellationToken cancellationToken = default
+    )
     {
         await using var connection = await pool.OpenAsync(cancellationToken);
         return await connection.QuerySingleAsync<AgentRow>(
             new CommandDefinition(
-                $"UPDATE agents SET regression_branches = @branches, regression_history = @history WHERE id = @id RETURNING {AgentColumns}",
+                $"UPDATE agents SET samples = @samples, regression_branches = @branches, regression_history = @history WHERE id = @id RETURNING {AgentColumns}",
                 new
                 {
                     id,
+                    samples,
                     branches = settings?.Branches?.ToArray(),
                     history = settings?.History,
                 },

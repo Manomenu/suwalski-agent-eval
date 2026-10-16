@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { branchesText, DEFAULT_REGRESSION_HISTORY, historyText } from "./configuration";
+import { branchesText, DEFAULT_REGRESSION_HISTORY, DEFAULT_SAMPLES, historyText, samplesText } from "./configuration";
 
 describe("branchesText", () => {
     it("joins the listed branches", () => {
@@ -21,5 +21,17 @@ describe("historyText", () => {
 
     it("falls back to the default", () => {
         expect(historyText(null)).toEqual({ text: `${DEFAULT_REGRESSION_HISTORY} reference runs`, isDefault: true });
+    });
+});
+
+describe("samplesText", () => {
+    it("shows the set number", () => {
+        expect(samplesText(5)).toEqual({ text: "5", isDefault: false });
+    });
+
+    it("falls back to the default of 3", () => {
+        expect(DEFAULT_SAMPLES).toBe(3);
+        expect(samplesText(undefined)).toEqual({ text: "3", isDefault: true });
+        expect(samplesText(null).isDefault).toBe(true);
     });
 });

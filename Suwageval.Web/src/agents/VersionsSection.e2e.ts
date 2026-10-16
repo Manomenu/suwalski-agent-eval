@@ -21,8 +21,8 @@ function serveContract(prompt: { current: string; label: string }): Promise<Serv
     return new Promise((resolve) => server.listen(0, "localhost", () => resolve(server)));
 }
 
-/** The rows of the Configuration section's table: endpoint, regression branches, regression history. */
-const CONFIGURATION_ROWS = 3;
+/** The rows of the Configuration section's table: endpoint, samples, regression branches, regression history. */
+const CONFIGURATION_ROWS = 4;
 
 async function run(request: APIRequestContext, agent: string) {
     const created = await request.post("/api/runs", { data: { agent } });
@@ -36,7 +36,7 @@ test("versions are archived, shown again on request and restored", async ({ page
         const name = `e2e-archive-${Date.now()}`;
         const endpointUrl = `http://localhost:${(agentServer.address() as AddressInfo).port}`;
         expect((await request.post("/api/agents", { data: { name, endpointUrl } })).ok()).toBe(true);
-        const scenario = { key: "greets", conversation: [{ kind: "UserMessage", text: "Hello" }] };
+        const scenario = { key: "greets", samples: 1, conversation: [{ kind: "UserMessage", text: "Hello" }] };
         expect((await request.put(`/api/agents/${name}/scenarios`, { data: { scenarios: [scenario] } })).ok()).toBe(true);
         await run(request, name);
         Object.assign(contract, { current: "Be brief.", label: "e2e-new" });

@@ -282,7 +282,7 @@ function AgentView({
                         onChanged={onChanged}
                     />
 
-                    <ConfigurationSection endpointUrl={agent.endpointUrl} regression={agent.regression} />
+                    <ConfigurationSection endpointUrl={agent.endpointUrl} samples={agent.samples} regression={agent.regression} />
                 </Stack>
             </div>
         </Stack>

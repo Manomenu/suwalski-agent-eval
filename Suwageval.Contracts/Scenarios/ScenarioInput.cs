@@ -24,6 +24,10 @@ public sealed record ScenarioInput
 
     public Continuation Continuation { get; init; } = new();
 
-    /// <summary>How many times the conversation is repeated, for agents that do not answer the same way twice.</summary>
-    public int Samples { get; init; } = 1;
+    /// <summary>
+    /// How many times the conversation is repeated, for agents that do not answer the same way twice (1 to 20); a check can set its own.
+    /// Not set: the agent's <c>samples</c>, else 3.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? Samples { get; init; }
 }

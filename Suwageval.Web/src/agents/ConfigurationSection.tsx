@@ -1,17 +1,20 @@
 import { Group, Paper, Stack, Table, Text, Title } from "@mantine/core";
 
-import { branchesText, historyText } from "./configuration";
+import { branchesText, historyText, samplesText } from "./configuration";
 import { HeaderHelp } from "./HeaderHelp";
-import { CONFIGURATION_HELP, REGRESSION_BRANCHES_HELP, REGRESSION_HISTORY_HELP } from "./view";
+import { CONFIGURATION_HELP, REGRESSION_BRANCHES_HELP, REGRESSION_HISTORY_HELP, SAMPLES_HELP } from "./view";
 
-/** What agent.yaml sets and a version does not hold: the endpoint and the regression settings. */
+/** What agent.yaml sets and a version does not hold: the endpoint, the default samples and the regression settings. */
 export function ConfigurationSection({
     endpointUrl,
+    samples,
     regression,
 }: {
     endpointUrl: string;
+    samples: number | null | undefined;
     regression: { branches?: readonly string[] | null; history?: number | null } | null | undefined;
 }) {
+    const sampleCount = samplesText(samples);
     const branches = branchesText(regression?.branches);
     const history = historyText(regression?.history);
     return (
@@ -25,6 +28,23 @@ export function ConfigurationSection({
                         <Table.Tr>
                             <Table.Th>Endpoint</Table.Th>
                             <Table.Td>{endpointUrl}</Table.Td>
+                        </Table.Tr>
+                        <Table.Tr>
+                            <Table.Th>
+                                <HeaderHelp label="Samples" help={SAMPLES_HELP} />
+                            </Table.Th>
+                            <Table.Td>
+                                <Group gap={4}>
+                                    <Text span inherit>
+                                        {sampleCount.text}
+                                    </Text>
+                                    {sampleCount.isDefault && (
+                                        <Text span inherit c="dimmed">
+                                            (default)
+                                        </Text>
+                                    )}
+                                </Group>
+                            </Table.Td>
                         </Table.Tr>
                         <Table.Tr>
                             <Table.Th>

@@ -125,6 +125,47 @@ public sealed class AgentEndpointsTests(TestDatabase database) : IAsyncDisposabl
     }
 
     [Fact]
+    public async Task The_default_samples_are_stored_shown_and_put_back_when_left_out()
+    {
+        var name = AgentStoreTests.UniqueName();
+
+        await server.Post(
+            "/agents",
+            new AgentDefinition
+            {
+                Name = name,
+                EndpointUrl = "http://a.test",
+                Samples = 5,
+            }
+        );
+        var set = await TestServer.Read<AgentDetail>(await server.Get($"/agents/{name}"));
+        await server.Post("/agents", new AgentDefinition { Name = name, EndpointUrl = "http://a.test" });
+        var cleared = await TestServer.Read<AgentDetail>(await server.Get($"/agents/{name}"));
+
+        Assert.Equal(5, set.Samples);
+        Assert.Null(cleared.Samples);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(21)]
+    public async Task Samples_out_of_range_are_a_422_naming_the_field(int samples)
+    {
+        var response = await server.Post(
+            "/agents",
+            new AgentDefinition
+            {
+                Name = AgentStoreTests.UniqueName(),
+                EndpointUrl = "http://a.test",
+                Samples = samples,
+            }
+        );
+
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+        Assert.Equal(["samples"], await TestServer.ErrorFields(response));
+    }
+
+    [Fact]
     public async Task Invalid_regression_settings_are_a_422_naming_the_fields()
     {
         var response = await server.Post(
