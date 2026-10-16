@@ -22,6 +22,13 @@ internal sealed class RunClient(HttpClient http)
     public Task<RunSummary> GetAsync(Guid runId, CancellationToken cancellationToken) =>
         SendAsync<RunSummary>(() => http.GetAsync(new Uri($"runs/{runId}", UriKind.Relative), cancellationToken), cancellationToken);
 
+    /// <summary>The agent's runs, newest first.</summary>
+    public Task<IReadOnlyList<RunSummary>> RunsAsync(string agent, CancellationToken cancellationToken) =>
+        SendAsync<IReadOnlyList<RunSummary>>(
+            () => http.GetAsync(new Uri($"runs?agent={Uri.EscapeDataString(agent)}", UriKind.Relative), cancellationToken),
+            cancellationToken
+        );
+
     public Task<RunResults> ResultsAsync(Guid runId, CancellationToken cancellationToken) =>
         SendAsync<RunResults>(
             () => http.GetAsync(new Uri($"runs/{runId}/results", UriKind.Relative), cancellationToken),

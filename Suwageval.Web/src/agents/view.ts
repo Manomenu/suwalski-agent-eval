@@ -20,15 +20,51 @@ export function visibleVersions<T extends { archivedAt: string | null }>(version
     return showArchived ? versions : versions.filter((version) => version.archivedAt === null);
 }
 
-/** The runs to list: without "Show archived", those of an archived version are hidden (a run of an unknown version stays). */
+/** The models (the contract's `model.name`) of the versions, sorted, each once — what the model filter offers. */
+export function modelsOf(versions: { modelName: string }[]): string[] {
+    return [...new Set(versions.map((version) => version.modelName))].sort((a, b) => a.localeCompare(b));
+}
+
+/**
+ * The runs to list. Without "Show archived", those of an archived version are hidden (a run of an unknown version stays).
+ * With models chosen, only the runs of a version of one of those models stay (an unknown version has no model, so it goes);
+ * no model chosen means all of them.
+ */
 export function visibleRuns<T extends { agentVersionId: string }>(
     runs: T[],
-    versions: { id: string; archivedAt: string | null }[],
+    versions: { id: string; archivedAt: string | null; modelName: string }[],
     showArchived: boolean,
+    models: readonly string[] = [],
 ): T[] {
-    if (showArchived) return runs;
     const archived = new Set(versions.filter((version) => version.archivedAt !== null).map((version) => version.id));
-    return runs.filter((run) => !archived.has(run.agentVersionId));
+    const chosen = new Set(models);
+    const modelOf = new Map(versions.map((version) => [version.id, version.modelName]));
+    return runs.filter((run) => {
+        if (!showArchived && archived.has(run.agentVersionId)) return false;
+        if (chosen.size === 0) return true;
+        const model = modelOf.get(run.agentVersionId);
+        return model !== undefined && chosen.has(model);
+    });
+}
+
+/** Comparing takes at least two runs and at most five (more would not fit a screen). */
+export const COMPARE_MIN_RUNS = 2;
+export const COMPARE_MAX_RUNS = 5;
+
+/** The compare page for these runs, the first being the baseline. */
+export const compareHref = (runIds: readonly string[]) => `/compare?runs=${runIds.join(",")}`;
+
+/** Whether the selection is a number of runs the compare page accepts. */
+export function canCompare(count: number): boolean {
+    return count >= COMPARE_MIN_RUNS && count <= COMPARE_MAX_RUNS;
+}
+
+/** The selected runs oldest first (the oldest is the baseline). `runs` is as the list has it, newest first. */
+export function runsToCompare(runs: { id: string }[], selected: ReadonlySet<string>): string[] {
+    return runs
+        .filter((run) => selected.has(run.id))
+        .map((run) => run.id)
+        .reverse();
 }
 
 /** What the selected versions need: the active ones can be archived, the archived ones restored. */

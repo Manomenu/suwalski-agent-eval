@@ -1,7 +1,9 @@
 using System.CommandLine;
+using Suwageval.Cli.Compare;
 using Suwageval.Cli.Push;
 using Suwageval.Cli.Results;
 using Suwageval.Cli.Run;
+using Suwageval.Cli.Runs;
 using Suwageval.Cli.Validate;
 using Suwageval.Cli.Versions;
 
@@ -11,7 +13,7 @@ namespace Suwageval.Cli;
 internal static class CliApp
 {
     // http: the client the commands reach the outside with (the API for push, run and results, the agent for validate); null makes their own.
-    // openBrowser: how results opens a page; null is the system's browser.
+    // openBrowser: how results and compare open a page; null is the system's browser.
     public static int Run(
         string[] args,
         TextReader input,
@@ -27,6 +29,8 @@ internal static class CliApp
             PushCommand.Create(http),
             RunCommand.Create(http),
             ResultsCommand.Create(http, openBrowser),
+            CompareCommand.Create(http, openBrowser),
+            RunsCommand.Create(http),
             VersionsCommand.Create(http),
         };
         return root.Parse(args).Invoke(new InvocationConfiguration { Output = output, Error = error });

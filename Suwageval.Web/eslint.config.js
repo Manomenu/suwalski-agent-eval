@@ -72,6 +72,18 @@ export default defineConfig(
                             from: { element: { type: "feature", captured: { name: "agents" } } },
                             allow: { to: { element: { type: "feature", captured: { name: "runs" } } } },
                         },
+                        // The compare page reads runs through runs/ (their results, labels and times) and the agent
+                        // through agents/ (versions with their model, the page's loading frame, links). The agent page
+                        // links to the compare page by a path of its own (agents/view.ts `compareHref`), so the edge
+                        // between the two goes one way only.
+                        {
+                            from: { element: { type: "feature", captured: { name: "compare" } } },
+                            allow: { to: { element: { type: "feature", captured: { name: "runs" } } } },
+                        },
+                        {
+                            from: { element: { type: "feature", captured: { name: "compare" } } },
+                            allow: { to: { element: { type: "feature", captured: { name: "agents" } } } },
+                        },
                         // Example of an explicit edge — a feature's screen embedding another feature:
                         // {
                         //     from: { element: { type: "feature", captured: { name: "notes" } } },

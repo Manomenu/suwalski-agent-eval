@@ -58,7 +58,7 @@ The server has one interface, its HTTP API. Three users reach it:
 | Who | Through | Does |
 | --- | --- | --- |
 | a person in the browser | the web app | browses agents, scenarios, runs, results, comparisons |
-| an agent's repository, by hand or in CI | the `suwageval` CLI (`Suwageval.Cli`) | `validate` the scenario files, `push` the agent, its scenarios and checks, `run --tag … --wait` with an exit code for CI, `results <runId>` to open a run on the web, `versions` to list, archive and restore the agent's versions |
+| an agent's repository, by hand or in CI | the `suwageval` CLI (`Suwageval.Cli`) | `validate` the scenario files, `push` the agent, its scenarios and checks, `run --tag … --wait` with an exit code for CI, `results <runId>` to open a run on the web, `runs` to list the agent's newest runs, `compare <runId> <runId> …` to open the comparison of 2 to 5 runs of one agent on the web, `versions` to list, archive and restore the agent's versions |
 | Claude Code | the Claude Code plugin in this repo (`claude-plugin/`) that drives the same CLI, like suwgit's | "build a scenario for this agent from this conversation", "run the regression tag on the new version", "why did scenario X fail" — writing the scenario as a file in the agent's repo, then `validate` and `push` |
 
 - **Anything the web can do, the CLI — and so Claude Code through the plugin — can do too; not the
@@ -73,6 +73,11 @@ The server has one interface, its HTTP API. Three users reach it:
 - **The results are read on the web.** `suwageval run --wait` prints one line of totals and the
   link to the run's page, with its exit code; `suwageval results <runId>` opens that page in
   the browser. For machines, `--json` on either prints the results (and opens nothing).
+- **Runs are compared on the web.** On an agent's page, tick 2 to 5 runs (the model filter narrows
+  the list) and press Compare: the page shows each run's pass rate per scenario tag and, per
+  check, where the runs differ from the baseline (the oldest selected run, or the one you pick).
+  `suwageval compare <runId> <runId> …` opens the same page; `suwageval runs` lists the runs to
+  pick from. Claude compares through `results --json` of each run.
 - **A version is never written in a file: the running agent serves it.** `GET
   {endpointUrl}/suwageval/contract` returns its system prompt, model, tools (with argument
   schemas) and events (with data schemas), and a label. `suwageval run` makes the server read it,
@@ -114,7 +119,7 @@ Then ask in plain words, or use the commands:
 | --- | --- |
 | `/suwageval:scenario` | `/suwageval:scenario the agent refuses a refund after 14 days` |
 | `/suwageval:fix` | `/suwageval:fix` — validate, then repair the scenarios the agent's change broke |
-| `/suwageval:run` | `/suwageval:run tag regression` — push, run, and explain what failed |
+| `/suwageval:run` | `/suwageval:run tag regression` — push, run, and explain what failed; then offers comparing with the agent's previous run |
 | `/suwageval:versions` | `/suwageval:versions archive all but the last 3` — list versions, archive or restore them after you confirm |
 
 The plugin needs the CLI: without it, Claude gives you the lines to install it. To update the

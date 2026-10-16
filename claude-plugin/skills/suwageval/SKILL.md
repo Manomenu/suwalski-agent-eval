@@ -58,10 +58,12 @@ its `/api`. The address is `SUWAGEVAL_URL`, or `--server` on a command; the defa
 | run the scenarios and wait | `suwageval run --wait --json` (`--tag <tag>` for some scenarios only) |
 | open a run on the web | `suwageval results <runId>` |
 | a run's results as JSON | `suwageval results <runId> --json` |
+| list the agent's newest runs | `suwageval runs` (`--limit N`, `--json`) |
+| open the comparison of 2 to 5 runs of one agent | `suwageval compare <runId> <runId>...` (the first is the baseline; exit 2 for an unknown run or runs of different agents) |
 | list the agent's versions | `suwageval versions` (`--archived` to include archived ones, `--json`) |
 | archive or restore versions | `suwageval versions archive <versionId>...`, `suwageval versions unarchive <versionId>...` |
 
-A run's page is `{SUWAGEVAL_URL}/runs/{runId}`.
+A run's page is `{SUWAGEVAL_URL}/runs/{runId}`; the comparison of runs is `{SUWAGEVAL_URL}/compare?runs={id},{id},...`.
 
 ### Exit codes
 
@@ -99,6 +101,27 @@ asked for or confirmed: show the ids first. `/suwageval:versions` does this.
 `checks`; a check has `key`, `passed`, `passRate`, `passThreshold` and per-sample `message` and
 `evidence` — the message says why it failed. A judge check's message is the judge's reason; a sample with `notJudged: true` was not judged at all. A scenario sample with an `error` means the agent
 itself failed on that turn, which is not a check failing: say which.
+
+## Comparing runs
+
+To compare 2 to 5 runs of the same agent (for example the new run with the previous one): find
+the runs with `suwageval runs --json` (newest first), fetch `suwageval results <runId> --json`
+for each, and take the oldest as the baseline unless the user names another. Align checks by
+scenario `key` and check `key`; a check **passes** when `passed` is true (its `passRate`
+reached `passThreshold`). Report:
+
+- **per tag**: the share of passed checks over the scenarios with that tag, per run, and the
+  change against the baseline in percentage points (tags are the scenarios' `tags`, from
+  `GET {SUWAGEVAL_URL}/api/agents/{agent}/scenarios`; there is no CLI for them, so fetch that);
+- **regressions** (passed in the baseline, fails now, or the pass rate fell) and **improvements**
+  (the opposite), each with scenario key, check key and the pass rates;
+- checks present in some runs only: say so, they are not a regression;
+- the agent versions of the runs (`run.agentVersionId`) and their models, so a change is not
+  blamed on the wrong thing.
+
+Finish with the comparison's link, `{SUWAGEVAL_URL}/compare?runs={id},{id},...` (the same page
+`suwageval compare <runId> <runId>...` opens; that command opens a browser, so run it only if
+the user wants that).
 
 ## Rules
 

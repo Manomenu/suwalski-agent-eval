@@ -115,9 +115,7 @@ internal static class AgentEndpoints
         {
             return ProblemResults.NotFound("Version", versionId.ToString());
         }
-        var content =
-            JsonSerializer.Deserialize<AgentContract>(version.Content, ContractJson.Options)
-            ?? throw new InvalidOperationException($"Version {version.Id} has no content.");
+        var content = ReadContract(version);
         return Results.Ok(
             new AgentVersionDetail(
                 version.Id,
@@ -143,5 +141,9 @@ internal static class AgentEndpoints
         };
 
     private static AgentVersion ToVersion(AgentVersionRow row) =>
-        new(row.Id, row.AgentId, row.Label, row.ContentHash, row.CreatedAt, row.ArchivedAt);
+        new(row.Id, row.AgentId, row.Label, row.ContentHash, row.CreatedAt, row.ArchivedAt, ReadContract(row).Model.Name);
+
+    private static AgentContract ReadContract(AgentVersionRow row) =>
+        JsonSerializer.Deserialize<AgentContract>(row.Content, ContractJson.Options)
+        ?? throw new InvalidOperationException($"Version {row.Id} has no content.");
 }
