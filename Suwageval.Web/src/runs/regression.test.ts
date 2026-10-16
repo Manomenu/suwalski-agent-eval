@@ -11,6 +11,7 @@ import {
     knownFailuresText,
     regressionCompareHref,
     stateColor,
+    stateExplanation,
     stateLabel,
     statedChecks,
     summaryChips,
@@ -44,6 +45,12 @@ describe("labels and colours", () => {
         expect(stateColor("KnownFailure")).toBe("gray");
         expect(stateColor("Fixed")).toBe("green");
         expect(stateColor("Unstable")).toBe("yellow");
+    });
+    it("says what each state means, and which ones fail the CLI's exit code", () => {
+        const states: RegressionState[] = ["Passed", "Regression", "New", "AlreadyBroken", "KnownFailure", "Fixed", "Unstable"];
+        const failing = states.filter((state) => stateExplanation(state).includes("Fails the CLI's exit code"));
+        expect(failing).toEqual(["Regression", "New"]);
+        expect(stateExplanation("AlreadyBroken")).toContain("not caused by this run");
     });
 });
 

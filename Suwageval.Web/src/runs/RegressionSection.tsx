@@ -1,4 +1,4 @@
-import { Accordion, Anchor, Badge, Group, List, Paper, Stack, Text, Title } from "@mantine/core";
+import { Accordion, Anchor, Group, List, Paper, Stack, Text, Title } from "@mantine/core";
 
 import type { RunResults } from "./api";
 import {
@@ -8,7 +8,6 @@ import {
     historyText,
     knownFailuresText,
     compareLink,
-    stateColor,
     stateLabel,
     statedChecks,
     summaryChips,
@@ -16,6 +15,7 @@ import {
 } from "./regression";
 import { CheckHistory } from "./CheckHistory";
 import { runHref, shortId } from "./results";
+import { StateBadge } from "./StateBadge";
 
 /** What a check's state says about it: since when it fails, and what to compare with. */
 function CheckLine({ item, runId }: { item: StatedCheck; runId: string }) {
@@ -25,7 +25,7 @@ function CheckLine({ item, runId }: { item: StatedCheck; runId: string }) {
     return (
         <List.Item>
             <Group gap="xs">
-                <Badge color={stateColor(item.state)}>{stateLabel(item.state)}</Badge>
+                <StateBadge state={item.state}>{stateLabel(item.state)}</StateBadge>
                 <Text fw={600}>
                     {item.scenarioKey} / {item.check.key}
                 </Text>
@@ -61,9 +61,9 @@ export function RegressionSection({ results }: { results: RunResults }) {
                 </Text>
                 <Group gap="xs">
                     {summaryChips(summary).map((chip) => (
-                        <Badge key={chip.state} color={stateColor(chip.state)} variant="light">
+                        <StateBadge key={chip.state} state={chip.state} variant="light">
                             {chip.count} {chip.label.toLowerCase()}
-                        </Badge>
+                        </StateBadge>
                     ))}
                 </Group>
                 {groups.attention.length > 0 && (

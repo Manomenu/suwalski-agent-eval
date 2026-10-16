@@ -22,6 +22,26 @@ export function stateLabel(state: RegressionState): string {
     }
 }
 
+/** What the state means, for someone who meets it for the first time (the tooltip of its badge). */
+export function stateExplanation(state: RegressionState): string {
+    switch (state) {
+        case "Passed":
+            return "Passes now, steadily or with too little history to judge.";
+        case "Regression":
+            return "Fails now after passing in every one of the newest reference runs: most likely broken by what changed since. Fails the CLI's exit code.";
+        case "New":
+            return "Fails now, and the check has too little history to tell whether it ever passed (a new check or scenario, or a changed one starts its history again). Fails the CLI's exit code.";
+        case "AlreadyBroken":
+            return "Fails now, but it started failing in an earlier reference run after passing steadily: not caused by this run. See since when.";
+        case "KnownFailure":
+            return "Fails now and has failed in every one of the newest reference runs: a long-standing failure, not caused by this run.";
+        case "Fixed":
+            return "Passes now after failing in the reference runs before it.";
+        case "Unstable":
+            return "Its history mixes passes and failures with no steady pattern, so a failure may be noise. Does not fail the CLI's exit code.";
+    }
+}
+
 /** A Mantine theme colour of the state. */
 export function stateColor(state: RegressionState): string {
     switch (state) {
