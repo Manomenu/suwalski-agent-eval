@@ -363,7 +363,9 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         var response = await client.PostAsync(new Uri($"/runs/{created.RunId}/cancel", UriKind.Relative), null, Cancellation);
 
         Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
-        Assert.Equal(RunStatus.Cancelled, (await GetAsync<RunSummary>(client, $"/runs/{created.RunId}")).Status);
+        var run = await GetAsync<RunSummary>(client, $"/runs/{created.RunId}");
+        Assert.Equal(RunStatus.Cancelled, run.Status);
+        Assert.True(run.CancelRequested);
     }
 
     [Fact]

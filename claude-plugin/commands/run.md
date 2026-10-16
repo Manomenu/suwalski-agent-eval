@@ -18,6 +18,8 @@ $ARGUMENTS
    Otherwise run `suwageval run --wait --json`, with `--tag <name>` if the user named a tag. Exit code 0
    means every check passed, 1 some failed, 2 the run could not finish. 1 is a result, not an
    error; for 2 show `run.error` or the message and stop.
+   If the user asks to stop a run, cancel it with `suwageval cancel <id>` (find the id with
+   `suwageval runs --json`): only the run they named, never one on your own initiative.
 3. Summarise from the JSON: the agent version (`run.agentVersionId`), the totals
    (`checksPassed` / `checksFailed`), and for every failed check the scenario key, the check
    key and why (its samples' `message`). A scenario sample with an `error` is the agent

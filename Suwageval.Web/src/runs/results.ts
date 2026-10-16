@@ -19,6 +19,21 @@ export function isActive(status: Status): boolean {
     return status === "Queued" || status === "Running";
 }
 
+/** "Cancel run" is offered while the run is queued or running, and until a stop was asked for. */
+export function canCancel(run: Pick<RunSummary, "status" | "cancelRequested">): boolean {
+    return isActive(run.status) && run.cancelRequested !== true;
+}
+
+/** A stop was asked for, but the samples in flight are still finishing. */
+export function isCancelling(run: Pick<RunSummary, "status" | "cancelRequested">): boolean {
+    return run.status === "Running" && run.cancelRequested === true;
+}
+
+/** The status badge's text: "cancelling…" between the request and the end of the run. */
+export function runStatusLabel(run: Pick<RunSummary, "status" | "cancelRequested">): string {
+    return isCancelling(run) ? "cancelling…" : statusLabel(run.status);
+}
+
 export function statusLabel(status: Status): string {
     switch (status) {
         case "Queued":

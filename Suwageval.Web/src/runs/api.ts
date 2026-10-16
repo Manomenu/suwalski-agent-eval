@@ -18,6 +18,11 @@ export function fetchRunResults(runId: string, signal: AbortSignal): Promise<Run
     return request<RunResults>(`/runs/${runId}/results`, { signal });
 }
 
+/** Asks the server to stop the run: a queued one is cancelled at once, a running one when its samples in flight are done. */
+export function cancelRun(runId: string): Promise<void> {
+    return request<undefined>(`/runs/${runId}/cancel`, { method: "POST" }).then(() => undefined);
+}
+
 /** A new run with the agent, tag and endpoint of this one, against the version the agent serves now. */
 export function rerun(runId: string): Promise<RunCreated> {
     return request<RunCreated>(`/runs/${runId}/rerun`, { method: "POST" });

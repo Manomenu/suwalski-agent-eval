@@ -34,6 +34,12 @@ public sealed record RunSummary
     /// </summary>
     public bool ContractChangedDuringRun { get; init; }
 
+    /// <summary>
+    /// <c>true</c> once a stop was asked for. A run still <see cref="RunStatus.Running"/> with this set is finishing the samples in
+    /// flight; it becomes <see cref="RunStatus.Cancelled"/> when they are done.
+    /// </summary>
+    public bool CancelRequested { get; init; }
+
     public required DateTime CreatedAt { get; init; }
 
     public DateTime? StartedAt { get; init; }

@@ -17,7 +17,7 @@ internal sealed class RunStore(Pool pool)
                  WHERE s.run_id = r.id AND c.passed) AS ChecksPassed,
                (SELECT count(*)::int FROM check_results c JOIN scenario_results s ON s.id = c.scenario_result_id
                  WHERE s.run_id = r.id AND NOT c.passed) AS ChecksFailed,
-               r.contract_changed_during_run AS ContractChangedDuringRun,
+               r.contract_changed_during_run AS ContractChangedDuringRun, r.cancel_requested AS CancelRequested,
                r.created_at AS CreatedAt, r.started_at AS StartedAt, r.finished_at AS FinishedAt
         FROM runs r
         JOIN agents a ON a.id = r.agent_id
