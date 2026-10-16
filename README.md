@@ -96,8 +96,9 @@ multi-turn simulation, no web views yet.
    `validate`; the YAML files in the example agent.
 2. **Agents, Scenarios (with tags), Checks** — done: the slices that store them (HTTP endpoints
    in `*Endpoints.cs`), and `suwageval push`.
-3. **Invocation and Runs** — the agent under test over HTTP (contract v0, `TODO.md`), the
-   deterministic checks, and `suwageval run`. The MVP is reached here.
+3. **Invocation and Runs** — done: the agent under test over HTTP (contract v0, `TODO.md`), the
+   deterministic checks, and `suwageval run` (`--wait` exits 0 when every check passed its
+   threshold, 1 when one did not, 2 when the run could not finish). The MVP is reached here.
 4. **After the MVP** — the judge, multi-turn simulation, results and comparisons on the web,
    the Claude Code plugin over the CLI.
 

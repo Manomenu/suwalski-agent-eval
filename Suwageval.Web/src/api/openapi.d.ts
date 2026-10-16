@@ -544,6 +544,175 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    agent?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RunSummary"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["RunRequest"];
+                };
+            };
+            responses: {
+                /** @description Accepted */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RunCreated"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/runs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RunSummary"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/runs/{id}/results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RunResults"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/runs/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Accepted */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -625,6 +794,37 @@ export interface components {
              * @description The share of samples that must pass, from above 0 to 1.
              */
             passThreshold?: number | string;
+        };
+        /** @description One check over the samples of its scenario: the pass rate against the threshold. */
+        CheckRunResult: {
+            key: string;
+            /**
+             * Format: int32
+             * @description The revision of the check that ran.
+             */
+            revision: number | string;
+            /** @description True when double CheckRunResult.PassRate reaches double CheckRunResult.PassThreshold. */
+            passed: boolean;
+            /**
+             * Format: double
+             * @description The share of samples that passed, from 0 to 1.
+             */
+            passRate: number | string;
+            /** Format: double */
+            passThreshold: number | string;
+            samples: components["schemas"]["CheckSampleResult"][];
+        };
+        /** @description A check's verdict on one sample. */
+        CheckSampleResult: {
+            /**
+             * Format: int32
+             * @description From 1.
+             */
+            sample: number | string;
+            passed: boolean;
+            /** @description The items that decided the verdict; may be empty (a tool that was not called leaves nothing to show). */
+            evidence: components["schemas"]["ConversationItem"][];
+            message: string;
         };
         /** @description Narrows a check to a part of what the agent produced. */
         CheckWhere: {
@@ -719,6 +919,85 @@ export interface components {
             /** Format: double */
             score: number | string;
         };
+        RunCreated: {
+            /** Format: uuid */
+            runId: string;
+        };
+        /** @description Starts a run of an agent's scenarios. */
+        RunRequest: {
+            /** @description The agent's name or id. */
+            agent: string;
+            /**
+             * Format: uuid
+             * @description The version under test; none means the newest registered one.
+             */
+            agentVersionId?: null | string;
+            /** @description Only the scenarios with this tag; none means every scenario of the agent. */
+            tag?: null | string;
+            /** @description Where to reach the agent for this run; none means the endpoint the agent was registered with. */
+            endpointUrl?: null | string;
+        };
+        /** @description A run with what every scenario produced and how every check judged it. */
+        RunResults: {
+            run: components["schemas"]["RunSummary"];
+            scenarios: components["schemas"]["ScenarioRunResult"][];
+        };
+        /**
+         * @description Where a run stands. `Failed` is the run itself breaking down; a scenario the agent did not answer is a result,
+         *     not a failure.
+         * @enum {unknown}
+         */
+        RunStatus: "Queued" | "Running" | "Done" | "Failed" | "Cancelled";
+        /** @description A run and how far it is. A sample is one scenario run once; the checks are counted per sample. */
+        RunSummary: {
+            /** Format: uuid */
+            id: string;
+            agent: string;
+            /** Format: uuid */
+            agentVersionId: string;
+            tag?: null | string;
+            endpointUrl: string;
+            status: components["schemas"]["RunStatus"];
+            /** @description Why a RunStatus.Failed run failed. */
+            error?: null | string;
+            /**
+             * Format: int32
+             * @description How many samples the run will produce; zero until the run starts.
+             */
+            samplesTotal: number | string;
+            /** Format: int32 */
+            samplesDone: number | string;
+            /**
+             * Format: int32
+             * @description Check results over all samples so far.
+             */
+            checksPassed: number | string;
+            /** Format: int32 */
+            checksFailed: number | string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            startedAt?: null | string;
+            /** Format: date-time */
+            finishedAt?: null | string;
+        };
+        /** @description What the agent produced for one sample of a scenario. */
+        SampleResult: {
+            /**
+             * Format: int32
+             * @description From 1.
+             */
+            sample: number | string;
+            status: components["schemas"]["SampleStatus"];
+            /** @description The items the agent produced; none when the sample failed. */
+            output?: null | components["schemas"]["ConversationItem"][];
+            error?: null | string;
+        };
+        /**
+         * @description Whether the agent produced an answer for one sample of a scenario.
+         * @enum {unknown}
+         */
+        SampleStatus: "Done" | "Failed";
         /** @description A frozen moment of a conversation; the agent answers its last message. */
         ScenarioInput: {
             /** @description Lowercase kebab-case, unique within the agent. */
@@ -732,6 +1011,17 @@ export interface components {
              * @description How many times the conversation is repeated, for agents that do not answer the same way twice.
              */
             samples?: number | string;
+        };
+        /** @description One scenario in a run: its samples and, per check, how many of them passed. */
+        ScenarioRunResult: {
+            key: string;
+            /**
+             * Format: int32
+             * @description The revision of the scenario that ran.
+             */
+            revision: number | string;
+            samples: components["schemas"]["SampleResult"][];
+            checks: components["schemas"]["CheckRunResult"][];
         };
         /** @description Adds and removes tags on several scenarios at once; tags are metadata and make no new revision. */
         TagChangeRequest: {

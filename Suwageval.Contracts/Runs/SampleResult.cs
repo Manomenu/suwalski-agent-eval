@@ -1,0 +1,17 @@
+using Suwageval.Contracts.Conversations;
+
+namespace Suwageval.Contracts.Runs;
+
+/// <summary>What the agent produced for one sample of a scenario.</summary>
+public sealed record SampleResult
+{
+    /// <summary>From 1.</summary>
+    public required int Sample { get; init; }
+
+    public required SampleStatus Status { get; init; }
+
+    /// <summary>The items the agent produced; none when the sample failed.</summary>
+    public IReadOnlyList<ConversationItem>? Output { get; init; }
+
+    public string? Error { get; init; }
+}

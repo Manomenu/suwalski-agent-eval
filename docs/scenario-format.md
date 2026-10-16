@@ -95,6 +95,26 @@ Other types (a judge) come after the MVP; an unknown `type` is an error.
 | `after` | a tool name or event type: only what came after it counts |
 | `before` | a tool name or event type: only what came before it counts |
 
+How a check is evaluated (the server's `Checks/`, no model involved):
+
+- **A turn** is the items one `POST {endpointUrl}/suwageval/turn` returned, in the order the agent produced them; turns
+  are numbered from 1. For now a scenario has exactly one turn.
+- **`turn`** picks the turns whose items are looked at: a number, the last one, or all (`any`). A turn that was not produced
+  leaves nothing to look at.
+- **`after: X`** keeps the items that come after the *first* tool call named `X` or event of type `X` among the selected
+  turns; **`before: X`** keeps the items before the *last* one — "after / before at least one occurrence". The anchor itself
+  is never kept, and an anchor that does not occur leaves nothing. With both, what lies between. (So `tool-called refund_order
+  where: {after: get_order}` needs a `get_order` call first, and `tool-not-called` after an anchor that never happened
+  passes: nothing followed it.)
+- **`args` / `data`** match as a *subset*: an object has every given property (extras are fine, nested objects the same
+  way); an array has the same length and each element matches at its position; strings, booleans and `null` are equal;
+  numbers are equal by value (`1` is `1.0`).
+- **`tool-called` / `event`** pass when any call or event in scope matches. **`text`** reads the assistant messages in scope,
+  joined by a newline; `contains` and `notContains` are case-sensitive (use `(?i)` in `pattern` otherwise); every condition
+  given must hold. An invalid `pattern` fails the check with a message.
+- **The pass rate** of a check is the share of its scenario's samples that passed; the check passes the run when the rate
+  reaches `passThreshold`. A sample the agent did not answer (down, timeout, unreadable answer) counts as failed for every check.
+
 Not checked yet: that `arguments` and `data` match the JSON Schemas the agent declares.
 
 ## One complete example

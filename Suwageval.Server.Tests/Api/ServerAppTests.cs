@@ -2,14 +2,14 @@ using System.Net;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Suwageval.Server.Api;
+using Suwageval.Server.Tests.Runs;
 
 namespace Suwageval.Server.Tests.Api;
 
 public sealed class ServerAppTests(TestDatabase database) : IAsyncDisposable
 {
-    private readonly WebApplicationFactory<Program> app = new WebApplicationFactory<Program>().WithWebHostBuilder(host =>
-        host.UseSetting("ConnectionStrings:Default", TestDatabase.ConnectionString)
-    );
+    // Without the run worker: it would take the queued runs of the other tests (they share the database).
+    private readonly WebApplicationFactory<Program> app = RunTestApp.Create();
 
     private HttpClient Client()
     {
