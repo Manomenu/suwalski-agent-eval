@@ -2,18 +2,18 @@ import { Button, Text } from "@mantine/core";
 import { useMemo, useState } from "react";
 
 import { hangingIndent } from "../checks/definition";
-import { diffBlocks, diffRows, type DiffRow } from "./versionDiff";
+import { diffBlocks, diffRows, type DiffRow } from "./lineDiff";
 
 const MARKERS: Record<DiffRow["kind"], string> = { added: "+", removed: "−", unchanged: " " };
 
 function Row({ row }: { row: DiffRow }) {
     const hang = hangingIndent(row.text);
     return (
-        <div className={`version-diff-row version-diff-row-${row.kind}`}>
-            <span className="version-diff-number">{row.oldNumber}</span>
-            <span className="version-diff-number">{row.newNumber}</span>
+        <div className={`line-diff-row line-diff-row-${row.kind}`}>
+            <span className="line-diff-number">{row.oldNumber}</span>
+            <span className="line-diff-number">{row.newNumber}</span>
             <span aria-hidden>{MARKERS[row.kind]}</span>
-            <span className="version-diff-text" style={{ paddingLeft: `${String(hang)}ch`, textIndent: `-${String(hang)}ch` }}>
+            <span className="line-diff-text" style={{ paddingLeft: `${String(hang)}ch`, textIndent: `-${String(hang)}ch` }}>
                 {row.text}
             </span>
         </div>
@@ -21,13 +21,13 @@ function Row({ row }: { row: DiffRow }) {
 }
 
 /** The unified line diff of two texts: changes with their context, long unchanged runs folded until clicked. */
-export function VersionDiffView({ from, to }: { from: string; to: string }) {
+export function LineDiffView({ from, to }: { from: string; to: string }) {
     const blocks = useMemo(() => diffBlocks(diffRows(from, to)), [from, to]);
     const [expanded, setExpanded] = useState<ReadonlySet<number>>(new Set());
 
     if (blocks.length === 0) return <Text c="dimmed">The contents are identical.</Text>;
     return (
-        <div className="version-diff">
+        <div className="line-diff">
             {blocks.map((block, index) =>
                 block.kind === "folded" && !expanded.has(index) ? (
                     <Button

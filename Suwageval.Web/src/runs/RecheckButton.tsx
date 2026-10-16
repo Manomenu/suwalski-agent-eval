@@ -2,8 +2,8 @@ import { Accordion, Alert, Button, Group, List, Loader, Modal, Stack, Text, Tool
 import { useEffect, useState } from "react";
 
 import { definitionYaml, judgedByModel } from "../checks/definition";
-import { HighlightedYaml } from "../checks/HighlightedYaml";
 import { ModelJudgedIcon } from "../checks/ModelJudgedIcon";
+import { LineDiffView } from "../diff/LineDiffView";
 import { fetchRecheckPlan, recheck, type ChangedCheck, type RecheckPlan, type RunSummary } from "./api";
 import { CHANGE_LABELS, changesByScenario, judgedNote, planHeadline, recheckDisabledReason, recheckTooltip } from "./recheck";
 
@@ -189,29 +189,18 @@ function ChangedCheckRow({ check }: { check: ChangedCheck }) {
                 </Text>
                 {judgedNow && <ModelJudgedIcon />}
             </Group>
-            {check.change === "Changed" && check.before != null && check.after != null && (
-                <Accordion variant="contained">
-                    <Accordion.Item value="change">
-                        <Accordion.Control aria-label={`Show change of ${check.checkKey}`}>Show change</Accordion.Control>
-                        <Accordion.Panel>
-                            <Group align="flex-start" grow wrap="nowrap">
-                                <Stack gap={4}>
-                                    <Text size="sm" c="dimmed">
-                                        In the run
-                                    </Text>
-                                    <HighlightedYaml yaml={definitionYaml(check.before)} />
-                                </Stack>
-                                <Stack gap={4}>
-                                    <Text size="sm" c="dimmed">
-                                        Now
-                                    </Text>
-                                    <HighlightedYaml yaml={definitionYaml(check.after)} />
-                                </Stack>
-                            </Group>
-                        </Accordion.Panel>
-                    </Accordion.Item>
-                </Accordion>
-            )}
+            <Accordion variant="contained">
+                <Accordion.Item value="change">
+                    <Accordion.Control aria-label={`Show change of ${check.checkKey}`}>Show change</Accordion.Control>
+                    <Accordion.Panel>
+                        {/* The check as the run used it against the check now: an added one is all new lines, a removed one all gone. */}
+                        <LineDiffView
+                            from={check.before == null ? "" : definitionYaml(check.before)}
+                            to={check.after == null ? "" : definitionYaml(check.after)}
+                        />
+                    </Accordion.Panel>
+                </Accordion.Item>
+            </Accordion>
         </Stack>
     );
 }

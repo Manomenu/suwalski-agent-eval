@@ -69,8 +69,8 @@ test("two ticked versions open a comparison with a summary and a line diff", asy
         await expect(page.getByText("Agent main: model model-a → model-b", { exact: true })).toBeVisible();
         await expect(page.getByText("Agent main: config changed (+1 −1 lines)", { exact: true })).toBeVisible();
 
-        await expect(page.locator(".version-diff-row-removed").getByText("Be brief.", { exact: true })).toBeVisible();
-        await expect(page.locator(".version-diff-row-added").getByText("Be kind.", { exact: true })).toBeVisible();
+        await expect(page.locator(".line-diff-row-removed").getByText("Be brief.", { exact: true })).toBeVisible();
+        await expect(page.locator(".line-diff-row-added").getByText("Be kind.", { exact: true })).toBeVisible();
 
         // The long unchanged tail is folded; opening it shows the lines.
         await expect(page.getByText("description: Finds an order.", { exact: true })).toHaveCount(0);
