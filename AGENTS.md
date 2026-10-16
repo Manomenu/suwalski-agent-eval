@@ -90,6 +90,8 @@ app keeps its tests beside its code, so those folders would only split the .NET 
 | `scripts/.internal/` | everything the gate, CI and `just` run (section 10) |
 | `.github/workflows/ci.yml` | CI: the gate, the browser tests, then the images |
 | `docs/claude-artifacts/README.md` | links to the design documents kept as Claude artifacts, each with what it holds in a sentence or two. A new artifact about this project gets its row in the same change |
+| `.githooks/` | the git hooks `just sync` enables: `pre-commit` runs gitleaks on what is being committed |
+| `.vscode/` | the editor's settings: recommended extensions, file nesting, formatters, the launch configurations |
 | `.artifacts/` | everything generated (e2e reports, renders); outside git and the images |
 | `.editorconfig`, `.csharpierrc.json`, `.config/dotnet-tools.json`, `.gitattributes` | the shared standards: UTF-8 and LF everywhere, the C# analyzer settings, the C# formatter and its pinned version, binaries never diffed as text, lockfiles and `openapi.d.ts` marked generated. A new binary or generated file type gets its line in `.gitattributes` |
 
@@ -252,6 +254,21 @@ not by reviewers; a dependency against it fails with the types involved.
 | Feature uses feature | only downwards, by its position in the layer list | only through an explicit policy in `eslint.config.js`, with a comment saying why |
 
 `ContractsTests.cs` and `eslint.config.js` each carry a commented example of adding a feature.
+
+**Keep the contracts complete — actively, in every change.** The rules only protect what they
+cover, so a change that adds structure adds its place in the rules in the same change:
+
+- **A new namespace or folder inside a C# project** gets its layer in that project's
+  `ContractsTests.cs` — the test `Every_…_namespace_has_a_layer` fails the gate otherwise.
+- **A new C# project** gets its row in the project-reference rules
+  (`ProjectReferencesTests.cs` fails for a project it does not know) and, as soon as it has
+  more than one namespace, a `ContractsTests.cs` of its own with the same completeness test.
+- **A new top-level folder of the repository** gets its row in section 1 — the gate fails
+  otherwise (`RepositoryLayoutTests`).
+- **A new web feature** is a folder under `src/` that the boundaries rule already covers; an
+  edge between features is an explicit policy in `eslint.config.js`.
+- Never satisfy a rule by loosening it: an edge against the order means the code is in the
+  wrong place.
 The check reads compiled code: a `const` or a `nameof` leaves no trace there, a type used in
 a signature, a field or a call does.
 
