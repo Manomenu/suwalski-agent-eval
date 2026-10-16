@@ -20,17 +20,19 @@ internal static class RerunCommand
         };
         var wait = CommandOptions.Wait("run");
         var json = CommandOptions.Json("Print JSON: the results with --wait, otherwise { runId }.");
+        var strict = CommandOptions.Strict();
         var server = CommandOptions.Server();
 
         var command = new Command(
             "rerun",
-            "Run again with the agent, tag and endpoint of an earlier run, against the version the agent serves now. With --wait: exit 0 when all checks pass, 1 when a check fails, 2 when the run cannot finish."
+            "Run again with the agent, tag and endpoint of an earlier run, against the version the agent serves now. With --wait: exit 0 unless a check regressed or is new and failing (--strict: unless any check fails), 2 when the run cannot finish."
         )
         {
             runId,
             endpoint,
             wait,
             json,
+            strict,
             server,
         };
         command.SetAction(
@@ -55,6 +57,7 @@ internal static class RerunCommand
                                     created,
                                     parsed.GetValue(wait),
                                     parsed.GetValue(json),
+                                    parsed.GetValue(strict),
                                     site,
                                     parsed.InvocationConfiguration.Output,
                                     error,

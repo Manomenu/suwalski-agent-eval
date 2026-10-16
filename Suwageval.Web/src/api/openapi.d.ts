@@ -943,6 +943,7 @@ export interface components {
             name: string;
             /** @description Where suwageval reaches the agent under test (`POST {endpointUrl}/suwageval/turn`). */
             endpointUrl: string;
+            regression?: null | components["schemas"]["RegressionSettings"];
         };
         /** @description An agent with what is stored for it: counts of active (not archived) versions, live scenarios and live checks. */
         AgentDetail: {
@@ -1129,6 +1130,22 @@ export interface components {
              */
             passThreshold?: number;
         };
+        /** @description A check's verdict in a run against its history. */
+        CheckRegression: {
+            state: components["schemas"]["RegressionState"];
+            /**
+             * Format: uuid
+             * @description For RegressionState.AlreadyBroken: the first reference run of the failures in a row.
+             */
+            failingSince?: null | string;
+            /**
+             * Format: uuid
+             * @description The newest run of the history in which the check passed, to compare with; none when it never passed there.
+             */
+            lastPassedRun?: null | string;
+            /** @description True when the scenario's samples in this run have an agent error instead of an answer: the agent failed, not the check. */
+            agentFailed?: boolean;
+        };
         /** @description One check over the samples of its scenario: the pass rate against the threshold. */
         CheckRunResult: {
             key: string;
@@ -1156,6 +1173,7 @@ export interface components {
             /** Format: double */
             passThreshold: number;
             samples: components["schemas"]["CheckSampleResult"][];
+            regression?: null | components["schemas"]["CheckRegression"];
         };
         /** @description A check's verdict on one sample. */
         CheckSampleResult: {
@@ -1301,6 +1319,49 @@ export interface components {
             /** @description What does not fit between the current checks and the version the run was under test; empty when it all fits. */
             mismatches: string[];
         };
+        /**
+         * @description How an agent's regressions are found (`regression:` in `agent.yaml`), both parts optional. A check's history is its verdicts
+         *     over the newest reference runs: runs from one of IReadOnlyList&lt;string&gt;? RegressionSettings.Branches, with a clean tree and a pushed commit. Nobody marks a
+         *     baseline; the history is the baseline.
+         */
+        RegressionSettings: {
+            /** @description The branches whose runs make the history, the main one first; none means the repository's default branch (from git). */
+            branches?: null | string[];
+            /**
+             * Format: int32
+             * @description How many of the newest reference runs make a check's history (int RegressionSettings.DefaultHistory when not set): a check is steadily
+             *     passing after that many passing runs, and a failure becomes a known one after that many failing runs in a row.
+             */
+            history?: null | number;
+        };
+        /**
+         * @description What a check's verdict in a run means against the check's history (the newest reference runs before it, in the same revisions of
+         *     the check and its scenario).
+         * @enum {unknown}
+         */
+        RegressionState: "Passed" | "Regression" | "New" | "AlreadyBroken" | "KnownFailure" | "Fixed" | "Unstable";
+        /** @description How a run's checks stand against their history: what the run is compared with and how many checks are in each state. */
+        RegressionSummary: {
+            /** @description The branch whose reference runs make the history; none means every run of the agent (the run has no git origin). */
+            comparedWith?: null | string;
+            /**
+             * Format: int32
+             * @description How many reference runs make a check's history.
+             */
+            history: number;
+            /** Format: int32 */
+            regressions: number;
+            /** Format: int32 */
+            new: number;
+            /** Format: int32 */
+            alreadyBroken: number;
+            /** Format: int32 */
+            knownFailures: number;
+            /** Format: int32 */
+            fixed: number;
+            /** Format: int32 */
+            unstable: number;
+        };
         /** @description The optional body of a rerun: everything else (agent, tag) is taken from the run being repeated. */
         RerunRequest: {
             /** @description Where to reach the agent for the new run; none means the endpoint the repeated run used. */
@@ -1341,6 +1402,25 @@ export interface components {
              * @description The run id to pass as `before` to get the next page; null when there are no older runs.
              */
             next?: null | string;
+        };
+        /**
+         * @description Where the agent's repository stood when a run was started: the facts the CLI reads from git (or from the CI's environment). The
+         *     server decides from them whether the run is a reference run and which branch's history it is compared with.
+         */
+        RunOrigin: {
+            /** @description The checked-out branch; none on a detached HEAD the CI did not name. */
+            branch?: null | string;
+            commit?: null | string;
+            /** @description True when the tree has no uncommitted changes. */
+            clean: boolean;
+            /** @description True when the commit is on the remote branch, not only in a local one. */
+            pushed: boolean;
+            /** @description The repository's default branch (`origin/HEAD`, or the CI's), used when the agent names no branches. */
+            defaultBranch?: null | string;
+            /** @description The branch a pull or merge request targets, when the run comes from one in CI. */
+            targetBranch?: null | string;
+            /** @description The branch to compare with, given by hand (`--ref`); it wins over everything the run would pick itself. */
+            compareWith?: null | string;
         };
         /**
          * @description The pass rate of one finished run, over all its checks and per scenario tag: a point of the agent's trend. A check counts once
@@ -1391,6 +1471,7 @@ export interface components {
             tag?: null | string;
             /** @description Where to reach the agent for this run, and to read its contract from; none means the endpoint the agent was registered with. */
             endpointUrl?: null | string;
+            origin?: null | components["schemas"]["RunOrigin"];
         };
         /** @description A run with what every scenario produced and how every check judged it. */
         RunResults: {
@@ -1406,6 +1487,7 @@ export interface components {
              * @description The 95th percentile (nearest rank) of the same turn times, in milliseconds; null when none did.
              */
             p95Ms?: null | number;
+            regression?: null | components["schemas"]["RegressionSummary"];
         };
         /**
          * @description Where a run stands. `Failed` is the run itself breaking down; a scenario the agent did not answer is a result,
@@ -1464,6 +1546,11 @@ export interface components {
             recheckOf?: null | string;
             /** @description The scenarios of the source a re-check left out, with the reason; empty for a run that called the agent. */
             skippedScenarios?: components["schemas"]["SkippedScenario"][];
+            origin?: null | components["schemas"]["RunOrigin"];
+            /** @description True when the run makes the history of its branch (a branch of the agent's regression settings, a clean tree, a pushed commit). */
+            reference?: boolean;
+            /** @description The branch whose history the run is compared with; none means every run of the agent (a run without git). */
+            comparedWith?: null | string;
         };
         /** @description What the agent produced for one sample of a scenario. */
         SampleResult: {

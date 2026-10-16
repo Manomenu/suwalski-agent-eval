@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using Suwageval.Cli.Tests.Run;
 using Suwageval.Contracts;
 using Suwageval.Contracts.Runs;
 
@@ -108,6 +109,23 @@ public sealed class RecheckCommandTests
         using var error = new StringWriter();
         var exit = CliApp.Run(["recheck", SourceId.ToString(), .. args], new StringReader(""), output, error, http);
         return (exit, output.ToString(), error.ToString(), server);
+    }
+
+    [Theory]
+    [InlineData(false, 0)]
+    [InlineData(true, 1)]
+    public void Only_strict_fails_on_a_known_failure(bool strict, int expected)
+    {
+        var plan = Server(Possible);
+        var (exit, _, _, _) = Run(
+            request =>
+                request.Method == HttpMethod.Get && request.RequestUri?.AbsolutePath == $"/runs/{NewId}/results"
+                    ? Json(KnownFailureResults.Create(Summary()))
+                    : plan(request),
+            strict ? ["--wait", "--strict"] : ["--wait"]
+        );
+
+        Assert.Equal(expected, exit);
     }
 
     [Fact]

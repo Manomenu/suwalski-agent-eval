@@ -38,7 +38,7 @@ internal static class ResultsCommand
                             await client.WaitForEndAsync(id, cancellationToken);
                             var results = await client.ResultsAsync(id, cancellationToken);
                             await output.WriteLineAsync(OutputJson.Of(results));
-                            return RunVerdict.ExitCode(results);
+                            return RunVerdict.ExitCode(results, strict: true);
                         }
                         await client.GetAsync(id, cancellationToken);
                         await WebPage.ShowAsync(ServerAddress.RunPage(site, id), output, parsed.InvocationConfiguration.Error, openBrowser);

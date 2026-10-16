@@ -13,6 +13,13 @@ internal static class CommandOptions
     public static Option<string> Dir() =>
         new("--dir") { Description = "The folder with agent.yaml.", DefaultValueFactory = _ => AgentFolder.DefaultDir };
 
+    public static Option<bool> Strict() =>
+        new("--strict")
+        {
+            Description =
+                "Exit 1 when any check fails its threshold, not only on a regression or a new failing check (known, already broken and unstable failures count).",
+        };
+
     public static Option<bool> Json(string description) => new("--json") { Description = description };
 
     /// <param name="what">What is waited for: "run" or "re-check".</param>

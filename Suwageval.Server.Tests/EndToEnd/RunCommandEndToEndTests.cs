@@ -90,7 +90,7 @@ public sealed class RunCommandEndToEndTests(TestDatabase database) : IAsyncDispo
         var (exit, output, error) = await RunCliAsync(agent, "--tag", "regression", "--wait");
 
         Assert.Equal(0, exit);
-        Assert.Contains("2 of 2 checks passed.", output, StringComparison.Ordinal);
+        Assert.Contains("2 checks: 2 passed, 0 failed", output, StringComparison.Ordinal);
         Assert.Contains("/runs/", output, StringComparison.Ordinal);
         Assert.Empty(error);
     }
@@ -209,7 +209,7 @@ public sealed class RunCommandEndToEndTests(TestDatabase database) : IAsyncDispo
 
         Assert.Equal(0, exit);
         Assert.Contains(": existing", output, StringComparison.Ordinal);
-        Assert.Contains("2 of 2 checks passed.", output, StringComparison.Ordinal);
+        Assert.Contains("2 checks: 2 passed, 0 failed", output, StringComparison.Ordinal);
         Assert.Empty(error);
     }
 

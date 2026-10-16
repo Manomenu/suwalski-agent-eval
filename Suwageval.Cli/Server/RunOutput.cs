@@ -13,6 +13,7 @@ internal static class RunOutput
 
     /// <summary>
     /// Prints the version and, without <paramref name="wait"/>, the run's id; with it, waits for the end and prints the totals.
+    /// <paramref name="strict"/> gives the old exit code (1 for any failed check) instead of failing only on regressions and new failures.
     /// <paramref name="cancellationToken"/> is cancelled by Ctrl+C: while waiting, that stops the waiting and asks on
     /// <paramref name="terminal"/> whether to cancel the run too.
     /// </summary>
@@ -21,6 +22,7 @@ internal static class RunOutput
         RunCreated created,
         bool wait,
         bool json,
+        bool strict,
         Uri site,
         TextWriter output,
         TextWriter error,
@@ -55,10 +57,14 @@ internal static class RunOutput
         }
         else
         {
-            await output.WriteLineAsync(RunVerdict.Line(results));
+            await output.WriteLineAsync(
+                results.Run.Status == RunStatus.Done && results.Regression is not null
+                    ? RegressionText.Describe(results)
+                    : RunVerdict.Line(results)
+            );
             await output.WriteLineAsync(ServerAddress.RunPage(site, created.RunId).ToString());
         }
-        return RunVerdict.ExitCode(results);
+        return RunVerdict.ExitCode(results, strict);
     }
 
     /// <summary>

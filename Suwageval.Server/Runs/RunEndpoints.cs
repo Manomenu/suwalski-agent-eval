@@ -129,8 +129,24 @@ internal static class RunEndpoints
     /// and checks — the mismatches are listed and nothing is queued; 409 also when a judge check or a <c>$judge</c> argument matcher is
     /// picked and no judge model is configured.
     /// </summary>
-    private static async Task<IResult> CreateAsync(
+    private static Task<IResult> CreateAsync(
         RunRequest request,
+        AgentStore agents,
+        ScenarioStore scenarios,
+        CheckStore checks,
+        RunStore runs,
+        AgentClient client,
+        Judge judge,
+        CancellationToken cancellationToken
+    ) => StartAsync(request, null, agents, scenarios, checks, runs, client, judge, cancellationToken);
+
+    /// <summary>
+    /// <see cref="CreateAsync"/> with the placement of the run (origin, reference, compared branch) given by the caller — a rerun's is its
+    /// source's; none decides it from the request's origin and the agent's regression settings.
+    /// </summary>
+    private static async Task<IResult> StartAsync(
+        RunRequest request,
+        RunPlacement? inherited,
         AgentStore agents,
         ScenarioStore scenarios,
         CheckStore checks,
@@ -219,7 +235,15 @@ internal static class RunEndpoints
             );
         }
 
-        var id = await runs.EnqueueAsync(agent.Id, version.Id, request.Tag, endpoint, cancellationToken: cancellationToken);
+        var placement = inherited ?? RunPlacement.Decide(request.Origin, agent.Regression);
+        var id = await runs.EnqueueAsync(
+            agent.Id,
+            version.Id,
+            request.Tag,
+            endpoint,
+            placement: placement,
+            cancellationToken: cancellationToken
+        );
         return Results.Accepted(
             $"/runs/{id}",
             new RunCreated
@@ -253,13 +277,14 @@ internal static class RunEndpoints
         {
             return ProblemResults.NotFound("Run", id.ToString());
         }
-        return await CreateAsync(
+        return await StartAsync(
             new RunRequest
             {
                 Agent = original.AgentId.ToString(),
                 Tag = original.Tag,
                 EndpointUrl = request?.EndpointUrl ?? original.EndpointUrl,
             },
+            original.Placement,
             agents,
             scenarios,
             checks,
@@ -322,6 +347,7 @@ internal static class RunEndpoints
             source.EndpointUrl,
             source.Id,
             planned.Shown.Id,
+            source.Placement,
             cancellationToken
         );
         return Results.Accepted(
@@ -414,8 +440,11 @@ internal static class RunEndpoints
         return run is null ? ProblemResults.NotFound("Run", id.ToString()) : Results.Ok(RunReport.Summary(run));
     }
 
-    /// <summary>The results so far — a run that is still going has some, a queued one none.</summary>
-    private static async Task<IResult> ResultsAsync(Guid id, RunStore runs, CancellationToken cancellationToken)
+    /// <summary>
+    /// The results so far — a run that is still going has some, a queued one none. Once the run is done every check also carries its
+    /// <see cref="CheckRunResult.Regression"/> state against its history, and the results the summary of them.
+    /// </summary>
+    private static async Task<IResult> ResultsAsync(Guid id, RunStore runs, AgentStore agents, CancellationToken cancellationToken)
     {
         var run = await runs.GetAsync(id, cancellationToken);
         if (run is null)
@@ -424,7 +453,21 @@ internal static class RunEndpoints
         }
         var samples = await runs.ListScenarioResultsAsync(id, cancellationToken);
         var verdicts = await runs.ListCheckResultsAsync(id, cancellationToken);
-        return Results.Ok(RunReport.Results(run, samples, verdicts));
+        var results = RunReport.Results(run, samples, verdicts);
+        if (run.State != RunStatus.Done)
+        {
+            return Results.Ok(results);
+        }
+        var n = RegressionReport.HistoryOf((await agents.GetAsync(run.AgentId.ToString(), cancellationToken))?.Regression);
+        // A re-check stands where the run it was made from stood: the history is what came before that run.
+        var history = await runs.ListCheckHistoriesAsync(
+            id,
+            run.RecheckOf ?? id,
+            run.ComparedWith,
+            RegressionReport.RowsNeeded(n),
+            cancellationToken
+        );
+        return Results.Ok(RegressionReport.Apply(results, samples, verdicts, history, n));
     }
 
     /// <summary>202 for any known run: a queued one is cancelled at once, a running one before its next sample, a finished one stays.</summary>

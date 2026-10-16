@@ -19,7 +19,8 @@ internal sealed class RunStore(Pool pool)
                  WHERE s.run_id = r.id AND NOT c.passed) AS ChecksFailed,
                r.contract_changed_during_run AS ContractChangedDuringRun, r.cancel_requested AS CancelRequested,
                r.created_at AS CreatedAt, r.started_at AS StartedAt, r.finished_at AS FinishedAt,
-               r.recheck_of AS RecheckOf, r.skipped_scenarios::text AS SkippedScenarios, r.verdicts_from AS VerdictsFrom
+               r.recheck_of AS RecheckOf, r.skipped_scenarios::text AS SkippedScenarios, r.verdicts_from AS VerdictsFrom,
+               r.origin::text AS Origin, r.reference AS Reference, r.compared_with AS ComparedWith
         FROM runs r
         JOIN agents a ON a.id = r.agent_id
         """;
@@ -32,6 +33,7 @@ internal sealed class RunStore(Pool pool)
         string endpointUrl,
         Guid? recheckOf = null,
         Guid? verdictsFrom = null,
+        RunPlacement? placement = null,
         CancellationToken cancellationToken = default
     )
     {
@@ -39,8 +41,8 @@ internal sealed class RunStore(Pool pool)
         return await connection.QuerySingleAsync<Guid>(
             new CommandDefinition(
                 """
-                INSERT INTO runs (agent_id, agent_version_id, tag, endpoint_url, recheck_of, verdicts_from)
-                VALUES (@agentId, @agentVersionId, @tag, @endpointUrl, @recheckOf, @verdictsFrom)
+                INSERT INTO runs (agent_id, agent_version_id, tag, endpoint_url, recheck_of, verdicts_from, origin, reference, compared_with)
+                VALUES (@agentId, @agentVersionId, @tag, @endpointUrl, @recheckOf, @verdictsFrom, @origin::jsonb, @reference, @comparedWith)
                 RETURNING id
                 """,
                 new
@@ -51,6 +53,9 @@ internal sealed class RunStore(Pool pool)
                     endpointUrl,
                     recheckOf,
                     verdictsFrom,
+                    origin = placement?.Origin is { } origin ? JsonSerializer.Serialize(origin, ContractJson.Options) : null,
+                    reference = placement?.Reference ?? false,
+                    comparedWith = placement?.ComparedWith,
                 },
                 cancellationToken: cancellationToken
             )
@@ -305,6 +310,77 @@ internal sealed class RunStore(Pool pool)
                 ORDER BY s.key, sr.sample
                 """,
                 new { runId },
+                cancellationToken: cancellationToken
+            )
+        );
+        return [.. rows];
+    }
+
+    /// <summary>
+    /// The history of every check of run <paramref name="runId"/>, in one query: per check (and scenario) the newest <paramref name="limit"/>
+    /// runs it has a verdict in, oldest first, each with its samples, the passed ones and the threshold of the check revision that ran.
+    /// The runs are those that called the agent (never a re-check), finished and created before <paramref name="anchorRunId"/> (the run
+    /// that called the agent, when <paramref name="runId"/> is a re-check of it), of the same agent; when <paramref name="comparedWith"/> is
+    /// set only reference runs of that branch, otherwise every such run. A run's newest finished re-check supplies the verdicts that
+    /// count (<see cref="EffectiveRuns"/>). Only verdicts of the same check revision in the same scenario revision as the run's own count.
+    /// </summary>
+    public async Task<IReadOnlyList<RegressionHistoryRow>> ListCheckHistoriesAsync(
+        Guid runId,
+        Guid anchorRunId,
+        string? comparedWith,
+        int limit,
+        CancellationToken cancellationToken = default
+    )
+    {
+        await using var connection = await pool.OpenAsync(cancellationToken);
+        var rows = await connection.QueryAsync<RegressionHistoryRow>(
+            new CommandDefinition(
+                """
+                WITH anchor AS (SELECT agent_id, created_at FROM runs WHERE id = @anchorRunId),
+                mine AS (
+                    SELECT DISTINCT sr.scenario_id, sr.scenario_revision, cr.check_id, cr.check_revision
+                    FROM scenario_results sr
+                    JOIN check_results cr ON cr.scenario_result_id = sr.id
+                    WHERE sr.run_id = @runId
+                ),
+                candidates AS (
+                    SELECT c.id, c.created_at,
+                           COALESCE((SELECT x.id FROM runs x WHERE x.recheck_of = c.id AND x.status = 'Done'
+                                     ORDER BY x.created_at DESC, x.id LIMIT 1), c.id) AS shown_id
+                    FROM runs c
+                    JOIN anchor a ON c.agent_id = a.agent_id AND c.created_at < a.created_at
+                    WHERE c.status = 'Done' AND c.recheck_of IS NULL
+                      AND (@comparedWith::text IS NULL OR (c.reference AND c.origin ->> 'branch' = @comparedWith))
+                ),
+                per_run AS (
+                    SELECT c.id AS run_id, c.created_at, sr.scenario_id, cr.check_id,
+                           count(*)::int AS samples, (count(*) FILTER (WHERE cr.passed))::int AS samples_passed,
+                           COALESCE((rev.content ->> 'passThreshold')::float8, 1.0) AS pass_threshold
+                    FROM candidates c
+                    JOIN scenario_results sr ON sr.run_id = c.shown_id
+                    JOIN check_results cr ON cr.scenario_result_id = sr.id
+                    JOIN check_revisions rev ON rev.check_id = cr.check_id AND rev.revision = cr.check_revision
+                    JOIN mine m ON m.scenario_id = sr.scenario_id AND m.scenario_revision = sr.scenario_revision
+                               AND m.check_id = cr.check_id AND m.check_revision = cr.check_revision
+                    GROUP BY c.id, c.created_at, sr.scenario_id, cr.check_id, rev.content ->> 'passThreshold'
+                ),
+                ranked AS (
+                    SELECT p.*, row_number() OVER (PARTITION BY p.scenario_id, p.check_id ORDER BY p.created_at DESC, p.run_id) AS rn
+                    FROM per_run p
+                )
+                SELECT scenario_id AS ScenarioId, check_id AS CheckId, run_id AS RunId, samples AS Samples,
+                       samples_passed AS SamplesPassed, pass_threshold AS PassThreshold
+                FROM ranked
+                WHERE rn <= @limit
+                ORDER BY scenario_id, check_id, created_at, run_id
+                """,
+                new
+                {
+                    runId,
+                    anchorRunId,
+                    comparedWith,
+                    limit,
+                },
                 cancellationToken: cancellationToken
             )
         );

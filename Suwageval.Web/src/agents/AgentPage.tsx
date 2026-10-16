@@ -227,6 +227,11 @@ function AgentView({
                                                 <Table.Td>
                                                     <Group gap={4}>
                                                         <Badge color={statusColor(run.status)}>{statusLabel(run.status)}</Badge>
+                                                        {run.reference === true && (
+                                                            <Badge variant="outline" color="teal">
+                                                                Reference
+                                                            </Badge>
+                                                        )}
                                                         {run.recheckOf != null && (
                                                             <Badge variant="outline" color="gray">
                                                                 Re-check

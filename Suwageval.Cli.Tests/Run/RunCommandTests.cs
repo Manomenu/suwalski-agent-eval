@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using Suwageval.Cli.Files;
 using Suwageval.Contracts;
 using Suwageval.Contracts.Checks;
 using Suwageval.Contracts.Runs;
@@ -130,7 +131,16 @@ public sealed class RunCommandTests
             _ => new HttpResponseMessage(HttpStatusCode.NotFound),
         };
 
+    /// <summary>A reader with no repository and no CI: the run has no origin (the sample folder sits in this repository, whose state is not the test's business).</summary>
+    private static readonly RunOriginReader NoRepository = new((_, _) => null, _ => null);
+
     private static (int Exit, string Output, string Error, FakeServer Server) Run(
+        Func<HttpRequestMessage, string?, HttpResponseMessage> answer,
+        params string[] args
+    ) => RunWith(NoRepository, answer, args);
+
+    private static (int Exit, string Output, string Error, FakeServer Server) RunWith(
+        RunOriginReader origins,
         Func<HttpRequestMessage, string?, HttpResponseMessage> answer,
         params string[] args
     )
@@ -139,8 +149,225 @@ public sealed class RunCommandTests
         using var http = new HttpClient(server, disposeHandler: false) { BaseAddress = new Uri("http://server.test/") };
         using var output = new StringWriter();
         using var error = new StringWriter();
-        var exit = CliApp.Run(["run", "--dir", Sample, .. args], new StringReader(""), output, error, http);
+        var exit = CliApp.Run(["run", "--dir", Sample, .. args], new StringReader(""), output, error, http, origins: origins);
         return (exit, output.ToString(), error.ToString(), server);
+    }
+
+    private static CheckRunResult WithState(
+        CheckRunResult check,
+        RegressionState state,
+        Guid? failingSince = null,
+        bool agentFailed = false
+    ) =>
+        check with
+        {
+            Regression = new CheckRegression
+            {
+                State = state,
+                FailingSince = failingSince,
+                AgentFailed = agentFailed,
+            },
+        };
+
+    private static RunResults WithSummary(
+        RunResults results,
+        string? comparedWith,
+        int regressions = 0,
+        int @new = 0,
+        int alreadyBroken = 0
+    ) =>
+        results with
+        {
+            Regression = new RegressionSummary
+            {
+                ComparedWith = comparedWith,
+                History = 5,
+                Regressions = regressions,
+                New = @new,
+                AlreadyBroken = alreadyBroken,
+                KnownFailures = 0,
+                Fixed = 0,
+                Unstable = 0,
+            },
+        };
+
+    private static RunOriginReader Repository(string branch, bool clean = true, bool pushed = true) =>
+        new(
+            (_, args) =>
+                string.Join(' ', args) switch
+                {
+                    "rev-parse HEAD" => new RunOriginReader.GitAnswer(0, "abc123\n"),
+                    "rev-parse --abbrev-ref HEAD" => new RunOriginReader.GitAnswer(0, branch + "\n"),
+                    "status --porcelain" => new RunOriginReader.GitAnswer(0, clean ? "" : " M a.yaml\n"),
+                    "symbolic-ref --short refs/remotes/origin/HEAD" => new RunOriginReader.GitAnswer(0, "origin/master\n"),
+                    _ => new RunOriginReader.GitAnswer(pushed ? 0 : 1, ""),
+                },
+            _ => null
+        );
+
+    [Fact]
+    public void Without_a_repository_no_origin_is_sent()
+    {
+        var (_, _, _, server) = Run((request, _) => Server(request, Summary(RunStatus.Queued), Results(RunStatus.Queued)));
+
+        using var sent = JsonDocument.Parse(server.Requests[0].Body ?? "");
+        Assert.False(sent.RootElement.TryGetProperty("origin", out var origin) && origin.ValueKind != JsonValueKind.Null);
+    }
+
+    [Fact]
+    public void The_origin_read_from_the_repository_is_sent()
+    {
+        var (_, _, _, server) = RunWith(
+            Repository("feature-x", pushed: false),
+            (request, _) => Server(request, Summary(RunStatus.Queued), Results(RunStatus.Queued))
+        );
+
+        using var sent = JsonDocument.Parse(server.Requests[0].Body ?? "");
+        var origin = sent.RootElement.GetProperty("origin");
+        Assert.Equal("feature-x", origin.GetProperty("branch").GetString());
+        Assert.Equal("abc123", origin.GetProperty("commit").GetString());
+        Assert.Equal("master", origin.GetProperty("defaultBranch").GetString());
+        Assert.True(origin.GetProperty("clean").GetBoolean());
+        Assert.False(origin.GetProperty("pushed").GetBoolean());
+    }
+
+    [Fact]
+    public void Ref_is_sent_as_the_branch_to_compare_with()
+    {
+        var (_, _, _, server) = RunWith(
+            Repository("feature-x"),
+            (request, _) => Server(request, Summary(RunStatus.Queued), Results(RunStatus.Queued)),
+            "--ref",
+            "release"
+        );
+
+        using var sent = JsonDocument.Parse(server.Requests[0].Body ?? "");
+        Assert.Equal("release", sent.RootElement.GetProperty("origin").GetProperty("compareWith").GetString());
+    }
+
+    [Fact]
+    public void Ref_without_a_repository_still_names_the_branch()
+    {
+        var (_, _, _, server) = Run(
+            (request, _) => Server(request, Summary(RunStatus.Queued), Results(RunStatus.Queued)),
+            "--ref",
+            "release"
+        );
+
+        using var sent = JsonDocument.Parse(server.Requests[0].Body ?? "");
+        var origin = sent.RootElement.GetProperty("origin");
+        Assert.Equal("release", origin.GetProperty("compareWith").GetString());
+        Assert.False(origin.GetProperty("pushed").GetBoolean());
+    }
+
+    [Fact]
+    public void A_regression_exits_1_and_is_printed_first()
+    {
+        var broken = Guid.Parse("8d2e1c3a-0000-0000-0000-000000000000");
+        var results = WithSummary(
+            Results(
+                RunStatus.Done,
+                WithState(Check("refund-tool-called", false, "tool 'issue_refund' was not called"), RegressionState.Regression),
+                WithState(Check("invoice-attached", false, "no invoice"), RegressionState.AlreadyBroken, broken),
+                WithState(Check("polite", true, "ok"), RegressionState.Passed)
+            ),
+            "master",
+            regressions: 1,
+            alreadyBroken: 1
+        );
+
+        var (exit, output, _, _) = Run((request, _) => Server(request, Summary(RunStatus.Done), results), "--wait");
+
+        Assert.Equal(1, exit);
+        var lines = output.ReplaceLineEndings("\n");
+        Assert.Contains("compared with master (last 5 reference runs)\n", lines, StringComparison.Ordinal);
+        Assert.Contains(
+            "\u2717 1 regression\n  refund-happy-path / refund-tool-called  tool 'issue_refund' was not called\n",
+            lines,
+            StringComparison.Ordinal
+        );
+        Assert.Contains("! 1 already broken", lines, StringComparison.Ordinal);
+        Assert.Contains("failing since run 8d2e1c3a", lines, StringComparison.Ordinal);
+        Assert.Contains("3 checks: 1 passed, 2 failed\n", lines, StringComparison.Ordinal);
+        Assert.True(lines.IndexOf("regression", StringComparison.Ordinal) < lines.IndexOf("already broken", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void A_new_failing_check_exits_1()
+    {
+        var results = WithSummary(
+            Results(RunStatus.Done, WithState(Check("asks", false, "no question"), RegressionState.New, agentFailed: true)),
+            null,
+            @new: 1
+        );
+
+        var (exit, output, _, _) = Run((request, _) => Server(request, Summary(RunStatus.Done), results), "--wait");
+
+        Assert.Equal(1, exit);
+        Assert.Contains("compared with every run of the agent (no git)", output, StringComparison.Ordinal);
+        Assert.Contains("1 new check failing", output, StringComparison.Ordinal);
+        Assert.Contains("(the agent gave no answer)", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Failures_that_are_not_regressions_exit_0_and_known_ones_are_a_count()
+    {
+        var results = WithSummary(
+            Results(
+                RunStatus.Done,
+                WithState(Check("old", false, "still wrong"), RegressionState.KnownFailure),
+                WithState(Check("flaky", false, "sometimes"), RegressionState.Unstable),
+                WithState(Check("mended", true, "ok"), RegressionState.Fixed)
+            ),
+            "master"
+        ) with
+        {
+            Regression = new RegressionSummary
+            {
+                ComparedWith = "master",
+                History = 5,
+                Regressions = 0,
+                New = 0,
+                AlreadyBroken = 0,
+                KnownFailures = 1,
+                Fixed = 1,
+                Unstable = 1,
+            },
+        };
+
+        var (exit, output, _, _) = Run((request, _) => Server(request, Summary(RunStatus.Done), results), "--wait");
+
+        Assert.Equal(0, exit);
+        Assert.Contains("  1 known failure\n".ReplaceLineEndings(), output, StringComparison.Ordinal);
+        Assert.DoesNotContain("still wrong", output, StringComparison.Ordinal);
+        Assert.Contains("\u2713 1 fixed", output, StringComparison.Ordinal);
+        Assert.Contains("refund-happy-path / mended", output, StringComparison.Ordinal);
+        Assert.Contains("~ 1 unstable", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Strict_exits_1_on_any_failed_check()
+    {
+        var results = WithSummary(
+            Results(RunStatus.Done, WithState(Check("old", false, "still wrong"), RegressionState.KnownFailure)),
+            "master"
+        );
+
+        var (exit, _, _, _) = Run((request, _) => Server(request, Summary(RunStatus.Done), results), "--wait", "--strict");
+
+        Assert.Equal(1, exit);
+    }
+
+    [Fact]
+    public void Results_without_a_regression_summary_keep_the_old_rule_and_line()
+    {
+        var results = Results(RunStatus.Done, Check("a", false, "no"));
+
+        var (exit, output, _, _) = Run((request, _) => Server(request, Summary(RunStatus.Done), results), "--wait");
+
+        Assert.Equal(1, exit);
+        Assert.Contains("1 of 1 checks failed.", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("compared with", output, StringComparison.Ordinal);
     }
 
     [Fact]

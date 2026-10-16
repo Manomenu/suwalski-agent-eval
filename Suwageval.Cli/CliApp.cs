@@ -1,6 +1,7 @@
 using System.CommandLine;
 using Suwageval.Cli.Cancel;
 using Suwageval.Cli.Compare;
+using Suwageval.Cli.Files;
 using Suwageval.Cli.Push;
 using Suwageval.Cli.Recheck;
 using Suwageval.Cli.Rerun;
@@ -20,6 +21,7 @@ internal static class CliApp
     // http: the client the commands reach the outside with (the API for push, run and results, the agent for validate); null makes their own.
     // openBrowser: how results, compare and versions diff open a page; null is the system's browser.
     // interactive: whether a person answers on input; without one, nothing is asked.
+    // origins: how run reads the repository and the CI environment; null is the real ones.
     // interrupt: Ctrl+C (Program.cs). It cancels what a command does; run and rerun --wait ask then whether to cancel the run too.
     public static int Run(
         string[] args,
@@ -29,6 +31,7 @@ internal static class CliApp
         HttpClient? http = null,
         Action<Uri>? openBrowser = null,
         bool interactive = false,
+        RunOriginReader? origins = null,
         CancellationToken interrupt = default
     )
     {
@@ -37,7 +40,7 @@ internal static class CliApp
         {
             ValidateCommand.Create(input, http),
             PushCommand.Create(http),
-            RunCommand.Create(terminal, http),
+            RunCommand.Create(terminal, http, origins),
             RerunCommand.Create(terminal, http),
             RecheckCommand.Create(terminal, http),
             CancelCommand.Create(http),

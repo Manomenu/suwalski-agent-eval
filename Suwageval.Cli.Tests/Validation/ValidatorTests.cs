@@ -67,6 +67,31 @@ public sealed class ValidatorTests
     }
 
     [Fact]
+    public void A_regression_block_is_read_into_the_agent()
+    {
+        var result = ValidateAgentFile("name: x\nendpointUrl: http://x\nregression:\n  branches: [master, release]\n  history: 3\n");
+
+        Assert.True(result.IsValid);
+        var settings = result.Agent?.Definition.Regression;
+        Assert.Equal(["master", "release"], settings?.Branches);
+        Assert.Equal(3, settings?.History);
+    }
+
+    [Theory]
+    [InlineData("regression:\n  branches: []\n", "regression.branches", 4L)]
+    [InlineData("regression:\n  branches: [master, master]\n", "regression.branches[1]", 4L)]
+    [InlineData("regression:\n  branches: ['a b']\n", "regression.branches[0]", 4L)]
+    [InlineData("regression:\n  history: 0\n", "regression.history", 4L)]
+    [InlineData("regression:\n  history: 21\n", "regression.history", 4L)]
+    public void A_bad_regression_block_is_a_problem_at_its_place_in_the_file(string block, string path, long line)
+    {
+        var result = ValidateAgentFile("name: x\nendpointUrl: http://x\n" + block);
+
+        var problem = Assert.Single(result.Problems);
+        Assert.Equal(("agent.yaml", path, line), (problem.File, problem.Path, problem.Line));
+    }
+
+    [Fact]
     public void A_version_in_the_agent_file_is_refused_because_versions_come_from_the_agent()
     {
         var result = ValidateAgentFile("name: x\nendpointUrl: http://x\nversion:\n  systemPrompt: p\n  model: { name: m }\n");
