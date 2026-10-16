@@ -1,0 +1,36 @@
+namespace Suwageval.Contracts.Runs;
+
+/// <summary>A run and how far it is. A sample is one scenario run once; the checks are counted per sample.</summary>
+public sealed record RunSummary
+{
+    public required Guid Id { get; init; }
+
+    public required string Agent { get; init; }
+
+    public required Guid AgentVersionId { get; init; }
+
+    public string? Tag { get; init; }
+
+    public required string EndpointUrl { get; init; }
+
+    public required RunStatus Status { get; init; }
+
+    /// <summary>Why a <see cref="RunStatus.Failed"/> run failed.</summary>
+    public string? Error { get; init; }
+
+    /// <summary>How many samples the run will produce; zero until the run starts.</summary>
+    public required int SamplesTotal { get; init; }
+
+    public required int SamplesDone { get; init; }
+
+    /// <summary>Check results over all samples so far.</summary>
+    public required int ChecksPassed { get; init; }
+
+    public required int ChecksFailed { get; init; }
+
+    public required DateTime CreatedAt { get; init; }
+
+    public DateTime? StartedAt { get; init; }
+
+    public DateTime? FinishedAt { get; init; }
+}

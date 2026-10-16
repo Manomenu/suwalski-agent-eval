@@ -1,5 +1,6 @@
 using System.CommandLine;
 using Suwageval.Cli.Push;
+using Suwageval.Cli.Run;
 using Suwageval.Cli.Validate;
 
 namespace Suwageval.Cli;
@@ -14,6 +15,7 @@ internal static class CliApp
         {
             ValidateCommand.Create(input),
             PushCommand.Create(http),
+            RunCommand.Create(http),
         };
         return root.Parse(args).Invoke(new InvocationConfiguration { Output = output, Error = error });
     }

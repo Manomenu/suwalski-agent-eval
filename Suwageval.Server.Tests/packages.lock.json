@@ -497,6 +497,14 @@
           "xunit.v3.runner.common": "[4.0.2]"
         }
       },
+      "suwageval.cli": {
+        "type": "Project",
+        "dependencies": {
+          "Suwageval.Contracts": "[1.0.0, )",
+          "System.CommandLine": "[2.0.13, )",
+          "YamlDotNet": "[18.1.0, )"
+        }
+      },
       "suwageval.contracts": {
         "type": "Project"
       },
@@ -547,6 +555,18 @@
         "dependencies": {
           "Microsoft.Extensions.Logging.Abstractions": "10.0.0"
         }
+      },
+      "System.CommandLine": {
+        "type": "CentralTransitive",
+        "requested": "[2.0.13, )",
+        "resolved": "2.0.13",
+        "contentHash": "TIO2lMV+sSP7WW7pD/oCRHD9ENWY+jqwXmYzgks3R46cEdDzwjQOAhsiBn+M3EegfGjgTpa2h+eIrcU+AM2k6A=="
+      },
+      "YamlDotNet": {
+        "type": "CentralTransitive",
+        "requested": "[18.1.0, )",
+        "resolved": "18.1.0",
+        "contentHash": "5K+9KFg2TdTl7VXv88Qzi/0lqK6JFoNP3lRuImPYGRV7K/QYklDyTrj4+A+KAki1JsQi6qKY+hDyY7d6WRqjrw=="
       }
     }
   }

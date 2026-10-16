@@ -3,6 +3,7 @@ using Suwageval.Contracts;
 using Suwageval.Server.Agents;
 using Suwageval.Server.Checks;
 using Suwageval.Server.Database;
+using Suwageval.Server.Runs;
 using Suwageval.Server.Scenarios;
 
 namespace Suwageval.Server.Api;
@@ -27,6 +28,7 @@ internal static class ServerApp
         builder.Services.AddSingleton<AgentStore>().AddSingleton<ScenarioStore>().AddSingleton<CheckStore>();
         builder.Services.ConfigureHttpJsonOptions(options => ContractJson.Configure(options.SerializerOptions));
         builder.Services.AddProblemDetails();
+        builder.Services.AddRuns(builder.Configuration, startWorker: !WritingOpenApiDocument);
         builder.Services.AddOpenApi();
 
         var app = builder.Build();
@@ -40,6 +42,7 @@ internal static class ServerApp
         app.MapAgents();
         app.MapScenarios();
         app.MapChecks();
+        app.MapRuns();
         return app;
     }
 }

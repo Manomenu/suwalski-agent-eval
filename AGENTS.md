@@ -75,11 +75,11 @@ app keeps its tests beside its code, so those folders would only split the .NET 
 | --- | --- |
 | `Suwageval.slnx` | the .NET solution: the server, the CLI, the contracts and their tests |
 | `global.json`, `Directory.Build.props`, `Directory.Packages.props` | the SDK band; the settings every C# project shares (nullable, analyzers, warnings as errors, lockfiles); every NuGet package and its version, named once |
-| `Suwageval.Server/` | the HTTP API (ASP.NET Core minimal APIs, PostgreSQL through Npgsql, SQL written by hand and mapped by Dapper). One folder — one namespace — per part: `Api/`, `Database/`, then one per feature |
+| `Suwageval.Server/` | the HTTP API (ASP.NET Core minimal APIs, PostgreSQL through Npgsql, SQL written by hand and mapped by Dapper). One folder — one namespace — per part: `Api/`, `Database/`, then one per feature. `Runs/` holds the queue's worker (`RunWorker`, a hosted service); the tests share one database, so they run the server without it (`RunTestApp`) and take runs themselves, per agent |
 | `Suwageval.Server/Database/Migrations/up/` | numbered SQL migrations, applied at start-up by grate (`Database/Migrator.cs`) |
 | `Suwageval.Server.Tests/` | the server's tests (xUnit v3), mirroring the server's folders; `ContractsTests.cs` holds the import contracts |
 | `Suwageval.Contracts/` | the records the API sends and receives and the CLI reads from YAML, with their JSON shape (System.Text.Json, camelCase, strict). Records only, public types (a library shared by projects); one folder — one namespace — per feature |
-| `Suwageval.Cli/` | the `suwageval` command, packed as a .NET tool (System.CommandLine, YamlDotNet). `Files/` reads the agent's YAML files into the contracts, `Validate/` is `suwageval validate` |
+| `Suwageval.Cli/` | the `suwageval` command, packed as a .NET tool (System.CommandLine, YamlDotNet). `Files/` reads the agent's YAML files into the contracts, `Validate/` is `suwageval validate`, `Run/` is `suwageval run` (its `RunClient` speaks the run endpoints) |
 | `Suwageval.Cli.Tests/` | the CLI's tests (xUnit v3), mirroring its folders; `Sample/` is an agent folder the happy-path tests validate |
 | `docs/scenario-format.md` | the file format (v0) an agent's repository keeps in `suwageval/`: `agent.yaml`, scenarios with checks, shorthands |
 | `Suwageval.Web/` | the web app (React, Mantine, Vite). Source in `src/`, one folder per feature |
@@ -246,7 +246,7 @@ not by reviewers; a dependency against it fails with the types involved.
 | | Server | Web |
 | --- | --- | --- |
 | Where | `Layers` in `Suwageval.Server.Tests/ContractsTests.cs` (ArchUnitNET, on the compiled assembly) | `boundaries/*` in `Suwageval.Web/eslint.config.js` |
-| Today | `Api` → `Database` | `main`/`App` → features → `api` |
+| Today | `Api` → `Runs` → `Checks` \| `Invocation` → `Scenarios` → `Agents` → `Database` | `main`/`App` → features → `api` |
 | A new feature | **must** get a layer — `Every_server_namespace_has_a_layer` fails otherwise | is a folder `src/<feature>/`, independent of other features by default |
 | Inside a feature | a feature with several concerns declares its own order (e.g. endpoints → store → model) as a test beside the first | free |
 | Feature uses feature | only downwards, by its position in the layer list | only through an explicit policy in `eslint.config.js`, with a comment saying why |

@@ -4,15 +4,15 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Suwageval.Contracts;
 using Suwageval.Contracts.Agents;
 using Suwageval.Server.Tests.Agents;
+using Suwageval.Server.Tests.Runs;
 
 namespace Suwageval.Server.Tests.Api;
 
 /// <summary>The whole server in-process on the test database, and short ways to talk to it in the contract records.</summary>
 internal sealed class TestServer(TestDatabase database) : IAsyncDisposable
 {
-    private readonly WebApplicationFactory<Program> app = new WebApplicationFactory<Program>().WithWebHostBuilder(host =>
-        host.UseSetting("ConnectionStrings:Default", TestDatabase.ConnectionString)
-    );
+    // Without the run worker: a worker here would take the runs other tests queue on the same database.
+    private readonly WebApplicationFactory<Program> app = RunTestApp.Create();
 
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
 
