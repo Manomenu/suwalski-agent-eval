@@ -12,6 +12,9 @@ export function num(value: number | string): number {
 }
 
 /** A run that is still going: the page asks again until it is over. */
+/** The page of a run. */
+export const runHref = (runId: string) => `/runs/${runId}`;
+
 export function isActive(status: Status): boolean {
     return status === "Queued" || status === "Running";
 }

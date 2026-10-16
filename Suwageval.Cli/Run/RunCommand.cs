@@ -57,14 +57,19 @@ internal static class RunCommand
                 var transport = http ?? new HttpClient { BaseAddress = ServerAddress.Api(site) };
                 try
                 {
-                    return await ExecuteAsync(
-                        new RunClient(transport),
+                    var client = new RunClient(transport);
+                    var created = await client.CreateAsync(
                         new RunRequest
                         {
                             Agent = agent,
                             Tag = parsed.GetValue(tag),
                             EndpointUrl = parsed.GetValue(endpoint),
                         },
+                        cancellationToken
+                    );
+                    return await RunOutput.ReportAsync(
+                        client,
+                        created,
                         parsed.GetValue(wait),
                         parsed.GetValue(json),
                         site,
@@ -87,41 +92,5 @@ internal static class RunCommand
             }
         );
         return command;
-    }
-
-    private static async Task<int> ExecuteAsync(
-        RunClient client,
-        RunRequest request,
-        bool wait,
-        bool json,
-        Uri site,
-        TextWriter output,
-        CancellationToken cancellationToken
-    )
-    {
-        var created = await client.CreateAsync(request, cancellationToken);
-        if (!json)
-        {
-            // The version is what the agent served just now; "new" means its contract differs from every earlier one.
-            await output.WriteLineAsync($"version {created.AgentVersionId}: {(created.VersionCreated ? "new" : "existing")}");
-        }
-        if (!wait)
-        {
-            await output.WriteLineAsync(json ? OutputJson.Of(created) : created.RunId.ToString());
-            return 0;
-        }
-
-        await client.WaitForEndAsync(created.RunId, cancellationToken);
-        var results = await client.ResultsAsync(created.RunId, cancellationToken);
-        if (json)
-        {
-            await output.WriteLineAsync(OutputJson.Of(results));
-        }
-        else
-        {
-            await output.WriteLineAsync(RunVerdict.Line(results));
-            await output.WriteLineAsync(ServerAddress.RunPage(site, created.RunId).ToString());
-        }
-        return RunVerdict.ExitCode(results);
     }
 }

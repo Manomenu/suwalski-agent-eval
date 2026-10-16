@@ -9,7 +9,7 @@ using Suwageval.Server.Scenarios;
 
 namespace Suwageval.Server.Runs;
 
-/// <summary>The routes of runs: start one, follow it, read its results, cancel it.</summary>
+/// <summary>The routes of runs: start one or repeat one, follow it, read its results, cancel it.</summary>
 internal static class RunEndpoints
 {
     public static IEndpointRouteBuilder MapRuns(this IEndpointRouteBuilder app)
@@ -19,6 +19,7 @@ internal static class RunEndpoints
         app.MapGet("/runs", ListAsync).Produces<IReadOnlyList<RunSummary>>();
         app.MapGet("/runs/{id:guid}", GetAsync).Produces<RunSummary>();
         app.MapGet("/runs/{id:guid}/results", ResultsAsync).Produces<RunResults>();
+        app.MapPost("/runs/{id:guid}/rerun", RerunAsync).Produces<RunCreated>(StatusCodes.Status202Accepted);
         app.MapPost("/runs/{id:guid}/cancel", CancelAsync).Produces(StatusCodes.Status202Accepted);
         return app;
     }
@@ -119,6 +120,45 @@ internal static class RunEndpoints
                 AgentVersionId = version.Id,
                 VersionCreated = registration.Created,
             }
+        );
+    }
+
+    /// <summary>
+    /// A new run with the parameters of run <paramref name="id"/> — its agent, tag and endpoint (unless the body gives another) —
+    /// through <see cref="CreateAsync"/>: the version is what the agent serves now, the scenarios its current ones, and the
+    /// answers and refusals are the same. 404 for an unknown run; the repeated run is not touched.
+    /// </summary>
+    private static async Task<IResult> RerunAsync(
+        Guid id,
+        RerunRequest? request,
+        AgentStore agents,
+        ScenarioStore scenarios,
+        CheckStore checks,
+        RunStore runs,
+        AgentClient client,
+        Judge judge,
+        CancellationToken cancellationToken
+    )
+    {
+        var original = await runs.GetAsync(id, cancellationToken);
+        if (original is null)
+        {
+            return NotFound($"There is no run {id}.");
+        }
+        return await CreateAsync(
+            new RunRequest
+            {
+                Agent = original.AgentId.ToString(),
+                Tag = original.Tag,
+                EndpointUrl = request?.EndpointUrl ?? original.EndpointUrl,
+            },
+            agents,
+            scenarios,
+            checks,
+            runs,
+            client,
+            judge,
+            cancellationToken
         );
     }
 

@@ -56,6 +56,7 @@ its `/api`. The address is `SUWAGEVAL_URL`, or `--server` on a command; the defa
 | check the files and the names against the agent's contract | `suwageval validate [dir]` (`--json`, `--offline` to skip the agent, `--endpoint URL`) |
 | send the agent, scenarios and checks to the server | `suwageval push [dir]` |
 | run the scenarios and wait | `suwageval run --wait --json` (`--tag <tag>` for some scenarios only) |
+| run an earlier run again | `suwageval rerun <runId> --wait --json` (`--endpoint URL`): same agent, tag and endpoint, the version the agent serves now |
 | open a run on the web | `suwageval results <runId>` |
 | a run's results as JSON | `suwageval results <runId> --json` |
 | list the agent's newest runs | `suwageval runs` (`--limit N`, `--json`) |

@@ -106,6 +106,73 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         Assert.Equal(1, fake.ContractRequests);
     }
 
+    private static Task<HttpResponseMessage> Rerun(HttpClient client, Guid runId, RerunRequest? body = null) =>
+        body is null
+            ? client.PostAsync(new Uri($"/runs/{runId}/rerun", UriKind.Relative), null, Cancellation)
+            : client.PostAsJsonAsync(new Uri($"/runs/{runId}/rerun", UriKind.Relative), body, Cancellation);
+
+    private static async Task<RunCreated> RerunOkAsync(HttpClient client, Guid runId, RerunRequest? body = null)
+    {
+        var response = await Rerun(client, runId, body);
+        Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+        return await response.Content.ReadFromJsonAsync<RunCreated>(Cancellation) ?? throw new InvalidOperationException("no body");
+    }
+
+    [Theory]
+    [InlineData("regression")]
+    [InlineData(null)]
+    public async Task A_rerun_is_a_new_run_with_the_agent_tag_and_endpoint_of_the_original(string? tag)
+    {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
+        var client = Client();
+        var agent = await NewAgentAsync(fake.Url.AbsoluteUri);
+        var original = await StartAsync(client, new RunRequest { Agent = agent.Name, Tag = tag });
+
+        var again = await RerunOkAsync(client, original.RunId);
+
+        Assert.NotEqual(original.RunId, again.RunId);
+        Assert.Equal((original.AgentVersionId, false), (again.AgentVersionId, again.VersionCreated));
+        var first = await GetAsync<RunSummary>(client, $"/runs/{original.RunId}");
+        var second = await GetAsync<RunSummary>(client, $"/runs/{again.RunId}");
+        Assert.Equal((agent.Name, tag, fake.Url.AbsoluteUri), (second.Agent, second.Tag, second.EndpointUrl));
+        Assert.Equal((RunStatus.Queued, original.RunId), (first.Status, first.Id));
+    }
+
+    [Fact]
+    public async Task A_rerun_takes_the_version_the_agent_serves_now_and_may_go_to_another_endpoint()
+    {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
+        await using var other = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
+        var client = Client();
+        var agent = await NewAgentAsync(fake.Url.AbsoluteUri);
+        var original = await StartAsync(client, new RunRequest { Agent = agent.Name });
+
+        other.ServeContract(SeededAgent.ExampleVersion with { SystemPrompt = "Changed since." });
+        var again = await RerunOkAsync(client, original.RunId, new RerunRequest { EndpointUrl = other.Url.AbsoluteUri });
+
+        Assert.True(again.VersionCreated);
+        Assert.NotEqual(original.AgentVersionId, again.AgentVersionId);
+        Assert.Equal(other.Url.AbsoluteUri, (await GetAsync<RunSummary>(client, $"/runs/{again.RunId}")).EndpointUrl);
+    }
+
+    [Fact]
+    public async Task Rerunning_an_unknown_run_is_404() =>
+        Assert.Equal(HttpStatusCode.NotFound, (await Rerun(Client(), Guid.NewGuid())).StatusCode);
+
+    [Fact]
+    public async Task A_rerun_meets_the_refusals_of_a_new_run()
+    {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
+        var client = Client();
+        var agent = await NewAgentAsync(fake.Url.AbsoluteUri);
+        var original = await StartAsync(client, new RunRequest { Agent = agent.Name });
+
+        var response = await Rerun(client, original.RunId, new RerunRequest { EndpointUrl = "http://127.0.0.1:1" });
+
+        await AssertBadGatewayAsync(response, "http://127.0.0.1:1/suwageval/contract");
+        Assert.Single(await GetAsync<List<RunSummary>>(client, $"/runs?agent={agent.Name}"));
+    }
+
     [Fact]
     public async Task An_unknown_agent_is_404() =>
         Assert.Equal(HttpStatusCode.NotFound, (await Post(Client(), new RunRequest { Agent = "no-such-agent" })).StatusCode);

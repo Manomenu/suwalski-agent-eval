@@ -8,7 +8,8 @@
         "**/obj": true,
         "**/TestResults": true,
         "**/node_modules": true,
-        "**/dist": true
+        "**/dist": true,
+        "**/*.tsbuildinfo": true
     },
     // File nesting (AGENTS.md, "File nesting"): a file's tests and companions fold under it,
     // so the explorer shows one entry per module. Extend these patterns, don't fight them.
