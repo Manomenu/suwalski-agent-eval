@@ -84,3 +84,16 @@ belongs to.
   the server does not ask for one). Configured in user secrets, never in a committed file,
   in the change that brings the judge or the simulator. The example agent already uses it
   through its gitignored `.env`.
+- **The contract for multi-agent systems (contract v1):** a system under test is often several
+  LLM agents, not one prompt. The contract becomes:
+  - `agents`: a list of LLM agents, each `{ name, model { name, parameters }, config }`, where
+    `config` is free text for now — the system prompt, a scope policy, whatever defines that
+    agent;
+  - `otherConfig`: free text for what belongs to the system, not to one agent (e.g. "retries
+    on every LLM agent: 2");
+  - `tools` and `context` (events, retrieval) stay as in v0.
+  Free text is enough to start: it is part of the content hash, so any change makes a new
+  version, and it is shown when comparing versions. Structure comes later, once real systems
+  show which parts checks or comparisons need. Open: whether tools belong to the system or to
+  each agent (a `ToolCall` would then name its agent), and how v0 contracts (one
+  `systemPrompt`) map onto v1.
