@@ -88,16 +88,24 @@ internal static class RunEndpoints
             scenario => scenario.Key,
             scenario => (IReadOnlyList<string>)scenario.Tags
         );
+        var shownIds = picked.Select(point => point.Shown.Id).ToList();
+        var checksOf = (await runs.ListTrendChecksAsync(shownIds, cancellationToken)).ToLookup(row => row.RunId);
+        var durationsOf = (await runs.ListTrendDurationsAsync(shownIds, cancellationToken)).ToLookup(row => row.RunId);
         var points = new List<RunPassRates>();
         foreach (var (run, recheck) in picked)
         {
             var shown = recheck ?? run;
-            var results = RunReport.Results(
-                shown,
-                await runs.ListScenarioResultsAsync(shown.Id, cancellationToken),
-                await runs.ListCheckResultsAsync(shown.Id, cancellationToken)
-            );
-            if (PassRateTrend.Rates(results, tagsOf) is not { } rates)
+            if (
+                PassRateTrend.Rates(
+                    [
+                        .. checksOf[shown.Id]
+                            .Select(row => (row.ScenarioKey, RunReport.Reaches(row.SamplesPassed, row.Samples, row.PassThreshold))),
+                    ],
+                    [.. durationsOf[shown.Id].Select(row => (row.ScenarioKey, row.DurationMs))],
+                    tagsOf
+                )
+                is not { } rates
+            )
             {
                 continue;
             }

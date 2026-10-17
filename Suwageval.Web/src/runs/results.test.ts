@@ -8,6 +8,7 @@ import {
     formatSeconds,
     failedEvidenceKeys,
     isActive,
+    needsFullResults,
     itemBody,
     itemKey,
     itemTitle,
@@ -198,5 +199,31 @@ describe("seconds", () => {
         expect(seconds(1240)).toBe(1.2);
         expect(seconds(1250)).toBe(1.3);
         expect(seconds(0)).toBe(0);
+    });
+});
+
+describe("needsFullResults", () => {
+    const shown = { status: "Running", samplesDone: 3, samplesTotal: 10, cancelRequested: false } as const;
+
+    it("is false while nothing moved", () => {
+        expect(needsFullResults(shown, { ...shown })).toBe(false);
+    });
+
+    it("is true when a sample was stored", () => {
+        expect(needsFullResults(shown, { ...shown, samplesDone: 4 })).toBe(true);
+    });
+
+    it("is true when the total became known", () => {
+        expect(needsFullResults({ ...shown, samplesTotal: 0 }, shown)).toBe(true);
+    });
+
+    it("is true when the status changed, the final one included", () => {
+        expect(needsFullResults({ ...shown, status: "Queued" }, shown)).toBe(true);
+        expect(needsFullResults(shown, { ...shown, status: "Done" })).toBe(true);
+        expect(needsFullResults(shown, { ...shown, status: "Cancelled" })).toBe(true);
+    });
+
+    it("is true when a stop was asked for", () => {
+        expect(needsFullResults(shown, { ...shown, cancelRequested: true })).toBe(true);
     });
 });
