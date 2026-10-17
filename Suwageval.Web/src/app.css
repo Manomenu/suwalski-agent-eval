@@ -21,6 +21,19 @@
     min-width: 0;
 }
 
+/* Unstable checks and agent errors side by side when the column fits both (at least 320px each), else stacked. */
+.agent-health-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--mantine-spacing-lg);
+    align-items: flex-start;
+}
+
+.agent-health-cards > * {
+    flex: 1 1 320px;
+    min-width: 0;
+}
+
 .agent-layout-main {
     grid-area: main;
     min-width: 0;

@@ -131,8 +131,12 @@ function AgentView({
                 <div className="agent-layout-analytics">
                     <Stack gap="lg">
                         {/* First, so it is never missed below the charts: these failures may be noise. */}
-                        <UnstableChecksCard checks={unstable} />
-                        <AgentErrorsCard errors={errors} />
+                        {(unstable.length > 0 || errors.length > 0) && (
+                            <div className="agent-health-cards">
+                                <UnstableChecksCard checks={unstable} />
+                                <AgentErrorsCard errors={errors} />
+                            </div>
+                        )}
                         <Suspense fallback={null}>
                             <PassRateTrend points={trendPoints} />
                             <TurnTimeTrend points={trendPoints} />
