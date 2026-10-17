@@ -28,8 +28,9 @@ run in this session's terminal:
 ```
 
 The CLI talks to the Suwageval server through the address of its **web app**; the API is under
-its `/api`. The address is `SUWAGEVAL_URL`, or `--server` on a command; the default is
-`http://localhost:3230` (a laptop running `just web` in the clone). `validate` needs no server.
+its `/api`. The address is `--server` on a command, else `SUWAGEVAL_URL`, else `suwagevalUrl` in
+`suwageval/agent.yaml`, else `http://localhost:3230` (a laptop running `just web` in the clone).
+`validate` and `init` need no server.
 `push` and `run` need the server, and `run` needs the agent itself running too.
 
 ## The workflow
@@ -53,6 +54,7 @@ its `/api`. The address is `SUWAGEVAL_URL`, or `--server` on a command; the defa
 
 | want | command |
 | --- | --- |
+| set a repository up (no `suwageval/agent.yaml` yet, or a field to change) | `suwageval init [path] --name N --endpoint-url URL [--suwageval-url URL]`: give every value as an option, since there is no terminal to ask on; an existing file keeps its comments and other fields, and a repeat changes nothing |
 | check the files and the names against the agent's contract | `suwageval validate [dir]` (`--json`, `--offline` to skip the agent, `--endpoint URL`) |
 | send the agent, scenarios and checks to the server | `suwageval push [dir]` |
 | run the scenarios and wait | `suwageval run --wait --json` (`--tag <tag>` for some scenarios only; `--ref <branch>` to compare with another branch's reference runs; `--strict` to exit 1 on any failed check) |

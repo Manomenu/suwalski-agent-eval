@@ -54,7 +54,7 @@ internal static class RunCommand
                 var output = parsed.InvocationConfiguration.Output;
                 var error = parsed.InvocationConfiguration.Error;
                 var agentDir = parsed.GetRequiredValue(dir);
-                var agent = AgentName.Read(agentDir, error);
+                var agent = AgentReader.Read(agentDir, error)?.Definition.Name;
                 if (agent is null)
                 {
                     return Task.FromResult(2);
@@ -93,7 +93,8 @@ internal static class RunCommand
                             error,
                             "run",
                             cancellationToken
-                        )
+                        ),
+                    agentDir: agentDir
                 );
             }
         );

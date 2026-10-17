@@ -1,3 +1,5 @@
+using Suwageval.Cli.Files;
+
 namespace Suwageval.Cli.Server;
 
 /// <summary>
@@ -10,12 +12,21 @@ internal static class ServerAddress
     public const string Default = "http://localhost:3230";
 
     public static string OptionDescription =>
-        $"Suwageval's address (the web app; the API is under /api). Default: ${Variable}, else {Default}.";
+        $"Suwageval's address (the web app; the API is under /api). Default: ${Variable}, else suwagevalUrl in suwageval/agent.yaml, else {Default}.";
 
-    /// <summary>From <c>--server</c>, else <see cref="Variable"/>, else <see cref="Default"/>; with a trailing slash, so relative paths stay under it.</summary>
-    public static Uri Site(string? option)
+    /// <summary>
+    /// From <c>--server</c>, else <see cref="Variable"/>, else the <c>suwagevalUrl</c> of the agent.yaml in <paramref name="agentDir"/> (when it is there),
+    /// else <see cref="Default"/>; with a trailing slash, so relative paths stay under it.
+    /// </summary>
+    public static Uri Site(string? option, string agentDir = AgentFolder.DefaultDir) =>
+        Site(option, Environment.GetEnvironmentVariable(Variable), () => AgentReader.SuwagevalUrl(agentDir));
+
+    /// <summary>The precedence itself; <paramref name="fromFile"/> is only asked when the option and the variable say nothing.</summary>
+    public static Uri Site(string? option, string? variable, Func<string?> fromFile)
     {
-        var address = option ?? Environment.GetEnvironmentVariable(Variable);
+        ArgumentNullException.ThrowIfNull(fromFile);
+        var address = string.IsNullOrWhiteSpace(option) ? variable : option;
+        address = string.IsNullOrWhiteSpace(address) ? fromFile() : address;
         return new Uri((string.IsNullOrWhiteSpace(address) ? Default : address).TrimEnd('/') + "/");
     }
 

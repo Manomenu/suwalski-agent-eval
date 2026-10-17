@@ -114,6 +114,29 @@ public sealed class ValidatorTests
     }
 
     [Fact]
+    public void The_suwageval_url_is_the_clis_own_and_not_part_of_the_pushed_agent()
+    {
+        var result = ValidateAgentFile("name: x\nendpointUrl: http://x\nsuwagevalUrl: http://suwageval.example\n");
+
+        Assert.True(result.IsValid);
+        Assert.Equal("http://suwageval.example", result.Agent?.SuwagevalUrl);
+        Assert.Equal(new AgentDefinition { Name = "x", EndpointUrl = "http://x" }, result.Agent?.Definition);
+    }
+
+    [Theory]
+    [InlineData("suwagevalUrl: localhost:3230")]
+    [InlineData("suwagevalUrl: ftp://x")]
+    [InlineData("suwagevalUrl: 5")]
+    public void A_suwageval_url_that_is_no_http_address_is_a_problem_at_its_line(string field)
+    {
+        var result = ValidateAgentFile("name: x\nendpointUrl: http://x\n" + field + "\n");
+
+        var problem = Assert.Single(result.Problems);
+        Assert.Equal(("agent.yaml", "suwagevalUrl", 3L), (problem.File, problem.Path, problem.Line));
+        Assert.Contains("absolute http or https address", problem.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_version_in_the_agent_file_is_refused_because_versions_come_from_the_agent()
     {
         var result = ValidateAgentFile("name: x\nendpointUrl: http://x\nversion:\n  systemPrompt: p\n  model: { name: m }\n");

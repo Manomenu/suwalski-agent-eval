@@ -5,17 +5,17 @@ The server has one interface, its HTTP API. Three users reach it:
 | Who | Through | Does |
 | --- | --- | --- |
 | a person in the browser | the web app | browses agents, scenarios, runs, results, comparisons |
-| an agent's repository, by hand or in CI | the `suwageval` CLI (`Suwageval.Cli`) | `validate` the scenario files, `push` the agent, its scenarios and checks, `run --tag … --wait` with an exit code for CI (`--ref <branch>` picks the branch to compare with, `--strict` fails on any failed check, not only on regressions; `rerun` and `recheck` take `--strict` too), `rerun <runId>` to repeat a run, `recheck <runId>` to judge a finished run's stored answers again with the current checks (`--dry-run` shows what would be evaluated), `cancel <runId>` to stop a queued or running one, `results <runId>` to open a run on the web, `runs` to list the agent's newest runs, `unstable` to list the checks that pass in some runs of a version and fail in others, `agent-errors` to list the scenarios where the agent gave no answer, `compare <runId> <runId> …` to open the comparison of 2 to 5 runs of one agent on the web, `versions` to list, archive and restore the agent's versions, `versions diff <a> <b>` to open what changed between two of them on the web |
+| an agent's repository, by hand or in CI | the `suwageval` CLI (`Suwageval.Cli`) | `init` to set up `suwageval/agent.yaml` (and `scenarios/`) without touching what is already in it, `validate` the scenario files, `push` the agent, its scenarios and checks, `run --tag … --wait` with an exit code for CI (`--ref <branch>` picks the branch to compare with, `--strict` fails on any failed check, not only on regressions; `rerun` and `recheck` take `--strict` too), `rerun <runId>` to repeat a run, `recheck <runId>` to judge a finished run's stored answers again with the current checks (`--dry-run` shows what would be evaluated), `cancel <runId>` to stop a queued or running one, `results <runId>` to open a run on the web, `runs` to list the agent's newest runs, `unstable` to list the checks that pass in some runs of a version and fail in others, `agent-errors` to list the scenarios where the agent gave no answer, `compare <runId> <runId> …` to open the comparison of 2 to 5 runs of one agent on the web, `versions` to list, archive and restore the agent's versions, `versions diff <a> <b>` to open what changed between two of them on the web |
 | Claude Code | the Claude Code plugin in this repo (`claude-plugin/`) that drives the same CLI, like suwgit's | "build a scenario for this agent from this conversation", "run the regression tag on the new version", "why did scenario X fail" — writing the scenario as a file in the agent's repo, then `validate` and `push` |
 
 - **Anything the web can do, the CLI — and so Claude Code through the plugin — can do too; not the
   other way round.** The CLI may do things the web cannot (push scenarios, say). A new action on
   the web arrives with its CLI command and the plugin's knowledge of it, in the same change.
 - **The scenario files live in the agent's repository**, in `suwageval/`: `agent.yaml` (the
-  agent: `name` and `endpointUrl`, nothing else) and
+  agent: `name`, `endpointUrl` and optionally Suwageval's own address `suwagevalUrl`; `suwageval init` writes it) and
   `scenarios/*.yaml` (a scenario with its checks inside; `user:` / `assistant:` shorthands for
-  the log). Suwageval's address is not in them: `SUWAGEVAL_URL` (default
-  `http://localhost:3230`) or `--server` — the web app's address, the API is under its `/api`
+  the log). Suwageval's address is the web app's, the API is under its `/api`: `--server`, else `SUWAGEVAL_URL`, else
+  `suwagevalUrl` in `./suwageval/agent.yaml` (or the command's `--dir`), else `http://localhost:3230`
   (so on a laptop the CLI needs `just web` running too).
 - **The results are read on the web.** `suwageval run --wait` prints what was compared with, the regressions and new failing
   checks first, then the totals and the link to the run's page; it exits 0 unless a check regressed or is new and failing

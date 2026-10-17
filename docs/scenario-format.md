@@ -36,6 +36,18 @@ says why (`names not checked: agent at http://localhost:7010 unreachable (connec
 `namesChecked` is `false` and the exit code is still 0 when the files are right. `--offline`
 skips the fetch.
 
+## `suwageval init`
+
+`suwageval init [path]` sets a repository up: it creates or updates `suwageval/agent.yaml` and creates `suwageval/scenarios/`.
+Options: `--name`, `--endpoint-url`, `--suwageval-url`. Values not given are asked for when a terminal is attached
+(Enter takes the default: the file's value, else the folder's name, `http://localhost:8000`, none), else they take the defaults.
+It changes only the fields it sets, on their lines, so the comments and everything else in an existing file stay, and running it
+again with the same values writes nothing. It does not call the server.
+
+```sh
+suwageval init --name my-agent --endpoint-url http://localhost:8000 --suwageval-url http://localhost:8093
+```
+
 ## `agent.yaml`
 
 Only the agent's name and where it runs. **What the agent is** — its LLM agents with their prompts, models and tools, and its events —
@@ -48,6 +60,7 @@ what really ran. A `version:` key is an error.
 | `endpointUrl` | required | where the agent is reached: `POST {endpointUrl}/suwageval/turn`, `GET {endpointUrl}/suwageval/contract` |
 | `samples` | optional | how many times each scenario's conversation is sent to the agent by default: 1 to 20, default `3` (see "Samples" under Scenarios; a scenario or a check can set its own) |
 | `regression` | optional | how regressions are found (next block, section "Regressions") |
+| `suwagevalUrl` | optional | where Suwageval is: the address of its web app (the API is under `/api`), an absolute http(s) address. For the CLI only — `push` does not send it and the server does not store it. Used when neither `--server` nor `SUWAGEVAL_URL` is set; without it the default is `http://localhost:3230` |
 
 ```yaml
 regression:

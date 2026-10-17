@@ -88,7 +88,8 @@ internal static class PushCommand
                 await console.Output.WriteAsync(json ? OutputJson.Of(result) + Environment.NewLine : Text(result));
                 return 0;
             },
-            failureExit: 1
+            failureExit: 1,
+            agentDir: dir
         );
     }
 
