@@ -3,7 +3,8 @@ import { lazy, Suspense, useState } from "react";
 
 import { useUnstableChecks } from "../runs/useUnstableChecks";
 import { formatTime, progress, runHref, shortId, statusColor, statusLabel } from "../runs/results";
-import { fetchAgent, fetchPassRates, fetchVersions, type AgentVersion } from "./api";
+import { fetchAgent, fetchAgentErrors, fetchPassRates, fetchVersions, type AgentError, type AgentVersion } from "./api";
+import { AgentErrorsCard } from "./AgentErrorsCard";
 import { ConfigurationSection } from "./ConfigurationSection";
 import { HeaderHelp } from "./HeaderHelp";
 import { Page } from "./Page";
@@ -28,9 +29,9 @@ import { VersionsSection } from "./VersionsSection";
 // The chart library is the largest part of the app: it loads only when an agent's page is opened.
 /** What the filters and the runs table's columns mean, said on hover over their labels. */
 const MODEL_HELP =
-    "Show only runs of agent versions that use these models (any of the system's LLM agents). The chart and the unstable checks follow the filter.";
+    "Show only runs of agent versions that use these models (any of the system's LLM agents). The chart, the unstable checks and the agent errors follow the filter.";
 const DATA_VERSION_HELP =
-    "Show only runs of agent versions whose retrieval data is one of these: the dataVersion the agent declares, a fingerprint of what its retrieval can return (content and indexing). New data is a new agent version. Agents without retrieval have none. The chart and the unstable checks follow the filter.";
+    "Show only runs of agent versions whose retrieval data is one of these: the dataVersion the agent declares, a fingerprint of what its retrieval can return (content and indexing). New data is a new agent version. Agents without retrieval have none. The chart, the unstable checks and the agent errors follow the filter.";
 const TAG_HELP = "The scenario tag the run was limited to (run --tag); — means every scenario of the agent ran.";
 const CHECKS_HELP =
     "Checks passed and failed in this run. A check is one condition on the agent's answer, written in a scenario file: a tool called or not, an event, a text, a cited source, a judge's verdict. It passes when its share of passing samples reaches its threshold.";
@@ -48,21 +49,24 @@ export function AgentPage({ name }: { name: string }) {
     // Bumped after versions are archived or restored: the lists are loaded again (the page stays until the new ones arrive).
     const [reload, setReload] = useState(0);
     const state = useLoaded(`${name}/${reload}`, async (signal) => {
-        const [agent, versions, passRates] = await Promise.all([
+        const [agent, versions, passRates, agentErrors] = await Promise.all([
             fetchAgent(name, signal),
             fetchVersions(name, signal),
             fetchPassRates(name, signal),
+            // A hint, like the unstable checks: when it cannot be read the card is just not there.
+            fetchAgentErrors(name, signal).catch((): AgentError[] => []),
         ]);
-        return { agent, versions, passRates };
+        return { agent, versions, passRates, agentErrors };
     });
 
     return (
         <Page state={state} notFound={`There is no agent ${name}.`}>
-            {({ agent, versions, passRates }) => (
+            {({ agent, versions, passRates, agentErrors }) => (
                 <AgentView
                     agent={agent}
                     versions={versions}
                     passRates={passRates}
+                    agentErrors={agentErrors}
                     reload={reload}
                     onChanged={() => {
                         setReload(reload + 1);
@@ -80,12 +84,14 @@ function AgentView({
     agent,
     versions,
     passRates,
+    agentErrors,
     reload,
     onChanged,
 }: {
     agent: Agent;
     versions: AgentVersion[];
     passRates: PassRates;
+    agentErrors: AgentError[];
     reload: number;
     onChanged: () => void;
 }) {
@@ -101,6 +107,7 @@ function AgentView({
     const toCompare = runsToCompare(runs, selected);
     // Fetched once for all versions; the filters hide the rows of versions they leave out, as they do in the chart.
     const unstable = visibleRuns(useUnstableChecks(agent.name, []), versions, showArchived, models, dataVersions);
+    const errors = visibleRuns(agentErrors, versions, showArchived, models, dataVersions);
     const trendPoints = visibleRuns(passRates, versions, showArchived, models, dataVersions);
     return (
         <Stack gap="lg">
@@ -125,6 +132,7 @@ function AgentView({
                     <Stack gap="lg">
                         {/* First, so it is never missed below the charts: these failures may be noise. */}
                         <UnstableChecksCard checks={unstable} />
+                        <AgentErrorsCard errors={errors} />
                         <Suspense fallback={null}>
                             <PassRateTrend points={trendPoints} />
                             <TurnTimeTrend points={trendPoints} />

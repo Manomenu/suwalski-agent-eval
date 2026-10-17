@@ -1,4 +1,5 @@
 using System.CommandLine;
+using Suwageval.Cli.AgentErrors;
 using Suwageval.Cli.Cancel;
 using Suwageval.Cli.Compare;
 using Suwageval.Cli.Files;
@@ -48,6 +49,7 @@ internal static class CliApp
             CompareCommand.Create(http, openBrowser),
             RunsCommand.Create(http),
             UnstableCommand.Create(http),
+            AgentErrorsCommand.Create(http),
             VersionsCommand.Create(http, openBrowser),
         };
         // No termination timeout: System.CommandLine would otherwise handle Ctrl+C itself and end the process two seconds later,

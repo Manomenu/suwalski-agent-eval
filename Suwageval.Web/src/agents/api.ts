@@ -36,6 +36,13 @@ export function fetchPassRates(name: string, signal: AbortSignal): Promise<RunPa
     return request<RunPassRates[]>(`${agentPath(name)}/pass-rates`, { signal });
 }
 
+export type AgentError = components["schemas"]["AgentError"];
+
+/** The scenarios where the agent gave no answer, per version, worst first (see `agentErrors.ts`). */
+export function fetchAgentErrors(name: string, signal: AbortSignal): Promise<AgentError[]> {
+    return request<AgentError[]>(`${agentPath(name)}/agent-errors`, { signal });
+}
+
 export function fetchVersion(name: string, versionId: string, signal: AbortSignal): Promise<AgentVersionDetail> {
     return request<AgentVersionDetail>(`${agentPath(name)}/versions/${versionId}`, { signal });
 }

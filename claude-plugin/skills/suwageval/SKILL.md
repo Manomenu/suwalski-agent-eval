@@ -63,6 +63,7 @@ its `/api`. The address is `SUWAGEVAL_URL`, or `--server` on a command; the defa
 | a run's results as JSON | `suwageval results <runId> --json` |
 | list the agent's newest runs | `suwageval runs` (`--limit N`, `--json`) |
 | list the checks that pass in some runs of a version and fail in others | `suwageval unstable` (`--json`): per check `scenarioKey`, `checkKey`, `passedRuns` of `runs`, the version; "No unstable checks." when none |
+| list the scenarios where the agent gave no answer (HTTP error, timeout) | `suwageval agent-errors` (`--json`): per version and scenario `errors` of `samples`, `newestErrorRunId`, `newestError`; "No agent errors." when none. Such samples do not count against checks: an agent that fails here is unreliable itself, not a check to fix |
 | open the comparison of 2 to 5 runs of one agent | `suwageval compare <runId> <runId>...` (the first is the baseline; exit 2 for an unknown run or runs of different agents) |
 | list the agent's versions | `suwageval versions` (`--archived` to include archived ones, `--json`) |
 | archive or restore versions | `suwageval versions archive <versionId>...`, `suwageval versions unarchive <versionId>...` |
