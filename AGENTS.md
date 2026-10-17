@@ -320,7 +320,7 @@ A change to one feature should touch one place on each side.
   change, the `suwageval` command for it (its own folder in `Suwageval.Cli/`, with tests and its
   layer in `ContractsTests.cs`), its line in the plugin (`claude-plugin/skills/suwageval/SKILL.md`,
   and a command in `claude-plugin/commands/` when it takes judgment or confirmation) and its row in
-  the table in [docs/front-doors.md](docs/front-doors.md) (and, when it is a main action, the README's "Front doors" summary).
+  the table in [docs/front-doors.md](docs/front-doors.md).
 - **Queries: SQL by hand, Dapper maps it.** A store writes plain SQL and lets Dapper map the
   rows onto its row records (`connection.QueryAsync<ScenarioRow>(sql, new { suiteId })`).
   Parameters always as `@name`, never concatenated into the text. No ORM (EF Core, linq2db)
