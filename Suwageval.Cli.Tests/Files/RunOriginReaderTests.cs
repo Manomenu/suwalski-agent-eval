@@ -195,8 +195,10 @@ public sealed class RunOriginReaderTests
             Assert.True(Run(work, "push", "-u", "origin", "main"));
             Assert.True(Run(work, "remote", "set-head", "origin", "main"));
             var agentDir = Path.Combine(work, "suwageval");
+            // The real git, but no CI's environment: under GitHub Actions the reader would take the CI's branch instead.
+            var reader = new RunOriginReader(RunOriginReader.RunGit, _ => null);
 
-            var pushed = RunOriginReader.System.Read(agentDir, null);
+            var pushed = reader.Read(agentDir, null);
 
             Assert.NotNull(pushed);
             Assert.Equal("main", pushed.Branch);
@@ -206,13 +208,13 @@ public sealed class RunOriginReaderTests
             Assert.Equal(40, pushed.Commit?.Length);
 
             File.WriteAllText(Path.Combine(agentDir, "agent.yaml"), "name: b\n");
-            var changed = RunOriginReader.System.Read(agentDir, null);
+            var changed = reader.Read(agentDir, null);
             Assert.NotNull(changed);
             Assert.False(changed.Clean);
             Assert.True(changed.Pushed);
 
             Assert.True(Run(work, "commit", "-am", "second"));
-            var local = RunOriginReader.System.Read(agentDir, null);
+            var local = reader.Read(agentDir, null);
             Assert.NotNull(local);
             Assert.True(local.Clean);
             Assert.False(local.Pushed);
