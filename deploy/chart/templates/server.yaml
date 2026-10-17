@@ -32,10 +32,13 @@ spec:
             - name: ASPNETCORE_HTTP_PORTS
               value: {{ .Values.server.port | quote }}
             {{- include "app.judgeEnv" . | nindent 12 }}
-          {{- with .Values.server.databaseSecret }}
+          {{- if or .Values.server.databaseSecret .Values.judgeModel.secret }}
           envFrom:
+            {{- with .Values.server.databaseSecret }}
             - secretRef:
                 name: {{ . }}
+            {{- end }}
+            {{- include "app.judgeEnvFrom" . | nindent 12 }}
           {{- end }}
           # /health nie dotyka niczego poza procesem, więc nadaje się na sondę.
           readinessProbe:

@@ -1,21 +1,32 @@
-# The build context is the solution root for both images, so everything heavy and
-# everything machine-local has to be kept out of it.
-.git
-.github
-.claude
-.vscode
-.artifacts
-docs/
-deploy/
-# The CLI and its tests are not in any image (the server's image takes the contracts it references).
-Suwageval.Cli/
-Suwageval.Cli.Tests/
+# The build context is the solution root for both images. An allowlist: everything is out
+# (so a new top-level folder, a stray file or a secret never reaches a build by accident)
+# and only what the two Dockerfiles COPY comes back in. A file a Dockerfile starts to COPY
+# is added to the list in the same change.
+*
 
+!global.json
+!Directory.Build.props
+!Directory.Packages.props
+!.editorconfig
+!Suwageval.Contracts/
+!Suwageval.Server/
+!Suwageval.Web/
+
+# Inside the allowed folders: build output and caches of the host.
 **/node_modules/
 **/dist/
 **/bin/
 **/obj/
 **/TestResults/
+
+# The web image only builds the app (tsc over tsconfig.app.json, which leaves e2e tests out, and vite):
+# browser tests, their config and their output are not needed.
+Suwageval.Web/e2e/
+**/*.e2e.ts
+**/test-results/
+**/playwright-report/
+**/.vite/
+**/coverage/
 
 # Secrets never enter a build context, let alone an image layer.
 **/.env
