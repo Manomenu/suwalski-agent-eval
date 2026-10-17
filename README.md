@@ -45,16 +45,13 @@ Needs the .NET 10 SDK, `just` and Docker with `docker compose`.
 git clone https://github.com/Manomenu/suwalski-agent-eval && cd suwalski-agent-eval
 just up                                    # Suwageval on http://localhost:8093
 just cli-install                           # the `suwageval` command
-export SUWAGEVAL_URL=http://localhost:8093
 ```
 
 Your agent serves two routes: `GET /suwageval/contract` (what it is) and `POST /suwageval/turn` (its answer to a
 conversation) — see [docs/scenario-format.md](docs/scenario-format.md). Then, in the agent's repository:
 
-```yaml
-# suwageval/agent.yaml
-name: my-agent
-endpointUrl: http://localhost:8000
+```sh
+suwageval init --suwageval-url http://localhost:8093   # suwageval/agent.yaml (asks for the name and the agent's address)
 ```
 
 ```yaml

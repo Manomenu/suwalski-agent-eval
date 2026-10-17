@@ -3,6 +3,7 @@ using Suwageval.Cli.AgentErrors;
 using Suwageval.Cli.Cancel;
 using Suwageval.Cli.Compare;
 using Suwageval.Cli.Files;
+using Suwageval.Cli.Init;
 using Suwageval.Cli.Push;
 using Suwageval.Cli.Recheck;
 using Suwageval.Cli.Rerun;
@@ -39,6 +40,7 @@ internal static class CliApp
         var terminal = new Terminal(input, interactive);
         var root = new RootCommand("Suwageval: the evaluation files of an agent's repository.")
         {
+            InitCommand.Create(terminal),
             ValidateCommand.Create(input, http),
             PushCommand.Create(http),
             RunCommand.Create(terminal, http, origins),

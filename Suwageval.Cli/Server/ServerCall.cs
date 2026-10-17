@@ -7,7 +7,8 @@ internal static class ServerCall
 {
     /// <summary>
     /// Runs <paramref name="action"/> with a client for <c>--server</c> (or the <paramref name="http"/> a test injected, which is not
-    /// disposed) and the site's address; its exit code. A refusal or an unreachable server is written to <paramref name="error"/>
+    /// disposed) and the site's address (<see cref="ServerAddress.Site(string?, string)"/>: the <c>suwagevalUrl</c> of the agent.yaml in
+    /// <paramref name="agentDir"/> counts, a command without a folder looks in <c>./suwageval</c>); its exit code. A refusal or an unreachable server is written to <paramref name="error"/>
     /// and gives <paramref name="failureExit"/>.
     /// </summary>
     public static async Task<int> RunAsync(
@@ -15,12 +16,13 @@ internal static class ServerCall
         HttpClient? http,
         TextWriter error,
         Func<ServerClient, Uri, Task<int>> action,
-        int failureExit = 2
+        int failureExit = 2,
+        string agentDir = AgentFolder.DefaultDir
     )
     {
         ArgumentNullException.ThrowIfNull(error);
         ArgumentNullException.ThrowIfNull(action);
-        var site = ServerAddress.Site(serverOption);
+        var site = ServerAddress.Site(serverOption, agentDir);
         HttpClient? owned = null;
         try
         {
@@ -47,7 +49,9 @@ internal static class ServerCall
     )
     {
         ArgumentNullException.ThrowIfNull(action);
-        var agent = AgentName.Read(dir, error);
-        return agent is null ? 2 : await RunAsync(serverOption, http, error, (client, site) => action(client, agent, site));
+        var agent = AgentReader.Read(dir, error);
+        return agent is null
+            ? 2
+            : await RunAsync(serverOption, http, error, (client, site) => action(client, agent.Definition.Name, site), agentDir: dir);
     }
 }
