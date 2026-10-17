@@ -109,10 +109,15 @@ internal static class RegressionText
         foreach (var item in items)
         {
             var why = withMessage ? FirstFailure(item.Check) : detail?.Invoke(item);
-            var strip = Strip(item.Check, "  ");
-            var line = why is null ? $"  {item.Label}{strip}" : $"  {item.Label.PadRight(width)}{strip}  {why}";
-            text.AppendLine(line);
+            text.AppendLine(Line(item.Label, width, Strip(item.Check, "  "), why));
         }
+    }
+
+    /// <summary>One check of a section: the label padded to the section's widest, so the strips line up, then the strip and the reason.</summary>
+    private static string Line(string label, int width, string strip, string? why)
+    {
+        var line = strip.Length == 0 && why is null ? $"  {label}" : $"  {label.PadRight(width)}{strip}";
+        return why is null ? line : $"{line}  {why}";
     }
 
     /// <summary>

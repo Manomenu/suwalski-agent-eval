@@ -366,6 +366,41 @@ public sealed class RunCommandTests
     }
 
     [Fact]
+    public void The_strips_of_a_section_start_in_one_column_whatever_the_names()
+    {
+        var results = WithSummary(
+            Results(
+                RunStatus.Done,
+                WithState(Check("short", true, "ok"), RegressionState.Fixed, null, true, false, false),
+                WithState(Check("a-much-longer-check-name", true, "ok"), RegressionState.Fixed, null, true, true, false)
+            ),
+            "master"
+        ) with
+        {
+            Regression = new RegressionSummary
+            {
+                ComparedWith = "master",
+                History = 5,
+                Regressions = 0,
+                New = 0,
+                AlreadyBroken = 0,
+                KnownFailures = 0,
+                Fixed = 2,
+                Unstable = 0,
+                AgentErrors = 0,
+            },
+        };
+
+        var (_, output, _, _) = Run((request, _) => Server(request, Summary(RunStatus.Done), results), "--wait");
+
+        var lines = output.ReplaceLineEndings("\n").Split('\n').Where(line => line.Contains(" \u2192 ", StringComparison.Ordinal)).ToList();
+        Assert.Equal(2, lines.Count);
+        Assert.Equal(StripColumn(lines[0]), StripColumn(lines[1]));
+    }
+
+    private static int StripColumn(string line) => line.IndexOf('\u2713', StringComparison.Ordinal);
+
+    [Fact]
     public void Failures_that_are_not_regressions_exit_0_and_known_ones_are_a_count()
     {
         var results = WithSummary(
