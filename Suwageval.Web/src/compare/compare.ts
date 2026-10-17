@@ -116,12 +116,29 @@ export function rowDiffers(row: CheckRow): boolean {
     return row.cells.some((cell) => !sameCell(cell, row.cells[0] ?? null));
 }
 
-/** The runs of a row were judged by different models: two or more distinct known judge models among its cells. */
-export function judgeModelDiffers(row: CheckRow): boolean {
-    const models = new Set(
-        row.cells.flatMap((cell) => (cell?.judgedByModel === true && cell.judgeModel !== null ? [cell.judgeModel] : [])),
-    );
-    return models.size > 1;
+/**
+ * The model that judged a run: one judge serves a whole run, so it is named once, in the run's header. The most common known model
+ * among its model-judged checks (a run straddling a change of configuration is rare); null when no check was judged by a known model.
+ */
+export function runJudgeModel(run: { scenarios: readonly ScenarioRunResult[] }): string | null {
+    const counts = new Map<string, number>();
+    for (const check of run.scenarios.flatMap((scenario) => scenario.checks)) {
+        if (check.judgedByModel && check.judgeModel != null) {
+            counts.set(check.judgeModel, (counts.get(check.judgeModel) ?? 0) + 1);
+        }
+    }
+    let best: string | null = null;
+    for (const [model, count] of counts) {
+        if (best === null || count > (counts.get(best) ?? 0)) {
+            best = model;
+        }
+    }
+    return best;
+}
+
+/** Another judge than the baseline's: both known and different — then the verdicts may differ because of the judge, not the agent. */
+export function judgeChanged(model: string | null, baselineModel: string | null): boolean {
+    return model !== null && baselineModel !== null && model !== baselineModel;
 }
 
 /** Every run has this check, so the runs can be compared on it. */
