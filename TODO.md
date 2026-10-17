@@ -139,3 +139,9 @@ belongs to.
   and the judge's calls are Suwageval's own; show tokens and an estimated cost per run, per scenario and in the trends — samples
   default to 3, so the calls tripled and the cost should be visible. Open questions: the field in contract v1 (an optional
   `usage` on the turn answer), a price table per model (config), the judge's cost shown separately.
+- **A note on a run, editable after it finished.** The only thing worth labelling after it is stored: a version's label comes
+  from the running agent (its contract) and scenario tags from the YAML, so editing them in Suwageval would contradict their
+  source; a run is a record of what happened, and a free-text note says why it was started ("rebuilt the retrieval index",
+  "trying model X"). Shown on the run page, in the runs list and in the comparison; set on the web and with the CLI
+  (`suwageval run --note …`, and a command to change it later). It changes no verdict and no regression state — it is not a
+  baseline mark (that is the manual mode above). Build it when comparing runs shows the missing "why".
