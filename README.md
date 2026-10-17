@@ -23,8 +23,19 @@ agent and diffs any two.
 
 ![Diff of two agent versions](docs/images/version-diff.png)
 
-Also: comparing 2–5 runs side by side, re-checking stored answers after you fix a check, and a Claude Code
-plugin that writes scenarios from a conversation.
+Also: comparing 2–5 runs side by side, and re-checking stored answers after you fix a check.
+
+## Claude Code plugin
+
+Run Suwageval from [Claude Code](https://claude.com/claude-code) in plain words: the plugin sets the CLI up,
+writes scenarios from a conversation, repairs the ones an agent change broke, runs them and explains what failed.
+
+```
+/plugin install suwageval --marketplace Manomenu/suwalski-agent-eval
+```
+
+Then ask, or use `/suwageval:scenario`, `/suwageval:fix`, `/suwageval:run` — see
+[docs/front-doors.md](docs/front-doors.md#use-it-from-claude-code).
 
 ## Quick start
 
