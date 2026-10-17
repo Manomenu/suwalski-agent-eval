@@ -9,21 +9,20 @@ internal static class PassRateTrend
     public const int MaxRuns = 50;
 
     /// <summary>
-    /// Null when the run has no check. <paramref name="tagsOf"/> maps a scenario key to its tags; a scenario it does not know
-    /// (deleted since) counts in the total only.
+    /// Null when the run has no check. <paramref name="verdicts"/> is one entry per check of a scenario (passed by its threshold),
+    /// <paramref name="durations"/> the turn time of every sample that made a call, both with the scenario's key;
+    /// <paramref name="tagsOf"/> maps a scenario key to its tags; a scenario it does not know (deleted since) counts in the total only.
     /// </summary>
     public static (double PassRate, double? MedianMs, double? P95Ms, IReadOnlyList<TagPassRate> Tags)? Rates(
-        RunResults results,
+        IReadOnlyList<(string ScenarioKey, bool Passed)> verdicts,
+        IReadOnlyList<(string ScenarioKey, int DurationMs)> durations,
         IReadOnlyDictionary<string, IReadOnlyList<string>> tagsOf
     )
     {
-        ArgumentNullException.ThrowIfNull(results);
+        ArgumentNullException.ThrowIfNull(verdicts);
+        ArgumentNullException.ThrowIfNull(durations);
         ArgumentNullException.ThrowIfNull(tagsOf);
-        var checks = results
-            .Scenarios.SelectMany(scenario =>
-                scenario.Checks.Select(check => (Tags: tagsOf.GetValueOrDefault(scenario.Key) ?? [], check.Passed))
-            )
-            .ToList();
+        var checks = verdicts.Select(check => (Tags: tagsOf.GetValueOrDefault(check.ScenarioKey) ?? [], check.Passed)).ToList();
         if (checks.Count == 0)
         {
             return null;
@@ -34,18 +33,21 @@ internal static class PassRateTrend
             .Order(StringComparer.Ordinal)
             .Select(tag =>
             {
-                var durations = TurnTimes.Durations(
-                    results.Scenarios.Where(scenario => (tagsOf.GetValueOrDefault(scenario.Key) ?? []).Contains(tag))
-                );
+                List<int> ofTag =
+                [
+                    .. durations
+                        .Where(duration => (tagsOf.GetValueOrDefault(duration.ScenarioKey) ?? []).Contains(tag))
+                        .Select(duration => duration.DurationMs),
+                ];
                 return new TagPassRate(
                     tag,
                     Rate(checks.Where(check => check.Tags.Contains(tag))),
-                    TurnTimes.Median(durations),
-                    TurnTimes.P95(durations)
+                    TurnTimes.Median(ofTag),
+                    TurnTimes.P95(ofTag)
                 );
             })
             .ToList();
-        var all = TurnTimes.Durations(results.Scenarios);
+        List<int> all = [.. durations.Select(duration => duration.DurationMs)];
         return (Rate(checks), TurnTimes.Median(all), TurnTimes.P95(all), tags);
     }
 

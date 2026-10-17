@@ -34,6 +34,21 @@ export function isActive(status: Status): boolean {
     return status === "Queued" || status === "Running";
 }
 
+type Progress = Pick<RunSummary, "status" | "samplesDone" | "samplesTotal" | "cancelRequested">;
+
+/**
+ * While a run goes on the page polls only its summary, and asks for the full results when the summary shows something new since
+ * the results on screen: a sample was stored, the status changed (this covers the final status) or a stop was asked for.
+ */
+export function needsFullResults(shown: Progress, current: Progress): boolean {
+    return (
+        shown.samplesDone !== current.samplesDone ||
+        shown.samplesTotal !== current.samplesTotal ||
+        shown.status !== current.status ||
+        (shown.cancelRequested ?? false) !== (current.cancelRequested ?? false)
+    );
+}
+
 /** "Cancel run" is offered while the run is queued or running, and until a stop was asked for. */
 export function canCancel(run: Pick<RunSummary, "status" | "cancelRequested">): boolean {
     return isActive(run.status) && run.cancelRequested !== true;

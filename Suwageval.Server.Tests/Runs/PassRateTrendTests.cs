@@ -5,66 +5,21 @@ namespace Suwageval.Server.Tests.Runs;
 
 public sealed class PassRateTrendTests
 {
-    private static RunRow Run(RunStatus status, int minute, Guid? recheckOf = null) =>
-        new(
-            Guid.NewGuid(),
-            Guid.NewGuid(),
-            "agent",
-            Guid.NewGuid(),
-            null,
-            "http://agent.test",
-            status.ToString(),
-            null,
-            0,
-            0,
-            0,
-            0,
-            false,
-            false,
-            new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddMinutes(minute),
-            null,
-            null,
-            recheckOf
+    /// <summary>A scenario's contribution: one verdict per given flag and one duration per given value (null: no call, so none).</summary>
+    private sealed record Scenario(string Key, int?[] Durations, bool[] Checks);
+
+    private static Scenario Of(string key, params bool[] checks) => new(key, [], checks);
+
+    private static Scenario Of(string key, int?[] durations, params bool[] checks) => new(key, durations, checks);
+
+    private static (double PassRate, double? MedianMs, double? P95Ms, IReadOnlyList<TagPassRate> Tags)? Rates(
+        params Scenario[] scenarios
+    ) =>
+        PassRateTrend.Rates(
+            [.. scenarios.SelectMany(scenario => scenario.Checks.Select(passed => (scenario.Key, passed)))],
+            [.. scenarios.SelectMany(scenario => scenario.Durations.OfType<int>().Select(duration => (scenario.Key, duration)))],
+            Tags
         );
-
-    private static ScenarioRunResult Scenario(string key, params bool[] checks) => Scenario(key, [], checks);
-
-    private static ScenarioRunResult Scenario(string key, int?[] durations, params bool[] checks) =>
-        new()
-        {
-            Key = key,
-            Revision = 1,
-            Samples =
-            [
-                .. durations.Select(duration => new SampleResult
-                {
-                    Sample = 1,
-                    Status = SampleStatus.Done,
-                    DurationMs = duration,
-                }),
-            ],
-            Checks =
-            [
-                .. checks.Select(
-                    (passed, index) =>
-                        new CheckRunResult
-                        {
-                            Key = $"check-{index}",
-                            Revision = 1,
-                            LatestRevision = 1,
-                            JudgedByModel = false,
-                            Definition = SeededAgent.RefundAfterLookup($"check-{index}", key),
-                            Passed = passed,
-                            PassRate = passed ? 1 : 0,
-                            PassThreshold = 1,
-                            Samples = [],
-                        }
-                ),
-            ],
-        };
-
-    private static RunResults Results(params ScenarioRunResult[] scenarios) =>
-        new() { Run = RunReport.Summary(Run(RunStatus.Done, 0)), Scenarios = scenarios };
 
     private static readonly Dictionary<string, IReadOnlyList<string>> Tags = new()
     {
@@ -75,7 +30,7 @@ public sealed class PassRateTrendTests
     [Fact]
     public void A_check_counts_once_in_the_total_and_in_every_tag_of_its_scenario()
     {
-        var rates = PassRateTrend.Rates(Results(Scenario("a", true, false), Scenario("b", true, true)), Tags);
+        var rates = Rates(Of("a", true, false), Of("b", true, true));
 
         Assert.NotNull(rates);
         Assert.Equal(0.75, rates.Value.PassRate);
@@ -89,7 +44,7 @@ public sealed class PassRateTrendTests
     [Fact]
     public void A_scenario_that_is_gone_counts_in_the_total_only()
     {
-        var rates = PassRateTrend.Rates(Results(Scenario("gone", false), Scenario("b", true)), Tags);
+        var rates = Rates(Of("gone", false), Of("b", true));
 
         Assert.NotNull(rates);
         Assert.Equal(0.5, rates.Value.PassRate);
@@ -97,15 +52,12 @@ public sealed class PassRateTrendTests
     }
 
     [Fact]
-    public void A_run_without_checks_has_no_rates() => Assert.Null(PassRateTrend.Rates(Results(Scenario("a")), Tags));
+    public void A_run_without_checks_has_no_rates() => Assert.Null(Rates(Of("a")));
 
     [Fact]
     public void Turn_time_is_the_median_and_p95_of_the_samples_that_made_a_call()
     {
-        var rates = PassRateTrend.Rates(
-            Results(Scenario("a", [1000, null, 3000], true), Scenario("b", [2000, 20_000], true), Scenario("gone", [500], true)),
-            Tags
-        );
+        var rates = Rates(Of("a", [1000, null, 3000], true), Of("b", [2000, 20_000], true), Of("gone", [500], true));
 
         Assert.NotNull(rates);
         Assert.Equal((2000.0, 20_000.0), (rates.Value.MedianMs, rates.Value.P95Ms));
@@ -118,7 +70,7 @@ public sealed class PassRateTrendTests
     [Fact]
     public void Turn_time_is_null_when_no_sample_made_a_call()
     {
-        var rates = PassRateTrend.Rates(Results(Scenario("a", [null], true)), Tags);
+        var rates = Rates(Of("a", [null], true));
 
         Assert.NotNull(rates);
         Assert.Null(rates.Value.MedianMs);

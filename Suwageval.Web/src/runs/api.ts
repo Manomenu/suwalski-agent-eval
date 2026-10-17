@@ -27,6 +27,11 @@ export function fetchRunResults(runId: string, signal: AbortSignal): Promise<Run
     return request<RunResults>(`/runs/${runId}/results`, { signal });
 }
 
+/** The small summary of a run: what the page polls while the run goes on, instead of the full results. */
+export function fetchRunSummary(runId: string, signal: AbortSignal): Promise<RunSummary> {
+    return request<RunSummary>(`/runs/${runId}`, { signal });
+}
+
 /** Asks the server to stop the run: a queued one is cancelled at once, a running one when its samples in flight are done. */
 export function cancelRun(runId: string): Promise<void> {
     return request<undefined>(`/runs/${runId}/cancel`, { method: "POST" }).then(() => undefined);
