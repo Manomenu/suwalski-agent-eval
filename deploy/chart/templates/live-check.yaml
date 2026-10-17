@@ -8,9 +8,9 @@ Discord webhook is configured, posts to the alerts channel.
 The same image as the server, another command. Right now, without waiting for the schedule:
   kubectl -n <namespace> create job --from=cronjob/<release>-live-check <release>-live-check-now
 
-Rendered only when a judge model is configured: with none there is nothing to ask.
+Rendered only when a judge model is configured (judgeModel.baseUrl or judgeModel.secret): with none there is nothing to ask.
 */ -}}
-{{- if .Values.judgeModel.baseUrl }}
+{{- if or .Values.judgeModel.baseUrl .Values.judgeModel.secret }}
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -47,12 +47,15 @@ spec:
               args: ["live-check"]
               env:
                 {{- include "app.judgeEnv" . | nindent 16 }}
-              {{- with .Values.liveCheck.discordSecret }}
+              {{- if or .Values.liveCheck.discordSecret .Values.judgeModel.secret }}
               envFrom:
+                {{- with .Values.liveCheck.discordSecret }}
                 # Optional: without it the check still runs, it just tells nobody.
                 - secretRef:
                     name: {{ . }}
                     optional: true
+                {{- end }}
+                {{- include "app.judgeEnvFrom" . | nindent 16 }}
               {{- end }}
               resources:
                 {{- toYaml .Values.liveCheck.resources | nindent 16 }}

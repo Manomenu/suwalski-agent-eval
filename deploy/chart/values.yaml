@@ -20,13 +20,17 @@ server:
     limits: { memory: 384Mi }
 
 # The model Suwageval itself calls to give the verdicts of `judge` checks: an OpenAI-compatible
-# server (its endpoints directly under baseUrl, e.g. {baseUrl}/chat/completions). Not secrets: a
-# URL and a name; the platform repo sets them. Empty baseUrl = no model: the server starts, and a run
-# with judge checks is refused. maxConcurrency is the one pool of calls to this model, shared by
-# everything that asks (TODO.md, "Parallel runs").
+# server (its endpoints directly under baseUrl, e.g. {baseUrl}/chat/completions). Empty baseUrl and
+# secret = no model: the server starts, and a run with judge checks is refused. maxConcurrency is the
+# one pool of calls to this model, shared by everything that asks (TODO.md, "Parallel runs").
+# The address of a private model server does not belong in a public repo, so on the cluster use
+# `secret`: a Secret in the release namespace with Models__judge__BaseUrl and Models__judge__Model,
+# created by the platform repo's setup.sh; the server and the live check read it through envFrom and
+# baseUrl/name are then ignored. baseUrl/name are the plain-values way, for a model that may be public.
 judgeModel:
   baseUrl: ""
   name: ""
+  secret: ""
   maxConcurrency: 8
 
 # The daily check of that model from the cluster's own network (templates/live-check.yaml): the
