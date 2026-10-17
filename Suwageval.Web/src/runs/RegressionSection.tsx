@@ -1,5 +1,5 @@
-import { Anchor, Collapse, Group, List, Paper, Stack, Text, Title } from "@mantine/core";
-import { useState } from "react";
+import { Anchor, Group, Paper, Stack, Text, Title } from "@mantine/core";
+import { Fragment, useState } from "react";
 
 import type { RunResults } from "./api";
 import { comparedWithHeading, groupChecks, historyText, compareLink, stateLabel, statedChecks, type StatedCheck } from "./regression";
@@ -7,18 +7,20 @@ import { CheckHistory } from "./CheckHistory";
 import { checkAnchor, runHref, shortId } from "./results";
 import { StateBadge } from "./StateBadge";
 
-/** What a check's state says about it: since when it fails, and what to compare with. */
+/** What a check's state says about it: its name, its history strip, then since when it fails and what to compare with. One cell each, so the columns line up. */
 function CheckLine({ item, runId }: { item: StatedCheck; runId: string }) {
     const regression = item.check.regression;
     const compare = compareLink(runId, regression);
     const failingSince = regression?.failingSince;
     return (
-        <List.Item>
-            <Group gap="xs">
-                <Anchor href={`#${checkAnchor(item.scenarioKey, item.check.key)}`} fw={600} c="inherit">
-                    {item.scenarioKey} / {item.check.key}
-                </Anchor>
+        <li className="regression-checks-row">
+            <Anchor href={`#${checkAnchor(item.scenarioKey, item.check.key)}`} fw={600} c="inherit">
+                {item.scenarioKey} / {item.check.key}
+            </Anchor>
+            <div>
                 <CheckHistory check={item.check} />
+            </div>
+            <Group gap="xs">
                 {failingSince != null && (
                     <Text span c="dimmed">
                         failing since <Anchor href={runHref(failingSince)}>run {shortId(failingSince)}</Anchor>
@@ -26,7 +28,7 @@ function CheckLine({ item, runId }: { item: StatedCheck; runId: string }) {
                 )}
                 {compare !== null && <Anchor href={compare.href}>{compare.label}</Anchor>}
             </Group>
-        </List.Item>
+        </li>
     );
 }
 
@@ -34,8 +36,8 @@ function CheckLine({ item, runId }: { item: StatedCheck; runId: string }) {
 function KnownFailures({ known, runId }: { known: readonly StatedCheck[]; runId: string }) {
     const [opened, setOpened] = useState(false);
     return (
-        <Stack gap="xs">
-            <Group gap="xs">
+        <>
+            <Group gap="xs" className="regression-checks-heading">
                 <StateBadge state="KnownFailure" variant="light">
                     {stateLabel("KnownFailure")}
                 </StateBadge>
@@ -46,14 +48,14 @@ function KnownFailures({ known, runId }: { known: readonly StatedCheck[]; runId:
                     {opened ? "hide" : "show"}
                 </Anchor>
             </Group>
-            <Collapse expanded={opened}>
-                <List listStyleType="none" spacing="xs" ml="md">
+            {opened && (
+                <ul className="regression-checks-group">
                     {known.map((item) => (
                         <CheckLine key={`${item.scenarioKey}/${item.check.key}`} item={item} runId={runId} />
                     ))}
-                </List>
-            </Collapse>
-        </Stack>
+                </ul>
+            )}
+        </>
     );
 }
 
@@ -70,24 +72,26 @@ export function RegressionSection({ results }: { results: RunResults }) {
                 <Text c="dimmed" size="sm">
                     {historyText(summary)}
                 </Text>
-                {groups.groups.map((group) => (
-                    <Stack key={group.state} gap="xs">
-                        <Group gap="xs">
-                            <StateBadge state={group.state} variant="light">
-                                {stateLabel(group.state)}
-                            </StateBadge>
-                            <Text span c="dimmed">
-                                ({group.checks.length})
-                            </Text>
-                        </Group>
-                        <List listStyleType="none" spacing="xs" ml="md">
-                            {group.checks.map((item) => (
-                                <CheckLine key={`${item.scenarioKey}/${item.check.key}`} item={item} runId={runId} />
-                            ))}
-                        </List>
-                    </Stack>
-                ))}
-                {groups.known.length > 0 && <KnownFailures known={groups.known} runId={runId} />}
+                <div className="regression-checks">
+                    {groups.groups.map((group) => (
+                        <Fragment key={group.state}>
+                            <Group gap="xs" className="regression-checks-heading">
+                                <StateBadge state={group.state} variant="light">
+                                    {stateLabel(group.state)}
+                                </StateBadge>
+                                <Text span c="dimmed">
+                                    ({group.checks.length})
+                                </Text>
+                            </Group>
+                            <ul className="regression-checks-group">
+                                {group.checks.map((item) => (
+                                    <CheckLine key={`${item.scenarioKey}/${item.check.key}`} item={item} runId={runId} />
+                                ))}
+                            </ul>
+                        </Fragment>
+                    ))}
+                    {groups.known.length > 0 && <KnownFailures known={groups.known} runId={runId} />}
+                </div>
             </Stack>
         </Paper>
     );

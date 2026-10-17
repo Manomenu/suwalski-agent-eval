@@ -101,3 +101,44 @@
         background-color: transparent;
     }
 }
+
+/* The run page's "Compared with" section: one grid for all groups, so the check names, the history strips and the extras
+   (failing since, compare link) line up in columns across the groups. Below 600px each check wraps into lines of its own. */
+.regression-checks {
+    display: grid;
+    grid-template-columns: max-content max-content minmax(0, 1fr);
+    column-gap: var(--mantine-spacing-md);
+    row-gap: var(--mantine-spacing-xs);
+}
+
+.regression-checks-heading {
+    grid-column: 1 / -1;
+}
+
+.regression-checks-group {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: subgrid;
+    row-gap: var(--mantine-spacing-xs);
+    list-style: none;
+    margin: 0;
+    padding: 0 0 0 var(--mantine-spacing-md);
+}
+
+.regression-checks-row {
+    display: contents;
+}
+
+@media (max-width: 600px) {
+    .regression-checks,
+    .regression-checks-group {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .regression-checks-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--mantine-spacing-xs) var(--mantine-spacing-md);
+    }
+}

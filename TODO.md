@@ -130,3 +130,12 @@ belongs to.
   last `state.changed` event before it, read from the log, not stamped on the call. A check can
   then say `where: { state: { node: awaiting_payment } }` — one source of truth, nothing the
   agent has to repeat on every call. Built with its first user.
+
+- **Judge control.** A person can mark a model-judged verdict (a `judge` check or a `$judge` matcher) as wrong on the run
+  page; Suwageval keeps these marks and shows how often the judge is wrong per check and per criteria, so a `judge` check can
+  be trusted or its criteria fixed. Open questions: where the mark lives (per sample verdict), whether a marked verdict changes
+  the run's result (probably not — a separate "judge accuracy" view), and the CLI parity (a command to mark and to list).
+- **Cost and tokens per run.** The agent's contract could report token usage per turn (an optional field in the turn answer),
+  and the judge's calls are Suwageval's own; show tokens and an estimated cost per run, per scenario and in the trends — samples
+  default to 3, so the calls tripled and the cost should be visible. Open questions: the field in contract v1 (an optional
+  `usage` on the turn answer), a price table per model (config), the judge's cost shown separately.
