@@ -1,3 +1,5 @@
+{{- /* Everything renders only while the release is enabled (values.yaml, enabled). */ -}}
+{{- if .Values.enabled }}
 {{- /*
 The daily check of the judge's model, from the cluster's own network (Suwageval.Server/Judges/JudgeLiveCheck.cs): one
 judge call with a fixed tiny case, through the production code and the production model settings. The model is not ours and
@@ -59,4 +61,5 @@ spec:
               {{- end }}
               resources:
                 {{- toYaml .Values.liveCheck.resources | nindent 16 }}
+{{- end }}
 {{- end }}
