@@ -48,6 +48,10 @@ export interface CheckCell {
     samples: number;
     /** Samples the judge could not judge (its model down, an unreadable answer): counted as failed, but not a verdict. */
     notJudged: number;
+    /** A model gave this run's verdicts of the check. */
+    judgedByModel: boolean;
+    /** The model that judged it in this run; null when unknown (a run from before the name was recorded). */
+    judgeModel: string | null;
 }
 
 export function cellOf(check: CheckRunResult): CheckCell {
@@ -57,6 +61,8 @@ export function cellOf(check: CheckRunResult): CheckCell {
         passes: check.samples.filter((sample) => sample.passed).length,
         samples: check.samples.length,
         notJudged: notJudgedCount(check),
+        judgedByModel: check.judgedByModel,
+        judgeModel: check.judgeModel ?? null,
     };
 }
 
@@ -108,6 +114,14 @@ function sameCell(a: CheckCell | null, b: CheckCell | null): boolean {
 /** The runs differ on this check: a cell differs from another, and a check missing from some runs is a difference too. */
 export function rowDiffers(row: CheckRow): boolean {
     return row.cells.some((cell) => !sameCell(cell, row.cells[0] ?? null));
+}
+
+/** The runs of a row were judged by different models: two or more distinct known judge models among its cells. */
+export function judgeModelDiffers(row: CheckRow): boolean {
+    const models = new Set(
+        row.cells.flatMap((cell) => (cell?.judgedByModel === true && cell.judgeModel !== null ? [cell.judgeModel] : [])),
+    );
+    return models.size > 1;
 }
 
 /** Every run has this check, so the runs can be compared on it. */

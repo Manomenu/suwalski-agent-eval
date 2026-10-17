@@ -31,7 +31,8 @@ internal static class CheckEvaluation
             verdict.Passed,
             JsonSerializer.Serialize(verdict.Evidence, ContractJson.Options),
             verdict.Message,
-            verdict.NotJudged
+            verdict.NotJudged,
+            verdict.ModelName
         );
     }
 

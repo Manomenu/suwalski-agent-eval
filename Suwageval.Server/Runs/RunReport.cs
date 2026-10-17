@@ -89,6 +89,11 @@ internal static class RunReport
             LatestRevision = rows[0].LatestRevision,
             Definition = definition,
             JudgedByModel = CheckEvaluator.JudgedByModel(definition),
+            JudgeModel = rows.Where(row => row.JudgeModel is not null)
+                .GroupBy(row => row.JudgeModel)
+                .OrderByDescending(group => group.Count())
+                .Select(group => group.Key)
+                .FirstOrDefault(),
             Passed = Reaches(passed, rows.Count, threshold),
             PassRate = passRate,
             PassThreshold = threshold,

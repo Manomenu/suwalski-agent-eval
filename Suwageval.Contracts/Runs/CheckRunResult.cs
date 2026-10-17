@@ -19,6 +19,9 @@ public sealed record CheckRunResult
     /// <summary>Whether a model gives the verdict of the check: a <c>judge</c> check, or one with a <c>$judge</c> matcher.</summary>
     public required bool JudgedByModel { get; init; }
 
+    /// <summary>The model that gave the verdicts of the samples: the most common name among them (the first in sample order on a tie); null for a deterministic check and for runs made before the name was recorded.</summary>
+    public string? JudgeModel { get; init; }
+
     /// <summary>True when <see cref="PassRate"/> reaches <see cref="PassThreshold"/>.</summary>
     public required bool Passed { get; init; }
 

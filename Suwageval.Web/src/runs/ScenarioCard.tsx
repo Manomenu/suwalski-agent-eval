@@ -73,7 +73,7 @@ export function ScenarioCard({
                                     </Badge>
                                 )}
                                 <Text fw={600}>{check.key}</Text>
-                                {check.judgedByModel && <ModelJudgedIcon />}
+                                {check.judgedByModel && <ModelJudgedIcon model={check.judgeModel} />}
                                 {unstableCheck !== undefined && <UnstableCheckIcon label={unstableTooltip(unstableCheck)} />}
                                 <CheckDefinitionButton
                                     definition={check.definition}

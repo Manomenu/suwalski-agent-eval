@@ -17,6 +17,7 @@ import {
     checkOfRow,
     checksPassedText,
     delta,
+    judgeModelDiffers,
     deltaText,
     tagRows,
     TIME_DELTA_HELP,
@@ -193,7 +194,11 @@ export function CompareTable({ comparison, firstBaseline }: { comparison: Compar
                                             </Text>
                                             <Group gap={4} wrap="nowrap">
                                                 <Text>{row.checkKey}</Text>
-                                                {check !== null && check.judgedByModel && <ModelJudgedIcon />}
+                                                {judgeModelDiffers(row) && (
+                                                    <Badge size="xs" variant="light" color="orange">
+                                                        judge model differs
+                                                    </Badge>
+                                                )}
                                                 {unstableIn.length > 0 && <UnstableCheckIcon label={unstableRowTooltip(unstableIn)} />}
                                                 {check !== null && (
                                                     <CheckDefinitionButton
@@ -237,6 +242,7 @@ function CheckCellView({ cell, baseline }: { cell: CheckCell | null; baseline: C
                 <Text size="sm" fw={700} c={trendColor(change)}>
                     {trendMarker(change)}
                 </Text>
+                {cell?.judgedByModel === true && <ModelJudgedIcon model={cell.judgeModel} />}
             </Group>
         </Table.Td>
     );

@@ -39,8 +39,8 @@ internal static class JudgeModel
     }
 
     /// <summary>The verdict of a check the model could not judge: failed, flagged, with the reason after the "Not judged:" prefix.</summary>
-    public static CheckVerdict NotJudged(IReadOnlyList<ConversationItem> evidence, string why) =>
-        new(false, evidence, $"Not judged: {why}.", NotJudged: true);
+    public static CheckVerdict NotJudged(IReadOnlyList<ConversationItem> evidence, string why, string? modelName = null) =>
+        new(false, evidence, $"Not judged: {why}.", NotJudged: true, ModelName: modelName);
 
     public static string Shorten(string text)
     {

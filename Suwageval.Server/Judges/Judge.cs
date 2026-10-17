@@ -34,6 +34,9 @@ internal sealed class Judge(ModelClients models, IOptions<JudgeOptions> options)
     /// <summary>Whether judge checks can run: <c>Judge:Model</c> names a model that is configured under <c>Models</c>.</summary>
     public bool IsConfigured => options.Value.Model is { Length: > 0 } model && models.Has(model);
 
+    /// <summary>The name of the model that gives the verdicts (<c>Models:&lt;Judge:Model&gt;:Model</c>); null when none is configured.</summary>
+    public string? ModelName => options.Value.Model is { Length: > 0 } model ? models.ModelNameOf(model) : null;
+
     [SuppressMessage(
         "Design",
         "CA1031:Do not catch general exception types",
@@ -71,16 +74,17 @@ internal sealed class Judge(ModelClients models, IOptions<JudgeOptions> options)
         }
         catch (Exception error)
         {
-            return NotJudged(scope, $"the judge model could not be asked ({JudgeModel.Shorten(error.Message)})");
+            return NotJudged(scope, $"the judge model could not be asked ({JudgeModel.Shorten(error.Message)})", ModelName);
         }
 
         var answer = Read(text);
         return answer is null
-            ? NotJudged(scope, $"the judge model's answer is not the JSON asked for ({JudgeModel.Shorten(text)})")
+            ? NotJudged(scope, $"the judge model's answer is not the JSON asked for ({JudgeModel.Shorten(text)})", ModelName)
             : new CheckVerdict(
                 answer.Passed,
                 scope.Items,
-                string.IsNullOrWhiteSpace(answer.Reason) ? "The judge gave no reason." : answer.Reason
+                string.IsNullOrWhiteSpace(answer.Reason) ? "The judge gave no reason." : answer.Reason,
+                ModelName: ModelName
             );
     }
 
@@ -116,5 +120,6 @@ internal sealed class Judge(ModelClients models, IOptions<JudgeOptions> options)
     private static string Lines(IReadOnlyList<ConversationItem> items) =>
         items.Count == 0 ? "(nothing)" : string.Join('\n', items.Select(item => JsonSerializer.Serialize(item, Json)));
 
-    private static CheckVerdict NotJudged(CheckScope scope, string why) => JudgeModel.NotJudged(scope.Items, why);
+    private static CheckVerdict NotJudged(CheckScope scope, string why, string? modelName = null) =>
+        JudgeModel.NotJudged(scope.Items, why, modelName);
 }

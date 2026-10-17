@@ -357,11 +357,14 @@ internal static class RunEndpoints
         ScenarioStore scenarios,
         CheckStore checks,
         RunStore runs,
+        Judge judge,
         CancellationToken cancellationToken
     )
     {
         var planned = await PlanRecheckAsync(id, agents, scenarios, checks, runs, cancellationToken);
-        return planned is null ? ProblemResults.NotFound("Run", id.ToString()) : Results.Ok(planned.Plan);
+        return planned is null
+            ? ProblemResults.NotFound("Run", id.ToString())
+            : Results.Ok(planned.Plan with { JudgeModel = judge.ModelName });
     }
 
     /// <summary>

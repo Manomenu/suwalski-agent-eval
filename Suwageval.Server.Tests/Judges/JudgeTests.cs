@@ -93,6 +93,19 @@ public sealed class JudgeTests
         Assert.False(judge.IsConfigured);
         Assert.True(verdict.NotJudged);
         Assert.Empty(model.Requests);
+        Assert.Null(judge.ModelName);
+        Assert.Null(verdict.ModelName);
+    }
+
+    [Fact]
+    public async Task The_verdict_names_the_model_that_was_asked()
+    {
+        var judge = RecordedModel.JudgeAnswering("passed.json");
+
+        var verdict = await judge.JudgeAsync(PoliteRefusal, Conversation, Turn(Output), Cancellation);
+
+        Assert.Equal("recorded", judge.ModelName);
+        Assert.Equal("recorded", verdict.ModelName);
     }
 
     [Fact]

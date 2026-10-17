@@ -273,8 +273,8 @@ internal sealed class RunStore(Pool pool)
             await connection.ExecuteAsync(
                 new CommandDefinition(
                     """
-                    INSERT INTO check_results (scenario_result_id, check_id, check_revision, passed, not_judged, evidence, message)
-                    VALUES (@resultId, @checkId, @checkRevision, @passed, @notJudged, @evidenceJson::jsonb, @message)
+                    INSERT INTO check_results (scenario_result_id, check_id, check_revision, passed, not_judged, judge_model, evidence, message)
+                    VALUES (@resultId, @checkId, @checkRevision, @passed, @notJudged, @judgeModel, @evidenceJson::jsonb, @message)
                     """,
                     new
                     {
@@ -283,6 +283,7 @@ internal sealed class RunStore(Pool pool)
                         checkRevision = check.CheckRevision,
                         passed = check.Passed,
                         notJudged = check.NotJudged,
+                        judgeModel = check.JudgeModel,
                         evidenceJson = check.EvidenceJson,
                         message = check.Message,
                     },
@@ -399,7 +400,7 @@ internal sealed class RunStore(Pool pool)
                        (SELECT MAX(latest.revision) FROM check_revisions latest WHERE latest.check_id = cr.check_id) AS LatestRevision,
                        rev.content::text AS Definition,
                        COALESCE((rev.content->>'passThreshold')::float8, 1.0) AS PassThreshold,
-                       cr.passed, cr.not_judged AS NotJudged, cr.evidence::text AS Evidence, cr.message, cr.check_id AS CheckId
+                       cr.passed, cr.not_judged AS NotJudged, cr.evidence::text AS Evidence, cr.message, cr.check_id AS CheckId, cr.judge_model AS JudgeModel
                 FROM check_results cr
                 JOIN scenario_results sr ON sr.id = cr.scenario_result_id
                 JOIN checks c ON c.id = cr.check_id
