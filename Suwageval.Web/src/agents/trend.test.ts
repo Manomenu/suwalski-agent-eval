@@ -16,6 +16,7 @@ import {
     trendRows,
     trendSeries,
     turnTimeMeasure,
+    versionChanges,
     withTurnTimes,
 } from "./trend";
 
@@ -157,5 +158,32 @@ describe("turn time", () => {
             [3.7, null],
             [null, null],
         ]);
+    });
+});
+
+describe("versionChanges", () => {
+    it("marks each charted run whose version differs from the run before it, named by its label or the start of its id", () => {
+        const runs = [
+            { ...point("r1", 1, []), agentVersionId: "aaaaaaaa-1" },
+            { ...point("r2", 1, []), agentVersionId: "aaaaaaaa-1" },
+            { ...point("r3", 1, [], null), agentVersionId: "bbbbbbbb-2" },
+            { ...point("r4", 1, [], "v3"), agentVersionId: "cccccccc-3" },
+        ];
+
+        expect(versionChanges(runs, trendRows(runs))).toEqual([
+            { runId: "r3", label: "bbbbbbbb" },
+            { runId: "r4", label: "v3" },
+        ]);
+    });
+
+    it("compares only the runs the chart shows", () => {
+        const runs = [
+            { ...point("r1", 1, []), agentVersionId: "a" },
+            { ...point("r2", 1, []), agentVersionId: "b" },
+            { ...point("r3", 1, []), agentVersionId: "a" },
+        ];
+        const charted = trendRows(runs).filter((row) => row[RUN_KEY] !== "r2");
+
+        expect(versionChanges(runs, charted)).toEqual([]);
     });
 });

@@ -1,5 +1,5 @@
 import type { RunPassRates } from "./api";
-import { percentValue, seconds } from "../runs/results";
+import { percentValue, seconds, versionTitle } from "../runs/results";
 
 /** The series of every run's rate over all checks. */
 export const ALL_SERIES = "All";
@@ -117,4 +117,19 @@ export function hasRechecks(points: readonly RunPassRates[]): boolean {
 /** The series a run measured, in the legend's order: a line passing over a run that did not measure it shows no value there. */
 export function measuredSeries(row: TrendRow, series: readonly string[]): string[] {
     return series.filter((name) => typeof row[name] === "number");
+}
+
+/** A run of the chart whose agent version differs from the run before it: where a line marks the change. */
+export interface VersionChange {
+    runId: string;
+    label: string;
+}
+
+/** The runs of `rows` (oldest first) that start a new agent version, with the version's name; none for the first run. */
+export function versionChanges(points: readonly RunPassRates[], rows: readonly TrendRow[]): VersionChange[] {
+    const charted = new Set(rows.map((row) => row[RUN_KEY]));
+    const shown = points.filter((point) => charted.has(point.runId));
+    return shown
+        .filter((point, i) => i > 0 && shown[i - 1]?.agentVersionId !== point.agentVersionId)
+        .map((point) => ({ runId: point.runId, label: versionTitle(point.agentVersionId, point.versionLabel) }));
 }

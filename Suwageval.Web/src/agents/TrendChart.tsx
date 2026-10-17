@@ -15,6 +15,7 @@ import {
     measuredSeries,
     seriesColor,
     toggleHidden,
+    versionChanges,
     type TrendRow,
 } from "./trend";
 import { runHref } from "../runs/results";
@@ -43,13 +44,25 @@ export function TrendChart({
     // The series the user switched off through the legend.
     const [hidden, setHidden] = useState<ReadonlySet<string>>(new Set());
     const shown = names.filter((name) => !hidden.has(name));
+    // The x axis is keyed by run (two runs can share a minute); its ticks show the run's short date.
+    const labelOf = new Map(rows.map((row) => [row[RUN_KEY], row[LABEL_KEY]]));
+    const changes = versionChanges(points, rows);
+    const newVersionOf = new Map(changes.map((change) => [change.runId, change.label]));
 
     return (
         <Stack gap="sm">
             <LineChart
                 h={TREND_HEIGHT}
                 data={rows}
-                dataKey={LABEL_KEY}
+                dataKey={RUN_KEY}
+                xAxisProps={{ tickFormatter: (runId: string) => String(labelOf.get(runId) ?? "") }}
+                referenceLines={changes.map((change) => ({
+                    x: change.runId,
+                    label: change.label,
+                    labelPosition: "insideTopLeft",
+                    color: "gray.6",
+                    strokeDasharray: "4 4",
+                }))}
                 series={shown.map((name) => ({ name, color: seriesColor(name, names) }))}
                 curveType="linear"
                 connectNulls
@@ -75,6 +88,11 @@ export function TrendChart({
                                 <Text size="xs" c="dimmed">
                                     {row[DETAILS_KEY]}
                                 </Text>
+                                {typeof row[RUN_KEY] === "string" && newVersionOf.has(row[RUN_KEY]) && (
+                                    <Text size="xs" fw={600}>
+                                        New agent version from this run: {newVersionOf.get(row[RUN_KEY])}
+                                    </Text>
+                                )}
                                 {typeof row[RECHECK_KEY] === "string" && (
                                     <Text size="xs" c="dimmed">
                                         Re-checked: these are the results of its latest re-check
