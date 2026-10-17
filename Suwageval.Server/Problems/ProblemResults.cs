@@ -13,6 +13,10 @@ internal static class ProblemResults
             detail: $"There is no {what.ToLowerInvariant()} '{name}'."
         );
 
+    /// <summary>409: the request is fine but the state of the thing does not allow it.</summary>
+    public static IResult Conflict(string title, string detail) =>
+        Results.Problem(title: title, detail: detail, statusCode: StatusCodes.Status409Conflict);
+
     /// <summary>422 with <c>errors</c>: field name to its messages.</summary>
     public static IResult Invalid(IEnumerable<FieldError> errors) =>
         Results.ValidationProblem(

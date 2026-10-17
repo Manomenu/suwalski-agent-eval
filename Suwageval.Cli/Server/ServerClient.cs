@@ -170,6 +170,42 @@ internal sealed class ServerClient(HttpClient http)
             cancellationToken
         );
 
+    /// <summary>What deleting the agent would remove; the server answers like the deletion would (409 for an agent with a run in progress).</summary>
+    public Task<AgentDeletion> AgentDeletionAsync(string agent, CancellationToken cancellationToken) =>
+        SendAsync<AgentDeletion>(
+            () => http.GetAsync(new Uri($"agents/{Uri.EscapeDataString(agent)}/deletion", UriKind.Relative), cancellationToken),
+            cancellationToken
+        );
+
+    /// <summary>Deletes the agent with its versions, scenarios, checks, runs, samples and verdicts.</summary>
+    public Task DeleteAgentAsync(string agent, CancellationToken cancellationToken) =>
+        SendAsync(
+            () => http.DeleteAsync(new Uri($"agents/{Uri.EscapeDataString(agent)}", UriKind.Relative), cancellationToken),
+            cancellationToken
+        );
+
+    /// <summary>What deleting the version would remove; the server answers like the deletion would (409 for a version that is not archived or has a run in progress).</summary>
+    public Task<VersionDeletion> VersionDeletionAsync(string agent, Guid versionId, CancellationToken cancellationToken) =>
+        SendAsync<VersionDeletion>(
+            () =>
+                http.GetAsync(
+                    new Uri($"agents/{Uri.EscapeDataString(agent)}/versions/{versionId}/deletion", UriKind.Relative),
+                    cancellationToken
+                ),
+            cancellationToken
+        );
+
+    /// <summary>Deletes an archived version with its runs, samples and verdicts.</summary>
+    public Task DeleteVersionAsync(string agent, Guid versionId, CancellationToken cancellationToken) =>
+        SendAsync(
+            () =>
+                http.DeleteAsync(
+                    new Uri($"agents/{Uri.EscapeDataString(agent)}/versions/{versionId}", UriKind.Relative),
+                    cancellationToken
+                ),
+            cancellationToken
+        );
+
     private static async Task<T> SendAsync<T>(Func<Task<HttpResponseMessage>> send, CancellationToken cancellationToken) =>
         await ReadAsync(send, response => ReadBodyAsync<T>(response, cancellationToken), cancellationToken);
 

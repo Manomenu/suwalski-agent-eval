@@ -276,4 +276,123 @@ public sealed class VersionsCommandTests
         Assert.Contains("two different versions", error, StringComparison.Ordinal);
         Assert.Empty(api.Calls);
     }
+
+    private static HttpResponseMessage Preview() =>
+        new(HttpStatusCode.OK)
+        {
+            Content = new StringContent(
+                JsonSerializer.Serialize(new VersionDeletion(Archived, 3, 12, 36, "old"), ContractJson.Options),
+                Encoding.UTF8,
+                "application/json"
+            ),
+        };
+
+    private static HttpResponseMessage DeleteAnswer(HttpRequestMessage request) =>
+        request.Method == HttpMethod.Delete ? new HttpResponseMessage(HttpStatusCode.NoContent) : Preview();
+
+    private static (int Exit, string Output, string Error, FakeApi Api) Delete(
+        Func<HttpRequestMessage, HttpResponseMessage> answer,
+        string typed,
+        bool interactive,
+        params string[] args
+    )
+    {
+        var api = new FakeApi(answer);
+        using var http = new HttpClient(api, disposeHandler: false) { BaseAddress = new Uri("http://api.test/") };
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        var exit = CliApp.Run(
+            ["versions", "delete", Archived.ToString(), .. args, "--dir", Sample],
+            new StringReader(typed),
+            output,
+            error,
+            http,
+            interactive: interactive
+        );
+        return (exit, output.ToString(), error.ToString(), api);
+    }
+
+    [Fact]
+    public void Delete_dry_run_prints_what_would_go_and_deletes_nothing()
+    {
+        var (exit, output, error, api) = Delete(DeleteAnswer, "", interactive: true, "--dry-run");
+
+        Assert.Equal(0, exit);
+        Assert.Empty(error);
+        Assert.Contains("would delete: 3 run(s), 12 sample(s), 36 verdict(s)", output, StringComparison.Ordinal);
+        var call = Assert.Single(api.Calls);
+        Assert.Equal((HttpMethod.Get, $"/agents/example-agent/versions/{Archived}/deletion"), (call.Method, call.Path));
+    }
+
+    [Fact]
+    public void Delete_with_yes_deletes_without_asking()
+    {
+        var (exit, output, _, api) = Delete(DeleteAnswer, "", interactive: false, "--yes");
+
+        Assert.Equal(0, exit);
+        Assert.Contains($"deleted version {Archived}", output, StringComparison.Ordinal);
+        Assert.Equal(
+            [
+                (HttpMethod.Get, $"/agents/example-agent/versions/{Archived}/deletion"),
+                (HttpMethod.Delete, $"/agents/example-agent/versions/{Archived}"),
+            ],
+            api.Calls.Select(call => (call.Method, call.Path))
+        );
+    }
+
+    [Fact]
+    public void Delete_without_a_terminal_and_without_yes_exits_1_and_deletes_nothing()
+    {
+        var (exit, _, error, api) = Delete(DeleteAnswer, $"{Archived}\n", interactive: false);
+
+        Assert.Equal(1, exit);
+        Assert.Contains("--yes", error, StringComparison.Ordinal);
+        Assert.DoesNotContain(api.Calls, call => call.Method == HttpMethod.Delete);
+    }
+
+    [Fact]
+    public void Delete_in_a_terminal_deletes_when_the_id_is_typed()
+    {
+        var (exit, output, _, api) = Delete(DeleteAnswer, $"{Archived}\n", interactive: true);
+
+        Assert.Equal(0, exit);
+        Assert.Contains("Type the version id to confirm", output, StringComparison.Ordinal);
+        Assert.Contains(api.Calls, call => call.Method == HttpMethod.Delete);
+    }
+
+    [Theory]
+    [InlineData("yes\n")]
+    [InlineData("\n")]
+    [InlineData("")]
+    public void Delete_in_a_terminal_with_anything_but_the_id_exits_1_and_deletes_nothing(string typed)
+    {
+        var (exit, _, error, api) = Delete(DeleteAnswer, typed, interactive: true);
+
+        Assert.Equal(1, exit);
+        Assert.Contains("Not deleted", error, StringComparison.Ordinal);
+        Assert.DoesNotContain(api.Calls, call => call.Method == HttpMethod.Delete);
+    }
+
+    [Fact]
+    public void Delete_of_a_version_the_server_refuses_exits_2_with_its_message_and_deletes_nothing()
+    {
+        var (exit, _, error, api) = Delete(
+            _ => new HttpResponseMessage(HttpStatusCode.Conflict)
+            {
+                Content = new StringContent(
+                    /*lang=json,strict*/
+                    """{"title":"Version not archived","detail":"Only an archived version can be deleted: archive it first."}""",
+                    Encoding.UTF8,
+                    "application/problem+json"
+                ),
+            },
+            "",
+            interactive: true,
+            "--yes"
+        );
+
+        Assert.Equal(2, exit);
+        Assert.Contains("archive it first", error, StringComparison.Ordinal);
+        Assert.DoesNotContain(api.Calls, call => call.Method == HttpMethod.Delete);
+    }
 }

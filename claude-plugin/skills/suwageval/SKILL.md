@@ -69,6 +69,8 @@ its `/api`. The address is `--server` on a command, else `SUWAGEVAL_URL`, else `
 | open the comparison of 2 to 5 runs of one agent | `suwageval compare <runId> <runId>...` (the first is the baseline; exit 2 for an unknown run or runs of different agents) |
 | list the agent's versions | `suwageval versions` (`--archived` to include archived ones, `--json`) |
 | archive or restore versions | `suwageval versions archive <versionId>...`, `suwageval versions unarchive <versionId>...` |
+| delete an archived version with its runs, samples and verdicts (cannot be undone) | `suwageval versions delete <versionId> --dry-run` first, then `suwageval versions delete <versionId> --yes` once the user confirmed; exit 2 (409) for a version that is not archived or has a queued or running run |
+| delete the agent of this repository from the server (a registration made by mistake) with its versions, scenarios, checks, runs, samples and verdicts (cannot be undone) | `suwageval delete-agent --dry-run` first, then `suwageval delete-agent --yes` once the user confirmed; exit 2 (409) while a run of the agent is queued or running |
 | open what changed between two versions of the agent | `suwageval versions diff <versionA> <versionB>` (checks both exist; the older is the base; exit 2 for an unknown version) |
 
 A run's page is `{SUWAGEVAL_URL}/runs/{runId}`; the comparison of runs is `{SUWAGEVAL_URL}/compare?runs={id},{id},...`.
@@ -163,9 +165,17 @@ like a judge check. A server without a judge model refuses a run with `$judge` (
 ## Versions
 
 Every change of the agent's contract makes a new version, so the list grows. Versions are never
-deleted (every run points at one): they are **archived**, hidden by default and restorable. A new
+deleted by default (every run points at one): they are **archived**, hidden by default and restorable. A new
 run on a contract that matches an archived version unarchives it. Archive only what the user
 asked for or confirmed: show the ids first. `/suwageval:versions` does this.
+
+Only an archived version can be **deleted**, and that removes its runs, samples and verdicts for
+good. Always run `suwageval versions delete <id> --dry-run` first, show the user what would go,
+ask for explicit confirmation, and only then run it again with `--yes`.
+
+The same goes for deleting the whole agent (`suwageval delete-agent`, for an agent pushed by mistake):
+`--dry-run` first, show what would go, explicit confirmation, then `--yes`. Never delete the agent or a
+version on your own initiative.
 
 ## Reading results
 

@@ -6,6 +6,7 @@ import { formatTime, progress, runHref, shortId, statusColor, statusLabel } from
 import { fetchAgent, fetchAgentErrors, fetchPassRates, fetchVersions, type AgentError, type AgentVersion } from "./api";
 import { AgentErrorsCard } from "./AgentErrorsCard";
 import { ConfigurationSection } from "./ConfigurationSection";
+import { DeleteAgentModal } from "./DeleteAgentModal";
 import { HeaderHelp } from "./HeaderHelp";
 import { Page } from "./Page";
 import { useLoaded } from "./useLoaded";
@@ -96,6 +97,7 @@ function AgentView({
     onChanged: () => void;
 }) {
     const [showArchived, setShowArchived] = useState(false);
+    const [deleting, setDeleting] = useState(false);
     // The model filter (empty: every model) and the runs ticked for comparison.
     const [models, setModels] = useState<string[]>([]);
     const [dataVersions, setDataVersions] = useState<string[]>([]);
@@ -112,12 +114,34 @@ function AgentView({
     return (
         <Stack gap="lg">
             <Anchor href="/">← Agents</Anchor>
+            {deleting && (
+                <DeleteAgentModal
+                    name={agent.name}
+                    onClose={() => {
+                        setDeleting(false);
+                    }}
+                    onDeleted={() => {
+                        window.location.assign("/");
+                    }}
+                />
+            )}
             {/* Wide screens: the agent and its runs on the left, the analytics beside them (app.css). */}
             <div className="agent-layout">
                 <div className="agent-layout-header">
                     <Paper withBorder p="md">
                         <Stack gap={4}>
-                            <Title order={2}>{agent.name}</Title>
+                            <Group justify="space-between">
+                                <Title order={2}>{agent.name}</Title>
+                                <Button
+                                    color="red"
+                                    variant="light"
+                                    onClick={() => {
+                                        setDeleting(true);
+                                    }}
+                                >
+                                    Delete agent
+                                </Button>
+                            </Group>
                             <Text c="dimmed">
                                 {agent.endpointUrl} · created {formatTime(agent.createdAt)}
                             </Text>

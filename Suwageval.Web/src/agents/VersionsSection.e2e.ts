@@ -1,4 +1,5 @@
 // Archiving versions: select one, archive it (it disappears, and so do its runs), see it again with "Show archived", restore it.
+// Deleting: an archived version goes with its runs, after its id is typed in the confirmation.
 // A version only comes from a run, and a run reads the contract the agent serves, so the test is that agent: a tiny HTTP server.
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
@@ -66,6 +67,53 @@ test("versions are archived, shown again on request and restored", async ({ page
         await expect(page.getByText("Archived", { exact: true })).toHaveCount(0);
         await page.getByRole("switch", { name: "Show archived", exact: true }).uncheck();
         await expect(page.getByRole("checkbox", { name: "Select version e2e-old", exact: true })).toBeVisible();
+    } finally {
+        agentServer.close();
+    }
+});
+
+test("an archived version is deleted with its runs after its id is typed", async ({ page, request }) => {
+    const contract = { current: "Be helpful.", label: "e2e-garbage" };
+    const agentServer = await serveContract(contract);
+    try {
+        const name = `e2e-delete-${Date.now()}`;
+        const endpointUrl = `http://localhost:${(agentServer.address() as AddressInfo).port}`;
+        expect((await request.post("/api/agents", { data: { name, endpointUrl } })).ok()).toBe(true);
+        const scenario = { key: "greets", samples: 1, conversation: [{ kind: "UserMessage", text: "Hello" }] };
+        expect((await request.put(`/api/agents/${name}/scenarios`, { data: { scenarios: [scenario] } })).ok()).toBe(true);
+        await run(request, name);
+        Object.assign(contract, { current: "Be brief.", label: "e2e-keep" });
+        await run(request, name);
+        const versions = (await (await request.get(`/api/agents/${name}/versions`)).json()) as { id: string; label: string }[];
+        const garbage = versions.find((version) => version.label === "e2e-garbage");
+        expect(garbage).toBeDefined();
+        const id = garbage?.id ?? "";
+
+        await page.goto(`/agents/${name}`);
+        await page.getByRole("checkbox", { name: "Select version e2e-garbage", exact: true }).check();
+        await page.getByRole("button", { name: "Archive selected", exact: true }).click();
+        await expect(page.getByRole("checkbox", { name: "Select version e2e-garbage", exact: true })).toHaveCount(0);
+
+        await page.getByRole("switch", { name: "Show archived", exact: true }).check();
+        const open = page.getByRole("button", { name: "Delete", exact: true });
+        await expect(open).toBeDisabled();
+        await page.getByRole("checkbox", { name: "Select version e2e-garbage", exact: true }).check();
+        await open.click();
+
+        const dialog = page.getByRole("dialog", { name: "Delete this version?", exact: true });
+        await expect(dialog.getByText("1 run, 1 sample and 0 verdicts will be deleted.", { exact: true })).toBeVisible();
+        const confirm = dialog.getByRole("button", { name: "Delete", exact: true });
+        await expect(confirm).toBeDisabled();
+        await dialog.getByRole("textbox", { name: "Type the version id to confirm", exact: true }).fill(id.slice(0, 8));
+        await expect(confirm).toBeDisabled();
+        await dialog.getByRole("textbox", { name: "Type the version id to confirm", exact: true }).fill(id);
+        await expect(confirm).toBeEnabled();
+        await confirm.click();
+
+        await expect(dialog).toHaveCount(0);
+        await expect(page.getByRole("checkbox", { name: "Select version e2e-garbage", exact: true })).toHaveCount(0);
+        await expect(page.getByRole("checkbox", { name: "Select version e2e-keep", exact: true })).toBeVisible();
+        expect((await request.get(`/api/agents/${name}/versions/${id}`)).status()).toBe(404);
     } finally {
         agentServer.close();
     }

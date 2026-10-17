@@ -1,4 +1,5 @@
 using System.CommandLine;
+using Suwageval.Cli.AgentDelete;
 using Suwageval.Cli.AgentErrors;
 using Suwageval.Cli.Cancel;
 using Suwageval.Cli.Compare;
@@ -52,7 +53,8 @@ internal static class CliApp
             RunsCommand.Create(http),
             UnstableCommand.Create(http),
             AgentErrorsCommand.Create(http),
-            VersionsCommand.Create(http, openBrowser),
+            VersionsCommand.Create(terminal, http, openBrowser),
+            AgentDeleteCommand.Create(terminal, http),
         };
         // No termination timeout: System.CommandLine would otherwise handle Ctrl+C itself and end the process two seconds later,
         // in the middle of the question run --wait asks. Ctrl+C reaches the commands through interrupt instead.

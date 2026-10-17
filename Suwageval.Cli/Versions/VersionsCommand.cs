@@ -8,20 +8,22 @@ namespace Suwageval.Cli.Versions;
 /// <summary>
 /// <c>suwageval versions</c>: lists the versions of the agent named in <c>suwageval/agent.yaml</c> (the active ones; with
 /// <c>--archived</c> the archived ones too), and <c>versions archive|unarchive &lt;versionId&gt;...</c> hides or restores them.
-/// <c>versions diff &lt;a&gt; &lt;b&gt;</c> opens the page showing what changed between two versions. A version is never deleted — every run points at one. Exits 0, or 2 when the agent file, the server or a version is wrong.
+/// <c>versions diff &lt;a&gt; &lt;b&gt;</c> opens the page showing what changed between two versions, <c>versions delete &lt;versionId&gt;</c> deletes an archived
+/// version with its runs (after the person types its id, or with <c>--yes</c>). Exits 0, or 2 when the agent file, the server or a version is wrong.
 /// </summary>
 internal static class VersionsCommand
 {
+    /// <param name="terminal">Where <c>delete</c> asks the person to type the version's id.</param>
     /// <param name="http">The client to the API; none means one is made from <c>--server</c> or <c>SUWAGEVAL_URL</c> (the tests pass their own).</param>
     /// <param name="openBrowser">Opens a page for <c>diff</c>; none means the system's default browser (the tests record the page instead).</param>
-    public static Command Create(HttpClient? http = null, Action<Uri>? openBrowser = null)
+    public static Command Create(Terminal terminal, HttpClient? http = null, Action<Uri>? openBrowser = null)
     {
         var archived = new Option<bool>("--archived") { Description = "Also list the archived versions (marked archived)." };
         var json = CommandOptions.Json("Print the versions as JSON.");
         var server = CommandOptions.Server();
         var dir = CommandOptions.Dir();
 
-        var command = new Command("versions", "List the agent's versions; archive or unarchive them. A version is never deleted.")
+        var command = new Command("versions", "List the agent's versions; archive or unarchive them; delete an archived one with its runs.")
         {
             archived,
             json,
@@ -30,6 +32,7 @@ internal static class VersionsCommand
             Change("archive", "Archive versions: hidden from the web's default views, kept with their runs.", archive: true, http),
             Change("unarchive", "Restore archived versions.", archive: false, http),
             Diff(http, openBrowser),
+            Delete(terminal, http),
         };
         command.SetAction(
             (parsed, cancellationToken) =>
@@ -91,6 +94,65 @@ internal static class VersionsCommand
                                 $"{(archive ? "archived" : "unarchived")} {versionIds.Length} version(s)"
                             )
                         );
+                        return 0;
+                    }
+                )
+        );
+        return command;
+    }
+
+    private static Command Delete(Terminal terminal, HttpClient? http)
+    {
+        var id = new Argument<Guid>("versionId") { Description = "The archived version to delete, as `versions --archived` lists it." };
+        var dryRun = new Option<bool>("--dry-run") { Description = "Only print what would be deleted." };
+        var yes = new Option<bool>("--yes") { Description = "Delete without asking (required when there is no terminal to ask on)." };
+        var server = CommandOptions.Server();
+        var dir = CommandOptions.Dir();
+        var command = new Command(
+            "delete",
+            "Delete an archived version with everything that belongs to it: its runs, their samples and verdicts. Cannot be undone. Exits 1 when not confirmed."
+        )
+        {
+            id,
+            dryRun,
+            yes,
+            server,
+            dir,
+        };
+        command.SetAction(
+            (parsed, cancellationToken) =>
+                ServerCall.ForAgentAsync(
+                    parsed.GetRequiredValue(dir),
+                    parsed.GetValue(server),
+                    http,
+                    parsed.InvocationConfiguration.Error,
+                    async (client, agent, _) =>
+                    {
+                        var versionId = parsed.GetRequiredValue(id);
+                        var output = parsed.InvocationConfiguration.Output;
+                        var error = parsed.InvocationConfiguration.Error;
+                        var contents = await client.VersionDeletionAsync(agent, versionId, cancellationToken);
+                        await output.WriteLineAsync(VersionDeleteText.Preview(contents));
+                        if (parsed.GetValue(dryRun))
+                        {
+                            return 0;
+                        }
+                        if (!parsed.GetValue(yes))
+                        {
+                            if (!terminal.Interactive)
+                            {
+                                await error.WriteLineAsync("Not deleted: there is no terminal to confirm on. Pass --yes to delete.");
+                                return 1;
+                            }
+                            await output.WriteAsync("Type the version id to confirm: ");
+                            if (!VersionDeleteText.Confirms(versionId, await terminal.Input.ReadLineAsync(cancellationToken)))
+                            {
+                                await error.WriteLineAsync("Not deleted: that is not the version id.");
+                                return 1;
+                            }
+                        }
+                        await client.DeleteVersionAsync(agent, versionId, cancellationToken);
+                        await output.WriteLineAsync($"deleted version {versionId}");
                         return 0;
                     }
                 )

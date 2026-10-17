@@ -11,9 +11,13 @@ internal static class AgentEndpoints
         app.MapPost("/agents", CreateAsync);
         app.MapGet("/agents", ListAsync).Produces<IReadOnlyList<Agent>>();
         app.MapGet("/agents/{agent}", GetAsync).Produces<AgentDetail>();
+        app.MapGet("/agents/{agent}/deletion", PreviewAgentDeletionAsync).Produces<AgentDeletion>();
+        app.MapDelete("/agents/{agent}", DeleteAgentAsync).Produces(StatusCodes.Status204NoContent);
         app.MapGet("/agents/{agent}/versions", ListVersionsAsync).Produces<IReadOnlyList<AgentVersion>>();
         app.MapPost("/agents/{agent}/versions/archive", ArchiveVersionsAsync).Produces(StatusCodes.Status204NoContent);
         app.MapGet("/agents/{agent}/versions/{versionId:guid}", GetVersionAsync).Produces<AgentVersionDetail>();
+        app.MapGet("/agents/{agent}/versions/{versionId:guid}/deletion", PreviewDeletionAsync).Produces<VersionDeletion>();
+        app.MapDelete("/agents/{agent}/versions/{versionId:guid}", DeleteVersionAsync).Produces(StatusCodes.Status204NoContent);
     }
 
     private static async Task<IResult> CreateAsync(AgentDefinition definition, AgentStore store, CancellationToken cancellationToken)
@@ -148,6 +152,82 @@ internal static class AgentEndpoints
                 version.ArchivedAt
             )
         );
+    }
+
+    private static Task<IResult> PreviewAgentDeletionAsync(string agent, AgentStore store, CancellationToken cancellationToken) =>
+        RunAgentDeletionAsync(agent, dryRun: true, store, cancellationToken);
+
+    private static Task<IResult> DeleteAgentAsync(string agent, AgentStore store, CancellationToken cancellationToken) =>
+        RunAgentDeletionAsync(agent, dryRun: false, store, cancellationToken);
+
+    // The preview answers exactly what a deletion would: the same refusals, then what would go.
+    private static async Task<IResult> RunAgentDeletionAsync(
+        string agent,
+        bool dryRun,
+        AgentStore store,
+        CancellationToken cancellationToken
+    )
+    {
+        var row = await store.GetAsync(agent, cancellationToken);
+        if (row is null)
+        {
+            return ProblemResults.NotFound("Agent", agent);
+        }
+        var result = await store.DeleteAgentAsync(row.Id, dryRun, cancellationToken);
+        return result.Outcome switch
+        {
+            DeletionOutcome.NotFound => ProblemResults.NotFound("Agent", agent),
+            DeletionOutcome.NotArchived => throw new InvalidOperationException("An agent is not archived."),
+            DeletionOutcome.HasActiveRuns => ProblemResults.Conflict(
+                "Agent has active runs",
+                "A run of this agent is queued or running: cancel it or wait until it ends."
+            ),
+            DeletionOutcome.Allowed => Results.Ok(result.Contents),
+            DeletionOutcome.Deleted => Results.NoContent(),
+            _ => throw new InvalidOperationException($"Unexpected outcome {result.Outcome}."),
+        };
+    }
+
+    private static Task<IResult> PreviewDeletionAsync(
+        string agent,
+        Guid versionId,
+        AgentStore store,
+        CancellationToken cancellationToken
+    ) => DeleteAsync(agent, versionId, dryRun: true, store, cancellationToken);
+
+    private static Task<IResult> DeleteVersionAsync(string agent, Guid versionId, AgentStore store, CancellationToken cancellationToken) =>
+        DeleteAsync(agent, versionId, dryRun: false, store, cancellationToken);
+
+    // The preview answers exactly what a deletion would: the same refusals, then what would go.
+    private static async Task<IResult> DeleteAsync(
+        string agent,
+        Guid versionId,
+        bool dryRun,
+        AgentStore store,
+        CancellationToken cancellationToken
+    )
+    {
+        var row = await store.GetAsync(agent, cancellationToken);
+        if (row is null)
+        {
+            return ProblemResults.NotFound("Agent", agent);
+        }
+        var result = await store.DeleteVersionAsync(row.Id, versionId, dryRun, cancellationToken);
+        return result.Outcome switch
+        {
+            DeletionOutcome.NotFound => ProblemResults.NotFound("Version", versionId.ToString()),
+            DeletionOutcome.NotArchived => ProblemResults.Conflict(
+                "Version not archived",
+                "Only an archived version can be deleted: archive it first."
+            ),
+            DeletionOutcome.HasActiveRuns => ProblemResults.Conflict(
+                "Version has active runs",
+                "A run of this version (or a re-check of one) is queued or running: cancel it or wait until it ends."
+            ),
+            DeletionOutcome.Allowed => Results.Ok(result.Contents),
+            DeletionOutcome.Deleted => Results.NoContent(),
+            _ => throw new InvalidOperationException($"Unexpected outcome {result.Outcome}."),
+        };
     }
 
     private static Agent ToAgent(AgentRow row) =>
