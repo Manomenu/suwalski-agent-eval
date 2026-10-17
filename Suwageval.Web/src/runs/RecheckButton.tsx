@@ -134,7 +134,7 @@ function RecheckDialog({ runId, onClose }: { runId: string; onClose: () => void 
                 <Stack key={group.scenarioKey} gap={4}>
                     <Text fw={600}>{group.scenarioKey}</Text>
                     {group.checks.map((check) => (
-                        <ChangedCheckRow key={check.checkKey} check={check} />
+                        <ChangedCheckRow key={check.checkKey} check={check} judgeModel={plan.judgeModel} />
                     ))}
                 </Stack>
             ))}
@@ -178,7 +178,7 @@ function CloseRow({ onClose, busy = false, children }: { onClose: () => void; bu
 }
 
 /** One check of the plan with how it changed; a changed check can show the definition the run used next to the current one. */
-function ChangedCheckRow({ check }: { check: ChangedCheck }) {
+function ChangedCheckRow({ check, judgeModel }: { check: ChangedCheck; judgeModel: string | null | undefined }) {
     const judgedNow = check.afterJudgedByModel;
     return (
         <Stack gap={4}>
@@ -187,7 +187,7 @@ function ChangedCheckRow({ check }: { check: ChangedCheck }) {
                 <Text span c="dimmed" aria-label={`${check.checkKey} change`}>
                     {check.change}
                 </Text>
-                {judgedNow && <ModelJudgedIcon />}
+                {judgedNow && <ModelJudgedIcon model={judgeModel} />}
             </Group>
             <Accordion variant="contained">
                 <Accordion.Item value="change">

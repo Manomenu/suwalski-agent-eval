@@ -105,7 +105,15 @@ internal sealed partial class RunRechecker(
                 results.Add(
                     same is null
                         ? await CheckEvaluation.EvaluateAsync(judge, argumentJudge, row, input, scenario.Content, trace, cancellationToken)
-                        : new NewCheckResult(row.Id, row.Revision, same.Passed, same.Evidence, same.Message, same.NotJudged)
+                        : new NewCheckResult(
+                            row.Id,
+                            row.Revision,
+                            same.Passed,
+                            same.Evidence,
+                            same.Message,
+                            same.NotJudged,
+                            same.JudgeModel
+                        )
                 );
             }
         }

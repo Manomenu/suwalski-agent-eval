@@ -51,6 +51,7 @@ internal sealed class ArgumentJudge(ModelClients models, IOptions<JudgeOptions> 
             return JudgeModel.NotJudged(search.Named, "no judge model is configured");
         }
 
+        var modelName = models.ModelNameOf(model);
         var failures = new List<string>();
         foreach (var candidate in search.Candidates)
         {
@@ -71,7 +72,11 @@ internal sealed class ArgumentJudge(ModelClients models, IOptions<JudgeOptions> 
             }
             catch (Exception error)
             {
-                return JudgeModel.NotJudged(search.Named, $"the judge model could not be asked ({JudgeModel.Shorten(error.Message)})");
+                return JudgeModel.NotJudged(
+                    search.Named,
+                    $"the judge model could not be asked ({JudgeModel.Shorten(error.Message)})",
+                    modelName
+                );
             }
 
             var answers = Read(text, candidate);
@@ -79,7 +84,8 @@ internal sealed class ArgumentJudge(ModelClients models, IOptions<JudgeOptions> 
             {
                 return JudgeModel.NotJudged(
                     search.Named,
-                    $"the judge model's answer is not the JSON asked for ({JudgeModel.Shorten(text)})"
+                    $"the judge model's answer is not the JSON asked for ({JudgeModel.Shorten(text)})",
+                    modelName
                 );
             }
             var reasons = answers.Select(answer => $"{answer.Path}: {Reason(answer)}").ToList();
@@ -88,7 +94,8 @@ internal sealed class ArgumentJudge(ModelClients models, IOptions<JudgeOptions> 
                 return new CheckVerdict(
                     true,
                     [candidate.Item],
-                    $"{search.Subject}, and its judged values fit. {string.Join(" ", reasons)}"
+                    $"{search.Subject}, and its judged values fit. {string.Join(" ", reasons)}",
+                    ModelName: modelName
                 );
             }
             failures.Add(
@@ -97,7 +104,7 @@ internal sealed class ArgumentJudge(ModelClients models, IOptions<JudgeOptions> 
         }
 
         var why = search.Candidates.Count == 1 ? failures[0] : string.Join(" ", failures.Select((failure, i) => $"[{i + 1}] {failure}"));
-        return new CheckVerdict(false, search.Named, $"{search.Subject}, but not with judged values that fit. {why}");
+        return new CheckVerdict(false, search.Named, $"{search.Subject}, but not with judged values that fit. {why}", ModelName: modelName);
     }
 
     /// <summary>

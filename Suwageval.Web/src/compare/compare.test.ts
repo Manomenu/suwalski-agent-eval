@@ -10,6 +10,7 @@ import {
     checksPassedText,
     delta,
     deltaText,
+    judgeModelDiffers,
     parseRunIds,
     passRateOf,
     rowComparable,
@@ -93,8 +94,24 @@ describe("sameAgent", () => {
 
 describe("cellOf", () => {
     it("takes the verdict, the pass rate and the samples that passed", () => {
-        expect(cellOf(check("c", 3, 5))).toEqual({ passed: false, passRate: 0.6, passes: 3, samples: 5, notJudged: 0 });
-        expect(cellOf(check("c", 3, 5, 0.6))).toEqual({ passed: true, passRate: 0.6, passes: 3, samples: 5, notJudged: 0 });
+        expect(cellOf(check("c", 3, 5))).toEqual({
+            passed: false,
+            passRate: 0.6,
+            passes: 3,
+            samples: 5,
+            notJudged: 0,
+            judgedByModel: false,
+            judgeModel: null,
+        });
+        expect(cellOf(check("c", 3, 5, 0.6))).toEqual({
+            passed: true,
+            passRate: 0.6,
+            passes: 3,
+            samples: 5,
+            notJudged: 0,
+            judgedByModel: false,
+            judgeModel: null,
+        });
     });
 });
 
@@ -291,5 +308,21 @@ describe("timeDelta", () => {
         expect(timeDeltaText({ milliseconds: -1200, trend: "better" })).toBe("▼ 1.2 s");
         expect(timeDeltaText({ milliseconds: 3000, trend: "worse" })).toBe("▲ 3.0 s");
         expect(timeDeltaText({ milliseconds: 30, trend: "same" })).toBe("±0 s");
+    });
+});
+
+describe("judgeModelDiffers", () => {
+    const cell = (judgedByModel: boolean, judgeModel: string | null): CheckCell =>
+        cellOf({ ...check("c", 1, 1), judgedByModel, judgeModel });
+    const row = (...cells: (CheckCell | null)[]) => ({ scenarioKey: "s", checkKey: "c", cells });
+
+    it("is true when two runs were judged by different known models", () => {
+        expect(judgeModelDiffers(row(cell(true, "test-judge-model"), cell(true, "other-test-model")))).toBe(true);
+    });
+
+    it("is false for the same model, unknown models, missing runs and deterministic checks", () => {
+        expect(judgeModelDiffers(row(cell(true, "test-judge-model"), cell(true, "test-judge-model")))).toBe(false);
+        expect(judgeModelDiffers(row(cell(true, "test-judge-model"), cell(true, null), null))).toBe(false);
+        expect(judgeModelDiffers(row(cell(false, null), cell(false, null)))).toBe(false);
     });
 });

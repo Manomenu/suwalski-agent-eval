@@ -1423,6 +1423,8 @@ export interface components {
             definition: components["schemas"]["CheckInput"];
             /** @description Whether a model gives the verdict of the check: a `judge` check, or one with a `$judge` matcher. */
             judgedByModel: boolean;
+            /** @description The model that gave the verdicts of the samples: the most common name among them (the first in sample order on a tie); null for a deterministic check and for runs made before the name was recorded. */
+            judgeModel?: null | string;
             /** @description True when double CheckRunResult.PassRate reaches double CheckRunResult.PassThreshold. */
             passed: boolean;
             /**
@@ -1574,6 +1576,8 @@ export interface components {
              * @description How many of the checks that would be evaluated again call the judge's model.
              */
             judgedChecks: number;
+            /** @description The name of the judge's model as configured now, the one that would judge int RecheckPlan.JudgedChecks; null when none is configured. */
+            judgeModel?: null | string;
             /** @description The scenarios of the run that would be left out, with the reason. */
             skippedScenarios: components["schemas"]["SkippedScenario"][];
             /** @description What does not fit between the current checks and the version the run was under test; empty when it all fits. */

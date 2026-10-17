@@ -19,6 +19,9 @@ internal sealed class ModelClients(ModelsOptions options, Func<ModelOptions, ICh
 
     public bool Has(string name) => clients.ContainsKey(name);
 
+    /// <summary>The model's own name on its server (<see cref="ModelOptions.Model"/>) of the model called <paramref name="name"/>; null when it is not configured.</summary>
+    public string? ModelNameOf(string name) => options.TryGetValue(name, out var model) ? model.Model : null;
+
     public IChatClient Get(string name) =>
         clients.TryGetValue(name, out var client) ? client : throw new InvalidOperationException($"No model '{name}' is configured.");
 

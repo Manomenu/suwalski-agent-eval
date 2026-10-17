@@ -12,5 +12,6 @@ internal sealed record CheckResultRow(
     bool NotJudged,
     string Evidence,
     string Message,
-    Guid CheckId
+    Guid CheckId,
+    string? JudgeModel
 );

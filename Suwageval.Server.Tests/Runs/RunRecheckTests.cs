@@ -224,6 +224,31 @@ public sealed class RunRecheckTests(TestDatabase database) : IAsyncDisposable
         Assert.Contains("did not refuse", copied.Message, StringComparison.Ordinal);
         Assert.True(scenarios["other"].Checks.Single().Passed);
         Assert.Single(model.Requests);
+        // The model's name is stored with the verdict, copied with an unchanged one and never given to a deterministic check.
+        Assert.Equal("recorded", scenarios["refund"].Checks.Single(check => check.Key == "polite").JudgeModel);
+        Assert.Equal("recorded", scenarios["other"].Checks.Single().JudgeModel);
+        Assert.Null(scenarios["refund"].Checks.Single(check => check.Key == "refund-event").JudgeModel);
+        var original = (await ResultsAsync(source)).Scenarios.ToDictionary(scenario => scenario.Key);
+        Assert.Equal("recorded", original["refund"].Checks.Single(check => check.Key == "polite").JudgeModel);
+        Assert.Null(original["refund"].Checks.Single(check => check.Key == "refund-event").JudgeModel);
+    }
+
+    [Fact]
+    public async Task A_model_that_cannot_answer_still_leaves_its_name_on_the_not_judged_verdict()
+    {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
+        var agent = await SeededAgent.CreateAsync(
+            database.Pool,
+            fake.Url.AbsoluteUri,
+            [SeededAgent.Scenario("refund")],
+            [Polite("polite", "refund")]
+        );
+
+        var source = await FinishedRunAsync(agent, RecordedModel.JudgeFailing(new HttpRequestException("down")));
+
+        var check = Assert.Single(Assert.Single((await ResultsAsync(source)).Scenarios).Checks);
+        Assert.True(Assert.Single(check.Samples).NotJudged);
+        Assert.Equal("recorded", check.JudgeModel);
     }
 
     [Fact]
@@ -308,6 +333,7 @@ public sealed class RunRecheckTests(TestDatabase database) : IAsyncDisposable
             plan.ChangedChecks.Select(change => (change.CheckKey, change.Change))
         );
         Assert.Equal(1, plan.JudgedChecks);
+        Assert.Null(plan.JudgeModel); // the test server has no judge model configured
         Assert.Equal(
             [("polite", true), ("refund-called", false), ("refund-event", false)],
             plan.ChangedChecks.Select(change => (change.CheckKey, change.AfterJudgedByModel))

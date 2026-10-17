@@ -21,6 +21,9 @@ public sealed record RecheckPlan
     /// <summary>How many of the checks that would be evaluated again call the judge's model.</summary>
     public required int JudgedChecks { get; init; }
 
+    /// <summary>The name of the judge's model as configured now, the one that would judge <see cref="JudgedChecks"/>; null when none is configured.</summary>
+    public string? JudgeModel { get; init; }
+
     /// <summary>The scenarios of the run that would be left out, with the reason.</summary>
     public required IReadOnlyList<SkippedScenario> SkippedScenarios { get; init; }
 
