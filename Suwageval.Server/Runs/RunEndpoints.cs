@@ -28,10 +28,11 @@ internal static class RunEndpoints
         app.MapPost("/runs/{id:guid}/cancel", CancelAsync).Produces(StatusCodes.Status202Accepted);
         app.MapGet("/agents/{agent}/pass-rates", PassRatesAsync).Produces<IReadOnlyList<RunPassRates>>();
         app.MapGet("/agents/{agent}/unstable-checks", UnstableChecksAsync).Produces<IReadOnlyList<UnstableCheck>>();
+        app.MapGet("/agents/{agent}/agent-errors", AgentErrorsAsync).Produces<IReadOnlyList<AgentError>>();
         return app;
     }
 
-    /// <summary>The unstable checks look at the newest this many finished runs of the agent.</summary>
+    /// <summary>The unstable checks and the agent errors look at the newest this many finished runs of the agent.</summary>
     internal const int UnstableCheckRuns = 200;
 
     /// <summary>
@@ -52,10 +53,7 @@ internal static class RunEndpoints
         {
             return ProblemResults.NotFound("Agent", agent);
         }
-        var newestFirst = (await runs.ListAsync(found.Id, cancellationToken)).Where(run =>
-            version is not { Length: > 0 } || version.Contains(run.AgentVersionId)
-        );
-        var rows = await runs.ListRunCheckVerdictsAsync(EffectiveRuns.Pick([.. newestFirst], UnstableCheckRuns), cancellationToken);
+        var rows = await runs.ListRunCheckVerdictsAsync(await PickAsync(found.Id, version, runs, cancellationToken), cancellationToken);
         var unstable = UnstableChecks.Find(rows);
         if (unstable.Count == 0)
         {
@@ -63,6 +61,55 @@ internal static class RunEndpoints
         }
         var labels = (await agents.ListVersionsAsync(found.Id, cancellationToken)).ToDictionary(row => row.Id, row => row.Label);
         return Results.Ok(unstable.Select(check => check with { VersionLabel = labels.GetValueOrDefault(check.AgentVersionId) }).ToList());
+    }
+
+    private static async Task<IReadOnlyList<EffectiveRuns.Point>> PickAsync(
+        Guid agentId,
+        Guid[]? version,
+        RunStore runs,
+        CancellationToken cancellationToken
+    )
+    {
+        var newestFirst = (await runs.ListAsync(agentId, cancellationToken)).Where(run =>
+            version is not { Length: > 0 } || version.Contains(run.AgentVersionId)
+        );
+        return EffectiveRuns.Pick([.. newestFirst], UnstableCheckRuns);
+    }
+
+    /// <summary>
+    /// Where the agent gave no answer: per agent version and scenario with at least one such sample, the errors over the samples asked, the
+    /// newest run and error text, worst first. The same newest <see cref="UnstableCheckRuns"/> finished runs as the unstable checks (a
+    /// re-check does not call the agent, so it is not counted); <c>version</c> limits it to those versions. 404: no such agent.
+    /// </summary>
+    private static async Task<IResult> AgentErrorsAsync(
+        string agent,
+        [FromQuery] Guid[]? version,
+        AgentStore agents,
+        RunStore runs,
+        CancellationToken cancellationToken
+    )
+    {
+        var found = await agents.GetAsync(agent, cancellationToken);
+        if (found is null)
+        {
+            return ProblemResults.NotFound("Agent", agent);
+        }
+        var picked = await PickAsync(found.Id, version, runs, cancellationToken);
+        var rows = await runs.ListAgentErrorsAsync([.. picked.Select(point => point.Run.Id)], cancellationToken);
+        var labels = (await agents.ListVersionsAsync(found.Id, cancellationToken)).ToDictionary(row => row.Id, row => row.Label);
+        return Results.Ok(
+            rows.Select(row => new AgentError
+                {
+                    ScenarioKey = row.ScenarioKey,
+                    AgentVersionId = row.AgentVersionId,
+                    VersionLabel = labels.GetValueOrDefault(row.AgentVersionId),
+                    Errors = row.Errors,
+                    Samples = row.Samples,
+                    NewestErrorRunId = row.NewestErrorRunId,
+                    NewestError = row.NewestError,
+                })
+                .ToList()
+        );
     }
 
     /// <summary>

@@ -191,7 +191,7 @@ the history; regressions are reported once a check has enough of it (5 runs by d
 | Who | Through | Does |
 | --- | --- | --- |
 | a person | the web app | agents, scenarios, runs, results, comparisons, version diffs |
-| an agent's repository or CI | the `suwageval` CLI | `validate`, `push`, `run`, `rerun`, `recheck`, `cancel`, `results`, `runs`, `compare`, `unstable`, `versions` |
+| an agent's repository or CI | the `suwageval` CLI | `validate`, `push`, `run`, `rerun`, `recheck`, `cancel`, `results`, `runs`, `compare`, `unstable`, `agent-errors`, `versions` |
 | Claude Code | the plugin in `claude-plugin/` | writes scenarios from a conversation, fixes them, runs them and explains failures |
 
 Everything the web can do, the CLI can do too. Details of every command and the plugin's

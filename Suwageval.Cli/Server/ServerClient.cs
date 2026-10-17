@@ -123,6 +123,13 @@ internal sealed class ServerClient(HttpClient http)
             cancellationToken
         );
 
+    /// <summary>The scenarios where the agent gave no answer, per version, the highest share of samples first.</summary>
+    public Task<IReadOnlyList<AgentError>> AgentErrorsAsync(string agent, CancellationToken cancellationToken) =>
+        SendAsync<IReadOnlyList<AgentError>>(
+            () => http.GetAsync(new Uri($"agents/{Uri.EscapeDataString(agent)}/agent-errors", UriKind.Relative), cancellationToken),
+            cancellationToken
+        );
+
     public Task<RunResults> ResultsAsync(Guid runId, CancellationToken cancellationToken) =>
         SendAsync<RunResults>(
             () => http.GetAsync(new Uri($"runs/{runId}/results", UriKind.Relative), cancellationToken),

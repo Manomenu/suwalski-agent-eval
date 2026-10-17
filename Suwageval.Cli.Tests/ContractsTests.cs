@@ -18,7 +18,7 @@ public sealed class ContractsTests
     private static readonly string[] Layers =
     [
         ".",
-        "Validate | Push | Run | Rerun | Recheck | Cancel | Runs | Unstable | Results | Compare | Versions",
+        "Validate | Push | Run | Rerun | Recheck | Cancel | Runs | Unstable | AgentErrors | Results | Compare | Versions",
         "Validation | Server",
         "Files",
     ];

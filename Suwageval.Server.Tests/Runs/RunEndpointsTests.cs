@@ -588,5 +588,47 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         );
     }
 
+    [Fact]
+    public async Task Agent_errors_list_the_scenarios_where_the_agent_gave_no_answer_and_ignore_rechecks()
+    {
+        var client = Client();
+        var agent = await NewAgentAsync("http://agent.test");
+        var store = app.Services.GetRequiredService<RunStore>();
+        var scenario = (await app.Services.GetRequiredService<ScenarioStore>().GetAsync(agent.Id, "refund", Cancellation))!;
+        async Task<Guid> FinishedRunAsync(SampleStatus status, string? error, Guid? recheckOf = null)
+        {
+            var id = await store.EnqueueAsync(
+                agent.Id,
+                agent.VersionId,
+                null,
+                agent.EndpointUrl,
+                recheckOf: recheckOf,
+                cancellationToken: Cancellation
+            );
+            await store.AddSampleAsync(
+                id,
+                new NewSample(scenario.Id, scenario.Revision, 1, status, status == SampleStatus.Done ? "[]" : null, error, null, [], []),
+                Cancellation
+            );
+            await store.FinishAsync(id, RunStatus.Done, cancellationToken: Cancellation);
+            return id;
+        }
+        await FinishedRunAsync(SampleStatus.Done, null);
+        var failed = await FinishedRunAsync(SampleStatus.Failed, "HTTP 500");
+        await FinishedRunAsync(SampleStatus.Failed, "from a recheck", recheckOf: failed);
+
+        var error = Assert.Single(await GetAsync<List<AgentError>>(client, $"/agents/{agent.Name}/agent-errors"));
+
+        Assert.Equal(
+            ("refund", agent.VersionId, 1, 2, failed, "HTTP 500"),
+            (error.ScenarioKey, error.AgentVersionId, error.Errors, error.Samples, error.NewestErrorRunId, error.NewestError)
+        );
+        Assert.Empty(await GetAsync<List<AgentError>>(client, $"/agents/{agent.Name}/agent-errors?version={Guid.NewGuid()}"));
+        Assert.Equal(
+            HttpStatusCode.NotFound,
+            (await client.GetAsync(new Uri("/agents/no-such-agent/agent-errors", UriKind.Relative), Cancellation)).StatusCode
+        );
+    }
+
     public ValueTask DisposeAsync() => app.DisposeAsync();
 }

@@ -5,7 +5,7 @@ The server has one interface, its HTTP API. Three users reach it:
 | Who | Through | Does |
 | --- | --- | --- |
 | a person in the browser | the web app | browses agents, scenarios, runs, results, comparisons |
-| an agent's repository, by hand or in CI | the `suwageval` CLI (`Suwageval.Cli`) | `validate` the scenario files, `push` the agent, its scenarios and checks, `run --tag … --wait` with an exit code for CI (`--ref <branch>` picks the branch to compare with, `--strict` fails on any failed check, not only on regressions; `rerun` and `recheck` take `--strict` too), `rerun <runId>` to repeat a run, `recheck <runId>` to judge a finished run's stored answers again with the current checks (`--dry-run` shows what would be evaluated), `cancel <runId>` to stop a queued or running one, `results <runId>` to open a run on the web, `runs` to list the agent's newest runs, `unstable` to list the checks that pass in some runs of a version and fail in others, `compare <runId> <runId> …` to open the comparison of 2 to 5 runs of one agent on the web, `versions` to list, archive and restore the agent's versions, `versions diff <a> <b>` to open what changed between two of them on the web |
+| an agent's repository, by hand or in CI | the `suwageval` CLI (`Suwageval.Cli`) | `validate` the scenario files, `push` the agent, its scenarios and checks, `run --tag … --wait` with an exit code for CI (`--ref <branch>` picks the branch to compare with, `--strict` fails on any failed check, not only on regressions; `rerun` and `recheck` take `--strict` too), `rerun <runId>` to repeat a run, `recheck <runId>` to judge a finished run's stored answers again with the current checks (`--dry-run` shows what would be evaluated), `cancel <runId>` to stop a queued or running one, `results <runId>` to open a run on the web, `runs` to list the agent's newest runs, `unstable` to list the checks that pass in some runs of a version and fail in others, `agent-errors` to list the scenarios where the agent gave no answer, `compare <runId> <runId> …` to open the comparison of 2 to 5 runs of one agent on the web, `versions` to list, archive and restore the agent's versions, `versions diff <a> <b>` to open what changed between two of them on the web |
 | Claude Code | the Claude Code plugin in this repo (`claude-plugin/`) that drives the same CLI, like suwgit's | "build a scenario for this agent from this conversation", "run the regression tag on the new version", "why did scenario X fail" — writing the scenario as a file in the agent's repo, then `validate` and `push` |
 
 - **Anything the web can do, the CLI — and so Claude Code through the plugin — can do too; not the
@@ -45,6 +45,11 @@ The server has one interface, its HTTP API. Three users reach it:
   check) gets a yellow wave icon next to its key on the run page and in the comparison, and the agent
   page lists the worst ones in an "Unstable checks" card — nothing shows when all checks are stable.
   `suwageval unstable` prints them; the cure is usually more `samples` (the agent's in `agent.yaml`, a scenario's or a check's; 3 by default).
+- **Agent errors are listed apart.** A sample where the agent gave no answer (an HTTP error, a timeout, an unreadable
+  answer) does not count against any check, so it would otherwise go unseen. The agent page's "Agent errors" card
+  lists, per version and scenario, the samples without an answer out of the samples asked (`3/12`), over the same newest
+  200 finished runs as the unstable checks (re-checks do not call the agent, so they are not counted), worst first, with
+  the newest error; it follows the page's filters and shows nothing when there are no errors. `suwageval agent-errors` prints them.
 - **A version is never written in a file: the running agent serves it.** `GET
   {endpointUrl}/suwageval/contract` returns its LLM agents (each with model, config and tools, with argument
   schemas), other system-wide config, the events (with data schemas), and a label. `suwageval run` makes the server read it,
