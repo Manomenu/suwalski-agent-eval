@@ -7,28 +7,26 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 # shellcheck source=scripts/.internal/checkout-env.sh
 source "$ROOT/scripts/.internal/checkout-env.sh"
 
-REPORT=()
-FAILURES=()
-FAILED=0
-# Each step's output is kept, so the report can repeat the end of a failed one: a reader who only
-# sees the last lines (`| tail`) still sees why it failed.
+# The steps run in parallel groups (the server chain, the web steps, the misc checks), each step with
+# its own log and wall time. The output repeats the logs in a fixed order, so a run reads the same
+# way every time. A step's result (status and seconds) is a file written by its job.
 LOGS="$(mktemp -d)"
 trap 'rm -rf "$LOGS"' EXIT
 FAILURE_LINES=25
+ORDER=()           # step keys, in the order they are shown
+declare -A NAME    # key -> name shown in the report
+declare -A SKIPPED # key -> reason, for a step that cannot run on this machine
 
+declare_step() { ORDER+=("$1"); NAME["$1"]="$2"; }
+
+# run_step KEY COMMAND... — runs the command with its output in a log and records "status seconds".
+# Always returns 0: a failed step is reported at the end, it does not stop the group it runs in.
 run_step() {
-    local name="$1"; shift
-    local log
-    log="$LOGS/${#REPORT[@]}.log"
-    echo
-    echo "==> $name"
-    if "$@" 2>&1 | tee "$log"; then
-        REPORT+=("PASS  $name")
-    else
-        REPORT+=("FAIL  $name")
-        FAILURES+=("$name" "$log")
-        FAILED=1
-    fi
+    local key="$1" start status=0
+    shift
+    start=$SECONDS
+    "$@" >"$LOGS/$key.log" 2>&1 || status=$?
+    echo "$status $((SECONDS - start))" >"$LOGS/$key.result"
 }
 
 build_server() {
@@ -52,7 +50,6 @@ test_server() {
 web() {
     # Same order of concerns as the server: types, lint, format, tests.
     cd "$ROOT/Suwageval.Web"
-    [ -d node_modules ] || pnpm install --frozen-lockfile --silent
     pnpm exec "$@"
 }
 
@@ -104,50 +101,95 @@ local_database() {
     "$ROOT/scripts/.internal/db.sh" up >/dev/null
 }
 
-run_step "build server (compiler, nullable, analyzers, NuGet audit)" build_server
-run_step "format server (csharpier check)" format_server
-if [ -z "${CI:-}" ]; then
-    run_step "postgres for tests (just db up)" local_database
-fi
-run_step "test server (xunit, incl. import contracts)" test_server
 # Two TypeScript projects: the app (browser) and the code that runs in Node (vite config, e2e
 # tests). This checks the types of both; it does not run the e2e tests (that is `just e2e`).
 web_typecheck() { web tsc --noEmit -p tsconfig.app.json && web tsc --noEmit -p tsconfig.node.json; }
-run_step "typecheck Suwageval.Web (tsc: app, e2e tests, config)" web_typecheck
-run_step "lint Suwageval.Web (eslint strict + import contracts, no warnings)" web eslint . --max-warnings 0
-run_step "format Suwageval.Web (prettier --check)" web prettier --check .
-run_step "test Suwageval.Web (vitest)" web vitest run
-# Unused files, exports and dependencies. knip.json leaves out the generated API types and
-# openapi-typescript, which only scripts/.internal/api-types.sh uses (knip reads no shell).
-run_step "dead code Suwageval.Web (knip)" web knip
-run_step "API types up to date (just api-types)" "$ROOT/scripts/.internal/api-types.sh" --check
 
-# Tools a fresh machine may lack are skipped with a visible note instead of a PASS — a
-# silently skipped step is worse than no step. CI installs helm, so there it always runs.
-if command -v helm >/dev/null 2>&1; then
-    run_step "helm chart (lint + template)" helm_chart
-else
-    REPORT+=("SKIP  helm chart — helm not installed")
-fi
-if command -v shellcheck >/dev/null 2>&1; then
-    run_step "shell scripts (shellcheck)" shell_scripts
-else
-    REPORT+=("SKIP  shell scripts — shellcheck not installed")
-fi
-if command -v gitleaks >/dev/null 2>&1; then
-    run_step "secrets in git (gitleaks)" secrets_in_git
-else
-    REPORT+=("SKIP  secrets in git — gitleaks not installed (CI always runs it)")
-fi
 COMPOSE=()
 if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
     COMPOSE=(docker compose)
 fi
-if [ ${#COMPOSE[@]} -gt 0 ]; then
-    run_step "compose stack (compose config)" compose_file
-else
-    REPORT+=("SKIP  compose stack — docker compose not installed")
-fi
+
+declare_step build "build server (compiler, nullable, analyzers, NuGet audit)"
+declare_step format "format server (csharpier check)"
+if [ -z "${CI:-}" ]; then declare_step postgres "postgres for tests (just db up)"; fi
+declare_step test "test server (xunit, incl. import contracts)"
+declare_step tsc "typecheck Suwageval.Web (tsc: app, e2e tests, config)"
+declare_step eslint "lint Suwageval.Web (eslint strict + import contracts, no warnings)"
+declare_step prettier "format Suwageval.Web (prettier --check)"
+declare_step vitest "test Suwageval.Web (vitest)"
+# Unused files, exports and dependencies. knip.json leaves out the generated API types and
+# openapi-typescript, which only scripts/.internal/api-types.sh uses (knip reads no shell).
+declare_step knip "dead code Suwageval.Web (knip)"
+declare_step apitypes "API types up to date (just api-types)"
+declare_step helm "helm chart (lint + template)"
+declare_step shellcheck "shell scripts (shellcheck)"
+declare_step gitleaks "secrets in git (gitleaks)"
+declare_step compose "compose stack (compose config)"
+
+# Tools a fresh machine may lack are skipped with a visible note instead of a PASS — a
+# silently skipped step is worse than no step. CI installs helm, so there it always runs.
+command -v helm >/dev/null 2>&1 || SKIPPED[helm]="helm not installed"
+command -v shellcheck >/dev/null 2>&1 || SKIPPED[shellcheck]="shellcheck not installed"
+command -v gitleaks >/dev/null 2>&1 || SKIPPED[gitleaks]="gitleaks not installed (CI always runs it)"
+[ ${#COMPOSE[@]} -gt 0 ] || SKIPPED[compose]="docker compose not installed"
+
+# Installed once, before the web steps start, so they do not install side by side.
+[ -d "$ROOT/Suwageval.Web/node_modules" ] || (cd "$ROOT/Suwageval.Web" && pnpm install --frozen-lockfile --silent)
+
+GATE_START=$SECONDS
+PIDS=()
+# The server chain is sequential: the tests run on what the build produced, and the API types step
+# builds the same project (other properties, same bin/obj), so it must not overlap the build or the tests.
+(
+    run_step build build_server
+    if [ -z "${CI:-}" ]; then run_step postgres local_database; fi
+    run_step test test_server
+    run_step apitypes "$ROOT/scripts/.internal/api-types.sh" --check
+) &
+PIDS+=($!)
+# The rest only reads files and is independent of the chain above.
+launch() {
+    local key="$1"
+    shift
+    if [ -z "${SKIPPED[$key]+x}" ]; then
+        run_step "$key" "$@" &
+        PIDS+=($!)
+    fi
+}
+launch format format_server
+launch tsc web_typecheck
+launch eslint web eslint . --max-warnings 0
+launch prettier web prettier --check .
+launch vitest web vitest run
+launch knip web knip
+launch helm helm_chart
+launch shellcheck shell_scripts
+launch gitleaks secrets_in_git
+launch compose compose_file
+for pid in "${PIDS[@]}"; do wait "$pid" || true; done
+TOTAL=$((SECONDS - GATE_START))
+
+REPORT=()
+FAILURES=()
+FAILED=0
+for key in "${ORDER[@]}"; do
+    if [ -n "${SKIPPED[$key]+x}" ]; then
+        REPORT+=("SKIP  ${NAME[$key]%% (*} — ${SKIPPED[$key]}")
+        continue
+    fi
+    read -r status secs <"$LOGS/$key.result"
+    echo
+    echo "==> ${NAME[$key]}"
+    cat "$LOGS/$key.log"
+    if [ "$status" -eq 0 ]; then
+        REPORT+=("$(printf 'PASS %4ss  %s' "$secs" "${NAME[$key]}")")
+    else
+        REPORT+=("$(printf 'FAIL %4ss  %s' "$secs" "${NAME[$key]}")")
+        FAILURES+=("${NAME[$key]}" "$LOGS/$key.log")
+        FAILED=1
+    fi
+done
 
 for ((i = 0; i < ${#FAILURES[@]}; i += 2)); do
     echo
@@ -160,5 +202,6 @@ echo "==================== check report ===================="
 for line in "${REPORT[@]}"; do
     echo "  $line"
 done
+echo "  total ${TOTAL}s (steps run in parallel groups)"
 echo "======================================================"
 exit "$FAILED"
