@@ -59,28 +59,33 @@ export function ScenarioCard({
                     const unstableCheck = findUnstable(unstable, versionId, scenario.key, check.key, check.revision);
                     return (
                         <Stack key={check.key} gap={4} id={checkAnchor(scenario.key, check.key)} className="check-target">
-                            <Group gap="xs">
-                                <Badge color={check.passed ? "green" : "red"}>{check.passed ? "passed" : "failed"}</Badge>
-                                {check.regression != null && check.regression.state !== "Passed" && (
-                                    <StateBadge state={check.regression.state} variant="light">
-                                        {stateLabel(check.regression.state)}
-                                    </StateBadge>
-                                )}
-                                <CheckHistory check={check} />
-                                {notJudgedCount(check) > 0 && (
-                                    <Badge color="yellow" variant="light">
-                                        {`not judged: ${notJudgedCount(check)} of ${check.samples.length} samples`}
-                                    </Badge>
-                                )}
-                                <Text fw={600}>{check.key}</Text>
-                                {check.judgedByModel && <ModelJudgedIcon model={check.judgeModel} />}
-                                {unstableCheck !== undefined && <UnstableCheckIcon label={unstableTooltip(unstableCheck)} />}
-                                <CheckDefinitionButton
-                                    definition={check.definition}
-                                    revision={check.revision}
-                                    latestRevision={check.latestRevision}
-                                />
-                                <Text c="dimmed">{checkSummary(check)}</Text>
+                            <Group justify="space-between" wrap="nowrap" align="flex-start">
+                                <Group gap="xs">
+                                    <Badge color={check.passed ? "green" : "red"}>{check.passed ? "passed" : "failed"}</Badge>
+                                    {check.regression != null && check.regression.state !== "Passed" && (
+                                        <StateBadge state={check.regression.state} variant="light">
+                                            {stateLabel(check.regression.state)}
+                                        </StateBadge>
+                                    )}
+                                    <CheckHistory check={check} />
+                                    {notJudgedCount(check) > 0 && (
+                                        <Badge color="yellow" variant="light">
+                                            {`not judged: ${notJudgedCount(check)} of ${check.samples.length} samples`}
+                                        </Badge>
+                                    )}
+                                    <Text fw={600}>{check.key}</Text>
+                                    <Text c="dimmed">{checkSummary(check)}</Text>
+                                </Group>
+                                {/* The marks and the definition sit at the right edge, apart from the check's text. */}
+                                <Group gap={4} wrap="nowrap">
+                                    {check.judgedByModel && <ModelJudgedIcon model={check.judgeModel} />}
+                                    {unstableCheck !== undefined && <UnstableCheckIcon label={unstableTooltip(unstableCheck)} />}
+                                    <CheckDefinitionButton
+                                        definition={check.definition}
+                                        revision={check.revision}
+                                        latestRevision={check.latestRevision}
+                                    />
+                                </Group>
                             </Group>
                             <List size="sm" listStyleType="none">
                                 {check.samples

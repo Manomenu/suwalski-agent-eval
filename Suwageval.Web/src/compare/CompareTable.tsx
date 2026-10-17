@@ -17,8 +17,9 @@ import {
     checkOfRow,
     checksPassedText,
     delta,
-    judgeModelDiffers,
+    judgeChanged,
     deltaText,
+    runJudgeModel,
     tagRows,
     TIME_DELTA_HELP,
     timeDelta,
@@ -49,6 +50,8 @@ export function CompareTable({ comparison, firstBaseline }: { comparison: Compar
 
     // The checks that are unstable in the version of any compared run.
     const versionIds = [...new Set(runs.map((results) => results.run.agentVersionId))].sort();
+    // Each run's judge, named in its header; compared with the baseline's.
+    const judges = runs.map((results) => runJudgeModel(results));
     const unstable = useUnstableChecks(runs[0]?.run.agent ?? null, versionIds);
 
     const columns = runs.length;
@@ -101,6 +104,11 @@ export function CompareTable({ comparison, firstBaseline }: { comparison: Compar
                                                 <Text size="xs" fw="normal">
                                                     {durationSummary(results) ?? "Turn time: —"}
                                                 </Text>
+                                                <RunJudge
+                                                    model={runJudgeModel(results)}
+                                                    baselineModel={judges[baseline] ?? null}
+                                                    isBaseline={isBaseline}
+                                                />
                                                 {!isBaseline && (
                                                     <Tooltip label={TIME_DELTA_HELP} multiline w={TIME_HELP_WIDTH}>
                                                         <Group gap="xs" wrap="nowrap" w="fit-content" style={{ cursor: "help" }}>
@@ -192,21 +200,20 @@ export function CompareTable({ comparison, firstBaseline }: { comparison: Compar
                                             <Text size="xs" c="dimmed">
                                                 {row.scenarioKey}
                                             </Text>
-                                            <Group gap={4} wrap="nowrap">
+                                            <Group justify="space-between" wrap="nowrap">
                                                 <Text>{row.checkKey}</Text>
-                                                {judgeModelDiffers(row) && (
-                                                    <Badge size="xs" variant="light" color="orange">
-                                                        judge model differs
-                                                    </Badge>
-                                                )}
-                                                {unstableIn.length > 0 && <UnstableCheckIcon label={unstableRowTooltip(unstableIn)} />}
-                                                {check !== null && (
-                                                    <CheckDefinitionButton
-                                                        definition={check.definition}
-                                                        revision={check.revision}
-                                                        latestRevision={check.latestRevision}
-                                                    />
-                                                )}
+                                                {/* The marks and the definition sit at the right edge of the cell, apart from the check's key. */}
+                                                <Group gap={4} wrap="nowrap">
+                                                    {check?.judgedByModel === true && <ModelJudgedIcon />}
+                                                    {unstableIn.length > 0 && <UnstableCheckIcon label={unstableRowTooltip(unstableIn)} />}
+                                                    {check !== null && (
+                                                        <CheckDefinitionButton
+                                                            definition={check.definition}
+                                                            revision={check.revision}
+                                                            latestRevision={check.latestRevision}
+                                                        />
+                                                    )}
+                                                </Group>
                                             </Group>
                                         </Table.Td>
                                         {row.cells.map((cell, column) => (
@@ -242,8 +249,33 @@ function CheckCellView({ cell, baseline }: { cell: CheckCell | null; baseline: C
                 <Text size="sm" fw={700} c={trendColor(change)}>
                     {trendMarker(change)}
                 </Text>
-                {cell?.judgedByModel === true && <ModelJudgedIcon model={cell.judgeModel} />}
             </Group>
         </Table.Td>
+    );
+}
+
+/** The run's judge, once per run: the robot with the model's name, and a warning when it is not the baseline's judge. */
+function RunJudge({ model, baselineModel, isBaseline }: { model: string | null; baselineModel: string | null; isBaseline: boolean }) {
+    if (model === null) {
+        return null;
+    }
+    return (
+        <Group gap={4} wrap="nowrap">
+            <ModelJudgedIcon model={model} />
+            <Text size="xs" fw="normal">
+                judge {model}
+            </Text>
+            {!isBaseline && judgeChanged(model, baselineModel) && (
+                <Tooltip
+                    label={`The baseline was judged by ${baselineModel ?? ""}: a different verdict may come from the judge, not the agent`}
+                    multiline
+                    w={260}
+                >
+                    <Badge size="xs" variant="light" color="orange" style={{ cursor: "help" }}>
+                        other judge
+                    </Badge>
+                </Tooltip>
+            )}
+        </Group>
     );
 }
