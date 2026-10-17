@@ -103,7 +103,7 @@ internal sealed class RunOriginReader(
 
     private string? Set(string name) => environment(name) is { Length: > 0 } value ? value : null;
 
-    private static GitAnswer? RunGit(string dir, IReadOnlyList<string> arguments)
+    internal static GitAnswer? RunGit(string dir, IReadOnlyList<string> arguments)
     {
         var start = new ProcessStartInfo("git")
         {
