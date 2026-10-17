@@ -126,6 +126,62 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    agent: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agents/{agent}/deletion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    agent: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AgentDeletion"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -234,6 +290,64 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["AgentVersionDetail"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    agent: string;
+                    versionId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agents/{agent}/versions/{versionId}/deletion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    agent: string;
+                    versionId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["VersionDeletion"];
                     };
                 };
             };
@@ -988,6 +1102,24 @@ export interface components {
              */
             samples?: null | number;
             regression?: null | components["schemas"]["RegressionSettings"];
+        };
+        /** @description What deleting an agent removes with it: its versions, scenarios and checks, and every run with its samples and the verdicts on those. */
+        AgentDeletion: {
+            /** Format: uuid */
+            agentId: string;
+            name: string;
+            /** Format: int32 */
+            versions: number;
+            /** Format: int32 */
+            scenarios: number;
+            /** Format: int32 */
+            checks: number;
+            /** Format: int32 */
+            runs: number;
+            /** Format: int32 */
+            samples: number;
+            /** Format: int32 */
+            verdicts: number;
         };
         /** @description An agent with what is stored for it: counts of active (not archived) versions, live scenarios and live checks. */
         AgentDetail: {
@@ -1806,6 +1938,18 @@ export interface components {
              * @description The newest of those runs in which the check failed.
              */
             newestFailedRunId: string;
+        };
+        /** @description What deleting an archived version removes with it: the runs (re-checks of them included), their samples and the verdicts on those. */
+        VersionDeletion: {
+            /** Format: uuid */
+            versionId: string;
+            /** Format: int32 */
+            runs: number;
+            /** Format: int32 */
+            samples: number;
+            /** Format: int32 */
+            verdicts: number;
+            label?: null | string;
         };
     };
     responses: never;

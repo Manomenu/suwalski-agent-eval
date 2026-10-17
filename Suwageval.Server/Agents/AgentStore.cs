@@ -215,6 +215,150 @@ internal sealed class AgentStore(Pool pool)
         );
     }
 
+    /// <summary>
+    /// Deletes an archived version of the agent, with its runs, samples and verdicts (the foreign keys cascade), unless one of those runs is
+    /// queued or running; <paramref name="dryRun"/> only decides and counts. The version's row is locked, so no run is queued for it in between.
+    /// </summary>
+    public async Task<VersionDeletionResult> DeleteVersionAsync(
+        Guid agentId,
+        Guid versionId,
+        bool dryRun,
+        CancellationToken cancellationToken = default
+    )
+    {
+        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+        var version = await connection.QuerySingleOrDefaultAsync<VersionToDelete>(
+            new CommandDefinition(
+                "SELECT label, archived_at IS NOT NULL AS Archived FROM agent_versions WHERE id = @versionId AND agent_id = @agentId FOR UPDATE",
+                new { versionId, agentId },
+                transaction,
+                cancellationToken: cancellationToken
+            )
+        );
+        if (version is null)
+        {
+            return new VersionDeletionResult(DeletionOutcome.NotFound, null);
+        }
+        // The runs that go: those of the version and, however far the chain goes, the re-checks and verdict copies of them.
+        var counts = await connection.QuerySingleAsync<DeletionCounts>(
+            new CommandDefinition(
+                """
+                WITH RECURSIVE doomed AS (
+                    SELECT id, status FROM runs WHERE agent_version_id = @versionId
+                    UNION
+                    SELECT r.id, r.status FROM runs r JOIN doomed d ON r.recheck_of = d.id OR r.verdicts_from = d.id
+                )
+                SELECT (SELECT count(*) FROM doomed)::int AS Runs,
+                       (SELECT count(*) FROM doomed WHERE status IN ('Queued', 'Running'))::int AS Active,
+                       (SELECT count(*) FROM scenario_results s WHERE s.run_id IN (SELECT id FROM doomed))::int AS Samples,
+                       (SELECT count(*) FROM check_results c JOIN scenario_results s ON s.id = c.scenario_result_id
+                        WHERE s.run_id IN (SELECT id FROM doomed))::int AS Verdicts
+                """,
+                new { versionId },
+                transaction,
+                cancellationToken: cancellationToken
+            )
+        );
+        var contents = new VersionDeletion(versionId, counts.Runs, counts.Samples, counts.Verdicts, version.Label);
+        if (!version.Archived)
+        {
+            return new VersionDeletionResult(DeletionOutcome.NotArchived, contents);
+        }
+        if (counts.Active > 0)
+        {
+            return new VersionDeletionResult(DeletionOutcome.HasActiveRuns, contents);
+        }
+        if (dryRun)
+        {
+            return new VersionDeletionResult(DeletionOutcome.Allowed, contents);
+        }
+        await connection.ExecuteAsync(
+            new CommandDefinition(
+                "DELETE FROM agent_versions WHERE id = @versionId",
+                new { versionId },
+                transaction,
+                cancellationToken: cancellationToken
+            )
+        );
+        await transaction.CommitAsync(cancellationToken);
+        return new VersionDeletionResult(DeletionOutcome.Deleted, contents);
+    }
+
+    /// <summary>
+    /// Deletes the agent with everything that belongs to it (the foreign keys cascade), unless one of its runs is queued or running;
+    /// <paramref name="dryRun"/> only decides and counts. The agent's row is locked, so no run is queued for it in between.
+    /// </summary>
+    public async Task<AgentDeletionResult> DeleteAgentAsync(Guid agentId, bool dryRun, CancellationToken cancellationToken = default)
+    {
+        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+        var name = await connection.QuerySingleOrDefaultAsync<string>(
+            new CommandDefinition(
+                "SELECT name FROM agents WHERE id = @agentId FOR UPDATE",
+                new { agentId },
+                transaction,
+                cancellationToken: cancellationToken
+            )
+        );
+        if (name is null)
+        {
+            return new AgentDeletionResult(DeletionOutcome.NotFound, null);
+        }
+        var counts = await connection.QuerySingleAsync<AgentDeletionCounts>(
+            new CommandDefinition(
+                """
+                SELECT (SELECT count(*) FROM agent_versions WHERE agent_id = @agentId)::int AS Versions,
+                       (SELECT count(*) FROM scenarios WHERE agent_id = @agentId)::int AS Scenarios,
+                       (SELECT count(*) FROM checks WHERE agent_id = @agentId)::int AS Checks,
+                       (SELECT count(*) FROM runs WHERE agent_id = @agentId)::int AS Runs,
+                       (SELECT count(*) FROM runs WHERE agent_id = @agentId AND status IN ('Queued', 'Running'))::int AS Active,
+                       (SELECT count(*) FROM scenario_results s JOIN runs r ON r.id = s.run_id WHERE r.agent_id = @agentId)::int AS Samples,
+                       (SELECT count(*) FROM check_results c
+                        JOIN scenario_results s ON s.id = c.scenario_result_id
+                        JOIN runs r ON r.id = s.run_id WHERE r.agent_id = @agentId)::int AS Verdicts
+                """,
+                new { agentId },
+                transaction,
+                cancellationToken: cancellationToken
+            )
+        );
+        var contents = new AgentDeletion(
+            agentId,
+            name,
+            counts.Versions,
+            counts.Scenarios,
+            counts.Checks,
+            counts.Runs,
+            counts.Samples,
+            counts.Verdicts
+        );
+        if (counts.Active > 0)
+        {
+            return new AgentDeletionResult(DeletionOutcome.HasActiveRuns, contents);
+        }
+        if (dryRun)
+        {
+            return new AgentDeletionResult(DeletionOutcome.Allowed, contents);
+        }
+        await connection.ExecuteAsync(
+            new CommandDefinition(
+                "DELETE FROM agents WHERE id = @agentId",
+                new { agentId },
+                transaction,
+                cancellationToken: cancellationToken
+            )
+        );
+        await transaction.CommitAsync(cancellationToken);
+        return new AgentDeletionResult(DeletionOutcome.Deleted, contents);
+    }
+
+    private sealed record AgentDeletionCounts(int Versions, int Scenarios, int Checks, int Runs, int Active, int Samples, int Verdicts);
+
+    private sealed record VersionToDelete(string? Label, bool Archived);
+
+    private sealed record DeletionCounts(int Runs, int Active, int Samples, int Verdicts);
+
     public async Task<AgentVersionRow?> GetVersionAsync(Guid versionId, CancellationToken cancellationToken = default)
     {
         await using var connection = await pool.OpenAsync(cancellationToken);

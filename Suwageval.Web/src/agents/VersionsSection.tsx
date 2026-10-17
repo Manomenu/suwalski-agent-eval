@@ -3,6 +3,7 @@ import { useState } from "react";
 
 import { formatTime, versionTitle } from "../runs/results";
 import { archiveVersions, type AgentVersion } from "./api";
+import { DeleteVersionModal } from "./DeleteVersionModal";
 import { HeaderHelp } from "./HeaderHelp";
 import {
     firstPages,
@@ -16,8 +17,9 @@ import {
     VERSION_HELP,
     visibleVersions,
 } from "./view";
+import { versionToDelete } from "./deletion";
 
-/** The agent's versions: select some to archive them (hidden, never deleted), switch "Show archived" to see and restore them. */
+/** The agent's versions: select some to archive them (hidden), switch "Show archived" to see, restore or delete them (an archived version, with its runs). */
 export function VersionsSection({
     agentName,
     versions,
@@ -37,10 +39,13 @@ export function VersionsSection({
     const [pages, setPages] = useState(1);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [deleting, setDeleting] = useState(false);
+    const [notice, setNotice] = useState<string | null>(null);
 
     const listed = visibleVersions(versions, showArchived);
     const { toArchive, toRestore } = selectionActions(listed, selected);
     const toCompare = versionsToCompare(listed, selected);
+    const toDelete = versionToDelete(listed, selected);
 
     function toggle(id: string, checked: boolean) {
         const next = new Set(selected);
@@ -52,6 +57,7 @@ export function VersionsSection({
     async function change(ids: string[], archived: boolean) {
         setBusy(true);
         setError(null);
+        setNotice(null);
         try {
             await archiveVersions(agentName, ids, archived);
             setSelected(new Set());
@@ -106,6 +112,19 @@ export function VersionsSection({
                                         Unarchive selected
                                     </Button>
                                 )}
+                                {showArchived && (
+                                    <Button
+                                        color="red"
+                                        variant="light"
+                                        disabled={toDelete === null || busy}
+                                        title={toDelete === null ? "Select one archived version to delete it." : undefined}
+                                        onClick={() => {
+                                            setDeleting(true);
+                                        }}
+                                    >
+                                        Delete
+                                    </Button>
+                                )}
                             </Group>
                             <Switch
                                 label="Show archived"
@@ -116,6 +135,7 @@ export function VersionsSection({
                                 }}
                             />
                         </Group>
+                        {notice !== null && <Alert color="green">{notice}</Alert>}
                         {error !== null && (
                             <Alert color="red" title="Could not change the versions">
                                 {error}
@@ -177,6 +197,21 @@ export function VersionsSection({
                         {listed.length === 0 && <Text c="dimmed">All versions are archived — switch on Show archived to see them.</Text>}
                     </Stack>
                 </Paper>
+            )}
+            {deleting && toDelete !== null && (
+                <DeleteVersionModal
+                    agentName={agentName}
+                    version={toDelete}
+                    onClose={() => {
+                        setDeleting(false);
+                    }}
+                    onDeleted={() => {
+                        setDeleting(false);
+                        setSelected(new Set());
+                        setNotice(`Deleted version ${versionTitle(toDelete.id, toDelete.label)} with its runs.`);
+                        onChanged();
+                    }}
+                />
             )}
         </Stack>
     );

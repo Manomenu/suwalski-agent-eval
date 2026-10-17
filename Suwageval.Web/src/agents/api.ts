@@ -29,6 +29,30 @@ export async function archiveVersions(name: string, versionIds: string[], archiv
     await request<undefined>(`${agentPath(name)}/versions/archive`, { method: "POST", body: JSON.stringify(body) });
 }
 
+export type VersionDeletion = components["schemas"]["VersionDeletion"];
+
+/** What deleting the version would remove; the server refuses like the deletion would (409: not archived, or a run in progress). */
+export function fetchVersionDeletion(name: string, versionId: string, signal: AbortSignal): Promise<VersionDeletion> {
+    return request<VersionDeletion>(`${agentPath(name)}/versions/${versionId}/deletion`, { signal });
+}
+
+/** Deletes an archived version with its runs, samples and verdicts. */
+export async function deleteVersion(name: string, versionId: string): Promise<void> {
+    await request<undefined>(`${agentPath(name)}/versions/${versionId}`, { method: "DELETE" });
+}
+
+export type AgentDeletion = components["schemas"]["AgentDeletion"];
+
+/** What deleting the agent would remove; the server refuses like the deletion would (409: a run in progress). */
+export function fetchAgentDeletion(name: string, signal: AbortSignal): Promise<AgentDeletion> {
+    return request<AgentDeletion>(`${agentPath(name)}/deletion`, { signal });
+}
+
+/** Deletes the agent with its versions, scenarios, checks, runs, samples and verdicts. */
+export async function deleteAgent(name: string): Promise<void> {
+    await request<undefined>(agentPath(name), { method: "DELETE" });
+}
+
 export type RunPassRates = components["schemas"]["RunPassRates"];
 
 /** The pass rate of the agent's finished runs, oldest first (the newest 50 at most). */
