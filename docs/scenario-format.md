@@ -190,7 +190,8 @@ builder.Services.AddSingleton<ITurnHandler, MyTurnHandler>();            // Turn
 app.MapSuwagevalAgent();                                                 // GET /suwageval/contract, POST /suwageval/turn
 ```
 
-A turn whose conversation is empty, or does not end with a user message, is answered 400. `AgentContractRules.Problems(contract)`
+A turn whose conversation is empty, or does not end with a user message, is answered 400. So is one the handler refuses by throwing
+`TurnRejectedException(reason)` (an item kind or a message length it does not support); the 400 carries the reason. `AgentContractRules.Problems(contract)`
 returns what the server would refuse in the contract (the same code), so an agent can assert it is empty in its own unit test.
 
 ## A scenario file

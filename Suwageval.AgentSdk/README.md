@@ -11,6 +11,7 @@ app.MapSuwagevalAgent();   // GET /suwageval/contract, POST /suwageval/turn
 - the contract types (`AgentContract`, `TurnRequest`, `TurnResponse`, the `ConversationItem`s) and `ContractJson.Options`,
   the JSON options the server reads them with;
 - `AgentContractRules.Problems(contract)`: what the server would reject in your contract, for a unit test.
+- `TurnRejectedException(reason)`: thrown by your handler for a conversation it cannot answer; the turn is answered 400 with the reason.
 
 The HTTP contract stays the source of truth; this package saves a .NET agent from re-declaring it.
 

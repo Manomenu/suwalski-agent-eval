@@ -35,8 +35,13 @@ public sealed class SuwagevalAgentEndpointsTests : IAsyncLifetime
 
     private sealed class EchoHandler : ITurnHandler
     {
-        public Task<TurnResponse> HandleAsync(TurnRequest request, CancellationToken cancellationToken) =>
-            Task.FromResult(new TurnResponse { Items = [new AssistantMessage { Text = ((UserMessage)request.Conversation[^1]).Text }] });
+        public Task<TurnResponse> HandleAsync(TurnRequest request, CancellationToken cancellationToken)
+        {
+            var text = ((UserMessage)request.Conversation[^1]).Text;
+            return text == "reject"
+                ? throw new TurnRejectedException("Rejected by the handler.")
+                : Task.FromResult(new TurnResponse { Items = [new AssistantMessage { Text = text }] });
+        }
     }
 
     private WebApplication? app;
@@ -96,5 +101,14 @@ public sealed class SuwagevalAgentEndpointsTests : IAsyncLifetime
         using var response = await PostTurn(json);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task A_turn_the_handler_rejects_is_a_400_with_its_reason()
+    {
+        using var response = await PostTurn("""{"conversation":[{"kind":"UserMessage","text":"reject"}]}""");
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Contains("Rejected by the handler.", await response.Content.ReadAsStringAsync(Cancellation), StringComparison.Ordinal);
     }
 }
