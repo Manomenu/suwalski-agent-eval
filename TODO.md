@@ -5,6 +5,9 @@ section 0).
 
 ## Secrets — with the first real secret (the model provider's API key, roadmap step 4)
 
+The judge's API key (`Models:<name>:ApiKey`) is read today from the gitignored `.env`, like its
+address. This section moves it, with every later secret, to where the table below says.
+
 Secrets never go into `appsettings*.json`: those files are committed. Nothing copies or
 generates secret files into the repo — the app reads them where they live.
 

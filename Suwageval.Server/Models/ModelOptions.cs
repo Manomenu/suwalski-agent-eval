@@ -9,6 +9,9 @@ internal sealed class ModelOptions
     /// <summary>The model's name on that server.</summary>
     public string Model { get; set; } = "";
 
+    /// <summary>The server's API key; null or empty for a server that asks for none.</summary>
+    public string? ApiKey { get; set; }
+
     /// <summary>How many calls to this model are in flight at once, whoever asks (TODO.md, "Parallel runs").</summary>
     public int MaxConcurrency { get; set; } = 8;
 
