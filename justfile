@@ -60,6 +60,11 @@ cli-install:
 agent-pack:
     dotnet pack Suwageval.AgentSdk -c Release -o .artifacts/nupkg
 
+# Pack Suwageval.AgentSdk as <version> and push it to the feed in .env (AGENTS.md, section 12)
+[group('dev')]
+agent-publish version:
+    set -a && { [ ! -f .env ] || . ./.env; } && set +a &&         dotnet pack Suwageval.AgentSdk -c Release -o .artifacts/nupkg -p:Version={{ version }} &&         dotnet nuget push .artifacts/nupkg/Suwageval.AgentSdk.{{ version }}.nupkg --source "$AGENT_SDK_FEED_URL" --api-key "$AGENT_SDK_FEED_API_KEY"
+
 # ---------------------------------------------------------------------------------------
 # infra — the containerised stack: the same images the cluster runs, wired the same way
 # ---------------------------------------------------------------------------------------
