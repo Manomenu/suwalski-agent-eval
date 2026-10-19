@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace Suwageval.Contracts.Agents;
+namespace Suwageval.AgentSdk.Agents;
 
 /// <summary>What besides messages and tool calls may appear in the agent's conversation log.</summary>
 public sealed record ContextDefinition

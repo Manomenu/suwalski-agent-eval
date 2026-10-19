@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using Suwageval.Contracts.Agents;
+using Suwageval.AgentSdk.Agents;
 
 namespace Suwageval.Server.Tests.Runs;
 

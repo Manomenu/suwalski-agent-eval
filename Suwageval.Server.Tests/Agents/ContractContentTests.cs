@@ -1,4 +1,4 @@
-using Suwageval.Contracts.Agents;
+using Suwageval.AgentSdk.Agents;
 using Suwageval.Server.Agents;
 
 namespace Suwageval.Server.Tests.Agents;

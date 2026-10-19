@@ -1,7 +1,7 @@
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
-using Suwageval.Contracts;
-using Suwageval.Contracts.Conversations;
+using Suwageval.AgentSdk;
+using Suwageval.AgentSdk.Conversations;
 using Suwageval.Server.Checks;
 
 namespace Suwageval.Server.Judges;

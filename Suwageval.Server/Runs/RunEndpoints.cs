@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using Suwageval.Contracts.Agents;
+using Suwageval.AgentSdk.Agents;
 using Suwageval.Contracts.Runs;
 using Suwageval.Server.Agents;
 using Suwageval.Server.Checks;

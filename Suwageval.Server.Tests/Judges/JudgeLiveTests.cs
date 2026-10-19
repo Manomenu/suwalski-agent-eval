@@ -1,8 +1,8 @@
 using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Suwageval.AgentSdk.Conversations;
 using Suwageval.Contracts.Checks;
-using Suwageval.Contracts.Conversations;
 using Suwageval.Server.Judges;
 using static Suwageval.Server.Tests.Checks.Items;
 

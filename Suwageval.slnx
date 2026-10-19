@@ -7,8 +7,8 @@
     <Project Path="Suwageval.Cli/Suwageval.Cli.csproj" />
     <Project Path="Suwageval.Cli.Tests/Suwageval.Cli.Tests.csproj" />
   </Folder>
-  <Folder Name="/Suwageval.Agent/">
-    <Project Path="Suwageval.Agent/Suwageval.Agent.csproj" />
+  <Folder Name="/Suwageval.AgentSdk/">
+    <Project Path="Suwageval.AgentSdk/Suwageval.AgentSdk.csproj" />
   </Folder>
   <Folder Name="/Suwageval.Contracts/">
     <Project Path="Suwageval.Contracts/Suwageval.Contracts.csproj" />

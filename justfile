@@ -58,7 +58,7 @@ cli-install:
 # Pack the agent contracts for a .NET agent under test into .artifacts/nupkg
 [group('dev')]
 agent-pack:
-    dotnet pack Suwageval.Agent -c Release -o .artifacts/nupkg
+    dotnet pack Suwageval.AgentSdk -c Release -o .artifacts/nupkg
 
 # ---------------------------------------------------------------------------------------
 # infra — the containerised stack: the same images the cluster runs, wired the same way

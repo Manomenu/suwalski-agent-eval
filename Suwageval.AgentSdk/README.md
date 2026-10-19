@@ -1,6 +1,6 @@
-# Suwageval.Agent
+# Suwageval.AgentSdk
 
-What a .NET agent under test needs to be evaluated by [Suwageval](https://github.com/Manomenu/suwalski-agent-eval):
+What a .NET agent under test (.NET 9 or later) needs to be evaluated by [Suwageval](https://github.com/Manomenu/suwalski-agent-eval):
 
 ```csharp
 builder.Services.AddSingleton<IAgentContractSource, MyContractSource>();

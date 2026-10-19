@@ -1,9 +1,9 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
-using Suwageval.Contracts;
+using Suwageval.AgentSdk;
+using Suwageval.AgentSdk.Conversations;
 using Suwageval.Contracts.Checks;
-using Suwageval.Contracts.Conversations;
 using Suwageval.Contracts.Scenarios;
 
 namespace Suwageval.Cli.Tests.Scenarios;

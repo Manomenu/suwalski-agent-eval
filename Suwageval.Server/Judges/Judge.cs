@@ -1,9 +1,9 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
-using Suwageval.Contracts;
+using Suwageval.AgentSdk;
+using Suwageval.AgentSdk.Conversations;
 using Suwageval.Contracts.Checks;
-using Suwageval.Contracts.Conversations;
 using Suwageval.Server.Checks;
 using Suwageval.Server.Models;
 

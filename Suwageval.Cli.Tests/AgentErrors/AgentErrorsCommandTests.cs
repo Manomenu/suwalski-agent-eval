@@ -1,7 +1,7 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
-using Suwageval.Contracts;
+using Suwageval.AgentSdk;
 using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Cli.Tests.AgentErrors;

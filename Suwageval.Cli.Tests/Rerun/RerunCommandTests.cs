@@ -1,8 +1,8 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using Suwageval.AgentSdk;
 using Suwageval.Cli.Tests.Run;
-using Suwageval.Contracts;
 using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Cli.Tests.Rerun;

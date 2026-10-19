@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace Suwageval.Contracts.Agents;
+namespace Suwageval.AgentSdk.Agents;
 
 public sealed record ModelDefinition
 {

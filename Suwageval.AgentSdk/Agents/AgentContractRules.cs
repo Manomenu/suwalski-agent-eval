@@ -1,4 +1,4 @@
-namespace Suwageval.Contracts.Agents;
+namespace Suwageval.AgentSdk.Agents;
 
 /// <summary>
 /// What is wrong with an <see cref="AgentContract"/>, written once for the server (which refuses to register such a contract)

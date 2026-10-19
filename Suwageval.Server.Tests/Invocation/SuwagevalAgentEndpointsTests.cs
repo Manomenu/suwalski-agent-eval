@@ -3,10 +3,10 @@ using System.Net.Http.Json;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
-using Suwageval.Contracts;
-using Suwageval.Contracts.Agents;
-using Suwageval.Contracts.Conversations;
-using Suwageval.Contracts.Invocation;
+using Suwageval.AgentSdk;
+using Suwageval.AgentSdk.Agents;
+using Suwageval.AgentSdk.Conversations;
+using Suwageval.AgentSdk.Invocation;
 
 namespace Suwageval.Server.Tests.Invocation;
 

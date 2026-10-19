@@ -2,7 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Suwageval.Contracts;
+using Suwageval.AgentSdk;
 using Suwageval.Contracts.Agents;
 using Suwageval.Contracts.Runs;
 using Suwageval.Server.Agents;

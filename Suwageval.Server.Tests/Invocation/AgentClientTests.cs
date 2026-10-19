@@ -1,7 +1,7 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
-using Suwageval.Contracts.Conversations;
+using Suwageval.AgentSdk.Conversations;
 using Suwageval.Server.Invocation;
 
 namespace Suwageval.Server.Tests.Invocation;

@@ -1,7 +1,7 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Suwageval.Contracts;
+using Suwageval.AgentSdk;
 using Suwageval.Contracts.Agents;
 using Suwageval.Server.Tests.Agents;
 using Suwageval.Server.Tests.Runs;

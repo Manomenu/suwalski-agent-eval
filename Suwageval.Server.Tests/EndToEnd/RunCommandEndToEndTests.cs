@@ -1,10 +1,9 @@
 extern alias Cli;
-
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
-using Suwageval.Contracts;
-using Suwageval.Contracts.Agents;
+using Suwageval.AgentSdk;
+using Suwageval.AgentSdk.Agents;
 using Suwageval.Contracts.Runs;
 using Suwageval.Server.Runs;
 using Suwageval.Server.Tests.Runs;
