@@ -125,6 +125,12 @@ belongs to.
   arrives with the outside-service rules of AGENTS.md section 3 (a live test, the daily check from the cluster, degrade rather
   than break) and with the per-model pool the judge already uses; until then `continuation.turns` above 1 fails the sample without a
   call.
+  It needs a conversation key in the request. `TurnRequest` carries none today, so an agent that stores its own conversation
+  (a database row per conversation, a state machine) can only rebuild it from the sent log on every call, and loses whatever
+  the log does not carry; the whole conversation is then judged on an agent that forgets part of its state each turn. The
+  request gets a key that stays the same for every turn of one sample (e.g. `conversationKey`): the agent continues the
+  conversation it stored under that key and refuses a log that is not what it holds plus the new user message. The
+  correlation headers are not that key, since they must not change behaviour.
 - **A check on the state a call was made in** (what is left of the multi-agent contract, whose
   rest — agents, `by`, `agent` on a call — is built): the state at any point is the `data` of the
   last `state.changed` event before it, read from the log, not stamped on the call. A check can
