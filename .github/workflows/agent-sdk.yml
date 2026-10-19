@@ -1,0 +1,82 @@
+name: agent-sdk
+
+# Publishes Suwageval.AgentSdk to nuget.org when a tag `agent-sdk-v<semver>` is pushed
+# (agent-sdk-v0.1.0 releases 0.1.0). Tag-only on purpose: no manual trigger that could
+# publish by accident. The tag belongs on a commit whose CI run (ci.yml) is green, so this
+# does not run the whole gate again, only the SDK's own tests.
+on:
+  push:
+    tags: ["agent-sdk-v*"]
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: "1"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+
+jobs:
+  pack:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Version from the tag
+        id: version
+        run: |
+          version="${GITHUB_REF_NAME#agent-sdk-v}"
+          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "tag $GITHUB_REF_NAME is not agent-sdk-v<major>.<minor>.<patch>[-prerelease]" >&2
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      # The same SDK band as ci.yml.
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0.x"
+          cache: true
+          cache-dependency-path: "**/packages.lock.json"
+
+      # The SDK's tests live in Suwageval.Server.Tests and need no database.
+      - name: Test the SDK
+        run: >
+          dotnet test --project Suwageval.Server.Tests --configuration Release
+          --filter-class "*AgentSdkContractsTests" --filter-class "*SuwagevalAgentEndpointsTests" --filter-class "*AgentContractRulesTests"
+
+      - name: Pack
+        run: dotnet pack Suwageval.AgentSdk --configuration Release --no-restore -p:Version="${{ steps.version.outputs.version }}" --output nupkg
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nupkg
+          path: nupkg/*.nupkg
+          if-no-files-found: error
+
+  publish:
+    needs: pack
+    runs-on: ubuntu-latest
+    # The only job with a token: nuget.org trusts this repository and this workflow file
+    # (Trusted Publishing), so there is no API key in the repository's secrets.
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: nupkg
+          path: nupkg
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0.x"
+
+      # Exchanges the job's OIDC token for a short-lived nuget.org API key.
+      - uses: NuGet/login@v1
+        id: login
+        with:
+          user: ${{ vars.NUGET_USER }}
+
+      - name: Push
+        run: dotnet nuget push "nupkg/*.nupkg" --source https://api.nuget.org/v3/index.json --api-key "${{ steps.login.outputs.NUGET_API_KEY }}" --skip-duplicate

@@ -75,7 +75,7 @@ app keeps its tests beside its code, so those folders would only split the .NET 
 | `Suwageval.Server/Dockerfile`, `Suwageval.Web/Dockerfile` | the two images; build context is the repo root |
 | `justfile`, `.just/` | commands for humans: the main recipes and the `just <module>` families (section 10) |
 | `scripts/.internal/` | everything the gate, CI and `just` run (section 10) |
-| `.github/workflows/ci.yml` | CI: the gate, the browser tests, then the images |
+| `.github/workflows/ci.yml`, `.github/workflows/agent-sdk.yml` | CI: the gate, the browser tests, then the images; the second publishes `Suwageval.AgentSdk` to nuget.org when a tag `agent-sdk-v<semver>` is pushed (section 12) |
 | `docs/claude-artifacts/README.md` | links to the design documents kept as Claude artifacts, each with what it holds in a sentence or two. A new artifact about this project gets its row in the same change |
 | `.githooks/` | the git hooks `just sync` enables: `pre-commit` runs gitleaks on what is being committed |
 | `.vscode/` | the editor's settings: recommended extensions, file nesting, formatters, the launch configurations |
@@ -566,3 +566,13 @@ means: a clear goal, the files it touches are known, and a check says when it is
 - The main agent keeps what needs judgment: design decisions, unclear requirements, small
   edits (spawning costs more than doing them), and the review of the subagent's result
   against the acceptance check — without redoing the delegated work.
+
+## 12. Releasing `Suwageval.AgentSdk`
+
+A release is a tag on a commit whose CI is green: `git tag agent-sdk-v0.1.0 && git push origin agent-sdk-v0.1.0`
+(the owner's; agents never create or push tags). `.github/workflows/agent-sdk.yml` takes the version from the tag
+(`-p:Version=`), runs the SDK's tests, packs and pushes to nuget.org with `--skip-duplicate`. The csproj says `0.0.0-local`,
+which is what `just agent-pack` produces. Authentication is nuget.org Trusted Publishing (OIDC, `NuGet/login`; `id-token: write`
+only in the publish job), so the repository holds no API key. One-time setup on nuget.org: an account, then *Trusted Publishing*
+→ a policy for owner `Manomenu`, repository `suwalski-agent-eval`, workflow file `agent-sdk.yml`; and the repository variable
+`NUGET_USER` (Settings → Variables) set to the nuget.org username (the profile name, not the email). If nuget.org refuses the very first push for a package id that does not exist yet, push 0.1.0 once by hand with an API key; later releases use the policy.
