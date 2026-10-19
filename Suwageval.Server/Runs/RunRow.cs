@@ -28,7 +28,8 @@ internal sealed record RunRow(
     Guid? VerdictsFrom = null,
     string? Origin = null,
     bool Reference = false,
-    string? ComparedWith = null
+    string? ComparedWith = null,
+    string JudgeModels = "[]"
 )
 {
     /// <summary>What a rerun or a re-check of this run inherits.</summary>

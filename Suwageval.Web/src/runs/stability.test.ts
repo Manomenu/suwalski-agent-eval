@@ -57,17 +57,15 @@ describe("tooltips and text", () => {
 });
 
 describe("unstableInRuns", () => {
-    const run = (agentVersionId: string, revision: number) => ({
-        run: { agentVersionId },
-        scenarios: [{ key: "refund", checks: [{ key: "says-sorry", revision }] }],
-    });
+    const cell = (revision: number) => ({ revision });
 
     it("finds the check once per compared version, by the revision each run used", () => {
         const list = [item(), item({ agentVersionId: "v2", checkRevision: 2 })];
-        const found = unstableInRuns(list, [run("v1", 1), run("v1", 1), run("v2", 2), run("v3", 1)], "refund", "says-sorry");
+        const found = unstableInRuns(list, ["v1", "v1", "v2", "v3"], [cell(1), cell(1), cell(2), cell(1)], "refund", "says-sorry");
         expect(found.map((x) => x.agentVersionId)).toEqual(["v1", "v2"]);
-        expect(unstableInRuns(list, [run("v2", 1)], "refund", "says-sorry")).toEqual([]);
-        expect(unstableInRuns(list, [run("v1", 1)], "refund", "missing")).toEqual([]);
+        expect(unstableInRuns(list, ["v2"], [cell(1)], "refund", "says-sorry")).toEqual([]);
+        expect(unstableInRuns(list, ["v1"], [cell(1)], "refund", "missing")).toEqual([]);
+        expect(unstableInRuns(list, ["v1", "v2"], [null, cell(2)], "refund", "says-sorry").map((x) => x.agentVersionId)).toEqual(["v2"]);
     });
 });
 

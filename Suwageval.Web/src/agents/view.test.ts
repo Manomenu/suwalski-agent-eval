@@ -20,6 +20,7 @@ import {
     versionsToCompare,
     versionHref,
     versionLabel,
+    versionOptions,
     visibleRuns,
     visibleVersions,
 } from "./view";
@@ -164,6 +165,14 @@ describe("allowedVersionIds", () => {
         expect(allowedVersionIds(versions, true, ["large"], ["build-7"])).toEqual(["v-data"]);
     });
 
+    it("narrows to the chosen versions, combined with the other filters", () => {
+        expect(allowedVersionIds(versions, true, [], [], ["v-data"])).toEqual(["v-data"]);
+        expect(allowedVersionIds(versions, true, [], [], ["v-old", "v-new"])).toEqual(["v-old", "v-new"]);
+        expect(allowedVersionIds(versions, false, [], [], ["v-old", "v-new"])).toEqual(["v-new"]);
+        expect(allowedVersionIds(versions, true, ["small"], [], ["v-new"])).toEqual([]);
+        expect(allowedVersionIds(versions, true, [], [], ["v-old", "v-new", "v-data"])).toBeNull();
+    });
+
     it("is empty when no version qualifies", () => {
         expect(allowedVersionIds(versions, true, ["none"], [])).toEqual([]);
         expect(allowedVersionIds([old], false, [], [])).toEqual([]);
@@ -175,6 +184,7 @@ describe("consideredVersionIds", () => {
         expect(consideredVersionIds([old, current], true, [], [])).toEqual(["v-old", "v-new"]);
         expect(consideredVersionIds([old, current], false, [], [])).toEqual(["v-new"]);
         expect(consideredVersionIds([old, current], true, ["large"], [])).toEqual(["v-new"]);
+        expect(consideredVersionIds([old, current], true, [], [], ["v-old"])).toEqual(["v-old"]);
     });
 
     it("is empty when the filters show none", () => {
@@ -221,5 +231,29 @@ describe("versionsToCompare", () => {
         expect(versionCompareHref("my bot", "a", "b")).toBe("/agents/my%20bot/versions/compare?a=a&b=b");
         expect(compareVersionsTitle(false)).toContain("exactly two");
         expect(compareVersionsTitle(true)).toContain("changed");
+    });
+});
+
+describe("versionOptions", () => {
+    it("lists the versions newest first, each by its title", () => {
+        const versions = [
+            { id: "11111111-aaaa", label: "first", createdAt: "2026-10-01T10:00:00Z" },
+            { id: "33333333-cccc", label: null, createdAt: "2026-10-03T10:00:00Z" },
+            { id: "22222222-bbbb", label: "second", createdAt: "2026-10-02T10:00:00Z" },
+        ];
+        expect(versionOptions(versions)).toEqual([
+            { value: "33333333-cccc", label: "33333333" },
+            { value: "22222222-bbbb", label: "second" },
+            { value: "11111111-aaaa", label: "first" },
+        ]);
+    });
+});
+
+describe("visibleRuns by version", () => {
+    it("keeps only the runs of the chosen versions, none chosen meaning all", () => {
+        const runs = [{ agentVersionId: "v-old" }, { agentVersionId: "v-new" }, { agentVersionId: "v-gone" }];
+        expect(visibleRuns(runs, [old, current], true, [], [], ["v-new"])).toEqual([{ agentVersionId: "v-new" }]);
+        expect(visibleRuns(runs, [old, current], true, [], [], [])).toEqual(runs);
+        expect(visibleRuns(runs, [old, current], false, [], [], ["v-old"])).toEqual([]);
     });
 });

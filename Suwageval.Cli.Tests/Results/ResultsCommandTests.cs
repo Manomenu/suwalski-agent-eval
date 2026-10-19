@@ -107,9 +107,9 @@ public sealed class ResultsCommandTests
     }
 
     [Fact]
-    public void It_prints_and_opens_the_runs_page_on_the_web()
+    public void Open_prints_and_opens_the_runs_page_on_the_web()
     {
-        var (exit, output, error, _, opened) = Results(Api(), RunId.ToString(), "--server", "https://eval.example/");
+        var (exit, output, error, _, opened) = Results(Api(), RunId.ToString(), "--open", "--server", "https://eval.example/");
 
         Assert.Equal(0, exit);
         Assert.Equal($"https://eval.example/runs/{RunId}{Environment.NewLine}", output);
@@ -120,7 +120,7 @@ public sealed class ResultsCommandTests
     [Fact]
     public void A_run_that_does_not_exist_exits_2_and_opens_nothing()
     {
-        var (exit, output, error, _, opened) = Results(_ => new HttpResponseMessage(HttpStatusCode.NotFound), RunId.ToString());
+        var (exit, output, error, _, opened) = Results(_ => new HttpResponseMessage(HttpStatusCode.NotFound), RunId.ToString(), "--open");
 
         Assert.Equal(2, exit);
         Assert.Empty(output);
@@ -131,7 +131,7 @@ public sealed class ResultsCommandTests
     [Fact]
     public void A_web_that_does_not_answer_exits_2()
     {
-        var (exit, _, error, _, opened) = Results(_ => throw new HttpRequestException("connection refused"), RunId.ToString());
+        var (exit, _, error, _, opened) = Results(_ => throw new HttpRequestException("connection refused"), RunId.ToString(), "--open");
 
         Assert.Equal(2, exit);
         Assert.Contains("could not be reached", error, StringComparison.Ordinal);
@@ -148,6 +148,63 @@ public sealed class ResultsCommandTests
         var printed = JsonSerializer.Deserialize<RunResults>(output, ContractJson.Options);
         Assert.Equal("refund-called", printed?.Scenarios[0].Checks[0].Key);
         Assert.Empty(opened);
+    }
+
+    [Fact]
+    public void By_default_it_waits_for_the_end_and_prints_the_results_as_text_without_opening_anything()
+    {
+        var (exit, output, error, api, opened) = Results(Api(), RunId.ToString(), "--server", "https://eval.example/");
+
+        Assert.Equal(1, exit);
+        Assert.Empty(error);
+        Assert.Empty(opened);
+        Assert.Equal(2, api.Paths.Count(path => path == $"/runs/{RunId}"));
+        Assert.Contains($"run {RunId}  done", output, StringComparison.Ordinal);
+        Assert.Contains("tag -  branch -", output, StringComparison.Ordinal);
+        Assert.Contains("1 of 1 checks failed.", output, StringComparison.Ordinal);
+        Assert.Contains("failing checks:", output, StringComparison.Ordinal);
+        Assert.Contains("refund / refund-called  0% passed, needs 100%", output, StringComparison.Ordinal);
+        Assert.Contains("turn time: median -, p95 -", output, StringComparison.Ordinal);
+        Assert.EndsWith($"https://eval.example/runs/{RunId}", output.TrimEnd(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_finished_run_with_a_regression_summary_prints_what_run_wait_prints()
+    {
+        var withRegression = Failing(RunStatus.Done) with
+        {
+            MedianMs = 1200,
+            P95Ms = 3000,
+            Regression = new RegressionSummary
+            {
+                ComparedWith = "master",
+                History = 3,
+                Regressions = 0,
+                New = 0,
+                AlreadyBroken = 0,
+                KnownFailures = 0,
+                Fixed = 0,
+                Unstable = 0,
+                AgentErrors = 0,
+            },
+        };
+        var (_, output, _, _, _) = Results(
+            request => request.RequestUri?.AbsolutePath == $"/runs/{RunId}" ? Json(Summary(RunStatus.Done)) : Json(withRegression),
+            RunId.ToString()
+        );
+
+        Assert.Contains("compared with master", output, StringComparison.Ordinal);
+        Assert.Contains("1 checks: 0 passed, 1 failed", output, StringComparison.Ordinal);
+        Assert.Contains("turn time: median 1.2s, p95 3.0s", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Json_and_open_together_are_refused()
+    {
+        var (exit, _, _, api, _) = Results(Api(), RunId.ToString(), "--json", "--open");
+
+        Assert.NotEqual(0, exit);
+        Assert.Empty(api.Paths);
     }
 
     [Fact]

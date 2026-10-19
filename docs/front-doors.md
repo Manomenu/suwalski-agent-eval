@@ -5,22 +5,22 @@ The server has one interface, its HTTP API. Three users reach it:
 | Who | Through | Does |
 | --- | --- | --- |
 | a person in the browser | the web app | browses agents, scenarios, runs, results, comparisons, archives versions and deletes an archived one with its runs (after typing its id), deletes a whole agent (after typing its name) |
-| an agent's repository, by hand or in CI | the `suwageval` CLI (`Suwageval.Cli`) | `init` to set up `suwageval/agent.yaml` (and `scenarios/`) without touching what is already in it, `validate` the scenario files, `push` the agent, its scenarios and checks, `run --tag … --wait` with an exit code for CI (`--ref <branch>` picks the branch to compare with, `--strict` fails on any failed check, not only on regressions; `rerun` and `recheck` take `--strict` too), `rerun <runId>` to repeat a run, `recheck <runId>` to judge a finished run's stored answers again with the current checks (`--dry-run` shows what would be evaluated), `cancel <runId>` to stop a queued or running one, `results <runId>` to open a run on the web, `runs` to list the agent's newest runs, `unstable` to list the open checks that pass in some runs of a version and fail in others, `agent-errors` to list the open scenarios where the agent gave no answer (both take `--version <id>`, repeatable), `compare <runId> <runId> …` to open the comparison of 2 to 5 runs of one agent on the web, `versions` to list, archive and restore the agent's versions, `versions delete <id>` to delete an archived one with its runs (`--dry-run` shows what would go, `--yes` skips the question), `versions diff <a> <b>` to open what changed between two of them on the web, `delete-agent` to delete the repository's agent from the server with everything of it (`--dry-run`, `--yes` as for `versions delete`) |
+| an agent's repository, by hand or in CI | the `suwageval` CLI (`Suwageval.Cli`) | `init` to set up `suwageval/agent.yaml` (and `scenarios/`) without touching what is already in it, `validate` the scenario files, `push` the agent, its scenarios and checks, `run --tag … --wait` with an exit code for CI (`--ref <branch>` picks the branch to compare with, `--strict` fails on any failed check, not only on regressions; `rerun` and `recheck` take `--strict` too), `rerun <runId>` to repeat a run, `recheck <runId>` to judge a finished run's stored answers again with the current checks (`--dry-run` shows what would be evaluated), `cancel <runId>` to stop a queued or running one, `results <runId>` to print a run's results (`--json` for the records, `--open` to open the run on the web instead), `runs` to list the agent's newest runs (`--version <id>` repeatable, `--reference` for reference runs only; each line shows tag, branch, a reference mark and the judge model), `agents` to list the agents on the server (no `agent.yaml` needed), `scenarios` (`--tag`) and `scenario <key>` to read the agent's scenarios, their checks and revisions as stored, `trend` for the pass-rate trend run by run (`--json` is the chart's data), `unstable` to list the open checks that pass in some runs of a version and fail in others, `agent-errors` to list the open scenarios where the agent gave no answer (both take `--version <id>`, repeatable), `compare <runId> <runId> …` to print the comparison of 2 to 5 runs of one agent (header per run, pass rate per tag, the checks that differ; `--json` for the record, `--open` to open the web page instead), `agent` to show what the server stores for the repository's agent, `versions` to list, archive and restore the agent's versions, `versions delete <id>` to delete an archived one with its runs (`--dry-run` shows what would go, `--yes` skips the question), `versions show <id>` to print one version with its contract, `versions diff <a> <b>` to print what changed between two of them as a unified-style diff (`--json` for the record, `--open` for the web page), `delete-agent` to delete the repository's agent from the server with everything of it (`--dry-run`, `--yes` as for `versions delete`) |
 | Claude Code | the Claude Code plugin in this repo (`claude-plugin/`) that drives the same CLI, like suwgit's | "build a scenario for this agent from this conversation", "run the regression tag on the new version", "why did scenario X fail" — writing the scenario as a file in the agent's repo, then `validate` and `push` |
 
 - **Anything the web can do, the CLI — and so Claude Code through the plugin — can do too; not the
   other way round.** The CLI may do things the web cannot (push scenarios, say). A new action on
-  the web arrives with its CLI command and the plugin's knowledge of it, in the same change.
+  the web arrives with its CLI command and the plugin's knowledge of it, in the same change; the gate checks it (`EveryEndpointHasACliCommandTests`: every route the server maps names the command that covers it, or says why it has none).
 - **The scenario files live in the agent's repository**, in `suwageval/`: `agent.yaml` (the
   agent: `name`, `endpointUrl` and optionally Suwageval's own address `suwagevalUrl`; `suwageval init` writes it) and
   `scenarios/*.yaml` (a scenario with its checks inside; `user:` / `assistant:` shorthands for
   the log). Suwageval's address is the web app's, the API is under its `/api`: `--server`, else `SUWAGEVAL_URL`, else
   `suwagevalUrl` in `./suwageval/agent.yaml` (or the command's `--dir`), else `http://localhost:3230`
   (so on a laptop the CLI needs `just web` running too).
-- **The results are read on the web.** `suwageval run --wait` prints what was compared with, the regressions and new failing
+- **The results are read on the web, and on stdout.** `suwageval run --wait` prints what was compared with, the regressions and new failing
   checks first, then the totals and the link to the run's page; it exits 0 unless a check regressed or is new and failing
-  (1; `--strict`: unless any check failed), 2 when the run could not finish; `suwageval results <runId>` opens that page in
-  the browser. A "Run again" button on the run's page (and `suwageval rerun <runId>`, same flags as
+  (1; `--strict`: unless any check failed), 2 when the run could not finish; `suwageval results <runId>` prints the same results as text on stdout (failing checks with their reasons, turn times; `--json`
+  for the records, `--open` to open the page in the browser). A "Run again" button on the run's page (and `suwageval rerun <runId>`, same flags as
   `run`) starts a new run with the same agent, tag and endpoint, against the version the agent
   serves now. A "Re-check" button beside it (and `suwageval recheck <runId>`) judges the run's *stored answers* again with the
   *current* checks, without calling the agent: use it after fixing a check (a `$pattern`, a judge's criteria) to see the
@@ -37,8 +37,10 @@ The server has one interface, its HTTP API. Three users reach it:
 - **Runs are compared on the web.** On an agent's page, tick 2 to 5 runs (the model filter narrows
   the list) and press Compare: the page shows each run's pass rate per scenario tag and, per
   check, where the runs differ from the baseline (the oldest selected run, or the one you pick).
-  `suwageval compare <runId> <runId> …` opens the same page; `suwageval runs` lists the runs to
-  pick from. Claude compares through `results --json` of each run.
+  `suwageval compare <runId> <runId> …` prints the same comparison on stdout (`--json` for the record, `--open` for the page); `suwageval runs` lists the runs to
+  pick from. Claude reads the printed comparison instead of opening a browser.
+- **What the web shows, the CLI prints.** `suwageval agents`, `agent`, `scenarios`, `scenario <key>`, `trend`, `runs`, `results`, `compare` and `versions diff` print on
+  stdout (text, or `--json` for the records), so Claude reads them without opening a browser.
 - **Unstable checks are marked.** A model does not answer the same way twice, so a check can pass in
   one run and fail in another of the same agent version: noise, not a regression. Such a check (among
   the newest 200 finished runs, by its pass threshold over the samples; an edited check is another

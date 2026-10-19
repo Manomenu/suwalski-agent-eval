@@ -196,7 +196,14 @@ public sealed class VersionsCommandTests
         using var output = new StringWriter();
         using var error = new StringWriter();
         var opened = new List<Uri>();
-        var exit = CliApp.Run(["versions", "diff", .. args, "--dir", Sample], new StringReader(""), output, error, http, opened.Add);
+        var exit = CliApp.Run(
+            ["versions", "diff", "--open", .. args, "--dir", Sample],
+            new StringReader(""),
+            output,
+            error,
+            http,
+            opened.Add
+        );
         return (exit, output.ToString(), error.ToString(), api, opened);
     }
 
@@ -275,6 +282,151 @@ public sealed class VersionsCommandTests
         Assert.Equal(2, exit);
         Assert.Contains("two different versions", error, StringComparison.Ordinal);
         Assert.Empty(api.Calls);
+    }
+
+    [Fact]
+    public void Show_prints_the_version_with_its_contract()
+    {
+        var (exit, output, _, api) = Versions(Detail, "show", Active.ToString());
+
+        Assert.Equal(0, exit);
+        Assert.Equal([$"/agents/example-agent/versions/{Active}"], api.Calls.Select(call => call.Path));
+        Assert.StartsWith($"version {Active}  created 2026-10-01 10:00Z", output, StringComparison.Ordinal);
+        Assert.Contains("\"agents\"", output, StringComparison.Ordinal);
+    }
+
+    private static VersionDiff SampleDiff(bool changed)
+    {
+        static AgentVersion Version(Guid id, string? label)
+        {
+            return new(id, Guid.NewGuid(), "hash", DateTimeOffset.Parse("2026-10-01T10:00:00Z"), [], label);
+        }
+        return new VersionDiff
+        {
+            From = Version(Archived, "old"),
+            To = Version(Active, null),
+            Added = changed ? 1 : 0,
+            Removed = changed ? 1 : 0,
+            Blocks = changed
+                ?
+                [
+                    new DiffBlock
+                    {
+                        Folded = true,
+                        Rows =
+                        [
+                            new DiffRow
+                            {
+                                Kind = DiffKind.Same,
+                                Text = "a",
+                                FromLine = 1,
+                                ToLine = 1,
+                            },
+                            new DiffRow
+                            {
+                                Kind = DiffKind.Same,
+                                Text = "b",
+                                FromLine = 2,
+                                ToLine = 2,
+                            },
+                        ],
+                    },
+                    new DiffBlock
+                    {
+                        Folded = false,
+                        Rows =
+                        [
+                            new DiffRow
+                            {
+                                Kind = DiffKind.Same,
+                                Text = "keep",
+                                FromLine = 3,
+                                ToLine = 3,
+                            },
+                            new DiffRow
+                            {
+                                Kind = DiffKind.Removed,
+                                Text = "was",
+                                FromLine = 4,
+                            },
+                            new DiffRow
+                            {
+                                Kind = DiffKind.Added,
+                                Text = "is",
+                                ToLine = 4,
+                            },
+                        ],
+                    },
+                ]
+                : [],
+        };
+    }
+
+    private static (int Exit, string Output, string Error, FakeApi Api, List<Uri> Opened) PrintDiff(bool changed, params string[] args)
+    {
+        var api = new FakeApi(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(
+                JsonSerializer.Serialize(SampleDiff(changed), ContractJson.Options),
+                Encoding.UTF8,
+                "application/json"
+            ),
+        });
+        using var http = new HttpClient(api, disposeHandler: false) { BaseAddress = new Uri("http://api.test/") };
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        var opened = new List<Uri>();
+        var exit = CliApp.Run(
+            ["versions", "diff", Archived.ToString(), Active.ToString(), .. args, "--dir", Sample],
+            new StringReader(""),
+            output,
+            error,
+            http,
+            opened.Add
+        );
+        return (exit, output.ToString(), error.ToString(), api, opened);
+    }
+
+    [Fact]
+    public void Diff_by_default_prints_a_unified_style_diff_in_one_request()
+    {
+        var (exit, output, error, api, opened) = PrintDiff(true);
+
+        Assert.Equal(0, exit);
+        Assert.Empty(error);
+        Assert.Empty(opened);
+        Assert.Equal([$"/agents/example-agent/versions/diff"], api.Calls.Select(call => call.Path));
+        var expected = string.Join(
+            Environment.NewLine,
+            $"--- version {Archived} (old)",
+            $"+++ version {Active}",
+            "… 2 unchanged lines",
+            "@@",
+            " keep",
+            "-was",
+            "+is",
+            "+1 −1 lines"
+        );
+        Assert.Equal(expected, output.TrimEnd());
+    }
+
+    [Fact]
+    public void Diff_without_changes_says_so()
+    {
+        var (exit, output, _, _, _) = PrintDiff(false);
+
+        Assert.Equal(0, exit);
+        Assert.EndsWith("No changes.", output.TrimEnd(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Diff_json_prints_the_record()
+    {
+        var (exit, output, _, _, opened) = PrintDiff(true, "--json");
+
+        Assert.Equal(0, exit);
+        Assert.Empty(opened);
+        Assert.Equal(1, JsonSerializer.Deserialize<VersionDiff>(output, ContractJson.Options)?.Added);
     }
 
     private static HttpResponseMessage Preview() =>

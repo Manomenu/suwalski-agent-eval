@@ -279,6 +279,45 @@ public sealed class AgentEndpointsTests(TestDatabase database) : IAsyncDisposabl
     }
 
     [Fact]
+    public async Task Two_versions_are_diffed_line_by_line_the_older_first_whatever_the_order_asked_for()
+    {
+        var name = await server.NewAgent();
+        var older = await RegisterAsync(name, Version("Be helpful."));
+        var newer = await RegisterAsync(name, Version("Be brief.\nBe kind."));
+
+        var diff = await TestServer.Read<VersionDiff>(await server.Get($"/agents/{name}/versions/diff?from={newer.Id}&to={older.Id}"));
+
+        Assert.Equal((older.Id, newer.Id), (diff.From.Id, diff.To.Id));
+        Assert.Equal((3, 1), (diff.Added, diff.Removed));
+        var rows = diff.Blocks.SelectMany(block => block.Rows).ToList();
+        Assert.Contains(rows, row => row is { Kind: DiffKind.Removed, Text: "  config: Be helpful." });
+        Assert.Contains(rows, row => row is { Kind: DiffKind.Added, Text: "    Be brief." });
+        Assert.Contains(rows, row => row is { Kind: DiffKind.Same, Text: "- name: main", FromLine: 2, ToLine: 2 });
+    }
+
+    [Fact]
+    public async Task Diffing_refuses_what_cannot_be_compared()
+    {
+        var name = await server.NewAgent();
+        var other = await server.NewAgent();
+        var version = await RegisterAsync(name, Version());
+        var foreign = await RegisterAsync(other, Version("another"));
+        var unknown = Guid.NewGuid();
+
+        var itself = await server.Get($"/agents/{name}/versions/diff?from={version.Id}&to={version.Id}");
+        var missing = await server.Get($"/agents/{name}/versions/diff?from={version.Id}");
+        var ofAnother = await server.Get($"/agents/{name}/versions/diff?from={version.Id}&to={foreign.Id}");
+        var noVersion = await server.Get($"/agents/{name}/versions/diff?from={version.Id}&to={unknown}");
+        var noAgent = await server.Get($"/agents/{Guid.NewGuid()}/versions/diff?from={version.Id}&to={foreign.Id}");
+
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, itself.StatusCode);
+        Assert.Equal(["to"], await TestServer.ErrorFields(missing));
+        Assert.Equal(["to"], await TestServer.ErrorFields(ofAnother));
+        Assert.Equal(HttpStatusCode.NotFound, noVersion.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, noAgent.StatusCode);
+    }
+
+    [Fact]
     public async Task Versions_are_archived_and_restored_by_id_and_stay_listed()
     {
         var name = await server.NewAgent();

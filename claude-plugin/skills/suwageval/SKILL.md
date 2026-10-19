@@ -61,17 +61,25 @@ its `/api`. The address is `--server` on a command, else `SUWAGEVAL_URL`, else `
 | run an earlier run again | `suwageval rerun <runId> --wait --json` (`--endpoint URL`, `--strict`): same agent, tag and endpoint, the version the agent serves now |
 | judge a finished run's stored answers again with the current checks (no agent call) | `suwageval recheck <runId> --wait --json` (`--strict`); `--dry-run` first prints what would be evaluated again (exit 0 when no check changed: nothing is started). Use it after fixing a check; `rerun` is for when the agent changed |
 | stop a queued or running run | `suwageval cancel <runId>`: samples in flight finish, no new one starts; a finished run stays as it is. Only for a run the user asked to stop |
-| open a run on the web | `suwageval results <runId>` |
+| read a run's results (status, version, tag, branch, regressions, failing checks with reasons, turn times) | `suwageval results <runId>`: text on stdout; waits for a run still going. Prefer it to opening a browser |
 | a run's results as JSON | `suwageval results <runId> --json` |
-| list the agent's newest runs | `suwageval runs` (`--limit N`, `--json`) |
+| open a run on the web, only when the user wants the page | `suwageval results <runId> --open` |
+| list the agent's newest runs | `suwageval runs` (`--limit N`, `--json`; `--version <id>` repeatable for the runs of some versions, `--reference` for reference runs only): per run id, status, tag, version, checks passed, time, branch, a `reference` mark, the judge model(s) |
+| find the agents on the server (the repository has no `agent.yaml`, or the user asks what exists) | `suwageval agents` (`--json`, `--server`): name, endpoint, creation time |
+| list the agent's scenarios | `suwageval scenarios` (`--tag <tag>`, `--json`): key, revision, number of checks, tags |
+| read one scenario as the server stores it | `suwageval scenario <key>` (`--json`): the conversation, every check with its definition, the revisions, the tags. Use it before changing or explaining a scenario that is not in the working tree |
+| see how the pass rate moved over the runs | `suwageval trend` (`--json`): per finished run, oldest first, pass rate, median and p95 turn time and the rate per tag |
 | list the checks that pass in some runs of a version and fail in others | `suwageval unstable` (`--json`; `--version <id>` repeatable): open ones only, i.e. unstable in the newest version (not archived by default) that ran the check at least twice; per check `scenarioKey`, `checkKey`, `passedRuns` of `runs`, the version; "No unstable checks." when none |
 | list the scenarios where the agent gave no answer (HTTP error, timeout) | `suwageval agent-errors` (`--json`; `--version <id>` repeatable): open ones only, i.e. the newest version (not archived by default) that ran the scenario has errors; per version and scenario `errors` of `samples`, `newestErrorRunId`, `newestError`; "No agent errors." when none. Such samples do not count against checks: an agent that fails here is unreliable itself, not a check to fix |
-| open the comparison of 2 to 5 runs of one agent | `suwageval compare <runId> <runId>...` (the first is the baseline; exit 2 for an unknown run or runs of different agents) |
+| compare 2 to 5 runs of one agent | `suwageval compare <runId> <runId>...`: prints on stdout, no browser (the first run is the baseline): a header per run (version, tag, judge model, pass rate and turn times against the baseline), the pass rate per tag, the checks that differ with the trend (▲ better, ▼ worse), a `judge differs from baseline` warning when the judge model changed. `--json` prints the record. Exit 2 for an unknown run or runs of different agents |
+| open that comparison on the web, only when the user wants the page | `suwageval compare <runId> <runId>... --open` |
+| show what the server stores for the repository's agent | `suwageval agent` (`--json`): endpoint, number of versions, scenarios and checks, samples, regression settings |
 | list the agent's versions | `suwageval versions` (`--archived` to include archived ones, `--json`) |
 | archive or restore versions | `suwageval versions archive <versionId>...`, `suwageval versions unarchive <versionId>...` |
 | delete an archived version with its runs, samples and verdicts (cannot be undone) | `suwageval versions delete <versionId> --dry-run` first, then `suwageval versions delete <versionId> --yes` once the user confirmed; exit 2 (409) for a version that is not archived or has a queued or running run |
 | delete the agent of this repository from the server (a registration made by mistake) with its versions, scenarios, checks, runs, samples and verdicts (cannot be undone) | `suwageval delete-agent --dry-run` first, then `suwageval delete-agent --yes` once the user confirmed; exit 2 (409) while a run of the agent is queued or running |
-| open what changed between two versions of the agent | `suwageval versions diff <versionA> <versionB>` (checks both exist; the older is the base; exit 2 for an unknown version) |
+| see what changed between two versions of the agent | `suwageval versions diff <versionA> <versionB>`: a unified-style diff of both contracts on stdout (`---`/`+++` headers, `@@` hunks, `+`/`-` lines, `+A −R lines`, `No changes.`); the older is the base; `--json` prints the record; exit 2 for an unknown version. Read it instead of opening a browser; `--open` opens the page for a person |
+| print one version with its contract | `suwageval versions show <versionId>` (`--json`) |
 
 A run's page is `{SUWAGEVAL_URL}/runs/{runId}`; the comparison of runs is `{SUWAGEVAL_URL}/compare?runs={id},{id},...`.
 The comparison of two versions is `{SUWAGEVAL_URL}/agents/{agent}/versions/compare?a={id}&b={id}`.
@@ -231,9 +239,7 @@ reached `passThreshold`). Report:
 - the agent versions of the runs (`run.agentVersionId`) and their models, so a change is not
   blamed on the wrong thing.
 
-Finish with the comparison's link, `{SUWAGEVAL_URL}/compare?runs={id},{id},...` (the same page
-`suwageval compare <runId> <runId>...` opens; that command opens a browser, so run it only if
-the user wants that).
+`suwageval compare <runId> <runId>...` does this alignment for you and prints it: read its output (or `--json`) instead of fetching every run; it flags a changed judge model, so a different verdict is not blamed on the agent. Finish with the comparison's link, `{SUWAGEVAL_URL}/compare?runs={id},{id},...` (the page `compare --open` opens; open it only if the user wants that).
 
 ## Rules
 

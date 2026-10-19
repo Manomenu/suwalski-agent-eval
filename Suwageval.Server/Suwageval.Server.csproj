@@ -17,6 +17,8 @@
     <PackageReference Include="Microsoft.Extensions.ApiDescription.Server" PrivateAssets="all" />
     <PackageReference Include="Npgsql" />
     <PackageReference Include="grate.postgresql" />
+    <!-- writes the contracts of two versions as YAML, to be compared line by line -->
+    <PackageReference Include="YamlDotNet" />
   </ItemGroup>
 
   <ItemGroup>

@@ -622,6 +622,7 @@
           "Microsoft.Extensions.AI.OpenAI": "[10.10.1, )",
           "Npgsql": "[10.0.3, )",
           "Suwageval.Contracts": "[1.0.0, )",
+          "YamlDotNet": "[18.1.0, )",
           "grate.postgresql": "[2.1.6, )"
         }
       },

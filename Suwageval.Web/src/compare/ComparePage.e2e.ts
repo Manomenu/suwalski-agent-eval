@@ -85,7 +85,7 @@ test("two runs are compared from the agent page", async ({ page, request }) => {
 
         // Another run becomes the baseline by its header.
         await page.getByRole("button", { name: `Use run ${after.slice(0, 8)} as the baseline`, exact: true }).click();
-        await expect(page.getByRole("row", { name: /^smoke 50% ▼ 50 pp 100%$/ })).toBeVisible();
+        await expect(page.getByRole("row", { name: /^smoke 100% 50% ▼ 50 pp$/ })).toBeVisible();
     } finally {
         agentServer.close();
     }
@@ -96,5 +96,5 @@ test("runs that cannot be compared say why", async ({ page }) => {
     await expect(page.getByText("Choose 2 to 5 runs to compare.", { exact: true })).toBeVisible();
 
     await page.goto(`/compare?runs=${MISSING},00000000-0000-4000-8000-000000000001`);
-    await expect(page.getByText(`There is no run ${MISSING}.`, { exact: true })).toBeVisible();
+    await expect(page.getByText(`There is no run '${MISSING}'.`, { exact: true })).toBeVisible();
 });

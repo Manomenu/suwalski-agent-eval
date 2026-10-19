@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 
 import { definitionYaml } from "../checks/definition";
 import { ModelJudgedIcon } from "../checks/ModelJudgedIcon";
+import { diffBlocks, diffRows } from "../diff/lineDiff";
 import { LineDiffView } from "../diff/LineDiffView";
 import { fetchRecheckPlan, recheck, type ChangedCheck, type RecheckPlan, type RunSummary } from "./api";
 import { changesByScenario, judgedNote, planHeadline, recheckDisabledReason, recheckTooltip } from "./recheck";
@@ -195,8 +196,12 @@ function ChangedCheckRow({ check, judgeModel }: { check: ChangedCheck; judgeMode
                     <Accordion.Panel>
                         {/* The check as the run used it against the check now: an added one is all new lines, a removed one all gone. */}
                         <LineDiffView
-                            from={check.before == null ? "" : definitionYaml(check.before)}
-                            to={check.after == null ? "" : definitionYaml(check.after)}
+                            blocks={diffBlocks(
+                                diffRows(
+                                    check.before == null ? "" : definitionYaml(check.before),
+                                    check.after == null ? "" : definitionYaml(check.after),
+                                ),
+                            )}
                         />
                     </Accordion.Panel>
                 </Accordion.Item>

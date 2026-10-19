@@ -264,6 +264,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/agents/{agent}/versions/diff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    from?: string;
+                    to?: string;
+                };
+                header?: never;
+                path: {
+                    agent: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["VersionDiff"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/agents/{agent}/versions/{versionId}": {
         parameters: {
             query?: never;
@@ -741,6 +781,43 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/runs/compare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    runs?: string[];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RunComparison"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1463,6 +1540,84 @@ export interface components {
             /** @description A tool name or event type: only what came before it counts. */
             before?: null | string;
         };
+        /** @description What one run's scenarios say about one check. */
+        ComparedCell: {
+            /** @description The pass rate reached the threshold. */
+            passed: boolean;
+            /**
+             * Format: double
+             * @description The share of samples that passed, from 0 to 1.
+             */
+            passRate: number;
+            /**
+             * Format: int32
+             * @description Samples that passed.
+             */
+            samplesPassed: number;
+            /** Format: int32 */
+            samples: number;
+            /**
+             * Format: int32
+             * @description Samples the judge could not judge (counted as failed, but not a verdict).
+             */
+            notJudged: number;
+            /** Format: int32 */
+            revision: number;
+            /** Format: int32 */
+            latestRevision: number;
+            judgedByModel: boolean;
+            /** @description The model that judged the check in this run; absent for a deterministic check and for a run from before the name was recorded. */
+            judgeModel?: null | string;
+            trend?: null | components["schemas"]["Trend"];
+        };
+        /** @description One check across the compared runs. */
+        ComparedCheck: {
+            scenarioKey: string;
+            checkKey: string;
+            /** @description The check as the baseline ran it, or as the first run that has it ran it. */
+            definition: components["schemas"]["CheckInput"];
+            judgedByModel: boolean;
+            /** @description Some cell differs from the baseline's: another outcome or pass rate, or a check missing from a run. */
+            differs: boolean;
+            /** @description Every run has this check, so the runs can be compared on it. */
+            comparable: boolean;
+            /** @description One per compared run, in the order asked for; null for a run without the check (or without its scenario). */
+            cells: components["schemas"]["ComparedCell"][];
+        };
+        /** @description A run's pass rate over a set of checks (from 0 to 1; absent when the run has no such check) and its change against the baseline's (absent for the baseline itself and when either rate is absent). */
+        ComparedRate: {
+            /** Format: double */
+            passRate?: null | number;
+            change?: null | components["schemas"]["RateChange"];
+        };
+        /** @description A compared run: its summary, its judge and its turn times, the latter against the baseline's. */
+        ComparedRun: {
+            run: components["schemas"]["RunSummary"];
+            /** @description The model that judged the run: the most common known model among its model-judged checks; absent when none was judged by a known model. */
+            judgeModel?: null | string;
+            /** @description The judge and the baseline's are both known and differ: verdicts may differ because of the judge, not the agent. */
+            judgeChanged: boolean;
+            /**
+             * Format: double
+             * @description Checks passed over checks (from 0 to 1); absent for a run without checks.
+             */
+            passRate?: null | number;
+            /** Format: double */
+            medianMs?: null | number;
+            /** Format: double */
+            p95Ms?: null | number;
+            medianChange?: null | components["schemas"]["TimeChange"];
+            p95Change?: null | components["schemas"]["TimeChange"];
+        };
+        /**
+         * @description A row of the per-tag summary: string? ComparedTag.Tag is absent for the row of every check of the run. A check counts once, however many
+         *     samples it has; the tags are the scenarios' current ones (a scenario the agent no longer has counts in the first row only).
+         */
+        ComparedTag: {
+            tag?: null | string;
+            /** @description One per compared run, in the order asked for. */
+            rates: components["schemas"]["ComparedRate"][];
+        };
         /** @description What besides messages and tool calls may appear in the agent's conversation log. */
         ContextDefinition: {
             usesRetrieval?: boolean;
@@ -1526,6 +1681,31 @@ export interface components {
             kind?: "UserMessage";
             text: string;
         };
+        /** @description A stretch of a line diff: lines to show, or unchanged lines folded away until the reader opens them. */
+        DiffBlock: {
+            folded: boolean;
+            rows: components["schemas"]["DiffRow"][];
+        };
+        /**
+         * @description How a line of a diff stands.
+         * @enum {unknown}
+         */
+        DiffKind: "Same" | "Added" | "Removed";
+        /** @description One line of a line diff with its number on each side. */
+        DiffRow: {
+            kind: components["schemas"]["DiffKind"];
+            text: string;
+            /**
+             * Format: int32
+             * @description The line's number (from 1) in the older text; absent for an added line.
+             */
+            fromLine?: null | number;
+            /**
+             * Format: int32
+             * @description The line's number (from 1) in the newer text; absent for a removed line.
+             */
+            toLine?: null | number;
+        };
         EventDeclaration: {
             type: string;
             /** @description The shape of the event's `data`, as a JSON Schema document. */
@@ -1556,6 +1736,12 @@ export interface components {
         /** @description The scenarios to write for an agent; keys not listed are left alone. */
         PutScenariosRequest: {
             scenarios: components["schemas"]["ScenarioInput"][];
+        };
+        /** @description A pass rate against the baseline's: the difference in percentage points rounded to one decimal, and whether that is better, worse or the same. */
+        RateChange: {
+            /** Format: double */
+            points: number;
+            trend: components["schemas"]["Trend"];
         };
         /** @enum {unknown} */
         RecheckBlocker: "NotFinished" | "AllSkipped" | "Mismatches" | "NothingChanged" | null;
@@ -1648,6 +1834,15 @@ export interface components {
             source: string;
             /** Format: double */
             score?: null | number;
+        };
+        /** @description Two to five runs of one agent side by side, everything a comparison shows: the first run is the baseline the others are compared with. */
+        RunComparison: {
+            /** @description In the order asked for. */
+            runs: components["schemas"]["ComparedRun"][];
+            /** @description The pass rate over every check first, then one row per tag, sorted by name. */
+            tags: components["schemas"]["ComparedTag"][];
+            /** @description The checks of all runs lined up by scenario key and check key, in the order they first appear (the baseline's first). */
+            checks: components["schemas"]["ComparedCheck"][];
         };
         RunCreated: {
             /** Format: uuid */
@@ -1817,6 +2012,8 @@ export interface components {
             reference?: boolean;
             /** @description The branch whose history the run is compared with; none means every run of the agent (a run without git). */
             comparedWith?: null | string;
+            /** @description The distinct models that gave the run's verdicts, sorted by name; empty for a run with no model-judged check (or one made before the name was recorded). */
+            judgeModels?: string[];
         };
         /** @description What the agent produced for one sample of a scenario. */
         SampleResult: {
@@ -1905,12 +2102,26 @@ export interface components {
             /** Format: double */
             p95Ms?: null | number;
         };
+        /**
+         * @description A turn time against the baseline's. For time lower is better, so Trend.Better is faster. A change under 5 % of the
+         *     baseline's time or under 100 ms counts as Trend.Same (a fast agent's noise).
+         */
+        TimeChange: {
+            /** Format: double */
+            milliseconds: number;
+            trend: components["schemas"]["Trend"];
+        };
         ToolDefinition: {
             name: string;
             description: string;
             /** @description The arguments the tool takes, as a JSON Schema document. */
             parameters: components["schemas"]["JsonElement"];
         };
+        /**
+         * @description How something stands against the baseline's: better, worse, or the same.
+         * @enum {unknown}
+         */
+        Trend: "Same" | "Better" | "Worse";
         /** @description Which turn a check looks at: a number (from 1), `"last"` or `"any"`. The default value is "any". */
         TurnSelector: unknown;
         /**
@@ -1954,6 +2165,23 @@ export interface components {
             /** Format: int32 */
             verdicts: number;
             label?: null | string;
+        };
+        /**
+         * @description What changed between two versions of an agent: both contracts written as YAML and compared line by line. AgentVersion VersionDiff.From is the
+         *     older version (the base), AgentVersion VersionDiff.To the newer; versions created at the same time stay in the order asked for.
+         */
+        VersionDiff: {
+            from: components["schemas"]["AgentVersion"];
+            to: components["schemas"]["AgentVersion"];
+            /**
+             * Format: int32
+             * @description How many lines AgentVersion VersionDiff.To adds and removes compared with AgentVersion VersionDiff.From.
+             */
+            added: number;
+            /** Format: int32 */
+            removed: number;
+            /** @description The hunks: every change with three unchanged lines around it, a longer unchanged run folded into one block; none for the same content. */
+            blocks: components["schemas"]["DiffBlock"][];
         };
     };
     responses: never;

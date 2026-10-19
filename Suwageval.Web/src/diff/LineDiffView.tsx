@@ -1,17 +1,21 @@
 import { Button, Text } from "@mantine/core";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
+import type { components } from "../api/openapi";
 import { hangingIndent } from "../checks/definition";
-import { diffBlocks, diffRows, type DiffRow } from "./lineDiff";
 
-const MARKERS: Record<DiffRow["kind"], string> = { added: "+", removed: "−", unchanged: " " };
+type DiffBlock = components["schemas"]["DiffBlock"];
+type DiffRow = components["schemas"]["DiffRow"];
+
+const MARKERS: Record<DiffRow["kind"], string> = { Added: "+", Removed: "−", Same: " " };
+const CLASS_SUFFIX: Record<DiffRow["kind"], string> = { Added: "added", Removed: "removed", Same: "unchanged" };
 
 function Row({ row }: { row: DiffRow }) {
     const hang = hangingIndent(row.text);
     return (
-        <div className={`line-diff-row line-diff-row-${row.kind}`}>
-            <span className="line-diff-number">{row.oldNumber}</span>
-            <span className="line-diff-number">{row.newNumber}</span>
+        <div className={`line-diff-row line-diff-row-${CLASS_SUFFIX[row.kind]}`}>
+            <span className="line-diff-number">{row.fromLine}</span>
+            <span className="line-diff-number">{row.toLine}</span>
             <span aria-hidden>{MARKERS[row.kind]}</span>
             <span className="line-diff-text" style={{ paddingLeft: `${String(hang)}ch`, textIndent: `-${String(hang)}ch` }}>
                 {row.text}
@@ -20,16 +24,15 @@ function Row({ row }: { row: DiffRow }) {
     );
 }
 
-/** The unified line diff of two texts: changes with their context, long unchanged runs folded until clicked. */
-export function LineDiffView({ from, to }: { from: string; to: string }) {
-    const blocks = useMemo(() => diffBlocks(diffRows(from, to)), [from, to]);
+/** The unified line diff the server computed: changes with their context, long unchanged runs folded until clicked. */
+export function LineDiffView({ blocks }: { blocks: readonly DiffBlock[] }) {
     const [expanded, setExpanded] = useState<ReadonlySet<number>>(new Set());
 
     if (blocks.length === 0) return <Text c="dimmed">The contents are identical.</Text>;
     return (
         <div className="line-diff">
             {blocks.map((block, index) =>
-                block.kind === "folded" && !expanded.has(index) ? (
+                block.folded && !expanded.has(index) ? (
                     <Button
                         key={index}
                         variant="subtle"
@@ -43,7 +46,7 @@ export function LineDiffView({ from, to }: { from: string; to: string }) {
                         {`⋯ ${String(block.rows.length)} unchanged lines`}
                     </Button>
                 ) : (
-                    block.rows.map((row) => <Row key={`${String(row.oldNumber)}-${String(row.newNumber)}`} row={row} />)
+                    block.rows.map((row) => <Row key={`${String(row.fromLine)}-${String(row.toLine)}`} row={row} />)
                 ),
             )}
         </div>

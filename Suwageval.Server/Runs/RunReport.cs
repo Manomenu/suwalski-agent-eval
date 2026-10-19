@@ -41,6 +41,7 @@ internal static class RunReport
             Origin = run.Placement.Origin,
             Reference = run.Reference,
             ComparedWith = run.ComparedWith,
+            JudgeModels = JsonSerializer.Deserialize<IReadOnlyList<string>>(run.JudgeModels, ContractJson.Options) ?? [],
             SkippedScenarios = JsonSerializer.Deserialize<IReadOnlyList<SkippedScenario>>(run.SkippedScenarios, ContractJson.Options) ?? [],
         };
     }

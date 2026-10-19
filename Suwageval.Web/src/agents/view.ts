@@ -1,5 +1,6 @@
 // What the agent pages show, as plain functions: links, labels and the JSON of a schema.
 import { PAGE_SIZE } from "../runs/paging";
+import { versionTitle } from "../runs/results";
 
 export const agentHref = (name: string) => `/agents/${encodeURIComponent(name)}`;
 export const versionHref = (name: string, versionId: string) => `${agentHref(name)}/versions/${versionId}`;
@@ -26,6 +27,13 @@ export function dataVersionsOf(versions: { dataVersion?: string | null }[]): str
     );
 }
 
+/** The versions as the version filter offers them: newest first, each named by its title (label, or the start of its id). */
+export function versionOptions(versions: { id: string; label?: string | null; createdAt: string }[]): { value: string; label: string }[] {
+    return [...versions]
+        .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
+        .map((version) => ({ value: version.id, label: versionTitle(version.id, version.label) }));
+}
+
 /** "data build-7 · 1832 articles": the version of an agent's retrieval data and what it is; null for an agent without retrieval. */
 export function dataText(version: { dataVersion?: string | null; dataDescription?: string | null }): string | null {
     if (version.dataVersion == null) return null;
@@ -36,7 +44,8 @@ export function dataText(version: { dataVersion?: string | null; dataDescription
 /**
  * The runs to list. Without "Show archived", those of an archived version are hidden (a run of an unknown version stays).
  * With models chosen, only the runs of a version using at least one of those models stay (an unknown version has no model, so it goes);
- * no model chosen means all of them. The same goes for data versions, and both filters combine (a version must satisfy each one chosen).
+ * no model chosen means all of them. The same goes for data versions and for versions (by id), and the filters combine (a version must
+ * satisfy each one chosen).
  */
 export function visibleRuns<T extends { agentVersionId: string }>(
     runs: T[],
@@ -44,13 +53,16 @@ export function visibleRuns<T extends { agentVersionId: string }>(
     showArchived: boolean,
     models: readonly string[] = [],
     dataVersions: readonly string[] = [],
+    versionIds: readonly string[] = [],
 ): T[] {
     const archived = new Set(versions.filter((version) => version.archivedAt != null).map((version) => version.id));
     const chosen = new Set(models);
     const chosenData = new Set(dataVersions);
+    const chosenIds = new Set(versionIds);
     const byId = new Map(versions.map((version) => [version.id, version]));
     return runs.filter((run) => {
         if (!showArchived && archived.has(run.agentVersionId)) return false;
+        if (chosenIds.size > 0 && !chosenIds.has(run.agentVersionId)) return false;
         const version = byId.get(run.agentVersionId);
         if (chosen.size > 0 && version?.modelNames.some((model) => chosen.has(model)) !== true) return false;
         if (chosenData.size > 0 && (version?.dataVersion == null || !chosenData.has(version.dataVersion))) return false;
@@ -67,6 +79,7 @@ export function allowedVersionIds(
     showArchived: boolean,
     models: readonly string[],
     dataVersions: readonly string[],
+    versionIds: readonly string[] = [],
 ): string[] | null {
     const allowed = visibleRuns(
         versions.map((version) => ({ agentVersionId: version.id })),
@@ -74,6 +87,7 @@ export function allowedVersionIds(
         showArchived,
         models,
         dataVersions,
+        versionIds,
     ).map((run) => run.agentVersionId);
     return allowed.length === versions.length ? null : allowed;
 }
@@ -87,8 +101,9 @@ export function consideredVersionIds(
     showArchived: boolean,
     models: readonly string[],
     dataVersions: readonly string[],
+    versionIds: readonly string[] = [],
 ): string[] {
-    return allowedVersionIds(versions, showArchived, models, dataVersions) ?? versions.map((version) => version.id);
+    return allowedVersionIds(versions, showArchived, models, dataVersions, versionIds) ?? versions.map((version) => version.id);
 }
 
 /** The first `pages` pages of `items` (a page is `PAGE_SIZE` of them) — what a list with "Show more" displays. */

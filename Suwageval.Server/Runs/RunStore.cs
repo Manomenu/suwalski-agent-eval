@@ -20,7 +20,10 @@ internal sealed class RunStore(Pool pool)
                r.contract_changed_during_run AS ContractChangedDuringRun, r.cancel_requested AS CancelRequested,
                r.created_at AS CreatedAt, r.started_at AS StartedAt, r.finished_at AS FinishedAt,
                r.recheck_of AS RecheckOf, r.skipped_scenarios::text AS SkippedScenarios, r.verdicts_from AS VerdictsFrom,
-               r.origin::text AS Origin, r.reference AS Reference, r.compared_with AS ComparedWith
+               r.origin::text AS Origin, r.reference AS Reference, r.compared_with AS ComparedWith,
+               COALESCE((SELECT jsonb_agg(DISTINCT c.judge_model ORDER BY c.judge_model)::text FROM check_results c
+                          JOIN scenario_results s ON s.id = c.scenario_result_id
+                          WHERE s.run_id = r.id AND c.judge_model IS NOT NULL), '[]') AS JudgeModels
         FROM runs r
         JOIN agents a ON a.id = r.agent_id
         """;
