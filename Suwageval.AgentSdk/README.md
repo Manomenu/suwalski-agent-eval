@@ -14,4 +14,4 @@ app.MapSuwagevalAgent();   // GET /suwageval/contract, POST /suwageval/turn
 
 The HTTP contract stays the source of truth; this package saves a .NET agent from re-declaring it.
 
-Releases: push a tag `agent-sdk-v<semver>` (e.g. `agent-sdk-v0.1.0`); see AGENTS.md, section 12, for the one-time nuget.org setup.
+Releases: `just agent-publish <version>`; see AGENTS.md, section 12.
