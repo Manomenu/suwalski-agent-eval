@@ -37,8 +37,9 @@ internal sealed class ModelClients(ModelsOptions options, Func<ModelOptions, ICh
     public static IChatClient OpenAiCompatible(ModelOptions model)
     {
         ArgumentNullException.ThrowIfNull(model);
-        // The servers behind these URLs ask for no key; the OpenAI client wants one to build, so it gets a placeholder.
-        var openAi = new OpenAIClient(new ApiKeyCredential("none"), new OpenAIClientOptions { Endpoint = new Uri(model.BaseUrl) });
+        // The OpenAI client wants a key to build, so a server that asks for none gets a placeholder.
+        var apiKey = string.IsNullOrEmpty(model.ApiKey) ? "none" : model.ApiKey;
+        var openAi = new OpenAIClient(new ApiKeyCredential(apiKey), new OpenAIClientOptions { Endpoint = new Uri(model.BaseUrl) });
         return openAi.GetChatClient(model.Model).AsIChatClient();
     }
 
