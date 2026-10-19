@@ -70,6 +70,6 @@ dotnet_diagnostic.CA1054.severity = none
 # Contracts: the records the API and the CLI share. "Event" is the domain word (the agent's log has Events), not
 # the keyword a VB or F# consumer would trip over; a URL arrives as the text the file holds, checked where it is
 # used, so it stays a string.
-[Suwageval.Contracts/**.cs]
+[{Suwageval.Contracts,Suwageval.Agent}/**.cs]
 dotnet_diagnostic.CA1716.severity = none
 dotnet_diagnostic.CA1056.severity = none

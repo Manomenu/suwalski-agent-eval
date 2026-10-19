@@ -179,6 +179,20 @@ version; the answer to `POST /runs` and `suwageval run` say which version and wh
   recorded on the sample as `undeclared` (`tool 'x'` when no agent has it, `agent 'y'` for an agent the contract does not have, `tool 'x' of agent 'y'` for an agent without that tool, `event 'z'`) and shown in the results. It
   is a warning, not a failure by itself.
 
+### A .NET agent: the `Suwageval.Agent` package
+
+An ASP.NET Core agent need not write the two routes or declare the records. `Suwageval.Agent` (not published yet: `just agent-pack` packs
+it into `.artifacts/nupkg`) holds the contract types, the JSON options the server uses (`ContractJson.Options`) and the routes:
+
+```csharp
+builder.Services.AddSingleton<IAgentContractSource, MyContractSource>(); // builds the AgentContract
+builder.Services.AddSingleton<ITurnHandler, MyTurnHandler>();            // TurnRequest -> TurnResponse
+app.MapSuwagevalAgent();                                                 // GET /suwageval/contract, POST /suwageval/turn
+```
+
+A turn whose conversation is empty, or does not end with a user message, is answered 400. `AgentContractRules.Problems(contract)`
+returns what the server would refuse in the contract (the same code), so an agent can assert it is empty in its own unit test.
+
 ## A scenario file
 
 | Field | | |

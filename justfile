@@ -55,6 +55,11 @@ cli-install:
     dotnet tool uninstall --global Suwageval.Cli || true
     dotnet tool install --global --add-source .artifacts/nupkg Suwageval.Cli
 
+# Pack the agent contracts for a .NET agent under test into .artifacts/nupkg
+[group('dev')]
+agent-pack:
+    dotnet pack Suwageval.Agent -c Release -o .artifacts/nupkg
+
 # ---------------------------------------------------------------------------------------
 # infra — the containerised stack: the same images the cluster runs, wired the same way
 # ---------------------------------------------------------------------------------------

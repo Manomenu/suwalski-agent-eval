@@ -13,7 +13,8 @@ public sealed class ProjectReferencesTests
 
     private static readonly Dictionary<string, Allowed> Table = new()
     {
-        ["Suwageval.Contracts"] = new([], []),
+        ["Suwageval.Agent"] = new([], []),
+        ["Suwageval.Contracts"] = new(["Suwageval.Agent"], []),
         ["Suwageval.Server"] = new(["Suwageval.Contracts"], ["Suwageval.Server.Tests"]),
         ["Suwageval.Cli"] = new(["Suwageval.Contracts"], ["Suwageval.Cli.Tests", "Suwageval.Server.Tests"]),
         ["Suwageval.Cli.Tests"] = new(["Suwageval.Cli"], []),
