@@ -42,7 +42,7 @@ export function rerun(runId: string): Promise<RunCreated> {
     return request<RunCreated>(`/runs/${runId}/rerun`, { method: "POST" });
 }
 
-/** The agent's unstable checks (see `stability.ts`), limited to the given versions (none: all of them). */
+/** The agent's unstable checks (see `stability.ts`), limited to the given versions (none: every version not archived). */
 export function fetchUnstableChecks(agent: string, versionIds: readonly string[], signal: AbortSignal): Promise<UnstableCheck[]> {
     return request<UnstableCheck[]>(unstableChecksPath(agent, versionIds), { signal });
 }

@@ -78,6 +78,19 @@ export function allowedVersionIds(
     return allowed.length === versions.length ? null : allowed;
 }
 
+/**
+ * The versions the agent page's problem cards decide over: the ones the filters show, always listed (the server's default for none
+ * is every version not archived, which is not what "archived shown" means). Empty when the filters show none.
+ */
+export function consideredVersionIds(
+    versions: { id: string; archivedAt?: string | null; modelNames: string[]; dataVersion?: string | null }[],
+    showArchived: boolean,
+    models: readonly string[],
+    dataVersions: readonly string[],
+): string[] {
+    return allowedVersionIds(versions, showArchived, models, dataVersions) ?? versions.map((version) => version.id);
+}
+
 /** The first `pages` pages of `items` (a page is `PAGE_SIZE` of them) — what a list with "Show more" displays. */
 export function firstPages<T>(items: T[], pages: number): T[] {
     return items.slice(0, pages * PAGE_SIZE);

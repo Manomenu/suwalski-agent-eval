@@ -9,6 +9,7 @@ using Suwageval.Contracts.Agents;
 using Suwageval.Contracts.Checks;
 using Suwageval.Contracts.Conversations;
 using Suwageval.Contracts.Runs;
+using Suwageval.Server.Agents;
 using Suwageval.Server.Checks;
 using Suwageval.Server.Runs;
 using Suwageval.Server.Scenarios;
@@ -628,6 +629,95 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
             HttpStatusCode.NotFound,
             (await client.GetAsync(new Uri("/agents/no-such-agent/agent-errors", UriKind.Relative), Cancellation)).StatusCode
         );
+    }
+
+    /// <summary>Registers another version of the agent (newer than the ones before) and returns its id.</summary>
+    private async Task<Guid> NewerVersionAsync(SeededAgent agent, string prompt)
+    {
+        var registration = await app
+            .Services.GetRequiredService<AgentStore>()
+            .RegisterVersionAsync(agent.Id, ContractContent.Json(SeededAgent.ExampleVersionConfigured(prompt)), null, null, Cancellation);
+        return registration.Version.Id;
+    }
+
+    /// <summary>A finished run of a version with one sample of "refund": the check passed or failed, or the agent gave no answer.</summary>
+    private async Task AddRunAsync(SeededAgent agent, Guid versionId, bool? passed)
+    {
+        var store = app.Services.GetRequiredService<RunStore>();
+        var scenario = (await app.Services.GetRequiredService<ScenarioStore>().GetAsync(agent.Id, "refund", Cancellation))!;
+        var check = (await app.Services.GetRequiredService<CheckStore>().ListAsync(agent.Id, cancellationToken: Cancellation)).First(
+            check => check.Key == "refund-called"
+        );
+        var id = await store.EnqueueAsync(agent.Id, versionId, null, agent.EndpointUrl, cancellationToken: Cancellation);
+        await store.AddSampleAsync(
+            id,
+            passed is null
+                ? new NewSample(scenario.Id, scenario.Revision, 1, SampleStatus.Failed, null, "HTTP 500", null, [], [])
+                : new NewSample(
+                    scenario.Id,
+                    scenario.Revision,
+                    1,
+                    SampleStatus.Done,
+                    "[]",
+                    null,
+                    1,
+                    [],
+                    [new NewCheckResult(check.Id, check.Revision, passed.Value, "[]", "m")]
+                ),
+            Cancellation
+        );
+        await store.FinishAsync(id, RunStatus.Done, cancellationToken: Cancellation);
+    }
+
+    [Fact]
+    public async Task An_unstable_check_closes_when_a_newer_version_runs_it_twice_without_the_problem()
+    {
+        var client = Client();
+        var agent = await NewAgentAsync("http://agent.test");
+        await AddRunAsync(agent, agent.VersionId, true);
+        await AddRunAsync(agent, agent.VersionId, false);
+        var newer = await NewerVersionAsync(agent, "newer");
+        var url = $"/agents/{agent.Name}/unstable-checks";
+
+        await AddRunAsync(agent, newer, true);
+        Assert.Equal(agent.VersionId, Assert.Single(await GetAsync<List<UnstableCheck>>(client, url)).AgentVersionId);
+
+        await AddRunAsync(agent, newer, true);
+        Assert.Empty(await GetAsync<List<UnstableCheck>>(client, url));
+        Assert.Equal(
+            agent.VersionId,
+            Assert.Single(await GetAsync<List<UnstableCheck>>(client, $"{url}?version={agent.VersionId}")).AgentVersionId
+        );
+    }
+
+    [Fact]
+    public async Task An_archived_version_is_left_out_of_the_open_unstable_checks_unless_asked_for()
+    {
+        var client = Client();
+        var agent = await NewAgentAsync("http://agent.test");
+        await AddRunAsync(agent, agent.VersionId, true);
+        await AddRunAsync(agent, agent.VersionId, false);
+        await app.Services.GetRequiredService<AgentStore>().ArchiveVersionsAsync(agent.Id, [agent.VersionId], true, Cancellation);
+        var url = $"/agents/{agent.Name}/unstable-checks";
+
+        Assert.Empty(await GetAsync<List<UnstableCheck>>(client, url));
+        Assert.Single(await GetAsync<List<UnstableCheck>>(client, $"{url}?version={agent.VersionId}"));
+    }
+
+    [Fact]
+    public async Task An_agent_error_closes_when_a_newer_version_runs_the_scenario_without_it()
+    {
+        var client = Client();
+        var agent = await NewAgentAsync("http://agent.test");
+        await AddRunAsync(agent, agent.VersionId, null);
+        var url = $"/agents/{agent.Name}/agent-errors";
+        Assert.Single(await GetAsync<List<AgentError>>(client, url));
+        var newer = await NewerVersionAsync(agent, "newer");
+
+        await AddRunAsync(agent, newer, true);
+
+        Assert.Empty(await GetAsync<List<AgentError>>(client, url));
+        Assert.Single(await GetAsync<List<AgentError>>(client, $"{url}?version={agent.VersionId}"));
     }
 
     public ValueTask DisposeAsync() => app.DisposeAsync();

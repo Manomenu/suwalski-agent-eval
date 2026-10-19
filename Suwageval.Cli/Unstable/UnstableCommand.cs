@@ -7,7 +7,8 @@ namespace Suwageval.Cli.Unstable;
 
 /// <summary>
 /// <c>suwageval unstable</c>: the checks of the agent named in <c>suwageval/agent.yaml</c> that passed in some finished runs of one version
-/// and failed in others — a failure there is noise as much as a regression. One line per check: scenario/check, runs passed of runs, the
+/// and failed in others — a failure there is noise as much as a regression — as long as the newest version that ran the check at least
+/// twice (among <c>--version</c>, else every version not archived) is the unstable one. One line per check: scenario/check, runs passed of runs, the
 /// version; <c>--json</c> prints the records. "No unstable checks." when there are none. Exits 0, or 2 when the agent file or the server is wrong.
 /// </summary>
 internal static class UnstableCommand
@@ -16,12 +17,14 @@ internal static class UnstableCommand
     public static Command Create(HttpClient? http = null)
     {
         var json = CommandOptions.Json("Print the unstable checks as JSON.");
+        var versions = CommandOptions.Versions();
         var server = CommandOptions.Server();
         var dir = CommandOptions.Dir();
 
-        var command = new Command("unstable", "List the checks that pass in some runs of a version and fail in others.")
+        var command = new Command("unstable", "List the open unstable checks: unstable in the newest version that ran them at least twice.")
         {
             json,
+            versions,
             server,
             dir,
         };
@@ -34,7 +37,7 @@ internal static class UnstableCommand
                     parsed.InvocationConfiguration.Error,
                     async (client, agent, _) =>
                     {
-                        var unstable = await client.UnstableChecksAsync(agent, cancellationToken);
+                        var unstable = await client.UnstableChecksAsync(agent, parsed.GetValue(versions) ?? [], cancellationToken);
                         var output = parsed.InvocationConfiguration.Output;
                         if (parsed.GetValue(json))
                         {

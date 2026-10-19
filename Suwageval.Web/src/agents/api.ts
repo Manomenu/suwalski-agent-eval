@@ -1,6 +1,7 @@
 // This feature's HTTP calls, typed from the generated OpenAPI types.
 import { request } from "../api/client";
 import type { components } from "../api/openapi";
+import { agentErrorsPath } from "./agentErrors";
 
 export type Agent = components["schemas"]["Agent"];
 export type AgentDetail = components["schemas"]["AgentDetail"];
@@ -62,9 +63,9 @@ export function fetchPassRates(name: string, signal: AbortSignal): Promise<RunPa
 
 export type AgentError = components["schemas"]["AgentError"];
 
-/** The scenarios where the agent gave no answer, per version, worst first (see `agentErrors.ts`). */
-export function fetchAgentErrors(name: string, signal: AbortSignal): Promise<AgentError[]> {
-    return request<AgentError[]>(`${agentPath(name)}/agent-errors`, { signal });
+/** The open scenarios where the agent gave no answer, per version, worst first (see `agentErrors.ts`), decided over the given versions. */
+export function fetchAgentErrors(name: string, versionIds: readonly string[], signal: AbortSignal): Promise<AgentError[]> {
+    return request<AgentError[]>(agentErrorsPath(name, versionIds), { signal });
 }
 
 export function fetchVersion(name: string, versionId: string, signal: AbortSignal): Promise<AgentVersionDetail> {

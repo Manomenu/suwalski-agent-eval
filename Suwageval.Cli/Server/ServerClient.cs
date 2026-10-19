@@ -116,19 +116,47 @@ internal sealed class ServerClient(HttpClient http)
         return runs;
     }
 
-    /// <summary>The agent's unstable checks: passed in some finished runs of one version and failed in others, most often failing first.</summary>
-    public Task<IReadOnlyList<UnstableCheck>> UnstableChecksAsync(string agent, CancellationToken cancellationToken) =>
+    /// <summary>
+    /// The agent's open unstable checks, most often failing first: unstable in the newest version that ran them at least twice, among
+    /// <paramref name="versions"/> (none: every version not archived).
+    /// </summary>
+    public Task<IReadOnlyList<UnstableCheck>> UnstableChecksAsync(
+        string agent,
+        IEnumerable<Guid> versions,
+        CancellationToken cancellationToken
+    ) =>
         SendAsync<IReadOnlyList<UnstableCheck>>(
-            () => http.GetAsync(new Uri($"agents/{Uri.EscapeDataString(agent)}/unstable-checks", UriKind.Relative), cancellationToken),
+            () =>
+                http.GetAsync(
+                    new Uri($"agents/{Uri.EscapeDataString(agent)}/unstable-checks{VersionQuery(versions)}", UriKind.Relative),
+                    cancellationToken
+                ),
             cancellationToken
         );
 
-    /// <summary>The scenarios where the agent gave no answer, per version, the highest share of samples first.</summary>
-    public Task<IReadOnlyList<AgentError>> AgentErrorsAsync(string agent, CancellationToken cancellationToken) =>
+    /// <summary>
+    /// The agent's open errors, the highest share of samples first: scenarios where the agent gave no answer in the newest version that ran
+    /// them, among <paramref name="versions"/> (none: every version not archived).
+    /// </summary>
+    public Task<IReadOnlyList<AgentError>> AgentErrorsAsync(
+        string agent,
+        IEnumerable<Guid> versions,
+        CancellationToken cancellationToken
+    ) =>
         SendAsync<IReadOnlyList<AgentError>>(
-            () => http.GetAsync(new Uri($"agents/{Uri.EscapeDataString(agent)}/agent-errors", UriKind.Relative), cancellationToken),
+            () =>
+                http.GetAsync(
+                    new Uri($"agents/{Uri.EscapeDataString(agent)}/agent-errors{VersionQuery(versions)}", UriKind.Relative),
+                    cancellationToken
+                ),
             cancellationToken
         );
+
+    private static string VersionQuery(IEnumerable<Guid> versions)
+    {
+        var query = string.Join('&', versions.Select(id => $"version={id}"));
+        return string.IsNullOrEmpty(query) ? "" : $"?{query}";
+    }
 
     public Task<RunResults> ResultsAsync(Guid runId, CancellationToken cancellationToken) =>
         SendAsync<RunResults>(

@@ -6,7 +6,11 @@ import { versionTitle } from "./results";
 /** The agent page lists at most this many unstable checks. */
 export const UNSTABLE_CARD_MAX_ROWS = 8;
 
-/** The path of the unstable checks of an agent, limited to the given versions (none: all of them). */
+/** What the agent page's "Unstable checks" card lists: the checks that are still open. */
+export const UNSTABLE_CARD_RULE =
+    "Listed: checks unstable in the newest version (among the ones the filters show) that ran them at least twice. A row disappears once a newer version runs the check without the problem; archive a version to hide its rows.";
+
+/** The path of the unstable checks of an agent, limited to the given versions (none: every version not archived). */
 export function unstableChecksPath(agent: string, versionIds: readonly string[]): string {
     const query = new URLSearchParams();
     for (const id of versionIds) query.append("version", id);

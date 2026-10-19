@@ -455,8 +455,8 @@ internal sealed class RunStore(Pool pool)
 
     /// <summary>
     /// Per agent version and scenario of the given runs (the ones that called the agent, so the original of a re-check): the samples asked and
-    /// those where the agent gave no answer (status <c>Failed</c>), with the newest such sample's run and error. Only scenarios with an error,
-    /// the highest share first, then the most, then by key.
+    /// those where the agent gave no answer (status <c>Failed</c>), with the newest such sample's run and error (none without errors).
+    /// The highest share of errors first, then the most, then by key.
     /// </summary>
     public async Task<IReadOnlyList<AgentErrorRow>> ListAgentErrorsAsync(
         IReadOnlyCollection<Guid> runIds,
@@ -476,7 +476,6 @@ internal sealed class RunStore(Pool pool)
                 JOIN scenarios s ON s.id = sr.scenario_id
                 WHERE r.id = ANY(@runIds)
                 GROUP BY r.agent_version_id, s.key
-                HAVING count(*) FILTER (WHERE sr.status = 'Failed') > 0
                 ORDER BY (count(*) FILTER (WHERE sr.status = 'Failed'))::float8 / count(*) DESC,
                          count(*) FILTER (WHERE sr.status = 'Failed') DESC, s.key, r.agent_version_id
                 """,

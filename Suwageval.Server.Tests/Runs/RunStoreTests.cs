@@ -216,7 +216,7 @@ public sealed class RunStoreTests(TestDatabase database)
         var errors = await store.ListAgentErrorsAsync([first, second], Cancellation);
 
         Assert.Equal(
-            [("refund", 3, 4, second, "HTTP 502 newest"), ("chat", 1, 2, first, "timeout")],
+            [("refund", 3, 4, second, "HTTP 502 newest"), ("chat", 1, 2, first, "timeout"), ("fine", 0, 2, null, null)],
             [.. errors.Select(row => (row.ScenarioKey, row.Errors, row.Samples, row.NewestErrorRunId, row.NewestError))]
         );
         Assert.All(errors, row => Assert.Equal(agent.VersionId, row.AgentVersionId));
@@ -466,11 +466,11 @@ public sealed class RunStoreTests(TestDatabase database)
         var agent = await NewAgentAsync();
         await FinishedRunAsync(store, agent, [true]);
         var failed = await FinishedRunAsync(store, agent, [false]);
-        Assert.Single(UnstableChecks.Find(await VerdictsAsync(store, agent)));
+        Assert.Single(UnstableChecks.Find(await VerdictsAsync(store, agent), [agent.VersionId]));
 
         await FinishedRunAsync(store, agent, [true], recheckOf: failed);
 
-        Assert.Empty(UnstableChecks.Find(await VerdictsAsync(store, agent)));
+        Assert.Empty(UnstableChecks.Find(await VerdictsAsync(store, agent), [agent.VersionId]));
     }
 
     [Fact]
@@ -485,6 +485,6 @@ public sealed class RunStoreTests(TestDatabase database)
         var rows = await VerdictsAsync(store, agent);
 
         Assert.Equal([(1, 1), (1, 0)], rows.OrderByDescending(row => row.SamplesPassed).Select(row => (row.Samples, row.SamplesPassed)));
-        Assert.Equal(failed, Assert.Single(UnstableChecks.Find(rows)).NewestFailedRunId);
+        Assert.Equal(failed, Assert.Single(UnstableChecks.Find(rows, [agent.VersionId])).NewestFailedRunId);
     }
 }

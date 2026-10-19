@@ -3,17 +3,19 @@ import { lazy, Suspense, useState } from "react";
 
 import { useUnstableChecks } from "../runs/useUnstableChecks";
 import { formatTime, progress, runHref, shortId, statusColor, statusLabel } from "../runs/results";
-import { fetchAgent, fetchAgentErrors, fetchPassRates, fetchVersions, type AgentError, type AgentVersion } from "./api";
+import { fetchAgent, fetchPassRates, fetchVersions, type AgentVersion } from "./api";
 import { AgentErrorsCard } from "./AgentErrorsCard";
 import { ConfigurationSection } from "./ConfigurationSection";
 import { DeleteAgentModal } from "./DeleteAgentModal";
 import { HeaderHelp } from "./HeaderHelp";
 import { Page } from "./Page";
+import { useAgentErrors } from "./useAgentErrors";
 import { useLoaded } from "./useLoaded";
 import { useRuns } from "./useRuns";
 import {
     allowedVersionIds,
     canCompare,
+    consideredVersionIds,
     compareHref,
     dataVersionsOf,
     modelsOf,
@@ -50,24 +52,21 @@ export function AgentPage({ name }: { name: string }) {
     // Bumped after versions are archived or restored: the lists are loaded again (the page stays until the new ones arrive).
     const [reload, setReload] = useState(0);
     const state = useLoaded(`${name}/${reload}`, async (signal) => {
-        const [agent, versions, passRates, agentErrors] = await Promise.all([
+        const [agent, versions, passRates] = await Promise.all([
             fetchAgent(name, signal),
             fetchVersions(name, signal),
             fetchPassRates(name, signal),
-            // A hint, like the unstable checks: when it cannot be read the card is just not there.
-            fetchAgentErrors(name, signal).catch((): AgentError[] => []),
         ]);
-        return { agent, versions, passRates, agentErrors };
+        return { agent, versions, passRates };
     });
 
     return (
         <Page state={state} notFound={`There is no agent ${name}.`}>
-            {({ agent, versions, passRates, agentErrors }) => (
+            {({ agent, versions, passRates }) => (
                 <AgentView
                     agent={agent}
                     versions={versions}
                     passRates={passRates}
-                    agentErrors={agentErrors}
                     reload={reload}
                     onChanged={() => {
                         setReload(reload + 1);
@@ -85,14 +84,12 @@ function AgentView({
     agent,
     versions,
     passRates,
-    agentErrors,
     reload,
     onChanged,
 }: {
     agent: Agent;
     versions: AgentVersion[];
     passRates: PassRates;
-    agentErrors: AgentError[];
     reload: number;
     onChanged: () => void;
 }) {
@@ -107,9 +104,11 @@ function AgentView({
     const { runs, hasMore, loading, loadingMore, error, loadMore } = useRuns(agent.name, versionIds?.join(",") ?? null, `${reload}`);
     // Only what is listed counts: a run the filter hides is not compared.
     const toCompare = runsToCompare(runs, selected);
-    // Fetched once for all versions; the filters hide the rows of versions they leave out, as they do in the chart.
-    const unstable = visibleRuns(useUnstableChecks(agent.name, []), versions, showArchived, models, dataVersions);
-    const errors = visibleRuns(agentErrors, versions, showArchived, models, dataVersions);
+    // The problem cards decide over the versions the filters show: a newer version the filters hide closes nothing. With none shown, nothing is asked.
+    const considered = consideredVersionIds(versions, showArchived, models, dataVersions);
+    const problemsAgent = considered.length === 0 ? null : agent.name;
+    const unstable = useUnstableChecks(problemsAgent, considered);
+    const errors = useAgentErrors(problemsAgent, considered);
     const trendPoints = visibleRuns(passRates, versions, showArchived, models, dataVersions);
     return (
         <Stack gap="lg">

@@ -36,9 +36,10 @@ internal static class RunEndpoints
     internal const int UnstableCheckRuns = 200;
 
     /// <summary>
-    /// The checks of an agent whose verdict differs between finished runs of the same version (<see cref="UnstableChecks"/>), over its
-    /// newest <see cref="UnstableCheckRuns"/> finished runs, each with the verdicts it shows (<see cref="EffectiveRuns"/>); <c>version</c> (repeatable agent version ids) limits it to those versions.
-    /// 404: no such agent.
+    /// The open unstable checks of an agent (<see cref="UnstableChecks"/>: unstable in the newest considered version that ran them at least
+    /// twice), over its newest <see cref="UnstableCheckRuns"/> finished runs of the considered versions, each with the verdicts it shows
+    /// (<see cref="EffectiveRuns"/>). The considered versions are the <c>version</c> query (repeatable agent version ids), else every
+    /// version not archived. 404: no such agent.
     /// </summary>
     private static async Task<IResult> UnstableChecksAsync(
         string agent,
@@ -53,33 +54,41 @@ internal static class RunEndpoints
         {
             return ProblemResults.NotFound("Agent", agent);
         }
-        var rows = await runs.ListRunCheckVerdictsAsync(await PickAsync(found.Id, version, runs, cancellationToken), cancellationToken);
-        var unstable = UnstableChecks.Find(rows);
-        if (unstable.Count == 0)
-        {
-            return Results.Ok(unstable);
-        }
-        var labels = (await agents.ListVersionsAsync(found.Id, cancellationToken)).ToDictionary(row => row.Id, row => row.Label);
-        return Results.Ok(unstable.Select(check => check with { VersionLabel = labels.GetValueOrDefault(check.AgentVersionId) }).ToList());
+        var versions = await agents.ListVersionsAsync(found.Id, cancellationToken);
+        var considered = Considered(versions, version);
+        var rows = await runs.ListRunCheckVerdictsAsync(await PickAsync(found.Id, considered, runs, cancellationToken), cancellationToken);
+        var labels = versions.ToDictionary(row => row.Id, row => row.Label);
+        return Results.Ok(
+            UnstableChecks
+                .Find(rows, considered)
+                .Select(check => check with { VersionLabel = labels.GetValueOrDefault(check.AgentVersionId) })
+                .ToList()
+        );
     }
+
+    /// <summary>The versions the open problems are decided over, newest first: the requested ones, else every one not archived.</summary>
+    private static List<Guid> Considered(IReadOnlyList<AgentVersionRow> versionsNewestFirst, Guid[]? requested) =>
+        [
+            .. versionsNewestFirst
+                .Where(row => requested is { Length: > 0 } ? requested.Contains(row.Id) : row.ArchivedAt is null)
+                .Select(row => row.Id),
+        ];
 
     private static async Task<IReadOnlyList<EffectiveRuns.Point>> PickAsync(
         Guid agentId,
-        Guid[]? version,
+        IReadOnlyCollection<Guid> considered,
         RunStore runs,
         CancellationToken cancellationToken
     )
     {
-        var newestFirst = (await runs.ListAsync(agentId, cancellationToken)).Where(run =>
-            version is not { Length: > 0 } || version.Contains(run.AgentVersionId)
-        );
+        var newestFirst = (await runs.ListAsync(agentId, cancellationToken)).Where(run => considered.Contains(run.AgentVersionId));
         return EffectiveRuns.Pick([.. newestFirst], UnstableCheckRuns);
     }
 
     /// <summary>
-    /// Where the agent gave no answer: per agent version and scenario with at least one such sample, the errors over the samples asked, the
-    /// newest run and error text, worst first. The same newest <see cref="UnstableCheckRuns"/> finished runs as the unstable checks (a
-    /// re-check does not call the agent, so it is not counted); <c>version</c> limits it to those versions. 404: no such agent.
+    /// Where the agent gave no answer and no newer version has run the scenario without it (<see cref="OpenAgentErrors"/>): per agent
+    /// version and scenario, the errors over the samples asked, the newest run and error text, worst first. The same runs and considered
+    /// versions as the unstable checks (a re-check does not call the agent, so it is not counted). 404: no such agent.
     /// </summary>
     private static async Task<IResult> AgentErrorsAsync(
         string agent,
@@ -94,19 +103,23 @@ internal static class RunEndpoints
         {
             return ProblemResults.NotFound("Agent", agent);
         }
-        var picked = await PickAsync(found.Id, version, runs, cancellationToken);
+        var versions = await agents.ListVersionsAsync(found.Id, cancellationToken);
+        var considered = Considered(versions, version);
+        var picked = await PickAsync(found.Id, considered, runs, cancellationToken);
         var rows = await runs.ListAgentErrorsAsync([.. picked.Select(point => point.Run.Id)], cancellationToken);
-        var labels = (await agents.ListVersionsAsync(found.Id, cancellationToken)).ToDictionary(row => row.Id, row => row.Label);
+        var labels = versions.ToDictionary(row => row.Id, row => row.Label);
         return Results.Ok(
-            rows.Select(row => new AgentError
+            OpenAgentErrors
+                .Find(rows, considered)
+                .Select(row => new AgentError
                 {
                     ScenarioKey = row.ScenarioKey,
                     AgentVersionId = row.AgentVersionId,
                     VersionLabel = labels.GetValueOrDefault(row.AgentVersionId),
                     Errors = row.Errors,
                     Samples = row.Samples,
-                    NewestErrorRunId = row.NewestErrorRunId,
-                    NewestError = row.NewestError,
+                    NewestErrorRunId = row.NewestErrorRunId!.Value,
+                    NewestError = row.NewestError ?? "",
                 })
                 .ToList()
         );

@@ -65,6 +65,17 @@ public sealed class UnstableCommandTests
     }
 
     [Fact]
+    public void Version_passes_the_versions_to_the_server()
+    {
+        var other = Guid.Parse("bbbbbbbb-0000-0000-0000-000000000002");
+
+        var (exit, _, _, paths) = Unstable(Found, "--version", Version.ToString(), "--version", other.ToString());
+
+        Assert.Equal(0, exit);
+        Assert.Equal([$"/agents/example-agent/unstable-checks?version={Version}&version={other}"], paths);
+    }
+
+    [Fact]
     public void It_says_so_when_every_check_is_stable()
     {
         var (exit, output, _, _) = Unstable([]);

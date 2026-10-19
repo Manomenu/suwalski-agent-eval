@@ -20,6 +20,14 @@ internal static class CommandOptions
                 "Exit 1 when any check fails its threshold, not only on a regression or a new failing check (known, already broken and unstable failures count).",
         };
 
+    /// <summary>The agent versions a question is limited to; repeatable, none given: the server's default (every version not archived).</summary>
+    public static Option<Guid[]> Versions() =>
+        new("--version")
+        {
+            Description = "Decide over this agent version id only (repeatable; default: every version not archived).",
+            DefaultValueFactory = _ => [],
+        };
+
     public static Option<bool> Json(string description) => new("--json") { Description = description };
 
     /// <param name="what">What is waited for: "run" or "re-check".</param>

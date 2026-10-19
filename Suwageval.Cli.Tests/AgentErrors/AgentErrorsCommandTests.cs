@@ -64,6 +64,15 @@ public sealed class AgentErrorsCommandTests
     }
 
     [Fact]
+    public void Version_passes_the_versions_to_the_server()
+    {
+        var (exit, _, _, paths) = AgentErrors(Found, "--version", Version.ToString());
+
+        Assert.Equal(0, exit);
+        Assert.Equal([$"/agents/example-agent/agent-errors?version={Version}"], paths);
+    }
+
+    [Fact]
     public void It_says_so_when_the_agent_always_answered()
     {
         var (exit, output, _, _) = AgentErrors([]);
