@@ -19,26 +19,39 @@ internal static class Migrator
     /// <summary>
     /// Runs the scripts that have not run yet, all in one transaction: a failing script leaves nothing behind.
     /// The database itself must exist — it comes from whoever runs PostgreSQL, never from the server.
+    /// Nothing grate writes to disk outlives the call; returns the temporary folders of grate's own scripts it deleted.
     /// </summary>
-    public static async Task MigrateAsync(string connectionString, string directory)
+    public static async Task<IReadOnlyList<string>> MigrateAsync(string connectionString, string directory)
     {
-        var services = new ServiceCollection();
-        services.AddLogging(logging => logging.AddSimpleConsole());
-        services
-            .AddGrate(grate =>
-                grate
-                    .WithSqlFilesDirectory(directory)
-                    .WithConnectionString(connectionString)
-                    // grate writes copies of what it ran here; the working directory (/app) is not writable in the image.
-                    .WithOutputFolder(Path.Combine(Path.GetTempPath(), "grate"))
-                    .DoNotCreateDatabase()
-                    .WithTransaction()
-            )
-            .UsePostgreSQL();
-        var provider = services.BuildServiceProvider();
-        await using (provider.ConfigureAwait(false))
+        // grate writes copies of what it ran here; the working directory (/app) is not writable in the image.
+        var output = Directory.CreateTempSubdirectory("suwageval-grate-");
+        using var temporaryFolders = new GrateTemporaryFolders(directory);
+        IReadOnlyList<string> deleted;
+        try
         {
-            await provider.GetRequiredService<IGrateMigrator>().Migrate().ConfigureAwait(false);
+            var services = new ServiceCollection();
+            services.AddLogging(logging => logging.AddSimpleConsole().AddProvider(temporaryFolders));
+            services
+                .AddGrate(grate =>
+                    grate
+                        .WithSqlFilesDirectory(directory)
+                        .WithConnectionString(connectionString)
+                        .WithOutputFolder(output.FullName)
+                        .DoNotCreateDatabase()
+                        .WithTransaction()
+                )
+                .UsePostgreSQL();
+            var provider = services.BuildServiceProvider();
+            await using (provider.ConfigureAwait(false))
+            {
+                await provider.GetRequiredService<IGrateMigrator>().Migrate().ConfigureAwait(false);
+            }
         }
+        finally
+        {
+            deleted = temporaryFolders.Delete();
+            output.Delete(recursive: true);
+        }
+        return deleted;
     }
 }
