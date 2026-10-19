@@ -4,17 +4,17 @@
     <TargetFrameworks>net9.0;net10.0</TargetFrameworks>
     <TargetFramework />
     <RootNamespace>Suwageval.AgentSdk</RootNamespace>
-    <!-- A release passes its version from the tag (-p:Version=); a local pack is plainly not one. -->
+    <!-- A release passes its version (just agent-publish, -p:Version=); a local pack is plainly not one. -->
     <Version>0.0.0-local</Version>
     <PackageId>Suwageval.AgentSdk</PackageId>
     <Description>Everything a .NET agent under test needs for Suwageval: the contract types, their JSON options, the contract rules and the two endpoints (GET /suwageval/contract, POST /suwageval/turn).</Description>
-    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <!-- An expression, not the LICENSE file: the company feed (NuGet.Server 2.11) answers 500 to a package with a license file. -->
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <None Include="README.md" Pack="true" PackagePath="/" />
-    <None Include="../LICENSE" Pack="true" PackagePath="/" />
   </ItemGroup>
 </Project>
