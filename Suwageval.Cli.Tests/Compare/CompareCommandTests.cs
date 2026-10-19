@@ -66,8 +66,169 @@ public sealed class CompareCommandTests
         using var output = new StringWriter();
         using var error = new StringWriter();
         var opened = new List<Uri>();
-        var exit = CliApp.Run(["compare", .. args], new StringReader(""), output, error, http, open ?? opened.Add);
+        var exit = CliApp.Run(["compare", "--open", .. args], new StringReader(""), output, error, http, open ?? opened.Add);
         return (exit, output.ToString(), error.ToString(), api, opened);
+    }
+
+    private static readonly Guid Version = Guid.Parse("aaaaaaaa-2222-3333-4444-555555555555");
+
+    private static ComparedRun Compared(Guid id, string? judge, bool judgeChanged, double? passRate, TimeChange? median = null) =>
+        new()
+        {
+            Run = new RunSummary
+            {
+                Id = id,
+                Agent = "support-bot",
+                AgentVersionId = Version,
+                Tag = "nightly",
+                EndpointUrl = "http://localhost:7010",
+                Status = RunStatus.Done,
+                SamplesTotal = 1,
+                SamplesDone = 1,
+                ChecksPassed = 1,
+                ChecksFailed = 0,
+                CreatedAt = DateTime.UtcNow,
+            },
+            JudgeModel = judge,
+            JudgeChanged = judgeChanged,
+            PassRate = passRate,
+            MedianMs = 1200,
+            P95Ms = 3000,
+            MedianChange = median,
+        };
+
+    private static ComparedCell Cell(bool passed, int samplesPassed, Suwageval.Contracts.Runs.Trend? trend, string? judge, int revision) =>
+        new()
+        {
+            Passed = passed,
+            PassRate = samplesPassed / 3.0,
+            SamplesPassed = samplesPassed,
+            Samples = 3,
+            NotJudged = 0,
+            Revision = revision,
+            LatestRevision = 2,
+            JudgedByModel = judge is not null,
+            JudgeModel = judge,
+            Trend = trend,
+        };
+
+    private static RunComparison Comparison() =>
+        new()
+        {
+            Runs =
+            [
+                Compared(First, "judge-a", false, 0.5),
+                Compared(Second, "judge-b", true, 0.75, new TimeChange(-300, Suwageval.Contracts.Runs.Trend.Better)),
+            ],
+            Tags =
+            [
+                new ComparedTag
+                {
+                    Rates = [new ComparedRate(0.5), new ComparedRate(0.75, new RateChange(25, Suwageval.Contracts.Runs.Trend.Better))],
+                },
+                new ComparedTag
+                {
+                    Tag = "smoke",
+                    Rates = [new ComparedRate(1), new ComparedRate(0.5, new RateChange(-50, Suwageval.Contracts.Runs.Trend.Worse))],
+                },
+            ],
+            Checks =
+            [
+                new ComparedCheck
+                {
+                    ScenarioKey = "greeting",
+                    CheckKey = "polite",
+                    Definition = new Suwageval.Contracts.Checks.TextCheck { Key = "k", ScenarioKey = "s" },
+                    JudgedByModel = true,
+                    Differs = true,
+                    Comparable = true,
+                    Cells = [Cell(false, 1, null, "judge-a", 1), Cell(true, 3, Suwageval.Contracts.Runs.Trend.Better, "judge-b", 2)],
+                },
+                new ComparedCheck
+                {
+                    ScenarioKey = "greeting",
+                    CheckKey = "short",
+                    Definition = new Suwageval.Contracts.Checks.TextCheck { Key = "k", ScenarioKey = "s" },
+                    JudgedByModel = false,
+                    Differs = true,
+                    Comparable = false,
+                    Cells = [Cell(true, 3, null, null, 1), null],
+                },
+                new ComparedCheck
+                {
+                    ScenarioKey = "greeting",
+                    CheckKey = "same",
+                    Definition = new Suwageval.Contracts.Checks.TextCheck { Key = "k", ScenarioKey = "s" },
+                    JudgedByModel = false,
+                    Differs = false,
+                    Comparable = true,
+                    Cells = [Cell(true, 3, null, null, 1), Cell(true, 3, Suwageval.Contracts.Runs.Trend.Same, null, 1)],
+                },
+            ],
+        };
+
+    private static (int Exit, string Output, string Error, FakeApi Api, List<Uri> Opened) Print(params string[] args)
+    {
+        var api = new FakeApi(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(JsonSerializer.Serialize(Comparison(), ContractJson.Options), Encoding.UTF8, "application/json"),
+        });
+        using var http = new HttpClient(api, disposeHandler: false) { BaseAddress = new Uri("http://api.test/") };
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        var opened = new List<Uri>();
+        var exit = CliApp.Run(["compare", .. args], new StringReader(""), output, error, http, opened.Add);
+        return (exit, output.ToString(), error.ToString(), api, opened);
+    }
+
+    [Fact]
+    public void By_default_it_prints_the_comparison_from_one_request_and_opens_nothing()
+    {
+        var (exit, output, error, api, opened) = Print(First.ToString(), Second.ToString());
+
+        Assert.Equal(0, exit);
+        Assert.Empty(error);
+        Assert.Empty(opened);
+        Assert.Equal(["/runs/compare"], api.Paths);
+        Assert.Contains(
+            "#1 baseline  run 11111111  version aaaaaaaa  tag nightly  judge judge-a  pass 50%",
+            output,
+            StringComparison.Ordinal
+        );
+        Assert.Contains("#2  run 11111111", output, StringComparison.Ordinal);
+        Assert.Contains("judge judge-b (judge differs from baseline)  pass 75%", output, StringComparison.Ordinal);
+        Assert.Contains("median 1.2s (-0.3s faster)", output, StringComparison.Ordinal);
+        Assert.Contains("All    50%", output, StringComparison.Ordinal);
+        Assert.Contains("75% (+25 pts ▲)", output, StringComparison.Ordinal);
+        Assert.Contains("50% (-50 pts ▼)", output, StringComparison.Ordinal);
+        Assert.Contains("greeting / polite", output, StringComparison.Ordinal);
+        Assert.Contains("#1  failed 1/3 (33%)", output, StringComparison.Ordinal);
+        Assert.Contains("#2  passed 3/3 (100%) ▲  judge judge-b  revision 2 (baseline 1)", output, StringComparison.Ordinal);
+        Assert.Contains("greeting / short  (not comparable", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("greeting / same", output, StringComparison.Ordinal);
+        Assert.Contains("1 check is the same in every run.", output, StringComparison.Ordinal);
+        Assert.Contains("/compare?runs=", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Json_prints_the_comparison_record()
+    {
+        var (exit, output, _, _, opened) = Print(First.ToString(), Second.ToString(), "--json");
+
+        Assert.Equal(0, exit);
+        Assert.Empty(opened);
+        var parsed = JsonSerializer.Deserialize<RunComparison>(output, ContractJson.Options);
+        Assert.Equal(2, parsed?.Runs.Count);
+        Assert.Equal(3, parsed?.Checks.Count);
+    }
+
+    [Fact]
+    public void Json_and_open_cannot_be_combined()
+    {
+        var (exit, _, _, api, _) = Print(First.ToString(), Second.ToString(), "--json", "--open");
+
+        Assert.NotEqual(0, exit);
+        Assert.Empty(api.Paths);
     }
 
     [Fact]

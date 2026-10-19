@@ -1,16 +1,14 @@
-import { Anchor, Group, List, Paper, Stack, Text, Title } from "@mantine/core";
+import { Anchor, Group, Paper, Stack, Text, Title } from "@mantine/core";
 
 import { formatTime } from "../runs/results";
-import { fetchVersion, type AgentVersionDetail } from "./api";
+import { fetchVersionDiff, type AgentVersion } from "./api";
 import { Page } from "./Page";
 import { useLoaded } from "./useLoaded";
 import { LineDiffView } from "../diff/LineDiffView";
-import { contractYaml, oldestFirst, summarizeChanges } from "./versionDiff";
 import { versionTitle } from "../runs/results";
 import { agentHref, versionHref } from "./view";
 
-function VersionCard({ name, role, version }: { name: string; role: string; version: AgentVersionDetail }) {
-    const models = [...new Set(version.content.agents.map((agent) => agent.model.name))].join(", ");
+function VersionCard({ name, role, version }: { name: string; role: string; version: AgentVersion }) {
     return (
         <Paper withBorder p="md">
             <Stack gap={4}>
@@ -18,47 +16,33 @@ function VersionCard({ name, role, version }: { name: string; role: string; vers
                     {role}
                 </Text>
                 <Anchor href={versionHref(name, version.id)} fw={600}>
-                    {versionTitle(version.id, version.content.label)}
+                    {versionTitle(version.id, version.label)}
                 </Anchor>
                 <Text size="sm">created {formatTime(version.createdAt)}</Text>
-                <Text size="sm">models {models}</Text>
+                <Text size="sm">models {version.modelNames.join(", ")}</Text>
             </Stack>
         </Paper>
     );
 }
 
-/** `/agents/<name>/versions/compare?a=…&b=…`: what changed from the older of two versions to the newer — a summary, then the line diff. */
+/** `/agents/<name>/versions/compare?a=…&b=…`: what changed from the older of two versions to the newer — the line diff the server made. */
 export function VersionComparePage({ name, a, b }: { name: string; a: string; b: string }) {
-    const state = useLoaded(`${name}/${a}/${b}`, (signal) => Promise.all([fetchVersion(name, a, signal), fetchVersion(name, b, signal)]));
+    const state = useLoaded(`${name}/${a}/${b}`, (signal) => fetchVersionDiff(name, a, b, signal));
 
     return (
         <Page state={state} notFound={`Agent ${name} has no version ${a} or ${b}.`}>
-            {(versions) => {
-                const [base, next] = oldestFirst(...versions);
-                const summary = summarizeChanges(base.content, next.content);
-                return (
-                    <Stack gap="md">
-                        <Anchor href={agentHref(name)}>← {name}</Anchor>
-                        <Title order={2}>Compare versions</Title>
-                        <Group align="stretch" gap="md" grow>
-                            <VersionCard name={name} role="Base (older)" version={base} />
-                            <VersionCard name={name} role="Newer" version={next} />
-                        </Group>
-                        <Title order={3}>Summary of changes</Title>
-                        {summary.length === 0 ? (
-                            <Text>No differences</Text>
-                        ) : (
-                            <List>
-                                {summary.map((line) => (
-                                    <List.Item key={line}>{line}</List.Item>
-                                ))}
-                            </List>
-                        )}
-                        <Title order={3}>Diff</Title>
-                        <LineDiffView from={contractYaml(base.content)} to={contractYaml(next.content)} />
-                    </Stack>
-                );
-            }}
+            {(diff) => (
+                <Stack gap="md">
+                    <Anchor href={agentHref(name)}>← {name}</Anchor>
+                    <Title order={2}>Compare versions</Title>
+                    <Group align="stretch" gap="md" grow>
+                        <VersionCard name={name} role="Base (older)" version={diff.from} />
+                        <VersionCard name={name} role="Newer" version={diff.to} />
+                    </Group>
+                    <Title order={3}>Diff</Title>
+                    <LineDiffView blocks={diff.blocks} />
+                </Stack>
+            )}
         </Page>
     );
 }

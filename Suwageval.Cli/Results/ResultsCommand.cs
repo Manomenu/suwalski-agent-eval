@@ -4,10 +4,11 @@ using Suwageval.Cli.Server;
 namespace Suwageval.Cli.Results;
 
 /// <summary>
-/// <c>suwageval results &lt;runId&gt;</c>: opens the run's page on the web, where its results are read — the link is printed too, for
-/// a terminal with no browser. With <c>--json</c> it opens nothing: it waits for the run to end, prints its results as JSON and exits
-/// like <c>run --wait</c> (0 every check passed, 1 one did not, 2 the run did not finish). Either way the run is asked for first
-/// through the web's address, so a run that does not exist or a web that does not answer exits 2.
+/// <c>suwageval results &lt;runId&gt;</c>: waits for the run to end and prints its results on stdout as text (status, version, tag, branch,
+/// what it was compared with and the regressions, failing checks with their reasons, turn times, the link to its page); <c>--json</c>
+/// prints the results as JSON instead. Both exit like <c>run --wait --strict</c> (0 every check passed, 1 one did not, 2 the run did not
+/// finish). <c>--open</c> instead opens the run's page on the web — the link is printed too, for a terminal with no browser — and exits 0.
+/// Either way a run that does not exist or a web that does not answer exits 2.
 /// </summary>
 internal static class ResultsCommand
 {
@@ -18,11 +19,19 @@ internal static class ResultsCommand
         var runId = new Argument<Guid>("runId") { Description = "The run, as `suwageval run` printed it." };
         var json = new Option<bool>("--json")
         {
-            Description = "Print the results as JSON instead of opening the page; waits for the run to end and exits by its checks.",
+            Description = "Print the results as JSON instead of text; waits for the run to end and exits by its checks.",
         };
+        var open = new Option<bool>("--open") { Description = "Open the run's page on the web instead of printing the results." };
         var server = CommandOptions.Server();
 
-        var command = new Command("results", "Open the run's results on the web, or print them as JSON.") { runId, json, server };
+        var command = new Command("results", "Print the run's results (or --open its page on the web).") { runId, json, open, server };
+        command.Validators.Add(result =>
+        {
+            if (result.GetValue(json) && result.GetValue(open))
+            {
+                result.AddError("--json and --open cannot be used together.");
+            }
+        });
         command.SetAction(
             (parsed, cancellationToken) =>
                 ServerCall.RunAsync(
@@ -33,16 +42,23 @@ internal static class ResultsCommand
                     {
                         var output = parsed.InvocationConfiguration.Output;
                         var id = parsed.GetRequiredValue(runId);
-                        if (parsed.GetValue(json))
+                        if (parsed.GetValue(open))
                         {
-                            await client.WaitForEndAsync(id, cancellationToken);
-                            var results = await client.ResultsAsync(id, cancellationToken);
-                            await output.WriteLineAsync(OutputJson.Of(results));
-                            return RunVerdict.ExitCode(results, strict: true);
+                            await client.GetAsync(id, cancellationToken);
+                            await WebPage.ShowAsync(
+                                ServerAddress.RunPage(site, id),
+                                output,
+                                parsed.InvocationConfiguration.Error,
+                                openBrowser
+                            );
+                            return 0;
                         }
-                        await client.GetAsync(id, cancellationToken);
-                        await WebPage.ShowAsync(ServerAddress.RunPage(site, id), output, parsed.InvocationConfiguration.Error, openBrowser);
-                        return 0;
+                        await client.WaitForEndAsync(id, cancellationToken);
+                        var results = await client.ResultsAsync(id, cancellationToken);
+                        await output.WriteLineAsync(
+                            parsed.GetValue(json) ? OutputJson.Of(results) : ResultsText.Describe(results, ServerAddress.RunPage(site, id))
+                        );
+                        return RunVerdict.ExitCode(results, strict: true);
                     }
                 )
         );

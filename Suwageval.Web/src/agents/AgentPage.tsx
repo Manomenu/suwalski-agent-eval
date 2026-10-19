@@ -21,6 +21,7 @@ import {
     modelsOf,
     runsToCompare,
     versionHref,
+    versionOptions,
     visibleRuns,
     COMPARE_MAX_RUNS,
     COMPARE_MIN_RUNS,
@@ -35,6 +36,8 @@ const MODEL_HELP =
     "Show only runs of agent versions that use these models (any of the system's LLM agents). The chart, the unstable checks and the agent errors follow the filter.";
 const DATA_VERSION_HELP =
     "Show only runs of agent versions whose retrieval data is one of these: the dataVersion the agent declares, a fingerprint of what its retrieval can return (content and indexing). New data is a new agent version. Agents without retrieval have none. The chart, the unstable checks and the agent errors follow the filter.";
+const VERSIONS_FILTER_HELP =
+    "Show only runs of these agent versions (newest first; empty means all). The chart, the unstable checks and the agent errors follow the filter.";
 const TAG_HELP = "The scenario tag the run was limited to (run --tag); — means every scenario of the agent ran.";
 const CHECKS_HELP =
     "Checks passed and failed in this run. A check is one condition on the agent's answer, written in a scenario file: a tool called or not, an event, a text, a cited source, a judge's verdict. It passes when its share of passing samples reaches its threshold.";
@@ -98,18 +101,19 @@ function AgentView({
     // The model filter (empty: every model) and the runs ticked for comparison.
     const [models, setModels] = useState<string[]>([]);
     const [dataVersions, setDataVersions] = useState<string[]>([]);
+    const [versionFilter, setVersionFilter] = useState<string[]>([]);
     const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
     // The server pages the runs, so the filters reach it as the versions they allow (none sent: every version).
-    const versionIds = allowedVersionIds(versions, showArchived, models, dataVersions);
+    const versionIds = allowedVersionIds(versions, showArchived, models, dataVersions, versionFilter);
     const { runs, hasMore, loading, loadingMore, error, loadMore } = useRuns(agent.name, versionIds?.join(",") ?? null, `${reload}`);
     // Only what is listed counts: a run the filter hides is not compared.
     const toCompare = runsToCompare(runs, selected);
     // The problem cards decide over the versions the filters show: a newer version the filters hide closes nothing. With none shown, nothing is asked.
-    const considered = consideredVersionIds(versions, showArchived, models, dataVersions);
+    const considered = consideredVersionIds(versions, showArchived, models, dataVersions, versionFilter);
     const problemsAgent = considered.length === 0 ? null : agent.name;
     const unstable = useUnstableChecks(problemsAgent, considered);
     const errors = useAgentErrors(problemsAgent, considered);
-    const trendPoints = visibleRuns(passRates, versions, showArchived, models, dataVersions);
+    const trendPoints = visibleRuns(passRates, versions, showArchived, models, dataVersions, versionFilter);
     return (
         <Stack gap="lg">
             <Anchor href="/">← Agents</Anchor>
@@ -186,6 +190,15 @@ function AgentView({
                                 data={dataVersionsOf(versions)}
                                 value={dataVersions}
                                 onChange={setDataVersions}
+                                clearable
+                                miw={MODEL_FILTER_MIN_WIDTH}
+                            />
+                            <MultiSelect
+                                label={<HeaderHelp label="Versions" help={VERSIONS_FILTER_HELP} />}
+                                placeholder={versionFilter.length === 0 ? "All versions" : undefined}
+                                data={versionOptions(versions)}
+                                value={versionFilter}
+                                onChange={setVersionFilter}
                                 clearable
                                 miw={MODEL_FILTER_MIN_WIDTH}
                             />

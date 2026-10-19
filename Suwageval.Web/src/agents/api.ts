@@ -8,8 +8,6 @@ export type AgentDetail = components["schemas"]["AgentDetail"];
 export type AgentVersion = components["schemas"]["AgentVersion"];
 export type AgentVersionDetail = components["schemas"]["AgentVersionDetail"];
 
-type ScenarioSummary = components["schemas"]["ScenarioSummary"];
-
 const agentPath = (name: string) => `/agents/${encodeURIComponent(name)}`;
 
 export function fetchAgents(signal: AbortSignal): Promise<Agent[]> {
@@ -72,6 +70,10 @@ export function fetchVersion(name: string, versionId: string, signal: AbortSigna
     return request<AgentVersionDetail>(`${agentPath(name)}/versions/${versionId}`, { signal });
 }
 
-export function fetchScenarios(name: string, signal: AbortSignal): Promise<ScenarioSummary[]> {
-    return request<ScenarioSummary[]>(`${agentPath(name)}/scenarios`, { signal });
+export type VersionDiff = components["schemas"]["VersionDiff"];
+
+/** What changed between two versions, the older first: both contracts as YAML compared by lines, computed by the server. */
+export function fetchVersionDiff(name: string, from: string, to: string, signal: AbortSignal): Promise<VersionDiff> {
+    const query = new URLSearchParams({ from, to });
+    return request<VersionDiff>(`${agentPath(name)}/versions/diff?${query.toString()}`, { signal });
 }

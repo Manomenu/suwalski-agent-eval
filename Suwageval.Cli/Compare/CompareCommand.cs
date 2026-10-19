@@ -4,8 +4,9 @@ using Suwageval.Cli.Server;
 namespace Suwageval.Cli.Compare;
 
 /// <summary>
-/// <c>suwageval compare &lt;runId&gt; &lt;runId&gt; [...]</c>: opens the comparison of 2 to 5 runs of one agent on the web (the first run
-/// is the baseline) and prints the link too. Every run is asked for first through the web's address, so a run that does not exist, runs
+/// <c>suwageval compare &lt;runId&gt; &lt;runId&gt; [...]</c>: prints the comparison of 2 to 5 runs of one agent on stdout (the first run is the
+/// baseline): a header per run, the pass rate per tag, the checks that differ; <c>--json</c> prints the comparison as JSON. <c>--open</c>
+/// instead opens the comparison on the web (the link is printed too), after asking for every run first. A run that does not exist, runs
 /// of different agents or a web that does not answer exit 2, and a wrong number of runs is refused before any request.
 /// </summary>
 internal static class CompareCommand
@@ -33,9 +34,24 @@ internal static class CompareCommand
                 return distinct;
             },
         };
+        var json = CommandOptions.Json("Print the comparison as JSON.");
+        var open = new Option<bool>("--open") { Description = "Open the comparison on the web instead of printing it." };
         var server = CommandOptions.Server();
 
-        var command = new Command("compare", "Open the comparison of 2 to 5 runs of one agent on the web.") { runIds, server };
+        var command = new Command("compare", "Print the comparison of 2 to 5 runs of one agent (or --open it on the web).")
+        {
+            runIds,
+            json,
+            open,
+            server,
+        };
+        command.Validators.Add(result =>
+        {
+            if (result.GetValue(json) && result.GetValue(open))
+            {
+                result.AddError("--json and --open cannot be used together.");
+            }
+        });
         command.SetAction(
             (parsed, cancellationToken) =>
             {
@@ -47,6 +63,16 @@ internal static class CompareCommand
                     async (client, site) =>
                     {
                         var ids = parsed.GetRequiredValue(runIds);
+                        if (!parsed.GetValue(open))
+                        {
+                            var comparison = await client.CompareAsync(ids, cancellationToken);
+                            await parsed.InvocationConfiguration.Output.WriteLineAsync(
+                                parsed.GetValue(json)
+                                    ? OutputJson.Of(comparison)
+                                    : CompareText.Describe(comparison, ServerAddress.ComparePage(site, ids))
+                            );
+                            return 0;
+                        }
                         var agents = new List<string>();
                         foreach (var id in ids)
                         {

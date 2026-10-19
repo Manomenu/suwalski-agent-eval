@@ -8,7 +8,7 @@ namespace Suwageval.Cli.Versions;
 /// <summary>
 /// <c>suwageval versions</c>: lists the versions of the agent named in <c>suwageval/agent.yaml</c> (the active ones; with
 /// <c>--archived</c> the archived ones too), and <c>versions archive|unarchive &lt;versionId&gt;...</c> hides or restores them.
-/// <c>versions diff &lt;a&gt; &lt;b&gt;</c> opens the page showing what changed between two versions, <c>versions delete &lt;versionId&gt;</c> deletes an archived
+/// <c>versions diff &lt;a&gt; &lt;b&gt;</c> prints what changed between two versions as a unified-style diff (<c>--json</c> the record, <c>--open</c> the page on the web), <c>versions delete &lt;versionId&gt;</c> deletes an archived
 /// version with its runs (after the person types its id, or with <c>--yes</c>). Exits 0, or 2 when the agent file, the server or a version is wrong.
 /// </summary>
 internal static class VersionsCommand
@@ -31,6 +31,7 @@ internal static class VersionsCommand
             dir,
             Change("archive", "Archive versions: hidden from the web's default views, kept with their runs.", archive: true, http),
             Change("unarchive", "Restore archived versions.", archive: false, http),
+            Show(http),
             Diff(http, openBrowser),
             Delete(terminal, http),
         };
@@ -160,19 +161,75 @@ internal static class VersionsCommand
         return command;
     }
 
+    private static Command Show(HttpClient? http)
+    {
+        var id = new Argument<Guid>("versionId") { Description = "The version, as `versions` lists it." };
+        var json = CommandOptions.Json("Print the version with its contract as JSON.");
+        var server = CommandOptions.Server();
+        var dir = CommandOptions.Dir();
+        var command = new Command("show", "Print one version of the agent: its id, label and creation time, then its contract as JSON.")
+        {
+            id,
+            json,
+            server,
+            dir,
+        };
+        command.SetAction(
+            (parsed, cancellationToken) =>
+                ServerCall.ForAgentAsync(
+                    parsed.GetRequiredValue(dir),
+                    parsed.GetValue(server),
+                    http,
+                    parsed.InvocationConfiguration.Error,
+                    async (client, agent, _) =>
+                    {
+                        var version = await client.VersionAsync(agent, parsed.GetRequiredValue(id), cancellationToken);
+                        var output = parsed.InvocationConfiguration.Output;
+                        if (parsed.GetValue(json))
+                        {
+                            await output.WriteLineAsync(OutputJson.Of(version));
+                        }
+                        else
+                        {
+                            await output.WriteLineAsync(
+                                string.Create(
+                                    CultureInfo.InvariantCulture,
+                                    $"version {version.Id}{(version.Content.Label is null ? "" : $" ({version.Content.Label})")}  created {version.CreatedAt.UtcDateTime:yyyy-MM-dd HH:mm}Z{(version.ArchivedAt is null ? "" : "  archived")}"
+                                )
+                            );
+                            await output.WriteLineAsync(OutputJson.Of(version.Content));
+                        }
+                        return 0;
+                    }
+                )
+        );
+        return command;
+    }
+
     private static Command Diff(HttpClient? http, Action<Uri>? openBrowser)
     {
         var first = new Argument<Guid>("versionA") { Description = "One version of the agent, as `versions` lists it." };
         var second = new Argument<Guid>("versionB") { Description = "The other version; the older one of the two is the base." };
+        var json = CommandOptions.Json("Print the diff as JSON.");
+        var open = new Option<bool>("--open") { Description = "Open the page showing the diff on the web instead of printing it." };
         var server = CommandOptions.Server();
         var dir = CommandOptions.Dir();
-        var command = new Command("diff", "Open the page showing what changed between two versions of the agent on the web.")
+        var command = new Command("diff", "Print what changed between two versions of the agent (or --open it on the web).")
         {
             first,
             second,
+            json,
+            open,
             server,
             dir,
         };
+        command.Validators.Add(result =>
+        {
+            if (result.GetValue(json) && result.GetValue(open))
+            {
+                result.AddError("--json and --open cannot be used together.");
+            }
+        });
         command.SetAction(
             (parsed, cancellationToken) =>
                 ServerCall.ForAgentAsync(
@@ -187,6 +244,14 @@ internal static class VersionsCommand
                         if (a == b)
                         {
                             throw new ServerClientException("Give two different versions.");
+                        }
+                        if (!parsed.GetValue(open))
+                        {
+                            var diff = await client.VersionDiffAsync(agent, a, b, cancellationToken);
+                            await parsed.InvocationConfiguration.Output.WriteLineAsync(
+                                parsed.GetValue(json) ? OutputJson.Of(diff) : VersionDiffText.Describe(diff)
+                            );
+                            return 0;
                         }
                         await client.VersionAsync(agent, a, cancellationToken);
                         await client.VersionAsync(agent, b, cancellationToken);

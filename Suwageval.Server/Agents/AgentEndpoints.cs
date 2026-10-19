@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using Suwageval.Contracts.Agents;
 using Suwageval.Server.Problems;
 
@@ -15,6 +16,7 @@ internal static class AgentEndpoints
         app.MapDelete("/agents/{agent}", DeleteAgentAsync).Produces(StatusCodes.Status204NoContent);
         app.MapGet("/agents/{agent}/versions", ListVersionsAsync).Produces<IReadOnlyList<AgentVersion>>();
         app.MapPost("/agents/{agent}/versions/archive", ArchiveVersionsAsync).Produces(StatusCodes.Status204NoContent);
+        app.MapGet("/agents/{agent}/versions/diff", DiffVersionsAsync).Produces<VersionDiff>();
         app.MapGet("/agents/{agent}/versions/{versionId:guid}", GetVersionAsync).Produces<AgentVersionDetail>();
         app.MapGet("/agents/{agent}/versions/{versionId:guid}/deletion", PreviewDeletionAsync).Produces<VersionDeletion>();
         app.MapDelete("/agents/{agent}/versions/{versionId:guid}", DeleteVersionAsync).Produces(StatusCodes.Status204NoContent);
@@ -129,28 +131,87 @@ internal static class AgentEndpoints
         {
             return ProblemResults.NotFound("Version", versionId.ToString());
         }
-        var content = ContractContent.Read(version.Content);
         return Results.Ok(
             new AgentVersionDetail(
                 version.Id,
                 version.AgentId,
                 version.ContentHash,
                 version.CreatedAt,
-                content with
-                {
-                    Label = version.Label,
-                    Context = content.Context with
-                    {
-                        Retrieval = content.Context.Retrieval is { } retrieval
-                            ? retrieval with
-                            {
-                                Description = version.DataDescription,
-                            }
-                            : null,
-                    },
-                },
+                ContentOf(version),
                 version.ArchivedAt
             )
+        );
+    }
+
+    /// <summary>The contract of a version with its label and the description of its retrieval data, which are kept beside the content.</summary>
+    private static AgentContract ContentOf(AgentVersionRow version)
+    {
+        var content = ContractContent.Read(version.Content);
+        return content with
+        {
+            Label = version.Label,
+            Context = content.Context with
+            {
+                Retrieval = content.Context.Retrieval is { } retrieval ? retrieval with { Description = version.DataDescription } : null,
+            },
+        };
+    }
+
+    /// <summary>
+    /// What changed between two versions of an agent (<c>from</c> and <c>to</c>, version ids): both contracts as YAML, compared by
+    /// lines, the older version first. 404: no such agent or version; 422: a missing or equal id, or a version of another agent.
+    /// </summary>
+    private static async Task<IResult> DiffVersionsAsync(
+        string agent,
+        [FromQuery] Guid? from,
+        [FromQuery] Guid? to,
+        AgentStore store,
+        CancellationToken cancellationToken
+    )
+    {
+        var row = await store.GetAsync(agent, cancellationToken);
+        if (row is null)
+        {
+            return ProblemResults.NotFound("Agent", agent);
+        }
+        if (from is null || to is null)
+        {
+            return ProblemResults.Invalid([
+                .. new[] { (from, "from"), (to, "to") }
+                    .Where(side => side.Item1 is null)
+                    .Select(side => new FieldError(side.Item2, "Name the version to compare.")),
+            ]);
+        }
+        if (from == to)
+        {
+            return ProblemResults.Invalid("to", "A version is not compared with itself.");
+        }
+        var first = await store.GetVersionAsync(from.Value, cancellationToken);
+        var second = await store.GetVersionAsync(to.Value, cancellationToken);
+        if (first is null)
+        {
+            return ProblemResults.NotFound("Version", from.Value.ToString());
+        }
+        if (second is null)
+        {
+            return ProblemResults.NotFound("Version", to.Value.ToString());
+        }
+        if (first.AgentId != row.Id || second.AgentId != row.Id)
+        {
+            return ProblemResults.Invalid(first.AgentId != row.Id ? "from" : "to", $"The version is not one of agent '{agent}'.");
+        }
+        // The older one is the base; versions made at the same time stay in the order asked for.
+        var (older, newer) = second.CreatedAt < first.CreatedAt ? (second, first) : (first, second);
+        var rows = LineDiff.Rows(ContractYaml.Of(ContentOf(older)), ContractYaml.Of(ContentOf(newer)));
+        return Results.Ok(
+            new VersionDiff
+            {
+                From = ToVersion(older),
+                To = ToVersion(newer),
+                Added = rows.Count(line => line.Kind == DiffKind.Added),
+                Removed = rows.Count(line => line.Kind == DiffKind.Removed),
+                Blocks = LineDiff.Blocks(rows),
+            }
         );
     }
 

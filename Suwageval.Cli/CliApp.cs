@@ -1,6 +1,7 @@
 using System.CommandLine;
 using Suwageval.Cli.AgentDelete;
 using Suwageval.Cli.AgentErrors;
+using Suwageval.Cli.Agents;
 using Suwageval.Cli.Cancel;
 using Suwageval.Cli.Compare;
 using Suwageval.Cli.Files;
@@ -11,7 +12,9 @@ using Suwageval.Cli.Rerun;
 using Suwageval.Cli.Results;
 using Suwageval.Cli.Run;
 using Suwageval.Cli.Runs;
+using Suwageval.Cli.Scenarios;
 using Suwageval.Cli.Server;
+using Suwageval.Cli.Trend;
 using Suwageval.Cli.Unstable;
 using Suwageval.Cli.Validate;
 using Suwageval.Cli.Versions;
@@ -51,6 +54,11 @@ internal static class CliApp
             ResultsCommand.Create(http, openBrowser),
             CompareCommand.Create(http, openBrowser),
             RunsCommand.Create(http),
+            AgentsCommand.Create(http),
+            AgentCommand.Create(http),
+            ScenariosCommand.Create(http),
+            ScenarioCommand.Create(http),
+            TrendCommand.Create(http),
             UnstableCommand.Create(http),
             AgentErrorsCommand.Create(http),
             VersionsCommand.Create(terminal, http, openBrowser),

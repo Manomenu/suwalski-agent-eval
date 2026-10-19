@@ -8,58 +8,43 @@ import { UnstableCheckIcon } from "../checks/UnstableCheckIcon";
 import { durationSummary, formatTime, percent, runHref, shortId } from "../runs/results";
 import { unstableInRuns, unstableRowTooltip } from "../runs/stability";
 import { useUnstableChecks } from "../runs/useUnstableChecks";
-import type { RunResults } from "../runs/api";
-import type { Comparison } from "./api";
-import {
-    alignRows,
-    cellText,
-    cellTone,
-    checkOfRow,
-    checksPassedText,
-    delta,
-    judgeChanged,
-    deltaText,
-    runJudgeModel,
-    tagRows,
-    TIME_DELTA_HELP,
-    timeDelta,
-    timeDeltaText,
-    trend,
-    trendColor,
-    trendMarker,
-    visibleRows,
-    type CheckCell,
-} from "./compare";
+import type { AgentVersion } from "../agents/api";
+import type { ComparedCell, ComparedRun, RunComparison } from "./api";
+import { cellText, cellTone, checksPassedText, deltaText, TIME_DELTA_HELP, timeDeltaText, trendColor, trendMarker } from "./compare";
 import { COLUMN_MIN_WIDTH, LABEL_COLUMN_WIDTH, tableMinWidth } from "./layout";
 
 const TIME_HELP_WIDTH = 280;
 
-/** The median and p95 change of a run's turn time against the baseline's; none when either run made no call. */
-function timeChanges(results: RunResults, baseline: RunResults | undefined) {
-    const median = timeDelta(results.medianMs ?? null, baseline?.medianMs ?? null);
-    const p95 = timeDelta(results.p95Ms ?? null, baseline?.p95Ms ?? null);
-    return [...(median === null ? [] : [{ label: "median", change: median }]), ...(p95 === null ? [] : [{ label: "p95", change: p95 }])];
+/** The median and p95 change of a run's turn time against the baseline's, as the server computed them; none for the baseline. */
+function timeChanges({ medianChange, p95Change }: ComparedRun) {
+    return [
+        ...(medianChange == null ? [] : [{ label: "median", change: medianChange }]),
+        ...(p95Change == null ? [] : [{ label: "p95", change: p95Change }]),
+    ];
 }
 
-/** One table, so the columns line up: a header per run, the pass rate per tag, then the checks. */
-export function CompareTable({ comparison, firstBaseline }: { comparison: Comparison; firstBaseline: string }) {
-    const { runs, versions, tags } = comparison;
-    const [baselineId, setBaselineId] = useState(firstBaseline);
+/** One table, so the columns line up: a header per run, the pass rate per tag, then the checks. The first run is the baseline. */
+export function CompareTable({
+    comparison,
+    versions,
+    onBaseline,
+}: {
+    comparison: RunComparison;
+    versions: readonly AgentVersion[];
+    /** The run to ask the comparison for again with that run first. */
+    onBaseline: (runId: string) => void;
+}) {
+    const { runs, tags } = comparison;
     const [onlyDifferences, setOnlyDifferences] = useState(true);
     const [hideUncomparable, setHideUncomparable] = useState(false);
 
     // The checks that are unstable in the version of any compared run.
-    const versionIds = [...new Set(runs.map((results) => results.run.agentVersionId))].sort();
-    // Each run's judge, named in its header; compared with the baseline's.
-    const judges = runs.map((results) => runJudgeModel(results));
+    const runVersions = runs.map((compared) => compared.run.agentVersionId);
+    const versionIds = [...new Set(runVersions)].sort();
     const unstable = useUnstableChecks(runs[0]?.run.agent ?? null, versionIds, true);
 
     const columns = runs.length;
-    const baseline = Math.max(
-        0,
-        runs.findIndex((results) => results.run.id === baselineId),
-    );
-    const rows = visibleRows(alignRows(runs), { onlyDifferences, hideUncomparable });
+    const rows = comparison.checks.filter((row) => (!onlyDifferences || row.differs) && (!hideUncomparable || row.comparable));
 
     return (
         <Stack gap="md">
@@ -69,16 +54,16 @@ export function CompareTable({ comparison, firstBaseline }: { comparison: Compar
                         <Table.Thead>
                             <Table.Tr>
                                 <Table.Th w={LABEL_COLUMN_WIDTH} />
-                                {runs.map((results, column) => {
-                                    const { run } = results;
+                                {runs.map((compared, column) => {
+                                    const { run } = compared;
                                     const version = versions.find((candidate) => candidate.id === run.agentVersionId);
-                                    const isBaseline = column === baseline;
+                                    const isBaseline = column === 0;
                                     return (
                                         <Table.Th
                                             key={run.id}
                                             miw={COLUMN_MIN_WIDTH}
                                             onClick={() => {
-                                                setBaselineId(run.id);
+                                                onBaseline(run.id);
                                             }}
                                             style={{ cursor: isBaseline ? "default" : "pointer", verticalAlign: "top" }}
                                         >
@@ -102,17 +87,13 @@ export function CompareTable({ comparison, firstBaseline }: { comparison: Compar
                                                     {checksPassedText(run)}
                                                 </Text>
                                                 <Text size="xs" fw="normal">
-                                                    {durationSummary(results) ?? "Turn time: —"}
+                                                    {durationSummary(compared) ?? "Turn time: —"}
                                                 </Text>
-                                                <RunJudge
-                                                    model={runJudgeModel(results)}
-                                                    baselineModel={judges[baseline] ?? null}
-                                                    isBaseline={isBaseline}
-                                                />
+                                                <RunJudge compared={compared} baselineModel={runs[0]?.judgeModel ?? null} />
                                                 {!isBaseline && (
                                                     <Tooltip label={TIME_DELTA_HELP} multiline w={TIME_HELP_WIDTH}>
                                                         <Group gap="xs" wrap="nowrap" w="fit-content" style={{ cursor: "help" }}>
-                                                            {timeChanges(results, runs[baseline]).map(({ label, change }) => (
+                                                            {timeChanges(compared).map(({ label, change }) => (
                                                                 <Text key={label} size="xs" fw="normal" c={trendColor(change.trend)}>
                                                                     {label} {timeDeltaText(change)}
                                                                 </Text>
@@ -146,24 +127,21 @@ export function CompareTable({ comparison, firstBaseline }: { comparison: Compar
                                     Pass rate per tag
                                 </Table.Th>
                             </Table.Tr>
-                            {tagRows(runs, tags).map((row) => (
+                            {tags.map((row) => (
                                 <Table.Tr key={row.tag ?? "\u0000all"}>
                                     <Table.Td fw={500}>{row.tag ?? "All"}</Table.Td>
-                                    {row.rates.map((rate, column) => {
-                                        const change = column === baseline ? null : delta(rate, row.rates[baseline] ?? null);
-                                        return (
-                                            <Table.Td key={runs[column]?.run.id}>
-                                                <Group gap="xs" wrap="nowrap">
-                                                    <Text>{rate === null ? "—" : percent(rate)}</Text>
-                                                    {change !== null && (
-                                                        <Text size="sm" c={trendColor(change.trend)}>
-                                                            {deltaText(change)}
-                                                        </Text>
-                                                    )}
-                                                </Group>
-                                            </Table.Td>
-                                        );
-                                    })}
+                                    {row.rates.map(({ passRate, change }, column) => (
+                                        <Table.Td key={runs[column]?.run.id}>
+                                            <Group gap="xs" wrap="nowrap">
+                                                <Text>{passRate == null ? "—" : percent(passRate)}</Text>
+                                                {change != null && (
+                                                    <Text size="sm" c={trendColor(change.trend)}>
+                                                        {deltaText(change)}
+                                                    </Text>
+                                                )}
+                                            </Group>
+                                        </Table.Td>
+                                    ))}
                                 </Table.Tr>
                             ))}
                         </Table.Tbody>
@@ -192,8 +170,9 @@ export function CompareTable({ comparison, firstBaseline }: { comparison: Compar
                                 </Table.Th>
                             </Table.Tr>
                             {rows.map((row) => {
-                                const check = checkOfRow(runs, row, baseline);
-                                const unstableIn = unstableInRuns(unstable, runs, row.scenarioKey, row.checkKey);
+                                // The definition and its revisions are the baseline's, or the first run's that has the check.
+                                const shown = row.cells.find(Boolean);
+                                const unstableIn = unstableInRuns(unstable, runVersions, row.cells, row.scenarioKey, row.checkKey);
                                 return (
                                     <Table.Tr key={JSON.stringify([row.scenarioKey, row.checkKey])}>
                                         <Table.Td>
@@ -204,20 +183,20 @@ export function CompareTable({ comparison, firstBaseline }: { comparison: Compar
                                                 <Text>{row.checkKey}</Text>
                                                 {/* The marks and the definition sit at the right edge of the cell, apart from the check's key. */}
                                                 <Group gap={4} wrap="nowrap">
-                                                    {check?.judgedByModel === true && <ModelJudgedIcon />}
+                                                    {row.judgedByModel && <ModelJudgedIcon />}
                                                     {unstableIn.length > 0 && <UnstableCheckIcon label={unstableRowTooltip(unstableIn)} />}
-                                                    {check !== null && (
+                                                    {shown != null && (
                                                         <CheckDefinitionButton
-                                                            definition={check.definition}
-                                                            revision={check.revision}
-                                                            latestRevision={check.latestRevision}
+                                                            definition={row.definition}
+                                                            revision={shown.revision}
+                                                            latestRevision={shown.latestRevision}
                                                         />
                                                     )}
                                                 </Group>
                                             </Group>
                                         </Table.Td>
                                         {row.cells.map((cell, column) => (
-                                            <CheckCellView key={runs[column]?.run.id} cell={cell} baseline={row.cells[baseline] ?? null} />
+                                            <CheckCellView key={runs[column]?.run.id} cell={cell} />
                                         ))}
                                     </Table.Tr>
                                 );
@@ -235,8 +214,8 @@ export function CompareTable({ comparison, firstBaseline }: { comparison: Compar
     );
 }
 
-function CheckCellView({ cell, baseline }: { cell: CheckCell | null; baseline: CheckCell | null }) {
-    const change = trend(cell, baseline);
+function CheckCellView({ cell }: { cell: ComparedCell | null }) {
+    const change = cell?.trend;
     const { color, emphasised } = cellTone(cell, change);
     const text = cellText(cell);
     return (
@@ -255,8 +234,9 @@ function CheckCellView({ cell, baseline }: { cell: CheckCell | null; baseline: C
 }
 
 /** The run's judge, once per run: the robot with the model's name, and a warning when it is not the baseline's judge. */
-function RunJudge({ model, baselineModel, isBaseline }: { model: string | null; baselineModel: string | null; isBaseline: boolean }) {
-    if (model === null) {
+function RunJudge({ compared, baselineModel }: { compared: ComparedRun; baselineModel: string | null }) {
+    const model = compared.judgeModel;
+    if (model == null) {
         return null;
     }
     return (
@@ -265,7 +245,7 @@ function RunJudge({ model, baselineModel, isBaseline }: { model: string | null; 
             <Text size="xs" fw="normal">
                 judge {model}
             </Text>
-            {!isBaseline && judgeChanged(model, baselineModel) && (
+            {compared.judgeChanged && (
                 <Tooltip
                     label={`The baseline was judged by ${baselineModel ?? ""}: a different verdict may come from the judge, not the agent`}
                     multiline

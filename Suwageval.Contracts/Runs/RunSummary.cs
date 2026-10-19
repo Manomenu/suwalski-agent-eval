@@ -64,4 +64,7 @@ public sealed record RunSummary
 
     /// <summary>The branch whose history the run is compared with; none means every run of the agent (a run without git).</summary>
     public string? ComparedWith { get; init; }
+
+    /// <summary>The distinct models that gave the run's verdicts, sorted by name; empty for a run with no model-judged check (or one made before the name was recorded).</summary>
+    public IReadOnlyList<string> JudgeModels { get; init; } = [];
 }

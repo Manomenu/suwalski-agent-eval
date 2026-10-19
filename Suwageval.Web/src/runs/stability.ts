@@ -46,23 +46,22 @@ export function unstableTooltip(item: UnstableCheck): string {
 }
 
 /**
- * The unstable checks of a row of the comparison, one per compared version it is unstable in. `runs` are the compared runs with the
- * results they show: each run's own check revision decides, since an edited check is another check.
+ * The unstable checks of a row of the comparison, one per compared version it is unstable in. `versionIds` are the compared runs'
+ * versions and `cells` the row's cell per run (null: the run has no such check): each run's own check revision decides, since an
+ * edited check is another check.
  */
 export function unstableInRuns(
     list: readonly UnstableCheck[],
-    runs: readonly {
-        run: { agentVersionId: string };
-        scenarios: readonly { key: string; checks: readonly { key: string; revision: number }[] }[];
-    }[],
+    versionIds: readonly string[],
+    cells: readonly ({ revision: number } | null)[],
     scenarioKey: string,
     checkKey: string,
 ): UnstableCheck[] {
     const found = new Map<string, UnstableCheck>();
-    for (const results of runs) {
-        const check = results.scenarios.find((scenario) => scenario.key === scenarioKey)?.checks.find((c) => c.key === checkKey);
-        if (check === undefined) continue;
-        const item = findUnstable(list, results.run.agentVersionId, scenarioKey, checkKey, check.revision);
+    for (const [column, versionId] of versionIds.entries()) {
+        const cell = cells[column];
+        if (cell == null) continue;
+        const item = findUnstable(list, versionId, scenarioKey, checkKey, cell.revision);
         if (item !== undefined) found.set(item.agentVersionId, item);
     }
     return [...found.values()];

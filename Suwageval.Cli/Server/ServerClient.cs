@@ -93,28 +93,108 @@ internal sealed class ServerClient(HttpClient http)
     public Task<RunSummary> GetAsync(Guid runId, CancellationToken cancellationToken) =>
         SendAsync<RunSummary>(() => http.GetAsync(new Uri($"runs/{runId}", UriKind.Relative), cancellationToken), cancellationToken);
 
-    /// <summary>The agent's newest runs, newest first, at most <paramref name="limit"/> of them (asked for in pages the server accepts).</summary>
-    public async Task<IReadOnlyList<RunSummary>> RunsAsync(string agent, int limit, CancellationToken cancellationToken)
+    /// <summary>
+    /// The agent's newest runs, newest first, at most <paramref name="limit"/> of them (asked for in pages the server accepts); only those of
+    /// <paramref name="versions"/> when any are given, and, with <paramref name="referenceOnly"/>, only reference runs (the server has no
+    /// filter for those, so older pages are read until enough are found).
+    /// </summary>
+    public async Task<IReadOnlyList<RunSummary>> RunsAsync(
+        string agent,
+        int limit,
+        CancellationToken cancellationToken,
+        IReadOnlyList<Guid>? versions = null,
+        bool referenceOnly = false
+    )
     {
         var runs = new List<RunSummary>();
         Guid? before = null;
         while (runs.Count < limit)
         {
-            var url = $"runs?agent={Uri.EscapeDataString(agent)}&limit={Math.Min(limit - runs.Count, MaxPageSize)}";
+            var size = referenceOnly ? MaxPageSize : Math.Min(limit - runs.Count, MaxPageSize);
+            var url = $"runs?agent={Uri.EscapeDataString(agent)}&limit={size}";
+            foreach (var version in versions ?? [])
+            {
+                url += $"&version={version}";
+            }
             if (before is { } cursor)
             {
                 url += $"&before={cursor}";
             }
             var page = await SendAsync<RunList>(() => http.GetAsync(new Uri(url, UriKind.Relative), cancellationToken), cancellationToken);
-            runs.AddRange(page.Runs);
+            runs.AddRange(referenceOnly ? page.Runs.Where(run => run.Reference) : page.Runs);
             if (page.Next is not { } next)
             {
                 break;
             }
             before = next;
         }
-        return runs;
+        return runs.Count > limit ? runs[..limit] : runs;
     }
+
+    /// <summary>One agent with what is stored for it; the server answers 404 for an agent it does not have.</summary>
+    public Task<AgentDetail> AgentAsync(string agent, CancellationToken cancellationToken) =>
+        SendAsync<AgentDetail>(
+            () => http.GetAsync(new Uri($"agents/{Uri.EscapeDataString(agent)}", UriKind.Relative), cancellationToken),
+            cancellationToken
+        );
+
+    public Task<IReadOnlyList<Agent>> AgentsAsync(CancellationToken cancellationToken) =>
+        SendAsync<IReadOnlyList<Agent>>(() => http.GetAsync(new Uri("agents", UriKind.Relative), cancellationToken), cancellationToken);
+
+    /// <summary>The agent's scenarios (the newest revision of each), only those with <paramref name="tag"/> when one is given.</summary>
+    public Task<IReadOnlyList<ScenarioSummary>> ScenariosAsync(string agent, string? tag, CancellationToken cancellationToken) =>
+        SendAsync<IReadOnlyList<ScenarioSummary>>(
+            () =>
+                http.GetAsync(
+                    new Uri(
+                        $"agents/{Uri.EscapeDataString(agent)}/scenarios{(tag is null ? "" : $"?tag={Uri.EscapeDataString(tag)}")}",
+                        UriKind.Relative
+                    ),
+                    cancellationToken
+                ),
+            cancellationToken
+        );
+
+    public Task<ScenarioDetail> ScenarioAsync(string agent, string key, CancellationToken cancellationToken) =>
+        SendAsync<ScenarioDetail>(
+            () =>
+                http.GetAsync(
+                    new Uri($"agents/{Uri.EscapeDataString(agent)}/scenarios/{Uri.EscapeDataString(key)}", UriKind.Relative),
+                    cancellationToken
+                ),
+            cancellationToken
+        );
+
+    public Task<IReadOnlyList<ScenarioRevision>> ScenarioRevisionsAsync(string agent, string key, CancellationToken cancellationToken) =>
+        SendAsync<IReadOnlyList<ScenarioRevision>>(
+            () =>
+                http.GetAsync(
+                    new Uri($"agents/{Uri.EscapeDataString(agent)}/scenarios/{Uri.EscapeDataString(key)}/revisions", UriKind.Relative),
+                    cancellationToken
+                ),
+            cancellationToken
+        );
+
+    /// <summary>The agent's checks (the newest revision of each), only those of scenario <paramref name="scenario"/> when one is given.</summary>
+    public Task<IReadOnlyList<CheckDetail>> ChecksAsync(string agent, string? scenario, CancellationToken cancellationToken) =>
+        SendAsync<IReadOnlyList<CheckDetail>>(
+            () =>
+                http.GetAsync(
+                    new Uri(
+                        $"agents/{Uri.EscapeDataString(agent)}/checks{(scenario is null ? "" : $"?scenario={Uri.EscapeDataString(scenario)}")}",
+                        UriKind.Relative
+                    ),
+                    cancellationToken
+                ),
+            cancellationToken
+        );
+
+    /// <summary>The points of the agent's trend: one per finished run, with its pass rate, turn times and rate per tag.</summary>
+    public Task<IReadOnlyList<RunPassRates>> PassRatesAsync(string agent, CancellationToken cancellationToken) =>
+        SendAsync<IReadOnlyList<RunPassRates>>(
+            () => http.GetAsync(new Uri($"agents/{Uri.EscapeDataString(agent)}/pass-rates", UriKind.Relative), cancellationToken),
+            cancellationToken
+        );
 
     /// <summary>
     /// The agent's open unstable checks, most often failing first: unstable in the newest version that ran them at least twice, among
@@ -172,6 +252,28 @@ internal sealed class ServerClient(HttpClient http)
             await Task.Delay(PollInterval, cancellationToken);
         }
     }
+
+    /// <summary>Two to five runs of one agent side by side (the first is the baseline).</summary>
+    public Task<RunComparison> CompareAsync(IEnumerable<Guid> runIds, CancellationToken cancellationToken) =>
+        SendAsync<RunComparison>(
+            () =>
+                http.GetAsync(
+                    new Uri($"runs/compare?{string.Join('&', runIds.Select(id => $"runs={id}"))}", UriKind.Relative),
+                    cancellationToken
+                ),
+            cancellationToken
+        );
+
+    /// <summary>What changed between two versions of the agent, line by line.</summary>
+    public Task<VersionDiff> VersionDiffAsync(string agent, Guid from, Guid to, CancellationToken cancellationToken) =>
+        SendAsync<VersionDiff>(
+            () =>
+                http.GetAsync(
+                    new Uri($"agents/{Uri.EscapeDataString(agent)}/versions/diff?from={from}&to={to}", UriKind.Relative),
+                    cancellationToken
+                ),
+            cancellationToken
+        );
 
     public Task<IReadOnlyList<AgentVersion>> VersionsAsync(string agent, CancellationToken cancellationToken) =>
         SendAsync<IReadOnlyList<AgentVersion>>(

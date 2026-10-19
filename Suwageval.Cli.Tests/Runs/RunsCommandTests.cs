@@ -29,9 +29,24 @@ public sealed class RunsCommandTests
 
     private static readonly RunSummary[] Newest =
     [
-        Run("aaaaaaaa-0000-0000-0000-000000000003", "smoke"),
-        Run("aaaaaaaa-0000-0000-0000-000000000002", null),
-        Run("aaaaaaaa-0000-0000-0000-000000000001", null),
+        Run("aaaaaaaa-0000-0000-0000-000000000003", "smoke") with
+        {
+            Reference = true,
+            Origin = new RunOrigin
+            {
+                Branch = "master",
+                Clean = true,
+                Pushed = true,
+            },
+        },
+        Run("aaaaaaaa-0000-0000-0000-000000000002", null) with
+        {
+            JudgeModels = ["judge-a", "judge-b"],
+        },
+        Run("aaaaaaaa-0000-0000-0000-000000000001", null) with
+        {
+            Reference = true,
+        },
     ];
 
     private static (int Exit, string Output, string Error, List<string> Paths) Runs(params string[] args)
@@ -78,6 +93,30 @@ public sealed class RunsCommandTests
         Assert.Equal(3, lines.Length);
         Assert.StartsWith("aaaaaaaa-0000-0000-0000-000000000003  Done  smoke", lines[0], StringComparison.Ordinal);
         Assert.Contains("3/4 checks passed", lines[0], StringComparison.Ordinal);
+        Assert.EndsWith("branch master  reference", lines[0].TrimEnd(), StringComparison.Ordinal);
+        Assert.EndsWith("branch -  judge judge-a, judge-b", lines[1].TrimEnd(), StringComparison.Ordinal);
+        Assert.DoesNotContain("judge", lines[0], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Version_is_passed_on_to_the_server_and_can_be_repeated()
+    {
+        var first = "bbbbbbbb-0000-0000-0000-000000000001";
+        var second = "bbbbbbbb-0000-0000-0000-000000000002";
+        var (exit, _, _, paths) = Runs("--version", first, "--version", second);
+
+        Assert.Equal(0, exit);
+        Assert.Equal([$"/runs?agent=example-agent&limit=10&version={first}&version={second}"], paths);
+    }
+
+    [Fact]
+    public void Reference_lists_only_reference_runs()
+    {
+        var (_, output, _, _) = Runs("--reference");
+
+        var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        Assert.Equal(2, lines.Length);
+        Assert.All(lines, line => Assert.EndsWith("reference", line.TrimEnd(), StringComparison.Ordinal));
     }
 
     [Fact]

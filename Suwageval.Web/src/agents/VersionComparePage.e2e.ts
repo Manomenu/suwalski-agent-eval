@@ -1,4 +1,4 @@
-// Comparing two versions: tick two on the agent page, open the comparison, read the summary and the line diff.
+// Comparing two versions: tick two on the agent page, open the comparison, read the line diff.
 // A version only comes from a run, and a run reads the contract the agent serves, so the test is that agent: a tiny HTTP server.
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
@@ -39,7 +39,7 @@ async function run(request: APIRequestContext, agent: string) {
     expect((await request.post("/api/runs", { data: { agent } })).ok()).toBe(true);
 }
 
-test("two ticked versions open a comparison with a summary and a line diff", async ({ page, request }) => {
+test("two ticked versions open a comparison with a line diff", async ({ page, request }) => {
     const served: Served = { label: "e2e-cmp-old", model: "model-a", config: "Be helpful.\nBe brief.\nAnswer in English.\n" };
     const agentServer = await serveContract(served);
     try {
@@ -65,10 +65,6 @@ test("two ticked versions open a comparison with a summary and a line diff", asy
         await compare.click();
 
         await expect(page.getByRole("heading", { name: "Compare versions", exact: true })).toBeVisible();
-        await expect(page.getByText('Label "e2e-cmp-old" → "e2e-cmp-new"', { exact: true })).toBeVisible();
-        await expect(page.getByText("Agent main: model model-a → model-b", { exact: true })).toBeVisible();
-        await expect(page.getByText("Agent main: config changed (+1 −1 lines)", { exact: true })).toBeVisible();
-
         await expect(page.locator(".line-diff-row-removed").getByText("Be brief.", { exact: true })).toBeVisible();
         await expect(page.locator(".line-diff-row-added").getByText("Be kind.", { exact: true })).toBeVisible();
 
@@ -85,6 +81,7 @@ test("a version the agent does not have is said to be missing", async ({ page, r
     const name = `e2e-versions-missing-${Date.now()}`;
     expect((await request.post("/api/agents", { data: { name, endpointUrl: "http://localhost:1" } })).ok()).toBe(true);
     const missing = "11111111-2222-4333-8444-555555555555";
-    await page.goto(`/agents/${name}/versions/compare?a=${missing}&b=${missing}`);
-    await expect(page.getByText(`Agent ${name} has no version ${missing} or ${missing}.`, { exact: true })).toBeVisible();
+    const other = "11111111-2222-4333-8444-666666666666";
+    await page.goto(`/agents/${name}/versions/compare?a=${missing}&b=${other}`);
+    await expect(page.getByText(`Agent ${name} has no version ${missing} or ${other}.`, { exact: true })).toBeVisible();
 });
