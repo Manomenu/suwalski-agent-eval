@@ -1,0 +1,15 @@
+# Suwageval.Agent
+
+What a .NET agent under test needs to be evaluated by [Suwageval](https://github.com/Manomenu/suwalski-agent-eval):
+
+```csharp
+builder.Services.AddSingleton<IAgentContractSource, MyContractSource>();
+builder.Services.AddSingleton<ITurnHandler, MyTurnHandler>();
+app.MapSuwagevalAgent();   // GET /suwageval/contract, POST /suwageval/turn
+```
+
+- the contract types (`AgentContract`, `TurnRequest`, `TurnResponse`, the `ConversationItem`s) and `ContractJson.Options`,
+  the JSON options the server reads them with;
+- `AgentContractRules.Problems(contract)`: what the server would reject in your contract, for a unit test.
+
+The HTTP contract stays the source of truth; this package saves a .NET agent from re-declaring it.

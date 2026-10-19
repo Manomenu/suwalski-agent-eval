@@ -166,8 +166,14 @@
         "resolved": "10.0.12",
         "contentHash": "17brFrnQHV/XMMazXNqFq4GkvzWy8yzDPo5Gb8TT8zJtMFbUqDycOCyPCp9F+eMc4L75kcCKRZqaeBHMwLCL9Q=="
       },
-      "suwageval.contracts": {
+      "suwageval.agent": {
         "type": "Project"
+      },
+      "suwageval.contracts": {
+        "type": "Project",
+        "dependencies": {
+          "Suwageval.Agent": "[1.0.0, )"
+        }
       }
     }
   }

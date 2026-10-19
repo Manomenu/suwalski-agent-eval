@@ -602,6 +602,9 @@
           "xunit.v3.runner.common": "[4.0.2]"
         }
       },
+      "suwageval.agent": {
+        "type": "Project"
+      },
       "suwageval.cli": {
         "type": "Project",
         "dependencies": {
@@ -611,7 +614,10 @@
         }
       },
       "suwageval.contracts": {
-        "type": "Project"
+        "type": "Project",
+        "dependencies": {
+          "Suwageval.Agent": "[1.0.0, )"
+        }
       },
       "suwageval.server": {
         "type": "Project",

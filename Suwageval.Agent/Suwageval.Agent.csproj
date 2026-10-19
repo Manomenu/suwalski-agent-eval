@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- Agents under test run on net8 and net9, the repository default is net10. -->
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <TargetFramework />
+    <!-- The contract types keep the namespaces they had in Suwageval.Contracts, so the server and the CLI did not change. -->
+    <RootNamespace>Suwageval.Contracts</RootNamespace>
+    <PackageId>Suwageval.Agent</PackageId>
+    <Description>Everything a .NET agent under test needs for Suwageval: the contract types, their JSON options, the contract rules and the two endpoints (GET /suwageval/contract, POST /suwageval/turn).</Description>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <None Include="README.md" Pack="true" PackagePath="/" />
+    <None Include="../LICENSE" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <!-- ContractJson's strict options (RespectNullableAnnotations and others) arrived in System.Text.Json 9. -->
+    <PackageReference Include="System.Text.Json" />
+  </ItemGroup>
+</Project>

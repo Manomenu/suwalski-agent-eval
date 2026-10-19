@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Suwageval.Contracts.Agents;
 using Suwageval.Contracts.Runs;
 using Suwageval.Server.Agents;
 using Suwageval.Server.Checks;
@@ -257,7 +258,7 @@ internal static class RunEndpoints
         {
             return ProblemResults.BadGateway("The agent's contract could not be read", served.Error ?? "The agent served nothing.");
         }
-        var contractProblems = ContractContent.Problems(contract);
+        var contractProblems = AgentContractRules.Problems(contract);
         if (contractProblems.Count > 0)
         {
             return ProblemResults.BadGateway(
