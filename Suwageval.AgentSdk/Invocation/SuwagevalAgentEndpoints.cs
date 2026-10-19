@@ -2,9 +2,9 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
-using Suwageval.Contracts.Conversations;
+using Suwageval.AgentSdk.Conversations;
 
-namespace Suwageval.Contracts.Invocation;
+namespace Suwageval.AgentSdk.Invocation;
 
 public static class SuwagevalAgentEndpoints
 {

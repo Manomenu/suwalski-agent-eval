@@ -1,6 +1,6 @@
 using System.Net;
+using Suwageval.AgentSdk.Conversations;
 using Suwageval.Contracts;
-using Suwageval.Contracts.Conversations;
 using Suwageval.Contracts.Scenarios;
 using Suwageval.Server.Tests.Api;
 

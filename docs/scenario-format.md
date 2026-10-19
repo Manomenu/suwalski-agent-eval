@@ -179,9 +179,9 @@ version; the answer to `POST /runs` and `suwageval run` say which version and wh
   recorded on the sample as `undeclared` (`tool 'x'` when no agent has it, `agent 'y'` for an agent the contract does not have, `tool 'x' of agent 'y'` for an agent without that tool, `event 'z'`) and shown in the results. It
   is a warning, not a failure by itself.
 
-### A .NET agent: the `Suwageval.Agent` package
+### A .NET agent: the `Suwageval.AgentSdk` package
 
-An ASP.NET Core agent need not write the two routes or declare the records. `Suwageval.Agent` (not published yet: `just agent-pack` packs
+An ASP.NET Core agent on .NET 9 or later need not write the two routes or declare the records. `Suwageval.AgentSdk` (not published yet: `just agent-pack` packs
 it into `.artifacts/nupkg`) holds the contract types, the JSON options the server uses (`ContractJson.Options`) and the routes:
 
 ```csharp

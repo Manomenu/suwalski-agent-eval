@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Suwageval.Contracts.Conversations;
+using Suwageval.AgentSdk.Conversations;
 using Suwageval.Server.Checks;
 
 namespace Suwageval.Server.Tests.Checks;

@@ -1,4 +1,4 @@
-using Suwageval.Contracts.Conversations;
+using Suwageval.AgentSdk.Conversations;
 
 namespace Suwageval.Server.Checks;
 

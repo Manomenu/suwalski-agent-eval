@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Suwageval.Contracts;
+using Suwageval.AgentSdk;
 using Suwageval.Contracts.Checks;
 using Suwageval.Server.Checks;
 using Suwageval.Server.Judges;

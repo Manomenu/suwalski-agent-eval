@@ -2,9 +2,9 @@ using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using Suwageval.AgentSdk;
+using Suwageval.AgentSdk.Agents;
 using Suwageval.Cli.Files;
-using Suwageval.Contracts;
-using Suwageval.Contracts.Agents;
 
 namespace Suwageval.Cli.Tests.Validation;
 

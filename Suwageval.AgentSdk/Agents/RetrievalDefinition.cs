@@ -1,4 +1,4 @@
-namespace Suwageval.Contracts.Agents;
+namespace Suwageval.AgentSdk.Agents;
 
 /// <summary>The data an agent's retrieval reads, as the agent describes it.</summary>
 public sealed record RetrievalDefinition

@@ -1,6 +1,6 @@
 using System.Text.Json;
-using Suwageval.Contracts;
-using Suwageval.Contracts.Agents;
+using Suwageval.AgentSdk;
+using Suwageval.AgentSdk.Agents;
 using Suwageval.Server.Database;
 
 namespace Suwageval.Server.Agents;

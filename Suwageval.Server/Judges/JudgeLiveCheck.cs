@@ -1,8 +1,8 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
+using Suwageval.AgentSdk.Conversations;
 using Suwageval.Contracts.Checks;
-using Suwageval.Contracts.Conversations;
 using Suwageval.Server.Checks;
 
 namespace Suwageval.Server.Judges;

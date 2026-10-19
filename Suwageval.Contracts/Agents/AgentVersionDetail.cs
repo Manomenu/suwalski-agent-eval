@@ -1,3 +1,5 @@
+using Suwageval.AgentSdk.Agents;
+
 namespace Suwageval.Contracts.Agents;
 
 /// <summary>A registered version of an agent with its content (<c>Content.Label</c> is the version's label).</summary>

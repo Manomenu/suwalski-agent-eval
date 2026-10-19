@@ -1,8 +1,8 @@
+using Suwageval.AgentSdk.Agents;
+using Suwageval.AgentSdk.Conversations;
 using Suwageval.Cli.Files;
 using Suwageval.Contracts;
-using Suwageval.Contracts.Agents;
 using Suwageval.Contracts.Checks;
-using Suwageval.Contracts.Conversations;
 using Suwageval.Contracts.Samples;
 
 namespace Suwageval.Cli.Validation;

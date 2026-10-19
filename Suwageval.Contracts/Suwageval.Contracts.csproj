@@ -5,6 +5,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../Suwageval.Agent/Suwageval.Agent.csproj" />
+    <ProjectReference Include="../Suwageval.AgentSdk/Suwageval.AgentSdk.csproj" />
   </ItemGroup>
 </Project>

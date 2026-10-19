@@ -1,6 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Suwageval.Contracts.Conversations;
+using Suwageval.AgentSdk.Conversations;
 
 namespace Suwageval.Contracts.Scenarios;
 

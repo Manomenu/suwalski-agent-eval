@@ -2,10 +2,10 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Suwageval.Contracts;
-using Suwageval.Contracts.Agents;
-using Suwageval.Contracts.Conversations;
-using Suwageval.Contracts.Invocation;
+using Suwageval.AgentSdk;
+using Suwageval.AgentSdk.Agents;
+using Suwageval.AgentSdk.Conversations;
+using Suwageval.AgentSdk.Invocation;
 
 namespace Suwageval.Server.Invocation;
 

@@ -1,6 +1,6 @@
 using System.Text.Json.Nodes;
+using Suwageval.AgentSdk.Conversations;
 using Suwageval.Contracts.Checks;
-using Suwageval.Contracts.Conversations;
 using Suwageval.Contracts.Scenarios;
 
 namespace Suwageval.Cli.Files;

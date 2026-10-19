@@ -8,7 +8,7 @@
 !Directory.Build.props
 !Directory.Packages.props
 !.editorconfig
-!Suwageval.Agent/
+!Suwageval.AgentSdk/
 !Suwageval.Contracts/
 !Suwageval.Server/
 !Suwageval.Web/
