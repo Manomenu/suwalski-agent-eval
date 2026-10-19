@@ -60,6 +60,18 @@ public sealed class MigratorTests(TestDatabase database) : IAsyncLifetime
         Assert.Equal(0L, await ScalarAsync("SELECT count(*) FROM pg_tables WHERE tablename IN ('fine', 'broken')"));
     }
 
+    [Fact]
+    public async Task A_migration_leaves_no_temporary_folders_of_grate_behind()
+    {
+        Write("0001_counter.sql", "CREATE TABLE counter (x int);");
+
+        var folders = await Migrator.MigrateAsync(connectionString, directory.FullName);
+
+        Assert.NotEmpty(folders);
+        Assert.All(folders, folder => Assert.False(Directory.Exists(folder), folder));
+        Assert.True(Directory.Exists(directory.FullName));
+    }
+
     private void Write(string name, string sql) => File.WriteAllText(Path.Combine(directory.FullName, "up", name), sql);
 
     private async Task<object?> ScalarAsync(string sql)
