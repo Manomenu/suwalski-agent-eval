@@ -26,13 +26,25 @@ public static class SuwagevalAgentEndpoints
             async (HttpRequest request, ITurnHandler handler, CancellationToken cancellationToken) =>
             {
                 var (turn, problem) = await ReadAsync(request, cancellationToken);
-                return turn is null
-                    ? Results.ValidationProblem(new Dictionary<string, string[]> { ["conversation"] = [problem] })
-                    : Results.Json(await handler.HandleAsync(turn, cancellationToken), ContractJson.Options);
+                if (turn is null)
+                {
+                    return Rejected(problem);
+                }
+                try
+                {
+                    return Results.Json(await handler.HandleAsync(turn, cancellationToken), ContractJson.Options);
+                }
+                catch (TurnRejectedException rejection)
+                {
+                    return Rejected(rejection.Message);
+                }
             }
         );
         return endpoints;
     }
+
+    private static IResult Rejected(string problem) =>
+        Results.ValidationProblem(new Dictionary<string, string[]> { ["conversation"] = [problem] });
 
     private static async Task<(TurnRequest? Turn, string Problem)> ReadAsync(HttpRequest request, CancellationToken cancellationToken)
     {
