@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { AGENT_ERROR_MAX_LENGTH, AGENT_ERRORS_MAX_ROWS, errorRows, errorsOfSamples, shortError } from "./agentErrors";
+import { AGENT_ERROR_MAX_LENGTH, AGENT_ERRORS_MAX_ROWS, agentErrorsPath, errorRows, errorsOfSamples, shortError } from "./agentErrors";
 import type { AgentError } from "./api";
 
 const item = (over: Partial<AgentError> = {}): AgentError => ({
@@ -23,6 +23,13 @@ describe("errorRows", () => {
     it("keeps the first rows in the server's order", () => {
         const list = Array.from({ length: AGENT_ERRORS_MAX_ROWS + 2 }, (_, i) => item({ scenarioKey: `s${i}` }));
         expect(errorRows(list)).toEqual(list.slice(0, AGENT_ERRORS_MAX_ROWS));
+    });
+});
+
+describe("agentErrorsPath", () => {
+    it("asks the default versions without a query and the given ones with repeated parameters", () => {
+        expect(agentErrorsPath("my agent", [])).toBe("/agents/my%20agent/agent-errors");
+        expect(agentErrorsPath("a", ["v1", "v2"])).toBe("/agents/a/agent-errors?version=v1&version=v2");
     });
 });
 

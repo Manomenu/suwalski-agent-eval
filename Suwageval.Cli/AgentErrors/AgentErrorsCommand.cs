@@ -7,7 +7,8 @@ namespace Suwageval.Cli.AgentErrors;
 
 /// <summary>
 /// <c>suwageval agent-errors</c>: the scenarios of the agent named in <c>suwageval/agent.yaml</c> where the agent gave no answer (an HTTP
-/// error, a timeout, an unreadable answer) in some samples of the newest finished runs. One line per scenario and version: scenario,
+/// error, a timeout, an unreadable answer) in some samples of the newest finished runs, as long as the newest version that ran the scenario (among <c>--version</c>, else every
+/// version not archived) is the one with errors. One line per scenario and version: scenario,
 /// errors/samples, the version and the newest error; <c>--json</c> prints the records. "No agent errors." when there are none. Exits 0, or 2
 /// when the agent file or the server is wrong.
 /// </summary>
@@ -17,12 +18,17 @@ internal static class AgentErrorsCommand
     public static Command Create(HttpClient? http = null)
     {
         var json = CommandOptions.Json("Print the agent errors as JSON.");
+        var versions = CommandOptions.Versions();
         var server = CommandOptions.Server();
         var dir = CommandOptions.Dir();
 
-        var command = new Command("agent-errors", "List the scenarios where the agent gave no answer (an HTTP error, a timeout).")
+        var command = new Command(
+            "agent-errors",
+            "List the open agent errors: scenarios where the newest version that ran them got no answer (an HTTP error, a timeout)."
+        )
         {
             json,
+            versions,
             server,
             dir,
         };
@@ -35,7 +41,7 @@ internal static class AgentErrorsCommand
                     parsed.InvocationConfiguration.Error,
                     async (client, agent, _) =>
                     {
-                        var errors = await client.AgentErrorsAsync(agent, cancellationToken);
+                        var errors = await client.AgentErrorsAsync(agent, parsed.GetValue(versions) ?? [], cancellationToken);
                         var output = parsed.InvocationConfiguration.Output;
                         if (parsed.GetValue(json))
                         {

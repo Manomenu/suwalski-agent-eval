@@ -24,7 +24,7 @@ const item = (over: Partial<UnstableCheck> = {}): UnstableCheck => ({
 });
 
 describe("unstableChecksPath", () => {
-    it("asks for all versions without a query and for given ones with repeated parameters", () => {
+    it("asks the default versions without a query and for given ones with repeated parameters", () => {
         expect(unstableChecksPath("my agent", [])).toBe("/agents/my%20agent/unstable-checks");
         expect(unstableChecksPath("a", ["v1", "v2"])).toBe("/agents/a/unstable-checks?version=v1&version=v2");
     });

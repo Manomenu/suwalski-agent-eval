@@ -4,6 +4,7 @@ import { PAGE_SIZE } from "../runs/paging";
 import {
     agentHref,
     allowedVersionIds,
+    consideredVersionIds,
     firstPages,
     hasMorePages,
     canCompare,
@@ -166,6 +167,18 @@ describe("allowedVersionIds", () => {
     it("is empty when no version qualifies", () => {
         expect(allowedVersionIds(versions, true, ["none"], [])).toEqual([]);
         expect(allowedVersionIds([old], false, [], [])).toEqual([]);
+    });
+});
+
+describe("consideredVersionIds", () => {
+    it("always lists the versions the filters show, archived ones too when they are shown", () => {
+        expect(consideredVersionIds([old, current], true, [], [])).toEqual(["v-old", "v-new"]);
+        expect(consideredVersionIds([old, current], false, [], [])).toEqual(["v-new"]);
+        expect(consideredVersionIds([old, current], true, ["large"], [])).toEqual(["v-new"]);
+    });
+
+    it("is empty when the filters show none", () => {
+        expect(consideredVersionIds([old], false, [], [])).toEqual([]);
     });
 });
 

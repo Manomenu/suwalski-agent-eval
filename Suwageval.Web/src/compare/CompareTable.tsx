@@ -52,7 +52,7 @@ export function CompareTable({ comparison, firstBaseline }: { comparison: Compar
     const versionIds = [...new Set(runs.map((results) => results.run.agentVersionId))].sort();
     // Each run's judge, named in its header; compared with the baseline's.
     const judges = runs.map((results) => runJudgeModel(results));
-    const unstable = useUnstableChecks(runs[0]?.run.agent ?? null, versionIds);
+    const unstable = useUnstableChecks(runs[0]?.run.agent ?? null, versionIds, true);
 
     const columns = runs.length;
     const baseline = Math.max(
