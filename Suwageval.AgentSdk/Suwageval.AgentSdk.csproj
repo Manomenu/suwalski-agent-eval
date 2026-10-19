@@ -4,6 +4,8 @@
     <TargetFrameworks>net9.0;net10.0</TargetFrameworks>
     <TargetFramework />
     <RootNamespace>Suwageval.AgentSdk</RootNamespace>
+    <!-- A release passes its version from the tag (-p:Version=); a local pack is plainly not one. -->
+    <Version>0.0.0-local</Version>
     <PackageId>Suwageval.AgentSdk</PackageId>
     <Description>Everything a .NET agent under test needs for Suwageval: the contract types, their JSON options, the contract rules and the two endpoints (GET /suwageval/contract, POST /suwageval/turn).</Description>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
