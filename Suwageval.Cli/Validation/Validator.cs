@@ -4,6 +4,7 @@ using Suwageval.Cli.Files;
 using Suwageval.Contracts;
 using Suwageval.Contracts.Checks;
 using Suwageval.Contracts.Samples;
+using Suwageval.Contracts.Scenarios;
 
 namespace Suwageval.Cli.Validation;
 
@@ -81,9 +82,9 @@ internal static class Validator
         {
             problems.Add(source.Problem("samples", samplesProblem));
         }
-        if (scenario.Continuation.Turns < 1)
+        foreach (var (path, message) in ContinuationRules.Problems(scenario))
         {
-            problems.Add(source.Problem("continuation.turns", "turns is at least 1."));
+            problems.Add(source.Problem(path, message));
         }
         if (scenario.Conversation.Count == 0)
         {
@@ -102,6 +103,10 @@ internal static class Validator
         for (var i = 0; i < loaded.Checks.Count; i++)
         {
             CheckCheck(source, loaded.Checks[i], $"checks[{i}]", contract, checkKeys, problems);
+            if (ContinuationRules.CheckProblem(loaded.Checks[i], scenario.Continuation) is { } turnProblem)
+            {
+                problems.Add(source.Problem($"checks[{i}].where.turn", turnProblem));
+            }
         }
     }
 

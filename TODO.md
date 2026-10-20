@@ -111,29 +111,12 @@ belongs to.
   `validate` command is the check.
 - **Parallel runs, the first level** (`Runs:MaxParallelScenarios`, built) **and the second:** the
   per-model pool (`Models:<name>:MaxConcurrency`, built with the judge: one `LimitedChatClient`
-  per model in `Models/ModelClients.cs`) is what the judge uses today; the user simulator uses
-  the same pool when it arrives. Still open: more than one run at a time (`RunWorker` takes one);
+  per model in `Models/ModelClients.cs`) is what the judge and the user simulator use. Still open: more than one run at a time (`RunWorker` takes one);
   the agent under test calls its own model, possibly the same server, which Suwageval cannot
   count — the per-run limit is what protects it.
 - **Judge: later.** A per-model API key (the TODO "Secrets" checklist, when a model asks for one);
   judging with several models or a panel; caching verdicts of identical (criteria, output) pairs;
   streaming through `LimitedChatClient` (it refuses streaming until a caller needs it).
-- **Multi-turn evaluation with a simulated user** (a design note; not to be built now). More than one agent turn is reserved
-  for a user played by an LLM, who answers each real reply of the agent. The scenario says what that user wants to achieve and
-  how they behave — e.g. tries to hack the system, or is frustrated and wants a refund — through `continuation`: `turns` plus a
-  goal/persona description. Fixed, scripted user messages are deliberately NOT supported: a message written before the agent's
-  real answer is known may not fit that answer, and the scenario then measures noise. A conversation of several steps is split
-  into several scenarios instead, each with the earlier agent answers predefined in its `conversation`. This is a different kind
-  of evaluation than regression scenarios, which do not need it. It calls a model, so it
-  arrives with the outside-service rules of AGENTS.md section 3 (a live test, the daily check from the cluster, degrade rather
-  than break) and with the per-model pool the judge already uses; until then `continuation.turns` above 1 fails the sample without a
-  call.
-  It needs a conversation key in the request. `TurnRequest` carries none today, so an agent that stores its own conversation
-  (a database row per conversation, a state machine) can only rebuild it from the sent log on every call, and loses whatever
-  the log does not carry; the whole conversation is then judged on an agent that forgets part of its state each turn. The
-  request gets a key that stays the same for every turn of one sample (e.g. `conversationKey`): the agent continues the
-  conversation it stored under that key and refuses a log that is not what it holds plus the new user message. The
-  correlation headers are not that key, since they must not change behaviour.
 - **A check on the state a call was made in** (what is left of the multi-agent contract, whose
   rest — agents, `by`, `agent` on a call — is built): the state at any point is the `data` of the
   last `state.changed` event before it, read from the log, not stamped on the call. A check can

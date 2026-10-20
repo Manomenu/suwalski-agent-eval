@@ -90,14 +90,16 @@ internal sealed record SeededAgent(Guid Id, string Name, Guid VersionId, string 
         string[]? tags = null,
         int? samples = 1,
         int turns = 1,
-        JsonElement? fixtures = null
+        JsonElement? fixtures = null,
+        string? simulatedUser = null,
+        IReadOnlyList<ConversationItem>? conversation = null
     ) =>
         new()
         {
             Key = key,
             Tags = tags ?? ["regression"],
-            Conversation = [new UserMessage { Text = "Please refund order A-17." }],
-            Continuation = new Continuation { Turns = turns },
+            Conversation = conversation ?? [new UserMessage { Text = "Please refund order A-17." }],
+            Continuation = new Continuation { Turns = turns, SimulatedUser = simulatedUser },
             Samples = samples,
             Fixtures = fixtures,
         };

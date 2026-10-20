@@ -1,6 +1,7 @@
 using Suwageval.AgentSdk.Agents;
 using Suwageval.AgentSdk.Conversations;
 using Suwageval.Contracts.Checks;
+using Suwageval.Contracts.Scenarios;
 using Suwageval.Server.Runs;
 using static Suwageval.Server.Tests.Checks.Items;
 
@@ -253,5 +254,25 @@ public sealed class RunCompatibilityTests
         Assert.Equal(2, mismatches.Count);
         Assert.Contains("check 'b'", mismatches[0], StringComparison.Ordinal);
         Assert.Contains("check 'c'", mismatches[1], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_check_of_a_simulated_scenario_that_picks_a_turn_by_number_is_a_mismatch()
+    {
+        var simulation = new ScenarioContent
+        {
+            Conversation = [new UserMessage { Text = "hi" }],
+            Continuation = new Continuation { Turns = 3, SimulatedUser = "Anna" },
+        };
+        var check = SeededAgent.RefundAfterLookup("c1", "s") with
+        {
+            Where = new CheckWhere { Turn = new TurnSelector(TurnSelectorKind.Number, 2) },
+        };
+
+        Assert.StartsWith(
+            "check 'c1': where.turn is 'any' or 'last'",
+            Assert.Single(Mismatches([("s", simulation)], [check])),
+            StringComparison.Ordinal
+        );
     }
 }

@@ -26,14 +26,20 @@ internal static class RunVerdict
         return Totals(results);
     }
 
-    /// <summary>The totals line of a finished run: how many checks passed, and how many a judge model could not decide.</summary>
+    /// <summary>
+    /// The totals line of a finished run: how many checks passed, how many a judge model could not decide, and how many simulated
+    /// samples stopped because the simulated user could not be played.
+    /// </summary>
     public static string Totals(RunResults results)
     {
         var checks = results.Scenarios.SelectMany(scenario => scenario.Checks).ToList();
         var failed = checks.Count(check => !check.Passed);
         // A judge check whose model could not be asked or answered unreadably is not the same as one judged failed.
         var notJudged = checks.Count(check => check.Samples.Any(sample => sample.NotJudged));
-        var unjudged = notJudged == 0 ? "" : $" ({notJudged} not judged: the judge model could not give a verdict)";
+        var notSimulated = results.Scenarios.Sum(scenario => scenario.Samples.Count(sample => sample.Status == SampleStatus.NotSimulated));
+        var unjudged =
+            (notJudged == 0 ? "" : $" ({notJudged} not judged: the judge model could not give a verdict)")
+            + (notSimulated == 0 ? "" : $" ({notSimulated} samples not simulated: the simulator model could not play the user)");
         if (results.Regression is not null)
         {
             return $"{checks.Count} checks: {checks.Count - failed} passed, {failed} failed{unjudged}";

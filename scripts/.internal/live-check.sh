@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Runs only the live tests: the ones that call a real outside service (today the judge's model,
+# Runs only the live tests: the ones that call a real outside service (today the model of the judge and the simulated user,
 # AGENTS.md section 3, "An outside service"). The gate leaves them out; run this when the model or
 # the code that reads its answer changes, and after the model's server was updated.
 #

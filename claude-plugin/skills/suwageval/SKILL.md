@@ -115,7 +115,9 @@ the spec above, "The agent contract"), these decisions are yours:
   agent's traces and logs. They must never change what the agent does.
 - **Report `sources`** (document ids) on the assistant messages whose answer is grounded, so `cited`
   can check them.
-- **Every conversation starts from the same test data**: a fresh copy per turn, no state carried over.
+- **Every conversation starts from the same test data**: a fresh copy per turn, no state carried over —
+  except within a simulation: the turns of one `conversationId` (sent only in simulated scenarios) go on
+  from the state the earlier ones left, and the first turn of a new id starts fresh.
 - **Retrieval data version.** With `usesRetrieval: true` the contract needs `context.retrieval` with
   `dataVersion`: new data is a new agent version, so runs on different data are not compared as one.
   Compute it from the id of the index build (every rebuild gets a new one), or from a hash over
@@ -146,6 +148,17 @@ agent answers as predefined log items, and checks only its own step. Those answe
 a real run of the agent**, never invented: take them from `suwageval results <runId> --json` or the
 agent's own log. Never script fixed user messages after an answer you do not know: the next user
 message must fit what the agent really said.
+
+To see how the agent copes with a whole conversation (a frustrated customer, someone trying to talk it
+into something), write a **simulated scenario** instead: `continuation.simulatedUser` describes the user
+in plain words (goal, temperament, situation, what they know, language) and `continuation.turns` (up to
+20) caps the turns; Suwageval plays that user with a model, who may end the conversation earlier. Its
+checks look at the whole conversation, never a turn by number: "happened at some point" (`tool-called`,
+`event`, `text` `contains`) or "never happened" (`tool-not-called`, `event-not-emitted`, `text`
+`notContains`), and a `judge` check for the agent's behaviour over the conversation (the simulated user is
+never judged). Give it several `samples` and a `passThreshold` below 1 for what depends on the course of
+the conversation. A sample whose user could not be played is `NotSimulated` (`Not simulated: …`): not the
+agent's fault, run again. Format: the "Simulation" section of the scenario format.
 
 ## Judge or deterministic check?
 

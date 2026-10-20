@@ -52,7 +52,7 @@ internal static class RegressionReport
             .Scenarios.Select(scenario =>
             {
                 var errored = scenario
-                    .Samples.Where(sample => sample.Status == SampleStatus.Failed)
+                    .Samples.Where(sample => sample.Status is SampleStatus.Failed or SampleStatus.NotSimulated)
                     .Select(sample => sample.Sample)
                     .ToHashSet();
                 var checks = scenario

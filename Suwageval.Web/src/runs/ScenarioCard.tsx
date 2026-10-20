@@ -11,7 +11,8 @@ import { CheckHistory } from "./CheckHistory";
 import { stateLabel } from "./regression";
 import { StateBadge } from "./StateBadge";
 import { findUnstable, unstableTooltip } from "./stability";
-import { checkAnchor, checkSummary, failedEvidenceKeys, formatSeconds, notJudgedCount, samplesToOpen } from "./results";
+import { checkAnchor, checkSummary, failedEvidenceKeys, notJudgedCount, samplesToOpen } from "./results";
+import { isSimulated, sampleTitle } from "./simulation";
 
 /** One scenario: its checks with verdicts, the warnings of its samples, and what the agent produced. */
 export function ScenarioCard({
@@ -48,6 +49,11 @@ export function ScenarioCard({
                         {sample.status === "Failed" && (
                             <Alert color="red" title={`Sample ${sample.sample}: the agent returned nothing`}>
                                 {sample.error}
+                            </Alert>
+                        )}
+                        {sample.status === "NotSimulated" && (
+                            <Alert color="orange" title={`Sample ${sample.sample}: the simulated user could not be played`}>
+                                {sample.error} Not the agent's doing: run it again.
                             </Alert>
                         )}
                         {(sample.undeclared?.length ?? 0) > 0 && (
@@ -114,12 +120,13 @@ export function ScenarioCard({
                 <Accordion multiple variant="contained" value={openSamples} onChange={setOpenSamples}>
                     {scenario.samples.map((sample) => (
                         <Accordion.Item key={sample.sample} value={String(sample.sample)}>
-                            <Accordion.Control>
-                                Agent output, sample {sample.sample}
-                                {sample.durationMs != null && ` · ${formatSeconds(sample.durationMs)}`}
-                            </Accordion.Control>
+                            <Accordion.Control>{sampleTitle(sample)}</Accordion.Control>
                             <Accordion.Panel>
-                                <ConversationView items={sample.output ?? []} highlight={failedEvidenceKeys(scenario, sample.sample)} />
+                                <ConversationView
+                                    items={sample.output ?? []}
+                                    highlight={failedEvidenceKeys(scenario, sample.sample)}
+                                    simulated={isSimulated(sample)}
+                                />
                             </Accordion.Panel>
                         </Accordion.Item>
                     ))}

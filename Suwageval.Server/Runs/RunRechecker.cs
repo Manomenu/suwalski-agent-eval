@@ -96,9 +96,9 @@ internal sealed partial class RunRechecker(
     )
     {
         var results = new List<NewCheckResult>();
-        if (sample.Output is { } output)
+        if (sample.Status == nameof(SampleStatus.Done) && sample.Output is { } output)
         {
-            var trace = new Trace([JsonSerializer.Deserialize<IReadOnlyList<ConversationItem>>(output, Json) ?? []]);
+            var trace = scenario.Content.TraceOf(JsonSerializer.Deserialize<IReadOnlyList<ConversationItem>>(output, Json) ?? []);
             foreach (var (row, input) in SamplePlan.JudgedOn(sample.Sample, scenario.Content, scenario.Checks, agentSamples))
             {
                 var same = sourceVerdicts.FirstOrDefault(verdict => verdict.CheckId == row.Id && verdict.CheckRevision == row.Revision);
@@ -137,7 +137,9 @@ internal sealed partial class RunRechecker(
                 sample.Error,
                 sample.DurationMs,
                 JsonSerializer.Deserialize<IReadOnlyList<string>>(sample.Undeclared, Json) ?? [],
-                results
+                results,
+                sample.TurnDurationsMs,
+                sample.EndedByUser
             ),
             cancellationToken
         );

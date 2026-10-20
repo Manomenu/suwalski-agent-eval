@@ -3,6 +3,7 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Options;
 using Suwageval.Server.Judges;
 using Suwageval.Server.Models;
+using Suwageval.Server.Simulation;
 
 namespace Suwageval.Server.Tests.Judges;
 
@@ -41,6 +42,10 @@ internal sealed class RecordedModel(Func<CancellationToken, Task<string>> answer
 
     public static Judge JudgeFailing(Exception error) => Failing(error).Judge();
 
+    public static UserSimulator SimulatorAnswering(params string[] files) => Sequence(files).Simulator();
+
+    public static UserSimulator SimulatorFailing(Exception error) => Failing(error).Simulator();
+
     /// <summary>Answers the first request with the first file, the second with the second, and so on; the last one repeats.</summary>
     public static RecordedModel Sequence(params string[] files)
     {
@@ -57,6 +62,10 @@ internal sealed class RecordedModel(Func<CancellationToken, Task<string>> answer
     /// <summary>An argument judge over this model, configured the way the server is.</summary>
     public ArgumentJudge ArgumentJudge(int maxConcurrency = 8) =>
         new(Clients(maxConcurrency), Options.Create(new JudgeOptions { Model = "judge" }));
+
+    /// <summary>A user simulator over this model, configured the way the server is: model "judge" under Models, named by Simulation:Model.</summary>
+    public UserSimulator Simulator(double temperature = 0.7) =>
+        new(Clients(), Options.Create(new SimulationOptions { Model = "judge", Temperature = temperature }));
 
     public ModelClients Clients(int maxConcurrency = 8) =>
         new(

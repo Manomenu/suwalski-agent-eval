@@ -38,6 +38,12 @@ judgeModel:
   secret: ""
   maxConcurrency: 8
 
+# The simulated user of simulated scenarios is played by the same model (Simulation:Model is `judge` in
+# appsettings.json), so it shares that pool. temperature: how freely the simulated user writes, 0 to 2;
+# empty = the server's default (0.7).
+simulation:
+  temperature: ""
+
 # The daily check of that model from the cluster's own network (templates/live-check.yaml): the
 # server's image, another command, one judge call with a fixed tiny case. Rendered only with a
 # judgeModel. A failure turns the Job red and, with discordSecret, posts to the alerts channel.

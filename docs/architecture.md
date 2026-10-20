@@ -7,7 +7,7 @@ How the parts fit together; the rules for changing them (layers, import contract
 
 - **Server:** .NET 10, ASP.NET Core minimal APIs, PostgreSQL through Npgsql and Dapper (SQL
   written by hand, numbered migrations), OpenAPI document the web app is typed from; Microsoft Agent Framework for the
-  judge today, the user simulator after the MVP.
+  judge and the user simulator of simulated scenarios.
 - **Web:** React 19, Mantine, Vite, TypeScript strict.
 - **Around them:** PostgreSQL 17, a container per part, compose for the whole stack on a
   laptop, a Helm chart with a post-deploy smoke test for the cluster.

@@ -33,6 +33,7 @@ public sealed class ContractsTests
         "Api",
         "Runs",
         "Judges",
+        "Simulation",
         "Checks | Invocation | Models",
         "Scenarios",
         "Agents",

@@ -28,7 +28,10 @@ last user message is the one the agent answers next.
    `{ $judge: { description: "…", examples: ["…", "…"] } }` — a precise description and 2–3 varied
    examples; it costs a model call per candidate, so use it sparingly, and never in `event-not-emitted`.
    A conversation of several real steps is several scenarios, the earlier agent answers taken from a
-   real run, never invented. `fixtures` only if the contract declares `context.fixturesSchema`.
+   real run, never invented — or, when the point is how the agent handles a whole conversation with a
+   kind of user, one simulated scenario: `continuation.simulatedUser` (that user in plain words: goal,
+   temperament, situation, what they know, language) and `continuation.turns`, with checks over the
+   whole conversation (never `where.turn` by number). `fixtures` only if the contract declares `context.fixturesSchema`.
 3. Write the scenario as one new file in `suwageval/scenarios/`, named after what it checks
    (`refund-happy-path.yaml`), with the checks inside. Use the `user:` / `assistant:`
    shorthands where they fit.
