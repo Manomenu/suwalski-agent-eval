@@ -1,4 +1,5 @@
 using Suwageval.Contracts.Runs;
+using Suwageval.Server.Scenarios;
 
 namespace Suwageval.Server.Runs;
 
@@ -20,11 +21,11 @@ internal static class RunComparer
     /// <summary>...and so does one within this many milliseconds (a fast agent's noise).</summary>
     public const double TimeSameMs = 100;
 
-    /// <summary>The comparison of <paramref name="runs"/>, the first of them the baseline; <paramref name="tagsOf"/>: scenario key to its current tags.</summary>
-    public static RunComparison Compare(IReadOnlyList<RunResults> runs, IReadOnlyDictionary<string, string[]> tagsOf)
+    /// <summary>The comparison of <paramref name="runs"/>, the first of them the baseline; <paramref name="scenarios"/>: the agent's scenarios, for the tags.</summary>
+    public static RunComparison Compare(IReadOnlyList<RunResults> runs, IReadOnlyList<ScenarioLifetime> scenarios)
     {
         ArgumentNullException.ThrowIfNull(runs);
-        ArgumentNullException.ThrowIfNull(tagsOf);
+        ArgumentNullException.ThrowIfNull(scenarios);
         var baseline = runs[0];
         var baselineJudge = JudgeModel(baseline);
         return new RunComparison
@@ -49,7 +50,7 @@ internal static class RunComparer
                     }
                 ),
             ],
-            Tags = TagRows(runs, tagsOf),
+            Tags = TagRows(runs, scenarios),
             Checks = AlignRows(runs),
         };
     }
@@ -168,15 +169,23 @@ internal static class RunComparer
         return checks.Count == 0 ? null : checks.Count(check => check.Passed) / (double)checks.Count;
     }
 
-    /// <summary>The pass rate over every check (no tag), then one row per tag, sorted by name; a scenario the agent no longer has counts in the first row only.</summary>
-    public static IReadOnlyList<ComparedTag> TagRows(IReadOnlyList<RunResults> runs, IReadOnlyDictionary<string, string[]> tagsOf)
+    /// <summary>
+    /// The pass rate over every check (no tag), then one row per tag, sorted by name. A run has a rate for a tag only when it ran every
+    /// scenario of the tag (<see cref="TagCoverage"/>); a scenario the agent no longer has still carries its tags.
+    /// </summary>
+    public static IReadOnlyList<ComparedTag> TagRows(IReadOnlyList<RunResults> runs, IReadOnlyList<ScenarioLifetime> scenarios)
     {
         ArgumentNullException.ThrowIfNull(runs);
-        ArgumentNullException.ThrowIfNull(tagsOf);
+        ArgumentNullException.ThrowIfNull(scenarios);
+        var tagsOf = scenarios.ToDictionary(scenario => scenario.Key, scenario => scenario.Tags);
         string[] TagsOf(string scenario)
         {
             return tagsOf.GetValueOrDefault(scenario) ?? [];
         }
+        var completeTagsOf = runs.Select(run =>
+                TagCoverage.CompleteTags(run.Run.CreatedAt, [.. run.Scenarios.Select(scenario => scenario.Key)], scenarios)
+            )
+            .ToList();
         var tags = runs.SelectMany(run => run.Scenarios)
             .SelectMany(scenario => TagsOf(scenario.Key))
             .Distinct()
@@ -185,7 +194,17 @@ internal static class RunComparer
         [
             Row(null, [.. runs.Select(run => PassRate(run.Scenarios))]),
             .. tags.Select(tag =>
-                Row(tag, [.. runs.Select(run => PassRate(run.Scenarios.Where(scenario => TagsOf(scenario.Key).Contains(tag))))])
+                Row(
+                    tag,
+                    [
+                        .. runs.Select(
+                            (run, column) =>
+                                completeTagsOf[column].Contains(tag)
+                                    ? PassRate(run.Scenarios.Where(scenario => TagsOf(scenario.Key).Contains(tag)))
+                                    : null
+                        ),
+                    ]
+                )
             ),
         ];
     }

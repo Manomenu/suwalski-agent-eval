@@ -141,9 +141,9 @@ public sealed class PassRatesEndpointTests(TestDatabase database) : IAsyncDispos
         Assert.Equal(
             [
                 "|0.5|1000|9000|regression:0.5:1000:9000,smoke:1:650:800",
-                "regression|1|2000|2000|regression:1:2000:2000",
-                "|1|5500|6500|regression:1:5500:6500,smoke:1:6500:6500",
-                "|1|1200|1200|regression:1:1200:1200,smoke:1:1200:1200",
+                "regression|1|2000|2000|",
+                "|1|5500|6500|smoke:1:6500:6500",
+                "|1|1200|1200|smoke:1:1200:1200",
             ],
             points.Select(point =>
                 $"{point.Tag}|{point.PassRate:R}|{point.MedianMs:R}|{point.P95Ms:R}|"

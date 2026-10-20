@@ -1,5 +1,6 @@
 using Suwageval.Contracts.Runs;
 using Suwageval.Server.Runs;
+using Suwageval.Server.Scenarios;
 
 namespace Suwageval.Server.Tests.Runs;
 
@@ -73,6 +74,14 @@ public sealed class RunComparerTests
         };
 
     private static RunResults Run(params ScenarioRunResult[] scenarios) => Run(scenarios, null, null);
+
+    private static ScenarioLifetime Life(string key, params string[] tags) =>
+        new()
+        {
+            Key = key,
+            Tags = tags,
+            CreatedAt = DateTime.MinValue,
+        };
 
     private static IEnumerable<string> Keys(IEnumerable<ComparedCheck> rows) => rows.Select(row => $"{row.ScenarioKey}/{row.CheckKey}");
 
@@ -187,7 +196,7 @@ public sealed class RunComparerTests
         var refund = Scenario("refund", Check("called", 1, 1), Check("polite", 0, 1));
         var greet = Scenario("greet", Check("hello", 1, 1));
         var gone = Scenario("gone", Check("old", 0, 1));
-        var tags = new Dictionary<string, string[]> { ["refund"] = ["billing", "critical"], ["greet"] = ["smoke"] };
+        var tags = new[] { Life("refund", "billing", "critical"), Life("greet", "smoke") };
 
         var rows = RunComparer.TagRows([Run(refund, greet, gone)], tags);
 
@@ -202,7 +211,7 @@ public sealed class RunComparerTests
     {
         var refund = Scenario("refund", Check("called", 1, 1), Check("polite", 0, 1));
         var greet = Scenario("greet", Check("hello", 1, 1));
-        var tags = new Dictionary<string, string[]> { ["refund"] = ["billing"], ["greet"] = ["smoke"] };
+        var tags = new[] { Life("refund", "billing"), Life("greet", "smoke") };
 
         var rows = RunComparer.TagRows([Run(refund), Run(greet), Run(refund, greet)], tags);
 
@@ -212,6 +221,19 @@ public sealed class RunComparerTests
         var all = rows[0];
         Assert.Equal(new RateChange(50, Trend.Better), all.Rates[1].Change);
         Assert.Null(all.Rates[0].Change);
+    }
+
+    [Fact]
+    public void A_run_that_ran_only_part_of_a_tags_scenarios_has_no_rate_for_the_tag_while_all_keeps_its_checks()
+    {
+        var refund = Scenario("refund", Check("called", 1, 1));
+        var chargeback = Scenario("chargeback", Check("called", 0, 1));
+        var tags = new[] { Life("refund", "billing"), Life("chargeback", "billing") };
+
+        var rows = RunComparer.TagRows([Run(refund, chargeback), Run(refund)], tags);
+
+        Assert.Equal([0.5, 1], rows[0].Rates.Select(rate => rate.PassRate));
+        Assert.Equal([0.5, null], rows.Single(row => row.Tag == "billing").Rates.Select(rate => rate.PassRate));
     }
 
     [Fact]
@@ -292,7 +314,7 @@ public sealed class RunComparerTests
                 Run([Judged("b")], medianMs: 1500, p95Ms: null),
                 Run([Judged("a")], medianMs: 1010, p95Ms: 2000),
             ],
-            new Dictionary<string, string[]>()
+            []
         );
 
         Assert.Equal(["a", "b", "a"], comparison.Runs.Select(run => run.JudgeModel));

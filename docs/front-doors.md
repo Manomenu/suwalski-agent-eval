@@ -36,7 +36,9 @@ The server has one interface, its HTTP API. Three users reach it:
   no, the run goes on and the exit code is 130. Without a terminal to ask on (a CI job being stopped) the
   run is cancelled, since nobody would read its results. For machines, `--json` on either prints the results (and opens nothing).
 - **Runs are compared on the web.** On an agent's page, tick 2 to 5 runs (the model filter narrows
-  the list) and press Compare: the page shows each run's pass rate per scenario tag and, per
+  the list) and press Compare: the page shows each run's pass rate per scenario tag (a run has a rate for a tag only when it
+  ran every scenario of that tag, as they were when it was queued — a run limited with `--tag` shows none for another tag it
+  ran in part; the pass-rate trend follows the same rule) and, per
   check, where the runs differ from the baseline (the oldest selected run, or the one you pick).
   `suwageval compare <runId> <runId> …` prints the same comparison on stdout (`--json` for the record, `--open` for the page); `suwageval runs` lists the runs to
   pick from. Claude reads the printed comparison instead of opening a browser.

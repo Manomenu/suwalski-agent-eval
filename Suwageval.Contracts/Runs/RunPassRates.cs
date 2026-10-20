@@ -36,6 +36,6 @@ public sealed record RunPassRates
     /// <summary>The 95th percentile (nearest rank) of the same turn times, in milliseconds; null when none.</summary>
     public double? P95Ms { get; init; }
 
-    /// <summary>One rate per tag the run's scenarios carry now, sorted by tag; a scenario without checks adds nothing to its tags.</summary>
+    /// <summary>One rate per tag whose every scenario the run ran, sorted by tag; a tag it ran only in part is left out. A scenario without checks adds nothing to its tags.</summary>
     public required IReadOnlyList<TagPassRate> Tags { get; init; }
 }

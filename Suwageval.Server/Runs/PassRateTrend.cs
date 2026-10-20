@@ -11,14 +11,17 @@ internal static class PassRateTrend
     /// <summary>
     /// Null when the run has no check. <paramref name="verdicts"/> is one entry per check of a scenario (passed by its threshold),
     /// <paramref name="durations"/> the turn time of every sample that made a call, both with the scenario's key;
-    /// <paramref name="tagsOf"/> maps a scenario key to its tags; a scenario it does not know (deleted since) counts in the total only.
+    /// <paramref name="tagsOf"/> maps a scenario key to its tags; a scenario it does not know counts in the total only. A tag gets a rate
+    /// only when it is among <paramref name="completeTags"/>: a run that ran just part of a tag's scenarios says nothing about the tag.
     /// </summary>
     public static (double PassRate, double? MedianMs, double? P95Ms, IReadOnlyList<TagPassRate> Tags)? Rates(
         IReadOnlyList<(string ScenarioKey, bool Passed)> verdicts,
         IReadOnlyList<(string ScenarioKey, int DurationMs)> durations,
-        IReadOnlyDictionary<string, IReadOnlyList<string>> tagsOf
+        IReadOnlyDictionary<string, IReadOnlyList<string>> tagsOf,
+        IReadOnlySet<string> completeTags
     )
     {
+        ArgumentNullException.ThrowIfNull(completeTags);
         ArgumentNullException.ThrowIfNull(verdicts);
         ArgumentNullException.ThrowIfNull(durations);
         ArgumentNullException.ThrowIfNull(tagsOf);
@@ -30,6 +33,7 @@ internal static class PassRateTrend
         var tags = checks
             .SelectMany(check => check.Tags)
             .Distinct()
+            .Where(completeTags.Contains)
             .Order(StringComparer.Ordinal)
             .Select(tag =>
             {
