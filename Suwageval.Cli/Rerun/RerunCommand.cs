@@ -16,7 +16,7 @@ internal static class RerunCommand
         var runId = new Argument<Guid>("runId") { Description = "The run to repeat." };
         var endpoint = new Option<string?>("--endpoint")
         {
-            Description = "Reach the agent here (its contract is read from here too) instead of at the endpoint of that run.",
+            Description = AgentEndpoint.OptionDescription("the endpoint of that run (its contract is read from there too)."),
         };
         var wait = CommandOptions.Wait("run");
         var json = CommandOptions.Json("Print JSON: the results with --wait, otherwise { runId }.");
@@ -49,7 +49,7 @@ internal static class RerunCommand
                             {
                                 var created = await client.RerunAsync(
                                     parsed.GetRequiredValue(runId),
-                                    parsed.GetValue(endpoint),
+                                    AgentEndpoint.Override(parsed.GetValue(endpoint)),
                                     cancellationToken
                                 );
                                 return await RunOutput.ReportAsync(

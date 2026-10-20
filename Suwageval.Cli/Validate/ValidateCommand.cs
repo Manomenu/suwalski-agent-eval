@@ -1,5 +1,6 @@
 using System.CommandLine;
 using Suwageval.Cli.Files;
+using Suwageval.Cli.Server;
 using Suwageval.Cli.Validation;
 
 namespace Suwageval.Cli.Validate;
@@ -28,7 +29,7 @@ internal static class ValidateCommand
         };
         var endpoint = new Option<string?>("--endpoint")
         {
-            Description = "Read the agent's contract here instead of at the endpointUrl of agent.yaml.",
+            Description = AgentEndpoint.OptionDescription("the endpointUrl of agent.yaml."),
         };
         var offline = new Option<bool>("--offline") { Description = "Do not ask the agent for its contract: check the structure only." };
         var json = new Option<bool>("--json")
@@ -115,7 +116,7 @@ internal static class ValidateCommand
         }
 
         var source = new List<Problem>();
-        var url = endpoint ?? AgentFileReader.Read(agentFile, agentText!, source)?.Definition.EndpointUrl;
+        var url = AgentEndpoint.Override(endpoint) ?? AgentFileReader.Read(agentFile, agentText!, source)?.Definition.EndpointUrl;
         if (url is null || !Uri.TryCreate(url, UriKind.Absolute, out var address) || address.Scheme is not ("http" or "https"))
         {
             return structure with { Notice = $"names not checked: '{url}' is not an http or https address for the agent" };
