@@ -16,7 +16,8 @@ The server has one interface, its HTTP API. Three users reach it:
   `scenarios/*.yaml` (a scenario with its checks inside; `user:` / `assistant:` shorthands for
   the log). Suwageval's address is the web app's, the API is under its `/api`: `--server`, else `SUWAGEVAL_URL`, else
   `suwagevalUrl` in `./suwageval/agent.yaml` (or the command's `--dir`), else `http://localhost:3230`
-  (so on a laptop the CLI needs `just web` running too).
+  (so on a laptop the CLI needs `just web` running too). The agent's address for `validate`, `run` and `rerun` is `--endpoint`, else
+  `SUWAGEVAL_ENDPOINT_URL`, else `endpointUrl` in `agent.yaml` (`run` and `rerun`: else the registered / earlier run's endpoint).
 - **The results are read on the web, and on stdout.** `suwageval run --wait` prints what was compared with, the regressions and new failing
   checks first, then the totals and the link to the run's page; it exits 0 unless a check regressed or is new and failing
   (1; `--strict`: unless any check failed), 2 when the run could not finish; `suwageval results <runId>` prints the same results as text on stdout (failing checks with their reasons, turn times; `--json`

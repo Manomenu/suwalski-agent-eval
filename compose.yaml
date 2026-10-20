@@ -9,6 +9,7 @@
 
 services:
   server:
+    image: suwageval-server:local
     build:
       context: .
       dockerfile: Suwageval.Server/Dockerfile
@@ -51,6 +52,7 @@ services:
       retries: 10
 
   web:
+    image: suwageval-web:local
     build:
       context: .
       dockerfile: Suwageval.Web/Dockerfile

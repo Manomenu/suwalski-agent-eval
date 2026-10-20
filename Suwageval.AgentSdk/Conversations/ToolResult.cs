@@ -1,4 +1,4 @@
-namespace Suwageval.Contracts.Conversations;
+namespace Suwageval.AgentSdk.Conversations;
 
 public sealed record ToolResult : ConversationItem
 {

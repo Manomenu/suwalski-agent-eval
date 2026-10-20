@@ -1,7 +1,7 @@
 using System.Text.Json;
-using Suwageval.Contracts.Conversations;
+using Suwageval.AgentSdk.Conversations;
 
-namespace Suwageval.Contracts.Invocation;
+namespace Suwageval.AgentSdk.Invocation;
 
 /// <summary>What suwageval sends the agent under test: the conversation so far, whose last item the agent answers.</summary>
 public sealed record TurnRequest

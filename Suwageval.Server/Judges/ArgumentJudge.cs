@@ -2,7 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Options;
-using Suwageval.Contracts;
+using Suwageval.AgentSdk;
 using Suwageval.Contracts.Checks;
 using Suwageval.Server.Checks;
 using Suwageval.Server.Models;

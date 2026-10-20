@@ -1,6 +1,6 @@
-using Suwageval.Contracts.Agents;
+using Suwageval.AgentSdk.Agents;
+using Suwageval.AgentSdk.Conversations;
 using Suwageval.Contracts.Checks;
-using Suwageval.Contracts.Conversations;
 using Suwageval.Server.Runs;
 using static Suwageval.Server.Tests.Checks.Items;
 

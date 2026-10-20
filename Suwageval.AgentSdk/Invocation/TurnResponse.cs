@@ -1,6 +1,6 @@
-using Suwageval.Contracts.Conversations;
+using Suwageval.AgentSdk.Conversations;
 
-namespace Suwageval.Contracts.Invocation;
+namespace Suwageval.AgentSdk.Invocation;
 
 /// <summary>
 /// What the agent under test answers with: everything it produced in this one turn, in order — its tool calls, their

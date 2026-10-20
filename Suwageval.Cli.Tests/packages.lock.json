@@ -176,6 +176,9 @@
           "xunit.v3.runner.common": "[4.0.2]"
         }
       },
+      "suwageval.agentsdk": {
+        "type": "Project"
+      },
       "suwageval.cli": {
         "type": "Project",
         "dependencies": {
@@ -185,7 +188,10 @@
         }
       },
       "suwageval.contracts": {
-        "type": "Project"
+        "type": "Project",
+        "dependencies": {
+          "Suwageval.AgentSdk": "[1.0.0, )"
+        }
       },
       "System.CommandLine": {
         "type": "CentralTransitive",

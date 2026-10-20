@@ -22,7 +22,7 @@ suwageval validate                      # ./suwageval
 suwageval validate path/to/suwageval    # another folder
 suwageval validate scenarios/x.yaml     # one scenario, checked against ./suwageval/agent.yaml (--dir for another)
 suwageval validate - < scenario.yaml    # one scenario from stdin, same
-suwageval validate --endpoint URL       # read the agent's contract from URL instead of agent.yaml's endpointUrl
+suwageval validate --endpoint URL       # read the agent's contract from URL, else $SUWAGEVAL_ENDPOINT_URL, else agent.yaml's endpointUrl
 suwageval validate --offline            # do not ask the agent: the structure only
 suwageval validate --json               # { "valid": bool, "namesChecked": bool, "notice": string|null, "problems": [{ "file", "path", "message" }] }
 ```
@@ -57,7 +57,7 @@ what really ran. A `version:` key is an error.
 | Field | | |
 | --- | --- | --- |
 | `name` | required | the agent's name |
-| `endpointUrl` | required | where the agent is reached: `POST {endpointUrl}/suwageval/turn`, `GET {endpointUrl}/suwageval/contract` |
+| `endpointUrl` | required | where the agent is reached: `POST {endpointUrl}/suwageval/turn`, `GET {endpointUrl}/suwageval/contract`. `validate`, `run` and `rerun` take `--endpoint`, else `SUWAGEVAL_ENDPOINT_URL`, over it (`run` and `rerun`: else the endpoint registered by `push` / of the earlier run); `push` always registers this one |
 | `samples` | optional | how many times each scenario's conversation is sent to the agent by default: 1 to 20, default `3` (see "Samples" under Scenarios; a scenario or a check can set its own) |
 | `regression` | optional | how regressions are found (next block, section "Regressions") |
 | `suwagevalUrl` | optional | where Suwageval is: the address of its web app (the API is under `/api`), an absolute http(s) address. For the CLI only — `push` does not send it and the server does not store it. Used when neither `--server` nor `SUWAGEVAL_URL` is set; without it the default is `http://localhost:3230` |
@@ -178,6 +178,21 @@ version; the answer to `POST /runs` and `suwageval run` say which version and wh
 - A `ToolCall` or `Event` the agent produces during a run that its version does not declare is
   recorded on the sample as `undeclared` (`tool 'x'` when no agent has it, `agent 'y'` for an agent the contract does not have, `tool 'x' of agent 'y'` for an agent without that tool, `event 'z'`) and shown in the results. It
   is a warning, not a failure by itself.
+
+### A .NET agent: the `Suwageval.AgentSdk` package
+
+An ASP.NET Core agent on .NET 9 or later need not write the two routes or declare the records. `Suwageval.AgentSdk` (released by the owner with `just agent-publish`; `just agent-pack` packs
+a local build into `.artifacts/nupkg`) holds the contract types, the JSON options the server uses (`ContractJson.Options`) and the routes:
+
+```csharp
+builder.Services.AddSingleton<IAgentContractSource, MyContractSource>(); // builds the AgentContract
+builder.Services.AddSingleton<ITurnHandler, MyTurnHandler>();            // TurnRequest -> TurnResponse
+app.MapSuwagevalAgent();                                                 // GET /suwageval/contract, POST /suwageval/turn
+```
+
+A turn whose conversation is empty, or does not end with a user message, is answered 400. So is one the handler refuses by throwing
+`TurnRejectedException(reason)` (an item kind or a message length it does not support); the 400 carries the reason. `AgentContractRules.Problems(contract)`
+returns what the server would refuse in the contract (the same code), so an agent can assert it is empty in its own unit test.
 
 ## A scenario file
 

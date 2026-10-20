@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace Suwageval.Contracts.Conversations;
+namespace Suwageval.AgentSdk.Conversations;
 
 public sealed record Event : ConversationItem
 {

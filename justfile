@@ -55,6 +55,16 @@ cli-install:
     dotnet tool uninstall --global Suwageval.Cli || true
     dotnet tool install --global --add-source .artifacts/nupkg Suwageval.Cli
 
+# Pack the agent contracts for a .NET agent under test into .artifacts/nupkg
+[group('dev')]
+agent-pack:
+    dotnet pack Suwageval.AgentSdk -c Release -o .artifacts/nupkg
+
+# Pack Suwageval.AgentSdk as <version> and push it to the feed in .env (AGENTS.md, section 12)
+[group('dev')]
+agent-publish version:
+    set -a && { [ ! -f .env ] || . ./.env; } && set +a &&         dotnet pack Suwageval.AgentSdk -c Release -o .artifacts/nupkg -p:Version={{ version }} &&         dotnet nuget push .artifacts/nupkg/Suwageval.AgentSdk.{{ version }}.nupkg --source "$AGENT_SDK_FEED_URL" --api-key "$AGENT_SDK_FEED_API_KEY"
+
 # ---------------------------------------------------------------------------------------
 # infra — the containerised stack: the same images the cluster runs, wired the same way
 # ---------------------------------------------------------------------------------------
@@ -64,6 +74,11 @@ cli-install:
 up:
     docker compose up -d --build
     @echo "web   http://localhost:8093"
+
+# Build the images (suwageval-server:local, suwageval-web:local) another repository's stack runs, without starting them
+[group('infra')]
+build-images:
+    docker compose build
 
 # Rebuild the images without the layer cache, then start (slow, on purpose)
 [group('infra')]

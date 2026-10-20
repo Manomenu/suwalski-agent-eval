@@ -3,4 +3,8 @@
     <RootNamespace>Suwageval.Contracts</RootNamespace>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Suwageval.AgentSdk/Suwageval.AgentSdk.csproj" />
+  </ItemGroup>
 </Project>

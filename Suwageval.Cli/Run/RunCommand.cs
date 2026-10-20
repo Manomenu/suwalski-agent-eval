@@ -22,7 +22,9 @@ internal static class RunCommand
         var tag = new Option<string?>("--tag") { Description = "Only the scenarios with this tag; default every scenario." };
         var endpoint = new Option<string?>("--endpoint")
         {
-            Description = "Reach the agent here (its contract is read from here too) instead of at the endpointUrl it was registered with.",
+            Description = AgentEndpoint.OptionDescription(
+                "the endpointUrl the agent was registered with (its contract is read from there too)."
+            ),
         };
         var reference = new Option<string?>("--ref")
         {
@@ -72,7 +74,7 @@ internal static class RunCommand
                                     {
                                         Agent = agent,
                                         Tag = parsed.GetValue(tag),
-                                        EndpointUrl = parsed.GetValue(endpoint),
+                                        EndpointUrl = AgentEndpoint.Override(parsed.GetValue(endpoint)),
                                         Origin = (origins ?? RunOriginReader.System).Read(agentDir, parsed.GetValue(reference)),
                                     },
                                     cancellationToken

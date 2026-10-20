@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Suwageval.Contracts;
+namespace Suwageval.AgentSdk;
 
 /// <summary>The JSON shape of every contract record: camelCase, strict about what it reads.</summary>
 public static class ContractJson

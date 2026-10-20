@@ -1,6 +1,6 @@
 using System.Text.Encodings.Web;
 using System.Text.Json;
-using Suwageval.Contracts;
+using Suwageval.AgentSdk;
 
 namespace Suwageval.Cli.Server;
 

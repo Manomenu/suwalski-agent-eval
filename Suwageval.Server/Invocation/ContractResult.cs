@@ -1,4 +1,4 @@
-using Suwageval.Contracts.Agents;
+using Suwageval.AgentSdk.Agents;
 
 namespace Suwageval.Server.Invocation;
 

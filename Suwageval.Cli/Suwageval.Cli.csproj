@@ -8,6 +8,8 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>suwageval</ToolCommandName>
     <PackageId>Suwageval.Cli</PackageId>
+    <!-- Suwageval.AgentSdk brings the ASP.NET Core framework for agents; the command needs only the base runtime. -->
+    <DisableTransitiveFrameworkReferences>true</DisableTransitiveFrameworkReferences>
     <Description>Validate, push and run the evaluation files of an agent's repository against Suwageval.</Description>
   </PropertyGroup>
 

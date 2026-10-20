@@ -1,8 +1,8 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using Suwageval.AgentSdk;
 using Suwageval.Cli.Files;
-using Suwageval.Contracts;
 using Suwageval.Contracts.Checks;
 using Suwageval.Contracts.Runs;
 

@@ -1,6 +1,6 @@
 using System.Text.Json;
 using Dapper;
-using Suwageval.Contracts;
+using Suwageval.AgentSdk;
 using Suwageval.Contracts.Runs;
 using Suwageval.Server.Checks;
 using Suwageval.Server.Runs;
