@@ -1,7 +1,7 @@
 using System.Text.Json;
 using Microsoft.Extensions.Options;
-using Suwageval.Contracts;
-using Suwageval.Contracts.Agents;
+using Suwageval.AgentSdk;
+using Suwageval.AgentSdk.Agents;
 using Suwageval.Contracts.Checks;
 using Suwageval.Contracts.Runs;
 using Suwageval.Server.Agents;

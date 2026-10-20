@@ -1,4 +1,4 @@
-namespace Suwageval.Contracts.Agents;
+namespace Suwageval.AgentSdk.Agents;
 
 /// <summary>What the system under test was configured as when a run happened: its LLM agents, and what belongs to the system as a whole.</summary>
 public sealed record AgentContract

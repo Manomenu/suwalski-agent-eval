@@ -12,12 +12,14 @@ WORKDIR /src
 # The packages stay in the layer, not in a cache mount: CI restores this layer from its layer
 # cache but starts with an empty cache mount, and publish --no-restore would then find no packages.
 COPY global.json Directory.Build.props Directory.Packages.props ./
+COPY Suwageval.AgentSdk/Suwageval.AgentSdk.csproj Suwageval.AgentSdk/packages.lock.json Suwageval.AgentSdk/
 COPY Suwageval.Contracts/Suwageval.Contracts.csproj Suwageval.Contracts/packages.lock.json Suwageval.Contracts/
 COPY Suwageval.Server/Suwageval.Server.csproj Suwageval.Server/packages.lock.json Suwageval.Server/
 RUN dotnet restore Suwageval.Server --locked-mode
 
 # Then the sources, which change every commit.
 COPY .editorconfig ./
+COPY Suwageval.AgentSdk/ Suwageval.AgentSdk/
 COPY Suwageval.Contracts/ Suwageval.Contracts/
 COPY Suwageval.Server/ Suwageval.Server/
 RUN dotnet publish Suwageval.Server --no-restore -c Release -o /app

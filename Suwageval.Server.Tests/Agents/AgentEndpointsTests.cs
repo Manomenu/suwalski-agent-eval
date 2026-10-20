@@ -1,4 +1,5 @@
 using System.Net;
+using Suwageval.AgentSdk.Agents;
 using Suwageval.Contracts.Agents;
 using Suwageval.Server.Agents;
 using Suwageval.Server.Tests.Api;

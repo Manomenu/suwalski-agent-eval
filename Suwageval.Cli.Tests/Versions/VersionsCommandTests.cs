@@ -1,7 +1,8 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
-using Suwageval.Contracts;
+using Suwageval.AgentSdk;
+using Suwageval.AgentSdk.Agents;
 using Suwageval.Contracts.Agents;
 
 namespace Suwageval.Cli.Tests.Versions;

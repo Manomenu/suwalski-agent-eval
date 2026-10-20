@@ -1,7 +1,7 @@
 using System.Net.Http.Json;
 using System.Text.Json;
-using Suwageval.Contracts;
-using Suwageval.Contracts.Agents;
+using Suwageval.AgentSdk;
+using Suwageval.AgentSdk.Agents;
 
 namespace Suwageval.Cli.Validate;
 

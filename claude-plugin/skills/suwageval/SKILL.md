@@ -30,6 +30,8 @@ run in this session's terminal:
 The CLI talks to the Suwageval server through the address of its **web app**; the API is under
 its `/api`. The address is `--server` on a command, else `SUWAGEVAL_URL`, else `suwagevalUrl` in
 `suwageval/agent.yaml`, else `http://localhost:3230` (a laptop running `just web` in the clone).
+The agent's own address (`validate`, `run`, `rerun`) is `--endpoint` on the command, else `SUWAGEVAL_ENDPOINT_URL`, else
+`endpointUrl` in `agent.yaml` (`run` and `rerun` then use the endpoint registered by `push` / of the earlier run).
 `validate` and `init` need no server.
 `push` and `run` need the server, and `run` needs the agent itself running too.
 

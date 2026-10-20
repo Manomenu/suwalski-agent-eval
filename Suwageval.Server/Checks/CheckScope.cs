@@ -1,5 +1,5 @@
+using Suwageval.AgentSdk.Conversations;
 using Suwageval.Contracts.Checks;
-using Suwageval.Contracts.Conversations;
 
 namespace Suwageval.Server.Checks;
 

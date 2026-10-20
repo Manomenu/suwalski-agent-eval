@@ -1,5 +1,5 @@
-using Suwageval.Contracts.Agents;
-using Suwageval.Contracts.Conversations;
+using Suwageval.AgentSdk.Agents;
+using Suwageval.AgentSdk.Conversations;
 
 namespace Suwageval.Server.Runs;
 

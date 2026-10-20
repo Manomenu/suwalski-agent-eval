@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace Suwageval.Contracts.Conversations;
+namespace Suwageval.AgentSdk.Conversations;
 
 /// <summary>One entry of the conversation log, told apart by <c>kind</c>.</summary>
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "kind")]

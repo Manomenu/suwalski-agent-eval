@@ -1,4 +1,4 @@
-namespace Suwageval.Contracts.Agents;
+namespace Suwageval.AgentSdk.Agents;
 
 /// <summary>One LLM agent of the system under test.</summary>
 public sealed record LlmAgentDefinition

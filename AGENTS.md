@@ -59,6 +59,7 @@ app keeps its tests beside its code, so those folders would only split the .NET 
 | `Suwageval.Server/` | the HTTP API (ASP.NET Core minimal APIs, PostgreSQL through Npgsql, SQL written by hand and mapped by Dapper). One folder — one namespace — per part: `Api/`, `Database/`, then one per feature. `Runs/` holds the queue's worker (`RunWorker`, a hosted service); the tests share one database, so they run the server without it (`RunTestApp`) and take runs themselves, per agent. `Models/` holds the models Suwageval itself calls (`Models:<name>`): one chat client and one pool of concurrent calls per model. `Judges/` holds the verdict of a `judge` check (a Microsoft Agent Framework agent over a model's client) and the daily `live-check` command (`Program.cs` runs it for the chart's CronJob) |
 | `Suwageval.Server/Database/Migrations/up/` | numbered SQL migrations, applied at start-up by grate (`Database/Migrator.cs`) |
 | `Suwageval.Server.Tests/` | the server's tests (xUnit v3), mirroring the server's folders; `ContractsTests.cs` holds the import contracts, `ProjectReferencesTests.cs` the project graph. `EndToEnd/` is the one place where the CLI runs against the server in process (`push`, `run`, `rerun`); only its types may use the CLI (`EndToEndContractsTests.cs`); `EveryEndpointHasACliCommandTests.cs` there lists every route the server maps with the command that covers it (or the reason it has none) |
+| `Suwageval.AgentSdk/` | the SDK of an agent under test, packed as a NuGet package for .NET agents (`net9.0;net10.0`, with the ASP.NET Core shared framework): `Agents/` the `AgentContract` with its parts and `AgentContractRules` (shared with the server), `Conversations/` the log items, `Invocation/` `TurnRequest`, `TurnResponse`, the two interfaces an agent implements and `MapSuwagevalAgent`, and `ContractJson` at the root. Namespace = folder path under `Suwageval.AgentSdk`; `Suwageval.Contracts` references it |
 | `Suwageval.Contracts/` | the records the API sends and receives and the CLI reads from YAML, with their JSON shape (System.Text.Json, camelCase, strict), and the rules that decide whether a record is valid (`Checks/CheckRules.cs`: shared by the CLI and the server, so they cannot drift). Public types (a library shared by projects), no references; one folder — one namespace — per feature |
 | `Suwageval.Cli/` | the `suwageval` command, packed as a .NET tool (System.CommandLine, YamlDotNet). `Files/` reads the agent's YAML files into the contracts, `Init/` is `suwageval init` (creates or updates `suwageval/agent.yaml` line by line, keeping comments; never calls the server), `Validate/` is `suwageval validate`, `Validation/` is the validator and its report (shared by `validate` and `push`), `Push/` is `suwageval push`, `Run/` is `suwageval run`, `Rerun/` is `suwageval rerun` (a new run with the agent, tag and endpoint of an earlier one), `Recheck/` is `suwageval recheck` (judges a finished run's stored answers again with the current checks, no agent call; `--dry-run` prints the plan), `Cancel/` is `suwageval cancel` (stops a queued or running run), `Results/` is `suwageval results` (prints the run's results as text, `--json` as records; `--open` opens its page on the web), `Compare/` is `suwageval compare` (prints the comparison of 2 to 5 runs of one agent, `--json` as the record; `--open` opens the web page), `Runs/` is `suwageval runs` (lists the agent's newest runs, to pick runs to compare; `--version`, `--reference`), `Agents/` is `suwageval agents` and `suwageval agent` (every agent on the server; what is stored for the repository's), `Scenarios/` is `suwageval scenarios` and `suwageval scenario <key>` (the agent's scenarios; one with its conversation, checks and revisions), `Trend/` is `suwageval trend` (the pass-rate trend, run by run), `Unstable/` is `suwageval unstable` (the checks that pass in some runs of one agent version and fail in others), `AgentDelete/` is `suwageval delete-agent` (deletes the agent of the repository from the server, with its versions, scenarios, checks and runs), `Versions/` is `suwageval versions` (list, archive, unarchive, delete an archived version of an agent; `show` prints one with its contract, `diff` prints what changed between two, `--open` opens its page), `Server/` is what they share: Suwageval's address (the web's, the API under its `/api`; `--server`, `SUWAGEVAL_URL`, the agent.yaml's `suwagevalUrl`, the default), the server's endpoints (`ServerClient`), what each command does around its request (`ServerCall`) and the options they share (`CommandOptions`), the page opening (`WebPage`, shared by `results`, `compare` and `versions diff`), the verdict, what `run`, `rerun` and `recheck` print (`RunOutput`) and the JSON output |
 | `Suwageval.Cli.Tests/` | the CLI's tests (xUnit v3), mirroring its folders; pure unit tests — no server, no database (those are the server tests' `EndToEnd/`); `ContractsTests.cs` holds the CLI's import contracts; `Sample/` is the one agent folder the tests use (the server tests link it into their output) |
@@ -242,12 +243,15 @@ root (`Program`, `CliApp`) → the commands `Init` \| `Validate` \| `Push` \| `R
 `Validation` \| `Server` → `Files`; `Every_cli_namespace_has_a_layer` fails for a namespace without one. What two commands
 share moves down into a layer of its own.
 
+**The SDK** (`Suwageval.AgentSdk`) has no test project; `AgentSdkContractsTests.cs` in `Suwageval.Server.Tests` layers it: `Invocation` → `Agents` \| `Conversations` → the root (`ContractJson`); `Every_sdk_namespace_has_a_layer` fails for a namespace without one.
+
 **Projects** point one way, checked by `Suwageval.Server.Tests/ProjectReferencesTests.cs` (it reads the
 solution and the `.csproj` files; a project missing from its table fails too):
 
 | Project | May reference | `InternalsVisibleTo` |
 | --- | --- | --- |
-| `Suwageval.Contracts` | nothing | none |
+| `Suwageval.AgentSdk` | nothing | none |
+| `Suwageval.Contracts` | `Agent` | none |
 | `Suwageval.Server` | `Contracts` | `Server.Tests` |
 | `Suwageval.Cli` | `Contracts` | `Cli.Tests`, `Server.Tests` |
 | `Suwageval.Cli.Tests` | `Cli` | none |
@@ -516,7 +520,7 @@ Two vocabularies, chosen word by word:
 ## 10. Commands: `justfile` vs `scripts/.internal/`
 
 - **`justfile` is for humans.** `just` lists every recipe, grouped: `run` (dev servers),
-  `dev` (code generation, `just cli …` to run the CLI from source, `just cli-install` to install it as the global `suwageval`, `just tmux-dev [--restart]` for the interactive tmux layout of the local stack (`--restart` kills the old session first), humans only, via `scripts/.internal/tmux-dev.sh`), `infra` (the container stack), `maintenance` (check, e2e, fmt,
+  `dev` (code generation, `just cli …` to run the CLI from source, `just cli-install` to install it as the global `suwageval`, `just agent-pack` / `just agent-publish <version>` for `Suwageval.AgentSdk` (section 12), `just tmux-dev [--restart]` for the interactive tmux layout of the local stack (`--restart` kills the old session first), humans only, via `scripts/.internal/tmux-dev.sh`), `infra` (the container stack; `just build-images` builds the `suwageval-server:local` and `suwageval-web:local` images that another repository's stack, e.g. an agent repo running Suwageval in its own compose, runs), `maintenance` (check, e2e, fmt,
   sync), plus modules in `.just/`: `db` (`.just/db.just`: the local PostgreSQL) and
   `secrets` (`.just/secrets.just`: the `.env` files in Bitwarden). New human-facing commands
   go there, into the matching group; a family of related commands becomes a module of its
@@ -562,3 +566,10 @@ means: a clear goal, the files it touches are known, and a check says when it is
 - The main agent keeps what needs judgment: design decisions, unclear requirements, small
   edits (spawning costs more than doing them), and the review of the subagent's result
   against the acceptance check — without redoing the delegated work.
+
+## 12. Releasing `Suwageval.AgentSdk`
+
+The owner releases it by hand, from a commit whose CI is green: `just agent-publish 0.1.0` packs that version
+(`-p:Version=`) and pushes it to the feed named by `AGENT_SDK_FEED_URL` with the key in `AGENT_SDK_FEED_API_KEY`, both
+from the gitignored `.env` (section 7: the feed is the owner's infrastructure). The csproj says `0.0.0-local`, which is
+what `just agent-pack` produces. Agents never publish.
