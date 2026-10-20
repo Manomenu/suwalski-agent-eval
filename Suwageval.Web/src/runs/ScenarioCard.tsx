@@ -6,6 +6,7 @@ import { ModelJudgedIcon } from "../checks/ModelJudgedIcon";
 import { UnstableCheckIcon } from "../checks/UnstableCheckIcon";
 import type { ScenarioRunResult, UnstableCheck } from "./api";
 import { ConversationView } from "./ConversationView";
+import { ScenarioDefinitionButton } from "./ScenarioDefinitionButton";
 import { CheckHistory } from "./CheckHistory";
 import { stateLabel } from "./regression";
 import { StateBadge } from "./StateBadge";
@@ -37,7 +38,10 @@ export function ScenarioCard({
     return (
         <Card withBorder padding="md">
             <Stack gap="sm">
-                <Title order={3}>{scenario.key}</Title>
+                <Group gap="xs">
+                    <Title order={3}>{scenario.key}</Title>
+                    <ScenarioDefinitionButton scenarioKey={scenario.key} revision={scenario.revision} yaml={scenario.definitionYaml} />
+                </Group>
 
                 {scenario.samples.map((sample) => (
                     <Stack key={sample.sample} gap="xs">

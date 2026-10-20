@@ -16,6 +16,7 @@ internal static class KnownFailureResults
                 {
                     Key = "refund",
                     Revision = 1,
+                    DefinitionYaml = "",
                     Samples = [],
                     Checks =
                     [

@@ -54,6 +54,7 @@ public sealed class ResultsCommandTests
                 {
                     Key = "refund",
                     Revision = 1,
+                    DefinitionYaml = "",
                     Samples = [],
                     Checks =
                     [

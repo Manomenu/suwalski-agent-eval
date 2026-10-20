@@ -25,7 +25,12 @@ internal static partial class ContractYaml
     public static string Of(AgentContract contract)
     {
         ArgumentNullException.ThrowIfNull(contract);
-        var root = Node(JsonSerializer.SerializeToNode(contract, Shape));
+        return Of(JsonSerializer.SerializeToNode(contract, Shape));
+    }
+
+    public static string Of(JsonNode? json)
+    {
+        var root = Node(json);
         using var writer = new StringWriter { NewLine = "\n" };
         var emitter = new Emitter(
             writer,
