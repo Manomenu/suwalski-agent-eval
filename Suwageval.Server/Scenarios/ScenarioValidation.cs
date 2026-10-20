@@ -34,10 +34,9 @@ internal static class ScenarioValidation
             {
                 errors.Add(new FieldError($"{path}.samples", samplesProblem));
             }
-            if (scenario.Continuation.Turns < 1)
-            {
-                errors.Add(new FieldError($"{path}.continuation.turns", "turns is at least 1."));
-            }
+            errors.AddRange(
+                ContinuationRules.Problems(scenario).Select(problem => new FieldError($"{path}.{problem.Path}", problem.Message))
+            );
             if (scenario.Conversation.Count == 0)
             {
                 errors.Add(new FieldError($"{path}.conversation", "The conversation has no items; the agent needs a message to answer."));

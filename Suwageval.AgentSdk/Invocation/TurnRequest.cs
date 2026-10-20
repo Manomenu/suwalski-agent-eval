@@ -10,4 +10,11 @@ public sealed record TurnRequest
 
     /// <summary>The scenario's fixtures, verbatim; omitted when it has none.</summary>
     public JsonElement? Fixtures { get; init; }
+
+    /// <summary>
+    /// The same for every turn of one simulated conversation (a scenario with a simulated user), omitted otherwise. An agent that keeps
+    /// state — its test data, a state machine — keeps it under this id: the first turn of an id starts from fresh test data, every
+    /// later turn of it goes on from what the earlier ones left. The conversation sent is still the whole log.
+    /// </summary>
+    public string? ConversationId { get; init; }
 }

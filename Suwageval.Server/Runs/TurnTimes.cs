@@ -5,13 +5,16 @@ namespace Suwageval.Server.Runs;
 /// <summary>How long the agent took to answer a turn: the samples' durations and the statistics the run report and the trend show.</summary>
 internal static class TurnTimes
 {
-    /// <summary>How long the agent took for each sample that made a call; a sample without a call has no duration.</summary>
+    /// <summary>
+    /// How long the agent took for each turn of each sample that made a call (a sample of one turn is one; a simulation's turns each
+    /// count); a sample without a call has no duration.
+    /// </summary>
     public static List<int> Durations(IEnumerable<ScenarioRunResult> scenarios) =>
         [
             .. scenarios
                 .SelectMany(scenario => scenario.Samples)
                 .Where(sample => sample.DurationMs is not null)
-                .Select(sample => sample.DurationMs!.Value),
+                .SelectMany(sample => sample.TurnDurationsMs ?? [sample.DurationMs!.Value]),
         ];
 
     /// <summary>The middle value, the mean of the two middle ones for an even count; null for no value.</summary>

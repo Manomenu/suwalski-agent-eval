@@ -28,6 +28,14 @@ internal static class ScenarioText
                 ? string.Create(CultureInfo.InvariantCulture, $"samples: {samples}  turns: {scenario.Continuation.Turns}")
                 : string.Create(CultureInfo.InvariantCulture, $"turns: {scenario.Continuation.Turns}")
         );
+        if (scenario.Continuation.SimulatedUser is { } simulatedUser)
+        {
+            text.AppendLine("simulated user:");
+            foreach (var line in simulatedUser.Trim().Split('\n'))
+            {
+                text.Append(Indent).AppendLine(line.TrimEnd('\r'));
+            }
+        }
         if (scenario.Fixtures is { } fixtures)
         {
             text.AppendLine($"fixtures: {fixtures.GetRawText()}");

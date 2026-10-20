@@ -28,11 +28,12 @@ multi-turn simulation, no web views yet (the judge came right after: step 4).
    deterministic checks, and `suwageval run` (`--wait` exits 0 when every check passed its
    threshold, 1 when one did not, 2 when the run could not finish; since regressions, 1 means a regression or a new failing check unless `--strict`). The MVP is reached here.
 4. **After the MVP** — the judge is done: a `judge` check, verdict by a model through Microsoft Agent Framework
-   ([scenario-format.md](scenario-format.md), "The judge check"), with a daily live check of the model from the cluster. Still to come:
-   multi-turn simulation, results and comparisons on the web.
+   ([scenario-format.md](scenario-format.md), "The judge check"), with a daily live check of the model from the cluster. So is multi-turn simulation
+   (a simulated user played by a model, [scenario-format.md](scenario-format.md), "Simulation"). Still to come: results and comparisons
+   on the web.
    The Claude Code plugin over the CLI is done (see "Use it from Claude Code").
 
 Microsoft Agent Framework came in with the judge, the first code that uses it ([AGENTS.md](../AGENTS.md), section 0), together
 with its live test (`scripts/.internal/live-check.sh`) and the recorded answers the gate uses instead of a model.
-The user simulator will use the same per-model client and pool of calls.
+The user simulator uses the same per-model client and pool of calls.
 

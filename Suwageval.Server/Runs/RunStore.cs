@@ -251,8 +251,10 @@ internal sealed class RunStore(Pool pool)
         var resultId = await connection.QuerySingleAsync<Guid>(
             new CommandDefinition(
                 """
-                INSERT INTO scenario_results (run_id, scenario_id, scenario_revision, sample, status, output, error, undeclared, duration_ms)
-                VALUES (@runId, @scenarioId, @scenarioRevision, @sampleNumber, @status, @outputJson::jsonb, @error, @undeclaredJson::jsonb, @durationMs)
+                INSERT INTO scenario_results (run_id, scenario_id, scenario_revision, sample, status, output, error, undeclared, duration_ms,
+                                              turn_durations_ms, ended_by_user)
+                VALUES (@runId, @scenarioId, @scenarioRevision, @sampleNumber, @status, @outputJson::jsonb, @error, @undeclaredJson::jsonb, @durationMs,
+                        @turnDurationsMs, @endedByUser)
                 RETURNING id
                 """,
                 new
@@ -265,6 +267,8 @@ internal sealed class RunStore(Pool pool)
                     outputJson = sample.OutputJson,
                     error = sample.Error,
                     durationMs = sample.DurationMs,
+                    turnDurationsMs = sample.TurnDurationsMs?.ToArray(),
+                    endedByUser = sample.EndedByUser,
                     undeclaredJson = JsonSerializer.Serialize(sample.Undeclared, ContractJson.Options),
                 },
                 transaction,
@@ -308,7 +312,8 @@ internal sealed class RunStore(Pool pool)
                 SELECT sr.id, s.key AS ScenarioKey, sr.scenario_revision AS ScenarioRevision, sr.sample, sr.status,
                        sr.output::text AS Output, sr.error, sr.undeclared::text AS Undeclared,
                        sr.duration_ms AS DurationMs, sr.scenario_id AS ScenarioId,
-                       rev.content::text AS ScenarioContent, to_jsonb(s.tags)::text AS ScenarioTagsJson
+                       rev.content::text AS ScenarioContent, to_jsonb(s.tags)::text AS ScenarioTagsJson,
+                       to_jsonb(sr.turn_durations_ms)::text AS TurnDurationsJson, sr.ended_by_user AS EndedByUser
                 FROM scenario_results sr
                 JOIN scenarios s ON s.id = sr.scenario_id
                 JOIN scenario_revisions rev ON rev.scenario_id = sr.scenario_id AND rev.revision = sr.scenario_revision
@@ -544,7 +549,10 @@ internal sealed class RunStore(Pool pool)
         return [.. rows];
     }
 
-    /// <summary>For the pass-rate trend, in one query: the duration of every sample that made a call, of the runs among <paramref name="runIds"/>.</summary>
+    /// <summary>
+    /// For the pass-rate trend, in one query: how long the agent took for every turn of a sample that made a call (a sample of one turn
+    /// is one), of the runs among <paramref name="runIds"/>.
+    /// </summary>
     public async Task<IReadOnlyList<TrendDurationRow>> ListTrendDurationsAsync(
         IReadOnlyCollection<Guid> runIds,
         CancellationToken cancellationToken = default
@@ -554,9 +562,10 @@ internal sealed class RunStore(Pool pool)
         var rows = await connection.QueryAsync<TrendDurationRow>(
             new CommandDefinition(
                 """
-                SELECT sr.run_id AS RunId, s.key AS ScenarioKey, sr.duration_ms AS DurationMs
+                SELECT sr.run_id AS RunId, s.key AS ScenarioKey, turn.duration AS DurationMs
                 FROM scenario_results sr
                 JOIN scenarios s ON s.id = sr.scenario_id
+                CROSS JOIN LATERAL unnest(COALESCE(sr.turn_durations_ms, ARRAY[sr.duration_ms])) AS turn(duration)
                 WHERE sr.run_id = ANY(@runIds) AND sr.duration_ms IS NOT NULL
                 """,
                 new { runIds = runIds.ToArray() },

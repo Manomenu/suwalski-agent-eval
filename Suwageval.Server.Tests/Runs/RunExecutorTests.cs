@@ -12,6 +12,7 @@ using Suwageval.Server.Invocation;
 using Suwageval.Server.Judges;
 using Suwageval.Server.Runs;
 using Suwageval.Server.Scenarios;
+using Suwageval.Server.Simulation;
 using Suwageval.Server.Tests.Judges;
 
 namespace Suwageval.Server.Tests.Runs;
@@ -34,7 +35,8 @@ public sealed class RunExecutorTests(TestDatabase database)
         int parallel = 2,
         Uri? endpoint = null,
         Judge? judge = null,
-        ArgumentJudge? argumentJudge = null
+        ArgumentJudge? argumentJudge = null,
+        UserSimulator? simulator = null
     )
     {
         var store = Store();
@@ -52,6 +54,7 @@ public sealed class RunExecutorTests(TestDatabase database)
             new CheckStore(database.Pool),
             new AgentStore(database.Pool),
             new AgentClient(new HttpClient { Timeout = TimeSpan.FromSeconds(10) }),
+            simulator ?? RecordedModel.SimulatorAnswering("simulated-end.json"),
             judge ?? RecordedModel.JudgeAnswering("passed.json"),
             argumentJudge ?? RecordedModel.Answering("passed.json").ArgumentJudge(),
             Options.Create(new RunOptions { MaxParallelScenarios = parallel }),
@@ -560,7 +563,7 @@ public sealed class RunExecutorTests(TestDatabase database)
     }
 
     [Fact]
-    public async Task More_than_one_turn_is_recorded_as_not_supported_yet_without_calling_the_agent()
+    public async Task More_than_one_turn_without_a_simulated_user_is_recorded_as_failed_without_calling_the_agent()
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
         var agent = await SeededAgent.CreateAsync(
@@ -574,7 +577,7 @@ public sealed class RunExecutorTests(TestDatabase database)
 
         var scenario = Assert.Single(results.Scenarios);
         Assert.Equal(SampleStatus.Failed, scenario.Samples[0].Status);
-        Assert.Contains("not supported yet", scenario.Samples[0].Error, StringComparison.Ordinal);
+        Assert.Contains("needs a simulated user", scenario.Samples[0].Error, StringComparison.Ordinal);
         Assert.False(Assert.Single(scenario.Checks).Passed);
         Assert.Empty(fake.Requests);
     }
@@ -713,5 +716,197 @@ public sealed class RunExecutorTests(TestDatabase database)
         Assert.Equal(RunStatus.Failed, failed?.State);
         Assert.NotNull(failed?.Error);
         Assert.NotNull(failed?.FinishedAt);
+    }
+
+    private const string Angry = "Anna wants her money back for a broken kettle and is annoyed.";
+
+    private async Task<RunResults> SimulateAsync(SeededAgent agent, UserSimulator simulator)
+    {
+        var (run, executor) = await ClaimAsync(agent, simulator: simulator);
+        await executor.ExecuteAsync(run, Cancellation);
+        return await ResultsAsync(run.Id);
+    }
+
+    private static string? ConversationIdOf(string body) =>
+        JsonDocument.Parse(body).RootElement.TryGetProperty("conversationId", out var id) ? id.GetString() : null;
+
+    [Fact]
+    public async Task A_simulation_plays_every_turn_and_each_turn_but_the_first_opens_with_the_simulated_user()
+    {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.PlainTurn, TimeSpan.FromMilliseconds(30));
+        var agent = await SeededAgent.CreateAsync(
+            database.Pool,
+            fake.Url.AbsoluteUri,
+            [SeededAgent.Scenario("angry", turns: 3, simulatedUser: Angry)],
+            [
+                new TextCheck
+                {
+                    Key = "greets",
+                    ScenarioKey = "angry",
+                    Contains = "how can I help",
+                },
+            ]
+        );
+
+        var results = await SimulateAsync(agent, RecordedModel.SimulatorAnswering("simulated-message.json"));
+
+        var scenario = Assert.Single(results.Scenarios);
+        var sample = Assert.Single(scenario.Samples);
+        Assert.Equal(SampleStatus.Done, sample.Status);
+        Assert.False(sample.EndedByUser);
+        Assert.Equal(
+            ["AssistantMessage", "UserMessage", "AssistantMessage", "UserMessage", "AssistantMessage"],
+            sample.Output?.Select(item => item.GetType().Name)
+        );
+        Assert.Equal("It arrived broken, I want my money back.", Assert.IsType<UserMessage>(sample.Output?[1]).Text);
+        Assert.Equal(3, sample.TurnDurationsMs?.Count);
+        Assert.Equal(sample.TurnDurationsMs?.Sum(), sample.DurationMs);
+        Assert.True(Assert.Single(scenario.Checks).Passed);
+
+        var bodies = fake.Requests.ToList();
+        Assert.Equal(3, bodies.Count);
+        var id = ConversationIdOf(bodies[0]);
+        Assert.False(string.IsNullOrEmpty(id));
+        Assert.All(bodies, body => Assert.Equal(id, ConversationIdOf(body)));
+        Assert.Equal(5, JsonDocument.Parse(bodies[2]).RootElement.GetProperty("conversation").GetArrayLength());
+    }
+
+    [Fact]
+    public async Task The_simulated_user_may_end_the_conversation_before_the_last_turn()
+    {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.PlainTurn);
+        var agent = await SeededAgent.CreateAsync(
+            database.Pool,
+            fake.Url.AbsoluteUri,
+            [SeededAgent.Scenario("leaves", turns: 5, simulatedUser: Angry)],
+            []
+        );
+
+        var results = await SimulateAsync(agent, RecordedModel.SimulatorAnswering("simulated-message.json", "simulated-end.json"));
+
+        var sample = Assert.Single(Assert.Single(results.Scenarios).Samples);
+        Assert.Equal(SampleStatus.Done, sample.Status);
+        Assert.True(sample.EndedByUser);
+        Assert.Equal(2, fake.Requests.Count);
+        Assert.Equal(2, sample.TurnDurationsMs?.Count);
+    }
+
+    [Fact]
+    public async Task A_conversation_that_ends_with_the_agent_lets_the_simulated_user_open_the_first_turn()
+    {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.PlainTurn);
+        var agent = await SeededAgent.CreateAsync(
+            database.Pool,
+            fake.Url.AbsoluteUri,
+            [
+                SeededAgent.Scenario(
+                    "greeted",
+                    turns: 1,
+                    simulatedUser: Angry,
+                    conversation: [new AssistantMessage { Text = "Hello! How can I help?" }]
+                ),
+            ],
+            []
+        );
+
+        var results = await SimulateAsync(agent, RecordedModel.SimulatorAnswering("simulated-message.json"));
+
+        var sample = Assert.Single(Assert.Single(results.Scenarios).Samples);
+        Assert.Equal(["UserMessage", "AssistantMessage"], sample.Output?.Select(item => item.GetType().Name));
+        Assert.Equal(2, JsonDocument.Parse(Assert.Single(fake.Requests)).RootElement.GetProperty("conversation").GetArrayLength());
+    }
+
+    [Fact]
+    public async Task Checks_of_a_simulation_look_at_every_turn()
+    {
+        await using var fake = await FakeAgent.StartAsync(
+            (_, call) => Results.Text(call == 2 ? FakeAgent.RefundTurn : FakeAgent.PlainTurn, "application/json")
+        );
+        var agent = await SeededAgent.CreateAsync(
+            database.Pool,
+            fake.Url.AbsoluteUri,
+            [SeededAgent.Scenario("later", turns: 3, simulatedUser: Angry)],
+            [
+                SeededAgent.RefundAfterLookup("refunded-at-some-point", "later"),
+                new ToolNotCalledCheck
+                {
+                    Key = "never-refunds-in-the-last-turn",
+                    ScenarioKey = "later",
+                    Tool = "refund_order",
+                    Where = new CheckWhere { Turn = new TurnSelector(TurnSelectorKind.Last) },
+                },
+            ]
+        );
+
+        var results = await SimulateAsync(agent, RecordedModel.SimulatorAnswering("simulated-message.json"));
+
+        var scenario = Assert.Single(results.Scenarios);
+        Assert.All(scenario.Checks, check => Assert.True(check.Passed, check.Key));
+    }
+
+    [Fact]
+    public async Task A_simulated_user_who_cannot_be_played_stops_the_sample_as_not_simulated_and_keeps_what_happened()
+    {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.PlainTurn);
+        var agent = await SeededAgent.CreateAsync(
+            database.Pool,
+            fake.Url.AbsoluteUri,
+            [SeededAgent.Scenario("broken-model", turns: 3, simulatedUser: Angry)],
+            [
+                new TextCheck
+                {
+                    Key = "greets-anyway",
+                    ScenarioKey = "broken-model",
+                    Contains = "Hello",
+                },
+            ]
+        );
+
+        var results = await SimulateAsync(agent, RecordedModel.SimulatorAnswering("garbage.txt"));
+
+        var scenario = Assert.Single(results.Scenarios);
+        var sample = Assert.Single(scenario.Samples);
+        Assert.Equal(SampleStatus.NotSimulated, sample.Status);
+        Assert.StartsWith("Not simulated: the simulator model's answer is not the JSON asked for", sample.Error, StringComparison.Ordinal);
+        Assert.IsType<AssistantMessage>(Assert.Single(sample.Output ?? []));
+        var check = Assert.Single(scenario.Checks);
+        Assert.False(check.Passed);
+        Assert.StartsWith("Not evaluated: Not simulated", check.Samples[0].Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task An_agent_that_fails_in_a_later_turn_fails_the_sample_and_keeps_the_turns_before()
+    {
+        await using var fake = await FakeAgent.StartAsync(
+            (_, call) => call == 1 ? Results.Text(FakeAgent.PlainTurn, "application/json") : Results.StatusCode(500)
+        );
+        var agent = await SeededAgent.CreateAsync(
+            database.Pool,
+            fake.Url.AbsoluteUri,
+            [SeededAgent.Scenario("down-later", turns: 3, simulatedUser: Angry)],
+            []
+        );
+
+        var results = await SimulateAsync(agent, RecordedModel.SimulatorAnswering("simulated-message.json"));
+
+        var sample = Assert.Single(Assert.Single(results.Scenarios).Samples);
+        Assert.Equal(SampleStatus.Failed, sample.Status);
+        Assert.StartsWith("Turn 2: The agent answered 500", sample.Error, StringComparison.Ordinal);
+        Assert.Equal(["AssistantMessage", "UserMessage"], sample.Output?.Select(item => item.GetType().Name));
+        Assert.Equal(2, sample.TurnDurationsMs?.Count);
+    }
+
+    [Fact]
+    public async Task A_scenario_of_one_turn_sends_no_conversation_id()
+    {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.PlainTurn);
+        var agent = await SeededAgent.CreateAsync(database.Pool, fake.Url.AbsoluteUri, [SeededAgent.Scenario("once")], []);
+
+        var results = await RunAsync(agent);
+
+        Assert.Null(ConversationIdOf(Assert.Single(fake.Requests)));
+        var sample = Assert.Single(Assert.Single(results.Scenarios).Samples);
+        Assert.Null(sample.TurnDurationsMs);
+        Assert.False(sample.EndedByUser);
     }
 }

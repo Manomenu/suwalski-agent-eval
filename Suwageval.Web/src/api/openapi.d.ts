@@ -1629,9 +1629,16 @@ export interface components {
         Continuation: {
             /**
              * Format: int32
-             * @description How many agent turns are produced (one: the agent answers the last message).
+             * @description How many agent turns are produced, at most (one: the agent answers the last message). Above one needs
+             *     `simulatedUser`, who writes the user's message that starts each further turn; that user may end the
+             *     conversation earlier.
              */
             turns?: number;
+            /**
+             * @description The user Suwageval plays with a model, in plain words: their goal, temperament, situation, what they know, the language they
+             *     write in. Set means the scenario is a simulation; its checks look at the whole conversation, never at one turn by number.
+             */
+            simulatedUser?: null | string;
         };
         /** @description One entry of the conversation log, told apart by `kind`. */
         ConversationItem: components["schemas"]["ConversationItemUserMessage"] | components["schemas"]["ConversationItemAssistantMessage"] | components["schemas"]["ConversationItemToolCall"] | components["schemas"]["ConversationItemToolResult"] | components["schemas"]["ConversationItemRetrieval"] | components["schemas"]["ConversationItemEvent"];
@@ -2023,7 +2030,11 @@ export interface components {
              */
             sample: number;
             status: components["schemas"]["SampleStatus"];
-            /** @description The items the agent produced; none when the sample failed. */
+            /**
+             * @description The items the agent produced. In a simulation, every turn in order, each turn but one the agent started opening with the simulated
+             *     user's `UserMessage` (the agent never produces one); a simulation that stopped keeps what happened before. None when a sample
+             *     of one turn failed.
+             */
             output?: null | components["schemas"]["ConversationItem"][];
             error?: null | string;
             /**
@@ -2031,6 +2042,13 @@ export interface components {
              * @description How long the call to the agent took, measured by Suwageval (wall-clock, whether it answered or not); null when no call was made.
              */
             durationMs?: null | number;
+            /**
+             * @description In a simulation, how long the agent took for each turn, in order (their sum is `durationMs`; the simulated user's time
+             *     is not in it); null for a scenario of one turn.
+             */
+            turnDurationsMs?: null | number[];
+            /** @description In a simulation, whether the simulated user ended the conversation before the scenario's last turn. */
+            endedByUser?: boolean;
             /**
              * @description Warnings: tool calls and events the agent produced that its version does not declare (`tool 'x'`, `event 'y'`).
              *     Not a failure by itself.
@@ -2041,7 +2059,7 @@ export interface components {
          * @description Whether the agent produced an answer for one sample of a scenario.
          * @enum {unknown}
          */
-        SampleStatus: "Done" | "Failed";
+        SampleStatus: "Done" | "Failed" | "NotSimulated";
         /** @description A frozen moment of a conversation; the agent answers its last message. */
         ScenarioInput: {
             /** @description Lowercase kebab-case, unique within the agent. */

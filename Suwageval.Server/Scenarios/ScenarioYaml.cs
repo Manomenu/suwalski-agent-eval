@@ -29,7 +29,7 @@ internal static class ScenarioYaml
             file["tags"] = source["tags"]!.DeepClone();
         }
         file["conversation"] = new JsonArray([.. ((JsonArray)source["conversation"]!).Select(item => Item((JsonObject)item!))]);
-        if (scenario.Continuation.Turns != new Continuation().Turns)
+        if (scenario.Continuation != new Continuation())
         {
             file["continuation"] = source["continuation"]!.DeepClone();
         }

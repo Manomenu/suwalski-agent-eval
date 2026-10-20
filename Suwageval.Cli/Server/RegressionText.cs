@@ -24,7 +24,7 @@ internal static class RegressionText
             .ToList();
         var agentErrors = results.Scenarios.ToDictionary(
             scenario => scenario.Key,
-            scenario => scenario.Samples.FirstOrDefault(sample => sample.Status == SampleStatus.Failed)?.Error
+            scenario => scenario.Samples.FirstOrDefault(sample => sample.Status is SampleStatus.Failed or SampleStatus.NotSimulated)?.Error
         );
         var text = new StringBuilder();
         text.AppendLine(

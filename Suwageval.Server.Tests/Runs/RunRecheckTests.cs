@@ -81,6 +81,7 @@ public sealed class RunRecheckTests(TestDatabase database) : IAsyncDisposable
                 checks,
                 new AgentStore(database.Pool),
                 new AgentClient(new HttpClient { Timeout = TimeSpan.FromSeconds(10) }),
+                RecordedModel.SimulatorAnswering("simulated-end.json"),
                 answering,
                 argumentJudge,
                 options,
