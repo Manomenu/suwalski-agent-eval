@@ -307,9 +307,11 @@ internal sealed class RunStore(Pool pool)
                 """
                 SELECT sr.id, s.key AS ScenarioKey, sr.scenario_revision AS ScenarioRevision, sr.sample, sr.status,
                        sr.output::text AS Output, sr.error, sr.undeclared::text AS Undeclared,
-                       sr.duration_ms AS DurationMs, sr.scenario_id AS ScenarioId
+                       sr.duration_ms AS DurationMs, sr.scenario_id AS ScenarioId,
+                       rev.content::text AS ScenarioContent, to_jsonb(s.tags)::text AS ScenarioTagsJson
                 FROM scenario_results sr
                 JOIN scenarios s ON s.id = sr.scenario_id
+                JOIN scenario_revisions rev ON rev.scenario_id = sr.scenario_id AND rev.revision = sr.scenario_revision
                 WHERE sr.run_id = @runId
                 ORDER BY s.key, sr.sample
                 """,

@@ -1,6 +1,6 @@
 namespace Suwageval.Server.Runs;
 
-/// <summary>A row of <c>scenario_results</c> with the key of its scenario.</summary>
+/// <summary>A row of <c>scenario_results</c> with the key of its scenario, the content of the revision it ran and the scenario's tags now.</summary>
 internal sealed record ScenarioResultRow(
     Guid Id,
     string ScenarioKey,
@@ -11,5 +11,7 @@ internal sealed record ScenarioResultRow(
     string? Error,
     string Undeclared,
     int? DurationMs,
-    Guid ScenarioId
+    Guid ScenarioId,
+    string ScenarioContent,
+    string ScenarioTagsJson
 );

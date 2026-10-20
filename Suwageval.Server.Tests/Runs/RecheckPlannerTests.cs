@@ -8,7 +8,8 @@ public sealed class RecheckPlannerTests
     private static RecheckPlan Plan(RunStatus status, params ScenarioResultRow[] samples) =>
         RecheckPlanner.Of(status, samples, samples, [], [], [], SeededAgent.ExampleVersion);
 
-    private static ScenarioResultRow Sample(string key) => new(Guid.NewGuid(), key, 1, 1, "Done", "[]", null, "[]", 10, Guid.NewGuid());
+    private static ScenarioResultRow Sample(string key) =>
+        new(Guid.NewGuid(), key, 1, 1, "Done", "[]", null, "[]", 10, Guid.NewGuid(), "{}", "[]");
 
     [Theory]
     [InlineData(RunStatus.Queued)]

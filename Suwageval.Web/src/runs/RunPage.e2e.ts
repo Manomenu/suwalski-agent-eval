@@ -94,3 +94,46 @@ test("a check's definition opens on demand, as the revision the run used", async
         agentServer.close();
     }
 });
+
+test("a scenario's definition opens on demand, as a scenario file with its checks", async ({ page, request }) => {
+    const agentServer = createServer((req, response) => {
+        response.setHeader("content-type", "application/json");
+        if (req.url === "/suwageval/contract") {
+            response.end(
+                JSON.stringify({
+                    label: "e2e-scenario-definition",
+                    agents: [{ name: "main", model: { name: "e2e-model" }, config: "Be helpful." }],
+                }),
+            );
+        } else {
+            response.end(JSON.stringify({ items: [{ kind: "AssistantMessage", text: "Hello there." }] }));
+        }
+    });
+    await new Promise<void>((resolve) => agentServer.listen(0, "localhost", resolve));
+    try {
+        const name = `e2e-scenario-definition-${Date.now()}`;
+        const endpointUrl = `http://localhost:${(agentServer.address() as AddressInfo).port}`;
+        expect((await request.post("/api/agents", { data: { name, endpointUrl } })).ok()).toBe(true);
+        const scenario = { key: "greets", tags: ["smoke"], samples: 1, conversation: [{ kind: "UserMessage", text: "Hello" }] };
+        expect((await request.put(`/api/agents/${name}/scenarios`, { data: { scenarios: [scenario] } })).ok()).toBe(true);
+        const check = { type: "text", key: "says-hello", scenarioKey: "greets", contains: "Hello" };
+        expect((await request.put(`/api/agents/${name}/checks`, { data: { checks: [check] } })).ok()).toBe(true);
+        const created = await request.post("/api/runs", { data: { agent: name } });
+        expect(created.ok()).toBe(true);
+        const { runId } = (await created.json()) as { runId: string };
+        await expect
+            .poll(async () => ((await (await request.get(`/api/runs/${runId}`)).json()) as { status: string }).status, { timeout: 30_000 })
+            .toBe("Done");
+
+        await page.goto(`/runs/${runId}`);
+        await page.getByRole("button", { name: "Show definition of scenario greets", exact: true }).click();
+
+        const dialog = page.getByRole("dialog", { name: "greets", exact: true });
+        await expect(dialog).toContainText("key: greets");
+        await expect(dialog).toContainText("- user: Hello");
+        await expect(dialog).toContainText("type: text");
+        await expect(dialog.getByRole("button", { name: "Copy YAML", exact: true })).toBeVisible();
+    } finally {
+        agentServer.close();
+    }
+});

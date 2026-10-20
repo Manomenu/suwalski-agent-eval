@@ -48,6 +48,7 @@ public sealed class RunComparerTests
         {
             Key = key,
             Revision = 1,
+            DefinitionYaml = "",
             Samples = [],
             Checks = checks,
         };

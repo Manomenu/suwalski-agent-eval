@@ -107,6 +107,7 @@ describe("results", () => {
         const scenario: ScenarioRunResult = {
             key: "s",
             revision: 1,
+            definitionYaml: "",
             samples: [],
             checks: [
                 check([

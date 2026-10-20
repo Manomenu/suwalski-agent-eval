@@ -100,6 +100,7 @@ public sealed class RunCommandTests
                 {
                     Key = "refund-happy-path",
                     Revision = 1,
+                    DefinitionYaml = "",
                     Samples =
                     [
                         new SampleResult
