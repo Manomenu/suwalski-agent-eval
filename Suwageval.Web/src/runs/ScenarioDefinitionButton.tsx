@@ -17,7 +17,7 @@ export function ScenarioDefinitionButton({ scenarioKey, revision, yaml }: { scen
                 <Stack gap="sm">
                     <Group justify="space-between">
                         <Text size="sm" c="dimmed">
-                            {`Revision ${String(revision)}, checks as the run judged them`}
+                            {`Revision ${String(revision)}`}
                         </Text>
                         <CopyButton value={yaml}>
                             {({ copied, copy }) => (

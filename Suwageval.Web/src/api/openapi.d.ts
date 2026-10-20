@@ -2067,8 +2067,8 @@ export interface components {
              */
             revision: number;
             /**
-             * @description The scenario as a scenario file would hold it (docs/scenario-format.md), written from what the server stores: the content of
-             *     int ScenarioRunResult.Revision and the checks in the revisions the run judged with. Its tags are the ones the scenario carries now: tags
+             * @description The scenario as a scenario file would hold it (docs/scenario-format.md), without its samples and checks, which the results show:
+             *     the content of int ScenarioRunResult.Revision, so the definition the run used. Its tags are the ones the scenario carries now: tags
              *     belong to no revision. Comments of the pushed file are not kept.
              */
             definitionYaml: string;
