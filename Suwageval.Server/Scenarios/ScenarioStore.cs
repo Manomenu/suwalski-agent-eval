@@ -125,6 +125,26 @@ internal sealed class ScenarioStore(Pool pool)
         return [.. rows];
     }
 
+    /// <summary>Every scenario of the agent, deleted or not, with the span it existed.</summary>
+    public async Task<IReadOnlyList<ScenarioLifetime>> ListLifetimesAsync(Guid agentId, CancellationToken cancellationToken = default)
+    {
+        await using var connection = await pool.OpenAsync(cancellationToken);
+        var rows = await connection.QueryAsync<ScenarioLifetime>(
+            new CommandDefinition(
+                """
+                SELECT s.key, s.tags, s.deleted_at AS DeletedAt,
+                       (SELECT min(r.created_at) FROM scenario_revisions r WHERE r.scenario_id = s.id) AS CreatedAt
+                FROM scenarios s
+                WHERE s.agent_id = @agentId
+                ORDER BY s.key
+                """,
+                new { agentId },
+                cancellationToken: cancellationToken
+            )
+        );
+        return [.. rows];
+    }
+
     public async Task<ScenarioRow?> GetAsync(Guid agentId, string key, CancellationToken cancellationToken = default)
     {
         await using var connection = await pool.OpenAsync(cancellationToken);

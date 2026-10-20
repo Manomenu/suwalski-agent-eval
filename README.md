@@ -14,7 +14,7 @@ the first three.
 ![Run page: failed checks grouped by state, each with its history](docs/images/run-regressions.png)
 
 **Trends per agent.** Pass rate and turn time over runs, with version changes marked, and the checks that are
-unstable within one version.
+unstable within one version. A run counts toward a tag's line only if it ran every scenario of that tag.
 
 ![Agent page: unstable checks and the pass-rate trend](docs/images/agent-trends.png)
 

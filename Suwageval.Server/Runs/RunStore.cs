@@ -520,6 +520,28 @@ internal sealed class RunStore(Pool pool)
         return [.. rows];
     }
 
+    /// <summary>For the pass-rate trend, in one query: the scenarios every run among <paramref name="runIds"/> ran, those without a check too.</summary>
+    public async Task<IReadOnlyList<TrendScenarioRow>> ListTrendScenariosAsync(
+        IReadOnlyCollection<Guid> runIds,
+        CancellationToken cancellationToken = default
+    )
+    {
+        await using var connection = await pool.OpenAsync(cancellationToken);
+        var rows = await connection.QueryAsync<TrendScenarioRow>(
+            new CommandDefinition(
+                """
+                SELECT DISTINCT sr.run_id AS RunId, s.key AS ScenarioKey
+                FROM scenario_results sr
+                JOIN scenarios s ON s.id = sr.scenario_id
+                WHERE sr.run_id = ANY(@runIds)
+                """,
+                new { runIds = runIds.ToArray() },
+                cancellationToken: cancellationToken
+            )
+        );
+        return [.. rows];
+    }
+
     /// <summary>For the pass-rate trend, in one query: the duration of every sample that made a call, of the runs among <paramref name="runIds"/>.</summary>
     public async Task<IReadOnlyList<TrendDurationRow>> ListTrendDurationsAsync(
         IReadOnlyCollection<Guid> runIds,

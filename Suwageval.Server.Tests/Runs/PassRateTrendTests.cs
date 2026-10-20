@@ -14,11 +14,17 @@ public sealed class PassRateTrendTests
 
     private static (double PassRate, double? MedianMs, double? P95Ms, IReadOnlyList<TagPassRate> Tags)? Rates(
         params Scenario[] scenarios
+    ) => RatesOfCompleteTags(new HashSet<string> { "smoke", "regression" }, scenarios);
+
+    private static (double PassRate, double? MedianMs, double? P95Ms, IReadOnlyList<TagPassRate> Tags)? RatesOfCompleteTags(
+        IReadOnlySet<string> completeTags,
+        params Scenario[] scenarios
     ) =>
         PassRateTrend.Rates(
             [.. scenarios.SelectMany(scenario => scenario.Checks.Select(passed => (scenario.Key, passed)))],
             [.. scenarios.SelectMany(scenario => scenario.Durations.OfType<int>().Select(duration => (scenario.Key, duration)))],
-            Tags
+            Tags,
+            completeTags
         );
 
     private static readonly Dictionary<string, IReadOnlyList<string>> Tags = new()
@@ -49,6 +55,16 @@ public sealed class PassRateTrendTests
         Assert.NotNull(rates);
         Assert.Equal(0.5, rates.Value.PassRate);
         Assert.Equal([new TagPassRate("regression", 1.0, null, null)], rates.Value.Tags);
+    }
+
+    [Fact]
+    public void A_tag_the_run_did_not_cover_whole_has_no_rate_but_its_checks_count_in_the_total()
+    {
+        var rates = RatesOfCompleteTags(new HashSet<string> { "regression" }, Of("a", true, false), Of("b", true, true));
+
+        Assert.NotNull(rates);
+        Assert.Equal(0.75, rates.Value.PassRate);
+        Assert.Equal(["regression"], rates.Value.Tags.Select(tag => tag.Tag));
     }
 
     [Fact]
