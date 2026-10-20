@@ -28,6 +28,7 @@ just db up           # local PostgreSQL on :5463
 just server          # API on :6230 (OpenAPI document at /openapi/v1.json)
 just web             # web app on :3230, proxies /api to the server
 just up              # the whole stack in containers on :8093 — no cluster needed
+just build-images    # only build suwageval-server:local and suwageval-web:local, for another repository's compose stack
 just check           # the quality gate, exactly what CI runs
 just cli validate DIR  # the suwageval CLI from source; `just cli-install` installs it globally
 just tmux-dev        # tmux layout: server, web, example agent, spare shell, CLI shell (SUWAGEVAL_AGENT_DIR sets the agent folder)

@@ -22,7 +22,7 @@ suwageval validate                      # ./suwageval
 suwageval validate path/to/suwageval    # another folder
 suwageval validate scenarios/x.yaml     # one scenario, checked against ./suwageval/agent.yaml (--dir for another)
 suwageval validate - < scenario.yaml    # one scenario from stdin, same
-suwageval validate --endpoint URL       # read the agent's contract from URL instead of agent.yaml's endpointUrl
+suwageval validate --endpoint URL       # read the agent's contract from URL, else $SUWAGEVAL_ENDPOINT_URL, else agent.yaml's endpointUrl
 suwageval validate --offline            # do not ask the agent: the structure only
 suwageval validate --json               # { "valid": bool, "namesChecked": bool, "notice": string|null, "problems": [{ "file", "path", "message" }] }
 ```
@@ -57,7 +57,7 @@ what really ran. A `version:` key is an error.
 | Field | | |
 | --- | --- | --- |
 | `name` | required | the agent's name |
-| `endpointUrl` | required | where the agent is reached: `POST {endpointUrl}/suwageval/turn`, `GET {endpointUrl}/suwageval/contract` |
+| `endpointUrl` | required | where the agent is reached: `POST {endpointUrl}/suwageval/turn`, `GET {endpointUrl}/suwageval/contract`. `validate`, `run` and `rerun` take `--endpoint`, else `SUWAGEVAL_ENDPOINT_URL`, over it (`run` and `rerun`: else the endpoint registered by `push` / of the earlier run); `push` always registers this one |
 | `samples` | optional | how many times each scenario's conversation is sent to the agent by default: 1 to 20, default `3` (see "Samples" under Scenarios; a scenario or a check can set its own) |
 | `regression` | optional | how regressions are found (next block, section "Regressions") |
 | `suwagevalUrl` | optional | where Suwageval is: the address of its web app (the API is under `/api`), an absolute http(s) address. For the CLI only — `push` does not send it and the server does not store it. Used when neither `--server` nor `SUWAGEVAL_URL` is set; without it the default is `http://localhost:3230` |

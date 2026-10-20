@@ -75,6 +75,11 @@ up:
     docker compose up -d --build
     @echo "web   http://localhost:8093"
 
+# Build the images (suwageval-server:local, suwageval-web:local) another repository's stack runs, without starting them
+[group('infra')]
+build-images:
+    docker compose build
+
 # Rebuild the images without the layer cache, then start (slow, on purpose)
 [group('infra')]
 rebuild:
