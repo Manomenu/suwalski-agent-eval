@@ -68,7 +68,7 @@ its `/api`. The address is `--server` on a command, else `SUWAGEVAL_URL`, else `
 | find the agents on the server (the repository has no `agent.yaml`, or the user asks what exists) | `suwageval agents` (`--json`, `--server`): name, endpoint, creation time |
 | list the agent's scenarios | `suwageval scenarios` (`--tag <tag>`, `--json`): key, revision, number of checks, tags |
 | read one scenario as the server stores it | `suwageval scenario <key>` (`--json`): the conversation, every check with its definition, the revisions, the tags. Use it before changing or explaining a scenario that is not in the working tree |
-| see how the pass rate moved over the runs | `suwageval trend` (`--json`): per finished run, oldest first, pass rate, median and p95 turn time and the rate per tag |
+| see how the pass rate moved over the runs | `suwageval trend` (`--json`): per finished run, oldest first, pass rate, median and p95 turn time and the rate per tag (only for a tag whose every scenario the run ran: a `--tag` run has no rate for another tag it ran in part) |
 | list the checks that pass in some runs of a version and fail in others | `suwageval unstable` (`--json`; `--version <id>` repeatable): open ones only, i.e. unstable in the newest version (not archived by default) that ran the check at least twice; per check `scenarioKey`, `checkKey`, `passedRuns` of `runs`, the version; "No unstable checks." when none |
 | list the scenarios where the agent gave no answer (HTTP error, timeout) | `suwageval agent-errors` (`--json`; `--version <id>` repeatable): open ones only, i.e. the newest version (not archived by default) that ran the scenario has errors; per version and scenario `errors` of `samples`, `newestErrorRunId`, `newestError`; "No agent errors." when none. Such samples do not count against checks: an agent that fails here is unreliable itself, not a check to fix |
 | compare 2 to 5 runs of one agent | `suwageval compare <runId> <runId>...`: prints on stdout, no browser (the first run is the baseline): a header per run (version, tag, judge model, pass rate and turn times against the baseline), the pass rate per tag, the checks that differ with the trend (▲ better, ▼ worse), a `judge differs from baseline` warning when the judge model changed. `--json` prints the record. Exit 2 for an unknown run or runs of different agents |
@@ -233,6 +233,7 @@ reached `passThreshold`). Report:
 - **per tag**: the share of passed checks over the scenarios with that tag, per run, and the
   change against the baseline in percentage points (tags are the scenarios' `tags`, from
   `GET {SUWAGEVAL_URL}/api/agents/{agent}/scenarios`; there is no CLI for them, so fetch that);
+  skip a tag for a run that did not run all of its scenarios, as `compare` and `trend` do;
 - **regressions** (passed in the baseline, fails now, or the pass rate fell) and **improvements**
   (the opposite), each with scenario key, check key and the pass rates;
 - checks present in some runs only: say so, they are not a regression;
