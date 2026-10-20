@@ -128,7 +128,7 @@ internal static class RunEndpoints
 
     /// <summary>
     /// The pass-rate trend of an agent: its finished runs that called the agent (the newest <see cref="PassRateTrend.MaxRuns"/>, oldest first) with
-    /// the rate over all checks and per tag and the turn time (median, p95) over the same samples. Tags are the scenarios' current ones; a run with no check is left out. 404: no such agent.
+    /// the rate over all checks and per tag and the turn time (median, p95) over the same samples. A run has a rate for a tag only when it ran every scenario of the tag (<see cref="TagCoverage"/>); a run with no check is left out. 404: no such agent.
     /// </summary>
     private static async Task<IResult> PassRatesAsync(
         string agent,
@@ -145,13 +145,12 @@ internal static class RunEndpoints
         }
         var picked = EffectiveRuns.Pick(await runs.ListAsync(found.Id, cancellationToken), PassRateTrend.MaxRuns);
         var versions = (await agents.ListVersionsAsync(found.Id, cancellationToken)).ToDictionary(version => version.Id);
-        var tagsOf = (await scenarios.ListAsync(found.Id, cancellationToken: cancellationToken)).ToDictionary(
-            scenario => scenario.Key,
-            scenario => (IReadOnlyList<string>)scenario.Tags
-        );
+        var lifetimes = await scenarios.ListLifetimesAsync(found.Id, cancellationToken);
+        var tagsOf = lifetimes.ToDictionary(scenario => scenario.Key, scenario => (IReadOnlyList<string>)scenario.Tags);
         var shownIds = picked.Select(point => point.Shown.Id).ToList();
         var checksOf = (await runs.ListTrendChecksAsync(shownIds, cancellationToken)).ToLookup(row => row.RunId);
         var durationsOf = (await runs.ListTrendDurationsAsync(shownIds, cancellationToken)).ToLookup(row => row.RunId);
+        var ranOf = (await runs.ListTrendScenariosAsync(shownIds, cancellationToken)).ToLookup(row => row.RunId);
         var points = new List<RunPassRates>();
         foreach (var (run, recheck) in picked)
         {
@@ -163,7 +162,8 @@ internal static class RunEndpoints
                             .Select(row => (row.ScenarioKey, RunReport.Reaches(row.SamplesPassed, row.Samples, row.PassThreshold))),
                     ],
                     [.. durationsOf[shown.Id].Select(row => (row.ScenarioKey, row.DurationMs))],
-                    tagsOf
+                    tagsOf,
+                    TagCoverage.CompleteTags(run.CreatedAt, [.. ranOf[shown.Id].Select(row => row.ScenarioKey)], lifetimes)
                 )
                 is not { } rates
             )
@@ -553,11 +553,7 @@ internal static class RunEndpoints
                 )
             );
         }
-        var tagsOf = (await scenarios.ListAsync(rows[0].AgentId, cancellationToken: cancellationToken)).ToDictionary(
-            scenario => scenario.Key,
-            scenario => scenario.Tags
-        );
-        return Results.Ok(RunComparer.Compare(results, tagsOf));
+        return Results.Ok(RunComparer.Compare(results, await scenarios.ListLifetimesAsync(rows[0].AgentId, cancellationToken)));
     }
 
     /// <summary>

@@ -1611,7 +1611,7 @@ export interface components {
         };
         /**
          * @description A row of the per-tag summary: string? ComparedTag.Tag is absent for the row of every check of the run. A check counts once, however many
-         *     samples it has; the tags are the scenarios' current ones (a scenario the agent no longer has counts in the first row only).
+         *     samples it has; a run has a rate for a tag only when it ran every scenario of the tag.
          */
         ComparedTag: {
             tag?: null | string;
@@ -1921,7 +1921,7 @@ export interface components {
              * @description The 95th percentile (nearest rank) of the same turn times, in milliseconds; null when none.
              */
             p95Ms?: null | number;
-            /** @description One rate per tag the run's scenarios carry now, sorted by tag; a scenario without checks adds nothing to its tags. */
+            /** @description One rate per tag whose every scenario the run ran, sorted by tag; a tag it ran only in part is left out. A scenario without checks adds nothing to its tags. */
             tags: components["schemas"]["TagPassRate"][];
         };
         /** @description Starts a run of an agent's scenarios. */
