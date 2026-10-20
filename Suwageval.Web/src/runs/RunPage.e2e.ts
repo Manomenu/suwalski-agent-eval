@@ -95,7 +95,7 @@ test("a check's definition opens on demand, as the revision the run used", async
     }
 });
 
-test("a scenario's definition opens on demand, as a scenario file with its checks", async ({ page, request }) => {
+test("a scenario's definition opens on demand, as a scenario file without its checks and samples", async ({ page, request }) => {
     const agentServer = createServer((req, response) => {
         response.setHeader("content-type", "application/json");
         if (req.url === "/suwageval/contract") {
@@ -131,7 +131,8 @@ test("a scenario's definition opens on demand, as a scenario file with its check
         const dialog = page.getByRole("dialog", { name: "greets", exact: true });
         await expect(dialog).toContainText("key: greets");
         await expect(dialog).toContainText("- user: Hello");
-        await expect(dialog).toContainText("type: text");
+        await expect(dialog).not.toContainText("checks:");
+        await expect(dialog).not.toContainText("samples:");
         await expect(dialog.getByRole("button", { name: "Copy YAML", exact: true })).toBeVisible();
     } finally {
         agentServer.close();

@@ -2,14 +2,13 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using Suwageval.AgentSdk;
-using Suwageval.Contracts.Checks;
 using Suwageval.Contracts.Scenarios;
 using Suwageval.Server.Agents;
 
 namespace Suwageval.Server.Scenarios;
 
 /// <summary>
-/// A scenario with its checks written as a scenario file (docs/scenario-format.md): the fields in the documented order, the conversation
+/// A scenario written as a scenario file (docs/scenario-format.md): the fields in the documented order, the conversation
 /// in the log shorthands (<c>- user:</c>, <c>- assistant:</c>, <c>- tool_call:</c>, <c>- tool_result:</c>, <c>- event:</c>), the full
 /// form with <c>kind:</c> only where a shorthand cannot say the item.
 /// </summary>
@@ -20,13 +19,9 @@ internal static class ScenarioYaml
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
 
-    private static readonly string[] CheckKeysFirst = ["key", "type"];
-    private static readonly string[] CheckKeysLast = ["where", "passThreshold", "samples"];
-
-    public static string Of(ScenarioInput scenario, IEnumerable<CheckInput> checks)
+    public static string Of(ScenarioInput scenario)
     {
         ArgumentNullException.ThrowIfNull(scenario);
-        ArgumentNullException.ThrowIfNull(checks);
         var source = (JsonObject)JsonSerializer.SerializeToNode(scenario, Shape)!;
         var file = new JsonObject { ["key"] = scenario.Key };
         if (scenario.Tags.Count > 0)
@@ -38,17 +33,9 @@ internal static class ScenarioYaml
         {
             file["continuation"] = source["continuation"]!.DeepClone();
         }
-        foreach (var name in new[] { "samples", "fixtures" })
+        if (source["fixtures"] is { } fixtures)
         {
-            if (source[name] is { } value)
-            {
-                file[name] = value.DeepClone();
-            }
-        }
-        var written = checks.Select(Check).ToList();
-        if (written.Count > 0)
-        {
-            file["checks"] = new JsonArray([.. written]);
+            file["fixtures"] = fixtures.DeepClone();
         }
         return ContractYaml.Of(file);
     }
@@ -69,30 +56,6 @@ internal static class ScenarioYaml
             "Event" => new JsonObject { ["event"] = fields },
             _ => item.DeepClone(),
         };
-    }
-
-    private static JsonNode Check(CheckInput check)
-    {
-        var source = (JsonObject)JsonSerializer.SerializeToNode(check, Shape)!;
-        if (source["where"] is JsonObject { Count: 0 })
-        {
-            source.Remove("where");
-        }
-        source.Remove("scenarioKey");
-        var ordered = new JsonObject();
-        foreach (var name in CheckKeysFirst)
-        {
-            ordered[name] = source[name]!.DeepClone();
-        }
-        foreach (var field in source.Where(field => !CheckKeysFirst.Contains(field.Key) && !CheckKeysLast.Contains(field.Key)))
-        {
-            ordered[field.Key] = field.Value?.DeepClone();
-        }
-        foreach (var name in CheckKeysLast.Where(source.ContainsKey))
-        {
-            ordered[name] = source[name]!.DeepClone();
-        }
-        return ordered;
     }
 
     private static KeyValuePair<string, JsonNode?> Copy(KeyValuePair<string, JsonNode?> field, string? name = null) =>

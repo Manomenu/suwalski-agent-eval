@@ -45,10 +45,11 @@ The server has one interface, its HTTP API. Three users reach it:
 - **What the web shows, the CLI prints.** `suwageval agents`, `agent`, `scenarios`, `scenario <key>`, `trend`, `runs`, `results`, `compare` and `versions diff` print on
   stdout (text, or `--json` for the records), so Claude reads them without opening a browser.
 - **A scenario's definition opens on the run page.** The `{ }` button next to a scenario's key opens it as a scenario file
-  (`docs/scenario-format.md`: the log shorthands, the checks inside), highlighted, with a copy button. The server writes it from
-  what it stores: the scenario revision the run used and the check revisions it judged with, so a later push does not change what an
-  old run shows (the tags are the ones the scenario carries now: they belong to no revision). The comments of the pushed file are not
-  kept. `suwageval results <runId> --json` carries the same text as `definitionYaml`.
+  (`docs/scenario-format.md`: key, tags, conversation in the log shorthands, `continuation` when it is not 1 turn, `fixtures`),
+  highlighted, with a copy button. Its `samples` and `checks` are left out: the results show them. The server writes it from the
+  scenario revision the run used, so a later push does not change what an old run shows (the tags are the ones the scenario
+  carries now: they belong to no revision). The comments of the pushed file are not kept. `suwageval results <runId> --json`
+  carries the same text as `definitionYaml`.
 - **Unstable checks are marked.** A model does not answer the same way twice, so a check can pass in
   one run and fail in another of the same agent version: noise, not a regression. Such a check (among
   the newest 200 finished runs, by its pass threshold over the samples; an edited check is another

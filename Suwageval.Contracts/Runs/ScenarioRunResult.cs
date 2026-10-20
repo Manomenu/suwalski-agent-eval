@@ -9,8 +9,8 @@ public sealed record ScenarioRunResult
     public required int Revision { get; init; }
 
     /// <summary>
-    /// The scenario as a scenario file would hold it (docs/scenario-format.md), written from what the server stores: the content of
-    /// <see cref="Revision"/> and the checks in the revisions the run judged with. Its tags are the ones the scenario carries now: tags
+    /// The scenario as a scenario file would hold it (docs/scenario-format.md), without its samples and checks, which the results show:
+    /// the content of <see cref="Revision"/>, so the definition the run used. Its tags are the ones the scenario carries now: tags
     /// belong to no revision. Comments of the pushed file are not kept.
     /// </summary>
     public required string DefinitionYaml { get; init; }

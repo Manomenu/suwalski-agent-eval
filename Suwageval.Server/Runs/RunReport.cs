@@ -65,13 +65,12 @@ internal static class RunReport
                     .SelectMany(sample => verdictsOf[sample.Id])
                     .GroupBy(verdict => verdict.CheckKey)
                     .OrderBy(byCheck => byCheck.Key, StringComparer.Ordinal)
-                    .Select(byCheck => CheckResult(byCheck.Key, [.. byCheck], sampleNumberOf))
-                    .ToList();
+                    .Select(byCheck => CheckResult(byCheck.Key, [.. byCheck], sampleNumberOf));
                 return new ScenarioRunResult
                 {
                     Key = group.Key,
                     Revision = group.Max(sample => sample.ScenarioRevision),
-                    DefinitionYaml = DefinitionYaml(group.MaxBy(sample => sample.ScenarioRevision)!, checks),
+                    DefinitionYaml = DefinitionYaml(group.MaxBy(sample => sample.ScenarioRevision)!),
                     Samples = [.. group.OrderBy(sample => sample.Sample).Select(Sample)],
                     Checks = [.. checks],
                 };
@@ -81,16 +80,10 @@ internal static class RunReport
         return results with { MedianMs = TurnTimes.Median(durations), P95Ms = TurnTimes.P95(durations) };
     }
 
-    private static string DefinitionYaml(ScenarioResultRow sample, IEnumerable<CheckRunResult> checks)
+    private static string DefinitionYaml(ScenarioResultRow sample)
     {
         var scenario = JsonSerializer.Deserialize<ScenarioInput>(sample.ScenarioContent, ContractJson.Options)!;
-        return ScenarioYaml.Of(
-            scenario with
-            {
-                Tags = JsonSerializer.Deserialize<string[]>(sample.ScenarioTagsJson)!,
-            },
-            checks.Select(check => check.Definition)
-        );
+        return ScenarioYaml.Of(scenario with { Tags = JsonSerializer.Deserialize<string[]>(sample.ScenarioTagsJson)! });
     }
 
     private static CheckRunResult CheckResult(string key, IReadOnlyList<CheckResultRow> rows, Dictionary<Guid, int> sampleNumberOf)
