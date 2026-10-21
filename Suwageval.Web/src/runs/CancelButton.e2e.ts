@@ -1,9 +1,8 @@
 // "Cancel run" on a run that is going. The agent holds its answers until the test lets them go, so the run is running, with
 // samples in flight, for exactly as long as the test wants: no timing race.
-import { createServer } from "node:http";
-import type { AddressInfo } from "node:net";
-
 import { expect, test } from "@playwright/test";
+
+import { createAgent, serveAgent, startRun } from "../../e2e/helpers";
 
 test("Cancel run asks first, then the run ends as cancelled", async ({ page, request }) => {
     let release: () => void = () => undefined;
@@ -11,33 +10,22 @@ test("Cancel run asks first, then the run ends as cancelled", async ({ page, req
         release = resolve;
     });
     let asked = 0;
-    const agentServer = createServer((req, response) => {
-        response.setHeader("content-type", "application/json");
-        if (req.url === "/suwageval/contract") {
-            response.end(
-                JSON.stringify({ label: "e2e-cancel", agents: [{ name: "main", model: { name: "e2e-model" }, config: "Be helpful." }] }),
-            );
-            return;
-        }
-        asked++;
-        void released.then(() => {
-            response.end(JSON.stringify({ items: [{ kind: "AssistantMessage", text: "Hello there." }] }));
-        });
+    const agentServer = await serveAgent({
+        label: "e2e-cancel",
+        beforeAnswer: () => {
+            asked++;
+            return released;
+        },
     });
-    await new Promise<void>((resolve) => agentServer.listen(0, "localhost", resolve));
     try {
-        const name = `e2e-cancel-${Date.now()}`;
-        const endpointUrl = `http://localhost:${(agentServer.address() as AddressInfo).port}`;
-        expect((await request.post("/api/agents", { data: { name, endpointUrl } })).ok()).toBe(true);
+        const name = `e2e-cancel-${String(Date.now())}`;
         // More samples than the worker runs at once: the ones waiting never start once the run is cancelled.
         const scenario = { key: "greets", samples: 6, conversation: [{ kind: "UserMessage", text: "Hello" }] };
-        expect((await request.put(`/api/agents/${name}/scenarios`, { data: { scenarios: [scenario] } })).ok()).toBe(true);
-        const created = await request.post("/api/runs", { data: { agent: name } });
-        expect(created.ok()).toBe(true);
-        const { runId } = (await created.json()) as { runId: string };
+        await createAgent(request, { name, endpointUrl: agentServer.endpointUrl, scenarios: [scenario] });
+        const runId = await startRun(request, { agent: name });
 
         await page.goto(`/runs/${runId}`);
-        await expect.poll(() => asked).toBeGreaterThan(0);
+        await expect.poll(() => asked, { intervals: [100, 250, 500] }).toBeGreaterThan(0);
         await expect(page.getByText("running", { exact: true })).toBeVisible();
 
         await page.getByRole("button", { name: "Cancel run", exact: true }).click();

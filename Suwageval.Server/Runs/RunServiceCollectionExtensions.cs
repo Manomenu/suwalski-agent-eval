@@ -17,6 +17,7 @@ internal static class RunServiceCollectionExtensions
             .AddOptions<RunOptions>()
             .Bind(configuration.GetSection(RunOptions.Section))
             .Validate(options => options.MaxParallelScenarios > 0, "Runs:MaxParallelScenarios must be above 0")
+            .Validate(options => options.PollInterval > TimeSpan.Zero, "Runs:PollInterval must be above 0")
             .ValidateOnStart();
         services.AddSingleton<RunStore>().AddSingleton<RunGroupStore>().AddSingleton<RunExecutor>().AddSingleton<RunRechecker>();
         if (startWorker)

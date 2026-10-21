@@ -41,6 +41,11 @@ internal sealed class Pool(NpgsqlDataSource dataSource, int maxSize) : IAsyncDis
             {
                 await connection.DisposeAsync();
             }
+            catch
+            {
+                await connection.DisposeAsync();
+                throw;
+            }
         }
     }
 

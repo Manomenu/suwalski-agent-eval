@@ -26,6 +26,9 @@ else
     "$ROOT/scripts/.internal/db.sh" psql -q -d postgres "${recreate[@]}"
 fi
 
+# Built once here, so the web server below starts the built binary instead of compiling in its own start-up window.
+dotnet build "$ROOT/Suwageval.Server" --nologo -v q
+
 cd "$ROOT/Suwageval.Web"
 [ -d node_modules ] || pnpm install --frozen-lockfile --silent
 exec pnpm exec playwright test -c e2e/playwright.config.ts "$@"

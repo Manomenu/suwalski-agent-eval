@@ -116,11 +116,14 @@ export function hasMorePages(items: unknown[], pages: number): boolean {
     return items.length > pages * PAGE_SIZE;
 }
 
-/** Comparing takes at least two runs and at most five (more would not fit a screen). */
+/** The comparison page takes at least two runs and at most twenty (the server's limit). */
 export const COMPARE_MIN_RUNS = 2;
-export const COMPARE_MAX_RUNS = 5;
+export const COMPARE_MAX_RUNS = 20;
 
-/** The compare page for these runs, the first being the baseline. */
+/** The most runs the page reads against a baseline; more of them are shown side by side without one. */
+export const BASELINE_MAX_RUNS = 5;
+
+/** The compare page for these runs; with a baseline, the first is it. */
 export const compareHref = (runIds: readonly string[]) => `/compare?runs=${runIds.join(",")}`;
 
 /** Whether the selection is a number of runs the compare page accepts. */

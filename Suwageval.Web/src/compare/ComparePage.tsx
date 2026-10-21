@@ -3,7 +3,7 @@ import { useState } from "react";
 
 import { fetchVersion, fetchVersions, type AgentVersion } from "../agents/api";
 import { useLoaded } from "../agents/useLoaded";
-import { agentHref, COMPARE_MAX_RUNS, COMPARE_MIN_RUNS } from "../agents/view";
+import { agentHref, BASELINE_MAX_RUNS, COMPARE_MIN_RUNS } from "../agents/view";
 import { HeaderHelp } from "../runs/HeaderHelp";
 import { ChecksCount, SamplesCount } from "../runs/RunCounts";
 import { durationSummary, percent, RUN_CHECKS_HELP, RUN_SAMPLES_HELP } from "../runs/results";
@@ -60,7 +60,7 @@ function readsAgainstBaseline(selection: ValidSelection, variants: RunVariants):
     return (
         selection.kind === "runs" &&
         variants.runs.length >= COMPARE_MIN_RUNS &&
-        variants.runs.length <= COMPARE_MAX_RUNS &&
+        variants.runs.length <= BASELINE_MAX_RUNS &&
         variants.runs.every((column) => column.run.group == null)
     );
 }

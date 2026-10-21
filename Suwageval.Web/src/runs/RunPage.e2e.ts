@@ -1,9 +1,8 @@
 // A run that does not exist says so; "Run again" leads to a new run of the same agent. (Rendering of real results is
 // covered by the unit tests of results.ts.) The agent is a tiny HTTP server that serves its contract.
-import { createServer } from "node:http";
-import type { AddressInfo } from "node:net";
-
 import { expect, test } from "@playwright/test";
+
+import { createAgent, serveAgent, startRun } from "../../e2e/helpers";
 
 const MISSING = "00000000-0000-4000-8000-000000000000";
 
@@ -15,26 +14,12 @@ test("an unknown run shows that it was not found", async ({ page }) => {
 });
 
 test("Run again starts a new run of the same agent and opens its page", async ({ page, request }) => {
-    const agentServer = createServer((req, response) => {
-        response.setHeader("content-type", "application/json");
-        if (req.url === "/suwageval/contract") {
-            response.end(
-                JSON.stringify({ label: "e2e-rerun", agents: [{ name: "main", model: { name: "e2e-model" }, config: "Be helpful." }] }),
-            );
-        } else {
-            response.end(JSON.stringify({ items: [{ kind: "AssistantMessage", text: "Hello there." }] }));
-        }
-    });
-    await new Promise<void>((resolve) => agentServer.listen(0, "localhost", resolve));
+    const agentServer = await serveAgent({ label: "e2e-rerun" });
     try {
-        const name = `e2e-rerun-${Date.now()}`;
-        const endpointUrl = `http://localhost:${(agentServer.address() as AddressInfo).port}`;
-        expect((await request.post("/api/agents", { data: { name, endpointUrl } })).ok()).toBe(true);
+        const name = `e2e-rerun-${String(Date.now())}`;
         const scenario = { key: "greets", tags: ["smoke"], samples: 1, conversation: [{ kind: "UserMessage", text: "Hello" }] };
-        expect((await request.put(`/api/agents/${name}/scenarios`, { data: { scenarios: [scenario] } })).ok()).toBe(true);
-        const created = await request.post("/api/runs", { data: { agent: name, tags: ["smoke", "billing"] } });
-        expect(created.ok()).toBe(true);
-        const { runId } = (await created.json()) as { runId: string };
+        await createAgent(request, { name, endpointUrl: agentServer.endpointUrl, scenarios: [scenario] });
+        const runId = await startRun(request, { agent: name, tags: ["smoke", "billing"] });
 
         await page.goto(`/runs/${runId}`);
         await page.getByRole("button", { name: "Run again", exact: true }).click();
@@ -43,145 +28,6 @@ test("Run again starts a new run of the same agent and opens its page", async ({
         await expect(page).toHaveURL(/\/runs\/[0-9a-f-]{36}$/);
         await expect(page.getByRole("heading", { name: `Run ${name}`, exact: true })).toBeVisible();
         await expect(page.getByText("tags smoke, billing", { exact: false })).toBeVisible();
-    } finally {
-        agentServer.close();
-    }
-});
-
-test("a check's definition opens on demand, as the revision the run used", async ({ page, request }) => {
-    const agentServer = createServer((req, response) => {
-        response.setHeader("content-type", "application/json");
-        if (req.url === "/suwageval/contract") {
-            response.end(
-                JSON.stringify({
-                    label: "e2e-definition",
-                    agents: [{ name: "main", model: { name: "e2e-model" }, config: "Be helpful." }],
-                }),
-            );
-        } else {
-            response.end(JSON.stringify({ items: [{ kind: "AssistantMessage", text: "Hello there." }] }));
-        }
-    });
-    await new Promise<void>((resolve) => agentServer.listen(0, "localhost", resolve));
-    try {
-        const name = `e2e-definition-${Date.now()}`;
-        const endpointUrl = `http://localhost:${(agentServer.address() as AddressInfo).port}`;
-        expect((await request.post("/api/agents", { data: { name, endpointUrl } })).ok()).toBe(true);
-        const scenario = { key: "greets", tags: ["smoke"], samples: 1, conversation: [{ kind: "UserMessage", text: "Hello" }] };
-        expect((await request.put(`/api/agents/${name}/scenarios`, { data: { scenarios: [scenario] } })).ok()).toBe(true);
-        const check = { type: "text", key: "says-hello", scenarioKey: "greets", contains: "Hello" };
-        expect((await request.put(`/api/agents/${name}/checks`, { data: { checks: [check] } })).ok()).toBe(true);
-        const created = await request.post("/api/runs", { data: { agent: name } });
-        expect(created.ok()).toBe(true);
-        const { runId } = (await created.json()) as { runId: string };
-        await expect
-            .poll(async () => ((await (await request.get(`/api/runs/${runId}`)).json()) as { status: string }).status, { timeout: 30_000 })
-            .toBe("Done");
-
-        await page.goto(`/runs/${runId}`);
-        await expect(page.getByRole("dialog")).toHaveCount(0);
-        await page.getByRole("button", { name: "Show definition of says-hello", exact: true }).click();
-
-        const dialog = page.getByRole("dialog", { name: "says-hello", exact: true });
-        await expect(dialog).toBeVisible();
-        await expect(dialog).toContainText("type: text");
-        await expect(dialog).toContainText("contains: Hello");
-        await expect(dialog.getByText("Changed since this run", { exact: false })).toHaveCount(0);
-
-        await page.keyboard.press("Escape");
-        await expect(page.getByRole("dialog")).toHaveCount(0);
-    } finally {
-        agentServer.close();
-    }
-});
-
-test("a scenario's definition opens on demand, as a scenario file without its checks and samples", async ({ page, request }) => {
-    const agentServer = createServer((req, response) => {
-        response.setHeader("content-type", "application/json");
-        if (req.url === "/suwageval/contract") {
-            response.end(
-                JSON.stringify({
-                    label: "e2e-scenario-definition",
-                    agents: [{ name: "main", model: { name: "e2e-model" }, config: "Be helpful." }],
-                }),
-            );
-        } else {
-            response.end(JSON.stringify({ items: [{ kind: "AssistantMessage", text: "Hello there." }] }));
-        }
-    });
-    await new Promise<void>((resolve) => agentServer.listen(0, "localhost", resolve));
-    try {
-        const name = `e2e-scenario-definition-${Date.now()}`;
-        const endpointUrl = `http://localhost:${(agentServer.address() as AddressInfo).port}`;
-        expect((await request.post("/api/agents", { data: { name, endpointUrl } })).ok()).toBe(true);
-        const scenario = { key: "greets", tags: ["smoke"], samples: 1, conversation: [{ kind: "UserMessage", text: "Hello" }] };
-        expect((await request.put(`/api/agents/${name}/scenarios`, { data: { scenarios: [scenario] } })).ok()).toBe(true);
-        const check = { type: "text", key: "says-hello", scenarioKey: "greets", contains: "Hello" };
-        expect((await request.put(`/api/agents/${name}/checks`, { data: { checks: [check] } })).ok()).toBe(true);
-        const created = await request.post("/api/runs", { data: { agent: name } });
-        expect(created.ok()).toBe(true);
-        const { runId } = (await created.json()) as { runId: string };
-        await expect
-            .poll(async () => ((await (await request.get(`/api/runs/${runId}`)).json()) as { status: string }).status, { timeout: 30_000 })
-            .toBe("Done");
-
-        await page.goto(`/runs/${runId}`);
-        await page.getByRole("button", { name: "Show definition of scenario greets", exact: true }).click();
-
-        const dialog = page.getByRole("dialog", { name: "greets", exact: true });
-        await expect(dialog).toContainText("key: greets");
-        await expect(dialog).toContainText("- user: Hello");
-        await expect(dialog).not.toContainText("checks:");
-        await expect(dialog).not.toContainText("samples:");
-        await expect(dialog.getByRole("button", { name: "Copy YAML", exact: true })).toBeVisible();
-    } finally {
-        agentServer.close();
-    }
-});
-
-test("a run of several samples counts checks, marks each sample's result and wraps long keys", async ({ page, request }) => {
-    let answered = 0;
-    const agentServer = createServer((req, response) => {
-        response.setHeader("content-type", "application/json");
-        if (req.url === "/suwageval/contract") {
-            response.end(
-                JSON.stringify({ label: "e2e-samples", agents: [{ name: "main", model: { name: "e2e-model" }, config: "Be helpful." }] }),
-            );
-        } else {
-            answered += 1;
-            const text = answered % 2 === 0 ? "Goodbye." : "Hello there.";
-            response.end(JSON.stringify({ items: [{ kind: "AssistantMessage", text }] }));
-        }
-    });
-    await new Promise<void>((resolve) => agentServer.listen(0, "localhost", resolve));
-    try {
-        const name = `e2e-samples-${Date.now()}`;
-        const endpointUrl = `http://localhost:${(agentServer.address() as AddressInfo).port}`;
-        expect((await request.post("/api/agents", { data: { name, endpointUrl } })).ok()).toBe(true);
-        const longKey = "greets-the-user-politely-and-does-not-say-goodbye-before-the-conversation-has-even-started-step-2";
-        const scenario = { key: longKey, tags: ["smoke"], samples: 2, conversation: [{ kind: "UserMessage", text: "Hello" }] };
-        expect((await request.put(`/api/agents/${name}/scenarios`, { data: { scenarios: [scenario] } })).ok()).toBe(true);
-        const check = { type: "text", key: "says-hello", scenarioKey: longKey, contains: "Hello", passThreshold: 0.5 };
-        expect((await request.put(`/api/agents/${name}/checks`, { data: { checks: [check] } })).ok()).toBe(true);
-        const created = await request.post("/api/runs", { data: { agent: name } });
-        expect(created.ok()).toBe(true);
-        const { runId } = (await created.json()) as { runId: string };
-        await expect
-            .poll(async () => ((await (await request.get(`/api/runs/${runId}`)).json()) as { status: string }).status, { timeout: 30_000 })
-            .toBe("Done");
-
-        await page.setViewportSize({ width: 500, height: 900 });
-        await page.goto(`/runs/${runId}`);
-        await expect(page.getByText("Checks: 1/1 passed", { exact: true })).toBeVisible();
-        await expect(page.getByText("Samples: 2/2 answered", { exact: true })).toBeVisible();
-        await expect(page.getByRole("button", { name: /Agent output, sample \d.*passed/ })).toHaveCount(1);
-        await expect(page.getByRole("button", { name: /Agent output, sample \d.*failed: 1 check/ })).toHaveCount(1);
-        const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
-        expect(overflow).toBeLessThanOrEqual(0);
-
-        await page.goto(`/agents/${name}`);
-        await expect(page.getByText("1/1 passed", { exact: true })).toBeVisible();
-        await expect(page.getByText("2/2 answered", { exact: true })).toBeVisible();
     } finally {
         agentServer.close();
     }

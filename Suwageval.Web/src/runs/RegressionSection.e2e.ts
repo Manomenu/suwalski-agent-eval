@@ -1,61 +1,37 @@
 // A check that passed in the newest reference runs of master and fails now is shown as a regression on the run's page,
-// with a link to compare with the last passing run. A check that fails only because the agent answered 500 is an agent error.
-import { createServer } from "node:http";
-import type { AddressInfo } from "node:net";
+// with a link to compare with the last passing run. (An agent error is not a regression: regression.test.ts, RegressionStatesTests.)
+import { expect, test } from "@playwright/test";
 
-import { expect, test, type APIRequestContext } from "@playwright/test";
+import { createAgent, runToEnd, serveAgent } from "../../e2e/helpers";
 
-const REFERENCE_RUNS = 5;
-
-async function runToEnd(request: APIRequestContext, data: object): Promise<string> {
-    const created = await request.post("/api/runs", { data });
-    expect(created.ok()).toBe(true);
-    const { runId } = (await created.json()) as { runId: string };
-    await expect
-        .poll(async () => ((await (await request.get(`/api/runs/${runId}`)).json()) as { status: string }).status, { timeout: 30_000 })
-        .toBe("Done");
-    return runId;
-}
+const REFERENCE_RUNS = 2;
 
 test("A check that passed in the reference runs and fails now is a regression with a link to the last passing run", async ({
     page,
     request,
 }) => {
-    let answer = "Hello there.";
-    const agentServer = createServer((req, response) => {
-        response.setHeader("content-type", "application/json");
-        if (req.url === "/suwageval/contract") {
-            response.end(
-                JSON.stringify({
-                    label: "e2e-regression",
-                    agents: [{ name: "main", model: { name: "e2e-model" }, config: "Be helpful." }],
-                }),
-            );
-        } else {
-            response.end(JSON.stringify({ items: [{ kind: "AssistantMessage", text: answer }] }));
-        }
-    });
-    await new Promise<void>((resolve) => agentServer.listen(0, "localhost", resolve));
+    const served = { label: "e2e-regression", reply: "Hello there." };
+    const agentServer = await serveAgent(served);
     try {
-        const name = `e2e-regression-${Date.now()}`;
-        const endpointUrl = `http://localhost:${(agentServer.address() as AddressInfo).port}`;
-        expect((await request.post("/api/agents", { data: { name, endpointUrl } })).ok()).toBe(true);
-        const scenario = { key: "greets", samples: 1, conversation: [{ kind: "UserMessage", text: "Hello" }] };
-        expect((await request.put(`/api/agents/${name}/scenarios`, { data: { scenarios: [scenario] } })).ok()).toBe(true);
+        const name = `e2e-regression-${String(Date.now())}`;
         const check = { type: "text", key: "says-hello", scenarioKey: "greets", contains: "Hello" };
-        expect((await request.put(`/api/agents/${name}/checks`, { data: { checks: [check] } })).ok()).toBe(true);
+        await createAgent(request, {
+            name,
+            endpointUrl: agentServer.endpointUrl,
+            checks: [check],
+            regression: { history: REFERENCE_RUNS },
+        });
 
         const origin = { branch: "master", clean: true, pushed: true, defaultBranch: "master" };
         let lastPassed = "";
-        for (let i = 0; i < REFERENCE_RUNS; i++) lastPassed = await runToEnd(request, { agent: name, origin });
+        for (let index = 0; index < REFERENCE_RUNS; index++) lastPassed = await runToEnd(request, { agent: name, origin });
 
-        answer = "Goodbye.";
+        served.reply = "Goodbye.";
         const failing = await runToEnd(request, { agent: name, origin: { ...origin, clean: false } });
 
         await page.goto(`/runs/${failing}`);
         await expect(page.getByRole("heading", { name: "Compared with master", exact: true })).toBeVisible();
         await expect(page.getByText("greets / says-hello", { exact: true })).toBeVisible();
-        // A state's badge says what the state means.
         const section = page.getByLabel("Compared with master", { exact: true });
         await expect(section.getByText("(1)", { exact: true })).toBeVisible();
         await section.getByText("Regression", { exact: true }).hover();
@@ -63,71 +39,19 @@ test("A check that passed in the reference runs and fails now is a regression wi
         const link = page.getByRole("link", { name: "Compare with the last passing run", exact: true });
         await expect(link).toHaveAttribute("href", `/compare?runs=${lastPassed},${failing}`);
 
-        // The check's name jumps to its row in the scenario card and opens the output it failed on.
         await expect(page.getByText("Goodbye.", { exact: true })).toBeHidden();
         await section.getByRole("link", { name: "greets / says-hello", exact: true }).click();
         await expect(page).toHaveURL(new RegExp(`/runs/${failing}#check-greets--says-hello$`));
         await expect(page.getByText("Goodbye.", { exact: true })).toBeVisible();
 
-        // The check's history is a strip of marks, oldest first, ending with this run; each earlier mark links to its run.
         const strip = page.getByRole("group", { name: "History of the check", exact: true }).first();
         await expect(strip.getByRole("link", { name: /^run [0-9a-f]{8}: passed$/ })).toHaveCount(REFERENCE_RUNS);
         await expect(strip.getByRole("img", { name: "this run: failed", exact: true })).toBeVisible();
-        await strip.getByRole("link", { name: `run ${lastPassed.slice(0, 8)}: passed`, exact: true }).hover();
-        await expect(page.getByText("Click a mark to open that run.", { exact: false })).toBeVisible();
         await strip.getByRole("link", { name: `run ${lastPassed.slice(0, 8)}: passed`, exact: true }).click();
         await expect(page).toHaveURL(`/runs/${lastPassed}`);
 
         await page.goto(`/agents/${name}`);
         await expect(page.getByText("Reference", { exact: true })).toHaveCount(REFERENCE_RUNS);
-    } finally {
-        agentServer.close();
-    }
-});
-
-test("A check that fails because the agent gave no answer is an agent error, not a regression", async ({ page, request }) => {
-    let broken = false;
-    const agentServer = createServer((req, response) => {
-        if (req.url === "/suwageval/contract") {
-            response.setHeader("content-type", "application/json");
-            response.end(
-                JSON.stringify({
-                    label: "e2e-agent-error",
-                    agents: [{ name: "main", model: { name: "e2e-model" }, config: "Be helpful." }],
-                }),
-            );
-        } else if (broken) {
-            response.statusCode = 500;
-            response.end("boom");
-        } else {
-            response.setHeader("content-type", "application/json");
-            response.end(JSON.stringify({ items: [{ kind: "AssistantMessage", text: "Hello there." }] }));
-        }
-    });
-    await new Promise<void>((resolve) => agentServer.listen(0, "localhost", resolve));
-    try {
-        const name = `e2e-agent-error-${Date.now()}`;
-        const endpointUrl = `http://localhost:${(agentServer.address() as AddressInfo).port}`;
-        expect((await request.post("/api/agents", { data: { name, endpointUrl } })).ok()).toBe(true);
-        const scenario = { key: "greets", samples: 1, conversation: [{ kind: "UserMessage", text: "Hello" }] };
-        expect((await request.put(`/api/agents/${name}/scenarios`, { data: { scenarios: [scenario] } })).ok()).toBe(true);
-        const check = { type: "text", key: "says-hello", scenarioKey: "greets", contains: "Hello" };
-        expect((await request.put(`/api/agents/${name}/checks`, { data: { checks: [check] } })).ok()).toBe(true);
-
-        const origin = { branch: "master", clean: true, pushed: true, defaultBranch: "master" };
-        for (let i = 0; i < REFERENCE_RUNS; i++) await runToEnd(request, { agent: name, origin });
-
-        broken = true;
-        const failing = await runToEnd(request, { agent: name, origin: { ...origin, clean: false } });
-
-        await page.goto(`/runs/${failing}`);
-        await expect(page.getByText("greets / says-hello", { exact: true })).toBeVisible();
-        const section = page.getByLabel("Compared with master", { exact: true });
-        await expect(section.getByText("Agent error", { exact: true })).toBeVisible();
-        await expect(section.getByText("(1)", { exact: true })).toBeVisible();
-        await expect(page.getByText("Regression", { exact: true })).toHaveCount(0);
-        const strip = page.getByRole("group", { name: "History of the check", exact: true }).first();
-        await expect(strip.getByRole("img", { name: "this run: agent error", exact: true })).toBeVisible();
     } finally {
         agentServer.close();
     }

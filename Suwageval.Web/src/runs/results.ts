@@ -8,9 +8,6 @@ type Status = RunSummary["status"];
 /** The page of a run. */
 export const runHref = (runId: string) => `/runs/${runId}`;
 
-/** The variants page of runs named one by one (the sweep script prints the same address). */
-export const variantsRunsHref = (runIds: readonly string[]) => `/variants?runs=${runIds.join(",")}`;
-
 /** The variants page of the runs of a group; `agent` says whose, for a group name used by several agents. */
 export const variantsGroupHref = (group: string, agent: string) => `/variants?${new URLSearchParams({ group, agent }).toString()}`;
 

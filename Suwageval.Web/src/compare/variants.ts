@@ -1,9 +1,7 @@
 // What the comparison page shows of what the server computed (`GET /runs/variants`): which runs the address asks for, and the titles,
 // texts, grouping and highlighting of its table. What passed, every rate and every turn time is the server's.
+import { COMPARE_MAX_RUNS } from "../agents/view";
 import type { ComparedRate, ComparedTag, VariantCell, VariantCheck, VariantRun, VariantScenario } from "./api";
-
-/** The most runs the page shows (the server's limit). */
-export const VARIANTS_MAX_RUNS = 20;
 
 const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -27,7 +25,7 @@ export function selectionOf(runs: string, group: string, agent: string): Variant
     if (group !== "") return { kind: "group", group, agent: agent === "" ? null : agent };
     const bad = ids.find((id) => !GUID.test(id));
     if (bad !== undefined) return { kind: "error", message: `"${bad}" is not a run id.` };
-    if (ids.length > VARIANTS_MAX_RUNS) return { kind: "error", message: `Choose at most ${String(VARIANTS_MAX_RUNS)} runs.` };
+    if (ids.length > COMPARE_MAX_RUNS) return { kind: "error", message: `Choose at most ${String(COMPARE_MAX_RUNS)} runs.` };
     return { kind: "runs", ids };
 }
 

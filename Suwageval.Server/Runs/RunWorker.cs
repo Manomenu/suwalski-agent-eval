@@ -1,15 +1,21 @@
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.Extensions.Options;
 
 namespace Suwageval.Server.Runs;
 
 /// <summary>
-/// The queue's consumer, inside the server: takes the oldest queued run, carries it out, looks again; sleeps a second when
-/// there is nothing to do. One run at a time per server — a run already fills its own degree of parallelism.
+/// The queue's consumer, inside the server: takes the oldest queued run, carries it out, looks again; sleeps for
+/// <see cref="RunOptions.PollInterval"/> when there is nothing to do. One run at a time per server — a run already fills its own degree of parallelism.
 /// </summary>
-internal sealed partial class RunWorker(RunStore runs, RunExecutor executor, RunRechecker rechecker, ILogger<RunWorker> logger)
-    : BackgroundService
+internal sealed partial class RunWorker(
+    RunStore runs,
+    RunExecutor executor,
+    RunRechecker rechecker,
+    IOptions<RunOptions> options,
+    ILogger<RunWorker> logger
+) : BackgroundService
 {
-    private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(1);
+    private readonly TimeSpan _pollInterval = options.Value.PollInterval;
 
     [SuppressMessage(
         "Design",
@@ -28,7 +34,7 @@ internal sealed partial class RunWorker(RunStore runs, RunExecutor executor, Run
                     await (run.RecheckOf is null ? executor.ExecuteAsync(run, stoppingToken) : rechecker.ExecuteAsync(run, stoppingToken));
                     continue;
                 }
-                await Task.Delay(PollInterval, stoppingToken);
+                await Task.Delay(_pollInterval, stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -37,7 +43,7 @@ internal sealed partial class RunWorker(RunStore runs, RunExecutor executor, Run
             catch (Exception error)
             {
                 LogPollFailed(error);
-                await Task.Delay(PollInterval, stoppingToken);
+                await Task.Delay(_pollInterval, stoppingToken);
             }
         }
     }
