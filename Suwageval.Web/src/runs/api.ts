@@ -20,8 +20,14 @@ export type RegressionSummary = components["schemas"]["RegressionSummary"];
 export type ConversationItem = components["schemas"]["ConversationItem"];
 
 /** One page of the runs of one agent (by name), newest first; see `runsPath`. */
-export function fetchRuns(agent: string, before: string | null, versionIds: readonly string[], signal: AbortSignal): Promise<RunList> {
-    return request<RunList>(runsPath(agent, before, versionIds), { signal });
+export function fetchRuns(
+    agent: string,
+    before: string | null,
+    versionIds: readonly string[],
+    group: string | null,
+    signal: AbortSignal,
+): Promise<RunList> {
+    return request<RunList>(runsPath(agent, before, versionIds, group), { signal });
 }
 
 export function fetchRunResults(runId: string, signal: AbortSignal): Promise<RunResults> {

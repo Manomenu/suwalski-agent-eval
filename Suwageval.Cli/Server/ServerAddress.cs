@@ -38,6 +38,15 @@ internal static class ServerAddress
     /// <summary>The web page comparing runs; the first is the baseline.</summary>
     public static Uri ComparePage(Uri site, IEnumerable<Guid> runIds) => new(site, $"compare?runs={string.Join(',', runIds)}");
 
+    /// <summary>The variants page of runs named one by one, or of the runs of a group (of <paramref name="agent"/>, when known).</summary>
+    public static Uri VariantsPage(Uri site, IReadOnlyCollection<Guid> runIds, string? group, string? agent) =>
+        new(
+            site,
+            group is null
+                ? $"variants?runs={string.Join(',', runIds)}"
+                : $"variants?group={Uri.EscapeDataString(group)}{(agent is null ? "" : $"&agent={Uri.EscapeDataString(agent)}")}"
+        );
+
     /// <summary>The web page showing what changed between two versions of an agent.</summary>
     public static Uri VersionComparePage(Uri site, string agent, Guid a, Guid b) =>
         new(site, $"agents/{Uri.EscapeDataString(agent)}/versions/compare?a={a}&b={b}");

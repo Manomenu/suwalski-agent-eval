@@ -22,6 +22,7 @@ internal static class RunEndpoints
         app.MapPost("/runs", CreateAsync).Produces<RunCreated>(StatusCodes.Status202Accepted);
         app.MapGet("/runs", ListAsync).Produces<RunList>();
         app.MapGet("/runs/compare", CompareAsync).Produces<RunComparison>();
+        app.MapVariants();
         app.MapGet("/runs/{id:guid}", GetAsync).Produces<RunSummary>();
         app.MapGet("/runs/{id:guid}/results", ResultsAsync).Produces<RunResults>();
         app.MapPost("/runs/{id:guid}/rerun", RerunAsync).Produces<RunCreated>(StatusCodes.Status202Accepted);

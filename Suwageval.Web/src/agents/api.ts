@@ -52,6 +52,13 @@ export async function deleteAgent(name: string): Promise<void> {
     await request<undefined>(agentPath(name), { method: "DELETE" });
 }
 
+export type RunGroupSummary = components["schemas"]["RunGroupSummary"];
+
+/** The groups of the agent's runs (run --group), the one with the newest run first. */
+export function fetchRunGroups(name: string, signal: AbortSignal): Promise<RunGroupSummary[]> {
+    return request<RunGroupSummary[]>(`${agentPath(name)}/run-groups`, { signal });
+}
+
 export type RunPassRates = components["schemas"]["RunPassRates"];
 
 /** The pass rate of the agent's finished runs, oldest first (the newest 50 at most). */

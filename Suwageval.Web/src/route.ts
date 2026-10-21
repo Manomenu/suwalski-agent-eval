@@ -14,6 +14,7 @@ export type Page =
     | { kind: "versionCompare"; name: string; a: string; b: string }
     | { kind: "run"; runId: string }
     | { kind: "compare"; runs: string }
+    | { kind: "variants"; runs: string; group: string; agent: string }
     | { kind: "unknown" };
 
 function decode(segment: string): string | null {
@@ -27,12 +28,18 @@ function decode(segment: string): string | null {
 /**
  * The page a path opens: `/`, `/agents/<name>`, `/agents/<name>/versions/<guid>`, `/runs/<guid>` (which `suwageval results` opens)
  * `/agents/<name>/versions/compare?a=<guid>&b=<guid>` (what changed between two versions; `suwageval versions diff` opens it),
- * or `/compare?runs=<guid>,<guid>,…` (which `suwageval compare` opens; `runs` is passed on as it is, the page checks it).
+ * `/compare?runs=<guid>,<guid>,…` (which `suwageval compare` opens; `runs` is passed on as it is, the page checks it),
+ * or `/variants?runs=<guid>,…` / `/variants?group=<name>[&agent=<name>]` (the runs of a sweep side by side; `suwageval variants` opens it).
  */
 export function pageOf(pathname: string, search = ""): Page {
     if (pathname === "/") return { kind: "agents" };
     if (pathname === "/compare" || pathname === "/compare/")
         return { kind: "compare", runs: new URLSearchParams(search).get("runs") ?? "" };
+
+    if (pathname === "/variants" || pathname === "/variants/") {
+        const query = new URLSearchParams(search);
+        return { kind: "variants", runs: query.get("runs") ?? "", group: query.get("group") ?? "", agent: query.get("agent") ?? "" };
+    }
 
     const run = RUN_PATH.exec(pathname);
     if (run?.[1]) return { kind: "run", runId: run[1] };

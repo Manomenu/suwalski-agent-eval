@@ -88,6 +88,16 @@ export default defineConfig(
                             from: { element: { type: "feature", captured: { name: "compare" } } },
                             allow: { to: { element: { type: "feature", captured: { name: "agents" } } } },
                         },
+                        // The variants page is the compare page's sibling: the same runs and agents, the same reasons; the
+                        // agent and run pages link to it by paths of their own (runs/results.ts), so the edges go one way.
+                        {
+                            from: { element: { type: "feature", captured: { name: "variants" } } },
+                            allow: { to: { element: { type: "feature", captured: { name: "runs" } } } },
+                        },
+                        {
+                            from: { element: { type: "feature", captured: { name: "variants" } } },
+                            allow: { to: { element: { type: "feature", captured: { name: "agents" } } } },
+                        },
                         // The run page and the compare table both show a check's definition, as the run used it, in a
                         // drawer: checks/ owns the button, the YAML and the syntax highlighter, runs/ and compare/ place it.
                         {

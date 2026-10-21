@@ -6,7 +6,7 @@
 
 const BASE = import.meta.env.VITE_API_BASE ?? "/api";
 
-/** The error a failed response carries: the server's `detail` when it sent one, and the status to tell answers apart by. */
+/** The error a failed response carries: the server's `detail` (or, for a validation problem, its field messages), and the status to tell answers apart by. */
 export class ApiError extends Error {
     constructor(
         message: string,
@@ -22,9 +22,16 @@ export function isNotFound(error: Error): boolean {
 }
 
 export async function toError(response: Response): Promise<ApiError> {
-    const body = (await response.json().catch(() => null)) as { detail?: unknown } | null;
+    const body = (await response.json().catch(() => null)) as { detail?: unknown; errors?: Record<string, string[]> } | null;
     const detail = body?.detail;
-    return new ApiError(typeof detail === "string" ? detail : `${response.status} ${response.statusText}`, response.status);
+    const fieldMessages = Object.values(body?.errors ?? {}).flat();
+    const message =
+        typeof detail === "string"
+            ? detail
+            : fieldMessages.length > 0
+              ? fieldMessages.join(" ")
+              : `${response.status} ${response.statusText}`;
+    return new ApiError(message, response.status);
 }
 
 /** A JSON call to the API: the parsed body, or the error the response carries. */

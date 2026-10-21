@@ -276,6 +276,23 @@ internal sealed class ServerClient(HttpClient http)
             cancellationToken
         );
 
+    /// <summary>The runs named by <paramref name="runIds"/>, or those of <paramref name="group"/> (of <paramref name="agent"/> when given), as variants.</summary>
+    public Task<RunVariants> VariantsAsync(
+        IReadOnlyCollection<Guid> runIds,
+        string? group,
+        string? agent,
+        CancellationToken cancellationToken
+    )
+    {
+        var query = group is null
+            ? string.Join('&', runIds.Select(id => $"runs={id}"))
+            : $"group={Uri.EscapeDataString(group)}{(agent is null ? "" : $"&agent={Uri.EscapeDataString(agent)}")}";
+        return SendAsync<RunVariants>(
+            () => http.GetAsync(new Uri($"runs/variants?{query}", UriKind.Relative), cancellationToken),
+            cancellationToken
+        );
+    }
+
     /// <summary>What changed between two versions of the agent, line by line.</summary>
     public Task<VersionDiff> VersionDiffAsync(string agent, Guid from, Guid to, CancellationToken cancellationToken) =>
         SendAsync<VersionDiff>(
