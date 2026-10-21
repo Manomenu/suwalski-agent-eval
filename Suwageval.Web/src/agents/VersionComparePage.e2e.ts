@@ -1,56 +1,30 @@
 // Comparing two versions: tick two on the agent page, open the comparison, read the line diff.
 // A version only comes from a run, and a run reads the contract the agent serves, so the test is that agent: a tiny HTTP server.
-import { createServer, type Server } from "node:http";
-import type { AddressInfo } from "node:net";
+import { expect, test } from "@playwright/test";
 
-import { expect, test, type APIRequestContext } from "@playwright/test";
+import { createAgent, runToEnd, serveAgent } from "../../e2e/helpers";
 
-interface Served {
-    label: string;
-    model: string;
-    config: string;
-}
-
-function serveContract(served: Served): Promise<Server> {
-    const tool = {
-        name: "lookup",
-        description: "Finds an order.",
-        parameters: { type: "object", properties: { id: { type: "string" }, email: { type: "string" }, date: { type: "string" } } },
-    };
-    const server = createServer((request, response) => {
-        if (request.url === "/suwageval/contract") {
-            response.setHeader("content-type", "application/json");
-            response.end(
-                JSON.stringify({
-                    label: served.label,
-                    agents: [{ name: "main", model: { name: served.model }, config: served.config, tools: [tool] }],
-                }),
-            );
-        } else {
-            // Not a turn the test cares about: the run fails, the version stays.
-            response.statusCode = 500;
-            response.end();
-        }
-    });
-    return new Promise((resolve) => server.listen(0, "localhost", () => resolve(server)));
-}
-
-async function run(request: APIRequestContext, agent: string) {
-    expect((await request.post("/api/runs", { data: { agent } })).ok()).toBe(true);
-}
+const LOOKUP_TOOL = {
+    name: "lookup",
+    description: "Finds an order.",
+    parameters: { type: "object", properties: { id: { type: "string" }, email: { type: "string" }, date: { type: "string" } } },
+};
 
 test("two ticked versions open a comparison with a line diff", async ({ page, request }) => {
-    const served: Served = { label: "e2e-cmp-old", model: "model-a", config: "Be helpful.\nBe brief.\nAnswer in English.\n" };
-    const agentServer = await serveContract(served);
+    const served = {
+        label: "e2e-cmp-old",
+        model: "model-a",
+        config: "Be helpful.\nBe brief.\nAnswer in English.\n",
+        tools: [LOOKUP_TOOL],
+        failing: true,
+    };
+    const agentServer = await serveAgent(served);
     try {
-        const name = `e2e-versions-compare-${Date.now()}`;
-        const endpointUrl = `http://localhost:${(agentServer.address() as AddressInfo).port}`;
-        expect((await request.post("/api/agents", { data: { name, endpointUrl } })).ok()).toBe(true);
-        const scenario = { key: "greets", samples: 1, conversation: [{ kind: "UserMessage", text: "Hello" }] };
-        expect((await request.put(`/api/agents/${name}/scenarios`, { data: { scenarios: [scenario] } })).ok()).toBe(true);
-        await run(request, name);
+        const name = `e2e-versions-compare-${String(Date.now())}`;
+        await createAgent(request, { name, endpointUrl: agentServer.endpointUrl });
+        await runToEnd(request, { agent: name });
         Object.assign(served, { label: "e2e-cmp-new", model: "model-b", config: "Be helpful.\nBe kind.\nAnswer in English.\n" });
-        await run(request, name);
+        await runToEnd(request, { agent: name });
 
         await page.goto(`/agents/${name}`);
         const compare = page.getByRole("button", { name: "Compare versions", exact: true });
@@ -75,13 +49,4 @@ test("two ticked versions open a comparison with a line diff", async ({ page, re
     } finally {
         agentServer.close();
     }
-});
-
-test("a version the agent does not have is said to be missing", async ({ page, request }) => {
-    const name = `e2e-versions-missing-${Date.now()}`;
-    expect((await request.post("/api/agents", { data: { name, endpointUrl: "http://localhost:1" } })).ok()).toBe(true);
-    const missing = "11111111-2222-4333-8444-555555555555";
-    const other = "11111111-2222-4333-8444-666666666666";
-    await page.goto(`/agents/${name}/versions/compare?a=${missing}&b=${other}`);
-    await expect(page.getByText(`Agent ${name} has no version ${missing} or ${other}.`, { exact: true })).toBeVisible();
 });

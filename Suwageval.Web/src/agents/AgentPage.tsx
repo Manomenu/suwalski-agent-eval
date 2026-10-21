@@ -28,7 +28,6 @@ import {
     statusColor,
     statusLabel,
     variantsGroupHref,
-    variantsRunsHref,
 } from "../runs/results";
 import { fetchAgent, fetchPassRates, fetchRunGroups, fetchVersions, type AgentVersion, type RunGroupSummary } from "./api";
 import { AgentErrorsCard } from "./AgentErrorsCard";
@@ -260,27 +259,15 @@ function AgentView({
                                 miw={MODEL_FILTER_MIN_WIDTH}
                             />
                         </Group>
-                        <Group gap="sm">
-                            <Button
-                                disabled={!canCompare(toCompare.length)}
-                                title={`Select ${COMPARE_MIN_RUNS} to ${COMPARE_MAX_RUNS} runs to compare`}
-                                onClick={() => {
-                                    window.location.assign(compareHref(toCompare));
-                                }}
-                            >
-                                Compare ({toCompare.length})
-                            </Button>
-                            <Button
-                                variant="light"
-                                disabled={toCompare.length === 0}
-                                title="Select runs to see them side by side as variants (one column per run)"
-                                onClick={() => {
-                                    window.location.assign(variantsRunsHref(toCompare));
-                                }}
-                            >
-                                Compare variants ({toCompare.length})
-                            </Button>
-                        </Group>
+                        <Button
+                            disabled={!canCompare(toCompare.length)}
+                            title={`Select ${COMPARE_MIN_RUNS} to ${COMPARE_MAX_RUNS} runs to compare`}
+                            onClick={() => {
+                                window.location.assign(compareHref(toCompare));
+                            }}
+                        >
+                            Compare ({toCompare.length})
+                        </Button>
                     </Group>
                     {error !== null && (
                         <Alert color="red" title="Could not load the runs">

@@ -36,8 +36,7 @@ The server has one interface, its HTTP API. Three users reach it:
   no, the run goes on and the exit code is 130. Without a terminal to ask on (a CI job being stopped) the
   run is cancelled, since nobody would read its results. For machines, `--json` on either prints the results (and opens nothing).
 - **Runs are compared on one page.** `/compare?runs=<id>,<id>,…` and `/variants?group=<name>[&agent=<name>]` (or
-  `/variants?runs=<id>,…`) open the same page: a column per run. On an agent's page tick runs and press **Compare** or **Compare
-  variants**, or open a group from its **Groups** section; `suwageval compare <runId> <runId> …` and `suwageval variants` print
+  `/variants?runs=<id>,…`) open the same page: a column per run. On an agent's page tick runs and press **Compare**, or open a group from its **Groups** section; `suwageval compare <runId> <runId> …` and `suwageval variants` print
   the same data on stdout (`--json` for the records, `--open` for the page) and `suwageval runs` lists the runs to pick from. Claude
   reads the printed table instead of opening a browser. A column header says what each line is: the run's label as the title
   (else "Unlabelled"), **Version** and **Run** links that say where they lead, the models, the data version, the tags the run was

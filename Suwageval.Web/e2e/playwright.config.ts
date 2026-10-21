@@ -35,18 +35,20 @@ export default defineConfig({
     projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } } }],
     webServer: [
         {
-            command: "dotnet run --project Suwageval.Server --no-launch-profile",
+            command: "dotnet run --project Suwageval.Server --no-build --no-launch-profile",
             cwd: "../..",
             url: `http://localhost:${SERVER_PORT}/health`,
             env: {
                 ASPNETCORE_URLS: `http://localhost:${SERVER_PORT}`,
+                // The worker looks at the queue ten times a second, not once: every test waits for runs, and the default would be most of that wait.
+                Runs__PollInterval: "00:00:00.100",
                 ConnectionStrings__Default:
                     process.env["E2E_CONNECTION_STRING"] ??
                     `Host=localhost;Port=5463;Database=${DATABASE};Username=suwageval;Password=suwageval`,
             },
             reuseExistingServer: false,
-            // The first run compiles the server.
-            timeout: 180_000,
+            // e2e.sh builds the server first; this only starts it and waits for its migrations.
+            timeout: 60_000,
         },
         {
             command: `pnpm exec vite --port ${WEB_PORT} --strictPort`,

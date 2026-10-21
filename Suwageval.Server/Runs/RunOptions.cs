@@ -10,4 +10,7 @@ internal sealed class RunOptions
     /// own, which Suwageval cannot see — this is what protects it (TODO.md, "Parallel runs").
     /// </summary>
     public int MaxParallelScenarios { get; set; } = 2;
+
+    /// <summary>How long the worker sleeps when the queue is empty; the browser tests shorten it so a run starts at once.</summary>
+    public TimeSpan PollInterval { get; set; } = TimeSpan.FromSeconds(1);
 }

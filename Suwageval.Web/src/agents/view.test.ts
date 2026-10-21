@@ -134,8 +134,8 @@ describe("modelsOf", () => {
 });
 
 describe("comparing", () => {
-    it("accepts two to five runs", () => {
-        expect([0, 1, 2, 5, 6].map(canCompare)).toEqual([false, false, true, true, false]);
+    it("accepts two to twenty runs", () => {
+        expect([0, 1, 2, 20, 21].map(canCompare)).toEqual([false, false, true, true, false]);
     });
 
     it("links the runs in the order given", () => {

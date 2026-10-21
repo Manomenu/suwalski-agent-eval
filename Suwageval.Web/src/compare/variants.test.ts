@@ -17,9 +17,9 @@ import {
     scenarioDiffers,
     scenarioSections,
     selectionOf,
-    VARIANTS_MAX_RUNS,
     visibleTagRows,
 } from "./variants";
+import { COMPARE_MAX_RUNS } from "../agents/view";
 
 const ID = "3f2b8c1e-5d4a-4e6f-9a7b-0c1d2e3f4a5b";
 const OTHER = "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d";
@@ -38,7 +38,7 @@ describe("selectionOf", () => {
         expect(selectionOf(ID, "sweep-1", "").kind).toBe("error");
         expect(selectionOf("", "", "").kind).toBe("error");
         expect(selectionOf("nope", "", "")).toEqual({ kind: "error", message: '"nope" is not a run id.' });
-        const many = Array.from({ length: VARIANTS_MAX_RUNS + 1 }, (_, index) => `${ID.slice(0, -2)}${String(10 + index)}`).join(",");
+        const many = Array.from({ length: COMPARE_MAX_RUNS + 1 }, (_, index) => `${ID.slice(0, -2)}${String(10 + index)}`).join(",");
         expect(selectionOf(many, "", "").kind).toBe("error");
     });
 });
