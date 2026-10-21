@@ -1,13 +1,13 @@
 import { Anchor, Badge, Button, Group, Paper, Stack, Switch, Table, Text, Tooltip } from "@mantine/core";
 import { useState } from "react";
 
-import { dataText, versionLabel } from "../agents/view";
+import { dataText } from "../agents/view";
 import { CheckDefinitionButton } from "../checks/CheckDefinitionButton";
 import { ModelJudgedIcon } from "../checks/ModelJudgedIcon";
 import { UnstableCheckIcon } from "../checks/UnstableCheckIcon";
 import { ChecksCount } from "../runs/RunCounts";
 import { filteredLabel, keepsTags, selectedTagRows } from "../tagFilter/tagSelection";
-import { durationSummary, formatTime, percent, RUN_CHECKS_HELP, runHref, shortId } from "../runs/results";
+import { durationSummary, formatTime, percent, RUN_CHECKS_HELP, runHref, runLabel, shortId } from "../runs/results";
 import { unstableInRuns, unstableRowTooltip } from "../runs/stability";
 import { useUnstableChecks } from "../runs/useUnstableChecks";
 import type { AgentVersion } from "../agents/api";
@@ -78,7 +78,7 @@ export function CompareTable({
                                             <Stack gap={2}>
                                                 <Anchor href={runHref(run.id)}>Run {shortId(run.id)}</Anchor>
                                                 <Text size="xs" c="dimmed" fw="normal">
-                                                    version {version === undefined ? shortId(run.agentVersionId) : versionLabel(version)}
+                                                    version {runLabel(run, version?.label)}
                                                 </Text>
                                                 <Text size="xs" fw="normal">
                                                     {version === undefined ? "unknown model" : version.modelNames.join(", ")}

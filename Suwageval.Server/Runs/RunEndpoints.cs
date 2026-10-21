@@ -343,6 +343,7 @@ internal static class RunEndpoints
             endpoint,
             placement: placement,
             runGroup: request.Group,
+            label: contract.Label,
             cancellationToken: cancellationToken
         );
         return Results.Accepted(
@@ -453,6 +454,7 @@ internal static class RunEndpoints
             source.Id,
             planned.Shown.Id,
             source.Placement,
+            label: source.Label,
             cancellationToken: cancellationToken
         );
         return Results.Accepted(

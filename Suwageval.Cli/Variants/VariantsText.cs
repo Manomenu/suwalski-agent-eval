@@ -64,7 +64,10 @@ internal static class VariantsText
     private static string Header(int column, VariantRun variant)
     {
         var run = variant.Run;
-        var name = string.IsNullOrWhiteSpace(variant.VersionLabel) ? run.AgentVersionId.ToString()[..8] : variant.VersionLabel;
+        var name =
+            !string.IsNullOrWhiteSpace(run.Label) ? run.Label
+            : !string.IsNullOrWhiteSpace(variant.VersionLabel) ? variant.VersionLabel
+            : run.AgentVersionId.ToString()[..8];
         var models = variant.ModelNames.Count == 0 ? "-" : string.Join(", ", variant.ModelNames);
         return string.Create(
             CultureInfo.InvariantCulture,

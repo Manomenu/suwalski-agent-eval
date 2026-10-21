@@ -49,7 +49,7 @@ The server has one interface, its HTTP API. Three users reach it:
   the agent's repository can loop over the variants this way and print the group's link, `/variants?group=<name>` (the runs one
   by one: `/variants?runs=<id>,<id>,…`). The agent's page lists its groups in a **Groups** section — each opens its
   variants — and its runs table links a run's group the same way; tick runs there and press **Compare variants** for any
-  runs. The page has a column per run (the version's label, else the start of its id, with the models and the run's totals),
+  runs. The page has a column per run (the run's label, else its version's label, else the start of the version's id, with the models and the run's totals),
   a summary of checks passed, samples answered and turn time (median, p95), the pass rate per tag (a tag counts only for a
   run that ran all its scenarios) and a row per scenario with `3/4 checks` and the failed checks named, listed by scenario or
   by tag; the best column of a row is marked. Runs of different agents are refused. `suwageval variants` prints the same table.

@@ -39,6 +39,7 @@ describe("variantName", () => {
     it("is the label of the version, else the start of its id", () => {
         expect(variantName({ versionLabel: "gpt-4o", run } as never)).toBe("gpt-4o");
         expect(variantName({ versionLabel: " ", run } as never)).toBe(ID.slice(0, 8));
+        expect(variantName({ versionLabel: "gpt-4o", run: { ...run, label: "relabelled" } } as never)).toBe("relabelled");
     });
 });
 

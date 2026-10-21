@@ -109,7 +109,7 @@ turn (the conversation in, the items it produced out). `GET /suwageval/contract`
 
 | Field | | |
 | --- | --- | --- |
-| `label` | | a name for this version, e.g. the git SHA; no part of the content: renaming alone is not a new version |
+| `label` | | a name for this version, e.g. the git SHA; no part of the content: renaming alone is not a new version; each run records the label the contract carried when it started, so a run of an existing version under a new label shows the new one |
 | `agents` | required | the LLM agents of the system, at least one |
 | `agents[].name` | required | non-empty, unique among the agents; what a tool call's `agent` and a check's `by` refer to |
 | `agents[].model` | required | `name` (required, non-empty) and `parameters` (free mapping, e.g. `temperature`) |
