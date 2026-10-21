@@ -6,7 +6,7 @@ using Suwageval.Contracts.Runs;
 namespace Suwageval.Cli.Results;
 
 /// <summary>
-/// What <c>suwageval results</c> prints for a run: a header (status, version, tag, branch), what <c>run --wait</c> prints (the regression
+/// What <c>suwageval results</c> prints for a run: a header (status, version, tags, branch), what <c>run --wait</c> prints (the regression
 /// summary, else the totals), every failing check with the reason of its first failing sample, and the turn times.
 /// </summary>
 internal static class ResultsText
@@ -27,7 +27,7 @@ internal static class ResultsText
         text.AppendLine(
             string.Create(
                 CultureInfo.InvariantCulture,
-                $"tag {run.Tag ?? "-"}  branch {run.Origin?.Branch ?? "-"}  created {run.CreatedAt:yyyy-MM-dd HH:mm}Z"
+                $"tags {RunTagsText.Of(run.Tags)}  branch {run.Origin?.Branch ?? "-"}  created {run.CreatedAt:yyyy-MM-dd HH:mm}Z"
             )
         );
         text.AppendLine()

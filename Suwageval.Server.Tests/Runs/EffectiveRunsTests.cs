@@ -11,7 +11,7 @@ public sealed class EffectiveRunsTests
             Guid.NewGuid(),
             "agent",
             Guid.NewGuid(),
-            null,
+            "[]",
             "http://agent.test",
             status.ToString(),
             null,

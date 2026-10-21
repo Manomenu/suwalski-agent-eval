@@ -9,7 +9,8 @@ public sealed record RunSummary
 
     public required Guid AgentVersionId { get; init; }
 
-    public string? Tag { get; init; }
+    /// <summary>The tags the run was limited to (a scenario with any of them ran); empty when it ran every scenario.</summary>
+    public IReadOnlyList<string> Tags { get; init; } = [];
 
     public required string EndpointUrl { get; init; }
 

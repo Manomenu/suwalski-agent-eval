@@ -22,8 +22,8 @@ public sealed class RunStoreTests(TestDatabase database)
             [SeededAgent.RefundAfterLookup("refund-called", "refund", threshold)]
         );
 
-    private static Task<Guid> EnqueueAsync(RunStore store, SeededAgent agent, string? tag = null) =>
-        store.EnqueueAsync(agent.Id, agent.VersionId, tag, agent.EndpointUrl, cancellationToken: Cancellation);
+    private static Task<Guid> EnqueueAsync(RunStore store, SeededAgent agent, params string[] tags) =>
+        store.EnqueueAsync(agent.Id, agent.VersionId, tags, agent.EndpointUrl, cancellationToken: Cancellation);
 
     [Fact]
     public async Task An_enqueued_run_is_queued_with_no_results()
@@ -35,10 +35,8 @@ public sealed class RunStoreTests(TestDatabase database)
 
         var run = await store.GetAsync(id, Cancellation);
         Assert.NotNull(run);
-        Assert.Equal(
-            (agent.Name, agent.VersionId, "regression", "http://agent.test"),
-            (run.AgentName, run.AgentVersionId, run.Tag, run.EndpointUrl)
-        );
+        Assert.Equal((agent.Name, agent.VersionId, "http://agent.test"), (run.AgentName, run.AgentVersionId, run.EndpointUrl));
+        Assert.Equal(["regression"], run.Tags);
         Assert.Equal(RunStatus.Queued, run.State);
         Assert.Equal((0, 0, 0, 0), (run.SamplesTotal, run.SamplesDone, run.ChecksPassed, run.ChecksFailed));
         Assert.Null(run.StartedAt);
@@ -431,7 +429,7 @@ public sealed class RunStoreTests(TestDatabase database)
         bool[]? errored = null
     )
     {
-        var id = await store.EnqueueAsync(agent.Id, agent.VersionId, null, agent.EndpointUrl, recheckOf, cancellationToken: Cancellation);
+        var id = await store.EnqueueAsync(agent.Id, agent.VersionId, [], agent.EndpointUrl, recheckOf, cancellationToken: Cancellation);
         var scenario = await new ScenarioStore(database.Pool).GetAsync(agent.Id, "refund", Cancellation);
         var check = Assert.Single(await new CheckStore(database.Pool).ListAsync(agent.Id, cancellationToken: Cancellation));
         for (var i = 0; i < samplePassed.Length; i++)

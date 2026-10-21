@@ -157,15 +157,16 @@ public sealed class ScenarioStoreTests(TestDatabase database)
     }
 
     [Fact]
-    public async Task List_filters_by_tag()
+    public async Task List_filters_by_any_of_the_tags()
     {
         var store = Store();
         var agent = await NewAgentAsync();
         await store.UpsertAsync(agent, [Item("a", "{}", "smoke"), Item("b", "{}", "smoke", "slow"), Item("c", "{}")], Cancellation);
 
-        Assert.Equal(["a", "b"], (await store.ListAsync(agent, "smoke", Cancellation)).Select(row => row.Key));
-        Assert.Equal(["b"], (await store.ListAsync(agent, "slow", Cancellation)).Select(row => row.Key));
-        Assert.Empty(await store.ListAsync(agent, "none", Cancellation));
+        Assert.Equal(["a", "b"], (await store.ListAsync(agent, ["smoke"], Cancellation)).Select(row => row.Key));
+        Assert.Equal(["b"], (await store.ListAsync(agent, ["slow"], Cancellation)).Select(row => row.Key));
+        Assert.Equal(["a", "b"], (await store.ListAsync(agent, ["slow", "smoke"], Cancellation)).Select(row => row.Key));
+        Assert.Empty(await store.ListAsync(agent, ["none"], Cancellation));
         Assert.Equal(3, (await store.ListAsync(agent, cancellationToken: Cancellation)).Count);
     }
 

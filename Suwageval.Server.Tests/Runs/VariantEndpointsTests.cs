@@ -37,7 +37,7 @@ public sealed class VariantEndpointsTests(TestDatabase database) : IAsyncDisposa
         var id = await store.EnqueueAsync(
             agent.Id,
             agent.VersionId,
-            null,
+            [],
             agent.EndpointUrl,
             runGroup: group,
             cancellationToken: Cancellation

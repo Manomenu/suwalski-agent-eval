@@ -67,7 +67,7 @@ internal static class ScenarioEndpoints
         {
             return ProblemResults.NotFound("Agent", agent);
         }
-        var scenarios = await store.ListAsync(row.Id, tag, cancellationToken);
+        var scenarios = await store.ListAsync(row.Id, tag is null ? null : [tag], cancellationToken);
         return Results.Ok(
             scenarios.Select(scenario => new ScenarioSummary(scenario.Key, scenario.Tags, scenario.Revision, scenario.CreatedAt))
         );

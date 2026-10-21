@@ -29,7 +29,7 @@ public sealed class RunCompareEndpointTests(TestDatabase database) : IAsyncDispo
         var store = app.Services.GetRequiredService<RunStore>();
         var scenarios = app.Services.GetRequiredService<ScenarioStore>();
         var checks = await app.Services.GetRequiredService<CheckStore>().ListAsync(agent.Id, cancellationToken: Cancellation);
-        var id = await store.EnqueueAsync(agent.Id, agent.VersionId, null, agent.EndpointUrl, cancellationToken: Cancellation);
+        var id = await store.EnqueueAsync(agent.Id, agent.VersionId, [], agent.EndpointUrl, cancellationToken: Cancellation);
         foreach (var sample in samples)
         {
             var scenario = await scenarios.GetAsync(agent.Id, sample.Scenario, Cancellation);

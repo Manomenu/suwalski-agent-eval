@@ -30,7 +30,14 @@ public sealed class PassRatesEndpointTests(TestDatabase database) : IAsyncDispos
         var store = app.Services.GetRequiredService<RunStore>();
         var scenarios = app.Services.GetRequiredService<ScenarioStore>();
         var checks = await app.Services.GetRequiredService<CheckStore>().ListAsync(agent.Id, cancellationToken: Cancellation);
-        var id = await store.EnqueueAsync(agent.Id, agent.VersionId, tag, agent.EndpointUrl, recheckOf, cancellationToken: Cancellation);
+        var id = await store.EnqueueAsync(
+            agent.Id,
+            agent.VersionId,
+            tag is null ? [] : [tag],
+            agent.EndpointUrl,
+            recheckOf,
+            cancellationToken: Cancellation
+        );
         foreach (var sample in samples)
         {
             var scenario = await scenarios.GetAsync(agent.Id, sample.Scenario, Cancellation);
@@ -146,7 +153,7 @@ public sealed class PassRatesEndpointTests(TestDatabase database) : IAsyncDispos
                 "|1|1200|1200|smoke:1:1200:1200",
             ],
             points.Select(point =>
-                $"{point.Tag}|{point.PassRate:R}|{point.MedianMs:R}|{point.P95Ms:R}|"
+                $"{string.Join(",", point.LimitedToTags)}|{point.PassRate:R}|{point.MedianMs:R}|{point.P95Ms:R}|"
                 + string.Join(",", point.Tags.Select(tag => $"{tag.Tag}:{tag.PassRate:R}:{tag.MedianMs:R}:{tag.P95Ms:R}"))
             )
         );

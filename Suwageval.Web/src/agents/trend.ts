@@ -58,6 +58,8 @@ export function trendSeries(points: RunPassRates[]): string[] {
     return [ALL_SERIES, ...[...tags].sort((a, b) => a.localeCompare(b))];
 }
 
+const limitedTo = (point: RunPassRates) => point.limitedToTags ?? [];
+
 export function trendRows(points: RunPassRates[], measure: Measure = passRateMeasure): TrendRow[] {
     const series = trendSeries(points);
     return points.map((point) => {
@@ -65,7 +67,7 @@ export function trendRows(points: RunPassRates[], measure: Measure = passRateMea
             [RUN_KEY]: point.runId,
             [LABEL_KEY]: shortDate(point.createdAt),
             [DETAILS_KEY]: [
-                point.tag == null ? "all scenarios" : `tag ${point.tag}`,
+                limitedTo(point).length === 0 ? "all scenarios" : `tags ${limitedTo(point).join(", ")}`,
                 point.versionLabel?.trim() ? point.versionLabel : "no label",
                 point.modelNames.join(", "),
             ]
@@ -76,7 +78,7 @@ export function trendRows(points: RunPassRates[], measure: Measure = passRateMea
         for (const name of series) {
             // A run limited to one tag says nothing about all checks: "All" comes only from runs of every scenario.
             const reading: Reading | undefined =
-                name === ALL_SERIES ? (point.tag == null ? point : undefined) : point.tags.find((tag) => tag.tag === name);
+                name === ALL_SERIES ? (limitedTo(point).length === 0 ? point : undefined) : point.tags.find((tag) => tag.tag === name);
             row[name] = reading === undefined ? null : measure(reading);
         }
         return row;

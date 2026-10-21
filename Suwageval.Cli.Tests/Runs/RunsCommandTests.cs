@@ -17,7 +17,7 @@ public sealed class RunsCommandTests
             Id = Guid.Parse(id),
             Agent = "example-agent",
             AgentVersionId = Guid.NewGuid(),
-            Tag = tag,
+            Tags = tag is null ? [] : [tag],
             EndpointUrl = "http://localhost:7010",
             Status = RunStatus.Done,
             SamplesTotal = 1,

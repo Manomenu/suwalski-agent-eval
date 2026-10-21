@@ -161,7 +161,7 @@ public sealed class ResultsCommandTests
         Assert.Empty(opened);
         Assert.Equal(2, api.Paths.Count(path => path == $"/runs/{RunId}"));
         Assert.Contains($"run {RunId}  done", output, StringComparison.Ordinal);
-        Assert.Contains("tag -  branch -", output, StringComparison.Ordinal);
+        Assert.Contains("tags -  branch -", output, StringComparison.Ordinal);
         Assert.Contains("1 of 1 checks failed.", output, StringComparison.Ordinal);
         Assert.Contains("failing checks:", output, StringComparison.Ordinal);
         Assert.Contains("refund / refund-called  0% passed, needs 100%", output, StringComparison.Ordinal);

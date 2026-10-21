@@ -47,7 +47,7 @@ public sealed class DeletionTests(TestDatabase database) : IAsyncDisposable
         var run = await store.EnqueueAsync(
             agent.Id,
             versionId,
-            null,
+            [],
             agent.EndpointUrl,
             recheckOf,
             recheckOf,
@@ -162,7 +162,7 @@ public sealed class DeletionTests(TestDatabase database) : IAsyncDisposable
     {
         var agent = await SeedAsync();
         var store = new RunStore(database.Pool);
-        var run = await store.EnqueueAsync(agent.Id, agent.VersionId, null, agent.EndpointUrl, cancellationToken: Cancellation);
+        var run = await store.EnqueueAsync(agent.Id, agent.VersionId, [], agent.EndpointUrl, cancellationToken: Cancellation);
         if (running)
         {
             Assert.Equal(run, (await store.ClaimNextAsync(agent.Id, Cancellation))?.Id);
@@ -238,7 +238,7 @@ public sealed class DeletionTests(TestDatabase database) : IAsyncDisposable
     public async Task An_agent_with_a_queued_run_is_refused_with_409_and_kept_and_a_preview_changes_nothing()
     {
         var agent = await SeedAsync();
-        await new RunStore(database.Pool).EnqueueAsync(agent.Id, agent.VersionId, null, agent.EndpointUrl, cancellationToken: Cancellation);
+        await new RunStore(database.Pool).EnqueueAsync(agent.Id, agent.VersionId, [], agent.EndpointUrl, cancellationToken: Cancellation);
 
         var preview = await server.Get($"/agents/{agent.Name}/deletion");
         var deleted = await server.Delete($"/agents/{agent.Name}");

@@ -4,7 +4,7 @@ using Suwageval.Cli.Server;
 namespace Suwageval.Cli.Results;
 
 /// <summary>
-/// <c>suwageval results &lt;runId&gt;</c>: waits for the run to end and prints its results on stdout as text (status, version, tag, branch,
+/// <c>suwageval results &lt;runId&gt;</c>: waits for the run to end and prints its results on stdout as text (status, version, tags, branch,
 /// what it was compared with and the regressions, failing checks with their reasons, turn times, the link to its page); <c>--json</c>
 /// prints the results as JSON instead. Both exit like <c>run --wait --strict</c> (0 every check passed, 1 one did not, 2 the run did not
 /// finish). <c>--open</c> instead opens the run's page on the web — the link is printed too, for a terminal with no browser — and exits 0.

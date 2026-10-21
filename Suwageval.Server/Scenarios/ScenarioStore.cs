@@ -111,14 +111,18 @@ internal sealed class ScenarioStore(Pool pool)
         return results;
     }
 
-    /// <summary>The live scenarios with their latest revision, optionally only those with <paramref name="tag"/>.</summary>
-    public async Task<IReadOnlyList<ScenarioRow>> ListAsync(Guid agentId, string? tag = null, CancellationToken cancellationToken = default)
+    /// <summary>The live scenarios with their latest revision, only those with any of <paramref name="tags"/> when some are given.</summary>
+    public async Task<IReadOnlyList<ScenarioRow>> ListAsync(
+        Guid agentId,
+        IReadOnlyCollection<string>? tags = null,
+        CancellationToken cancellationToken = default
+    )
     {
         await using var connection = await pool.OpenAsync(cancellationToken);
         var rows = await connection.QueryAsync<ScenarioRow>(
             new CommandDefinition(
-                $"{LatestRevision} AND (@tag::text IS NULL OR s.tags @> ARRAY[@tag::text]) ORDER BY s.key",
-                new { agentId, tag },
+                $"{LatestRevision} AND (cardinality(@tags) = 0 OR s.tags && @tags) ORDER BY s.key",
+                new { agentId, tags = tags?.ToArray() ?? [] },
                 cancellationToken: cancellationToken
             )
         );

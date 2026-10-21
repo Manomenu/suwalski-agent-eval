@@ -32,7 +32,7 @@ test("Run again starts a new run of the same agent and opens its page", async ({
         expect((await request.post("/api/agents", { data: { name, endpointUrl } })).ok()).toBe(true);
         const scenario = { key: "greets", tags: ["smoke"], samples: 1, conversation: [{ kind: "UserMessage", text: "Hello" }] };
         expect((await request.put(`/api/agents/${name}/scenarios`, { data: { scenarios: [scenario] } })).ok()).toBe(true);
-        const created = await request.post("/api/runs", { data: { agent: name, tag: "smoke" } });
+        const created = await request.post("/api/runs", { data: { agent: name, tags: ["smoke", "billing"] } });
         expect(created.ok()).toBe(true);
         const { runId } = (await created.json()) as { runId: string };
 
@@ -42,7 +42,7 @@ test("Run again starts a new run of the same agent and opens its page", async ({
         await expect(page).not.toHaveURL(`/runs/${runId}`);
         await expect(page).toHaveURL(/\/runs\/[0-9a-f-]{36}$/);
         await expect(page.getByRole("heading", { name: `Run ${name}`, exact: true })).toBeVisible();
-        await expect(page.getByText("tag smoke", { exact: false })).toBeVisible();
+        await expect(page.getByText("tags smoke, billing", { exact: false })).toBeVisible();
     } finally {
         agentServer.close();
     }

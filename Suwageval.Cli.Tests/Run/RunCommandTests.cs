@@ -40,7 +40,7 @@ public sealed class RunCommandTests
             Id = RunId,
             Agent = "example-agent",
             AgentVersionId = VersionId,
-            Tag = "regression",
+            Tags = ["regression", "smoke"],
             EndpointUrl = "http://localhost:7010",
             Status = status,
             Error = error,
@@ -482,7 +482,9 @@ public sealed class RunCommandTests
         var (exit, output, error, server) = Run(
             (request, _) => Server(request, Summary(RunStatus.Queued), Results(RunStatus.Queued)),
             "--tag",
-            "regression"
+            "regression",
+            "--tag",
+            "smoke"
         );
 
         Assert.Equal(0, exit);
@@ -492,7 +494,7 @@ public sealed class RunCommandTests
         Assert.Equal(("POST", "/runs"), (method, path));
         using var sent = JsonDocument.Parse(body ?? "");
         Assert.Equal("example-agent", sent.RootElement.GetProperty("agent").GetString());
-        Assert.Equal("regression", sent.RootElement.GetProperty("tag").GetString());
+        Assert.Equal(["regression", "smoke"], sent.RootElement.GetProperty("tags").EnumerateArray().Select(tag => tag.GetString()));
         // A version is never sent: the server reads it from the agent.
         Assert.False(sent.RootElement.TryGetProperty("agentVersionId", out _));
     }

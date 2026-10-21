@@ -30,7 +30,7 @@ public sealed class RunExecutorTests(TestDatabase database)
     )]
     private async Task<(RunRow Run, RunExecutor Executor)> ClaimAsync(
         SeededAgent agent,
-        string? tag = null,
+        IReadOnlyCollection<string>? tags = null,
         int parallel = 2,
         Uri? endpoint = null,
         Judge? judge = null,
@@ -41,7 +41,7 @@ public sealed class RunExecutorTests(TestDatabase database)
         await store.EnqueueAsync(
             agent.Id,
             agent.VersionId,
-            tag,
+            tags ?? [],
             (endpoint ?? new Uri(agent.EndpointUrl)).AbsoluteUri,
             cancellationToken: Cancellation
         );
@@ -60,9 +60,14 @@ public sealed class RunExecutorTests(TestDatabase database)
         return (run ?? throw new InvalidOperationException("nothing was queued"), executor);
     }
 
-    private async Task<RunResults> RunAsync(SeededAgent agent, string? tag = null, int parallel = 2, Judge? judge = null)
+    private async Task<RunResults> RunAsync(
+        SeededAgent agent,
+        IReadOnlyCollection<string>? tags = null,
+        int parallel = 2,
+        Judge? judge = null
+    )
     {
-        var (run, executor) = await ClaimAsync(agent, tag, parallel, judge: judge);
+        var (run, executor) = await ClaimAsync(agent, tags, parallel, judge: judge);
         await executor.ExecuteAsync(run, Cancellation);
         return await ResultsAsync(run.Id);
     }
@@ -594,7 +599,7 @@ public sealed class RunExecutorTests(TestDatabase database)
             []
         );
 
-        var tagged = await RunAsync(agent, "regression");
+        var tagged = await RunAsync(agent, ["regression"]);
         var all = await RunAsync(agent);
 
         Assert.Equal(["both", "tagged"], tagged.Scenarios.Select(scenario => scenario.Key));
