@@ -219,6 +219,19 @@ public sealed class RunCommandTests
         );
 
     [Fact]
+    public void Group_is_sent_with_the_run()
+    {
+        var (_, _, _, server) = Run(
+            (request, _) => Server(request, Summary(RunStatus.Queued), Results(RunStatus.Queued)),
+            "--group",
+            "sweep-1"
+        );
+
+        using var sent = JsonDocument.Parse(server.Requests[0].Body ?? "");
+        Assert.Equal("sweep-1", sent.RootElement.GetProperty("group").GetString());
+    }
+
+    [Fact]
     public void Without_a_repository_no_origin_is_sent()
     {
         var (_, _, _, server) = Run((request, _) => Server(request, Summary(RunStatus.Queued), Results(RunStatus.Queued)));

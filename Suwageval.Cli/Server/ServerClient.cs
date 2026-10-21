@@ -59,13 +59,13 @@ internal sealed class ServerClient(HttpClient http)
             cancellationToken
         );
 
-    /// <summary>A new run with the agent, tag and endpoint of run <paramref name="runId"/> (the endpoint unless another is given).</summary>
-    public Task<RunCreated> RerunAsync(Guid runId, string? endpointUrl, CancellationToken cancellationToken) =>
+    /// <summary>A new run with the agent, tag and endpoint of run <paramref name="runId"/> (the endpoint unless another is given), in <paramref name="group"/> if any.</summary>
+    public Task<RunCreated> RerunAsync(Guid runId, string? endpointUrl, string? group, CancellationToken cancellationToken) =>
         SendAsync<RunCreated>(
             () =>
                 http.PostAsJsonAsync(
                     new Uri($"runs/{runId}/rerun", UriKind.Relative),
-                    new RerunRequest { EndpointUrl = endpointUrl },
+                    new RerunRequest { EndpointUrl = endpointUrl, Group = group },
                     ContractJson.Options,
                     cancellationToken
                 ),
@@ -96,14 +96,15 @@ internal sealed class ServerClient(HttpClient http)
     /// <summary>
     /// The agent's newest runs, newest first, at most <paramref name="limit"/> of them (asked for in pages the server accepts); only those of
     /// <paramref name="versions"/> when any are given, and, with <paramref name="referenceOnly"/>, only reference runs (the server has no
-    /// filter for those, so older pages are read until enough are found).
+    /// filter for those, so older pages are read until enough are found); only those started in <paramref name="group"/> when one is given.
     /// </summary>
     public async Task<IReadOnlyList<RunSummary>> RunsAsync(
         string agent,
         int limit,
         CancellationToken cancellationToken,
         IReadOnlyList<Guid>? versions = null,
-        bool referenceOnly = false
+        bool referenceOnly = false,
+        string? group = null
     )
     {
         var runs = new List<RunSummary>();
@@ -120,6 +121,10 @@ internal sealed class ServerClient(HttpClient http)
             {
                 url += $"&before={cursor}";
             }
+            if (group is not null)
+            {
+                url += $"&group={Uri.EscapeDataString(group)}";
+            }
             var page = await SendAsync<RunList>(() => http.GetAsync(new Uri(url, UriKind.Relative), cancellationToken), cancellationToken);
             runs.AddRange(referenceOnly ? page.Runs.Where(run => run.Reference) : page.Runs);
             if (page.Next is not { } next)
@@ -130,6 +135,13 @@ internal sealed class ServerClient(HttpClient http)
         }
         return runs.Count > limit ? runs[..limit] : runs;
     }
+
+    /// <summary>The groups of the agent's runs, the one with the newest run first.</summary>
+    public Task<IReadOnlyList<RunGroupSummary>> RunGroupsAsync(string agent, CancellationToken cancellationToken) =>
+        SendAsync<IReadOnlyList<RunGroupSummary>>(
+            () => http.GetAsync(new Uri($"agents/{Uri.EscapeDataString(agent)}/run-groups", UriKind.Relative), cancellationToken),
+            cancellationToken
+        );
 
     /// <summary>One agent with what is stored for it; the server answers 404 for an agent it does not have.</summary>
     public Task<AgentDetail> AgentAsync(string agent, CancellationToken cancellationToken) =>

@@ -383,6 +383,55 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
     }
 
     [Fact]
+    public async Task A_run_started_in_a_group_is_listed_with_it_and_the_list_and_the_groups_follow_it()
+    {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
+        var client = Client();
+        var agent = await NewAgentAsync(fake.Url.AbsoluteUri);
+        var first = await StartAsync(client, new RunRequest { Agent = agent.Name, Group = "sweep-1" });
+        var second = await StartAsync(client, new RunRequest { Agent = agent.Name, Group = "sweep-1" });
+        await StartAsync(client, new RunRequest { Agent = agent.Name });
+
+        var inGroup = await GetAsync<RunList>(client, $"/runs?agent={agent.Name}&group=sweep-1");
+        var groups = await GetAsync<List<RunGroupSummary>>(client, $"/agents/{agent.Name}/run-groups");
+
+        Assert.Equal([second.RunId, first.RunId], inGroup.Runs.Select(run => run.Id));
+        Assert.All(inGroup.Runs, run => Assert.Equal("sweep-1", run.Group));
+        Assert.Equal(("sweep-1", 2, 1), (groups.Single().Name, groups.Single().Runs, groups.Single().Versions));
+    }
+
+    [Fact]
+    public async Task A_rerun_is_in_the_group_it_asks_for_and_does_not_inherit_the_original_s()
+    {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
+        var client = Client();
+        var agent = await NewAgentAsync(fake.Url.AbsoluteUri);
+        var original = await StartAsync(client, new RunRequest { Agent = agent.Name, Group = "sweep-1" });
+
+        var plain = await RerunOkAsync(client, original.RunId);
+        var grouped = await RerunOkAsync(client, original.RunId, new RerunRequest { Group = "sweep-2" });
+
+        Assert.Null((await GetAsync<RunSummary>(client, $"/runs/{plain.RunId}")).Group);
+        Assert.Equal("sweep-2", (await GetAsync<RunSummary>(client, $"/runs/{grouped.RunId}")).Group);
+    }
+
+    [Theory]
+    [InlineData("Sweep 1")]
+    [InlineData("sweep--1")]
+    public async Task A_group_that_is_not_kebab_case_is_422_naming_the_field_and_nothing_is_queued(string group)
+    {
+        var client = Client();
+        var agent = await NewAgentAsync("http://127.0.0.1:1");
+
+        var response = await Post(client, new RunRequest { Agent = agent.Name, Group = group });
+
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+        using var problem = JsonDocument.Parse(await response.Content.ReadAsStringAsync(Cancellation));
+        Assert.True(problem.RootElement.GetProperty("errors").TryGetProperty("group", out _));
+        Assert.Empty((await GetAsync<RunList>(client, $"/runs?agent={agent.Name}")).Runs);
+    }
+
+    [Fact]
     public async Task The_run_list_is_paged_by_limit_and_before()
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);

@@ -59,14 +59,14 @@ The agent's own address (`validate`, `run`, `rerun`) is `--endpoint` on the comm
 | set a repository up (no `suwageval/agent.yaml` yet, or a field to change) | `suwageval init [path] --name N --endpoint-url URL [--suwageval-url URL]`: give every value as an option, since there is no terminal to ask on; an existing file keeps its comments and other fields, and a repeat changes nothing |
 | check the files and the names against the agent's contract | `suwageval validate [dir]` (`--json`, `--offline` to skip the agent, `--endpoint URL`) |
 | send the agent, scenarios and checks to the server | `suwageval push [dir]` |
-| run the scenarios and wait | `suwageval run --wait --json` (`--tag <tag>` for some scenarios only; `--ref <branch>` to compare with another branch's reference runs; `--strict` to exit 1 on any failed check) |
-| run an earlier run again | `suwageval rerun <runId> --wait --json` (`--endpoint URL`, `--strict`): same agent, tag and endpoint, the version the agent serves now |
+| run the scenarios and wait | `suwageval run --wait --json` (`--tag <tag>` for some scenarios only; `--group <name>` to put the run in a group, e.g. the runs of one sweep over models; `--ref <branch>` to compare with another branch's reference runs; `--strict` to exit 1 on any failed check) |
+| run an earlier run again | `suwageval rerun <runId> --wait --json` (`--endpoint URL`, `--group <name>`, `--strict`): same agent, tag and endpoint, the version the agent serves now |
 | judge a finished run's stored answers again with the current checks (no agent call) | `suwageval recheck <runId> --wait --json` (`--strict`); `--dry-run` first prints what would be evaluated again (exit 0 when no check changed: nothing is started). Use it after fixing a check; `rerun` is for when the agent changed |
 | stop a queued or running run | `suwageval cancel <runId>`: samples in flight finish, no new one starts; a finished run stays as it is. Only for a run the user asked to stop |
 | read a run's results (status, version, tag, branch, regressions, failing checks with reasons, turn times) | `suwageval results <runId>`: text on stdout; waits for a run still going. Prefer it to opening a browser |
 | a run's results as JSON | `suwageval results <runId> --json` |
 | open a run on the web, only when the user wants the page | `suwageval results <runId> --open` |
-| list the agent's newest runs | `suwageval runs` (`--limit N`, `--json`; `--version <id>` repeatable for the runs of some versions, `--reference` for reference runs only): per run id, status, tag, version, checks passed, time, branch, a `reference` mark, the judge model(s) |
+| list the agent's newest runs | `suwageval runs` (`--limit N`, `--json`; `--version <id>` repeatable for the runs of some versions, `--reference` for reference runs only, `--group <name>` for the runs of one group, `--groups` to list the groups instead): per run id, status, tag, version, checks passed, time, branch, a `reference` mark, the judge model(s) |
 | find the agents on the server (the repository has no `agent.yaml`, or the user asks what exists) | `suwageval agents` (`--json`, `--server`): name, endpoint, creation time |
 | list the agent's scenarios | `suwageval scenarios` (`--tag <tag>`, `--json`): key, revision, number of checks, tags |
 | read one scenario as the server stores it | `suwageval scenario <key>` (`--json`): the conversation, every check with its definition, the revisions, the tags. Use it before changing or explaining a scenario that is not in the working tree |

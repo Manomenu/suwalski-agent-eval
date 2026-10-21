@@ -28,10 +28,32 @@ internal static class RunEndpoints
         app.MapGet("/runs/{id:guid}/recheck", RecheckPlanAsync).Produces<RecheckPlan>();
         app.MapPost("/runs/{id:guid}/recheck", RecheckAsync).Produces<RunCreated>(StatusCodes.Status202Accepted);
         app.MapPost("/runs/{id:guid}/cancel", CancelAsync).Produces(StatusCodes.Status202Accepted);
+        app.MapGet("/agents/{agent}/run-groups", RunGroupsAsync).Produces<IReadOnlyList<RunGroupSummary>>();
         app.MapGet("/agents/{agent}/pass-rates", PassRatesAsync).Produces<IReadOnlyList<RunPassRates>>();
         app.MapGet("/agents/{agent}/unstable-checks", UnstableChecksAsync).Produces<IReadOnlyList<UnstableCheck>>();
         app.MapGet("/agents/{agent}/agent-errors", AgentErrorsAsync).Produces<IReadOnlyList<AgentError>>();
         return app;
+    }
+
+    /// <summary>The groups of the agent's runs (run --group), the one with the newest run first. 404: no such agent.</summary>
+    private static async Task<IResult> RunGroupsAsync(string agent, AgentStore agents, RunStore runs, CancellationToken cancellationToken)
+    {
+        var found = await agents.GetAsync(agent, cancellationToken);
+        if (found is null)
+        {
+            return ProblemResults.NotFound("Agent", agent);
+        }
+        return Results.Ok(
+            (await runs.ListGroupsAsync(found.Id, cancellationToken))
+                .Select(group => new RunGroupSummary
+                {
+                    Name = group.Name,
+                    Runs = group.Runs,
+                    Versions = group.Versions,
+                    NewestRunAt = group.NewestRunAt,
+                })
+                .ToList()
+        );
     }
 
     /// <summary>The unstable checks and the agent errors look at the newest this many finished runs of the agent.</summary>
@@ -235,6 +257,11 @@ internal static class RunEndpoints
             return ProblemResults.Invalid("endpointUrl", "The endpoint is an absolute http or https URL.");
         }
 
+        if (RunGroupRules.Problem(request.Group) is { } groupProblem)
+        {
+            return ProblemResults.Invalid("group", groupProblem);
+        }
+
         var agent = await agents.GetAsync(request.Agent, cancellationToken);
         if (agent is null)
         {
@@ -312,6 +339,7 @@ internal static class RunEndpoints
             request.Tag,
             endpoint,
             placement: placement,
+            runGroup: request.Group,
             cancellationToken: cancellationToken
         );
         return Results.Accepted(
@@ -353,6 +381,7 @@ internal static class RunEndpoints
                 Agent = original.AgentId.ToString(),
                 Tag = original.Tag,
                 EndpointUrl = request?.EndpointUrl ?? original.EndpointUrl,
+                Group = request?.Group,
             },
             original.Placement,
             agents,
@@ -421,7 +450,7 @@ internal static class RunEndpoints
             source.Id,
             planned.Shown.Id,
             source.Placement,
-            cancellationToken
+            cancellationToken: cancellationToken
         );
         return Results.Accepted(
             $"/runs/{created}",
@@ -469,7 +498,7 @@ internal static class RunEndpoints
 
     /// <summary>
     /// A page of runs, newest first, with the id to continue from. <c>limit</c> (default 20, 1 to 100), <c>before</c> (a run id: only
-    /// older runs), <c>version</c> (repeatable agent version ids: only their runs). 404: no such agent; 422: a bad limit or an unknown
+    /// older runs), <c>version</c> (repeatable agent version ids: only their runs), <c>group</c> (only the runs started in that group). 404: no such agent; 422: a bad limit or an unknown
     /// <c>before</c>.
     /// </summary>
     private static async Task<IResult> ListAsync(
@@ -477,6 +506,7 @@ internal static class RunEndpoints
         [FromQuery] Guid? before,
         [FromQuery] Guid[]? version,
         [FromQuery] int? limit,
+        [FromQuery] string? group,
         AgentStore agents,
         RunStore runs,
         CancellationToken cancellationToken
@@ -502,7 +532,14 @@ internal static class RunEndpoints
             return ProblemResults.Invalid("before", $"There is no run {cursor}.");
         }
         // One more than asked for tells whether an older run exists.
-        var rows = await runs.ListPageAsync(agentId, before, version ?? [], size + 1, cancellationToken);
+        var rows = await runs.ListPageAsync(
+            agentId,
+            before,
+            version ?? [],
+            size + 1,
+            string.IsNullOrEmpty(group) ? null : group,
+            cancellationToken
+        );
         var page = rows.Take(size).Select(RunReport.Summary).ToList();
         return Results.Ok(new RunList { Runs = page, Next = rows.Count > size ? page[^1].Id : null });
     }
