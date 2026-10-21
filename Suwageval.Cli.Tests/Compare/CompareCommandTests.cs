@@ -80,7 +80,7 @@ public sealed class CompareCommandTests
                 Id = id,
                 Agent = "support-bot",
                 AgentVersionId = Version,
-                Tag = "nightly",
+                Tags = ["nightly"],
                 EndpointUrl = "http://localhost:7010",
                 Status = RunStatus.Done,
                 SamplesTotal = 1,
@@ -97,7 +97,7 @@ public sealed class CompareCommandTests
             MedianChange = median,
         };
 
-    private static ComparedCell Cell(bool passed, int samplesPassed, Suwageval.Contracts.Runs.Trend? trend, string? judge, int revision) =>
+    private static ComparedCell Cell(bool passed, int samplesPassed, Contracts.Runs.Trend? trend, string? judge, int revision) =>
         new()
         {
             Passed = passed,
@@ -118,18 +118,18 @@ public sealed class CompareCommandTests
             Runs =
             [
                 Compared(First, "judge-a", false, 0.5),
-                Compared(Second, "judge-b", true, 0.75, new TimeChange(-300, Suwageval.Contracts.Runs.Trend.Better)),
+                Compared(Second, "judge-b", true, 0.75, new TimeChange(-300, Contracts.Runs.Trend.Better)),
             ],
             Tags =
             [
                 new ComparedTag
                 {
-                    Rates = [new ComparedRate(0.5), new ComparedRate(0.75, new RateChange(25, Suwageval.Contracts.Runs.Trend.Better))],
+                    Rates = [new ComparedRate(0.5), new ComparedRate(0.75, new RateChange(25, Contracts.Runs.Trend.Better))],
                 },
                 new ComparedTag
                 {
                     Tag = "smoke",
-                    Rates = [new ComparedRate(1), new ComparedRate(0.5, new RateChange(-50, Suwageval.Contracts.Runs.Trend.Worse))],
+                    Rates = [new ComparedRate(1), new ComparedRate(0.5, new RateChange(-50, Contracts.Runs.Trend.Worse))],
                 },
             ],
             Checks =
@@ -138,17 +138,17 @@ public sealed class CompareCommandTests
                 {
                     ScenarioKey = "greeting",
                     CheckKey = "polite",
-                    Definition = new Suwageval.Contracts.Checks.TextCheck { Key = "k", ScenarioKey = "s" },
+                    Definition = new Contracts.Checks.TextCheck { Key = "k", ScenarioKey = "s" },
                     JudgedByModel = true,
                     Differs = true,
                     Comparable = true,
-                    Cells = [Cell(false, 1, null, "judge-a", 1), Cell(true, 3, Suwageval.Contracts.Runs.Trend.Better, "judge-b", 2)],
+                    Cells = [Cell(false, 1, null, "judge-a", 1), Cell(true, 3, Contracts.Runs.Trend.Better, "judge-b", 2)],
                 },
                 new ComparedCheck
                 {
                     ScenarioKey = "greeting",
                     CheckKey = "short",
-                    Definition = new Suwageval.Contracts.Checks.TextCheck { Key = "k", ScenarioKey = "s" },
+                    Definition = new Contracts.Checks.TextCheck { Key = "k", ScenarioKey = "s" },
                     JudgedByModel = false,
                     Differs = true,
                     Comparable = false,
@@ -158,11 +158,11 @@ public sealed class CompareCommandTests
                 {
                     ScenarioKey = "greeting",
                     CheckKey = "same",
-                    Definition = new Suwageval.Contracts.Checks.TextCheck { Key = "k", ScenarioKey = "s" },
+                    Definition = new Contracts.Checks.TextCheck { Key = "k", ScenarioKey = "s" },
                     JudgedByModel = false,
                     Differs = false,
                     Comparable = true,
-                    Cells = [Cell(true, 3, null, null, 1), Cell(true, 3, Suwageval.Contracts.Runs.Trend.Same, null, 1)],
+                    Cells = [Cell(true, 3, null, null, 1), Cell(true, 3, Contracts.Runs.Trend.Same, null, 1)],
                 },
             ],
         };
@@ -191,7 +191,7 @@ public sealed class CompareCommandTests
         Assert.Empty(opened);
         Assert.Equal(["/runs/compare"], api.Paths);
         Assert.Contains(
-            "#1 baseline  run 11111111  version aaaaaaaa  tag nightly  judge judge-a  pass 50%",
+            "#1 baseline  run 11111111  version aaaaaaaa  tags nightly  judge judge-a  pass 50%",
             output,
             StringComparison.Ordinal
         );

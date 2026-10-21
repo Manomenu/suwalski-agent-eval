@@ -199,7 +199,7 @@ returns what the server would refuse in the contract (the same code), so an agen
 | Field | | |
 | --- | --- | --- |
 | `key` | required | lowercase kebab-case (`refund-happy-path`), unique within the agent |
-| `tags` | | lowercase kebab-case; a run picks scenarios by tag |
+| `tags` | | lowercase kebab-case; a run picks scenarios by tags (any of the given ones) |
 | `conversation` | required | the log up to the agent's turn, at least one item |
 | `continuation.turns` | | how many agent turns are produced, default `1` |
 | `samples` | | how many times the conversation is repeated: 1 to 20; not set means the agent's `samples`, else `3` (see "Samples" below) |

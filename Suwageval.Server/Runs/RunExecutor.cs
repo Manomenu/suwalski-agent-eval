@@ -13,7 +13,7 @@ using Suwageval.Server.Scenarios;
 namespace Suwageval.Server.Runs;
 
 /// <summary>
-/// Carries out one claimed run: for every scenario picked by the run's tag (or all of them) and every sample of it, it calls
+/// Carries out one claimed run: for every scenario picked by the run's tags (or all of them) and every sample of it, it calls
 /// the agent under test with the scenario's conversation, stores what the agent produced, evaluates the scenario's checks on
 /// it and stores the verdicts. Samples run in parallel up to <see cref="RunOptions.MaxParallelScenarios"/>.
 /// </summary>
@@ -76,7 +76,7 @@ internal sealed partial class RunExecutor(
 
     private async Task<IReadOnlyList<PlannedScenario>> PlanAsync(RunRow run, int? agentSamples, CancellationToken cancellationToken)
     {
-        var picked = await scenarios.ListAsync(run.AgentId, run.Tag, cancellationToken);
+        var picked = await scenarios.ListAsync(run.AgentId, run.Tags, cancellationToken);
         var checksByScenario = (await checks.ListAsync(run.AgentId, cancellationToken: cancellationToken)).ToLookup(check =>
             check.ScenarioKey
         );

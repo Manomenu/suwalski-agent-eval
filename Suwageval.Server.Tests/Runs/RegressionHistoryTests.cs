@@ -86,7 +86,7 @@ public sealed class RegressionHistoryTests(TestDatabase database) : IAsyncDispos
         var id = await store.EnqueueAsync(
             agent.Id,
             agent.VersionId,
-            null,
+            [],
             agent.EndpointUrl,
             recheckOf,
             placement: placement,

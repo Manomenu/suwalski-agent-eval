@@ -19,7 +19,11 @@ internal static class RunCommand
     /// <param name="origins">Reads where the agent's repository stands; none means the real one and the CI environment (the tests pass their own).</param>
     public static Command Create(Terminal terminal, HttpClient? http = null, RunOriginReader? origins = null)
     {
-        var tag = new Option<string?>("--tag") { Description = "Only the scenarios with this tag; default every scenario." };
+        var tag = new Option<string[]>("--tag")
+        {
+            Description = "Only the scenarios with this tag; repeat it to take the scenarios with any of the tags. Default every scenario.",
+            AllowMultipleArgumentsPerToken = false,
+        };
         var endpoint = new Option<string?>("--endpoint")
         {
             Description = AgentEndpoint.OptionDescription(
@@ -75,7 +79,7 @@ internal static class RunCommand
                                     new RunRequest
                                     {
                                         Agent = agent,
-                                        Tag = parsed.GetValue(tag),
+                                        Tags = parsed.GetValue(tag) ?? [],
                                         Group = parsed.GetValue(group),
                                         EndpointUrl = AgentEndpoint.Override(parsed.GetValue(endpoint)),
                                         Origin = (origins ?? RunOriginReader.System).Read(agentDir, parsed.GetValue(reference)),

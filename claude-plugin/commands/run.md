@@ -12,10 +12,10 @@ $ARGUMENTS
    them); a server that does not answer is for the user to start, so say which address was tried
    (`SUWAGEVAL_URL`, default `http://localhost:3230`).
 2. If the user asks to run again or repeat a run ("the last run"), find it with `suwageval runs --json`
-   (newest first) and run `suwageval rerun <id> --wait --json` instead: it keeps that run's tag and
+   (newest first) and run `suwageval rerun <id> --wait --json` instead: it keeps that run's tags and
    endpoint and uses the version the agent serves now. Summarise as for a run, and offer the comparison
    with the original run (`{SUWAGEVAL_URL or http://localhost:3230}/compare?runs={original},{run.id}`).
-   Otherwise run `suwageval run --wait --json`, with `--tag <name>` if the user named a tag. Exit code 0
+   Otherwise run `suwageval run --wait --json`, with `--tag <name>` (repeat it for several) if the user named tags. Exit code 0
    means no regression and no new failing check (known, already broken and unstable failures leave it 0;
    `--strict` makes any failed check exit 1), 1 a check regressed, is new and failing, or is an agent error, 2 the run could
    not finish (or was cancelled). 1 is a result, not an error; for 2 show `run.error` or the message and stop. 130 means the waiting was

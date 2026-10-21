@@ -59,15 +59,13 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         var client = Client();
         var agent = await NewAgentAsync(fake.Url.AbsoluteUri);
 
-        var created = await StartAsync(client, new RunRequest { Agent = agent.Name, Tag = "regression" });
+        var created = await StartAsync(client, new RunRequest { Agent = agent.Name, Tags = ["regression"] });
 
         Assert.True(created.VersionCreated);
         Assert.NotEqual(agent.VersionId, created.AgentVersionId);
         var run = await GetAsync<RunSummary>(client, $"/runs/{created.RunId}");
-        Assert.Equal(
-            (agent.Name, created.AgentVersionId, "regression", fake.Url.AbsoluteUri),
-            (run.Agent, run.AgentVersionId, run.Tag, run.EndpointUrl)
-        );
+        Assert.Equal((agent.Name, created.AgentVersionId, fake.Url.AbsoluteUri), (run.Agent, run.AgentVersionId, run.EndpointUrl));
+        Assert.Equal(["regression"], run.Tags);
         Assert.Equal(RunStatus.Queued, run.Status);
         var version = await GetAsync<AgentVersionDetail>(client, $"/agents/{agent.Name}/versions/{created.AgentVersionId}");
         Assert.Equal(("A brand new prompt.", "v2"), (version.Content.Agents[0].Config, version.Content.Label));
@@ -106,7 +104,8 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         var created = await StartAsync(client, new RunRequest { Agent = agent.Id.ToString(), EndpointUrl = fake.Url.AbsoluteUri });
 
         var run = await GetAsync<RunSummary>(client, $"/runs/{created.RunId}");
-        Assert.Equal((fake.Url.AbsoluteUri, null), (run.EndpointUrl, run.Tag));
+        Assert.Equal(fake.Url.AbsoluteUri, run.EndpointUrl);
+        Assert.Empty(run.Tags);
         Assert.Equal(1, fake.ContractRequests);
     }
 
@@ -124,13 +123,14 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
 
     [Theory]
     [InlineData("regression")]
-    [InlineData(null)]
-    public async Task A_rerun_is_a_new_run_with_the_agent_tag_and_endpoint_of_the_original(string? tag)
+    [InlineData("regression", "smoke")]
+    [InlineData]
+    public async Task A_rerun_is_a_new_run_with_the_agent_tags_and_endpoint_of_the_original(params string[] tags)
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
         var client = Client();
         var agent = await NewAgentAsync(fake.Url.AbsoluteUri);
-        var original = await StartAsync(client, new RunRequest { Agent = agent.Name, Tag = tag });
+        var original = await StartAsync(client, new RunRequest { Agent = agent.Name, Tags = tags });
 
         var again = await RerunOkAsync(client, original.RunId);
 
@@ -138,7 +138,8 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         Assert.Equal((original.AgentVersionId, false), (again.AgentVersionId, again.VersionCreated));
         var first = await GetAsync<RunSummary>(client, $"/runs/{original.RunId}");
         var second = await GetAsync<RunSummary>(client, $"/runs/{again.RunId}");
-        Assert.Equal((agent.Name, tag, fake.Url.AbsoluteUri), (second.Agent, second.Tag, second.EndpointUrl));
+        Assert.Equal((agent.Name, fake.Url.AbsoluteUri), (second.Agent, second.EndpointUrl));
+        Assert.Equal(tags, second.Tags);
         Assert.Equal((RunStatus.Queued, original.RunId), (first.Status, first.Id));
     }
 
@@ -198,7 +199,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
 
     [Theory]
     [InlineData("", null, null, "agent")]
-    [InlineData("x", "no-scenario-has-this", null, "tag")]
+    [InlineData("x", "no-scenario-has-this", null, "tags")]
     [InlineData("x", null, "not a url", "endpointUrl")]
     [InlineData("x", null, "ftp://agent.test", "endpointUrl")]
     public async Task A_request_that_cannot_run_is_422_naming_the_field(string agentName, string? tag, string? endpoint, string field)
@@ -211,7 +212,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
             new RunRequest
             {
                 Agent = string.IsNullOrEmpty(agentName) ? "" : agent.Name,
-                Tag = tag,
+                Tags = tag is null ? [] : [tag],
                 EndpointUrl = endpoint,
             }
         );
@@ -519,7 +520,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
         var client = Client();
         var agent = await NewAgentAsync(fake.Url.AbsoluteUri);
-        var created = await StartAsync(client, new RunRequest { Agent = agent.Name, Tag = "regression" });
+        var created = await StartAsync(client, new RunRequest { Agent = agent.Name, Tags = ["regression"] });
 
         var run = await app.Services.GetRequiredService<RunStore>().ClaimNextAsync(agent.Id, Cancellation);
         await app
@@ -562,8 +563,8 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
         var client = Client();
         var agent = await NewAgentAsync(fake.Url.AbsoluteUri);
-        var queued = await StartAsync(client, new RunRequest { Agent = agent.Name, Tag = "regression" });
-        var done = await StartAsync(client, new RunRequest { Agent = agent.Name, Tag = "regression" });
+        var queued = await StartAsync(client, new RunRequest { Agent = agent.Name, Tags = ["regression"] });
+        var done = await StartAsync(client, new RunRequest { Agent = agent.Name, Tags = ["regression"] });
         var store = app.Services.GetRequiredService<RunStore>();
         var claimed = await store.ClaimNextAsync(agent.Id, Cancellation);
         await app
@@ -578,7 +579,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         Assert.Equal(("regression", 1.0), (tag.Tag, tag.PassRate));
         Assert.True(point.MedianMs >= 0 && point.P95Ms >= point.MedianMs, $"{point.MedianMs} {point.P95Ms}");
         Assert.Equal((point.MedianMs, point.P95Ms), (tag.MedianMs, tag.P95Ms));
-        Assert.Equal("regression", point.Tag);
+        Assert.Equal(["regression"], point.LimitedToTags);
         Assert.NotEqual(done.RunId, point.RunId);
         Assert.Equal(
             HttpStatusCode.NotFound,
@@ -599,7 +600,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         var failedRun = Guid.Empty;
         foreach (var passed in new[] { true, false })
         {
-            var id = await store.EnqueueAsync(agent.Id, agent.VersionId, null, agent.EndpointUrl, cancellationToken: Cancellation);
+            var id = await store.EnqueueAsync(agent.Id, agent.VersionId, [], agent.EndpointUrl, cancellationToken: Cancellation);
             await store.AddSampleAsync(
                 id,
                 new NewSample(
@@ -651,7 +652,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
             var id = await store.EnqueueAsync(
                 agent.Id,
                 agent.VersionId,
-                null,
+                [],
                 agent.EndpointUrl,
                 recheckOf: recheckOf,
                 cancellationToken: Cancellation
@@ -698,7 +699,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         var check = (await app.Services.GetRequiredService<CheckStore>().ListAsync(agent.Id, cancellationToken: Cancellation)).First(
             check => check.Key == "refund-called"
         );
-        var id = await store.EnqueueAsync(agent.Id, versionId, null, agent.EndpointUrl, cancellationToken: Cancellation);
+        var id = await store.EnqueueAsync(agent.Id, versionId, [], agent.EndpointUrl, cancellationToken: Cancellation);
         await store.AddSampleAsync(
             id,
             passed is null

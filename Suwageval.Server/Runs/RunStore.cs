@@ -10,7 +10,7 @@ namespace Suwageval.Server.Runs;
 internal sealed class RunStore(Pool pool)
 {
     private const string RunSelect = """
-        SELECT r.id, r.agent_id AS AgentId, a.name AS AgentName, r.agent_version_id AS AgentVersionId, r.tag,
+        SELECT r.id, r.agent_id AS AgentId, a.name AS AgentName, r.agent_version_id AS AgentVersionId, to_jsonb(r.tags)::text AS TagsJson,
                r.endpoint_url AS EndpointUrl, r.status, r.error, r.samples_total AS SamplesTotal,
                (SELECT count(*)::int FROM scenario_results s WHERE s.run_id = r.id) AS SamplesDone,
                check_totals.passed AS ChecksPassed, check_totals.failed AS ChecksFailed,
@@ -43,7 +43,7 @@ internal sealed class RunStore(Pool pool)
     public async Task<Guid> EnqueueAsync(
         Guid agentId,
         Guid agentVersionId,
-        string? tag,
+        IReadOnlyCollection<string> tags,
         string endpointUrl,
         Guid? recheckOf = null,
         Guid? verdictsFrom = null,
@@ -56,15 +56,15 @@ internal sealed class RunStore(Pool pool)
         return await connection.QuerySingleAsync<Guid>(
             new CommandDefinition(
                 """
-                INSERT INTO runs (agent_id, agent_version_id, tag, endpoint_url, recheck_of, verdicts_from, origin, reference, compared_with, run_group)
-                VALUES (@agentId, @agentVersionId, @tag, @endpointUrl, @recheckOf, @verdictsFrom, @origin::jsonb, @reference, @comparedWith, @runGroup)
+                INSERT INTO runs (agent_id, agent_version_id, tags, endpoint_url, recheck_of, verdicts_from, origin, reference, compared_with, run_group)
+                VALUES (@agentId, @agentVersionId, @tags, @endpointUrl, @recheckOf, @verdictsFrom, @origin::jsonb, @reference, @comparedWith, @runGroup)
                 RETURNING id
                 """,
                 new
                 {
                     agentId,
                     agentVersionId,
-                    tag,
+                    tags = tags.ToArray(),
                     endpointUrl,
                     recheckOf,
                     verdictsFrom,

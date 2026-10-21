@@ -10,7 +10,7 @@ internal sealed record RunRow(
     Guid AgentId,
     string AgentName,
     Guid AgentVersionId,
-    string? Tag,
+    string TagsJson,
     string EndpointUrl,
     string Status,
     string? Error,
@@ -37,6 +37,8 @@ internal sealed record RunRow(
     /// <summary>What a rerun or a re-check of this run inherits.</summary>
     public RunPlacement Placement =>
         new(Origin is null ? null : JsonSerializer.Deserialize<RunOrigin>(Origin, ContractJson.Options), Reference, ComparedWith);
+
+    public IReadOnlyList<string> Tags => JsonSerializer.Deserialize<string[]>(TagsJson) ?? [];
 
     public RunStatus State => Enum.Parse<RunStatus>(Status);
 }

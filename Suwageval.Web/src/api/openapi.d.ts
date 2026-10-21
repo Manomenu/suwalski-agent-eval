@@ -1891,7 +1891,7 @@ export interface components {
             /** Format: int32 */
             agentErrors: number;
         };
-        /** @description The optional body of a rerun: everything else (agent, tag) is taken from the run being repeated. */
+        /** @description The optional body of a rerun: everything else (agent, tags) is taken from the run being repeated. */
         RerunRequest: {
             /** @description Where to reach the agent for the new run; none means the endpoint the repeated run used. */
             endpointUrl?: null | string;
@@ -1992,8 +1992,8 @@ export interface components {
             recheckedBy?: null | string;
             /** Format: uuid */
             agentVersionId: string;
-            /** @description The tag the run was limited to; null when it ran every scenario. Only such a run says what "all checks" are. */
-            tag?: null | string;
+            /** @description The tags the run was limited to; empty when it ran every scenario. Only such a run says what "all checks" are. */
+            limitedToTags?: string[];
             /** @description The label the version's contract carries, if any. */
             versionLabel?: null | string;
             /** @description The models the version's LLM agents use. */
@@ -2020,8 +2020,8 @@ export interface components {
         RunRequest: {
             /** @description The agent's name or id. */
             agent: string;
-            /** @description Only the scenarios with this tag; none means every scenario of the agent. */
-            tag?: null | string;
+            /** @description Only the scenarios with any of these tags; empty means every scenario of the agent. */
+            tags?: string[];
             /** @description Where to reach the agent for this run, and to read its contract from; none means the endpoint the agent was registered with. */
             endpointUrl?: null | string;
             /** @description The group the run belongs to (RunGroupRules); none means no group. */
@@ -2057,7 +2057,8 @@ export interface components {
             agent: string;
             /** Format: uuid */
             agentVersionId: string;
-            tag?: null | string;
+            /** @description The tags the run was limited to (a scenario with any of them ran); empty when it ran every scenario. */
+            tags?: string[];
             endpointUrl: string;
             /** @description The group the run was started in (run --group); none for a run without one. */
             group?: null | string;

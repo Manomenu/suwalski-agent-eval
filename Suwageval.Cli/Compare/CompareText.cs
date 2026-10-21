@@ -63,7 +63,7 @@ internal static class CompareText
         text.Append(
             string.Create(
                 CultureInfo.InvariantCulture,
-                $"#{index + 1}{(index == 0 ? " baseline" : "")}  run {Short(run.Id)}  version {Short(run.AgentVersionId)}  tag {run.Tag ?? "-"}"
+                $"#{index + 1}{(index == 0 ? " baseline" : "")}  run {Short(run.Id)}  version {Short(run.AgentVersionId)}  tags {RunTagsText.Of(run.Tags)}"
             )
         );
         if (compared.JudgeModel is not null)

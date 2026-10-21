@@ -59,7 +59,7 @@ internal sealed class ServerClient(HttpClient http)
             cancellationToken
         );
 
-    /// <summary>A new run with the agent, tag and endpoint of run <paramref name="runId"/> (the endpoint unless another is given), in <paramref name="group"/> if any.</summary>
+    /// <summary>A new run with the agent, tags and endpoint of run <paramref name="runId"/> (the endpoint unless another is given), in <paramref name="group"/> if any.</summary>
     public Task<RunCreated> RerunAsync(Guid runId, string? endpointUrl, string? group, CancellationToken cancellationToken) =>
         SendAsync<RunCreated>(
             () =>

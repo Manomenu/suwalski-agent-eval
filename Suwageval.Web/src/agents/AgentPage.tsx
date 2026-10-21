@@ -67,7 +67,7 @@ const VERSIONS_FILTER_HELP =
     "Show only runs of these agent versions (newest first; empty means all). The chart, the unstable checks and the agent errors follow the filter.";
 const GROUP_HELP =
     "Show only the runs started in this group (run --group). Open the group from the Groups section to compare its runs as variants.";
-const TAG_HELP = "The scenario tag the run was limited to (run --tag); — means every scenario of the agent ran.";
+const TAG_HELP = "The scenario tags the run was limited to (run --tag, repeatable); — means every scenario of the agent ran.";
 
 const PassRateTrend = lazy(() => import("./PassRateTrend").then((module) => ({ default: module.PassRateTrend })));
 const TurnTimeTrend = lazy(() => import("./TurnTimeTrend").then((module) => ({ default: module.TurnTimeTrend })));
@@ -297,7 +297,7 @@ function AgentView({
                                             <Table.Th>Run</Table.Th>
                                             <Table.Th>Status</Table.Th>
                                             <Table.Th>
-                                                <HeaderHelp label="Tag" help={TAG_HELP} />
+                                                <HeaderHelp label="Tags" help={TAG_HELP} />
                                             </Table.Th>
                                             <Table.Th>Group</Table.Th>
                                             <Table.Th>
@@ -346,7 +346,7 @@ function AgentView({
                                                         )}
                                                     </Group>
                                                 </Table.Td>
-                                                <Table.Td>{run.tag ?? "—"}</Table.Td>
+                                                <Table.Td>{run.tags?.length ? run.tags.join(", ") : "—"}</Table.Td>
                                                 <Table.Td className="wrap-key">
                                                     {run.group == null ? (
                                                         "—"

@@ -5,7 +5,7 @@ using Suwageval.Cli.Server;
 namespace Suwageval.Cli.Runs;
 
 /// <summary>
-/// <c>suwageval runs</c>: the runs of the agent named in <c>suwageval/agent.yaml</c>, newest first — id, status, tag, version, checks
+/// <c>suwageval runs</c>: the runs of the agent named in <c>suwageval/agent.yaml</c>, newest first — id, status, tags, version, checks
 /// passed of all, creation time, branch and a "reference" mark; <c>--limit</c> keeps the newest ones (default 10), <c>--version</c> (repeatable)
 /// those of the given agent versions, <c>--reference</c> only reference runs, <c>--group</c> only the runs of a group, <c>--groups</c> lists the groups instead, <c>--json</c> prints the run summaries. It is how a
 /// run to compare with is found (<c>suwageval compare</c>). Exits 0, or 2 when the agent file or the server is wrong.
@@ -89,7 +89,7 @@ internal static class RunsCommand
                             await output.WriteLineAsync(
                                 string.Create(
                                     CultureInfo.InvariantCulture,
-                                    $"{run.Id}  {run.Status}  {run.Tag ?? "-"}  version {run.AgentVersionId}  {run.ChecksPassed}/{run.ChecksPassed + run.ChecksFailed} checks passed  {run.CreatedAt:yyyy-MM-dd HH:mm}Z  branch {run.Origin?.Branch ?? "-"}{(run.Reference ? "  reference" : "")}{(run.Group is null ? "" : $"  group {run.Group}")}{(run.JudgeModels.Count > 0 ? $"  judge {string.Join(", ", run.JudgeModels)}" : "")}"
+                                    $"{run.Id}  {run.Status}  {RunTagsText.Of(run.Tags)}  version {run.AgentVersionId}  {run.ChecksPassed}/{run.ChecksPassed + run.ChecksFailed} checks passed  {run.CreatedAt:yyyy-MM-dd HH:mm}Z  branch {run.Origin?.Branch ?? "-"}{(run.Reference ? "  reference" : "")}{(run.Group is null ? "" : $"  group {run.Group}")}{(run.JudgeModels.Count > 0 ? $"  judge {string.Join(", ", run.JudgeModels)}" : "")}"
                                 )
                             );
                         }

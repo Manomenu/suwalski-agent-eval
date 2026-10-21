@@ -116,7 +116,7 @@ public sealed class RunRecheckTests(TestDatabase database) : IAsyncDisposable
 
     private async Task<Guid> FinishedRunAsync(SeededAgent agent, Judge? judge = null)
     {
-        var id = await Store().EnqueueAsync(agent.Id, agent.VersionId, null, agent.EndpointUrl, cancellationToken: Cancellation);
+        var id = await Store().EnqueueAsync(agent.Id, agent.VersionId, [], agent.EndpointUrl, cancellationToken: Cancellation);
         var run = await ExecuteNextAsync(agent, judge);
         Assert.Equal((id, RunStatus.Done), (run.Id, run.State));
         return id;
@@ -405,7 +405,7 @@ public sealed class RunRecheckTests(TestDatabase database) : IAsyncDisposable
         );
         var client = Client();
         var source = await FinishedRunAsync(agent);
-        var queued = await Store().EnqueueAsync(agent.Id, agent.VersionId, null, agent.EndpointUrl, cancellationToken: Cancellation);
+        var queued = await Store().EnqueueAsync(agent.Id, agent.VersionId, [], agent.EndpointUrl, cancellationToken: Cancellation);
 
         var unfinished = await PlanAsync(client, queued);
         var unchanged = await PlanAsync(client, source);

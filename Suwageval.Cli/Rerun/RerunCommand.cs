@@ -4,7 +4,7 @@ using Suwageval.Cli.Server;
 namespace Suwageval.Cli.Rerun;
 
 /// <summary>
-/// <c>suwageval rerun</c>: a new run with the agent, tag and endpoint of an earlier one (<c>--endpoint</c> replaces the endpoint).
+/// <c>suwageval rerun</c>: a new run with the agent, tags and endpoint of an earlier one (<c>--endpoint</c> replaces the endpoint).
 /// The version is the one the agent serves now. Output and exit codes are those of <c>suwageval run</c>.
 /// </summary>
 internal static class RerunCommand
@@ -26,7 +26,7 @@ internal static class RerunCommand
 
         var command = new Command(
             "rerun",
-            "Run again with the agent, tag and endpoint of an earlier run, against the version the agent serves now. With --wait: exit 0 unless a check regressed or is new and failing (--strict: unless any check fails), 2 when the run cannot finish."
+            "Run again with the agent, tags and endpoint of an earlier run, against the version the agent serves now. With --wait: exit 0 unless a check regressed or is new and failing (--strict: unless any check fails), 2 when the run cannot finish."
         )
         {
             runId,

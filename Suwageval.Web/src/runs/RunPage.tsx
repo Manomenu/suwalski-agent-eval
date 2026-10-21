@@ -55,7 +55,7 @@ export function RunPage({ runId }: { runId: string }) {
                 </Group>
                 <Text c="dimmed">
                     id {run.id} · version {run.agentVersionId}
-                    {run.tag ? ` · tag ${run.tag}` : ""}
+                    {run.tags?.length ? ` · tags ${run.tags.join(", ")}` : ""}
                     {run.group != null && (
                         <>
                             {" · group "}

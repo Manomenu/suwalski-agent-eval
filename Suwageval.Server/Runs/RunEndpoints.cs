@@ -202,7 +202,7 @@ internal static class RunEndpoints
                     CreatedAt = run.CreatedAt,
                     RecheckedBy = recheck?.Id,
                     AgentVersionId = version.Id,
-                    Tag = run.Tag,
+                    LimitedToTags = run.Tags,
                     VersionLabel = version.Label,
                     ModelNames = ContractContent.ModelNames(ContractContent.Read(version.Content)),
                     PassRate = rates.PassRate,
@@ -269,12 +269,14 @@ internal static class RunEndpoints
             return ProblemResults.NotFound("Agent", request.Agent);
         }
 
-        var picked = await scenarios.ListAsync(agent.Id, request.Tag, cancellationToken);
+        var picked = await scenarios.ListAsync(agent.Id, request.Tags, cancellationToken);
         if (picked.Count == 0)
         {
             return ProblemResults.Invalid(
-                "tag",
-                request.Tag is null ? "The agent has no scenarios." : $"No scenario has the tag '{request.Tag}'."
+                "tags",
+                request.Tags.Count == 0
+                    ? "The agent has no scenarios."
+                    : $"No scenario has any of the tags {string.Join(", ", request.Tags.Select(tag => $"'{tag}'"))}."
             );
         }
 
@@ -337,7 +339,7 @@ internal static class RunEndpoints
         var id = await runs.EnqueueAsync(
             agent.Id,
             version.Id,
-            request.Tag,
+            request.Tags,
             endpoint,
             placement: placement,
             runGroup: request.Group,
@@ -355,7 +357,7 @@ internal static class RunEndpoints
     }
 
     /// <summary>
-    /// A new run with the parameters of run <paramref name="id"/> — its agent, tag and endpoint (unless the body gives another) —
+    /// A new run with the parameters of run <paramref name="id"/> — its agent, tags and endpoint (unless the body gives another) —
     /// through <see cref="CreateAsync"/>: the version is what the agent serves now, the scenarios its current ones, and the
     /// answers and refusals are the same. 404 for an unknown run; the repeated run is not touched.
     /// </summary>
@@ -380,7 +382,7 @@ internal static class RunEndpoints
             new RunRequest
             {
                 Agent = original.AgentId.ToString(),
-                Tag = original.Tag,
+                Tags = original.Tags,
                 EndpointUrl = request?.EndpointUrl ?? original.EndpointUrl,
                 Group = request?.Group,
             },
@@ -446,7 +448,7 @@ internal static class RunEndpoints
         var created = await runs.EnqueueAsync(
             source.AgentId,
             source.AgentVersionId,
-            source.Tag,
+            source.Tags,
             source.EndpointUrl,
             source.Id,
             planned.Shown.Id,

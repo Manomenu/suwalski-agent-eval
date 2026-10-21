@@ -25,12 +25,12 @@ function point(
     passRate: number,
     tags: [string, number][],
     versionLabel: string | null = "v1",
-    tag: string | null = null,
+    limitedToTags: string[] = [],
     medianMs: number | null = null,
 ): RunPassRates {
     return {
         runId: id,
-        tag,
+        limitedToTags,
         createdAt: "2026-10-16T14:05:00Z",
         agentVersionId: "version",
         versionLabel,
@@ -100,7 +100,7 @@ describe("asTrendRow", () => {
 
 describe("All", () => {
     it("comes only from runs of every scenario; a run limited to a tag adds to that tag's line only", () => {
-        const rows = trendRows([point("full", 0.9, [["smoke", 1]]), point("smoke-only", 0.5, [["smoke", 0.5]], "v1", "smoke")]);
+        const rows = trendRows([point("full", 0.9, [["smoke", 1]]), point("smoke-only", 0.5, [["smoke", 0.5]], "v1", ["smoke"])]);
         expect(rows.map((row) => row[ALL_SERIES])).toEqual([90, null]);
         expect(rows.map((row) => row["smoke"])).toEqual([100, 50]);
     });
@@ -123,22 +123,22 @@ describe("re-checked points", () => {
 
 describe("measuredSeries", () => {
     it("lists only the series the run measured, in the given order", () => {
-        const [row] = trendRows([point("smoke-only", 0.5, [["smoke", 0.5]], "v1", "smoke")]);
+        const [row] = trendRows([point("smoke-only", 0.5, [["smoke", 0.5]], "v1", ["smoke"])]);
         if (!row) throw new Error("one row");
         expect(measuredSeries(row, [ALL_SERIES, "regression", "smoke"])).toEqual(["smoke"]);
     });
 
     it("says whether the run covered every scenario or one tag", () => {
-        const [full, tagged] = trendRows([point("full", 1, []), point("smoke-only", 1, [], "v1", "smoke")]);
+        const [full, tagged] = trendRows([point("full", 1, []), point("smoke-only", 1, [], "v1", ["smoke", "billing"])]);
         expect(full?.[DETAILS_KEY]).toMatch(/^all scenarios · /);
-        expect(tagged?.[DETAILS_KEY]).toMatch(/^tag smoke · /);
+        expect(tagged?.[DETAILS_KEY]).toMatch(/^tags smoke, billing · /);
     });
 });
 
 describe("turn time", () => {
     const timed = [
-        point("r1", 0.5, [["smoke", 1]], "v1", null, 1240),
-        point("r2", 0.5, [["smoke", 1]], "v1", "smoke", 2000),
+        point("r1", 0.5, [["smoke", 1]], "v1", [], 1240),
+        point("r2", 0.5, [["smoke", 1]], "v1", ["smoke"], 2000),
         point("r3", 1, []),
     ];
 
