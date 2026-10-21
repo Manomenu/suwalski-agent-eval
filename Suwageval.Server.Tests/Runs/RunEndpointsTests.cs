@@ -52,6 +52,24 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         ?? throw new InvalidOperationException("no body");
 
     [Fact]
+    public async Task A_run_keeps_the_label_its_contract_carried_though_the_version_keeps_its_first_one()
+    {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
+        var client = Client();
+        var agent = await NewAgentAsync(fake.Url.AbsoluteUri);
+        var first = await StartAsync(client, new RunRequest { Agent = agent.Name });
+        fake.ServeContract(SeededAgent.ExampleVersion with { Label = "relabelled" });
+
+        var second = await StartAsync(client, new RunRequest { Agent = agent.Name });
+
+        Assert.Equal((first.AgentVersionId, false), (second.AgentVersionId, second.VersionCreated));
+        var firstRun = await GetAsync<RunSummary>(client, $"/runs/{first.RunId}");
+        var secondRun = await GetAsync<RunSummary>(client, $"/runs/{second.RunId}");
+        Assert.Equal(SeededAgent.ExampleVersion.Label, firstRun.Label);
+        Assert.Equal("relabelled", secondRun.Label);
+    }
+
+    [Fact]
     public async Task Starting_a_run_registers_the_contract_the_agent_serves_and_queues_the_run_with_it()
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);

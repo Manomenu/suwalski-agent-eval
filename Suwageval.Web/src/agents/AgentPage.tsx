@@ -23,6 +23,7 @@ import {
     RUN_CHECKS_HELP,
     RUN_SAMPLES_HELP,
     runHref,
+    runLabel,
     shortId,
     statusColor,
     statusLabel,
@@ -356,7 +357,10 @@ function AgentView({
                                                 </Table.Td>
                                                 <Table.Td>
                                                     <Anchor href={versionHref(agent.name, run.agentVersionId)}>
-                                                        {shortId(run.agentVersionId)}
+                                                        {runLabel(
+                                                            run,
+                                                            versions.find((version) => version.id === run.agentVersionId)?.label,
+                                                        )}
                                                     </Anchor>
                                                 </Table.Td>
                                                 <Table.Td>

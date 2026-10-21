@@ -23,7 +23,9 @@ internal static class ResultsText
                 $"run {run.Id}  {run.Status.ToString().ToLowerInvariant()}{(run.Reference ? "  reference" : "")}"
             )
         );
-        text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"agent {run.Agent}  version {run.AgentVersionId}"));
+        text.AppendLine(
+            string.Create(CultureInfo.InvariantCulture, $"agent {run.Agent}  version {run.AgentVersionId}{RunLabelText.Suffix(run.Label)}")
+        );
         text.AppendLine(
             string.Create(
                 CultureInfo.InvariantCulture,

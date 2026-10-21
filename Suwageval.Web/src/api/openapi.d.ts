@@ -2061,6 +2061,8 @@ export interface components {
             agentVersionId: string;
             /** @description The tags the run was limited to (a scenario with any of them ran); empty when it ran every scenario. */
             tags?: string[];
+            /** @description The label the agent's contract carried when the run started: the name of the variant it ran. None when the contract had none. */
+            label?: null | string;
             endpointUrl: string;
             /** @description The group the run was started in (run --group); none for a run without one. */
             group?: null | string;

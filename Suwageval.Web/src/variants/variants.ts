@@ -1,6 +1,6 @@
 // What the variants page shows of what the server computed (`GET /runs/variants`): which runs the address asks for, and the titles,
 // texts, grouping and highlighting of its table. What passed, every rate and every turn time is the server's.
-import { shortId } from "../runs/results";
+import { runLabel } from "../runs/results";
 import type { VariantCell, VariantRun, VariantScenario } from "./api";
 
 /** The most runs the page shows (the server's limit). */
@@ -32,10 +32,9 @@ export function selectionOf(runs: string, group: string, agent: string): Variant
     return { kind: "runs", ids };
 }
 
-/** A column's name: the label of its version (the variant), else the start of the version's id. */
+/** A column's name: the label its run's contract carried (the variant), else its version's label, else the start of the version's id. */
 export function variantName(variant: Pick<VariantRun, "versionLabel" | "run">): string {
-    const label = variant.versionLabel?.trim();
-    return label === undefined || label === "" ? shortId(variant.run.agentVersionId) : label;
+    return runLabel(variant.run, variant.versionLabel);
 }
 
 /** `3/4 checks`; a dash for a run that did not run the scenario, "no checks" for a scenario without any. */

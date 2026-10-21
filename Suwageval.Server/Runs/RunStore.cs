@@ -22,7 +22,7 @@ internal sealed class RunStore(Pool pool)
                           JOIN scenario_results s ON s.id = c.scenario_result_id
                           WHERE s.run_id = r.id AND c.judge_model IS NOT NULL), '[]') AS JudgeModels,
                (SELECT count(*)::int FROM scenario_results s WHERE s.run_id = r.id AND s.status = 'Failed') AS SamplesFailed,
-               r.run_group AS RunGroup
+               r.run_group AS RunGroup, r.label AS Label
         FROM runs r
         JOIN agents a ON a.id = r.agent_id
         CROSS JOIN LATERAL (
@@ -49,6 +49,7 @@ internal sealed class RunStore(Pool pool)
         Guid? verdictsFrom = null,
         RunPlacement? placement = null,
         string? runGroup = null,
+        string? label = null,
         CancellationToken cancellationToken = default
     )
     {
@@ -56,8 +57,8 @@ internal sealed class RunStore(Pool pool)
         return await connection.QuerySingleAsync<Guid>(
             new CommandDefinition(
                 """
-                INSERT INTO runs (agent_id, agent_version_id, tags, endpoint_url, recheck_of, verdicts_from, origin, reference, compared_with, run_group)
-                VALUES (@agentId, @agentVersionId, @tags, @endpointUrl, @recheckOf, @verdictsFrom, @origin::jsonb, @reference, @comparedWith, @runGroup)
+                INSERT INTO runs (agent_id, agent_version_id, tags, endpoint_url, recheck_of, verdicts_from, origin, reference, compared_with, run_group, label)
+                VALUES (@agentId, @agentVersionId, @tags, @endpointUrl, @recheckOf, @verdictsFrom, @origin::jsonb, @reference, @comparedWith, @runGroup, @label)
                 RETURNING id
                 """,
                 new
@@ -72,6 +73,7 @@ internal sealed class RunStore(Pool pool)
                     reference = placement?.Reference ?? false,
                     comparedWith = placement?.ComparedWith,
                     runGroup,
+                    label,
                 },
                 cancellationToken: cancellationToken
             )

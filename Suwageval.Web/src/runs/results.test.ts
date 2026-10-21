@@ -17,6 +17,7 @@ import {
     percent,
     percentValue,
     runHref,
+    runLabel,
     sampleVerdict,
     samplesCounts,
     samplesToOpen,
@@ -214,6 +215,16 @@ describe("runHref", () => {
 describe("shortId", () => {
     it("keeps eight characters", () => {
         expect(shortId("3f2b8c1e-5d4a")).toBe("3f2b8c1e");
+    });
+});
+
+describe("runLabel", () => {
+    const run = { agentVersionId: "3f2b8c1e-5d4a-4e6f-9a7b-0c1d2e3f4a5b" };
+
+    it("is the run's own label, else its version's, else the start of the version's id", () => {
+        expect(runLabel({ ...run, label: "gpt-5" }, "gpt-4o")).toBe("gpt-5");
+        expect(runLabel({ ...run, label: " " }, "gpt-4o")).toBe("gpt-4o");
+        expect(runLabel(run, null)).toBe("3f2b8c1e");
     });
 });
 

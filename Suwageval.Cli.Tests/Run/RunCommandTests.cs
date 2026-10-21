@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using Suwageval.AgentSdk;
+using Suwageval.AgentSdk.Conversations;
 using Suwageval.Cli.Files;
 using Suwageval.Contracts.Checks;
 using Suwageval.Contracts.Runs;
@@ -643,6 +644,48 @@ public sealed class RunCommandTests
         var printed = JsonSerializer.Deserialize<RunResults>(output, ContractJson.Options);
         Assert.Equal(results.Scenarios[0].Checks[0].Key, printed?.Scenarios[0].Checks[0].Key);
         Assert.Equal(RunStatus.Done, printed?.Run.Status);
+    }
+
+    // A real run printed invalid JSON once, a raw line break inside a string: a judge's reason or an agent's reply with line breaks
+    // (also the Unicode ones) must reach stdout escaped.
+    private const char LineSeparator = (char)0x2028;
+    private const char ParagraphSeparator = (char)0x2029;
+    private const char NextLine = (char)0x85;
+
+    [Fact]
+    public void Wait_with_json_stays_valid_when_a_reason_or_a_reply_has_line_breaks()
+    {
+        var text = $"first\nsecond\r\nthird{LineSeparator}fourth{ParagraphSeparator}fifth\u0085sixth\ttab \"quoted\" \\ back";
+        var checks = Results(RunStatus.Done, Check("c", false, text)).Scenarios[0];
+        var results = Results(RunStatus.Done) with
+        {
+            Scenarios =
+            [
+                checks with
+                {
+                    Samples =
+                    [
+                        new SampleResult
+                        {
+                            Sample = 1,
+                            Status = SampleStatus.Done,
+                            Output = [new AssistantMessage { Text = text }],
+                        },
+                    ],
+                },
+            ],
+        };
+
+        var (_, output, _, _) = Run((request, _) => Server(request, Summary(RunStatus.Done), results), "--wait", "--json");
+
+        using var printed = JsonDocument.Parse(output);
+        var scenario = printed.RootElement.GetProperty("scenarios")[0];
+        Assert.Equal(text, scenario.GetProperty("samples")[0].GetProperty("output")[0].GetProperty("text").GetString());
+        Assert.Equal(text, scenario.GetProperty("checks")[0].GetProperty("samples")[0].GetProperty("message").GetString());
+        Assert.DoesNotContain(
+            [LineSeparator, ParagraphSeparator, NextLine],
+            character => output.Contains(character, StringComparison.Ordinal)
+        );
     }
 
     [Fact]

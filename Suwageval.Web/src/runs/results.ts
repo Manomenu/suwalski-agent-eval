@@ -24,6 +24,11 @@ export function versionTitle(id: string, label: string | null | undefined): stri
     return label?.trim() ? label : shortId(id);
 }
 
+/** What names a run: the label its contract carried when it started, else its version's label, else the start of the version's id. */
+export function runLabel(run: Pick<RunSummary, "label" | "agentVersionId">, versionLabel?: string | null): string {
+    return run.label?.trim() ? run.label : versionTitle(run.agentVersionId, versionLabel);
+}
+
 /** The id of a check's row on the run page, so a link can jump to it (`#check-<scenario>--<check>`). */
 export function checkAnchor(scenarioKey: string, checkKey: string): string {
     return `check-${scenarioKey}--${checkKey}`;

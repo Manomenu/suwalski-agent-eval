@@ -14,7 +14,7 @@ public sealed class VariantsCommandTests
 
     private static string Sample => Path.Combine(AppContext.BaseDirectory, "Sample", "suwageval");
 
-    private static VariantRun Column(Guid id, string? label, int checksPassed, int checksFailed) =>
+    private static VariantRun Column(Guid id, string? label, int checksPassed, int checksFailed, string? runLabel = null) =>
         new()
         {
             Run = new RunSummary
@@ -30,6 +30,7 @@ public sealed class VariantsCommandTests
                 ChecksPassed = checksPassed,
                 ChecksFailed = checksFailed,
                 CreatedAt = DateTime.UtcNow,
+                Label = runLabel,
             },
             VersionLabel = label,
             ModelNames = ["gpt-4o"],
@@ -41,7 +42,7 @@ public sealed class VariantsCommandTests
     {
         Agent = "example-agent",
         Group = "sweep-1",
-        Runs = [Column(First, "gpt-4o", 75, 22), Column(Second, null, 80, 17)],
+        Runs = [Column(First, "gpt-4o", 75, 22), Column(Second, "gpt-4o", 80, 17, "relabelled")],
         Tags =
         [
             new ComparedTag { Tag = null, Rates = [new ComparedRate(0.77), new ComparedRate(0.82)] },
@@ -106,6 +107,7 @@ public sealed class VariantsCommandTests
 
         Assert.Equal(0, exit);
         Assert.Equal([$"/runs/variants?runs={First}&runs={Second}"], api.PathsAndQueries);
+        Assert.Contains("B  relabelled  models", output, StringComparison.Ordinal);
         Assert.Contains(
             "A  gpt-4o  models gpt-4o  run 11111111  checks 75/97 passed, 22 failed  samples 3/4 answered",
             output,

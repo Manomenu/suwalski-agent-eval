@@ -12,6 +12,9 @@ public sealed record RunSummary
     /// <summary>The tags the run was limited to (a scenario with any of them ran); empty when it ran every scenario.</summary>
     public IReadOnlyList<string> Tags { get; init; } = [];
 
+    /// <summary>The label the agent's contract carried when the run started: the name of the variant it ran. None when the contract had none.</summary>
+    public string? Label { get; init; }
+
     public required string EndpointUrl { get; init; }
 
     /// <summary>The group the run was started in (run --group); none for a run without one.</summary>
