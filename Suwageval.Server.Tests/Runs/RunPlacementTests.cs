@@ -27,6 +27,14 @@ public sealed class RunPlacementTests
     private static RegressionSettings Branches(params string[] branches) => new() { Branches = branches };
 
     [Fact]
+    public void An_experiment_keeps_its_origin_but_is_no_reference_and_is_compared_with_nothing()
+    {
+        var experiment = RunPlacement.Decide(Origin(), null).AsExperiment();
+
+        Assert.Equal(("master", false, null), (experiment.Origin?.Branch, experiment.Reference, experiment.ComparedWith));
+    }
+
+    [Fact]
     public void A_run_without_git_is_no_reference_and_is_compared_with_every_run()
     {
         var placement = RunPlacement.Decide(null, Branches("master"));

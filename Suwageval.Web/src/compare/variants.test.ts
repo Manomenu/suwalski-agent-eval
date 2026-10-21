@@ -1,15 +1,24 @@
 import { describe, expect, it } from "vitest";
 
-import type { VariantCell, VariantScenario } from "./api";
+import type { VariantCell, VariantCheck, VariantScenario } from "./api";
 import {
     bestColumns,
+    cellStatus,
     cellText,
+    checkMatrix,
+    checkVerdictText,
+    columnName,
+    columnTitle,
     columnTotals,
+    coverageHint,
+    noAnswerRows,
     noAnswerText,
+    runTagsText,
+    scenarioDiffers,
     scenarioSections,
     selectionOf,
-    variantName,
     VARIANTS_MAX_RUNS,
+    visibleTagRows,
 } from "./variants";
 
 const ID = "3f2b8c1e-5d4a-4e6f-9a7b-0c1d2e3f4a5b";
@@ -34,12 +43,17 @@ describe("selectionOf", () => {
     });
 });
 
-describe("variantName", () => {
-    const run = { agentVersionId: ID };
-    it("is the label of the version, else the start of its id", () => {
-        expect(variantName({ versionLabel: "gpt-4o", run } as never)).toBe("gpt-4o");
-        expect(variantName({ versionLabel: " ", run } as never)).toBe(ID.slice(0, 8));
-        expect(variantName({ versionLabel: "gpt-4o", run: { ...run, label: "relabelled" } } as never)).toBe("relabelled");
+describe("column names", () => {
+    it("titles a column with the label of its run, or says it has none; the detail names it by the start of the id then", () => {
+        const labelled = { run: { id: ID, label: "gpt-4o" } } as never;
+        const unlabelled = { run: { id: ID, label: " " } } as never;
+
+        expect([columnTitle(labelled), columnTitle(unlabelled)]).toEqual(["gpt-4o", "Unlabelled"]);
+        expect([columnName(labelled), columnName(unlabelled)]).toEqual(["gpt-4o", `Run ${ID.slice(0, 8)}`]);
+    });
+
+    it("says what no tags means", () => {
+        expect([runTagsText(["a", "b"]), runTagsText([]), runTagsText(undefined)]).toEqual(["a, b", "all scenarios", "all scenarios"]);
     });
 });
 
@@ -47,8 +61,62 @@ const cell = (checksPassed: number, checksTotal: number, samplesFailed = 0): Var
     checksPassed,
     checksTotal,
     failedChecks: [],
+    checks: [],
     samples: 4,
     samplesFailed,
+    noAnswers: [],
+});
+
+const check = (key: string, passed: boolean, samplesPassed: number, samples: number): VariantCheck => ({
+    key,
+    passed,
+    passRate: samplesPassed / samples,
+    samples,
+    samplesPassed,
+    failures: [],
+});
+
+describe("cellStatus", () => {
+    it("says how a cell's checks came out, and no answer when no sample was answered", () => {
+        expect(cellStatus(cell(2, 2))?.label).toBe("all passed");
+        expect(cellStatus(cell(1, 2))?.label).toBe("some failed");
+        expect(cellStatus(cell(0, 2))?.label).toBe("all failed");
+        expect(cellStatus(cell(0, 0))?.label).toBe("no checks");
+        expect(cellStatus(cell(0, 0, 4))?.label).toBe("no answer");
+        expect(cellStatus(null)).toBeNull();
+    });
+});
+
+describe("scenarioDiffers", () => {
+    it("is true when the runs did not come out the same, a run without the scenario counting", () => {
+        expect(scenarioDiffers([cell(2, 2), cell(2, 2)])).toBe(false);
+        expect(scenarioDiffers([cell(2, 2), cell(1, 2)])).toBe(true);
+        expect(scenarioDiffers([cell(2, 2), null])).toBe(true);
+    });
+});
+
+describe("the detail of a scenario", () => {
+    const first = { ...cell(1, 2), checks: [check("a", true, 3, 3), check("b", false, 0, 3)] };
+    const second = { ...cell(1, 2), checks: [check("b", true, 2, 3)], noAnswers: [{ sample: 3, error: "HTTP 500" }] };
+
+    it("lines the checks up by key across the columns, a column without the check getting a gap", () => {
+        expect(checkMatrix([first, second, null]).map((row) => [row.key, row.checks.map((item) => item?.passed ?? null)])).toEqual([
+            ["a", [true, null, null]],
+            ["b", [false, true, null]],
+        ]);
+    });
+
+    it("writes a verdict, with the samples when they were mixed", () => {
+        expect([
+            checkVerdictText(check("a", true, 3, 3)),
+            checkVerdictText(check("b", false, 0, 3)),
+            checkVerdictText(check("c", true, 2, 3)),
+        ]).toEqual(["passed", "failed", "passed 2/3"]);
+    });
+
+    it("lists the samples without an answer by column", () => {
+        expect(noAnswerRows([first, second])).toEqual([{ column: 1, sample: 3, error: "HTTP 500" }]);
+    });
 });
 
 describe("cell texts", () => {
@@ -112,5 +180,26 @@ describe("scenarioSections", () => {
             ["m", ["c"]],
             ["no tag", ["a"]],
         ]);
+    });
+});
+
+describe("tag rows", () => {
+    const row = (tag: string | null, ...rates: (number | null)[]) => ({
+        tag,
+        rates: rates.map((passRate) => ({ passRate, scenariosRan: 3, scenariosOfTag: 5 })),
+    });
+
+    it("leaves out a tag no run has a rate for and keeps the row of every check", () => {
+        const rows = [row(null, null, null), row("mediacom", null, null), row("billing", null, 0.5)];
+
+        expect(visibleTagRows(rows as never).map((item) => item.tag)).toEqual([null, "billing"]);
+    });
+
+    it("says how much of the tag ran where it has no rate", () => {
+        expect(coverageHint("mediacom", { passRate: null, scenariosRan: 30, scenariosOfTag: 44 })).toBe(
+            "Not every mediacom scenario ran (30 of 44)",
+        );
+        expect(coverageHint("mediacom", { passRate: 0.5, scenariosRan: 44, scenariosOfTag: 44 })).toBeNull();
+        expect(coverageHint(null, { passRate: null })).toBeNull();
     });
 });

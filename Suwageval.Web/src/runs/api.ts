@@ -25,9 +25,10 @@ export function fetchRuns(
     before: string | null,
     versionIds: readonly string[],
     group: string | null,
+    grouping: "None" | "Any" | null,
     signal: AbortSignal,
 ): Promise<RunList> {
-    return request<RunList>(runsPath(agent, before, versionIds, group), { signal });
+    return request<RunList>(runsPath(agent, before, versionIds, group, grouping), { signal });
 }
 
 export function fetchRunResults(runId: string, signal: AbortSignal): Promise<RunResults> {

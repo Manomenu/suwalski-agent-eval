@@ -1,7 +1,6 @@
-// What the variants page shows of what the server computed (`GET /runs/variants`): which runs the address asks for, and the titles,
+// What the comparison page shows of what the server computed (`GET /runs/variants`): which runs the address asks for, and the titles,
 // texts, grouping and highlighting of its table. What passed, every rate and every turn time is the server's.
-import { runLabel } from "../runs/results";
-import type { VariantCell, VariantRun, VariantScenario } from "./api";
+import type { ComparedRate, ComparedTag, VariantCell, VariantCheck, VariantRun, VariantScenario } from "./api";
 
 /** The most runs the page shows (the server's limit). */
 export const VARIANTS_MAX_RUNS = 20;
@@ -32,9 +31,73 @@ export function selectionOf(runs: string, group: string, agent: string): Variant
     return { kind: "runs", ids };
 }
 
-/** A column's name: the label its run's contract carried (the variant), else its version's label, else the start of the version's id. */
-export function variantName(variant: Pick<VariantRun, "versionLabel" | "run">): string {
-    return runLabel(variant.run, variant.versionLabel);
+/** The title of a column: the label its run's contract carried, or "Unlabelled". */
+export function columnTitle(variant: Pick<VariantRun, "run">): string {
+    return variant.run.label?.trim() ? variant.run.label : "Unlabelled";
+}
+
+/** What names a column where a title alone is not enough (the detail panel's headers): the label, else "Run" and the start of its id. */
+export function columnName(variant: Pick<VariantRun, "run">): string {
+    return variant.run.label?.trim() ? variant.run.label : `Run ${variant.run.id.slice(0, 8)}`;
+}
+
+/** The tags a run was limited to, or what it means that it has none. */
+export function runTagsText(tags: readonly string[] | null | undefined): string {
+    return tags?.length ? tags.join(", ") : "all scenarios";
+}
+
+export interface CellStatus {
+    label: "all passed" | "some failed" | "all failed" | "no answer" | "no checks";
+    color: "green" | "red" | "gray";
+}
+
+/** The badge of a cell: how its checks came out; "no answer" when the agent answered none of the samples. Null for a run without the scenario. */
+export function cellStatus(cell: VariantCell | null): CellStatus | null {
+    if (cell === null) return null;
+    if (cell.samples > 0 && cell.samplesFailed === cell.samples) return { label: "no answer", color: "red" };
+    if (cell.checksTotal === 0) return { label: "no checks", color: "gray" };
+    if (cell.checksPassed === cell.checksTotal) return { label: "all passed", color: "green" };
+    return cell.checksPassed === 0 ? { label: "all failed", color: "red" } : { label: "some failed", color: "red" };
+}
+
+/** Whether the runs came out differently in a scenario: not every cell has the same checks passed, failed and unanswered. */
+export function scenarioDiffers(cells: readonly (VariantCell | null)[]): boolean {
+    const signature = (cell: VariantCell | null) =>
+        cell === null ? "none" : JSON.stringify([cell.checksPassed, cell.checksTotal, cell.failedChecks, cell.samplesFailed]);
+    return new Set(cells.map(signature)).size > 1;
+}
+
+export interface CheckMatrixRow {
+    key: string;
+    /** One per column; null where that run's cell has no such check. */
+    checks: (VariantCheck | null)[];
+}
+
+/** The checks of a scenario across the columns, in the order they first appear. */
+export function checkMatrix(cells: readonly (VariantCell | null)[]): CheckMatrixRow[] {
+    const keys = [...new Set(cells.flatMap((cell) => cell?.checks.map((check) => check.key) ?? []))];
+    return keys.map((key) => ({ key, checks: cells.map((cell) => cell?.checks.find((check) => check.key === key) ?? null) }));
+}
+
+/** "passed" or "failed"; with the samples (`2/3`) when some passed and some did not. */
+export function checkVerdictText(check: VariantCheck): string {
+    const verdict = check.passed ? "passed" : "failed";
+    return check.samplesPassed > 0 && check.samplesPassed < check.samples
+        ? `${verdict} ${String(check.samplesPassed)}/${String(check.samples)}`
+        : verdict;
+}
+
+export interface NoAnswerRow {
+    column: number;
+    sample: number;
+    error: string | null;
+}
+
+/** The samples without an answer in a scenario, by column. */
+export function noAnswerRows(cells: readonly (VariantCell | null)[]): NoAnswerRow[] {
+    return cells.flatMap((cell, column) =>
+        (cell?.noAnswers ?? []).map((item) => ({ column, sample: item.sample, error: item.error ?? null })),
+    );
 }
 
 /** `3/4 checks`; a dash for a run that did not run the scenario, "no checks" for a scenario without any. */
@@ -110,4 +173,18 @@ export function scenarioSections(
     return [...sections.entries()]
         .sort(([a], [b]) => (a === NO_TAG ? 1 : b === NO_TAG ? -1 : a.localeCompare(b)))
         .map(([title, grouped]) => ({ title, scenarios: grouped }));
+}
+
+/** Said on hover over the per-tag section's title. */
+export const TAG_RATE_HELP = "A tag's pass rate is shown only for runs that ran all of its scenarios.";
+
+/** The rows to show: a tag no run has a rate for says nothing, so it is left out (the row of every check stays). */
+export function visibleTagRows(rows: readonly ComparedTag[]): ComparedTag[] {
+    return rows.filter((row) => row.tag == null || row.rates.some((rate) => rate.passRate != null));
+}
+
+/** Why a tag has no rate in a run that ran some scenarios of it: "Not every mediacom scenario ran (30 of 44)"; null when it has a rate or no counts. */
+export function coverageHint(tag: string | null | undefined, rate: ComparedRate): string | null {
+    if (tag == null || rate.passRate != null || rate.scenariosRan == null || rate.scenariosOfTag == null) return null;
+    return `Not every ${tag} scenario ran (${String(rate.scenariosRan)} of ${String(rate.scenariosOfTag)})`;
 }

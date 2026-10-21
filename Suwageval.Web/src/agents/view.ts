@@ -172,6 +172,24 @@ export function jsonText(value: unknown): string {
 export const VERSION_HELP =
     "The agent version the run used: its contract as the agent served it when the run started (LLM agents, prompts, models, tools, events, data version). Any change there is a new version; open it to see the contract, or tick two in Versions to compare them.";
 
+/** What the Versions section's heading and columns say on hover. */
+export const VERSIONS_SECTION_HELP =
+    "A version is the content of the agent's contract (prompts, models, tools, settings); any change makes a new version.";
+export const VERSION_LABEL_HELP =
+    "The name the contract gave this version (its label), if any; the version keeps the first one it was seen with.";
+export const VERSION_CREATED_HELP = "When a run first met this contract, which is when the version was made.";
+export const VERSION_ID_HELP = "The version's id; open it to see the contract.";
+
+/** What the Runs section's heading and columns say on hover. */
+export const RUNS_SECTION_HELP = "One run of the scenarios against a version of the agent.";
+export const RUN_ID_HELP = "The start of the run's id; open it for its results. Tick runs to compare them.";
+export const RUN_STATUS_HELP =
+    "Queued, Running, Done, Failed or Cancelled. Reference marks a run that makes the history regressions are measured against; Re-check a run that judged an earlier run's stored answers again.";
+export const RUN_GROUP_HELP =
+    "The group the run was started in (run --group). A group's runs are experiments: no regression states, never a reference, not in the pass-rate trend.";
+export const RUN_CREATED_HELP = "When the run was queued.";
+export const RUN_FINISHED_HELP = "When the run ended; empty while it is queued or running.";
+
 /** What the Configuration section's heading says on hover. */
 export const CONFIGURATION_HELP =
     "Settings from agent.yaml in the agent's repository. They change with suwageval push and are not part of a version (a version is the contract the running agent serves).";

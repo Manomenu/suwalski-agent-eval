@@ -1,8 +1,9 @@
-/* The agent's page: one column, and from 1600px (the navbar included) the analytics in a column of their own beside the
+/* The agent's page: one column, and from 1900px (the navbar included) the analytics in a column of their own beside the
    agent and its runs, kept in view while the runs scroll. The runs keep the width of every other page (CONTENT_MAX_WIDTH,
-   shell/layout.ts); the analytics take the rest of the screen, up to its right edge. */
+   shell/layout.ts, wide enough for the tables of runs and comparisons); the analytics take the rest of the screen, up to its
+   right edge. */
 .agent-layout {
-    max-width: 1100px;
+    max-width: 1400px;
     display: grid;
     gap: var(--mantine-spacing-lg);
     grid-template-columns: minmax(0, 1fr);
@@ -39,10 +40,10 @@
     min-width: 0;
 }
 
-@media (min-width: 1600px) {
+@media (min-width: 1900px) {
     .agent-layout {
         max-width: none;
-        grid-template-columns: minmax(0, 1100px) minmax(520px, 1fr);
+        grid-template-columns: minmax(0, 1300px) minmax(520px, 1fr);
         grid-template-rows: auto 1fr;
         grid-template-areas:
             "header analytics"
@@ -117,6 +118,11 @@
 
 .wrap-key {
     overflow-wrap: anywhere;
+}
+
+/* A badge, a count or a date never wraps or shrinks to nothing: only the long text columns (label, group, tags, version) give way. */
+.no-wrap {
+    white-space: nowrap;
 }
 
 /* A long tag wraps inside its button instead of widening the page. */

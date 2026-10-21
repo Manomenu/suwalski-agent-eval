@@ -21,7 +21,10 @@ internal static class UnstableCommand
         var server = CommandOptions.Server();
         var dir = CommandOptions.Dir();
 
-        var command = new Command("unstable", "List the open unstable checks: unstable in the newest version that ran them at least twice.")
+        var command = new Command(
+            "unstable",
+            "List the open unstable checks: unstable in the newest version that ran them at least twice (runs started in a group are not counted)."
+        )
         {
             json,
             versions,

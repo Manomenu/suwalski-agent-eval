@@ -1,41 +1,53 @@
 import { Alert, Button, Group, Loader, Modal, Stack, Text, TextInput } from "@mantine/core";
 import { useState } from "react";
 
-import { deleteVersion, fetchVersionDeletion } from "./api";
 import { confirmsDeletion, deletionSummary } from "./deletion";
 import { useLoaded } from "./useLoaded";
 
 /**
- * Deleting an archived version: says what goes with it (the server counts), and the button waits until the version's id is typed.
- * The server's refusal (a run still queued or running) is shown in the modal.
+ * Deleting an archived version or run group: says what goes with it (the server counts), and the button waits until its id or name
+ * is typed. The server's refusal (a run still queued or running) is shown in the modal.
  */
-export function DeleteVersionModal({
-    agentName,
-    version,
+export function DeleteModal({
+    noun,
+    title,
+    subject,
+    typedLabel,
+    expected,
+    loadPreview,
+    remove,
     onClose,
     onDeleted,
 }: {
-    agentName: string;
-    version: { id: string; label?: string | null };
+    /** "version" or "run group": names what is deleted in the messages. */
+    noun: string;
+    title: string;
+    /** What the first line calls the thing: its label, id or name. */
+    subject: string;
+    typedLabel: string;
+    /** What must be typed to confirm. */
+    expected: string;
+    loadPreview: (signal: AbortSignal) => Promise<{ runs: number; samples: number; verdicts: number }>;
+    remove: () => Promise<void>;
     onClose: () => void;
-    /** Called once the server deleted the version. */
+    /** Called once the server deleted it. */
     onDeleted: () => void;
 }) {
     const [typed, setTyped] = useState("");
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const preview = useLoaded(version.id, (signal) => fetchVersionDeletion(agentName, version.id, signal));
+    const preview = useLoaded(expected, loadPreview);
 
     const confirm = () => {
         setBusy(true);
         setError(null);
-        deleteVersion(agentName, version.id).then(
+        remove().then(
             () => {
                 setBusy(false);
                 onDeleted();
             },
             (failure: unknown) => {
-                setError(failure instanceof Error ? failure.message : "The version could not be deleted.");
+                setError(failure instanceof Error ? failure.message : `The ${noun} could not be deleted.`);
                 setBusy(false);
             },
         );
@@ -47,30 +59,30 @@ export function DeleteVersionModal({
             onClose={() => {
                 if (!busy) onClose();
             }}
-            title="Delete this version?"
+            title={title}
         >
             <Stack>
                 <Text>
-                    Version <b>{version.label?.trim() ? version.label : version.id}</b> is deleted for good, with everything that belongs to
-                    it.
+                    {noun[0]?.toUpperCase()}
+                    {noun.slice(1)} <b>{subject}</b> is deleted for good, with everything that belongs to it.
                 </Text>
                 {preview.kind === "loading" && <Loader size="sm" />}
                 {preview.kind === "loaded" && <Text>{deletionSummary(preview.value)}.</Text>}
                 {preview.kind === "error" && (
-                    <Alert color="red" title="The version cannot be deleted">
+                    <Alert color="red" title={`The ${noun} cannot be deleted`}>
                         {preview.error.message}
                     </Alert>
                 )}
                 <TextInput
-                    label="Type the version id to confirm"
-                    description={version.id}
+                    label={typedLabel}
+                    description={expected}
                     value={typed}
                     onChange={(event) => {
                         setTyped(event.currentTarget.value);
                     }}
                 />
                 {error !== null && (
-                    <Alert color="red" title="The version could not be deleted">
+                    <Alert color="red" title={`The ${noun} could not be deleted`}>
                         {error}
                     </Alert>
                 )}
@@ -78,7 +90,7 @@ export function DeleteVersionModal({
                     <Button variant="default" disabled={busy} onClick={onClose}>
                         Cancel
                     </Button>
-                    <Button color="red" loading={busy} disabled={busy || !confirmsDeletion(typed, version.id)} onClick={confirm}>
+                    <Button color="red" loading={busy} disabled={busy || !confirmsDeletion(typed, expected)} onClick={confirm}>
                         Delete
                     </Button>
                 </Group>

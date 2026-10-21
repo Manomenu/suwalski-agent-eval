@@ -29,32 +29,11 @@ internal static class RunEndpoints
         app.MapGet("/runs/{id:guid}/recheck", RecheckPlanAsync).Produces<RecheckPlan>();
         app.MapPost("/runs/{id:guid}/recheck", RecheckAsync).Produces<RunCreated>(StatusCodes.Status202Accepted);
         app.MapPost("/runs/{id:guid}/cancel", CancelAsync).Produces(StatusCodes.Status202Accepted);
-        app.MapGet("/agents/{agent}/run-groups", RunGroupsAsync).Produces<IReadOnlyList<RunGroupSummary>>();
+        app.MapRunGroups();
         app.MapGet("/agents/{agent}/pass-rates", PassRatesAsync).Produces<IReadOnlyList<RunPassRates>>();
         app.MapGet("/agents/{agent}/unstable-checks", UnstableChecksAsync).Produces<IReadOnlyList<UnstableCheck>>();
         app.MapGet("/agents/{agent}/agent-errors", AgentErrorsAsync).Produces<IReadOnlyList<AgentError>>();
         return app;
-    }
-
-    /// <summary>The groups of the agent's runs (run --group), the one with the newest run first. 404: no such agent.</summary>
-    private static async Task<IResult> RunGroupsAsync(string agent, AgentStore agents, RunStore runs, CancellationToken cancellationToken)
-    {
-        var found = await agents.GetAsync(agent, cancellationToken);
-        if (found is null)
-        {
-            return ProblemResults.NotFound("Agent", agent);
-        }
-        return Results.Ok(
-            (await runs.ListGroupsAsync(found.Id, cancellationToken))
-                .Select(group => new RunGroupSummary
-                {
-                    Name = group.Name,
-                    Runs = group.Runs,
-                    Versions = group.Versions,
-                    NewestRunAt = group.NewestRunAt,
-                })
-                .ToList()
-        );
     }
 
     /// <summary>The unstable checks and the agent errors look at the newest this many finished runs of the agent.</summary>
@@ -336,6 +315,10 @@ internal static class RunEndpoints
         }
 
         var placement = inherited ?? RunPlacement.Decide(request.Origin, agent.Regression);
+        if (request.Group is not null)
+        {
+            placement = placement.AsExperiment();
+        }
         var id = await runs.EnqueueAsync(
             agent.Id,
             version.Id,
@@ -503,8 +486,9 @@ internal static class RunEndpoints
 
     /// <summary>
     /// A page of runs, newest first, with the id to continue from. <c>limit</c> (default 20, 1 to 100), <c>before</c> (a run id: only
-    /// older runs), <c>version</c> (repeatable agent version ids: only their runs), <c>group</c> (only the runs started in that group). 404: no such agent; 422: a bad limit or an unknown
-    /// <c>before</c>.
+    /// older runs), <c>version</c> (repeatable agent version ids: only their runs), <c>group</c> (only the runs started in that group), <c>grouping</c> (<c>None</c>: only runs in no group,
+    /// <c>Any</c>: only runs in some group; a re-check counts as in the group of the run it was made from; default <c>All</c>). 404: no such agent; 422: a bad limit, an unknown
+    /// <c>before</c>, or both a group and a grouping other than <c>All</c>.
     /// </summary>
     private static async Task<IResult> ListAsync(
         [FromQuery] string? agent,
@@ -512,11 +496,16 @@ internal static class RunEndpoints
         [FromQuery] Guid[]? version,
         [FromQuery] int? limit,
         [FromQuery] string? group,
+        [FromQuery] RunGrouping? grouping,
         AgentStore agents,
         RunStore runs,
         CancellationToken cancellationToken
     )
     {
+        if (!string.IsNullOrEmpty(group) && grouping is RunGrouping.None or RunGrouping.Any)
+        {
+            return ProblemResults.Invalid("grouping", "Name a group or a grouping (none, any), not both.");
+        }
         var size = limit ?? DefaultPageSize;
         if (size is < 1 or > MaxPageSize)
         {
@@ -543,6 +532,7 @@ internal static class RunEndpoints
             version ?? [],
             size + 1,
             string.IsNullOrEmpty(group) ? null : group,
+            grouping ?? RunGrouping.All,
             cancellationToken
         );
         var page = rows.Take(size).Select(RunReport.Summary).ToList();
@@ -601,7 +591,8 @@ internal static class RunEndpoints
 
     /// <summary>
     /// The results so far — a run that is still going has some, a queued one none. Once the run is done every check also carries its
-    /// <see cref="CheckRunResult.Regression"/> state against its history, and the results the summary of them.
+    /// <see cref="CheckRunResult.Regression"/> state against its history, and the results the summary of them — except a run started in a
+    /// group (or a re-check of one): an experiment has no regression states.
     /// </summary>
     private static async Task<IResult> ResultsAsync(Guid id, RunStore runs, AgentStore agents, CancellationToken cancellationToken)
     {
@@ -614,6 +605,11 @@ internal static class RunEndpoints
         var verdicts = await runs.ListCheckResultsAsync(id, cancellationToken);
         var results = RunReport.Results(run, samples, verdicts);
         if (run.State != RunStatus.Done)
+        {
+            return Results.Ok(results);
+        }
+        var original = run.RecheckOf is { } recheckOf ? await runs.GetAsync(recheckOf, cancellationToken) : run;
+        if ((original ?? run).RunGroup is not null)
         {
             return Results.Ok(results);
         }

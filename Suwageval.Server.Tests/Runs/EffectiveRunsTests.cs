@@ -5,7 +5,7 @@ namespace Suwageval.Server.Tests.Runs;
 
 public sealed class EffectiveRunsTests
 {
-    private static RunRow Run(RunStatus status, int minute, Guid? recheckOf = null) =>
+    private static RunRow Run(RunStatus status, int minute, Guid? recheckOf = null, string? runGroup = null) =>
         new(
             Guid.NewGuid(),
             Guid.NewGuid(),
@@ -24,7 +24,8 @@ public sealed class EffectiveRunsTests
             new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddMinutes(minute),
             null,
             null,
-            recheckOf
+            recheckOf,
+            RunGroup: runGroup
         );
 
     [Fact]
@@ -44,6 +45,16 @@ public sealed class EffectiveRunsTests
         Assert.Equal(picked.Select(point => point.Run).OrderBy(run => run.CreatedAt), picked.Select(point => point.Run));
         Assert.Equal(newestFirst[2].Id, picked[^1].Run.Id);
         Assert.All(picked, point => Assert.Null(point.RecheckedBy));
+    }
+
+    [Fact]
+    public void A_run_started_in_a_group_is_an_experiment_and_never_a_point()
+    {
+        var plain = Run(RunStatus.Done, 1);
+
+        var picked = EffectiveRuns.Pick([Run(RunStatus.Done, 2, runGroup: "sweep-1"), plain], PassRateTrend.MaxRuns);
+
+        Assert.Equal(plain.Id, Assert.Single(picked).Run.Id);
     }
 
     [Fact]

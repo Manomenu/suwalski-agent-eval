@@ -57,29 +57,33 @@ test("a pressed tag narrows the rows and the summary on the variants, run and co
         // Variants: nothing is selected at first; pressing a tag narrows the scenarios and the counts of every column.
         await page.goto(`/variants?runs=${small},${large}`);
         await expect(page.getByRole("button", { name: "billing", exact: true, pressed: false })).toBeVisible();
-        await expect(page.getByRole("cell", { name: "greets", exact: true })).toBeVisible();
+        // Runs named one by one show the rows that differ; the scenario both runs passed comes with the switch off.
+        await expect(page.getByRole("button", { name: "greets", exact: true })).toHaveCount(0);
+        await page.getByRole("switch", { name: "Only rows that differ", exact: true }).uncheck();
+        await expect(page.getByRole("button", { name: "greets", exact: true })).toBeVisible();
         await expect(page.getByText("1/2 passed · 1 failed", { exact: true })).toBeVisible();
 
         await page.getByRole("button", { name: "billing", exact: true }).click();
 
         await expect(page.getByRole("button", { name: "billing", exact: true, pressed: true })).toBeVisible();
         await expect(page).toHaveURL(new RegExp(`tag=billing$`));
-        await expect(page.getByRole("cell", { name: "greets", exact: true })).toHaveCount(0);
-        await expect(page.getByRole("cell", { name: "refunds", exact: true })).toBeVisible();
+        await expect(page.getByRole("button", { name: "greets", exact: true })).toHaveCount(0);
+        await expect(page.getByRole("button", { name: "refunds", exact: true })).toBeVisible();
         await expect(page.getByRole("cell", { name: "Checks (billing)", exact: true })).toBeVisible();
         await expect(page.getByText("0/1 passed · 1 failed", { exact: true })).toBeVisible();
         await expect(page.getByText("1/1 passed", { exact: true })).toBeVisible();
         // The per-tag rows keep the selected tag only.
-        await expect(page.getByRole("row", { name: /^billing 0% 100%$/ })).toBeVisible();
+        await expect(page.getByRole("row", { name: /^billing 0% 100% ▲ 100 pp$/ })).toBeVisible();
         await expect(page.getByRole("row", { name: /^smoke /, exact: false })).toHaveCount(0);
 
         // The choice is in the address: a reload, or a shared link, shows the same view.
         await page.reload();
         await expect(page.getByRole("button", { name: "billing", exact: true, pressed: true })).toBeVisible();
-        await expect(page.getByRole("cell", { name: "greets", exact: true })).toHaveCount(0);
+        await expect(page.getByRole("button", { name: "greets", exact: true })).toHaveCount(0);
 
+        await page.getByRole("switch", { name: "Only rows that differ", exact: true }).uncheck();
         await page.getByRole("button", { name: "Clear filter", exact: true }).click();
-        await expect(page.getByRole("cell", { name: "greets", exact: true })).toBeVisible();
+        await expect(page.getByRole("button", { name: "greets", exact: true })).toBeVisible();
         await expect(page).not.toHaveURL(/tag=/);
 
         // A long tag wraps inside its button: nothing spills sideways at a phone's width.
@@ -100,12 +104,12 @@ test("a pressed tag narrows the rows and the summary on the variants, run and co
         await expect(page.getByText("1/2 passed · 1 failed", { exact: true })).toBeVisible();
         await expect(page.getByText("mentions-refund", { exact: true }).first()).toBeVisible();
 
-        // The comparison: only the checks of the tag, and each run's count over them.
+        // The comparison is the same page: only the scenarios of the tag, and each run's count over them.
         await page.goto(`/compare?runs=${small},${large}&tag=billing`);
-        await expect(page.getByText("mentions-refund", { exact: true })).toBeVisible();
-        await page.getByRole("switch", { name: "Only differences", exact: true }).uncheck();
-        await expect(page.getByText("says-hello", { exact: true })).toHaveCount(0);
-        await expect(page.getByText(/^Checks \(billing\):/)).toHaveCount(2);
+        await expect(page.getByRole("button", { name: "refunds", exact: true })).toBeVisible();
+        await expect(page.getByRole("button", { name: "greets", exact: true })).toHaveCount(0);
+        await expect(page.getByText("0/1 passed · 1 failed", { exact: true })).toBeVisible();
+        await expect(page.getByText("1/1 passed", { exact: true })).toBeVisible();
         await expect(page.getByRole("row", { name: /^smoke /, exact: false })).toHaveCount(0);
     } finally {
         agentServer.close();

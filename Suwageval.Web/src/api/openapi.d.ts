@@ -739,6 +739,7 @@ export interface paths {
                     version?: string[];
                     limit?: number;
                     group?: string;
+                    grouping?: components["schemas"]["RunGrouping"];
                 };
                 header?: never;
                 path?: never;
@@ -1109,6 +1110,119 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/agents/{agent}/run-groups/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    agent: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ArchiveRunGroupsRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agents/{agent}/run-groups/{name}/deletion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    agent: string;
+                    name: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RunGroupDeletion"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agents/{agent}/run-groups/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    agent: string;
+                    name: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/agents/{agent}/pass-rates": {
         parameters: {
             query?: never;
@@ -1356,6 +1470,11 @@ export interface components {
             content: components["schemas"]["AgentContract"];
             /** Format: date-time */
             archivedAt?: null | string;
+        };
+        /** @description Archives (`Archived: true`) or restores (`false`) run groups of one agent, by name; nothing is deleted. */
+        ArchiveRunGroupsRequest: {
+            names: string[];
+            archived: boolean;
         };
         /** @description Archives (`Archived: true`) or restores (`false`) versions of one agent; nothing is deleted. */
         ArchiveVersionsRequest: {
@@ -1663,11 +1782,18 @@ export interface components {
             /** @description One per compared run, in the order asked for; null for a run without the check (or without its scenario). */
             cells: components["schemas"]["ComparedCell"][];
         };
-        /** @description A run's pass rate over a set of checks (from 0 to 1; absent when the run has no such check) and its change against the baseline's (absent for the baseline itself and when either rate is absent). */
+        /**
+         * @description For a tag's row, int? ComparedRate.ScenariosRan of int? ComparedRate.ScenariosOfTag says how much of the tag the run covered: no rate when not all of it.
+         *     A run's pass rate over a set of checks (from 0 to 1; absent when the run has no such check) and its change against the baseline's (absent for the baseline itself and when either rate is absent).
+         */
         ComparedRate: {
             /** Format: double */
             passRate?: null | number;
             change?: null | components["schemas"]["RateChange"];
+            /** Format: int32 */
+            scenariosRan?: null | number;
+            /** Format: int32 */
+            scenariosOfTag?: null | number;
         };
         /** @description A compared run: its summary, its judge and its turn times, the latter against the baseline's. */
         ComparedRun: {
@@ -1936,6 +2062,16 @@ export interface components {
             /** @description `true` when that contract was new (a first version, or the agent changed); `false` when the same content was registered before. */
             versionCreated: boolean;
         };
+        /** @description What deleting an archived run group removes with it: the runs (re-checks of them included), their samples and the verdicts on those. */
+        RunGroupDeletion: {
+            name: string;
+            /** Format: int32 */
+            runs: number;
+            /** Format: int32 */
+            samples: number;
+            /** Format: int32 */
+            verdicts: number;
+        };
         /** @description A group of an agent's runs (run --group) at a glance: where the variants page of the group starts. */
         RunGroupSummary: {
             name: string;
@@ -1948,7 +2084,13 @@ export interface components {
             versions: number;
             /** Format: date-time */
             newestRunAt: string;
+            /**
+             * Format: date-time
+             * @description When the group was archived (hidden by default, restorable); null for a group in use.
+             */
+            archivedAt?: null | string;
         };
+        RunGrouping: number;
         /** @description One page of runs, newest first. */
         RunList: {
             runs: components["schemas"]["RunSummary"][];
@@ -2291,6 +2433,8 @@ export interface components {
             checksTotal: number;
             /** @description The keys of the checks that missed their threshold. */
             failedChecks: string[];
+            /** @description Every check of the scenario in this run, in the order the run lists them. */
+            checks: components["schemas"]["VariantCheck"][];
             /** Format: int32 */
             samples: number;
             /**
@@ -2298,6 +2442,43 @@ export interface components {
              * @description The samples where the agent gave no answer.
              */
             samplesFailed: number;
+            /** @description The samples where the agent gave no answer, with their errors. */
+            noAnswers: components["schemas"]["VariantNoAnswer"][];
+        };
+        /** @description One check of a scenario in one run, for the detail of a variants row: its verdict and why the samples that failed it did. */
+        VariantCheck: {
+            key: string;
+            /** @description True when double VariantCheck.PassRate reaches the check's pass threshold. */
+            passed: boolean;
+            /**
+             * Format: double
+             * @description The share of samples that passed, from 0 to 1.
+             */
+            passRate: number;
+            /** Format: int32 */
+            samples: number;
+            /** Format: int32 */
+            samplesPassed: number;
+            /** @description The samples that did not pass, with the message the run page shows for them. */
+            failures: components["schemas"]["VariantFailure"][];
+        };
+        /** @description Why one sample did not pass a check: the check's message for it. */
+        VariantFailure: {
+            /**
+             * Format: int32
+             * @description From 1.
+             */
+            sample: number;
+            message: string;
+        };
+        /** @description A sample where the agent gave no answer, with the error the run page shows for it. */
+        VariantNoAnswer: {
+            /**
+             * Format: int32
+             * @description From 1.
+             */
+            sample: number;
+            error?: null | string;
         };
         /** @description A column of the variants view: the run, the variant it is of and its turn times. */
         VariantRun: {

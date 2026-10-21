@@ -88,18 +88,8 @@ export default defineConfig(
                             from: { element: { type: "feature", captured: { name: "compare" } } },
                             allow: { to: { element: { type: "feature", captured: { name: "agents" } } } },
                         },
-                        // The variants page is the compare page's sibling: the same runs and agents, the same reasons; the
-                        // agent and run pages link to it by paths of their own (runs/results.ts), so the edges go one way.
-                        {
-                            from: { element: { type: "feature", captured: { name: "variants" } } },
-                            allow: { to: { element: { type: "feature", captured: { name: "runs" } } } },
-                        },
-                        {
-                            from: { element: { type: "feature", captured: { name: "variants" } } },
-                            allow: { to: { element: { type: "feature", captured: { name: "agents" } } } },
-                        },
-                        // The run page and the compare table both show a check's definition, as the run used it, in a
-                        // drawer: checks/ owns the button, the YAML and the syntax highlighter, runs/ and compare/ place it.
+                        // The compare page (it also serves /variants) marks the judge of a run with the icon of the run page's
+                        // model-judged checks: checks/ owns the icon and the definition drawer, compare/ and runs/ place them.
                         {
                             from: { element: { type: "feature", captured: { name: "runs" } } },
                             allow: { to: { element: { type: "feature", captured: { name: "checks" } } } },
@@ -125,13 +115,18 @@ export default defineConfig(
                             from: { element: { type: "feature", captured: { name: "runs" } } },
                             allow: { to: { element: { type: "feature", captured: { name: "diff" } } } },
                         },
+                        // The comparison opens the diff of two versions' contracts under a changed prompt.
+                        {
+                            from: { element: { type: "feature", captured: { name: "compare" } } },
+                            allow: { to: { element: { type: "feature", captured: { name: "diff" } } } },
+                        },
                         {
                             from: { element: { type: "feature", captured: { name: "diff" } } },
                             allow: { to: { element: { type: "feature", captured: { name: "checks" } } } },
                         },
-                        // The run, comparison and variants pages share one tag filter (the buttons, the address's `tag`
-                        // parameters, which rows they keep): tagFilter/ owns it, the three pages place it.
-                        ...["runs", "compare", "variants"].map((name) => ({
+                        // The run and comparison pages share one tag filter (the buttons, the address's `tag`
+                        // parameters, which rows they keep): tagFilter/ owns it, the two pages place it.
+                        ...["runs", "compare"].map((name) => ({
                             from: { element: { type: "feature", captured: { name } } },
                             allow: { to: { element: { type: "feature", captured: { name: "tagFilter" } } } },
                         })),

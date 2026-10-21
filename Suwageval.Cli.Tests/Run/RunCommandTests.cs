@@ -454,6 +454,19 @@ public sealed class RunCommandTests
     }
 
     [Fact]
+    public void A_run_in_a_group_has_no_regression_summary_so_any_failed_check_exits_1_without_strict()
+    {
+        var failing = Results(RunStatus.Done, Check("refund-tool-called", false, "tool 'issue_refund' was not called"));
+        var passing = Results(RunStatus.Done, Check("polite", true, "ok"));
+
+        var (failed, output, _, _) = Run((request, _) => Server(request, Summary(RunStatus.Done), failing), "--wait", "--group", "sweep-1");
+        var (passed, _, _, _) = Run((request, _) => Server(request, Summary(RunStatus.Done), passing), "--wait", "--group", "sweep-1");
+
+        Assert.Equal((1, 0), (failed, passed));
+        Assert.Contains("1 of 1 checks failed", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Strict_exits_1_on_any_failed_check()
     {
         var results = WithSummary(

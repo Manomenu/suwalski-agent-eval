@@ -1,13 +1,15 @@
 using System.CommandLine;
 using System.Globalization;
 using Suwageval.Cli.Server;
+using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Cli.Runs;
 
 /// <summary>
 /// <c>suwageval runs</c>: the runs of the agent named in <c>suwageval/agent.yaml</c>, newest first — id, status, tags, version, checks
 /// passed of all, creation time, branch and a "reference" mark; <c>--limit</c> keeps the newest ones (default 10), <c>--version</c> (repeatable)
-/// those of the given agent versions, <c>--reference</c> only reference runs, <c>--group</c> only the runs of a group, <c>--groups</c> lists the groups instead, <c>--json</c> prints the run summaries. It is how a
+/// those of the given agent versions, <c>--reference</c> only reference runs, <c>--group</c> only the runs of a group, <c>--any-group</c> only the runs in some group, <c>--all-runs</c> grouped or not (the default is the runs in no group,
+/// like the web: group runs are experiments), <c>--groups</c> lists the groups instead (<c>--archived</c>: the archived ones too), <c>--json</c> prints the run summaries. It is how a
 /// run to compare with is found (<c>suwageval compare</c>). Exits 0, or 2 when the agent file or the server is wrong.
 /// </summary>
 internal static class RunsCommand
@@ -32,6 +34,12 @@ internal static class RunsCommand
             Description = "Only reference runs: the ones that make the history regressions are measured against.",
         };
         var group = CommandOptions.Group("Only the runs started in this group (run --group).");
+        var anyGroup = new Option<bool>("--any-group") { Description = "Only the runs started in some group." };
+        var allRuns = new Option<bool>("--all-runs")
+        {
+            Description = "The runs in a group and those in none (the default is the runs in no group).",
+        };
+        var archived = new Option<bool>("--archived") { Description = "With --groups: the archived groups too (marked archived)." };
         var groups = new Option<bool>("--groups")
         {
             Description = "List the agent's run groups (name, runs, versions, newest run) instead of runs.",
@@ -40,7 +48,33 @@ internal static class RunsCommand
         var server = CommandOptions.Server();
         var dir = CommandOptions.Dir();
 
-        var command = new Command("runs", "List the agent's newest runs.") { limit, version, reference, group, groups, json, server, dir };
+        var command = new Command(
+            "runs",
+            "List the agent's newest runs: those in no group unless --group, --any-group or --all-runs says otherwise."
+        )
+        {
+            limit,
+            version,
+            reference,
+            group,
+            anyGroup,
+            allRuns,
+            groups,
+            archived,
+            json,
+            server,
+            dir,
+        };
+        command.Validators.Add(result =>
+        {
+            if (
+                new[] { result.GetValue(group) is not null, result.GetValue(anyGroup), result.GetValue(allRuns) }.Count(chosen => chosen)
+                > 1
+            )
+            {
+                result.AddError("--group, --any-group and --all-runs cannot be used together.");
+            }
+        });
         command.SetAction(
             (parsed, cancellationToken) =>
                 ServerCall.ForAgentAsync(
@@ -52,7 +86,9 @@ internal static class RunsCommand
                     {
                         if (parsed.GetValue(groups))
                         {
-                            var listed = await client.RunGroupsAsync(agent, cancellationToken);
+                            var listed = (await client.RunGroupsAsync(agent, cancellationToken))
+                                .Where(runGroup => parsed.GetValue(archived) || runGroup.ArchivedAt is null)
+                                .ToList();
                             var groupOutput = parsed.InvocationConfiguration.Output;
                             if (parsed.GetValue(json))
                             {
@@ -64,7 +100,7 @@ internal static class RunsCommand
                                 await groupOutput.WriteLineAsync(
                                     string.Create(
                                         CultureInfo.InvariantCulture,
-                                        $"{runGroup.Name}  {runGroup.Runs} runs  {runGroup.Versions} versions  newest {runGroup.NewestRunAt:yyyy-MM-dd HH:mm}Z"
+                                        $"{runGroup.Name}  {runGroup.Runs} runs  {runGroup.Versions} versions  newest {runGroup.NewestRunAt:yyyy-MM-dd HH:mm}Z{(runGroup.ArchivedAt is null ? "" : "  archived")}"
                                     )
                                 );
                             }
@@ -76,7 +112,10 @@ internal static class RunsCommand
                             cancellationToken,
                             parsed.GetValue(version),
                             parsed.GetValue(reference),
-                            parsed.GetValue(group)
+                            parsed.GetValue(group),
+                            parsed.GetValue(anyGroup) ? RunGrouping.Any
+                                : parsed.GetValue(allRuns) || parsed.GetValue(group) is not null ? RunGrouping.All
+                                : RunGrouping.None
                         );
                         var output = parsed.InvocationConfiguration.Output;
                         if (parsed.GetValue(json))

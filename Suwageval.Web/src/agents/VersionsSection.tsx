@@ -2,8 +2,8 @@ import { Alert, Anchor, Badge, Button, Checkbox, Group, Paper, Stack, Switch, Ta
 import { useState } from "react";
 
 import { formatTime, versionTitle } from "../runs/results";
-import { archiveVersions, type AgentVersion } from "./api";
-import { DeleteVersionModal } from "./DeleteVersionModal";
+import { archiveVersions, deleteVersion, fetchVersionDeletion, type AgentVersion } from "./api";
+import { DeleteModal } from "./DeleteModal";
 import { HeaderHelp } from "../runs/HeaderHelp";
 import {
     firstPages,
@@ -14,7 +14,10 @@ import {
     versionHref,
     versionLabel,
     versionsToCompare,
-    VERSION_HELP,
+    VERSION_CREATED_HELP,
+    VERSION_ID_HELP,
+    VERSION_LABEL_HELP,
+    VERSIONS_SECTION_HELP,
     visibleVersions,
 } from "./view";
 import { versionToDelete } from "./deletion";
@@ -72,7 +75,7 @@ export function VersionsSection({
     return (
         <Stack gap="sm">
             <Title order={3}>
-                <HeaderHelp label="Versions" help={VERSION_HELP} />
+                <HeaderHelp label="Versions" help={VERSIONS_SECTION_HELP} />
             </Title>
             {versions.length === 0 ? (
                 <Text c="dimmed">This agent has no versions yet — one is created on the first run.</Text>
@@ -146,9 +149,15 @@ export function VersionsSection({
                                 <Table.Thead>
                                     <Table.Tr>
                                         <Table.Th />
-                                        <Table.Th>Label</Table.Th>
-                                        <Table.Th>Created</Table.Th>
-                                        <Table.Th>Id</Table.Th>
+                                        <Table.Th>
+                                            <HeaderHelp label="Label" help={VERSION_LABEL_HELP} />
+                                        </Table.Th>
+                                        <Table.Th>
+                                            <HeaderHelp label="Created" help={VERSION_CREATED_HELP} />
+                                        </Table.Th>
+                                        <Table.Th>
+                                            <HeaderHelp label="Id" help={VERSION_ID_HELP} />
+                                        </Table.Th>
                                     </Table.Tr>
                                 </Table.Thead>
                                 <Table.Tbody>
@@ -199,9 +208,14 @@ export function VersionsSection({
                 </Paper>
             )}
             {deleting && toDelete !== null && (
-                <DeleteVersionModal
-                    agentName={agentName}
-                    version={toDelete}
+                <DeleteModal
+                    noun="version"
+                    title="Delete this version?"
+                    subject={toDelete.label?.trim() ? toDelete.label : toDelete.id}
+                    typedLabel="Type the version id to confirm"
+                    expected={toDelete.id}
+                    loadPreview={(signal) => fetchVersionDeletion(agentName, toDelete.id, signal)}
+                    remove={() => deleteVersion(agentName, toDelete.id)}
                     onClose={() => {
                         setDeleting(false);
                     }}

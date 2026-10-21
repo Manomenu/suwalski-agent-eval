@@ -9,6 +9,9 @@ namespace Suwageval.Server.Runs;
 /// </summary>
 internal sealed record RunPlacement(RunOrigin? Origin, bool Reference, string? ComparedWith)
 {
+    /// <summary>The placement of a run in a group (an experiment): never a reference, compared with nothing.</summary>
+    public RunPlacement AsExperiment() => this with { Reference = false, ComparedWith = null };
+
     /// <summary>The placement of a run started from <paramref name="origin"/> for an agent with these regression settings.</summary>
     public static RunPlacement Decide(RunOrigin? origin, RegressionSettings? settings)
     {

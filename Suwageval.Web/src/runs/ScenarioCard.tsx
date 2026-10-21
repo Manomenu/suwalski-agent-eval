@@ -11,7 +11,16 @@ import { CheckHistory } from "./CheckHistory";
 import { stateLabel } from "./regression";
 import { StateBadge } from "./StateBadge";
 import { findUnstable, unstableTooltip } from "./stability";
-import { checkAnchor, checkSummary, failedEvidenceKeys, formatSeconds, notJudgedCount, sampleVerdict, samplesToOpen } from "./results";
+import {
+    checkAnchor,
+    checkSummary,
+    failedEvidenceKeys,
+    formatSeconds,
+    notJudgedCount,
+    sampleVerdict,
+    samplesToOpen,
+    scenarioAnchor,
+} from "./results";
 
 const VERDICT_COLOR = { passed: "green", failed: "red", "not judged": "yellow", "no output": "red" } as const;
 
@@ -57,7 +66,7 @@ export function ScenarioCard({
         return () => window.removeEventListener("hashchange", openFromHash);
     }, [scenario]);
     return (
-        <Card withBorder padding="md">
+        <Card withBorder padding="md" id={scenarioAnchor(scenario.key)}>
             <Stack gap="sm">
                 <Group gap="xs">
                     <Title order={3} className="wrap-key">

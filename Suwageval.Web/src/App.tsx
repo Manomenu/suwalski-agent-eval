@@ -9,7 +9,6 @@ import { ComparePage } from "./compare/ComparePage";
 import { ServerStatus } from "./health/ServerStatus";
 import { pageOf } from "./route";
 import { RunPage } from "./runs/RunPage";
-import { VariantsPage } from "./variants/VariantsPage";
 import { AppNavbar } from "./shell/AppNavbar";
 import { CONTENT_MAX_WIDTH, HEADER_HEIGHT, LOGO_SIZE, NAVBAR_WIDTH } from "./shell/layout";
 
@@ -63,8 +62,9 @@ export function App() {
                         </Suspense>
                     )}
                     {page.kind === "run" && <RunPage runId={page.runId} />}
-                    {page.kind === "compare" && <ComparePage runs={page.runs} />}
-                    {page.kind === "variants" && <VariantsPage runs={page.runs} group={page.group} agent={page.agent} />}
+                    {(page.kind === "compare" || page.kind === "variants") && (
+                        <ComparePage runs={page.runs} group={page.group} agent={page.agent} />
+                    )}
                     {page.kind === "unknown" && <Anchor href="/">Page not found — back to the list of agents</Anchor>}
                 </Box>
             </AppShell.Main>

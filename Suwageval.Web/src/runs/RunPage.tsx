@@ -25,6 +25,7 @@ import { filteredLabel, keepsTags } from "../tagFilter/tagSelection";
 import { TagFilter } from "../tagFilter/TagFilter";
 import { useTagFilter } from "../tagFilter/useTagFilter";
 import { useRunResults } from "./useRunResults";
+import { useScrollToHash } from "./useScrollToHash";
 import { useUnstableChecks } from "./useUnstableChecks";
 
 /** One run's results at `/runs/<id>`: the header, then a card per scenario. */
@@ -34,6 +35,7 @@ export function RunPage({ runId }: { runId: string }) {
     // Asked once the run is known: the agent's unstable checks of this run's version.
     const loadedRun = state.kind === "loaded" ? state.results.run : null;
     const unstable = useUnstableChecks(loadedRun?.agent ?? null, loadedRun === null ? [] : [loadedRun.agentVersionId]);
+    useScrollToHash(state.kind === "loaded");
 
     if (state.kind === "loading") return <Loader aria-label="Loading results" />;
     if (state.kind === "error") {
@@ -77,6 +79,12 @@ export function RunPage({ runId }: { runId: string }) {
                     {" · "}
                     {run.endpointUrl}
                 </Text>
+                {run.group != null && (
+                    <Text c="dimmed" size="sm">
+                        A run in a group is an experiment: it has no regression states, is never a reference run and is not in the agent's
+                        pass-rate trend.
+                    </Text>
+                )}
                 {run.recheckOf != null && (
                     <Alert color="blue" title="Re-check">
                         <Text>

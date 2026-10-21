@@ -31,6 +31,10 @@ public sealed class TagCoverageTests
         );
 
     [Fact]
+    public void The_counts_say_how_many_scenarios_of_a_tag_the_run_ran_and_how_many_the_tag_had() =>
+        Assert.Equal((1, 2), TagCoverage.Counts("mediacom", RunTime, ["exact-address", "outage"], Showcase));
+
+    [Fact]
     public void A_run_limited_to_a_tag_leaves_out_another_tag_it_ran_in_part() =>
         Assert.DoesNotContain("mediacom", TagCoverage.CompleteTags(RunTime, ["exact-address", "outage"], Showcase));
 

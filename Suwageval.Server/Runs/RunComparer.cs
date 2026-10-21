@@ -195,7 +195,7 @@ internal static class RunComparer
             .Order(StringComparer.Ordinal);
         return
         [
-            Row(null, [.. runs.Select(run => PassRate(run.Scenarios))]),
+            Row(null, [.. runs.Select(run => PassRate(run.Scenarios))], []),
             .. tags.Select(tag =>
                 Row(
                     tag,
@@ -206,17 +206,33 @@ internal static class RunComparer
                                     ? PassRate(run.Scenarios.Where(scenario => TagsOf(scenario.Key).Contains(tag)))
                                     : null
                         ),
+                    ],
+                    [
+                        .. runs.Select(run =>
+                            TagCoverage.Counts(tag, run.Run.CreatedAt, [.. run.Scenarios.Select(scenario => scenario.Key)], scenarios)
+                        ),
                     ]
                 )
             ),
         ];
     }
 
-    private static ComparedTag Row(string? tag, List<double?> rates) =>
+    private static ComparedTag Row(string? tag, List<double?> rates, List<(int Ran, int Total)> coverage) =>
         new()
         {
             Tag = tag,
-            Rates = [.. rates.Select((rate, column) => new ComparedRate(rate, column == 0 ? null : Change(rate, rates[0])))],
+            Rates =
+            [
+                .. rates.Select(
+                    (rate, column) =>
+                        new ComparedRate(
+                            rate,
+                            column == 0 ? null : Change(rate, rates[0]),
+                            coverage.Count > column ? coverage[column].Ran : null,
+                            coverage.Count > column ? coverage[column].Total : null
+                        )
+                ),
+            ],
         };
 
     /// <summary>A rate against the baseline's, in percentage points rounded to one decimal; null when either run has no such checks.</summary>

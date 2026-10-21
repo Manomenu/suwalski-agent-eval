@@ -5,6 +5,7 @@ using Suwageval.Cli.Agents;
 using Suwageval.Cli.Cancel;
 using Suwageval.Cli.Compare;
 using Suwageval.Cli.Files;
+using Suwageval.Cli.Groups;
 using Suwageval.Cli.Init;
 using Suwageval.Cli.Push;
 using Suwageval.Cli.Recheck;
@@ -64,6 +65,7 @@ internal static class CliApp
             UnstableCommand.Create(http),
             AgentErrorsCommand.Create(http),
             VersionsCommand.Create(terminal, http, openBrowser),
+            GroupsCommand.Create(terminal, http),
             AgentDeleteCommand.Create(terminal, http),
         };
         // No termination timeout: System.CommandLine would otherwise handle Ctrl+C itself and end the process two seconds later,

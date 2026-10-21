@@ -59,6 +59,29 @@ internal static class RunVariantsReport
             ChecksPassed = scenario.Checks.Count(check => check.Passed),
             ChecksTotal = scenario.Checks.Count,
             FailedChecks = [.. scenario.Checks.Where(check => !check.Passed).Select(check => check.Key)],
+            Checks =
+            [
+                .. scenario.Checks.Select(check => new VariantCheck
+                {
+                    Key = check.Key,
+                    Passed = check.Passed,
+                    PassRate = check.PassRate,
+                    Samples = check.Samples.Count,
+                    SamplesPassed = check.Samples.Count(sample => sample.Passed),
+                    Failures =
+                    [
+                        .. check
+                            .Samples.Where(sample => !sample.Passed)
+                            .Select(sample => new VariantFailure { Sample = sample.Sample, Message = sample.Message }),
+                    ],
+                }),
+            ],
+            NoAnswers =
+            [
+                .. scenario
+                    .Samples.Where(sample => sample.Status == SampleStatus.Failed)
+                    .Select(sample => new VariantNoAnswer { Sample = sample.Sample, Error = sample.Error }),
+            ],
             Samples = scenario.Samples.Count,
             SamplesFailed = scenario.Samples.Count(sample => sample.Status == SampleStatus.Failed),
         };

@@ -96,7 +96,8 @@ internal sealed class ServerClient(HttpClient http)
     /// <summary>
     /// The agent's newest runs, newest first, at most <paramref name="limit"/> of them (asked for in pages the server accepts); only those of
     /// <paramref name="versions"/> when any are given, and, with <paramref name="referenceOnly"/>, only reference runs (the server has no
-    /// filter for those, so older pages are read until enough are found); only those started in <paramref name="group"/> when one is given.
+    /// filter for those, so older pages are read until enough are found); only those started in <paramref name="group"/> when one is given;
+    /// only those in no group or in some group as <paramref name="grouping"/> says.
     /// </summary>
     public async Task<IReadOnlyList<RunSummary>> RunsAsync(
         string agent,
@@ -104,7 +105,8 @@ internal sealed class ServerClient(HttpClient http)
         CancellationToken cancellationToken,
         IReadOnlyList<Guid>? versions = null,
         bool referenceOnly = false,
-        string? group = null
+        string? group = null,
+        RunGrouping grouping = RunGrouping.All
     )
     {
         var runs = new List<RunSummary>();
@@ -125,6 +127,10 @@ internal sealed class ServerClient(HttpClient http)
             {
                 url += $"&group={Uri.EscapeDataString(group)}";
             }
+            if (grouping != RunGrouping.All)
+            {
+                url += $"&grouping={grouping}";
+            }
             var page = await SendAsync<RunList>(() => http.GetAsync(new Uri(url, UriKind.Relative), cancellationToken), cancellationToken);
             runs.AddRange(referenceOnly ? page.Runs.Where(run => run.Reference) : page.Runs);
             if (page.Next is not { } next)
@@ -140,6 +146,40 @@ internal sealed class ServerClient(HttpClient http)
     public Task<IReadOnlyList<RunGroupSummary>> RunGroupsAsync(string agent, CancellationToken cancellationToken) =>
         SendAsync<IReadOnlyList<RunGroupSummary>>(
             () => http.GetAsync(new Uri($"agents/{Uri.EscapeDataString(agent)}/run-groups", UriKind.Relative), cancellationToken),
+            cancellationToken
+        );
+
+    public Task ArchiveRunGroupsAsync(string agent, ArchiveRunGroupsRequest request, CancellationToken cancellationToken) =>
+        SendAsync(
+            () =>
+                http.PostAsJsonAsync(
+                    new Uri($"agents/{Uri.EscapeDataString(agent)}/run-groups/archive", UriKind.Relative),
+                    request,
+                    ContractJson.Options,
+                    cancellationToken
+                ),
+            cancellationToken
+        );
+
+    /// <summary>What deleting the run group would remove; the server answers like the deletion would (409 for a group that is not archived or has a run in progress).</summary>
+    public Task<RunGroupDeletion> RunGroupDeletionAsync(string agent, string group, CancellationToken cancellationToken) =>
+        SendAsync<RunGroupDeletion>(
+            () =>
+                http.GetAsync(
+                    new Uri($"agents/{Uri.EscapeDataString(agent)}/run-groups/{Uri.EscapeDataString(group)}/deletion", UriKind.Relative),
+                    cancellationToken
+                ),
+            cancellationToken
+        );
+
+    /// <summary>Deletes an archived run group with its runs, samples and verdicts.</summary>
+    public Task DeleteRunGroupAsync(string agent, string group, CancellationToken cancellationToken) =>
+        SendAsync(
+            () =>
+                http.DeleteAsync(
+                    new Uri($"agents/{Uri.EscapeDataString(agent)}/run-groups/{Uri.EscapeDataString(group)}", UriKind.Relative),
+                    cancellationToken
+                ),
             cancellationToken
         );
 

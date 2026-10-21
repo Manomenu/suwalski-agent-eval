@@ -79,7 +79,8 @@ public sealed class RegressionHistoryTests(TestDatabase database) : IAsyncDispos
         Guid? recheckOf = null,
         RunStatus status = RunStatus.Done,
         string? error = null,
-        bool[]? errored = null
+        bool[]? errored = null,
+        string? runGroup = null
     )
     {
         var store = Store();
@@ -90,6 +91,7 @@ public sealed class RegressionHistoryTests(TestDatabase database) : IAsyncDispos
             agent.EndpointUrl,
             recheckOf,
             placement: placement,
+            runGroup: runGroup,
             cancellationToken: Cancellation
         );
         var scenario = await new ScenarioStore(database.Pool).GetAsync(agent.Id, "refund", Cancellation);
@@ -407,6 +409,79 @@ public sealed class RegressionHistoryTests(TestDatabase database) : IAsyncDispos
 
         Assert.Equal((true, "master", "master"), (original.Reference, original.ComparedWith, original.Origin?.Branch));
         Assert.Equal((true, "master", "master"), (repeated.Reference, repeated.ComparedWith, repeated.Origin?.Branch));
+    }
+
+    private static async Task<RunCreated> StartAsync(HttpClient client, RunRequest request) =>
+        (
+            await (
+                await client.PostAsJsonAsync(new Uri("/runs", UriKind.Relative), request, Cancellation)
+            ).Content.ReadFromJsonAsync<RunCreated>(Cancellation)
+        )!;
+
+    [Fact]
+    public async Task A_run_in_a_group_is_an_experiment_never_a_reference_whatever_its_origin_or_the_run_it_repeats()
+    {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
+        var agent = await SeededAgent.CreateAsync(
+            database.Pool,
+            fake.Url.AbsoluteUri,
+            [SeededAgent.Scenario("refund")],
+            [SeededAgent.RefundAfterLookup("refund-called", "refund")]
+        );
+        var client = Client();
+        var grouped = await StartAsync(
+            client,
+            new RunRequest
+            {
+                Agent = agent.Name,
+                Origin = MasterOrigin(),
+                Group = "sweep-1",
+            }
+        );
+        var reference = await StartAsync(client, new RunRequest { Agent = agent.Name, Origin = MasterOrigin() });
+        var rerun = await (
+            await client.PostAsJsonAsync(
+                new Uri($"/runs/{reference.RunId}/rerun", UriKind.Relative),
+                new RerunRequest { Group = "sweep-1" },
+                Cancellation
+            )
+        ).Content.ReadFromJsonAsync<RunCreated>(Cancellation);
+
+        foreach (var id in new[] { grouped.RunId, rerun!.RunId })
+        {
+            var run = (
+                await client.GetFromJsonAsync<RunSummary>(new Uri($"/runs/{id}", UriKind.Relative), ContractJson.Options, Cancellation)
+            )!;
+            Assert.Equal((false, null), (run.Reference, run.ComparedWith));
+        }
+        Assert.True(
+            (
+                await client.GetFromJsonAsync<RunSummary>(
+                    new Uri($"/runs/{reference.RunId}", UriKind.Relative),
+                    ContractJson.Options,
+                    Cancellation
+                )
+            )!.Reference
+        );
+    }
+
+    [Fact]
+    public async Task A_run_in_a_group_and_a_re_check_of_it_get_no_regression_states_and_are_no_history_of_others()
+    {
+        var agent = await NewAgentAsync();
+        var experiment = await FinishedRunAsync(agent, [false], runGroup: "sweep-1");
+        var recheck = await FinishedRunAsync(agent, [false], recheckOf: experiment);
+        var plain = await FailAsync(agent);
+
+        var inGroup = await ResultsAsync(experiment);
+        var recheckOfGroup = await ResultsAsync(recheck);
+
+        Assert.All([inGroup, recheckOfGroup], results => Assert.Null(results.Regression));
+        Assert.All(
+            [inGroup, recheckOfGroup],
+            results => Assert.All(results.Scenarios.SelectMany(scenario => scenario.Checks), check => Assert.Null(check.Regression))
+        );
+        Assert.Empty(await HistoryAsync(plain, null));
     }
 
     [Fact]
