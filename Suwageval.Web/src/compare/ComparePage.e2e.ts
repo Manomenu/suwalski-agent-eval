@@ -68,8 +68,8 @@ test("two runs are compared from the agent page", async ({ page, request }) => {
         await expect(page.getByRole("heading", { name: `Compare runs of ${name}`, exact: true })).toBeVisible();
         await expect(page.getByText("Baseline", { exact: true })).toHaveCount(1);
         await expect(page.getByRole("link", { name: `Run ${before.slice(0, 8)}`, exact: true })).toBeVisible();
-        await expect(page.getByText("1/2 checks passed", { exact: true })).toBeVisible();
-        await expect(page.getByText("2/2 checks passed", { exact: true })).toBeVisible();
+        await expect(page.getByText(/^Checks: 1\/2 passed · 1 failed$/)).toBeVisible();
+        await expect(page.getByText("Checks: 2/2 passed", { exact: true })).toBeVisible();
         await expect(page.getByText("e2e-model", { exact: true })).toHaveCount(2);
         // The data version and the turn time of each run.
         await expect(page.getByText("data e2e-data-1 · e2e articles", { exact: true })).toHaveCount(2);

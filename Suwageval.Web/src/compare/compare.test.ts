@@ -1,17 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { ComparedCell } from "./api";
-import {
-    baselineFirst,
-    cellText,
-    cellTone,
-    checksPassedText,
-    deltaText,
-    parseRunIds,
-    timeDeltaText,
-    trendColor,
-    trendMarker,
-} from "./compare";
+import { baselineFirst, cellText, cellTone, deltaText, parseRunIds, timeDeltaText, trendColor, trendMarker } from "./compare";
 
 const A = "11111111-2222-3333-4444-555555555555";
 const B = "11111111-2222-3333-4444-666666666666";
@@ -94,12 +84,6 @@ describe("deltaText", () => {
         expect(deltaText({ points: 12.5, trend: "Better" })).toBe("▲ 12.5 pp");
         expect(deltaText({ points: -3, trend: "Worse" })).toBe("▼ 3 pp");
         expect(deltaText({ points: 0, trend: "Same" })).toBe("±0 pp");
-    });
-});
-
-describe("checksPassedText", () => {
-    it("is passed over all checks", () => {
-        expect(checksPassedText({ checksPassed: 7, checksFailed: 3 })).toBe("7/10 checks passed");
     });
 });
 

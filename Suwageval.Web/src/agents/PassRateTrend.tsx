@@ -1,7 +1,7 @@
 import { Paper, Stack, Text, Title } from "@mantine/core";
 
 import type { RunPassRates } from "./api";
-import { HeaderHelp } from "./HeaderHelp";
+import { HeaderHelp } from "../runs/HeaderHelp";
 import { TrendChart } from "./TrendChart";
 import { TREND_MIN_RUNS, trendRows, trendSeries } from "./trend";
 

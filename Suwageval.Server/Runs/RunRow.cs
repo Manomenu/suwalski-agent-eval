@@ -29,7 +29,8 @@ internal sealed record RunRow(
     string? Origin = null,
     bool Reference = false,
     string? ComparedWith = null,
-    string JudgeModels = "[]"
+    string JudgeModels = "[]",
+    int SamplesFailed = 0
 )
 {
     /// <summary>What a rerun or a re-check of this run inherits.</summary>

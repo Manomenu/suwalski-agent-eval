@@ -5,12 +5,13 @@ import { dataText, versionLabel } from "../agents/view";
 import { CheckDefinitionButton } from "../checks/CheckDefinitionButton";
 import { ModelJudgedIcon } from "../checks/ModelJudgedIcon";
 import { UnstableCheckIcon } from "../checks/UnstableCheckIcon";
-import { durationSummary, formatTime, percent, runHref, shortId } from "../runs/results";
+import { ChecksCount } from "../runs/RunCounts";
+import { durationSummary, formatTime, percent, RUN_CHECKS_HELP, runHref, shortId } from "../runs/results";
 import { unstableInRuns, unstableRowTooltip } from "../runs/stability";
 import { useUnstableChecks } from "../runs/useUnstableChecks";
 import type { AgentVersion } from "../agents/api";
 import type { ComparedCell, ComparedRun, RunComparison } from "./api";
-import { cellText, cellTone, checksPassedText, deltaText, TIME_DELTA_HELP, timeDeltaText, trendColor, trendMarker } from "./compare";
+import { cellText, cellTone, deltaText, TIME_DELTA_HELP, timeDeltaText, trendColor, trendMarker } from "./compare";
 import { COLUMN_MIN_WIDTH, LABEL_COLUMN_WIDTH, tableMinWidth } from "./layout";
 
 const TIME_HELP_WIDTH = 280;
@@ -83,9 +84,11 @@ export function CompareTable({
                                                 <Text size="xs" c="dimmed" fw="normal">
                                                     {formatTime(run.createdAt)}
                                                 </Text>
-                                                <Text size="xs" fw="normal">
-                                                    {checksPassedText(run)}
-                                                </Text>
+                                                <Tooltip label={RUN_CHECKS_HELP} multiline w={TIME_HELP_WIDTH}>
+                                                    <Text size="xs" fw="normal" w="fit-content" style={{ cursor: "help" }}>
+                                                        Checks: <ChecksCount run={run} />
+                                                    </Text>
+                                                </Tooltip>
                                                 <Text size="xs" fw="normal">
                                                     {durationSummary(compared) ?? "Turn time: —"}
                                                 </Text>

@@ -1,7 +1,6 @@
 // What the comparison page shows of what the server computed (`GET /runs/compare`): the run ids of the address, and the colours, markers
 // and texts of cells, changes and headers. Which checks line up, what differs, every rate, trend and change is the server's.
 import { COMPARE_MAX_RUNS, COMPARE_MIN_RUNS } from "../agents/view";
-import type { RunSummary } from "../runs/api";
 import { formatSeconds, percent } from "../runs/results";
 import type { ComparedCell, RateChange, TimeChange, Trend } from "./api";
 
@@ -66,12 +65,6 @@ export function cellText(cell: ComparedCell | null): { rate: string; samples: st
 export function deltaText(value: RateChange): string {
     if (value.trend === "Same") return "±0 pp";
     return `${trendMarker(value.trend)} ${String(Math.abs(value.points))} pp`;
-}
-
-/** The "N/M checks passed" of a run's header, over every check so far. */
-export function checksPassedText(run: Pick<RunSummary, "checksPassed" | "checksFailed">): string {
-    const passed = run.checksPassed;
-    return `${String(passed)}/${String(passed + run.checksFailed)} checks passed`;
 }
 
 /** `▼ 1.2 s` for a faster run, `▲ 3.0 s` for a slower one, `±0 s` for the same: the arrow follows the time, not the verdict. */

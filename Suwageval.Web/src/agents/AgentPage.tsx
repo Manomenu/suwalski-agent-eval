@@ -2,12 +2,13 @@ import { Alert, Anchor, Badge, Button, Checkbox, Group, Loader, MultiSelect, Pap
 import { lazy, Suspense, useState } from "react";
 
 import { useUnstableChecks } from "../runs/useUnstableChecks";
-import { formatTime, progress, runHref, shortId, statusColor, statusLabel } from "../runs/results";
+import { ChecksCount, SamplesCount } from "../runs/RunCounts";
+import { formatTime, RUN_CHECKS_HELP, RUN_SAMPLES_HELP, runHref, shortId, statusColor, statusLabel } from "../runs/results";
 import { fetchAgent, fetchPassRates, fetchVersions, type AgentVersion } from "./api";
 import { AgentErrorsCard } from "./AgentErrorsCard";
 import { ConfigurationSection } from "./ConfigurationSection";
 import { DeleteAgentModal } from "./DeleteAgentModal";
-import { HeaderHelp } from "./HeaderHelp";
+import { HeaderHelp } from "../runs/HeaderHelp";
 import { Page } from "./Page";
 import { useAgentErrors } from "./useAgentErrors";
 import { useLoaded } from "./useLoaded";
@@ -39,10 +40,6 @@ const DATA_VERSION_HELP =
 const VERSIONS_FILTER_HELP =
     "Show only runs of these agent versions (newest first; empty means all). The chart, the unstable checks and the agent errors follow the filter.";
 const TAG_HELP = "The scenario tag the run was limited to (run --tag); — means every scenario of the agent ran.";
-const CHECKS_HELP =
-    "Checks passed and failed in this run. A check is one condition on the agent's answer, written in a scenario file: a tool called or not, an event, a text, a cited source, a judge's verdict. It passes when its share of passing samples reaches its threshold.";
-const SAMPLES_HELP =
-    "Answers of the agent in this run: done / planned. A sample is one play of a scenario's conversation; a scenario is played as many times as its samples field says (1 by default), so a check's pass rate is the share of its samples that passed.";
 
 const PassRateTrend = lazy(() => import("./PassRateTrend").then((module) => ({ default: module.PassRateTrend })));
 const TurnTimeTrend = lazy(() => import("./TurnTimeTrend").then((module) => ({ default: module.TurnTimeTrend })));
@@ -246,10 +243,10 @@ function AgentView({
                                                 <HeaderHelp label="Version" help={VERSION_HELP} />
                                             </Table.Th>
                                             <Table.Th>
-                                                <HeaderHelp label="Checks" help={CHECKS_HELP} />
+                                                <HeaderHelp label="Checks" help={RUN_CHECKS_HELP} />
                                             </Table.Th>
                                             <Table.Th>
-                                                <HeaderHelp label="Samples" help={SAMPLES_HELP} />
+                                                <HeaderHelp label="Samples" help={RUN_SAMPLES_HELP} />
                                             </Table.Th>
                                             <Table.Th>Created</Table.Th>
                                             <Table.Th>Finished</Table.Th>
@@ -295,16 +292,11 @@ function AgentView({
                                                     </Anchor>
                                                 </Table.Td>
                                                 <Table.Td>
-                                                    <Group gap={4}>
-                                                        <Text span c="green">
-                                                            {run.checksPassed} passed
-                                                        </Text>
-                                                        <Text span c={run.checksFailed > 0 ? "red" : "dimmed"}>
-                                                            {run.checksFailed} failed
-                                                        </Text>
-                                                    </Group>
+                                                    <ChecksCount run={run} />
                                                 </Table.Td>
-                                                <Table.Td>{progress(run)}</Table.Td>
+                                                <Table.Td>
+                                                    <SamplesCount run={run} />
+                                                </Table.Td>
                                                 <Table.Td>{formatTime(run.createdAt)}</Table.Td>
                                                 <Table.Td>{formatTime(run.finishedAt)}</Table.Td>
                                             </Table.Tr>

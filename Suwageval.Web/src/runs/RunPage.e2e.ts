@@ -172,16 +172,16 @@ test("a run of several samples counts checks, marks each sample's result and wra
 
         await page.setViewportSize({ width: 500, height: 900 });
         await page.goto(`/runs/${runId}`);
-        await expect(page.getByText("Checks passed: 1", { exact: true })).toBeVisible();
-        await expect(page.getByText("Checks failed: 0", { exact: true })).toBeVisible();
+        await expect(page.getByText("Checks: 1/1 passed", { exact: true })).toBeVisible();
+        await expect(page.getByText("Samples: 2/2 answered", { exact: true })).toBeVisible();
         await expect(page.getByRole("button", { name: /Agent output, sample \d.*passed/ })).toHaveCount(1);
         await expect(page.getByRole("button", { name: /Agent output, sample \d.*failed: 1 check/ })).toHaveCount(1);
         const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
         expect(overflow).toBeLessThanOrEqual(0);
 
         await page.goto(`/agents/${name}`);
-        await expect(page.getByText("1 passed", { exact: true })).toBeVisible();
-        await expect(page.getByText("0 failed", { exact: true })).toBeVisible();
+        await expect(page.getByText("1/1 passed", { exact: true })).toBeVisible();
+        await expect(page.getByText("2/2 answered", { exact: true })).toBeVisible();
     } finally {
         agentServer.close();
     }
