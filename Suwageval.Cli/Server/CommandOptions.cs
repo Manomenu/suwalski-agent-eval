@@ -28,6 +28,16 @@ internal static class CommandOptions
             DefaultValueFactory = _ => [],
         };
 
+    /// <summary>The words of <c>--group</c> on <c>run</c> and <c>rerun</c>.</summary>
+    public static Option<string?> RunGroup() =>
+        new("--group")
+        {
+            Description =
+                "Put the run in this group (lowercase kebab-case, e.g. sweep-2026-10-21): the runs of one sweep, listed with `runs --group` and compared side by side on the variants page.",
+        };
+
+    public static Option<string?> Group(string description) => new("--group") { Description = description };
+
     public static Option<bool> Json(string description) => new("--json") { Description = description };
 
     /// <param name="what">What is waited for: "run" or "re-check".</param>

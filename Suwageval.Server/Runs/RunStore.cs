@@ -21,7 +21,8 @@ internal sealed class RunStore(Pool pool)
                COALESCE((SELECT jsonb_agg(DISTINCT c.judge_model ORDER BY c.judge_model)::text FROM check_results c
                           JOIN scenario_results s ON s.id = c.scenario_result_id
                           WHERE s.run_id = r.id AND c.judge_model IS NOT NULL), '[]') AS JudgeModels,
-               (SELECT count(*)::int FROM scenario_results s WHERE s.run_id = r.id AND s.status = 'Failed') AS SamplesFailed
+               (SELECT count(*)::int FROM scenario_results s WHERE s.run_id = r.id AND s.status = 'Failed') AS SamplesFailed,
+               r.run_group AS RunGroup
         FROM runs r
         JOIN agents a ON a.id = r.agent_id
         CROSS JOIN LATERAL (
@@ -47,6 +48,7 @@ internal sealed class RunStore(Pool pool)
         Guid? recheckOf = null,
         Guid? verdictsFrom = null,
         RunPlacement? placement = null,
+        string? runGroup = null,
         CancellationToken cancellationToken = default
     )
     {
@@ -54,8 +56,8 @@ internal sealed class RunStore(Pool pool)
         return await connection.QuerySingleAsync<Guid>(
             new CommandDefinition(
                 """
-                INSERT INTO runs (agent_id, agent_version_id, tag, endpoint_url, recheck_of, verdicts_from, origin, reference, compared_with)
-                VALUES (@agentId, @agentVersionId, @tag, @endpointUrl, @recheckOf, @verdictsFrom, @origin::jsonb, @reference, @comparedWith)
+                INSERT INTO runs (agent_id, agent_version_id, tag, endpoint_url, recheck_of, verdicts_from, origin, reference, compared_with, run_group)
+                VALUES (@agentId, @agentVersionId, @tag, @endpointUrl, @recheckOf, @verdictsFrom, @origin::jsonb, @reference, @comparedWith, @runGroup)
                 RETURNING id
                 """,
                 new
@@ -69,6 +71,7 @@ internal sealed class RunStore(Pool pool)
                     origin = placement?.Origin is { } origin ? JsonSerializer.Serialize(origin, ContractJson.Options) : null,
                     reference = placement?.Reference ?? false,
                     comparedWith = placement?.ComparedWith,
+                    runGroup,
                 },
                 cancellationToken: cancellationToken
             )
@@ -100,13 +103,14 @@ internal sealed class RunStore(Pool pool)
     /// <summary>
     /// A page of runs, newest first (<c>created_at</c> descending, then <c>id</c>): at most <paramref name="limit"/> of them,
     /// only those strictly after run <paramref name="before"/> in that order, only those of the given agent versions when
-    /// <paramref name="versionIds"/> is not empty. A <paramref name="before"/> that is no run gives an empty page.
+    /// <paramref name="versionIds"/> is not empty, only those of <paramref name="runGroup"/> when one is given. A <paramref name="before"/> that is no run gives an empty page.
     /// </summary>
     public async Task<IReadOnlyList<RunRow>> ListPageAsync(
         Guid? agentId,
         Guid? before,
         IReadOnlyCollection<Guid> versionIds,
         int limit,
+        string? runGroup = null,
         CancellationToken cancellationToken = default
     )
     {
@@ -116,6 +120,7 @@ internal sealed class RunStore(Pool pool)
                 $"""
                 {RunSelect}
                 WHERE (@agentId::uuid IS NULL OR r.agent_id = @agentId)
+                  AND (@runGroup::text IS NULL OR r.run_group = @runGroup)
                   AND (cardinality(@versionIds::uuid[]) = 0 OR r.agent_version_id = ANY(@versionIds::uuid[]))
                   AND (@before::uuid IS NULL OR EXISTS (
                         SELECT 1 FROM runs b
@@ -129,7 +134,28 @@ internal sealed class RunStore(Pool pool)
                     before,
                     versionIds = versionIds.ToArray(),
                     limit,
+                    runGroup,
                 },
+                cancellationToken: cancellationToken
+            )
+        );
+        return [.. rows];
+    }
+
+    /// <summary>The groups of an agent's runs, the one with the newest run first.</summary>
+    public async Task<IReadOnlyList<RunGroupRow>> ListGroupsAsync(Guid agentId, CancellationToken cancellationToken = default)
+    {
+        await using var connection = await pool.OpenAsync(cancellationToken);
+        var rows = await connection.QueryAsync<RunGroupRow>(
+            new CommandDefinition(
+                """
+                SELECT run_group AS Name, count(*)::int AS Runs, count(DISTINCT agent_version_id)::int AS Versions, max(created_at) AS NewestRunAt
+                FROM runs
+                WHERE agent_id = @agentId AND run_group IS NOT NULL
+                GROUP BY run_group
+                ORDER BY max(created_at) DESC, run_group
+                """,
+                new { agentId },
                 cancellationToken: cancellationToken
             )
         );

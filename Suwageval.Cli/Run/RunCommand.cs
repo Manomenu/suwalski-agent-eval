@@ -7,7 +7,7 @@ namespace Suwageval.Cli.Run;
 
 /// <summary>
 /// <c>suwageval run</c>: starts a run of the agent named in <c>suwageval/agent.yaml</c> on the server, which reads the
-/// agent's contract and runs against that version (the output says which, and whether it is new). With <c>--wait</c> it prints
+/// agent's contract (<c>--group</c> puts the run in a group, for comparing variants) and runs against that version (the output says which, and whether it is new). With <c>--wait</c> it prints
 /// one line of totals and the link to the run's page (the results are read there, or with <c>--json</c>), and exits 0 unless a check regressed or is new and failing
 /// (<c>--strict</c>: 1 when any check missed its threshold), 2 when the run could not be started, failed or was cancelled. Ctrl+C while
 /// waiting asks whether to cancel the run on the server too (<see cref="RunOutput"/>); left running, the exit code is 130.
@@ -30,6 +30,7 @@ internal static class RunCommand
         {
             Description = "Compare with the reference runs of this branch, instead of the one the run picks from the repository.",
         };
+        var group = CommandOptions.RunGroup();
         var wait = CommandOptions.Wait("run");
         var json = CommandOptions.Json("Print JSON: the results with --wait, otherwise { runId }.");
         var strict = CommandOptions.Strict();
@@ -44,6 +45,7 @@ internal static class RunCommand
             tag,
             endpoint,
             reference,
+            group,
             wait,
             json,
             strict,
@@ -74,6 +76,7 @@ internal static class RunCommand
                                     {
                                         Agent = agent,
                                         Tag = parsed.GetValue(tag),
+                                        Group = parsed.GetValue(group),
                                         EndpointUrl = AgentEndpoint.Override(parsed.GetValue(endpoint)),
                                         Origin = (origins ?? RunOriginReader.System).Read(agentDir, parsed.GetValue(reference)),
                                     },

@@ -363,7 +363,7 @@ public sealed class RunStoreTests(TestDatabase database)
     }
 
     private async Task<IReadOnlyList<Guid>> PageAsync(SeededAgent agent, Guid? before, int limit) =>
-        [.. (await Store().ListPageAsync(agent.Id, before, [], limit, Cancellation)).Select(run => run.Id)];
+        [.. (await Store().ListPageAsync(agent.Id, before, [], limit, cancellationToken: Cancellation)).Select(run => run.Id)];
 
     [Fact]
     public async Task A_page_is_ordered_by_creation_time_descending_then_id_and_continues_after_before()
@@ -415,8 +415,8 @@ public sealed class RunStoreTests(TestDatabase database)
         var first = await EnqueueAsync(store, agent);
         var second = await EnqueueAsync(store, other);
 
-        var both = await store.ListPageAsync(null, null, [agent.VersionId, other.VersionId], 100, Cancellation);
-        var onlyOther = await store.ListPageAsync(null, null, [other.VersionId], 100, Cancellation);
+        var both = await store.ListPageAsync(null, null, [agent.VersionId, other.VersionId], 100, cancellationToken: Cancellation);
+        var onlyOther = await store.ListPageAsync(null, null, [other.VersionId], 100, cancellationToken: Cancellation);
 
         Assert.Equal([second, first], both.Select(run => run.Id).Where(id => id == first || id == second));
         Assert.Equal([second], onlyOther.Select(run => run.Id));

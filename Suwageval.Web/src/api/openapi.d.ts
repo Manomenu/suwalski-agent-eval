@@ -738,6 +738,7 @@ export interface paths {
                     before?: string;
                     version?: string[];
                     limit?: number;
+                    group?: string;
                 };
                 header?: never;
                 path?: never;
@@ -1026,6 +1027,43 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agents/{agent}/run-groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    agent: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RunGroupSummary"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1818,6 +1856,8 @@ export interface components {
         RerunRequest: {
             /** @description Where to reach the agent for the new run; none means the endpoint the repeated run used. */
             endpointUrl?: null | string;
+            /** @description The group of the new run (RunGroupRules); none means no group, the repeated run's group is not inherited. */
+            group?: null | string;
         };
         /** @description The data an agent's retrieval reads, as the agent describes it. */
         RetrievalDefinition: {
@@ -1854,6 +1894,19 @@ export interface components {
             agentVersionId: string;
             /** @description `true` when that contract was new (a first version, or the agent changed); `false` when the same content was registered before. */
             versionCreated: boolean;
+        };
+        /** @description A group of an agent's runs (run --group) at a glance: where the variants page of the group starts. */
+        RunGroupSummary: {
+            name: string;
+            /** Format: int32 */
+            runs: number;
+            /**
+             * Format: int32
+             * @description How many different agent versions the runs used: the variants, when each run is of its own version.
+             */
+            versions: number;
+            /** Format: date-time */
+            newestRunAt: string;
         };
         /** @description One page of runs, newest first. */
         RunList: {
@@ -1932,6 +1985,8 @@ export interface components {
             tag?: null | string;
             /** @description Where to reach the agent for this run, and to read its contract from; none means the endpoint the agent was registered with. */
             endpointUrl?: null | string;
+            /** @description The group the run belongs to (RunGroupRules); none means no group. */
+            group?: null | string;
             origin?: null | components["schemas"]["RunOrigin"];
         };
         /** @description A run with what every scenario produced and how every check judged it. */
@@ -1965,6 +2020,8 @@ export interface components {
             agentVersionId: string;
             tag?: null | string;
             endpointUrl: string;
+            /** @description The group the run was started in (run --group); none for a run without one. */
+            group?: null | string;
             status: components["schemas"]["RunStatus"];
             /** @description Why a RunStatus.Failed run failed. */
             error?: null | string;

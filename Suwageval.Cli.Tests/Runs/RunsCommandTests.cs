@@ -120,6 +120,15 @@ public sealed class RunsCommandTests
     }
 
     [Fact]
+    public void Group_is_passed_on_to_the_server()
+    {
+        var (exit, _, _, paths) = Runs("--group", "sweep-1");
+
+        Assert.Equal(0, exit);
+        Assert.Equal(["/runs?agent=example-agent&limit=10&group=sweep-1"], paths);
+    }
+
+    [Fact]
     public void Limit_keeps_the_newest_runs()
     {
         var (_, output, _, paths) = Runs("--limit", "2");

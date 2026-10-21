@@ -13,6 +13,9 @@ public sealed record RunSummary
 
     public required string EndpointUrl { get; init; }
 
+    /// <summary>The group the run was started in (run --group); none for a run without one.</summary>
+    public string? Group { get; init; }
+
     public required RunStatus Status { get; init; }
 
     /// <summary>Why a <see cref="RunStatus.Failed"/> run failed.</summary>

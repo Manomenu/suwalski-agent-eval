@@ -28,6 +28,7 @@ internal static class RunReport
             AgentVersionId = run.AgentVersionId,
             Tag = run.Tag,
             EndpointUrl = run.EndpointUrl,
+            Group = run.RunGroup,
             Status = run.State,
             Error = run.Error,
             SamplesTotal = run.SamplesTotal,
