@@ -825,6 +825,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/runs/variants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    runs?: string[];
+                    group?: string;
+                    agent?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RunVariants"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/runs/{id}": {
         parameters: {
             query?: never;
@@ -2077,6 +2116,21 @@ export interface components {
             /** @description The distinct models that gave the run's verdicts, sorted by name; empty for a run with no model-judged check (or one made before the name was recorded). */
             judgeModels?: string[];
         };
+        /**
+         * @description Runs of one agent side by side as variants (typically one per model or configuration, each its own agent version): a column per run,
+         *     the pass rate per tag and a row per scenario.
+         */
+        RunVariants: {
+            agent: string;
+            /** @description The group the runs were picked by; none when they were named one by one. */
+            group?: null | string;
+            /** @description The columns: in the order asked for, or by creation time for a group. */
+            runs: components["schemas"]["VariantRun"][];
+            /** @description The pass rate over every check first, then one row per tag, as in a comparison (the changes against the first run are not meant here). */
+            tags: components["schemas"]["ComparedTag"][];
+            /** @description Every scenario any run ran, sorted by key. */
+            scenarios: components["schemas"]["VariantScenario"][];
+        };
         /** @description What the agent produced for one sample of a scenario. */
         SampleResult: {
             /**
@@ -2221,6 +2275,44 @@ export interface components {
              * @description The newest of those runs in which the check failed.
              */
             newestFailedRunId: string;
+        };
+        /** @description One run's result for one scenario: its checks, each passed by the share of its samples against its pass threshold. */
+        VariantCell: {
+            /** Format: int32 */
+            checksPassed: number;
+            /** Format: int32 */
+            checksTotal: number;
+            /** @description The keys of the checks that missed their threshold. */
+            failedChecks: string[];
+            /** Format: int32 */
+            samples: number;
+            /**
+             * Format: int32
+             * @description The samples where the agent gave no answer.
+             */
+            samplesFailed: number;
+        };
+        /** @description A column of the variants view: the run, the variant it is of and its turn times. */
+        VariantRun: {
+            run: components["schemas"]["RunSummary"];
+            /** @description The label the run's version carries: the name of the variant. */
+            versionLabel?: null | string;
+            /** @description The models the run's version uses. */
+            modelNames: string[];
+            /**
+             * Format: double
+             * @description The median turn time over the run's samples that made a call, in milliseconds; null when none did.
+             */
+            medianMs?: null | number;
+            /** Format: double */
+            p95Ms?: null | number;
+        };
+        /** @description A row of the variants view: one scenario and what each run made of it. */
+        VariantScenario: {
+            key: string;
+            tags: string[];
+            /** @description One per run, in the order of IReadOnlyList&lt;VariantRun&gt; RunVariants.Runs; null for a run that did not run the scenario. */
+            cells: components["schemas"]["VariantCell"][];
         };
         /** @description What deleting an archived version removes with it: the runs (re-checks of them included), their samples and the verdicts on those. */
         VersionDeletion: {

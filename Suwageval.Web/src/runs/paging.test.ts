@@ -11,4 +11,8 @@ describe("runsPath", () => {
         const path = runsPath("a", "run-1", ["v1", "v2"]);
         expect(path).toBe(`/runs?agent=a&limit=${PAGE_SIZE}&before=run-1&version=v1&version=v2`);
     });
+
+    it("limits the runs to a group when one is given", () => {
+        expect(runsPath("a", null, [], "sweep-1")).toBe(`/runs?agent=a&limit=${PAGE_SIZE}&group=sweep-1`);
+    });
 });

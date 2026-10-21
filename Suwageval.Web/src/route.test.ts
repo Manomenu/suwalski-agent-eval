@@ -20,6 +20,16 @@ describe("pageOf", () => {
         expect(pageOf("/compare")).toEqual({ kind: "compare", runs: "" });
     });
 
+    it("reads the runs, group and agent queries of /variants, as they are", () => {
+        expect(pageOf("/variants", "?runs=a,b")).toEqual({ kind: "variants", runs: "a,b", group: "", agent: "" });
+        expect(pageOf("/variants/", "?group=sweep-1&agent=my+bot")).toEqual({
+            kind: "variants",
+            runs: "",
+            group: "sweep-1",
+            agent: "my bot",
+        });
+    });
+
     it("reads the name of /agents/<name>, decoded", () => {
         expect(pageOf("/agents/support-bot")).toEqual({ kind: "agent", name: "support-bot" });
         expect(pageOf("/agents/my%20bot/")).toEqual({ kind: "agent", name: "my bot" });

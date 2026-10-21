@@ -8,7 +8,17 @@ import { RecheckButton } from "./RecheckButton";
 import { RegressionSection } from "./RegressionSection";
 import { RerunButton } from "./RerunButton";
 import { ScenarioCard } from "./ScenarioCard";
-import { durationSummary, formatTime, isActive, RUN_CHECKS_HELP, RUN_SAMPLES_HELP, runHref, runStatusLabel, statusColor } from "./results";
+import {
+    durationSummary,
+    formatTime,
+    isActive,
+    RUN_CHECKS_HELP,
+    RUN_SAMPLES_HELP,
+    runHref,
+    runStatusLabel,
+    statusColor,
+    variantsGroupHref,
+} from "./results";
 import { useRunResults } from "./useRunResults";
 import { useUnstableChecks } from "./useUnstableChecks";
 
@@ -45,7 +55,15 @@ export function RunPage({ runId }: { runId: string }) {
                 </Group>
                 <Text c="dimmed">
                     id {run.id} · version {run.agentVersionId}
-                    {run.tag ? ` · tag ${run.tag}` : ""} · {run.endpointUrl}
+                    {run.tag ? ` · tag ${run.tag}` : ""}
+                    {run.group != null && (
+                        <>
+                            {" · group "}
+                            <Anchor href={variantsGroupHref(run.group, run.agent)}>{run.group}</Anchor>
+                        </>
+                    )}
+                    {" · "}
+                    {run.endpointUrl}
                 </Text>
                 {run.recheckOf != null && (
                     <Alert color="blue" title="Re-check">

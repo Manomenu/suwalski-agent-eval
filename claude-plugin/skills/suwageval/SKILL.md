@@ -74,6 +74,7 @@ The agent's own address (`validate`, `run`, `rerun`) is `--endpoint` on the comm
 | list the checks that pass in some runs of a version and fail in others | `suwageval unstable` (`--json`; `--version <id>` repeatable): open ones only, i.e. unstable in the newest version (not archived by default) that ran the check at least twice; per check `scenarioKey`, `checkKey`, `passedRuns` of `runs`, the version; "No unstable checks." when none |
 | list the scenarios where the agent gave no answer (HTTP error, timeout) | `suwageval agent-errors` (`--json`; `--version <id>` repeatable): open ones only, i.e. the newest version (not archived by default) that ran the scenario has errors; per version and scenario `errors` of `samples`, `newestErrorRunId`, `newestError`; "No agent errors." when none. Such samples do not count against checks: an agent that fails here is unreliable itself, not a check to fix |
 | compare 2 to 5 runs of one agent | `suwageval compare <runId> <runId>...`: prints on stdout, no browser (the first run is the baseline): a header per run (version, tag, judge model, pass rate and turn times against the baseline), the pass rate per tag, the checks that differ with the trend (▲ better, ▼ worse), a `judge differs from baseline` warning when the judge model changed. `--json` prints the record. Exit 2 for an unknown run or runs of different agents |
+| compare runs of one agent as variants (a model or configuration each, started with the same `--group`) | `suwageval variants --group <name>` or `suwageval variants <runId>...` (`--json`): a column per run (version label, models, checks passed, samples answered, turn times), pass rate per tag and checks per scenario with the failed ones. Prefer it to opening a browser; `--open` only when the user wants the page |
 | open that comparison on the web, only when the user wants the page | `suwageval compare <runId> <runId>... --open` |
 | show what the server stores for the repository's agent | `suwageval agent` (`--json`): endpoint, number of versions, scenarios and checks, samples, regression settings |
 | list the agent's versions | `suwageval versions` (`--archived` to include archived ones, `--json`) |
@@ -84,6 +85,7 @@ The agent's own address (`validate`, `run`, `rerun`) is `--endpoint` on the comm
 | print one version with its contract | `suwageval versions show <versionId>` (`--json`) |
 
 A run's page is `{SUWAGEVAL_URL}/runs/{runId}`; the comparison of runs is `{SUWAGEVAL_URL}/compare?runs={id},{id},...`.
+The variants of runs are `{SUWAGEVAL_URL}/variants?group={name}&agent={agent}` or `{SUWAGEVAL_URL}/variants?runs={id},{id},...`.
 The comparison of two versions is `{SUWAGEVAL_URL}/agents/{agent}/versions/compare?a={id}&b={id}`.
 
 ### Exit codes

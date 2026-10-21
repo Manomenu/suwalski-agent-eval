@@ -1,15 +1,41 @@
-import { Alert, Anchor, Badge, Button, Checkbox, Group, Loader, MultiSelect, Paper, Stack, Table, Text, Title } from "@mantine/core";
+import {
+    Alert,
+    Anchor,
+    Badge,
+    Button,
+    Checkbox,
+    Group,
+    Loader,
+    MultiSelect,
+    Paper,
+    Select,
+    Stack,
+    Table,
+    Text,
+    Title,
+} from "@mantine/core";
 import { lazy, Suspense, useState } from "react";
 
 import { useUnstableChecks } from "../runs/useUnstableChecks";
 import { ChecksCount, SamplesCount } from "../runs/RunCounts";
-import { formatTime, RUN_CHECKS_HELP, RUN_SAMPLES_HELP, runHref, shortId, statusColor, statusLabel } from "../runs/results";
-import { fetchAgent, fetchPassRates, fetchVersions, type AgentVersion } from "./api";
+import {
+    formatTime,
+    RUN_CHECKS_HELP,
+    RUN_SAMPLES_HELP,
+    runHref,
+    shortId,
+    statusColor,
+    statusLabel,
+    variantsGroupHref,
+    variantsRunsHref,
+} from "../runs/results";
+import { fetchAgent, fetchPassRates, fetchRunGroups, fetchVersions, type AgentVersion, type RunGroupSummary } from "./api";
 import { AgentErrorsCard } from "./AgentErrorsCard";
 import { ConfigurationSection } from "./ConfigurationSection";
 import { DeleteAgentModal } from "./DeleteAgentModal";
 import { HeaderHelp } from "../runs/HeaderHelp";
 import { Page } from "./Page";
+import { RunGroupsSection } from "./RunGroupsSection";
 import { useAgentErrors } from "./useAgentErrors";
 import { useLoaded } from "./useLoaded";
 import { useRuns } from "./useRuns";
@@ -39,34 +65,38 @@ const DATA_VERSION_HELP =
     "Show only runs of agent versions whose retrieval data is one of these: the dataVersion the agent declares, a fingerprint of what its retrieval can return (content and indexing). New data is a new agent version. Agents without retrieval have none. The chart, the unstable checks and the agent errors follow the filter.";
 const VERSIONS_FILTER_HELP =
     "Show only runs of these agent versions (newest first; empty means all). The chart, the unstable checks and the agent errors follow the filter.";
+const GROUP_HELP =
+    "Show only the runs started in this group (run --group). Open the group from the Groups section to compare its runs as variants.";
 const TAG_HELP = "The scenario tag the run was limited to (run --tag); — means every scenario of the agent ran.";
 
 const PassRateTrend = lazy(() => import("./PassRateTrend").then((module) => ({ default: module.PassRateTrend })));
 const TurnTimeTrend = lazy(() => import("./TurnTimeTrend").then((module) => ({ default: module.TurnTimeTrend })));
 
 const MODEL_FILTER_MIN_WIDTH = 260;
-const RUNS_TABLE_MIN_WIDTH = 940;
+const RUNS_TABLE_MIN_WIDTH = 1020;
 
 /** `/agents/<name>`: the agent, its runs (newest first) and its versions. */
 export function AgentPage({ name }: { name: string }) {
     // Bumped after versions are archived or restored: the lists are loaded again (the page stays until the new ones arrive).
     const [reload, setReload] = useState(0);
     const state = useLoaded(`${name}/${reload}`, async (signal) => {
-        const [agent, versions, passRates] = await Promise.all([
+        const [agent, versions, passRates, groups] = await Promise.all([
             fetchAgent(name, signal),
             fetchVersions(name, signal),
             fetchPassRates(name, signal),
+            fetchRunGroups(name, signal),
         ]);
-        return { agent, versions, passRates };
+        return { agent, versions, passRates, groups };
     });
 
     return (
         <Page state={state} notFound={`There is no agent ${name}.`}>
-            {({ agent, versions, passRates }) => (
+            {({ agent, versions, passRates, groups }) => (
                 <AgentView
                     agent={agent}
                     versions={versions}
                     passRates={passRates}
+                    groups={groups}
                     reload={reload}
                     onChanged={() => {
                         setReload(reload + 1);
@@ -84,12 +114,14 @@ function AgentView({
     agent,
     versions,
     passRates,
+    groups,
     reload,
     onChanged,
 }: {
     agent: Agent;
     versions: AgentVersion[];
     passRates: PassRates;
+    groups: RunGroupSummary[];
     reload: number;
     onChanged: () => void;
 }) {
@@ -99,10 +131,16 @@ function AgentView({
     const [models, setModels] = useState<string[]>([]);
     const [dataVersions, setDataVersions] = useState<string[]>([]);
     const [versionFilter, setVersionFilter] = useState<string[]>([]);
+    const [groupFilter, setGroupFilter] = useState<string | null>(null);
     const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
     // The server pages the runs, so the filters reach it as the versions they allow (none sent: every version).
     const versionIds = allowedVersionIds(versions, showArchived, models, dataVersions, versionFilter);
-    const { runs, hasMore, loading, loadingMore, error, loadMore } = useRuns(agent.name, versionIds?.join(",") ?? null, `${reload}`);
+    const { runs, hasMore, loading, loadingMore, error, loadMore } = useRuns(
+        agent.name,
+        versionIds?.join(",") ?? null,
+        `${reload}`,
+        groupFilter,
+    );
     // Only what is listed counts: a run the filter hides is not compared.
     const toCompare = runsToCompare(runs, selected);
     // The problem cards decide over the versions the filters show: a newer version the filters hide closes nothing. With none shown, nothing is asked.
@@ -169,6 +207,7 @@ function AgentView({
                 </div>
 
                 <Stack gap="lg" className="agent-layout-main">
+                    <RunGroupsSection agentName={agent.name} groups={groups} />
                     <Title order={3}>Runs</Title>
                     <Group justify="space-between" align="flex-end">
                         <Group align="flex-end">
@@ -199,16 +238,37 @@ function AgentView({
                                 clearable
                                 miw={MODEL_FILTER_MIN_WIDTH}
                             />
+                            <Select
+                                label={<HeaderHelp label="Group" help={GROUP_HELP} />}
+                                placeholder="All groups"
+                                data={groups.map((group) => group.name)}
+                                value={groupFilter}
+                                onChange={setGroupFilter}
+                                clearable
+                                miw={MODEL_FILTER_MIN_WIDTH}
+                            />
                         </Group>
-                        <Button
-                            disabled={!canCompare(toCompare.length)}
-                            title={`Select ${COMPARE_MIN_RUNS} to ${COMPARE_MAX_RUNS} runs to compare`}
-                            onClick={() => {
-                                window.location.assign(compareHref(toCompare));
-                            }}
-                        >
-                            Compare ({toCompare.length})
-                        </Button>
+                        <Group gap="sm">
+                            <Button
+                                disabled={!canCompare(toCompare.length)}
+                                title={`Select ${COMPARE_MIN_RUNS} to ${COMPARE_MAX_RUNS} runs to compare`}
+                                onClick={() => {
+                                    window.location.assign(compareHref(toCompare));
+                                }}
+                            >
+                                Compare ({toCompare.length})
+                            </Button>
+                            <Button
+                                variant="light"
+                                disabled={toCompare.length === 0}
+                                title="Select runs to see them side by side as variants (one column per run)"
+                                onClick={() => {
+                                    window.location.assign(variantsRunsHref(toCompare));
+                                }}
+                            >
+                                Compare variants ({toCompare.length})
+                            </Button>
+                        </Group>
                     </Group>
                     {error !== null && (
                         <Alert color="red" title="Could not load the runs">
@@ -239,6 +299,7 @@ function AgentView({
                                             <Table.Th>
                                                 <HeaderHelp label="Tag" help={TAG_HELP} />
                                             </Table.Th>
+                                            <Table.Th>Group</Table.Th>
                                             <Table.Th>
                                                 <HeaderHelp label="Version" help={VERSION_HELP} />
                                             </Table.Th>
@@ -286,6 +347,13 @@ function AgentView({
                                                     </Group>
                                                 </Table.Td>
                                                 <Table.Td>{run.tag ?? "—"}</Table.Td>
+                                                <Table.Td className="wrap-key">
+                                                    {run.group == null ? (
+                                                        "—"
+                                                    ) : (
+                                                        <Anchor href={variantsGroupHref(run.group, agent.name)}>{run.group}</Anchor>
+                                                    )}
+                                                </Table.Td>
                                                 <Table.Td>
                                                     <Anchor href={versionHref(agent.name, run.agentVersionId)}>
                                                         {shortId(run.agentVersionId)}
