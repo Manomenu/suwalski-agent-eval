@@ -17,6 +17,7 @@ import {
     percentValue,
     progress,
     runHref,
+    sampleVerdict,
     samplesToOpen,
     seconds,
     shortId,
@@ -226,5 +227,29 @@ describe("needsFullResults", () => {
 
     it("is true when a stop was asked for", () => {
         expect(needsFullResults(shown, { ...shown, cancelRequested: true })).toBe(true);
+    });
+});
+
+describe("sampleVerdict", () => {
+    const checkSample = (sample: number, passed: boolean, notJudged = false) => ({ sample, passed, notJudged, message: "", evidence: [] });
+    const scenario = (checks: { samples: ReturnType<typeof checkSample>[] }[]): ScenarioRunResult =>
+        ({
+            key: "refund",
+            samples: [1, 2, 3].map((sample) => ({ sample, status: "Done" })),
+            checks,
+        }) as unknown as ScenarioRunResult;
+
+    it("fails a sample in which any check failed, and counts those checks", () => {
+        const refund = scenario([
+            { samples: [checkSample(1, true), checkSample(2, false), checkSample(3, true)] },
+            { samples: [checkSample(1, true), checkSample(2, false), checkSample(3, false, true)] },
+        ]);
+        expect(sampleVerdict(refund, 1)).toEqual({ kind: "passed", failedChecks: 0 });
+        expect(sampleVerdict(refund, 2)).toEqual({ kind: "failed", failedChecks: 2 });
+        expect(sampleVerdict(refund, 3)).toEqual({ kind: "not judged", failedChecks: 0 });
+    });
+
+    it("says nothing of a sample no check looked at", () => {
+        expect(sampleVerdict(scenario([]), 1).kind).toBe("unchecked");
     });
 });

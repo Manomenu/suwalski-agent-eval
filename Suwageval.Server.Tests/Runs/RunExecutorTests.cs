@@ -230,8 +230,8 @@ public sealed class RunExecutorTests(TestDatabase database)
         var results = await RunAsync(agent, judge: RecordedModel.JudgeFailing(new HttpRequestException("connection refused")));
 
         Assert.Equal(RunStatus.Done, results.Run.Status);
-        Assert.Equal((2, 2, 2), (results.Run.SamplesTotal, results.Run.SamplesDone, results.Run.ChecksPassed));
-        Assert.Equal(2, results.Run.ChecksFailed);
+        Assert.Equal((2, 2, 1), (results.Run.SamplesTotal, results.Run.SamplesDone, results.Run.ChecksPassed));
+        Assert.Equal(1, results.Run.ChecksFailed);
         var checks = Assert.Single(results.Scenarios).Checks.ToDictionary(check => check.Key);
         Assert.All(
             checks["polite-refusal"].Samples,
@@ -460,7 +460,7 @@ public sealed class RunExecutorTests(TestDatabase database)
         Assert.Equal([1, 2], checks["twice"].Samples.Select(sample => sample.Sample));
         Assert.Equal([1, 2, 3], checks["as-scenario"].Samples.Select(sample => sample.Sample));
         Assert.All(checks.Values, check => Assert.True(check.Passed));
-        Assert.Equal(6, results.Run.ChecksPassed); // verdicts: 1 + 2 + 3
+        Assert.Equal((3, 0), (results.Run.ChecksPassed, results.Run.ChecksFailed));
     }
 
     [Fact]

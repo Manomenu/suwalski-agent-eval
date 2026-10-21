@@ -95,6 +95,38 @@ public sealed class RunStoreTests(TestDatabase database)
     }
 
     [Fact]
+    public async Task The_check_counts_are_checks_that_reached_their_threshold_not_samples()
+    {
+        var store = Store();
+        var agent = await NewAgentAsync(threshold: 0.5);
+        var id = await EnqueueAsync(store, agent);
+        var scenario = await new ScenarioStore(database.Pool).GetAsync(agent.Id, "refund", Cancellation);
+        var check = Assert.Single(await new CheckStore(database.Pool).ListAsync(agent.Id, cancellationToken: Cancellation));
+
+        foreach (var (sample, passed) in new[] { (1, true), (2, false), (3, true), (4, false) })
+        {
+            await store.AddSampleAsync(
+                id,
+                new NewSample(
+                    scenario!.Id,
+                    scenario.Revision,
+                    sample,
+                    SampleStatus.Done,
+                    "[]",
+                    null,
+                    10,
+                    [],
+                    [new NewCheckResult(check.Id, check.Revision, passed, "[]", "m")]
+                ),
+                Cancellation
+            );
+        }
+
+        var run = await store.GetAsync(id, Cancellation);
+        Assert.Equal((4, 1, 0), (run?.SamplesDone, run?.ChecksPassed, run?.ChecksFailed));
+    }
+
+    [Fact]
     public async Task A_stored_sample_with_its_verdicts_shows_in_the_counts_and_the_results()
     {
         var store = Store();

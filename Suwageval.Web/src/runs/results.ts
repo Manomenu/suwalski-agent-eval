@@ -141,6 +141,21 @@ export function failedEvidenceKeys(scenario: ScenarioRunResult, sample: number):
     return keys;
 }
 
+export interface SampleVerdict {
+    kind: "passed" | "failed" | "not judged" | "no output" | "unchecked";
+    failedChecks: number;
+}
+
+/** What the checks said of one sample of a scenario: failed when any check failed in it, else not judged when any could not be judged. */
+export function sampleVerdict(scenario: ScenarioRunResult, sample: number): SampleVerdict {
+    const verdicts = scenario.checks.flatMap((check) => check.samples.filter((checkSample) => checkSample.sample === sample));
+    const failedChecks = verdicts.filter((verdict) => !verdict.passed && !verdict.notJudged).length;
+    if (failedChecks > 0) return { kind: "failed", failedChecks };
+    if (verdicts.some((verdict) => verdict.notJudged)) return { kind: "not judged", failedChecks };
+    if (scenario.samples.find((candidate) => candidate.sample === sample)?.status === "Failed") return { kind: "no output", failedChecks };
+    return { kind: verdicts.length > 0 ? "passed" : "unchecked", failedChecks };
+}
+
 export function itemTitle(item: ConversationItem): string {
     switch (item.kind) {
         case "UserMessage":

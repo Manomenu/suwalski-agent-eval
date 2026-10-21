@@ -176,11 +176,11 @@ export function CompareTable({
                                 return (
                                     <Table.Tr key={JSON.stringify([row.scenarioKey, row.checkKey])}>
                                         <Table.Td>
-                                            <Text size="xs" c="dimmed">
+                                            <Text size="xs" c="dimmed" className="wrap-key">
                                                 {row.scenarioKey}
                                             </Text>
                                             <Group justify="space-between" wrap="nowrap">
-                                                <Text>{row.checkKey}</Text>
+                                                <Text className="wrap-key">{row.checkKey}</Text>
                                                 {/* The marks and the definition sit at the right edge of the cell, apart from the check's key. */}
                                                 <Group gap={4} wrap="nowrap">
                                                     {row.judgedByModel && <ModelJudgedIcon />}

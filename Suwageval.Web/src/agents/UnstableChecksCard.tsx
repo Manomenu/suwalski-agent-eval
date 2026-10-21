@@ -44,7 +44,7 @@ export function UnstableChecksCard({ checks }: { checks: UnstableCheck[] }) {
                         wrap="nowrap"
                         align="baseline"
                     >
-                        <Anchor href={runHref(check.newestFailedRunId)} style={{ overflowWrap: "anywhere" }}>
+                        <Anchor href={runHref(check.newestFailedRunId)} className="wrap-key">
                             {`${check.scenarioKey} / ${check.checkKey}`}
                         </Anchor>
                         <Group gap="xs" wrap="nowrap">

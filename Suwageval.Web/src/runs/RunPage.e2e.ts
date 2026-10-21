@@ -138,3 +138,51 @@ test("a scenario's definition opens on demand, as a scenario file without its ch
         agentServer.close();
     }
 });
+
+test("a run of several samples counts checks, marks each sample's result and wraps long keys", async ({ page, request }) => {
+    let answered = 0;
+    const agentServer = createServer((req, response) => {
+        response.setHeader("content-type", "application/json");
+        if (req.url === "/suwageval/contract") {
+            response.end(
+                JSON.stringify({ label: "e2e-samples", agents: [{ name: "main", model: { name: "e2e-model" }, config: "Be helpful." }] }),
+            );
+        } else {
+            answered += 1;
+            const text = answered % 2 === 0 ? "Goodbye." : "Hello there.";
+            response.end(JSON.stringify({ items: [{ kind: "AssistantMessage", text }] }));
+        }
+    });
+    await new Promise<void>((resolve) => agentServer.listen(0, "localhost", resolve));
+    try {
+        const name = `e2e-samples-${Date.now()}`;
+        const endpointUrl = `http://localhost:${(agentServer.address() as AddressInfo).port}`;
+        expect((await request.post("/api/agents", { data: { name, endpointUrl } })).ok()).toBe(true);
+        const longKey = "greets-the-user-politely-and-does-not-say-goodbye-before-the-conversation-has-even-started-step-2";
+        const scenario = { key: longKey, tags: ["smoke"], samples: 2, conversation: [{ kind: "UserMessage", text: "Hello" }] };
+        expect((await request.put(`/api/agents/${name}/scenarios`, { data: { scenarios: [scenario] } })).ok()).toBe(true);
+        const check = { type: "text", key: "says-hello", scenarioKey: longKey, contains: "Hello", passThreshold: 0.5 };
+        expect((await request.put(`/api/agents/${name}/checks`, { data: { checks: [check] } })).ok()).toBe(true);
+        const created = await request.post("/api/runs", { data: { agent: name } });
+        expect(created.ok()).toBe(true);
+        const { runId } = (await created.json()) as { runId: string };
+        await expect
+            .poll(async () => ((await (await request.get(`/api/runs/${runId}`)).json()) as { status: string }).status, { timeout: 30_000 })
+            .toBe("Done");
+
+        await page.setViewportSize({ width: 500, height: 900 });
+        await page.goto(`/runs/${runId}`);
+        await expect(page.getByText("Checks passed: 1", { exact: true })).toBeVisible();
+        await expect(page.getByText("Checks failed: 0", { exact: true })).toBeVisible();
+        await expect(page.getByRole("button", { name: /Agent output, sample \d.*passed/ })).toHaveCount(1);
+        await expect(page.getByRole("button", { name: /Agent output, sample \d.*failed: 1 check/ })).toHaveCount(1);
+        const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+        expect(overflow).toBeLessThanOrEqual(0);
+
+        await page.goto(`/agents/${name}`);
+        await expect(page.getByText("1 passed", { exact: true })).toBeVisible();
+        await expect(page.getByText("0 failed", { exact: true })).toBeVisible();
+    } finally {
+        agentServer.close();
+    }
+});

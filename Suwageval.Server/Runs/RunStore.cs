@@ -13,10 +13,7 @@ internal sealed class RunStore(Pool pool)
         SELECT r.id, r.agent_id AS AgentId, a.name AS AgentName, r.agent_version_id AS AgentVersionId, r.tag,
                r.endpoint_url AS EndpointUrl, r.status, r.error, r.samples_total AS SamplesTotal,
                (SELECT count(*)::int FROM scenario_results s WHERE s.run_id = r.id) AS SamplesDone,
-               (SELECT count(*)::int FROM check_results c JOIN scenario_results s ON s.id = c.scenario_result_id
-                 WHERE s.run_id = r.id AND c.passed) AS ChecksPassed,
-               (SELECT count(*)::int FROM check_results c JOIN scenario_results s ON s.id = c.scenario_result_id
-                 WHERE s.run_id = r.id AND NOT c.passed) AS ChecksFailed,
+               check_totals.passed AS ChecksPassed, check_totals.failed AS ChecksFailed,
                r.contract_changed_during_run AS ContractChangedDuringRun, r.cancel_requested AS CancelRequested,
                r.created_at AS CreatedAt, r.started_at AS StartedAt, r.finished_at AS FinishedAt,
                r.recheck_of AS RecheckOf, r.skipped_scenarios::text AS SkippedScenarios, r.verdicts_from AS VerdictsFrom,
@@ -26,6 +23,18 @@ internal sealed class RunStore(Pool pool)
                           WHERE s.run_id = r.id AND c.judge_model IS NOT NULL), '[]') AS JudgeModels
         FROM runs r
         JOIN agents a ON a.id = r.agent_id
+        CROSS JOIN LATERAL (
+            SELECT (count(*) FILTER (WHERE per_check.reached))::int AS passed, (count(*) FILTER (WHERE NOT per_check.reached))::int AS failed
+            FROM (
+                SELECT (count(*) FILTER (WHERE cr.passed))::float8 / count(*) + 1e-9
+                           >= (array_agg(COALESCE((rev.content->>'passThreshold')::float8, 1.0) ORDER BY cr.check_revision DESC))[1] AS reached
+                FROM scenario_results sr
+                JOIN check_results cr ON cr.scenario_result_id = sr.id
+                JOIN check_revisions rev ON rev.check_id = cr.check_id AND rev.revision = cr.check_revision
+                WHERE sr.run_id = r.id
+                GROUP BY sr.scenario_id, cr.check_id
+            ) per_check
+        ) check_totals
         """;
 
     /// <summary>Puts a run in the queue.</summary>

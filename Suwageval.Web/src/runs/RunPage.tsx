@@ -58,7 +58,7 @@ export function RunPage({ runId }: { runId: string }) {
                                 </Text>
                                 <List size="sm">
                                     {run.skippedScenarios?.map((skipped) => (
-                                        <List.Item key={skipped.key}>
+                                        <List.Item key={skipped.key} className="wrap-key">
                                             {skipped.key}: {skipped.reason}
                                         </List.Item>
                                     ))}
