@@ -52,6 +52,6 @@ with an earlier run, so a regression after a prompt or model change is visible a
 A check that passed in the last 5 reference runs (clean tree, pushed commit, the repository's default branch or the branches
 `agent.yaml` lists under `regression`) and fails now is a **regression**; a failing check with too little history is **new**.
 A check that fails only because the agent gave no answer is an **agent error**: it is left out of the check's history. `suwageval run --wait` prints these first and exits 1 only for them; known failures, unstable and already broken checks leave
-the exit code 0, `--strict` fails on any failed check, `--ref <branch>` picks the branch to compare with. The rules are in
+the exit code 0, `--strict` fails on any failed check, `--ref <branch>` picks the branch to compare with. A run started in a group (`run --group`) is an experiment: it is never a reference, its checks get no state and `run --wait` exits as with `--strict`. The rules are in
 [scenario-format.md](scenario-format.md), "Regressions".
 

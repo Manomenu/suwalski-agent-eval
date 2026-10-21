@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { fetchRuns, type RunSummary } from "../runs/api";
+import { groupQuery, type GroupFilter } from "./groupFilter";
 
 export interface RunsState {
     runs: RunSummary[];
@@ -30,10 +31,10 @@ const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 /**
  * The agent's runs, newest first, a page at a time. `versionIds` (comma-separated) limits them to those versions (null: all; empty: none, nothing is
  * asked). A change of `key` (it must change with `agent` and when a reload is wanted; `versionIds` changing starts again too) starts again from the first
- * page, keeping the runs shown until it arrives (`group` limits them to the runs of that group); `loadMore` appends the next page.
+ * page, keeping the runs shown until it arrives (`filter` limits them by group); `loadMore` appends the next page.
  * The runs are read once per key, not polled: a run that is still going shows the state it had when the page loaded.
  */
-export function useRuns(agent: string, versionIds: string | null, key: string, group: string | null = null): RunsState {
+export function useRuns(agent: string, versionIds: string | null, key: string, filter: GroupFilter): RunsState {
     const [loaded, setLoaded] = useState<Loaded | null>(null);
     // The key whose "Load more" is on its way.
     const [loadingMoreKey, setLoadingMoreKey] = useState<string | null>(null);
@@ -41,13 +42,14 @@ export function useRuns(agent: string, versionIds: string | null, key: string, g
     const controller = useRef<AbortController | null>(null);
     const none = versionIds === "";
     const ids = idsOf(versionIds);
+    const { group, grouping } = groupQuery(filter);
 
     useEffect(() => {
         if (none) return;
         const current = new AbortController();
         controller.current = current;
         // Split here, from the string: the effect depends on `versionIds`, not on a new array of each render.
-        fetchRuns(agent, null, idsOf(versionIds), group, current.signal)
+        fetchRuns(agent, null, idsOf(versionIds), group, grouping, current.signal)
             .then((page) => {
                 if (!current.signal.aborted) setLoaded({ key, runs: page.runs, next: page.next ?? null, error: null });
             })
@@ -57,7 +59,7 @@ export function useRuns(agent: string, versionIds: string | null, key: string, g
         return () => {
             current.abort();
         };
-    }, [agent, key, none, versionIds, group]);
+    }, [agent, key, none, versionIds, group, grouping]);
 
     const current = loaded?.key === key ? loaded : null;
     const loadingMore = loadingMoreKey === key;
@@ -68,7 +70,7 @@ export function useRuns(agent: string, versionIds: string | null, key: string, g
         const { next } = current;
         setLoadingMoreKey(key);
         setLoaded({ ...current, error: null });
-        fetchRuns(agent, next, ids, group, signal)
+        fetchRuns(agent, next, ids, group, grouping, signal)
             .then((page) => {
                 if (!signal.aborted) setLoaded({ key, runs: [...current.runs, ...page.runs], next: page.next ?? null, error: null });
             })

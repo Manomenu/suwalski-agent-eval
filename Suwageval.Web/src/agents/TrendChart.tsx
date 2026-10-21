@@ -20,6 +20,9 @@ import {
 } from "./trend";
 import { runHref } from "../runs/results";
 
+/** Said under every trend chart: group runs are experiments and never make a point. */
+const GROUP_RUNS_NOT_INCLUDED = "Runs started in a group are experiments and are not included in this chart.";
+
 const TREND_HEIGHT = 300;
 const ALL_STROKE_WIDTH = 4;
 const TAG_STROKE_WIDTH = 2;
@@ -132,6 +135,9 @@ export function TrendChart({
                     </Button>
                 ))}
             </Group>
+            <Text size="xs" c="dimmed">
+                {GROUP_RUNS_NOT_INCLUDED}
+            </Text>
             {hasRechecks(points) && (
                 <Text size="xs" c="dimmed">
                     A point of a re-checked run shows the results of its latest re-check; the run keeps its place and time.

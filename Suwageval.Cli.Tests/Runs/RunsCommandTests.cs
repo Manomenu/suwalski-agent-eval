@@ -88,7 +88,7 @@ public sealed class RunsCommandTests
 
         Assert.Equal(0, exit);
         Assert.Empty(error);
-        Assert.Equal(["/runs?agent=example-agent&limit=10"], paths);
+        Assert.Equal(["/runs?agent=example-agent&limit=10&grouping=None"], paths);
         var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
         Assert.Equal(3, lines.Length);
         Assert.StartsWith("aaaaaaaa-0000-0000-0000-000000000003  Done  smoke", lines[0], StringComparison.Ordinal);
@@ -106,7 +106,7 @@ public sealed class RunsCommandTests
         var (exit, _, _, paths) = Runs("--version", first, "--version", second);
 
         Assert.Equal(0, exit);
-        Assert.Equal([$"/runs?agent=example-agent&limit=10&version={first}&version={second}"], paths);
+        Assert.Equal([$"/runs?agent=example-agent&limit=10&version={first}&version={second}&grouping=None"], paths);
     }
 
     [Fact]
@@ -129,11 +129,77 @@ public sealed class RunsCommandTests
     }
 
     [Fact]
+    public void Runs_in_a_group_are_left_out_unless_any_group_or_all_runs_is_asked_for()
+    {
+        var (_, _, _, any) = Runs("--any-group");
+        var (_, _, _, all) = Runs("--all-runs");
+
+        Assert.Equal(["/runs?agent=example-agent&limit=10&grouping=Any"], any);
+        Assert.Equal(["/runs?agent=example-agent&limit=10"], all);
+    }
+
+    [Fact]
+    public void Group_any_group_and_all_runs_exclude_each_other_and_nothing_is_asked()
+    {
+        var (exit, _, _, paths) = Runs("--group", "sweep-1", "--any-group");
+
+        Assert.NotEqual(0, exit);
+        Assert.Empty(paths);
+    }
+
+    [Fact]
+    public void Groups_lists_the_groups_in_use_and_with_archived_the_archived_ones_too()
+    {
+        RunGroupSummary[] groups =
+        [
+            new()
+            {
+                Name = "sweep-2",
+                Runs = 3,
+                Versions = 2,
+                NewestRunAt = new DateTime(2026, 10, 2, 10, 0, 0, DateTimeKind.Utc),
+            },
+            new()
+            {
+                Name = "sweep-1",
+                Runs = 1,
+                Versions = 1,
+                NewestRunAt = new DateTime(2026, 10, 1, 10, 0, 0, DateTimeKind.Utc),
+                ArchivedAt = new DateTime(2026, 10, 3, 10, 0, 0, DateTimeKind.Utc),
+            },
+        ];
+        string[] Listed(params string[] args)
+        {
+            using var handler = new Fixed(JsonSerializer.Serialize(groups, ContractJson.Options));
+            using var http = new HttpClient(handler, disposeHandler: false) { BaseAddress = new Uri("http://api.test/") };
+            using var output = new StringWriter();
+            using var error = new StringWriter();
+            CliApp.Run(["runs", "--groups", .. args, "--dir", Sample], new StringReader(""), output, error, http);
+            return output.ToString().Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        }
+
+        var active = Listed();
+        var everything = Listed("--archived");
+
+        Assert.Equal(["sweep-2  3 runs  2 versions  newest 2026-10-02 10:00Z"], active.Select(line => line.TrimEnd()));
+        Assert.EndsWith("  archived", everything[1].TrimEnd(), StringComparison.Ordinal);
+        Assert.Equal(2, everything.Length);
+    }
+
+    private sealed class Fixed(string body) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            Task.FromResult(
+                new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(body, Encoding.UTF8, "application/json") }
+            );
+    }
+
+    [Fact]
     public void Limit_keeps_the_newest_runs()
     {
         var (_, output, _, paths) = Runs("--limit", "2");
 
-        Assert.Equal(["/runs?agent=example-agent&limit=2"], paths);
+        Assert.Equal(["/runs?agent=example-agent&limit=2&grouping=None"], paths);
         Assert.Equal(2, output.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length);
         Assert.DoesNotContain("000000000001", output, StringComparison.Ordinal);
     }
@@ -143,7 +209,7 @@ public sealed class RunsCommandTests
     {
         var (_, output, _, paths) = Runs("--limit", "150");
 
-        Assert.Equal(["/runs?agent=example-agent&limit=100"], paths);
+        Assert.Equal(["/runs?agent=example-agent&limit=100&grouping=None"], paths);
         Assert.Equal(3, output.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length);
     }
 

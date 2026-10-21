@@ -9,7 +9,7 @@ namespace Suwageval.Cli.Run;
 /// <c>suwageval run</c>: starts a run of the agent named in <c>suwageval/agent.yaml</c> on the server, which reads the
 /// agent's contract (<c>--group</c> puts the run in a group, for comparing variants) and runs against that version (the output says which, and whether it is new). With <c>--wait</c> it prints
 /// one line of totals and the link to the run's page (the results are read there, or with <c>--json</c>), and exits 0 unless a check regressed or is new and failing
-/// (<c>--strict</c>: 1 when any check missed its threshold), 2 when the run could not be started, failed or was cancelled. Ctrl+C while
+/// (<c>--strict</c>: 1 when any check missed its threshold; a run in a group has no regression comparison, so it always exits like <c>--strict</c>), 2 when the run could not be started, failed or was cancelled. Ctrl+C while
 /// waiting asks whether to cancel the run on the server too (<see cref="RunOutput"/>); left running, the exit code is 130.
 /// </summary>
 internal static class RunCommand

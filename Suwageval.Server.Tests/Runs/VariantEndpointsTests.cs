@@ -101,6 +101,10 @@ public sealed class VariantEndpointsTests(TestDatabase database) : IAsyncDisposa
         Assert.Equal(["billing"], refund.Tags);
         Assert.Equal((1, 2), (refund.Cells[0]!.ChecksPassed, refund.Cells[0]!.ChecksTotal));
         Assert.Equal(["refund-event"], refund.Cells[0]!.FailedChecks);
+        var failing = refund.Cells[0]!.Checks.Single(check => check.Key == "refund-event");
+        Assert.Equal((false, 0, 1), (failing.Passed, failing.SamplesPassed, failing.Samples));
+        Assert.Equal([(1, "m")], failing.Failures.Select(failure => (failure.Sample, failure.Message)));
+        Assert.Empty(refund.Cells[1]!.Checks.Single(check => check.Key == "refund-event").Failures);
         Assert.Equal((2, 2), (refund.Cells[1]!.ChecksPassed, refund.Cells[1]!.ChecksTotal));
         Assert.Null(variants.Scenarios.Single(scenario => scenario.Key == "plain").Cells[1]);
         Assert.Equal(

@@ -10,8 +10,14 @@ public sealed record VariantCell
     /// <summary>The keys of the checks that missed their threshold.</summary>
     public required IReadOnlyList<string> FailedChecks { get; init; }
 
+    /// <summary>Every check of the scenario in this run, in the order the run lists them.</summary>
+    public required IReadOnlyList<VariantCheck> Checks { get; init; }
+
     public required int Samples { get; init; }
 
     /// <summary>The samples where the agent gave no answer.</summary>
     public required int SamplesFailed { get; init; }
+
+    /// <summary>The samples where the agent gave no answer, with their errors.</summary>
+    public required IReadOnlyList<VariantNoAnswer> NoAnswers { get; init; }
 }

@@ -74,7 +74,14 @@ internal static class VariantEndpoints
                 }
                 agentId = found.Id;
             }
-            var newestFirst = await store.ListPageAsync(agentId, null, [], RunVariantsReport.MaxRuns + 1, group, cancellationToken);
+            var newestFirst = await store.ListPageAsync(
+                agentId,
+                null,
+                [],
+                RunVariantsReport.MaxRuns + 1,
+                group,
+                cancellationToken: cancellationToken
+            );
             if (newestFirst.Count == 0)
             {
                 return ProblemResults.NotFound("Run group", group!);

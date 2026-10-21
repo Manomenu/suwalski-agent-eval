@@ -11,4 +11,7 @@ public sealed record RunGroupSummary
     public required int Versions { get; init; }
 
     public required DateTime NewestRunAt { get; init; }
+
+    /// <summary>When the group was archived (hidden by default, restorable); null for a group in use.</summary>
+    public DateTime? ArchivedAt { get; init; }
 }

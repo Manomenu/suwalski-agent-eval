@@ -16,18 +16,43 @@ internal static class TagCoverage
     )
     {
         ArgumentNullException.ThrowIfNull(ranKeys);
-        ArgumentNullException.ThrowIfNull(scenarios);
+        var existing = Existing(runCreatedAt, ranKeys, scenarios);
         var ran = ranKeys.ToHashSet();
-        var existing = scenarios
-            .Where(scenario =>
-                ran.Contains(scenario.Key)
-                || (scenario.CreatedAt <= runCreatedAt && (scenario.DeletedAt is null || scenario.DeletedAt > runCreatedAt))
-            )
-            .ToList();
         return existing
             .SelectMany(scenario => scenario.Tags)
             .Distinct()
             .Where(tag => existing.Where(scenario => scenario.Tags.Contains(tag)).All(scenario => ran.Contains(scenario.Key)))
             .ToHashSet();
+    }
+
+    /// <summary>How many of the scenarios the tag had when the run was queued the run ran, and how many the tag had (the same scenarios as <see cref="CompleteTags"/> weighs).</summary>
+    public static (int Ran, int Total) Counts(
+        string tag,
+        DateTime runCreatedAt,
+        IReadOnlyCollection<string> ranKeys,
+        IReadOnlyList<ScenarioLifetime> scenarios
+    )
+    {
+        ArgumentNullException.ThrowIfNull(ranKeys);
+        var ofTag = Existing(runCreatedAt, ranKeys, scenarios).Where(scenario => scenario.Tags.Contains(tag)).ToList();
+        var ran = ranKeys.ToHashSet();
+        return (ofTag.Count(scenario => ran.Contains(scenario.Key)), ofTag.Count);
+    }
+
+    private static List<ScenarioLifetime> Existing(
+        DateTime runCreatedAt,
+        IReadOnlyCollection<string> ranKeys,
+        IReadOnlyList<ScenarioLifetime> scenarios
+    )
+    {
+        ArgumentNullException.ThrowIfNull(scenarios);
+        var ran = ranKeys.ToHashSet();
+        return
+        [
+            .. scenarios.Where(scenario =>
+                ran.Contains(scenario.Key)
+                || (scenario.CreatedAt <= runCreatedAt && (scenario.DeletedAt is null || scenario.DeletedAt > runCreatedAt))
+            ),
+        ];
     }
 }

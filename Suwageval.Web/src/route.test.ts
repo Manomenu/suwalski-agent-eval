@@ -15,9 +15,10 @@ describe("pageOf", () => {
     });
 
     it("reads the runs query of /compare, as it is", () => {
-        expect(pageOf("/compare", "?runs=a,b")).toEqual({ kind: "compare", runs: "a,b" });
-        expect(pageOf("/compare/", "?runs=a,b&x=1")).toEqual({ kind: "compare", runs: "a,b" });
-        expect(pageOf("/compare")).toEqual({ kind: "compare", runs: "" });
+        expect(pageOf("/compare", "?runs=a,b")).toEqual({ kind: "compare", runs: "a,b", group: "", agent: "" });
+        expect(pageOf("/compare/", "?runs=a,b&x=1")).toEqual({ kind: "compare", runs: "a,b", group: "", agent: "" });
+        expect(pageOf("/compare", "?group=sweep-1&agent=bot")).toEqual({ kind: "compare", runs: "", group: "sweep-1", agent: "bot" });
+        expect(pageOf("/compare")).toEqual({ kind: "compare", runs: "", group: "", agent: "" });
     });
 
     it("reads the runs, group and agent queries of /variants, as they are", () => {

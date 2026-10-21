@@ -29,6 +29,14 @@ export function runLabel(run: Pick<RunSummary, "label" | "agentVersionId">, vers
     return run.label?.trim() ? run.label : versionTitle(run.agentVersionId, versionLabel);
 }
 
+/** The id of a scenario's card on the run page, so a link can jump to it (`#scenario-<key>`). */
+export function scenarioAnchor(scenarioKey: string): string {
+    return `scenario-${scenarioKey}`;
+}
+
+/** The scenario's card on the run page: where the comparison's "open in run" leads. */
+export const scenarioInRunHref = (runId: string, scenarioKey: string) => `${runHref(runId)}#${scenarioAnchor(scenarioKey)}`;
+
 /** The id of a check's row on the run page, so a link can jump to it (`#check-<scenario>--<check>`). */
 export function checkAnchor(scenarioKey: string, checkKey: string): string {
     return `check-${scenarioKey}--${checkKey}`;

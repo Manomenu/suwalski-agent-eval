@@ -54,7 +54,17 @@ internal sealed class RunStore(Pool pool)
     )
     {
         await using var connection = await pool.OpenAsync(cancellationToken);
-        return await connection.QuerySingleAsync<Guid>(
+        await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+        // A run started in an archived group puts the group back in use.
+        await connection.ExecuteAsync(
+            new CommandDefinition(
+                "DELETE FROM archived_run_groups WHERE agent_id = @agentId AND name = @runGroup::text",
+                new { agentId, runGroup },
+                transaction,
+                cancellationToken: cancellationToken
+            )
+        );
+        var id = await connection.QuerySingleAsync<Guid>(
             new CommandDefinition(
                 """
                 INSERT INTO runs (agent_id, agent_version_id, tags, endpoint_url, recheck_of, verdicts_from, origin, reference, compared_with, run_group, label)
@@ -75,9 +85,12 @@ internal sealed class RunStore(Pool pool)
                     runGroup,
                     label,
                 },
+                transaction,
                 cancellationToken: cancellationToken
             )
         );
+        await transaction.CommitAsync(cancellationToken);
+        return id;
     }
 
     public async Task<RunRow?> GetAsync(Guid id, CancellationToken cancellationToken = default)
@@ -105,7 +118,8 @@ internal sealed class RunStore(Pool pool)
     /// <summary>
     /// A page of runs, newest first (<c>created_at</c> descending, then <c>id</c>): at most <paramref name="limit"/> of them,
     /// only those strictly after run <paramref name="before"/> in that order, only those of the given agent versions when
-    /// <paramref name="versionIds"/> is not empty, only those of <paramref name="runGroup"/> when one is given. A <paramref name="before"/> that is no run gives an empty page.
+    /// <paramref name="versionIds"/> is not empty, only those of <paramref name="runGroup"/> when one is given, only those in no group or in some group as <paramref name="grouping"/> says
+    /// (a re-check counts as in the group of the run it was made from). A <paramref name="before"/> that is no run gives an empty page.
     /// </summary>
     public async Task<IReadOnlyList<RunRow>> ListPageAsync(
         Guid? agentId,
@@ -113,6 +127,7 @@ internal sealed class RunStore(Pool pool)
         IReadOnlyCollection<Guid> versionIds,
         int limit,
         string? runGroup = null,
+        RunGrouping grouping = RunGrouping.All,
         CancellationToken cancellationToken = default
     )
     {
@@ -123,6 +138,8 @@ internal sealed class RunStore(Pool pool)
                 {RunSelect}
                 WHERE (@agentId::uuid IS NULL OR r.agent_id = @agentId)
                   AND (@runGroup::text IS NULL OR r.run_group = @runGroup)
+                  AND (@grouping = 'All'
+                       OR (@grouping = 'None') = (COALESCE(r.run_group, (SELECT o.run_group FROM runs o WHERE o.id = r.recheck_of)) IS NULL))
                   AND (cardinality(@versionIds::uuid[]) = 0 OR r.agent_version_id = ANY(@versionIds::uuid[]))
                   AND (@before::uuid IS NULL OR EXISTS (
                         SELECT 1 FROM runs b
@@ -137,27 +154,8 @@ internal sealed class RunStore(Pool pool)
                     versionIds = versionIds.ToArray(),
                     limit,
                     runGroup,
+                    grouping = grouping.ToString(),
                 },
-                cancellationToken: cancellationToken
-            )
-        );
-        return [.. rows];
-    }
-
-    /// <summary>The groups of an agent's runs, the one with the newest run first.</summary>
-    public async Task<IReadOnlyList<RunGroupRow>> ListGroupsAsync(Guid agentId, CancellationToken cancellationToken = default)
-    {
-        await using var connection = await pool.OpenAsync(cancellationToken);
-        var rows = await connection.QueryAsync<RunGroupRow>(
-            new CommandDefinition(
-                """
-                SELECT run_group AS Name, count(*)::int AS Runs, count(DISTINCT agent_version_id)::int AS Versions, max(created_at) AS NewestRunAt
-                FROM runs
-                WHERE agent_id = @agentId AND run_group IS NOT NULL
-                GROUP BY run_group
-                ORDER BY max(created_at) DESC, run_group
-                """,
-                new { agentId },
                 cancellationToken: cancellationToken
             )
         );
@@ -395,6 +393,7 @@ internal sealed class RunStore(Pool pool)
                     FROM runs c
                     JOIN anchor a ON c.agent_id = a.agent_id AND c.created_at < a.created_at
                     WHERE c.status = 'Done' AND c.recheck_of IS NULL
+                      AND c.run_group IS NULL
                       AND (@comparedWith::text IS NULL OR (c.reference AND c.origin ->> 'branch' = @comparedWith))
                 ),
                 per_run AS (

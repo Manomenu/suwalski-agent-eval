@@ -5,7 +5,7 @@ namespace Suwageval.Cli.Trend;
 
 /// <summary>
 /// <c>suwageval trend</c>: the pass-rate trend of the agent named in <c>suwageval/agent.yaml</c> — one line per finished run, oldest first: run,
-/// date, version, pass rate, median and 95th percentile turn time, pass rate per tag. <c>--json</c> prints the records the web's chart draws.
+/// date, version, pass rate, median and 95th percentile turn time, pass rate per tag; the runs started in a group (<c>run --group</c>) are experiments and not in it. <c>--json</c> prints the records the web's chart draws.
 /// Exits 0, or 2 when the agent file or the server is wrong.
 /// </summary>
 internal static class TrendCommand
@@ -17,7 +17,15 @@ internal static class TrendCommand
         var server = CommandOptions.Server();
         var dir = CommandOptions.Dir();
 
-        var command = new Command("trend", "Show the agent's pass-rate trend, run by run.") { json, server, dir };
+        var command = new Command(
+            "trend",
+            "Show the agent's pass-rate trend, run by run (runs started in a group are experiments and not included)."
+        )
+        {
+            json,
+            server,
+            dir,
+        };
         command.SetAction(
             (parsed, cancellationToken) =>
                 ServerCall.ForAgentAsync(

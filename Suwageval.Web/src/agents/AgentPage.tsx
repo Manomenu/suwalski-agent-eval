@@ -35,9 +35,11 @@ import { AgentErrorsCard } from "./AgentErrorsCard";
 import { ConfigurationSection } from "./ConfigurationSection";
 import { DeleteAgentModal } from "./DeleteAgentModal";
 import { HeaderHelp } from "../runs/HeaderHelp";
+import { filterOfValue, filterOptions, filterValue } from "./groupFilter";
 import { Page } from "./Page";
 import { RunGroupsSection } from "./RunGroupsSection";
 import { useAgentErrors } from "./useAgentErrors";
+import { useGroupFilter } from "./useGroupFilter";
 import { useLoaded } from "./useLoaded";
 import { useRuns } from "./useRuns";
 import {
@@ -53,6 +55,12 @@ import {
     visibleRuns,
     COMPARE_MAX_RUNS,
     COMPARE_MIN_RUNS,
+    RUN_CREATED_HELP,
+    RUN_FINISHED_HELP,
+    RUN_GROUP_HELP,
+    RUN_ID_HELP,
+    RUN_STATUS_HELP,
+    RUNS_SECTION_HELP,
     VERSION_HELP,
 } from "./view";
 import { UnstableChecksCard } from "./UnstableChecksCard";
@@ -67,14 +75,14 @@ const DATA_VERSION_HELP =
 const VERSIONS_FILTER_HELP =
     "Show only runs of these agent versions (newest first; empty means all). The chart, the unstable checks and the agent errors follow the filter.";
 const GROUP_HELP =
-    "Show only the runs started in this group (run --group). Open the group from the Groups section to compare its runs as variants.";
+    "Which runs to list by group (run --group): those in no group (the default), those in any group, all runs, or one group. Group runs are experiments, kept out of the regression history and the pass-rate trend. Open a group from the Groups section to compare its runs as variants.";
 const TAG_HELP = "The scenario tags the run was limited to (run --tag, repeatable); — means every scenario of the agent ran.";
 
 const PassRateTrend = lazy(() => import("./PassRateTrend").then((module) => ({ default: module.PassRateTrend })));
 const TurnTimeTrend = lazy(() => import("./TurnTimeTrend").then((module) => ({ default: module.TurnTimeTrend })));
 
 const MODEL_FILTER_MIN_WIDTH = 260;
-const RUNS_TABLE_MIN_WIDTH = 1020;
+const RUNS_TABLE_MIN_WIDTH = 1100;
 
 /** `/agents/<name>`: the agent, its runs (newest first) and its versions. */
 export function AgentPage({ name }: { name: string }) {
@@ -132,7 +140,7 @@ function AgentView({
     const [models, setModels] = useState<string[]>([]);
     const [dataVersions, setDataVersions] = useState<string[]>([]);
     const [versionFilter, setVersionFilter] = useState<string[]>([]);
-    const [groupFilter, setGroupFilter] = useState<string | null>(null);
+    const [groupFilter, setGroupFilter] = useGroupFilter();
     const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
     // The server pages the runs, so the filters reach it as the versions they allow (none sent: every version).
     const versionIds = allowedVersionIds(versions, showArchived, models, dataVersions, versionFilter);
@@ -208,8 +216,10 @@ function AgentView({
                 </div>
 
                 <Stack gap="lg" className="agent-layout-main">
-                    <RunGroupsSection agentName={agent.name} groups={groups} />
-                    <Title order={3}>Runs</Title>
+                    <RunGroupsSection agentName={agent.name} groups={groups} onChanged={onChanged} />
+                    <Title order={3}>
+                        <HeaderHelp label="Runs" help={RUNS_SECTION_HELP} />
+                    </Title>
                     <Group justify="space-between" align="flex-end">
                         <Group align="flex-end">
                             <MultiSelect
@@ -241,11 +251,12 @@ function AgentView({
                             />
                             <Select
                                 label={<HeaderHelp label="Group" help={GROUP_HELP} />}
-                                placeholder="All groups"
-                                data={groups.map((group) => group.name)}
-                                value={groupFilter}
-                                onChange={setGroupFilter}
-                                clearable
+                                data={filterOptions(groups, groupFilter)}
+                                value={filterValue(groupFilter)}
+                                onChange={(value) => {
+                                    setGroupFilter(filterOfValue(value));
+                                }}
+                                allowDeselect={false}
                                 miw={MODEL_FILTER_MIN_WIDTH}
                             />
                         </Group>
@@ -282,9 +293,11 @@ function AgentView({
                         ) : (
                             error === null && (
                                 <Text c="dimmed">
-                                    {versionIds === null
-                                        ? "This agent has no runs yet."
-                                        : "No run matches the filters — archived versions are hidden unless Show archived is on."}
+                                    {versionIds !== null
+                                        ? "No run matches the filters — archived versions are hidden unless Show archived is on."
+                                        : groupFilter.kind === "none" && groups.length > 0
+                                          ? "This agent has no runs outside groups yet — runs started in a group are listed under Any group or All runs."
+                                          : "This agent has no runs yet."}
                                 </Text>
                             )
                         )
@@ -295,23 +308,33 @@ function AgentView({
                                     <Table.Thead>
                                         <Table.Tr>
                                             <Table.Th />
-                                            <Table.Th>Run</Table.Th>
-                                            <Table.Th>Status</Table.Th>
+                                            <Table.Th className="no-wrap">
+                                                <HeaderHelp label="Run" help={RUN_ID_HELP} />
+                                            </Table.Th>
+                                            <Table.Th className="no-wrap">
+                                                <HeaderHelp label="Status" help={RUN_STATUS_HELP} />
+                                            </Table.Th>
                                             <Table.Th>
                                                 <HeaderHelp label="Tags" help={TAG_HELP} />
                                             </Table.Th>
-                                            <Table.Th>Group</Table.Th>
+                                            <Table.Th>
+                                                <HeaderHelp label="Group" help={RUN_GROUP_HELP} />
+                                            </Table.Th>
                                             <Table.Th>
                                                 <HeaderHelp label="Version" help={VERSION_HELP} />
                                             </Table.Th>
-                                            <Table.Th>
+                                            <Table.Th className="no-wrap">
                                                 <HeaderHelp label="Checks" help={RUN_CHECKS_HELP} />
                                             </Table.Th>
-                                            <Table.Th>
+                                            <Table.Th className="no-wrap">
                                                 <HeaderHelp label="Samples" help={RUN_SAMPLES_HELP} />
                                             </Table.Th>
-                                            <Table.Th>Created</Table.Th>
-                                            <Table.Th>Finished</Table.Th>
+                                            <Table.Th className="no-wrap">
+                                                <HeaderHelp label="Created" help={RUN_CREATED_HELP} />
+                                            </Table.Th>
+                                            <Table.Th className="no-wrap">
+                                                <HeaderHelp label="Finished" help={RUN_FINISHED_HELP} />
+                                            </Table.Th>
                                         </Table.Tr>
                                     </Table.Thead>
                                     <Table.Tbody>
@@ -329,11 +352,11 @@ function AgentView({
                                                         }}
                                                     />
                                                 </Table.Td>
-                                                <Table.Td>
+                                                <Table.Td className="no-wrap">
                                                     <Anchor href={runHref(run.id)}>{shortId(run.id)}</Anchor>
                                                 </Table.Td>
-                                                <Table.Td>
-                                                    <Group gap={4}>
+                                                <Table.Td className="no-wrap">
+                                                    <Group gap={4} wrap="nowrap">
                                                         <Badge color={statusColor(run.status)}>{statusLabel(run.status)}</Badge>
                                                         {run.reference === true && (
                                                             <Badge variant="outline" color="teal">
@@ -363,14 +386,14 @@ function AgentView({
                                                         )}
                                                     </Anchor>
                                                 </Table.Td>
-                                                <Table.Td>
+                                                <Table.Td className="no-wrap">
                                                     <ChecksCount run={run} />
                                                 </Table.Td>
-                                                <Table.Td>
+                                                <Table.Td className="no-wrap">
                                                     <SamplesCount run={run} />
                                                 </Table.Td>
-                                                <Table.Td>{formatTime(run.createdAt)}</Table.Td>
-                                                <Table.Td>{formatTime(run.finishedAt)}</Table.Td>
+                                                <Table.Td className="no-wrap">{formatTime(run.createdAt)}</Table.Td>
+                                                <Table.Td className="no-wrap">{formatTime(run.finishedAt)}</Table.Td>
                                             </Table.Tr>
                                         ))}
                                     </Table.Tbody>

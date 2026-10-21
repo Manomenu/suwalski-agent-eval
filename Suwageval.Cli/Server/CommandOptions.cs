@@ -33,7 +33,7 @@ internal static class CommandOptions
         new("--group")
         {
             Description =
-                "Put the run in this group (lowercase kebab-case, e.g. sweep-2026-10-21): the runs of one sweep, listed with `runs --group` and compared side by side on the variants page.",
+                "Put the run in this group (lowercase kebab-case, e.g. sweep-2026-10-21): the runs of one sweep, listed with `runs --group` and compared side by side. A group run is an experiment: no regression states, never a reference run, not in the trend; with --wait it exits 1 when any check fails its threshold (as --strict).",
         };
 
     public static Option<string?> Group(string description) => new("--group") { Description = description };

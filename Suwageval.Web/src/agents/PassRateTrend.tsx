@@ -7,7 +7,7 @@ import { TREND_MIN_RUNS, trendRows, trendSeries } from "./trend";
 
 /** What the chart shows, said on hover over its heading. */
 const PASS_RATE_HELP =
-    "The share of checks that passed in each finished run, oldest to newest. A check counts once per scenario: passed when enough of its samples passed. All comes only from runs of every scenario; a tag's line also takes runs limited to tags including it. A line joins the runs that measured it, so a point is a reading, the line between is not. A re-checked run shows its latest re-check. Click a point to open the run.";
+    "The share of checks that passed in each finished run, oldest to newest. A check counts once per scenario: passed when enough of its samples passed. All comes only from runs of every scenario; a tag's line also takes runs limited to tags including it. A line joins the runs that measured it, so a point is a reading, the line between is not. A re-checked run shows its latest re-check. Runs started in a group are not included. Click a point to open the run.";
 
 /** The pass rate over the agent's finished runs: one line for all checks and one per tag. Clicking the chart opens the nearest run. */
 export function PassRateTrend({ points }: { points: RunPassRates[] }) {

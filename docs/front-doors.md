@@ -4,8 +4,8 @@ The server has one interface, its HTTP API. Three users reach it:
 
 | Who | Through | Does |
 | --- | --- | --- |
-| a person in the browser | the web app | browses agents, scenarios, runs, results, comparisons, archives versions and deletes an archived one with its runs (after typing its id), deletes a whole agent (after typing its name) |
-| an agent's repository, by hand or in CI | the `suwageval` CLI (`Suwageval.Cli`) | `init` to set up `suwageval/agent.yaml` (and `scenarios/`) without touching what is already in it, `validate` the scenario files, `push` the agent, its scenarios and checks, `run --tag … --wait` (`--tag` repeatable: the scenarios with any of the tags) with an exit code for CI (`--ref <branch>` picks the branch to compare with, `--strict` fails on any failed check, not only on regressions; `rerun` and `recheck` take `--strict` too), `rerun <runId>` to repeat a run, `recheck <runId>` to judge a finished run's stored answers again with the current checks (`--dry-run` shows what would be evaluated), `cancel <runId>` to stop a queued or running one, `results <runId>` to print a run's results (`--json` for the records, `--open` to open the run on the web instead), `runs` to list the agent's newest runs (`--version <id>` repeatable, `--reference` for reference runs only; each line shows tags, branch, a reference mark and the judge model), `agents` to list the agents on the server (no `agent.yaml` needed), `scenarios` (`--tag`) and `scenario <key>` to read the agent's scenarios, their checks and revisions as stored, `trend` for the pass-rate trend run by run (`--json` is the chart's data), `unstable` to list the open checks that pass in some runs of a version and fail in others, `agent-errors` to list the open scenarios where the agent gave no answer (both take `--version <id>`, repeatable), `compare <runId> <runId> …` to print the comparison of 2 to 5 runs of one agent (header per run, pass rate per tag, the checks that differ; `--json` for the record, `--open` to open the web page instead), `variants <runId> …` or `variants --group <name>` to print runs as variants (a column per run, the checks per scenario; `--json`, `--open`), `run --group <name>` and `rerun --group <name>` to put a run in a group, `runs --group <name>` and `runs --groups` to list a group's runs and the groups, `agent` to show what the server stores for the repository's agent, `versions` to list, archive and restore the agent's versions, `versions delete <id>` to delete an archived one with its runs (`--dry-run` shows what would go, `--yes` skips the question), `versions show <id>` to print one version with its contract, `versions diff <a> <b>` to print what changed between two of them as a unified-style diff (`--json` for the record, `--open` for the web page), `delete-agent` to delete the repository's agent from the server with everything of it (`--dry-run`, `--yes` as for `versions delete`) |
+| a person in the browser | the web app | browses agents, scenarios, runs, results, comparisons, archives versions and deletes an archived one with its runs (after typing its id), archives run groups and deletes an archived group with its runs (after typing its name), deletes a whole agent (after typing its name) |
+| an agent's repository, by hand or in CI | the `suwageval` CLI (`Suwageval.Cli`) | `init` to set up `suwageval/agent.yaml` (and `scenarios/`) without touching what is already in it, `validate` the scenario files, `push` the agent, its scenarios and checks, `run --tag … --wait` (`--tag` repeatable: the scenarios with any of the tags) with an exit code for CI (`--ref <branch>` picks the branch to compare with, `--strict` fails on any failed check, not only on regressions; `rerun` and `recheck` take `--strict` too), `rerun <runId>` to repeat a run, `recheck <runId>` to judge a finished run's stored answers again with the current checks (`--dry-run` shows what would be evaluated), `cancel <runId>` to stop a queued or running one, `results <runId>` to print a run's results (`--json` for the records, `--open` to open the run on the web instead), `runs` to list the agent's newest runs that are in no group (`--version <id>` repeatable, `--reference` for reference runs only, `--group <name>` one group's runs, `--any-group` the runs in some group, `--all-runs` both; each line shows tags, branch, a reference mark and the judge model), `agents` to list the agents on the server (no `agent.yaml` needed), `scenarios` (`--tag`) and `scenario <key>` to read the agent's scenarios, their checks and revisions as stored, `trend` for the pass-rate trend run by run (`--json` is the chart's data), `unstable` to list the open checks that pass in some runs of a version and fail in others, `agent-errors` to list the open scenarios where the agent gave no answer (both take `--version <id>`, repeatable), `compare <runId> <runId> …` to print the comparison of 2 to 5 runs of one agent (header per run, pass rate per tag, the checks that differ; `--json` for the record, `--open` to open the web page instead), `variants <runId> …` or `variants --group <name>` to print runs as variants (a column per run, the checks per scenario; `--json`, `--open`), `run --group <name>` and `rerun --group <name>` to put a run in a group, `runs --groups` to list the groups (`--archived`: the archived ones too), `groups archive|unarchive <name>…` to hide or restore groups and `groups delete <name>` to delete an archived one with its runs (`--dry-run` shows what would go, `--yes` skips the question), `agent` to show what the server stores for the repository's agent, `versions` to list, archive and restore the agent's versions, `versions delete <id>` to delete an archived one with its runs (`--dry-run` shows what would go, `--yes` skips the question), `versions show <id>` to print one version with its contract, `versions diff <a> <b>` to print what changed between two of them as a unified-style diff (`--json` for the record, `--open` for the web page), `delete-agent` to delete the repository's agent from the server with everything of it (`--dry-run`, `--yes` as for `versions delete`) |
 | Claude Code | the Claude Code plugin in this repo (`claude-plugin/`) that drives the same CLI, like suwgit's | "build a scenario for this agent from this conversation", "run the regression tag on the new version", "why did scenario X fail" — writing the scenario as a file in the agent's repo, then `validate` and `push` |
 
 - **Anything the web can do, the CLI — and so Claude Code through the plugin — can do too; not the
@@ -20,7 +20,7 @@ The server has one interface, its HTTP API. Three users reach it:
   `SUWAGEVAL_ENDPOINT_URL`, else `endpointUrl` in `agent.yaml` (`run` and `rerun`: else the registered / earlier run's endpoint).
 - **The results are read on the web, and on stdout.** `suwageval run --wait` prints what was compared with, the regressions and new failing
   checks first, then the totals and the link to the run's page; it exits 0 unless a check regressed or is new and failing
-  (1; `--strict`: unless any check failed), 2 when the run could not finish; `suwageval results <runId>` prints the same results as text on stdout (failing checks with their reasons, turn times; `--json`
+  (1; `--strict`: unless any check failed; a run in a group has no regression comparison, so it exits as with `--strict`), 2 when the run could not finish; `suwageval results <runId>` prints the same results as text on stdout (failing checks with their reasons, turn times; `--json`
   for the records, `--open` to open the page in the browser). A "Run again" button on the run's page (and `suwageval rerun <runId>`, same flags as
   `run`) starts a new run with the same agent, tags and endpoint, against the version the agent
   serves now. A "Re-check" button beside it (and `suwageval recheck <runId>`) judges the run's *stored answers* again with the
@@ -35,25 +35,40 @@ The server has one interface, its HTTP API. Three users reach it:
   while `run --wait` (or `rerun --wait`, `recheck --wait`) waits asks whether to cancel the run on the server too; answered
   no, the run goes on and the exit code is 130. Without a terminal to ask on (a CI job being stopped) the
   run is cancelled, since nobody would read its results. For machines, `--json` on either prints the results (and opens nothing).
-- **Runs are compared on the web.** On an agent's page, tick 2 to 5 runs (the model filter narrows
-  the list) and press Compare: the page shows each run's pass rate per scenario tag (a run has a rate for a tag only when it
-  ran every scenario of that tag, as they were when it was queued — a run limited with `--tag` shows none for another tag it
-  ran in part; the pass-rate trend follows the same rule) and, per
-  check, where the runs differ from the baseline (the oldest selected run, or the one you pick).
-  `suwageval compare <runId> <runId> …` prints the same comparison on stdout (`--json` for the record, `--open` for the page); `suwageval runs` lists the runs to
-  pick from. Claude reads the printed comparison instead of opening a browser.
+- **Runs are compared on one page.** `/compare?runs=<id>,<id>,…` and `/variants?group=<name>[&agent=<name>]` (or
+  `/variants?runs=<id>,…`) open the same page: a column per run. On an agent's page tick runs and press **Compare** or **Compare
+  variants**, or open a group from its **Groups** section; `suwageval compare <runId> <runId> …` and `suwageval variants` print
+  the same data on stdout (`--json` for the records, `--open` for the page) and `suwageval runs` lists the runs to pick from. Claude
+  reads the printed table instead of opening a browser. A column header says what each line is: the run's label as the title
+  (else "Unlabelled"), **Version** and **Run** links that say where they lead, the models, the data version, the tags the run was
+  limited to (several are possible), its group (a link) and the date. The sections, in order: **What differs** (the contract
+  fields that differ between the columns' versions: models and their parameters such as `reasoningEffort`, tools added, removed
+  or changed, `otherConfig` lines, the retrieval data version; a prompt is only marked changed, with its diff against the first
+  column's version on request; one version in every column is said so); the summary (checks passed, samples answered, turn time);
+  the pass rate per tag (a tag counts only for a run that ran all its scenarios, as they were when it was queued: a tag no run
+  has a rate for is left out, and where a run has none the dash says how much ran, "Not every mediacom scenario ran (30 of
+  44)"); and a row per scenario, listed by scenario or by tag, with a badge in words (all passed, some failed, all failed, no
+  answer) and `3/4 checks`. A scenario row opens (keyboard-accessible, kept in the address as `&open=<key>`) into a matrix of
+  checks by run with the reason each failed check failed, the samples without an answer and an "Open in run" link to that
+  scenario's card on the run page. **Only rows that differ** hides the scenarios that came out the same in every column; it is on
+  for runs named one by one and off for a group, which lists every scenario. For 2 to 5 runs outside groups the first run is the
+  baseline (a badge; "Use as baseline" on another header re-reads the others against it) and the page adds the changes against
+  it: the pass rate per tag, the turn times and a warning when another judge model decided. Runs in a group are experiments and
+  have no baseline. Runs of different agents are refused.
 - **Variants of an agent are compared side by side.** To compare models or configurations of one agent, restart the agent with
   each variant (its contract carries the model, so every variant is its own agent version; the contract's `label` names the
   variant) and start a run of each with the same group: `suwageval run --group sweep-2026-10-21 --wait`. A group name is
   lowercase kebab-case, at most 64 characters, and a run's group is set when it starts and not edited later. A sweep script in
-  the agent's repository can loop over the variants this way and print the group's link, `/variants?group=<name>` (the runs one
-  by one: `/variants?runs=<id>,<id>,…`). The agent's page lists its groups in a **Groups** section — each opens its
-  variants — and its runs table links a run's group the same way; tick runs there and press **Compare variants** for any
-  runs. The page has a column per run (the run's label, else its version's label, else the start of the version's id, with the models and the run's totals),
-  a summary of checks passed, samples answered and turn time (median, p95), the pass rate per tag (a tag counts only for a
-  run that ran all its scenarios) and a row per scenario with `3/4 checks` and the failed checks named, listed by scenario or
-  by tag; the best column of a row is marked. Runs of different agents are refused. `suwageval variants` prints the same table.
-- **The run, comparison and variants pages filter by tag.** Tag buttons above the tables (every tag of the view; a pressed button
+  the agent's repository can loop over the variants this way and print the group's link, `/variants?group=<name>`. **A run in a
+  group is an experiment**: it never becomes a reference run, its checks get no regression state (a re-check of it neither), it
+  is left out of the pass-rate trend, the unstable checks and the agent errors (the chart says so), and `run --wait` exits as with
+  `--strict` (1 when any check fails its threshold). The agent's runs table lists the runs in no group by default; its **Group**
+  filter offers "No group", "Any group", "All runs" and each group by name, kept in the address (`?runs=any`, `?runs=all`,
+  `?group=<name>`; `suwageval runs` has `--any-group`, `--all-runs`, `--group`). The **Groups** section works like Versions: select
+  groups and archive them (hidden, restorable with "Show archived groups"); only an archived group can be deleted, with its runs,
+  samples and verdicts, after its name is typed (`suwageval groups archive|unarchive|delete`). A run started in an archived group
+  brings it back.
+- **The run and comparison pages filter by tag.** Tag buttons above the tables (every tag of the view; a pressed button
   has `aria-pressed`) narrow the scenarios, or the checks of the comparison, to those with any selected tag, and the per-tag rows to
   the selected tags (the row of every check goes: there is no rate for "any of these tags"). Checks and Samples are counted again
   over what is left, from the per-scenario results the page already has, and say so (`Checks (procedure, serviceability)`); the turn
