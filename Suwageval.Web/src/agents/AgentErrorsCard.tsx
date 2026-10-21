@@ -3,7 +3,7 @@ import { Anchor, Group, Paper, Stack, Text, Title, Tooltip } from "@mantine/core
 import { runHref, versionTitle } from "../runs/results";
 import { AGENT_ERRORS_EXPLANATION, errorRows, errorsOfSamples, shortError } from "./agentErrors";
 import type { AgentError } from "./api";
-import { HeaderHelp } from "./HeaderHelp";
+import { HeaderHelp } from "../runs/HeaderHelp";
 
 const ERROR_TOOLTIP_WIDTH = 340;
 

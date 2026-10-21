@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import type { CheckRunResult, ConversationItem, RunSummary, ScenarioRunResult } from "./api";
+import type { CheckRunResult, ConversationItem, ScenarioRunResult } from "./api";
 import {
     checkAnchor,
+    checksCounts,
     checkSummary,
     durationSummary,
     formatSeconds,
@@ -15,9 +16,9 @@ import {
     notJudgedCount,
     percent,
     percentValue,
-    progress,
     runHref,
     sampleVerdict,
+    samplesCounts,
     samplesToOpen,
     seconds,
     shortId,
@@ -98,10 +99,17 @@ describe("results", () => {
         expect(notJudgedCount(c)).toBe(1);
     });
 
-    it("shows progress, with no total before the run starts", () => {
-        const run = { samplesTotal: 0, samplesDone: 0 } as RunSummary;
-        expect(progress(run)).toBe("0");
-        expect(progress({ ...run, samplesTotal: 4, samplesDone: 3 })).toBe("3/4");
+    it("counts checks as passed over all, with the failed ones apart", () => {
+        expect(checksCounts({ checksPassed: 75, checksFailed: 22 })).toEqual({ summary: "75/97 passed", problem: "22 failed" });
+        expect(checksCounts({ checksPassed: 97, checksFailed: 0 })).toEqual({ summary: "97/97 passed", problem: null });
+    });
+
+    it("counts samples as answered over all, with the unanswered ones apart and no total before the run starts", () => {
+        expect(samplesCounts({ samplesTotal: 132, samplesDone: 132, samplesFailed: 2 })).toEqual({
+            summary: "130/132 answered",
+            problem: "2 no answer",
+        });
+        expect(samplesCounts({ samplesTotal: 0, samplesDone: 0, samplesFailed: 0 })).toEqual({ summary: "0 answered", problem: null });
     });
 
     it("collects the evidence of failed check samples of one sample only", () => {

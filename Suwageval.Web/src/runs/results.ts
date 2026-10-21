@@ -118,10 +118,33 @@ export function notJudgedCount(check: CheckRunResult): number {
     return check.samples.filter((sample) => sample.notJudged).length;
 }
 
-/** A run's progress: `3/10`, or just `0` before the total is known. */
-export function progress(run: RunSummary): string {
-    const total = run.samplesTotal;
-    return total > 0 ? `${run.samplesDone}/${total}` : `${run.samplesDone}`;
+/** What the Checks column says on hover, wherever a run's checks are counted. */
+export const RUN_CHECKS_HELP =
+    "Assertions defined in the scenarios. Each check is judged on every sample of its scenario and passes when enough of those samples pass (its passThreshold, 100% by default).";
+
+/** What the Samples column says on hover, wherever a run's samples are counted. */
+export const RUN_SAMPLES_HELP =
+    "Runs of the scenarios: each scenario is run `samples` times (3 by default). Answered = the agent returned a reply (no timeout or HTTP error); it says nothing about whether the reply was right.";
+
+/** The checks of a run: `75/97 passed`, and `22 failed` (null when none) for the part shown as a failure. */
+export function checksCounts(run: Pick<RunSummary, "checksPassed" | "checksFailed">): { summary: string; problem: string | null } {
+    return {
+        summary: `${run.checksPassed}/${run.checksPassed + run.checksFailed} passed`,
+        problem: run.checksFailed > 0 ? `${run.checksFailed} failed` : null,
+    };
+}
+
+/** The samples of a run: `130/132 answered` (just `130 answered` before the total is known), and `2 no answer` (null when none). */
+export function samplesCounts(run: Pick<RunSummary, "samplesTotal" | "samplesDone" | "samplesFailed">): {
+    summary: string;
+    problem: string | null;
+} {
+    const failed = run.samplesFailed ?? 0;
+    const answered = run.samplesDone - failed;
+    return {
+        summary: run.samplesTotal > 0 ? `${answered}/${run.samplesTotal} answered` : `${answered} answered`,
+        problem: failed > 0 ? `${failed} no answer` : null,
+    };
 }
 
 export function itemKey(item: ConversationItem): string {

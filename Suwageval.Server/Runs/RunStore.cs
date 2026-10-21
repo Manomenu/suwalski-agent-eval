@@ -20,7 +20,8 @@ internal sealed class RunStore(Pool pool)
                r.origin::text AS Origin, r.reference AS Reference, r.compared_with AS ComparedWith,
                COALESCE((SELECT jsonb_agg(DISTINCT c.judge_model ORDER BY c.judge_model)::text FROM check_results c
                           JOIN scenario_results s ON s.id = c.scenario_result_id
-                          WHERE s.run_id = r.id AND c.judge_model IS NOT NULL), '[]') AS JudgeModels
+                          WHERE s.run_id = r.id AND c.judge_model IS NOT NULL), '[]') AS JudgeModels,
+               (SELECT count(*)::int FROM scenario_results s WHERE s.run_id = r.id AND s.status = 'Failed') AS SamplesFailed
         FROM runs r
         JOIN agents a ON a.id = r.agent_id
         CROSS JOIN LATERAL (

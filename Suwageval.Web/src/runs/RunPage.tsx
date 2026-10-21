@@ -2,11 +2,13 @@ import { Alert, Anchor, Badge, Group, List, Loader, Paper, Stack, Text, Title } 
 
 import { isNotFound } from "../api/client";
 import { CancelButton } from "./CancelButton";
+import { HeaderHelp } from "./HeaderHelp";
+import { ChecksCount, SamplesCount } from "./RunCounts";
 import { RecheckButton } from "./RecheckButton";
 import { RegressionSection } from "./RegressionSection";
 import { RerunButton } from "./RerunButton";
 import { ScenarioCard } from "./ScenarioCard";
-import { durationSummary, formatTime, isActive, progress, runHref, runStatusLabel, statusColor } from "./results";
+import { durationSummary, formatTime, isActive, RUN_CHECKS_HELP, RUN_SAMPLES_HELP, runHref, runStatusLabel, statusColor } from "./results";
 import { useRunResults } from "./useRunResults";
 import { useUnstableChecks } from "./useUnstableChecks";
 
@@ -74,9 +76,12 @@ export function RunPage({ runId }: { runId: string }) {
                 </Group>
                 <Paper withBorder p="md">
                     <Group gap="lg">
-                        <Text>Samples: {progress(run)}</Text>
-                        <Text c="green">Checks passed: {run.checksPassed}</Text>
-                        <Text c={run.checksFailed > 0 ? "red" : "dimmed"}>Checks failed: {run.checksFailed}</Text>
+                        <Text>
+                            <HeaderHelp label="Samples" help={RUN_SAMPLES_HELP} />: <SamplesCount run={run} />
+                        </Text>
+                        <Text>
+                            <HeaderHelp label="Checks" help={RUN_CHECKS_HELP} />: <ChecksCount run={run} />
+                        </Text>
                     </Group>
                     {durationSummary(state.results) && <Text>{durationSummary(state.results)}</Text>}
                     <Text c="dimmed" size="sm">

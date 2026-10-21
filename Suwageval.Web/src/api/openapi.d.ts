@@ -1977,6 +1977,11 @@ export interface components {
             samplesDone: number;
             /**
              * Format: int32
+             * @description How many of the done samples have no agent answer (a timeout, an HTTP error, an unreadable answer).
+             */
+            samplesFailed?: number;
+            /**
+             * Format: int32
              * @description Checks that reached their pass threshold over their samples so far, as the checks of the results do.
              */
             checksPassed: number;

@@ -32,6 +32,7 @@ internal static class RunReport
             Error = run.Error,
             SamplesTotal = run.SamplesTotal,
             SamplesDone = run.SamplesDone,
+            SamplesFailed = run.SamplesFailed,
             ChecksPassed = run.ChecksPassed,
             ChecksFailed = run.ChecksFailed,
             ContractChangedDuringRun = run.ContractChangedDuringRun,

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { formatTime, versionTitle } from "../runs/results";
 import { archiveVersions, type AgentVersion } from "./api";
 import { DeleteVersionModal } from "./DeleteVersionModal";
-import { HeaderHelp } from "./HeaderHelp";
+import { HeaderHelp } from "../runs/HeaderHelp";
 import {
     firstPages,
     hasMorePages,

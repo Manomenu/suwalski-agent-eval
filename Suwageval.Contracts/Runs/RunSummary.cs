@@ -23,6 +23,9 @@ public sealed record RunSummary
 
     public required int SamplesDone { get; init; }
 
+    /// <summary>How many of the done samples have no agent answer (a timeout, an HTTP error, an unreadable answer).</summary>
+    public int SamplesFailed { get; init; }
+
     /// <summary>Checks that reached their pass threshold over their samples so far, as the checks of the results do.</summary>
     public required int ChecksPassed { get; init; }
 

@@ -127,6 +127,27 @@ public sealed class RunStoreTests(TestDatabase database)
     }
 
     [Fact]
+    public async Task A_sample_without_an_agent_answer_is_counted_as_failed()
+    {
+        var store = Store();
+        var agent = await NewAgentAsync(threshold: 0.5);
+        var id = await EnqueueAsync(store, agent);
+        var scenario = await new ScenarioStore(database.Pool).GetAsync(agent.Id, "refund", Cancellation);
+
+        foreach (var (sample, status) in new[] { (1, SampleStatus.Done), (2, SampleStatus.Failed) })
+        {
+            await store.AddSampleAsync(
+                id,
+                new NewSample(scenario!.Id, scenario.Revision, sample, status, "[]", null, 10, [], []),
+                Cancellation
+            );
+        }
+
+        var run = await store.GetAsync(id, Cancellation);
+        Assert.Equal((2, 1), (run?.SamplesDone, run?.SamplesFailed));
+    }
+
+    [Fact]
     public async Task A_stored_sample_with_its_verdicts_shows_in_the_counts_and_the_results()
     {
         var store = Store();
