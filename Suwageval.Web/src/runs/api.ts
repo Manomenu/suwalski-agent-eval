@@ -9,6 +9,7 @@ export type RunCreated = components["schemas"]["RunCreated"];
 export type RunList = components["schemas"]["RunList"];
 export type RunSummary = components["schemas"]["RunSummary"];
 export type ScenarioRunResult = components["schemas"]["ScenarioRunResult"];
+export type SampleResult = components["schemas"]["SampleResult"];
 export type CheckRunResult = components["schemas"]["CheckRunResult"];
 export type UnstableCheck = components["schemas"]["UnstableCheck"];
 export type RecheckPlan = components["schemas"]["RecheckPlan"];

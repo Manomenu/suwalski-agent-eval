@@ -115,11 +115,15 @@
     }
 }
 
+.wrap-key {
+    overflow-wrap: anywhere;
+}
+
 /* The run page's "Compared with" section: one grid for all groups, so the check names, the history strips and the extras
    (failing since, compare link) line up in columns across the groups. Below 600px each check wraps into lines of its own. */
 .regression-checks {
     display: grid;
-    grid-template-columns: max-content max-content minmax(0, 1fr);
+    grid-template-columns: minmax(0, max-content) max-content minmax(0, 1fr);
     column-gap: var(--mantine-spacing-md);
     row-gap: var(--mantine-spacing-xs);
 }

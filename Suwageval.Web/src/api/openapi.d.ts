@@ -1977,7 +1977,7 @@ export interface components {
             samplesDone: number;
             /**
              * Format: int32
-             * @description Check results over all samples so far.
+             * @description Checks that reached their pass threshold over their samples so far, as the checks of the results do.
              */
             checksPassed: number;
             /** Format: int32 */

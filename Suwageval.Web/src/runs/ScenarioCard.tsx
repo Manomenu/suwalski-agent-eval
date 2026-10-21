@@ -4,14 +4,35 @@ import { Accordion, Alert, Badge, Card, Group, List, Stack, Text, Title } from "
 import { CheckDefinitionButton } from "../checks/CheckDefinitionButton";
 import { ModelJudgedIcon } from "../checks/ModelJudgedIcon";
 import { UnstableCheckIcon } from "../checks/UnstableCheckIcon";
-import type { ScenarioRunResult, UnstableCheck } from "./api";
+import type { SampleResult, ScenarioRunResult, UnstableCheck } from "./api";
 import { ConversationView } from "./ConversationView";
 import { ScenarioDefinitionButton } from "./ScenarioDefinitionButton";
 import { CheckHistory } from "./CheckHistory";
 import { stateLabel } from "./regression";
 import { StateBadge } from "./StateBadge";
 import { findUnstable, unstableTooltip } from "./stability";
-import { checkAnchor, checkSummary, failedEvidenceKeys, formatSeconds, notJudgedCount, samplesToOpen } from "./results";
+import { checkAnchor, checkSummary, failedEvidenceKeys, formatSeconds, notJudgedCount, sampleVerdict, samplesToOpen } from "./results";
+
+const VERDICT_COLOR = { passed: "green", failed: "red", "not judged": "yellow", "no output": "red" } as const;
+
+function SampleRowLabel({ scenario, sample }: { scenario: ScenarioRunResult; sample: SampleResult }) {
+    const verdict = sampleVerdict(scenario, sample.sample);
+    return (
+        <Group gap="xs">
+            <span>
+                Agent output, sample {sample.sample}
+                {sample.durationMs != null && ` · ${formatSeconds(sample.durationMs)}`}
+            </span>
+            {verdict.kind !== "unchecked" && (
+                <Badge color={VERDICT_COLOR[verdict.kind]} variant={verdict.kind === "failed" ? "filled" : "light"}>
+                    {verdict.kind === "failed"
+                        ? `failed: ${verdict.failedChecks} ${verdict.failedChecks === 1 ? "check" : "checks"}`
+                        : verdict.kind}
+                </Badge>
+            )}
+        </Group>
+    );
+}
 
 /** One scenario: its checks with verdicts, the warnings of its samples, and what the agent produced. */
 export function ScenarioCard({
@@ -39,7 +60,9 @@ export function ScenarioCard({
         <Card withBorder padding="md">
             <Stack gap="sm">
                 <Group gap="xs">
-                    <Title order={3}>{scenario.key}</Title>
+                    <Title order={3} className="wrap-key">
+                        {scenario.key}
+                    </Title>
                     <ScenarioDefinitionButton scenarioKey={scenario.key} revision={scenario.revision} yaml={scenario.definitionYaml} />
                 </Group>
 
@@ -77,7 +100,9 @@ export function ScenarioCard({
                                             {`not judged: ${notJudgedCount(check)} of ${check.samples.length} samples`}
                                         </Badge>
                                     )}
-                                    <Text fw={600}>{check.key}</Text>
+                                    <Text fw={600} className="wrap-key">
+                                        {check.key}
+                                    </Text>
                                     <Text c="dimmed">{checkSummary(check)}</Text>
                                 </Group>
                                 {/* The marks and the definition sit at the right edge, apart from the check's text. */}
@@ -115,8 +140,7 @@ export function ScenarioCard({
                     {scenario.samples.map((sample) => (
                         <Accordion.Item key={sample.sample} value={String(sample.sample)}>
                             <Accordion.Control>
-                                Agent output, sample {sample.sample}
-                                {sample.durationMs != null && ` · ${formatSeconds(sample.durationMs)}`}
+                                <SampleRowLabel scenario={scenario} sample={sample} />
                             </Accordion.Control>
                             <Accordion.Panel>
                                 <ConversationView items={sample.output ?? []} highlight={failedEvidenceKeys(scenario, sample.sample)} />

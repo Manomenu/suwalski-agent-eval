@@ -23,7 +23,7 @@ public sealed record RunSummary
 
     public required int SamplesDone { get; init; }
 
-    /// <summary>Check results over all samples so far.</summary>
+    /// <summary>Checks that reached their pass threshold over their samples so far, as the checks of the results do.</summary>
     public required int ChecksPassed { get; init; }
 
     public required int ChecksFailed { get; init; }

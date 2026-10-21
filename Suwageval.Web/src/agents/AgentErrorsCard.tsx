@@ -22,7 +22,7 @@ export function AgentErrorsCard({ errors }: { errors: AgentError[] }) {
                 {errorRows(errors).map((error) => (
                     <Stack key={JSON.stringify([error.agentVersionId, error.scenarioKey])} gap={2}>
                         <Group justify="space-between" wrap="nowrap" align="baseline">
-                            <Anchor href={runHref(error.newestErrorRunId)} style={{ overflowWrap: "anywhere" }}>
+                            <Anchor href={runHref(error.newestErrorRunId)} className="wrap-key">
                                 {error.scenarioKey}
                             </Anchor>
                             <Group gap="xs" wrap="nowrap">

@@ -133,7 +133,9 @@ function RecheckDialog({ runId, onClose }: { runId: string; onClose: () => void 
             )}
             {changesByScenario(plan.changedChecks).map((group) => (
                 <Stack key={group.scenarioKey} gap={4}>
-                    <Text fw={600}>{group.scenarioKey}</Text>
+                    <Text fw={600} className="wrap-key">
+                        {group.scenarioKey}
+                    </Text>
                     {group.checks.map((check) => (
                         <ChangedCheckRow key={check.checkKey} check={check} judgeModel={plan.judgeModel} />
                     ))}
@@ -184,7 +186,9 @@ function ChangedCheckRow({ check, judgeModel }: { check: ChangedCheck; judgeMode
     return (
         <Stack gap={4}>
             <Group gap="xs">
-                <Text span>{check.checkKey}</Text>
+                <Text span className="wrap-key">
+                    {check.checkKey}
+                </Text>
                 <Text span c="dimmed" aria-label={`${check.checkKey} change`}>
                     {check.change}
                 </Text>

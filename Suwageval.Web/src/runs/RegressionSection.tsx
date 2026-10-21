@@ -14,7 +14,7 @@ function CheckLine({ item, runId }: { item: StatedCheck; runId: string }) {
     const failingSince = regression?.failingSince;
     return (
         <li className="regression-checks-row">
-            <Anchor href={`#${checkAnchor(item.scenarioKey, item.check.key)}`} fw={600} c="inherit">
+            <Anchor href={`#${checkAnchor(item.scenarioKey, item.check.key)}`} fw={600} c="inherit" className="wrap-key">
                 {item.scenarioKey} / {item.check.key}
             </Anchor>
             <div>
