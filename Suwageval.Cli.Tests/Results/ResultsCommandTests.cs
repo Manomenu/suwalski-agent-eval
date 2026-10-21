@@ -53,6 +53,7 @@ public sealed class ResultsCommandTests
                 new ScenarioRunResult
                 {
                     Key = "refund",
+                    Tags = [],
                     Revision = 1,
                     DefinitionYaml = "",
                     Samples = [],

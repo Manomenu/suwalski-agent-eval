@@ -15,12 +15,16 @@ import {
     statusColor,
     statusLabel,
 } from "../runs/results";
+import { filteredLabel, keepsTags, selectedTagRows } from "../tagFilter/tagSelection";
+import { TagFilter } from "../tagFilter/TagFilter";
+import { useTagFilter } from "../tagFilter/useTagFilter";
 import { fetchVariants, type RunVariants, type VariantCell } from "./api";
 import { COLUMN_MIN_WIDTH, LABEL_COLUMN_WIDTH, tableMinWidth } from "./layout";
 import {
     bestColumns,
     cellShare,
     cellText,
+    columnTotals,
     noAnswerText,
     scenarioSections,
     selectionOf,
@@ -51,8 +55,12 @@ function Variants({ selection }: { selection: ValidSelection }) {
 
 function Loaded({ variants }: { variants: RunVariants }) {
     const [byTag, setByTag] = useState(false);
+    const [selectedTags, selectTags] = useTagFilter();
+    const filtered = selectedTags.length > 0;
     const columns = variants.runs.length;
-    const sections = scenarioSections(variants.scenarios, byTag);
+    const scenarios = variants.scenarios.filter((scenario) => keepsTags(scenario.tags, selectedTags));
+    const sections = scenarioSections(scenarios, byTag, selectedTags);
+    const tagRows = selectedTagRows(variants.tags, selectedTags);
 
     return (
         <Stack gap="md">
@@ -65,6 +73,11 @@ function Loaded({ variants }: { variants: RunVariants }) {
                 {columns} {columns === 1 ? "run" : "runs"}, one column each, named by the label of the agent version it ran. A check passes
                 when its pass rate reaches its threshold; the best column of a row is marked.
             </Text>
+            <TagFilter
+                tags={[...variants.scenarios.flatMap((scenario) => scenario.tags), ...variants.tags.flatMap((row) => row.tag ?? [])]}
+                selected={selectedTags}
+                onChange={selectTags}
+            />
             <Paper withBorder p="md">
                 <Table.ScrollContainer minWidth={tableMinWidth(columns)}>
                     <Table layout="fixed" verticalSpacing="xs">
@@ -99,13 +112,13 @@ function Loaded({ variants }: { variants: RunVariants }) {
                                 <Table.Td fw={500}>
                                     <Tooltip label={RUN_CHECKS_HELP} multiline w={HELP_WIDTH}>
                                         <Text span style={{ cursor: "help" }}>
-                                            Checks
+                                            {filteredLabel("Checks", selectedTags)}
                                         </Text>
                                     </Tooltip>
                                 </Table.Td>
-                                {variants.runs.map((variant) => (
+                                {variants.runs.map((variant, column) => (
                                     <Table.Td key={variant.run.id}>
-                                        <ChecksCount run={variant.run} />
+                                        <ChecksCount run={filtered ? columnTotals(scenarios, column) : variant.run} />
                                     </Table.Td>
                                 ))}
                             </Table.Tr>
@@ -113,18 +126,18 @@ function Loaded({ variants }: { variants: RunVariants }) {
                                 <Table.Td fw={500}>
                                     <Tooltip label={RUN_SAMPLES_HELP} multiline w={HELP_WIDTH}>
                                         <Text span style={{ cursor: "help" }}>
-                                            Samples
+                                            {filteredLabel("Samples", selectedTags)}
                                         </Text>
                                     </Tooltip>
                                 </Table.Td>
-                                {variants.runs.map((variant) => (
+                                {variants.runs.map((variant, column) => (
                                     <Table.Td key={variant.run.id}>
-                                        <SamplesCount run={variant.run} />
+                                        <SamplesCount run={filtered ? columnTotals(scenarios, column) : variant.run} />
                                     </Table.Td>
                                 ))}
                             </Table.Tr>
                             <Table.Tr>
-                                <Table.Td fw={500}>Turn time</Table.Td>
+                                <Table.Td fw={500}>{filtered ? "Turn time (all scenarios)" : "Turn time"}</Table.Td>
                                 {variants.runs.map((variant) => (
                                     <Table.Td key={variant.run.id}>
                                         <Text size="sm">{durationSummary(variant)?.replace("Turn time: ", "") ?? "—"}</Text>
@@ -134,7 +147,7 @@ function Loaded({ variants }: { variants: RunVariants }) {
                         </Table.Tbody>
                         <Table.Tbody>
                             <SectionRow columns={columns} title="Pass rate per tag" />
-                            {variants.tags.map((row) => {
+                            {tagRows.map((row) => {
                                 const best = bestColumns(row.rates.map(({ passRate }) => passRate));
                                 return (
                                     <Table.Tr key={row.tag ?? "\u0000all"}>
@@ -180,9 +193,9 @@ function Loaded({ variants }: { variants: RunVariants }) {
                         </Table.Tbody>
                     </Table>
                 </Table.ScrollContainer>
-                {variants.scenarios.length === 0 && (
+                {scenarios.length === 0 && (
                     <Text c="dimmed" mt="sm">
-                        No run has a result for a scenario yet.
+                        {filtered ? "No scenario has any of the selected tags." : "No run has a result for a scenario yet."}
                     </Text>
                 )}
             </Paper>

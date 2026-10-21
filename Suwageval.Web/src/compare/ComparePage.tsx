@@ -6,6 +6,8 @@ import { useLoaded } from "../agents/useLoaded";
 import { agentHref } from "../agents/view";
 import { fetchComparison, type RunComparison } from "./api";
 import { baselineFirst, parseRunIds } from "./compare";
+import { TagFilter } from "../tagFilter/TagFilter";
+import { useTagFilter } from "../tagFilter/useTagFilter";
 import { CompareTable } from "./CompareTable";
 
 /** `/compare?runs=<id>,<id>,…`: 2 to 5 runs of one agent side by side. `runs` is the query as it came; this checks it. */
@@ -29,6 +31,7 @@ function Comparison({ ids }: { ids: string[] }) {
 function Loaded({ comparison, onBaseline }: { comparison: RunComparison; onBaseline: (runId: string) => void }) {
     const agent = comparison.runs[0]?.run.agent ?? "";
     const versions = useLoaded(agent, (signal) => fetchVersions(agent, signal));
+    const [selectedTags, selectTags] = useTagFilter();
 
     if (versions.kind === "loading") return <Loader aria-label="Loading the comparison" />;
     if (versions.kind === "error") return <Problem message={versions.error.message} />;
@@ -42,7 +45,12 @@ function Loaded({ comparison, onBaseline }: { comparison: RunComparison; onBasel
                 Every run is read against the baseline: the first run, until you pick another by its header. A check passes when its pass
                 rate reaches its threshold.
             </Text>
-            <CompareTable comparison={comparison} versions={versions.value} onBaseline={onBaseline} />
+            <TagFilter
+                tags={[...comparison.checks.flatMap((row) => row.scenarioTags), ...comparison.tags.flatMap((row) => row.tag ?? [])]}
+                selected={selectedTags}
+                onChange={selectTags}
+            />
+            <CompareTable comparison={comparison} versions={versions.value} onBaseline={onBaseline} selectedTags={selectedTags} />
         </Stack>
     );
 }

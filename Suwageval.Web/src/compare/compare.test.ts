@@ -1,7 +1,17 @@
 import { describe, expect, it } from "vitest";
 
-import type { ComparedCell } from "./api";
-import { baselineFirst, cellText, cellTone, deltaText, parseRunIds, timeDeltaText, trendColor, trendMarker } from "./compare";
+import type { ComparedCell, ComparedCheck } from "./api";
+import {
+    baselineFirst,
+    cellText,
+    columnChecksCounts,
+    cellTone,
+    deltaText,
+    parseRunIds,
+    timeDeltaText,
+    trendColor,
+    trendMarker,
+} from "./compare";
 
 const A = "11111111-2222-3333-4444-555555555555";
 const B = "11111111-2222-3333-4444-666666666666";
@@ -20,6 +30,17 @@ function cell(passes: number, samples: number, over: Partial<ComparedCell> = {})
         ...over,
     };
 }
+
+describe("columnChecksCounts", () => {
+    const row = (...cells: (ComparedCell | null)[]) => ({ cells }) as ComparedCheck;
+
+    it("counts the checks one run has among the rows, a run without a check adding nothing", () => {
+        const rows = [row(cell(1, 1), cell(0, 2)), row(cell(1, 1), null), row(cell(0, 1), cell(2, 2))];
+
+        expect(columnChecksCounts(rows, 0)).toEqual({ checksPassed: 2, checksFailed: 1 });
+        expect(columnChecksCounts(rows, 1)).toEqual({ checksPassed: 1, checksFailed: 1 });
+    });
+});
 
 describe("parseRunIds", () => {
     it("reads two to five ids in the order given, each once", () => {

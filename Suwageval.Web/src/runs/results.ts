@@ -153,6 +153,25 @@ export function samplesCounts(run: Pick<RunSummary, "samplesTotal" | "samplesDon
     };
 }
 
+/** The checks of these scenarios as the server counts a run's: each check once, passed when its pass rate reached its threshold. */
+export function scenariosChecksCounts(scenarios: readonly ScenarioRunResult[]): Pick<RunSummary, "checksPassed" | "checksFailed"> {
+    const checks = scenarios.flatMap((scenario) => scenario.checks);
+    const checksPassed = checks.filter((check) => check.passed).length;
+    return { checksPassed, checksFailed: checks.length - checksPassed };
+}
+
+/** The samples of these scenarios, all of them done: a run's total is not known per scenario. */
+export function scenariosSamplesCounts(
+    scenarios: readonly ScenarioRunResult[],
+): Pick<RunSummary, "samplesTotal" | "samplesDone" | "samplesFailed"> {
+    const samples = scenarios.flatMap((scenario) => scenario.samples);
+    return {
+        samplesTotal: samples.length,
+        samplesDone: samples.length,
+        samplesFailed: samples.filter((sample) => sample.status === "Failed").length,
+    };
+}
+
 export function itemKey(item: ConversationItem): string {
     return JSON.stringify(item);
 }
@@ -237,8 +256,8 @@ export function formatSeconds(milliseconds: number): string {
     return `${seconds(milliseconds).toFixed(1)} s`;
 }
 
-/** "Turn time: median 9.8 s · p95 109.1 s" over all samples of the run that made a call; null when none did. */
-export function durationSummary(results: Pick<RunResults, "medianMs" | "p95Ms">): string | null {
+/** "Turn time: median 9.8 s · p95 109.1 s" over all samples of the run that made a call; null when none did. `label` replaces "Turn time". */
+export function durationSummary(results: Pick<RunResults, "medianMs" | "p95Ms">, label = "Turn time"): string | null {
     const { medianMs, p95Ms } = results;
-    return medianMs == null || p95Ms == null ? null : `Turn time: median ${formatSeconds(medianMs)} · p95 ${formatSeconds(p95Ms)}`;
+    return medianMs == null || p95Ms == null ? null : `${label}: median ${formatSeconds(medianMs)} · p95 ${formatSeconds(p95Ms)}`;
 }

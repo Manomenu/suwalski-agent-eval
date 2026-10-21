@@ -65,6 +65,24 @@ export function bestColumns(shares: readonly (number | null | undefined)[]): Set
     return new Set(known.filter(({ share }) => share === best).map(({ column }) => column));
 }
 
+/** The checks and samples of one run's column over these scenarios: what a narrowed view's summary says in place of the run's own. */
+export function columnTotals(
+    scenarios: readonly VariantScenario[],
+    column: number,
+): { checksPassed: number; checksFailed: number; samplesTotal: number; samplesDone: number; samplesFailed: number } {
+    const cells = scenarios.flatMap((scenario) => scenario.cells[column] ?? []);
+    const sum = (count: (cell: VariantCell) => number) => cells.reduce((total, cell) => total + count(cell), 0);
+    const checksPassed = sum((cell) => cell.checksPassed);
+    const samplesDone = sum((cell) => cell.samples);
+    return {
+        checksPassed,
+        checksFailed: sum((cell) => cell.checksTotal) - checksPassed,
+        samplesTotal: samplesDone,
+        samplesDone,
+        samplesFailed: sum((cell) => cell.samplesFailed),
+    };
+}
+
 export interface ScenarioSection {
     /** The tag the scenarios are listed under; null when the table is not grouped. */
     title: string | null;
@@ -75,14 +93,19 @@ const NO_TAG = "no tag";
 
 /**
  * The scenarios as the table lists them: one section by key, or (`byTag`) a section per tag, each scenario under its first tag, those
- * without a tag last. Sections and scenarios are sorted by name.
+ * without a tag last; with `selected` tags a scenario goes under its first selected tag. Sections and scenarios are sorted by name.
  */
-export function scenarioSections(scenarios: readonly VariantScenario[], byTag: boolean): ScenarioSection[] {
+export function scenarioSections(
+    scenarios: readonly VariantScenario[],
+    byTag: boolean,
+    selected: readonly string[] = [],
+): ScenarioSection[] {
     const sorted = [...scenarios].sort((a, b) => a.key.localeCompare(b.key));
     if (!byTag) return [{ title: null, scenarios: sorted }];
     const sections = new Map<string, VariantScenario[]>();
     for (const scenario of sorted) {
-        const title = [...scenario.tags].sort((a, b) => a.localeCompare(b))[0] ?? NO_TAG;
+        const candidates = selected.length === 0 ? scenario.tags : scenario.tags.filter((tag) => selected.includes(tag));
+        const title = [...candidates].sort((a, b) => a.localeCompare(b))[0] ?? NO_TAG;
         sections.set(title, [...(sections.get(title) ?? []), scenario]);
     }
     return [...sections.entries()]

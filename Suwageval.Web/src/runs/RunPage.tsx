@@ -16,15 +16,21 @@ import {
     RUN_SAMPLES_HELP,
     runHref,
     runStatusLabel,
+    scenariosChecksCounts,
+    scenariosSamplesCounts,
     statusColor,
     variantsGroupHref,
 } from "./results";
+import { filteredLabel, keepsTags } from "../tagFilter/tagSelection";
+import { TagFilter } from "../tagFilter/TagFilter";
+import { useTagFilter } from "../tagFilter/useTagFilter";
 import { useRunResults } from "./useRunResults";
 import { useUnstableChecks } from "./useUnstableChecks";
 
 /** One run's results at `/runs/<id>`: the header, then a card per scenario. */
 export function RunPage({ runId }: { runId: string }) {
     const state = useRunResults(runId);
+    const [selectedTags, selectTags] = useTagFilter();
     // Asked once the run is known: the agent's unstable checks of this run's version.
     const loadedRun = state.kind === "loaded" ? state.results.run : null;
     const unstable = useUnstableChecks(loadedRun?.agent ?? null, loadedRun === null ? [] : [loadedRun.agentVersionId]);
@@ -39,7 +45,12 @@ export function RunPage({ runId }: { runId: string }) {
         );
     }
 
-    const { run, scenarios } = state.results;
+    const { run } = state.results;
+    const filtered = selectedTags.length > 0;
+    const scenarios = state.results.scenarios.filter((scenario) => keepsTags(scenario.tags, selectedTags));
+    const checks = filtered ? scenariosChecksCounts(scenarios) : run;
+    const samples = filtered ? scenariosSamplesCounts(scenarios) : run;
+    const turnTime = durationSummary(state.results, filtered ? "Turn time (all scenarios)" : "Turn time");
     return (
         <>
             <Stack gap="md">
@@ -92,16 +103,23 @@ export function RunPage({ runId }: { runId: string }) {
                     <RecheckButton run={run} />
                     <CancelButton run={run} />
                 </Group>
+                <TagFilter
+                    tags={state.results.scenarios.flatMap((scenario) => scenario.tags)}
+                    selected={selectedTags}
+                    onChange={selectTags}
+                />
                 <Paper withBorder p="md">
                     <Group gap="lg">
                         <Text>
-                            <HeaderHelp label="Samples" help={RUN_SAMPLES_HELP} />: <SamplesCount run={run} />
+                            <HeaderHelp label={filteredLabel("Samples", selectedTags)} help={RUN_SAMPLES_HELP} />:{" "}
+                            <SamplesCount run={samples} />
                         </Text>
                         <Text>
-                            <HeaderHelp label="Checks" help={RUN_CHECKS_HELP} />: <ChecksCount run={run} />
+                            <HeaderHelp label={filteredLabel("Checks", selectedTags)} help={RUN_CHECKS_HELP} />:{" "}
+                            <ChecksCount run={checks} />
                         </Text>
                     </Group>
-                    {durationSummary(state.results) && <Text>{durationSummary(state.results)}</Text>}
+                    {turnTime !== null && <Text>{turnTime}</Text>}
                     <Text c="dimmed" size="sm">
                         created {formatTime(run.createdAt)} · start {formatTime(run.startedAt)} · finished {formatTime(run.finishedAt)}
                     </Text>
@@ -117,6 +135,7 @@ export function RunPage({ runId }: { runId: string }) {
                     </Alert>
                 )}
                 <RegressionSection results={state.results} />
+                {scenarios.length === 0 && <Text c="dimmed">No scenario has any of the selected tags.</Text>}
                 {scenarios.map((scenario) => (
                     <ScenarioCard key={scenario.key} scenario={scenario} versionId={run.agentVersionId} unstable={unstable} />
                 ))}

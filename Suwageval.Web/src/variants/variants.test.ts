@@ -1,7 +1,16 @@
 import { describe, expect, it } from "vitest";
 
 import type { VariantCell, VariantScenario } from "./api";
-import { bestColumns, cellText, noAnswerText, scenarioSections, selectionOf, variantName, VARIANTS_MAX_RUNS } from "./variants";
+import {
+    bestColumns,
+    cellText,
+    columnTotals,
+    noAnswerText,
+    scenarioSections,
+    selectionOf,
+    variantName,
+    VARIANTS_MAX_RUNS,
+} from "./variants";
 
 const ID = "3f2b8c1e-5d4a-4e6f-9a7b-0c1d2e3f4a5b";
 const OTHER = "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d";
@@ -65,6 +74,17 @@ describe("bestColumns", () => {
     });
 });
 
+describe("columnTotals", () => {
+    const scenario = (...cells: (VariantCell | null)[]) => ({ key: "s", tags: [], cells }) as VariantScenario;
+
+    it("adds up the checks and samples one run has in these scenarios, a run without the scenario adding nothing", () => {
+        const scenarios = [scenario(cell(3, 4, 1), cell(1, 1)), scenario(cell(2, 2), null)];
+
+        expect(columnTotals(scenarios, 0)).toEqual({ checksPassed: 5, checksFailed: 1, samplesTotal: 8, samplesDone: 8, samplesFailed: 1 });
+        expect(columnTotals(scenarios, 1)).toEqual({ checksPassed: 1, checksFailed: 0, samplesTotal: 4, samplesDone: 4, samplesFailed: 0 });
+    });
+});
+
 describe("scenarioSections", () => {
     const scenario = (key: string, tags: string[]): VariantScenario => ({ key, tags, cells: [] });
     const scenarios = [scenario("b", ["z", "a"]), scenario("a", []), scenario("c", ["m"]), scenario("d", ["a"])];
@@ -72,6 +92,16 @@ describe("scenarioSections", () => {
     it("is one section sorted by key when not grouped", () => {
         expect(scenarioSections(scenarios, false)).toEqual([
             { title: null, scenarios: [scenarios[1], scenarios[0], scenarios[2], scenarios[3]] },
+        ]);
+    });
+
+    it("puts a scenario under its first selected tag when tags are selected", () => {
+        expect(
+            scenarioSections(scenarios, true, ["z", "m"]).map((section) => [section.title, section.scenarios.map((item) => item.key)]),
+        ).toEqual([
+            ["m", ["c"]],
+            ["z", ["b"]],
+            ["no tag", ["a", "d"]],
         ]);
     });
 

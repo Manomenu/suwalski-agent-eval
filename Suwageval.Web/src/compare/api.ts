@@ -4,6 +4,7 @@ import type { components } from "../api/openapi";
 
 export type RunComparison = components["schemas"]["RunComparison"];
 export type ComparedRun = components["schemas"]["ComparedRun"];
+export type ComparedCheck = components["schemas"]["ComparedCheck"];
 export type ComparedCell = components["schemas"]["ComparedCell"];
 export type RateChange = components["schemas"]["RateChange"];
 export type TimeChange = components["schemas"]["TimeChange"];

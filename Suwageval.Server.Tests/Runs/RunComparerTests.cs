@@ -47,6 +47,7 @@ public sealed class RunComparerTests
         new()
         {
             Key = key,
+            Tags = [],
             Revision = 1,
             DefinitionYaml = "",
             Samples = [],
@@ -189,6 +190,16 @@ public sealed class RunComparerTests
         Assert.Equal(0.5, RunComparer.PassRate([refund]));
         Assert.Equal(2 / 3.0, RunComparer.PassRate([refund, greet]));
         Assert.Null(RunComparer.PassRate([]));
+    }
+
+    [Fact]
+    public void An_aligned_check_carries_the_tags_of_its_scenario()
+    {
+        var tagged = Scenario("refund", Check("called", 1, 1)) with { Tags = ["billing", "smoke"] };
+
+        var row = RunComparer.AlignRows([Run(tagged)]).Single();
+
+        Assert.Equal(["billing", "smoke"], row.ScenarioTags);
     }
 
     [Fact]
