@@ -99,6 +99,7 @@ public sealed class RunCommandTests
                 new ScenarioRunResult
                 {
                     Key = "refund-happy-path",
+                    Tags = [],
                     Revision = 1,
                     DefinitionYaml = "",
                     Samples =

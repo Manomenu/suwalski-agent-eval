@@ -137,6 +137,7 @@ public sealed class CompareCommandTests
                 new ComparedCheck
                 {
                     ScenarioKey = "greeting",
+                    ScenarioTags = [],
                     CheckKey = "polite",
                     Definition = new Contracts.Checks.TextCheck { Key = "k", ScenarioKey = "s" },
                     JudgedByModel = true,
@@ -147,6 +148,7 @@ public sealed class CompareCommandTests
                 new ComparedCheck
                 {
                     ScenarioKey = "greeting",
+                    ScenarioTags = [],
                     CheckKey = "short",
                     Definition = new Contracts.Checks.TextCheck { Key = "k", ScenarioKey = "s" },
                     JudgedByModel = false,
@@ -157,6 +159,7 @@ public sealed class CompareCommandTests
                 new ComparedCheck
                 {
                     ScenarioKey = "greeting",
+                    ScenarioTags = [],
                     CheckKey = "same",
                     Definition = new Contracts.Checks.TextCheck { Key = "k", ScenarioKey = "s" },
                     JudgedByModel = false,

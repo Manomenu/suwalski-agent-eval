@@ -26,6 +26,8 @@ import {
     canCancel,
     isCancelling,
     runStatusLabel,
+    scenariosChecksCounts,
+    scenariosSamplesCounts,
     statusLabel,
 } from "./results";
 
@@ -115,6 +117,7 @@ describe("results", () => {
     it("collects the evidence of failed check samples of one sample only", () => {
         const scenario: ScenarioRunResult = {
             key: "s",
+            tags: [],
             revision: 1,
             definitionYaml: "",
             samples: [],
@@ -160,6 +163,30 @@ describe("results", () => {
             expect(durationSummary({ medianMs: null, p95Ms: null })).toBeNull();
             expect(durationSummary({})).toBeNull();
         });
+    });
+});
+
+describe("the counts of some scenarios", () => {
+    const scenario = (passedChecks: boolean[], failedSamples: number, samples: number): ScenarioRunResult => ({
+        key: "s",
+        tags: [],
+        revision: 1,
+        definitionYaml: "",
+        samples: Array.from({ length: samples }, (_, index) => ({
+            sample: index + 1,
+            status: index < failedSamples ? "Failed" : "Done",
+            durationMs: null,
+            output: [],
+        })),
+        checks: passedChecks.map((passed) => ({ ...check([]), passed })),
+    });
+
+    it("count each check once, passed or failed, and the samples that gave no answer", () => {
+        const scenarios = [scenario([true, false], 1, 3), scenario([true], 0, 2)];
+
+        expect(scenariosChecksCounts(scenarios)).toEqual({ checksPassed: 2, checksFailed: 1 });
+        expect(scenariosSamplesCounts(scenarios)).toEqual({ samplesTotal: 5, samplesDone: 5, samplesFailed: 1 });
+        expect(scenariosChecksCounts([])).toEqual({ checksPassed: 0, checksFailed: 0 });
     });
 });
 

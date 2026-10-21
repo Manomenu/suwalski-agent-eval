@@ -15,6 +15,7 @@ internal static class KnownFailureResults
                 new ScenarioRunResult
                 {
                     Key = "refund",
+                    Tags = [],
                     Revision = 1,
                     DefinitionYaml = "",
                     Samples = [],

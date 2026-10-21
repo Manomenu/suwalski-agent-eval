@@ -1651,6 +1651,8 @@ export interface components {
         ComparedCheck: {
             scenarioKey: string;
             checkKey: string;
+            /** @description The tags of the check's scenario now; what the web filters the rows by. */
+            scenarioTags: string[];
             /** @description The check as the baseline ran it, or as the first run that has it ran it. */
             definition: components["schemas"]["CheckInput"];
             judgedByModel: boolean;
@@ -2178,6 +2180,8 @@ export interface components {
         /** @description One scenario in a run: its samples and, per check, how many of them passed. */
         ScenarioRunResult: {
             key: string;
+            /** @description The tags the scenario carries now (they belong to no revision); what the web filters a run's scenarios by. */
+            tags: string[];
             /**
              * Format: int32
              * @description The revision of the scenario that ran.

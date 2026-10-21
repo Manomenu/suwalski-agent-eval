@@ -5,6 +5,9 @@ public sealed record ScenarioRunResult
 {
     public required string Key { get; init; }
 
+    /// <summary>The tags the scenario carries now (they belong to no revision); what the web filters a run's scenarios by.</summary>
+    public required IReadOnlyList<string> Tags { get; init; }
+
     /// <summary>The revision of the scenario that ran.</summary>
     public required int Revision { get; init; }
 

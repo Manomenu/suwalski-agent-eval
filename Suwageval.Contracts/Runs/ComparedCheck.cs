@@ -9,6 +9,9 @@ public sealed record ComparedCheck
 
     public required string CheckKey { get; init; }
 
+    /// <summary>The tags of the check's scenario now; what the web filters the rows by.</summary>
+    public required IReadOnlyList<string> ScenarioTags { get; init; }
+
     /// <summary>The check as the baseline ran it, or as the first run that has it ran it.</summary>
     public required CheckInput Definition { get; init; }
 

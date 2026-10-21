@@ -71,6 +71,7 @@ internal static class RunReport
                 return new ScenarioRunResult
                 {
                     Key = group.Key,
+                    Tags = JsonSerializer.Deserialize<string[]>(group.First().ScenarioTagsJson)!,
                     Revision = group.Max(sample => sample.ScenarioRevision),
                     DefinitionYaml = DefinitionYaml(group.MaxBy(sample => sample.ScenarioRevision)!),
                     Samples = [.. group.OrderBy(sample => sample.Sample).Select(Sample)],

@@ -6,12 +6,13 @@ import { CheckDefinitionButton } from "../checks/CheckDefinitionButton";
 import { ModelJudgedIcon } from "../checks/ModelJudgedIcon";
 import { UnstableCheckIcon } from "../checks/UnstableCheckIcon";
 import { ChecksCount } from "../runs/RunCounts";
+import { filteredLabel, keepsTags, selectedTagRows } from "../tagFilter/tagSelection";
 import { durationSummary, formatTime, percent, RUN_CHECKS_HELP, runHref, shortId } from "../runs/results";
 import { unstableInRuns, unstableRowTooltip } from "../runs/stability";
 import { useUnstableChecks } from "../runs/useUnstableChecks";
 import type { AgentVersion } from "../agents/api";
 import type { ComparedCell, ComparedRun, RunComparison } from "./api";
-import { cellText, cellTone, deltaText, TIME_DELTA_HELP, timeDeltaText, trendColor, trendMarker } from "./compare";
+import { cellText, cellTone, columnChecksCounts, deltaText, TIME_DELTA_HELP, timeDeltaText, trendColor, trendMarker } from "./compare";
 import { COLUMN_MIN_WIDTH, LABEL_COLUMN_WIDTH, tableMinWidth } from "./layout";
 
 const TIME_HELP_WIDTH = 280;
@@ -29,13 +30,18 @@ export function CompareTable({
     comparison,
     versions,
     onBaseline,
+    selectedTags,
 }: {
     comparison: RunComparison;
+    /** The tags the view is narrowed to; none means every scenario. */
+    selectedTags: readonly string[];
     versions: readonly AgentVersion[];
     /** The run to ask the comparison for again with that run first. */
     onBaseline: (runId: string) => void;
 }) {
-    const { runs, tags } = comparison;
+    const { runs } = comparison;
+    const filtered = selectedTags.length > 0;
+    const tags = selectedTagRows(comparison.tags, selectedTags);
     const [onlyDifferences, setOnlyDifferences] = useState(true);
     const [hideUncomparable, setHideUncomparable] = useState(false);
 
@@ -45,7 +51,8 @@ export function CompareTable({
     const unstable = useUnstableChecks(runs[0]?.run.agent ?? null, versionIds, true);
 
     const columns = runs.length;
-    const rows = comparison.checks.filter((row) => (!onlyDifferences || row.differs) && (!hideUncomparable || row.comparable));
+    const tagged = comparison.checks.filter((row) => keepsTags(row.scenarioTags, selectedTags));
+    const rows = tagged.filter((row) => (!onlyDifferences || row.differs) && (!hideUncomparable || row.comparable));
 
     return (
         <Stack gap="md">
@@ -86,11 +93,13 @@ export function CompareTable({
                                                 </Text>
                                                 <Tooltip label={RUN_CHECKS_HELP} multiline w={TIME_HELP_WIDTH}>
                                                     <Text size="xs" fw="normal" w="fit-content" style={{ cursor: "help" }}>
-                                                        Checks: <ChecksCount run={run} />
+                                                        {filteredLabel("Checks", selectedTags)}:{" "}
+                                                        <ChecksCount run={filtered ? columnChecksCounts(tagged, column) : run} />
                                                     </Text>
                                                 </Tooltip>
                                                 <Text size="xs" fw="normal">
-                                                    {durationSummary(compared) ?? "Turn time: —"}
+                                                    {durationSummary(compared, filtered ? "Turn time (all scenarios)" : "Turn time") ??
+                                                        "Turn time: —"}
                                                 </Text>
                                                 <RunJudge compared={compared} baselineModel={runs[0]?.judgeModel ?? null} />
                                                 {!isBaseline && (

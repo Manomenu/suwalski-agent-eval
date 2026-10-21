@@ -2,7 +2,7 @@
 // and texts of cells, changes and headers. Which checks line up, what differs, every rate, trend and change is the server's.
 import { COMPARE_MAX_RUNS, COMPARE_MIN_RUNS } from "../agents/view";
 import { formatSeconds, percent } from "../runs/results";
-import type { ComparedCell, RateChange, TimeChange, Trend } from "./api";
+import type { ComparedCell, ComparedCheck, RateChange, TimeChange, Trend } from "./api";
 
 const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -29,6 +29,13 @@ export function parseRunIds(raw: string): RunIds {
 /** The run ids with the baseline first, the others in the order they were: the server reads the first run as the baseline. */
 export function baselineFirst(ids: readonly string[], baselineId: string): string[] {
     return [baselineId, ...ids.filter((id) => id !== baselineId)];
+}
+
+/** The checks of one run among these rows, counted as the server counts a run's: a cell is a check; a run without it adds nothing. */
+export function columnChecksCounts(rows: readonly ComparedCheck[], column: number): { checksPassed: number; checksFailed: number } {
+    const cells = rows.flatMap((row) => row.cells[column] ?? []);
+    const checksPassed = cells.filter((cell) => cell.passed).length;
+    return { checksPassed, checksFailed: cells.length - checksPassed };
 }
 
 /** The change of a cell against the baseline's: none when either run has no check to compare. */

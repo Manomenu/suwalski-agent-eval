@@ -60,10 +60,12 @@ internal static class RunComparer
     {
         ArgumentNullException.ThrowIfNull(runs);
         var rows = new Dictionary<(string Scenario, string Check), CheckRunResult?[]>();
+        var tagsOf = new Dictionary<string, IReadOnlyList<string>>();
         for (var column = 0; column < runs.Count; column++)
         {
             foreach (var scenario in runs[column].Scenarios)
             {
+                tagsOf[scenario.Key] = scenario.Tags;
                 foreach (var check in scenario.Checks)
                 {
                     if (!rows.TryGetValue((scenario.Key, check.Key), out var checks))
@@ -87,6 +89,7 @@ internal static class RunComparer
                 {
                     ScenarioKey = row.Key.Scenario,
                     CheckKey = row.Key.Check,
+                    ScenarioTags = tagsOf[row.Key.Scenario],
                     Definition = shown.Definition,
                     JudgedByModel = shown.JudgedByModel,
                     Differs = cells.Any(cell => !SameCell(cell, baseline)),

@@ -53,6 +53,12 @@ The server has one interface, its HTTP API. Three users reach it:
   a summary of checks passed, samples answered and turn time (median, p95), the pass rate per tag (a tag counts only for a
   run that ran all its scenarios) and a row per scenario with `3/4 checks` and the failed checks named, listed by scenario or
   by tag; the best column of a row is marked. Runs of different agents are refused. `suwageval variants` prints the same table.
+- **The run, comparison and variants pages filter by tag.** Tag buttons above the tables (every tag of the view; a pressed button
+  has `aria-pressed`) narrow the scenarios, or the checks of the comparison, to those with any selected tag, and the per-tag rows to
+  the selected tags (the row of every check goes: there is no rate for "any of these tags"). Checks and Samples are counted again
+  over what is left, from the per-scenario results the page already has, and say so (`Checks (procedure, serviceability)`); the turn
+  time stays that of all scenarios and says so. The choice lives in the address, `&tag=procedure&tag=serviceability`, so a view can be
+  shared; nothing selected shows everything. The CLI has no counterpart: it prints the whole run.
 - **What the web shows, the CLI prints.** `suwageval agents`, `agent`, `scenarios`, `scenario <key>`, `trend`, `runs`, `results`, `compare`, `variants` and `versions diff` print on
   stdout (text, or `--json` for the records), so Claude reads them without opening a browser.
 - **A scenario's definition opens on the run page.** The `{ }` button next to a scenario's key opens it as a scenario file

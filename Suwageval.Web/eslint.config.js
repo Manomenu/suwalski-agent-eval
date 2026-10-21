@@ -129,6 +129,12 @@ export default defineConfig(
                             from: { element: { type: "feature", captured: { name: "diff" } } },
                             allow: { to: { element: { type: "feature", captured: { name: "checks" } } } },
                         },
+                        // The run, comparison and variants pages share one tag filter (the buttons, the address's `tag`
+                        // parameters, which rows they keep): tagFilter/ owns it, the three pages place it.
+                        ...["runs", "compare", "variants"].map((name) => ({
+                            from: { element: { type: "feature", captured: { name } } },
+                            allow: { to: { element: { type: "feature", captured: { name: "tagFilter" } } } },
+                        })),
                         // Example of an explicit edge — a feature's screen embedding another feature:
                         // {
                         //     from: { element: { type: "feature", captured: { name: "notes" } } },
