@@ -35,12 +35,16 @@ public sealed class SuwagevalAgentEndpointsTests : IAsyncLifetime
 
     private sealed class EchoHandler : ITurnHandler
     {
+        private static string Who(TurnCorrelation correlation) => $"{correlation.RunId}/{correlation.Scenario}/{correlation.Sample}";
+
         public Task<TurnResponse> HandleAsync(TurnRequest request, CancellationToken cancellationToken)
         {
             var text = ((UserMessage)request.Conversation[^1]).Text;
             return text == "reject"
                 ? throw new TurnRejectedException("Rejected by the handler.")
-                : Task.FromResult(new TurnResponse { Items = [new AssistantMessage { Text = text }] });
+                : Task.FromResult(
+                    new TurnResponse { Items = [new AssistantMessage { Text = text == "who" ? Who(request.Correlation) : text }] }
+                );
         }
     }
 
@@ -110,5 +114,23 @@ public sealed class SuwagevalAgentEndpointsTests : IAsyncLifetime
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Contains("Rejected by the handler.", await response.Content.ReadAsStringAsync(Cancellation), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task The_correlation_headers_reach_the_handler_and_absent_ones_are_null()
+    {
+        using var content = new StringContent(
+            """{"conversation":[{"kind":"UserMessage","text":"who"}]}""",
+            System.Text.Encoding.UTF8,
+            "application/json"
+        );
+        using var request = new HttpRequestMessage(HttpMethod.Post, new Uri("/suwageval/turn", UriKind.Relative)) { Content = content };
+        request.Headers.Add(TurnCorrelation.RunIdHeader, "run-1");
+        request.Headers.Add(TurnCorrelation.SampleHeader, "2");
+
+        using var response = await client!.SendAsync(request, Cancellation);
+
+        var turn = await response.Content.ReadFromJsonAsync<TurnResponse>(ContractJson.Options, Cancellation);
+        Assert.Equal("run-1//2", Assert.IsType<AssistantMessage>(Assert.Single(turn!.Items)).Text);
     }
 }
