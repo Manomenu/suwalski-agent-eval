@@ -56,7 +56,9 @@ fi
 
 agent_env="$AGENT_DIR/.env"
 if [[ -f "$AGENT_DIR/ExampleAgent/ExampleAgent.csproj" ]]; then
-  agent_command="cd $(printf '%q' "$AGENT_DIR") && dotnet watch --project ExampleAgent"
+  # The agent builds the SDK from this repo, whose generated AssemblyInfo carries the commit hash: after every commit here
+  # the watcher would otherwise stop and ask to restart, like `just server` it restarts on its own.
+  agent_command="cd $(printf '%q' "$AGENT_DIR") && DOTNET_WATCH_RESTART_ON_RUDE_EDIT=1 dotnet watch --project ExampleAgent"
 elif docker image inspect "$AGENT_IMAGE" >/dev/null 2>&1; then
   # --rm and a fixed name: a session killed by --restart leaves no container behind to block the next one's port.
   env_file=""
