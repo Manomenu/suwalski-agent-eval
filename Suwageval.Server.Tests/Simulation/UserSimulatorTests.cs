@@ -1,5 +1,8 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Options;
 using Suwageval.AgentSdk.Conversations;
+using Suwageval.Server.Models;
 using Suwageval.Server.Simulation;
 using Suwageval.Server.Tests.Judges;
 using static Suwageval.Server.Tests.Checks.Items;
@@ -7,6 +10,11 @@ using static Suwageval.Server.Tests.Checks.Items;
 namespace Suwageval.Server.Tests.Simulation;
 
 /// <summary>The simulated user against recorded answers of its model — the gate never calls a model.</summary>
+[SuppressMessage(
+    "Reliability",
+    "CA2000:Dispose objects before losing scope",
+    Justification = "The recorded model and the clients over it hold nothing but memory."
+)]
 public sealed class UserSimulatorTests
 {
     private const string Anna = "Anna wants a refund for a broken kettle.";
@@ -24,6 +32,58 @@ public sealed class UserSimulatorTests
         Emit("state.changed"),
         new AssistantMessage { Text = "Sorry to hear that. Shall I refund it?" },
     ];
+
+    private static UserSimulator SimulatorOver(params (string Entry, RecordedModel Model)[] entries)
+    {
+        var options = new ModelsOptions();
+        foreach (var (entry, _) in entries)
+        {
+            options[entry] = new ModelOptions { BaseUrl = "http://model.invalid", Model = entry };
+        }
+        var models = new ModelClients(options, model => entries.Single(e => e.Entry == model.Model).Model);
+        return new UserSimulator(models, Options.Create(new SimulationOptions()));
+    }
+
+    [Fact]
+    public async Task The_simulator_entry_plays_the_user_when_it_is_configured()
+    {
+        var judge = RecordedModel.Answering("simulated-end.json");
+        var simulator = RecordedModel.Answering("simulated-message.json");
+        var user = SimulatorOver(("judge", judge), ("simulator", simulator));
+
+        var turn = await user.NextAsync(Anna, Conversation, Cancellation);
+
+        Assert.Equal("simulator", user.ModelEntry);
+        Assert.Equal("It arrived broken, I want my money back.", turn.Message);
+        Assert.Single(simulator.Requests);
+        Assert.Empty(judge.Requests);
+    }
+
+    [Fact]
+    public async Task Without_a_simulator_entry_the_judges_entry_plays_the_user()
+    {
+        var judge = RecordedModel.Answering("simulated-message.json");
+        var user = SimulatorOver(("judge", judge));
+
+        var turn = await user.NextAsync(Anna, Conversation, Cancellation);
+
+        Assert.Equal("judge", user.ModelEntry);
+        Assert.True(user.IsConfigured);
+        Assert.Equal("It arrived broken, I want my money back.", turn.Message);
+        Assert.Single(judge.Requests);
+    }
+
+    [Fact]
+    public async Task Without_either_entry_no_simulator_is_configured()
+    {
+        var user = SimulatorOver();
+
+        var turn = await user.NextAsync(Anna, Conversation, Cancellation);
+
+        Assert.False(user.IsConfigured);
+        Assert.Null(user.ModelEntry);
+        Assert.Equal("no simulator model is configured", turn.Failure);
+    }
 
     [Fact]
     public async Task A_message_from_the_model_is_the_users_next_message()

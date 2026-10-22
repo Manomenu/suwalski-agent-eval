@@ -24,8 +24,9 @@ internal static class SimulatorLiveCheck
         var turn = await simulator.NextAsync(User, Conversation, cancellationToken);
         return turn switch
         {
-            { Failure: { } failure } => $"The simulated user could not be played: {failure}.",
-            { Message: null } => "The simulated user ended a conversation in which they had not asked anything yet.",
+            { Failure: { } failure } => $"The simulated user could not be played (model entry '{simulator.ModelEntry}'): {failure}.",
+            { Message: null } =>
+                $"The simulated user (model entry '{simulator.ModelEntry}') ended a conversation in which they had not asked anything yet.",
             _ => null,
         };
     }

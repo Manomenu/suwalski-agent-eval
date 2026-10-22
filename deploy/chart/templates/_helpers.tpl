@@ -55,3 +55,33 @@ The Secret that holds the judge's model address and name (judgeModel.secret), as
     name: {{ . }}
 {{- end }}
 {{- end -}}
+
+{{/*
+The simulated user's own model as environment variables (appsettings: Models:simulator). Rendered only when
+simulatorModel.baseUrl or simulatorModel.secret is set: without it the simulated user uses the judge's model. Same shape as
+app.judgeEnv; with simulatorModel.secret the address and the name come from that Secret (app.simulatorEnvFrom).
+*/}}
+{{- define "app.simulatorEnv" -}}
+{{- with .Values.simulatorModel }}
+{{- if or .baseUrl .secret }}
+{{- if not .secret }}
+- name: Models__simulator__BaseUrl
+  value: {{ .baseUrl | quote }}
+- name: Models__simulator__Model
+  value: {{ required "simulatorModel.name is required when simulatorModel.baseUrl is set" .name | quote }}
+{{- end }}
+- name: Models__simulator__MaxConcurrency
+  value: {{ .maxConcurrency | quote }}
+{{- end }}
+{{- end }}
+{{- end -}}
+
+{{/*
+The Secret that holds the simulator's model address and name (simulatorModel.secret), as an envFrom item; empty without one.
+*/}}
+{{- define "app.simulatorEnvFrom" -}}
+{{- with .Values.simulatorModel.secret }}
+- secretRef:
+    name: {{ . }}
+{{- end }}
+{{- end -}}

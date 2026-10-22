@@ -11,7 +11,7 @@ namespace Suwageval.Server.Judges;
 /// <summary>
 /// The daily check from production's network (<c>Suwageval.Server live-check</c>, the chart's CronJob): calls with fixed tiny
 /// cases — one <c>judge</c> check, one <c>$judge</c> argument and, when one is configured, the simulated user
-/// (<see cref="SimulatorLiveCheck"/>) — through the production registration of the models, the judges and the simulator. The model is not ours, so it can change
+/// (<see cref="SimulatorLiveCheck"/>, through <c>Models:simulator</c> or else the judge's entry) — through the production registration of the models, the judges and the simulator. The model is not ours, so it can change
 /// its answer without a commit here; this is what notices. A problem is logged, posted to the Discord alerts channel when a
 /// webhook is configured, and makes the process exit non-zero. It writes nothing anywhere, so there is nothing to roll back.
 /// </summary>
@@ -98,8 +98,10 @@ internal static class JudgeLiveCheck
             ) ?? await SimulatorLiveCheck.ProblemAsync(host.Services.GetRequiredService<UserSimulator>(), CancellationToken.None);
         if (problem is null)
         {
+            var entry = host.Services.GetRequiredService<UserSimulator>().ModelEntry;
             await Console.Out.WriteLineAsync(
-                "The models answered as expected (a judge check, a $judge argument and the simulated user, when configured)."
+                "The models answered as expected (a judge check, a $judge argument"
+                    + (entry is null ? ")." : $" and the simulated user, through the model entry '{entry}').")
             );
             return 0;
         }

@@ -38,8 +38,18 @@ judgeModel:
   secret: ""
   maxConcurrency: 8
 
-# The simulated user of simulated scenarios is played by the same model (Simulation:Model is `judge` in
-# appsettings.json), so it shares that pool. temperature: how freely the simulated user writes, 0 to 2;
+# A model of its own for the simulated user of simulated scenarios (Models:simulator), same shape as
+# judgeModel: `secret` is a Secret in the release namespace with Models__simulator__BaseUrl and
+# Models__simulator__Model (optionally Models__simulator__ApiKey), read through envFrom; baseUrl/name are
+# then ignored. Empty baseUrl and secret = no separate model: the simulated user uses the judge's, and
+# shares its pool. maxConcurrency is the pool of this model alone.
+simulatorModel:
+  baseUrl: ""
+  name: ""
+  secret: ""
+  maxConcurrency: 8
+
+# The simulated user's settings. temperature: how freely the simulated user writes, 0 to 2;
 # empty = the server's default (0.7).
 simulation:
   temperature: ""

@@ -1,15 +1,9 @@
 namespace Suwageval.Server.Simulation;
 
-/// <summary>The <c>Simulation</c> section of the configuration: the model that plays the simulated user, and how freely it writes.</summary>
+/// <summary>The <c>Simulation</c> section of the configuration: how freely the simulated user writes (its model is the <c>Models:simulator</c> entry, else the judge's; see UserSimulator).</summary>
 internal sealed class SimulationOptions
 {
     public const string Section = "Simulation";
-
-    /// <summary>
-    /// The name of a model under <c>Models</c> (committed: <c>judge</c>, the judge's own). Naming the judge's entry shares its client and
-    /// so its limit of calls at once; another entry has a limit of its own. Simulated scenarios run only when that model is configured.
-    /// </summary>
-    public string? Model { get; set; }
 
     /// <summary>
     /// The simulated user's temperature (committed: 0.7; <c>Simulation__Temperature</c> in the environment). Above 0 on purpose: the
