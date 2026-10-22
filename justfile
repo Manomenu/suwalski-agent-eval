@@ -128,4 +128,5 @@ sync:
     git config core.hooksPath .githooks
     dotnet tool restore
     dotnet restore Suwageval.slnx
+    @command -v pnpm >/dev/null || { echo "pnpm not found on PATH (just runs recipes in a non-interactive shell): install it, e.g. corepack enable --install-directory ~/.local/bin — see docs/development.md" >&2; exit 1; }
     cd Suwageval.Web && pnpm install --frozen-lockfile

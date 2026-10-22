@@ -13,7 +13,7 @@ formatter and the git hooks).
 On Fedora (the owner's development machine):
 
 ```sh
-sudo dnf install dotnet-sdk-10.0 nodejs podman podman-docker just helm ShellCheck
+sudo dnf install dotnet-sdk-10.0 nodejs nodejs-corepack podman podman-docker just helm ShellCheck
 # docker compose: the official Compose v2 plugin (not podman-compose), talking to podman's socket
 corepack enable --install-directory ~/.local/bin   # pnpm, in the version package.json pins
 # gitleaks: the binary from https://github.com/gitleaks/gitleaks/releases, the version CI pins (8.30.1)
