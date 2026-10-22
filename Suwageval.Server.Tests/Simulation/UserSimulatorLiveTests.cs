@@ -7,7 +7,7 @@ namespace Suwageval.Server.Tests.Simulation;
 
 /// <summary>
 /// The simulated user against the REAL model — left out of the gate, run by <c>scripts/.internal/live-check.sh</c> (AGENTS.md, section 3,
-/// "An outside service"). The model comes from the server's own configuration (<c>Simulation:Model</c>, the judge's entry) with the
+/// "An outside service"). The model comes from the server's own configuration (<c>Models:simulator</c>, else the judge's entry) with the
 /// environment on top (<c>Models__judge__BaseUrl</c>, <c>Models__judge__Model</c>, from <c>.env</c>).
 /// </summary>
 public sealed class UserSimulatorLiveTests

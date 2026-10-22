@@ -35,10 +35,20 @@ internal sealed class UserSimulator(ModelClients models, IOptions<SimulationOpti
 
     private const int MaxErrorLength = 300;
 
+    private const string SimulatorEntry = "simulator";
+
+    private const string JudgeEntry = "judge";
+
     private static readonly JsonSerializerOptions Json = ContractJson.Options;
 
-    /// <summary>Whether simulated scenarios can run: <c>Simulation:Model</c> names a model that is configured under <c>Models</c>.</summary>
-    public bool IsConfigured => options.Value.Model is { Length: > 0 } model && models.Has(model);
+    /// <summary>The entry under <c>Models</c> that plays the user: <c>simulator</c> when configured, else the judge's <c>judge</c>; null when neither is.</summary>
+    public string? ModelEntry =>
+        models.Has(SimulatorEntry) ? SimulatorEntry
+        : models.Has(JudgeEntry) ? JudgeEntry
+        : null;
+
+    /// <summary>Whether simulated scenarios can run: <c>Models:simulator</c> or, failing that, <c>Models:judge</c> is configured.</summary>
+    public bool IsConfigured => ModelEntry is not null;
 
     [SuppressMessage(
         "Design",
@@ -52,7 +62,7 @@ internal sealed class UserSimulator(ModelClients models, IOptions<SimulationOpti
     )
     {
         ArgumentNullException.ThrowIfNull(conversation);
-        if (options.Value.Model is not { Length: > 0 } model || !models.Has(model))
+        if (ModelEntry is not { } model)
         {
             return SimulatedTurn.Failed("no simulator model is configured");
         }

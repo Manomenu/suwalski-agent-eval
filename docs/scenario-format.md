@@ -453,8 +453,8 @@ checks:
   turns. A `judge` check judges the agent over the whole conversation; the simulated user's messages are context to it, never judged.
   Simulations vary more than one turn: use several `samples`, a `passThreshold` below 1 for what depends on the course of the
   conversation, and 1.0 for what must never happen.
-- **The model** is `Simulation:Model`, one of `Models:<name>` — committed as `judge`, the judge's own entry, so both share its client
-  and its limit of calls at once (`MaxConcurrency`); another entry has a limit of its own. `Simulation:Temperature` (0 to 2,
+- **The model** is `Models:simulator` when that entry is configured, else `Models:judge`. With no `simulator` entry the simulated user
+  shares the judge's client and its limit of calls at once (`MaxConcurrency`); a `simulator` entry has its own client and its own limit. `Simulation:Temperature` (0 to 2,
   default 0.7; `Simulation__Temperature` in the environment) is how freely the user writes: above 0 on purpose, so the samples do not
   all go the same way. A run with a simulated scenario is refused with 409 when no simulator model is configured.
 - **Cost.** Each sample is up to `turns` agent calls and up to `turns` simulator calls, plus the judge's calls once at the end.

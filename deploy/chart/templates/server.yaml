@@ -34,17 +34,19 @@ spec:
             - name: ASPNETCORE_HTTP_PORTS
               value: {{ .Values.server.port | quote }}
             {{- include "app.judgeEnv" . | nindent 12 }}
+            {{- include "app.simulatorEnv" . | nindent 12 }}
             {{- with .Values.simulation.temperature }}
             - name: Simulation__Temperature
               value: {{ . | quote }}
             {{- end }}
-          {{- if or .Values.server.databaseSecret .Values.judgeModel.secret }}
+          {{- if or .Values.server.databaseSecret .Values.judgeModel.secret .Values.simulatorModel.secret }}
           envFrom:
             {{- with .Values.server.databaseSecret }}
             - secretRef:
                 name: {{ . }}
             {{- end }}
             {{- include "app.judgeEnvFrom" . | nindent 12 }}
+            {{- include "app.simulatorEnvFrom" . | nindent 12 }}
           {{- end }}
           # /health nie dotyka niczego poza procesem, więc nadaje się na sondę.
           readinessProbe:

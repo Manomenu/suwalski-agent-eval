@@ -63,9 +63,9 @@ internal sealed class RecordedModel(Func<CancellationToken, Task<string>> answer
     public ArgumentJudge ArgumentJudge(int maxConcurrency = 8) =>
         new(Clients(maxConcurrency), Options.Create(new JudgeOptions { Model = "judge" }));
 
-    /// <summary>A user simulator over this model, configured the way the server is: model "judge" under Models, named by Simulation:Model.</summary>
+    /// <summary>A user simulator over this model, configured the way the server is: the judge's entry under Models (no "simulator" entry).</summary>
     public UserSimulator Simulator(double temperature = 0.7) =>
-        new(Clients(), Options.Create(new SimulationOptions { Model = "judge", Temperature = temperature }));
+        new(Clients(), Options.Create(new SimulationOptions { Temperature = temperature }));
 
     public ModelClients Clients(int maxConcurrency = 8) =>
         new(

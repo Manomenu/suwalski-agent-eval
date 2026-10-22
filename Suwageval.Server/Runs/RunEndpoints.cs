@@ -321,7 +321,7 @@ internal static class RunEndpoints
         {
             return Results.Problem(
                 title: "No simulator model is configured",
-                detail: "The scenarios have a simulated user, but the simulator's model is not configured (Models:<Simulation:Model>:BaseUrl and :Model); nothing was queued.",
+                detail: "The scenarios have a simulated user, but the simulator's model is not configured (Models:simulator, or else Models:judge: :BaseUrl and :Model); nothing was queued.",
                 statusCode: StatusCodes.Status409Conflict
             );
         }
