@@ -11,6 +11,11 @@ app.MapSuwagevalAgent();   // GET /suwageval/contract, POST /suwageval/turn
 - the contract types (`AgentContract`, `TurnRequest`, `TurnResponse`, the `ConversationItem`s) and `ContractJson.Options`,
   the JSON options the server reads them with;
 - `AgentContractRules.Problems(contract)`: what the server would reject in your contract, for a unit test.
+- `request.Correlation` (`RunId`, `Scenario`, `Sample`): the `Suwageval-*` headers of the turn, for traces and logs; a member is null when its header is absent.
+- `request.HistoryTurns()`: the conversation before the last item as `HistoryTurn`s (user message, the items that followed it in order, the tool calls
+  paired with their results, the assistant message); a history that cannot be one (a tool call id twice, a result without its call, tool calls no assistant message closes) is a `TurnRejectedException`.
+- `request.FixturesAs<T>()`: the scenario's fixtures as your type, strict about members it does not declare; null when there are none.
+- `ContractSchema.ObjectSchema(properties, required)` and `EnumSchema<TEnum>()`: the JSON schemas of event data and fixtures in your contract.
 - `TurnRejectedException(reason)`: thrown by your handler for a conversation it cannot answer; the turn is answered 400 with the reason.
 
 The HTTP contract stays the source of truth; this package saves a .NET agent from re-declaring it.

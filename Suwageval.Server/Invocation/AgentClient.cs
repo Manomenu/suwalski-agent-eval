@@ -77,9 +77,9 @@ internal sealed class AgentClient(HttpClient http)
         {
             Content = JsonContent.Create(new TurnRequest { Conversation = conversation, Fixtures = context.Fixtures }, options: Request),
         };
-        request.Headers.Add("Suwageval-Run-Id", context.RunId.ToString());
-        request.Headers.Add("Suwageval-Scenario", context.ScenarioKey);
-        request.Headers.Add("Suwageval-Sample", context.Sample.ToString(CultureInfo.InvariantCulture));
+        request.Headers.Add(TurnCorrelation.RunIdHeader, context.RunId.ToString());
+        request.Headers.Add(TurnCorrelation.ScenarioHeader, context.ScenarioKey);
+        request.Headers.Add(TurnCorrelation.SampleHeader, context.Sample.ToString(CultureInfo.InvariantCulture));
         return SendAsync<TurnResponse, TurnResult>(
             request,
             new Messages(

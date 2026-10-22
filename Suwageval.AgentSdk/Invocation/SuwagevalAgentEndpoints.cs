@@ -32,7 +32,8 @@ public static class SuwagevalAgentEndpoints
                 }
                 try
                 {
-                    return Results.Json(await handler.HandleAsync(turn, cancellationToken), ContractJson.Options);
+                    var correlated = turn with { Correlation = TurnCorrelation.From(request.Headers) };
+                    return Results.Json(await handler.HandleAsync(correlated, cancellationToken), ContractJson.Options);
                 }
                 catch (TurnRejectedException rejection)
                 {
