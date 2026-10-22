@@ -66,12 +66,15 @@ public sealed class RunsCommandTests
         {
             paths.Add(request.RequestUri?.PathAndQuery ?? "");
             var query = System.Web.HttpUtility.ParseQueryString(request.RequestUri?.Query ?? "");
-            var after = query["before"] is { } before ? Array.FindIndex(Newest, run => run.Id == Guid.Parse(before)) + 1 : 0;
-            var page = Newest
-                .Skip(after)
-                .Take(int.Parse(query["limit"] ?? "20", System.Globalization.CultureInfo.InvariantCulture))
-                .ToList();
-            var list = new RunList { Runs = page, Next = after + page.Count < Newest.Length ? page[^1].Id : null };
+            var size = int.Parse(query["pageSize"] ?? "20", System.Globalization.CultureInfo.InvariantCulture);
+            var number = int.Parse(query["page"] ?? "1", System.Globalization.CultureInfo.InvariantCulture);
+            var page = Newest.Skip((number - 1) * size).Take(size).ToList();
+            var list = new RunList
+            {
+                Runs = page,
+                Page = number,
+                TotalCount = Newest.Length,
+            };
             return Task.FromResult(
                 new HttpResponseMessage(HttpStatusCode.OK)
                 {
@@ -88,7 +91,7 @@ public sealed class RunsCommandTests
 
         Assert.Equal(0, exit);
         Assert.Empty(error);
-        Assert.Equal(["/runs?agent=example-agent&limit=10&grouping=None"], paths);
+        Assert.Equal(["/runs?agent=example-agent&page=1&pageSize=10&grouping=None"], paths);
         var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
         Assert.Equal(3, lines.Length);
         Assert.StartsWith("aaaaaaaa-0000-0000-0000-000000000003  Done  smoke", lines[0], StringComparison.Ordinal);
@@ -106,7 +109,7 @@ public sealed class RunsCommandTests
         var (exit, _, _, paths) = Runs("--version", first, "--version", second);
 
         Assert.Equal(0, exit);
-        Assert.Equal([$"/runs?agent=example-agent&limit=10&version={first}&version={second}&grouping=None"], paths);
+        Assert.Equal([$"/runs?agent=example-agent&page=1&pageSize=10&version={first}&version={second}&grouping=None"], paths);
     }
 
     [Fact]
@@ -125,7 +128,7 @@ public sealed class RunsCommandTests
         var (exit, _, _, paths) = Runs("--group", "sweep-1");
 
         Assert.Equal(0, exit);
-        Assert.Equal(["/runs?agent=example-agent&limit=10&group=sweep-1"], paths);
+        Assert.Equal(["/runs?agent=example-agent&page=1&pageSize=10&group=sweep-1"], paths);
     }
 
     [Fact]
@@ -134,8 +137,8 @@ public sealed class RunsCommandTests
         var (_, _, _, any) = Runs("--any-group");
         var (_, _, _, all) = Runs("--all-runs");
 
-        Assert.Equal(["/runs?agent=example-agent&limit=10&grouping=Any"], any);
-        Assert.Equal(["/runs?agent=example-agent&limit=10"], all);
+        Assert.Equal(["/runs?agent=example-agent&page=1&pageSize=10&grouping=Any"], any);
+        Assert.Equal(["/runs?agent=example-agent&page=1&pageSize=10"], all);
     }
 
     [Fact]
@@ -199,7 +202,7 @@ public sealed class RunsCommandTests
     {
         var (_, output, _, paths) = Runs("--limit", "2");
 
-        Assert.Equal(["/runs?agent=example-agent&limit=2&grouping=None"], paths);
+        Assert.Equal(["/runs?agent=example-agent&page=1&pageSize=2&grouping=None"], paths);
         Assert.Equal(2, output.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length);
         Assert.DoesNotContain("000000000001", output, StringComparison.Ordinal);
     }
@@ -209,7 +212,7 @@ public sealed class RunsCommandTests
     {
         var (_, output, _, paths) = Runs("--limit", "150");
 
-        Assert.Equal(["/runs?agent=example-agent&limit=100&grouping=None"], paths);
+        Assert.Equal(["/runs?agent=example-agent&page=1&pageSize=100&grouping=None"], paths);
         Assert.Equal(3, output.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length);
     }
 

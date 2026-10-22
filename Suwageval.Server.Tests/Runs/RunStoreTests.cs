@@ -360,11 +360,11 @@ public sealed class RunStoreTests(TestDatabase database)
         );
     }
 
-    private async Task<IReadOnlyList<Guid>> PageAsync(SeededAgent agent, Guid? before, int limit) =>
-        [.. (await Store().ListPageAsync(agent.Id, before, [], limit, cancellationToken: Cancellation)).Select(run => run.Id)];
+    private async Task<IReadOnlyList<Guid>> PageAsync(SeededAgent agent, int offset, int limit) =>
+        [.. (await Store().ListPageAsync(agent.Id, [], offset, limit, cancellationToken: Cancellation)).Select(run => run.Id)];
 
     [Fact]
-    public async Task A_page_is_ordered_by_creation_time_descending_then_id_and_continues_after_before()
+    public async Task A_page_is_ordered_by_creation_time_descending_then_id_and_continues_after_the_offset()
     {
         var store = Store();
         var agent = await NewAgentAsync();
@@ -382,14 +382,14 @@ public sealed class RunStoreTests(TestDatabase database)
         await SetCreatedAtAsync(ids[3], moment.AddHours(-1));
         var expected = ids.Take(3).Order().Append(ids[3]).ToList();
 
-        Assert.Equal(expected, await PageAsync(agent, null, 10));
-        Assert.Equal(expected.Skip(1), await PageAsync(agent, expected[0], 10));
-        Assert.Equal(expected.Skip(2).Take(1), await PageAsync(agent, expected[1], 1));
-        Assert.Empty(await PageAsync(agent, expected[3], 10));
+        Assert.Equal(expected, await PageAsync(agent, 0, 10));
+        Assert.Equal(expected.Skip(1), await PageAsync(agent, 1, 10));
+        Assert.Equal(expected.Skip(2).Take(1), await PageAsync(agent, 2, 1));
+        Assert.Empty(await PageAsync(agent, 4, 10));
     }
 
     [Fact]
-    public async Task A_page_is_limited_and_asking_for_one_more_shows_whether_there_is_more()
+    public async Task A_page_is_limited_and_the_count_covers_every_page()
     {
         var store = Store();
         var agent = await NewAgentAsync();
@@ -398,10 +398,10 @@ public sealed class RunStoreTests(TestDatabase database)
             await EnqueueAsync(store, agent);
         }
 
-        Assert.Equal(2, (await PageAsync(agent, null, 2)).Count);
-        Assert.Equal(3, (await PageAsync(agent, null, 3)).Count);
-        Assert.Equal(3, (await PageAsync(agent, null, 4)).Count);
-        Assert.Empty(await PageAsync(await NewAgentAsync(), null, 5));
+        Assert.Equal(2, (await PageAsync(agent, 0, 2)).Count);
+        Assert.Single(await PageAsync(agent, 2, 2));
+        Assert.Equal(3, await store.CountAsync(agent.Id, [], cancellationToken: Cancellation));
+        Assert.Empty(await PageAsync(await NewAgentAsync(), 0, 5));
     }
 
     [Fact]
@@ -413,8 +413,8 @@ public sealed class RunStoreTests(TestDatabase database)
         var first = await EnqueueAsync(store, agent);
         var second = await EnqueueAsync(store, other);
 
-        var both = await store.ListPageAsync(null, null, [agent.VersionId, other.VersionId], 100, cancellationToken: Cancellation);
-        var onlyOther = await store.ListPageAsync(null, null, [other.VersionId], 100, cancellationToken: Cancellation);
+        var both = await store.ListPageAsync(null, [agent.VersionId, other.VersionId], 0, 100, cancellationToken: Cancellation);
+        var onlyOther = await store.ListPageAsync(null, [other.VersionId], 0, 100, cancellationToken: Cancellation);
 
         Assert.Equal([second, first], both.Select(run => run.Id).Where(id => id == first || id == second));
         Assert.Equal([second], onlyOther.Select(run => run.Id));

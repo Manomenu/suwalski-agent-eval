@@ -76,8 +76,8 @@ internal static class VariantEndpoints
             }
             var newestFirst = await store.ListPageAsync(
                 agentId,
-                null,
                 [],
+                0,
                 RunVariantsReport.MaxRuns + 1,
                 group,
                 cancellationToken: cancellationToken

@@ -2,8 +2,8 @@
 // the agent page lists them apart. The server finds them (`GET /agents/<name>/agent-errors`); this is what the card does with the list.
 import type { AgentError } from "./api";
 
-/** The agent page lists at most this many scenarios with errors. */
-export const AGENT_ERRORS_MAX_ROWS = 8;
+/** How many scenarios with errors a page of the agent page's card lists. */
+export const AGENT_ERRORS_PAGE_SIZE = 8;
 
 /** The longest error text a row shows; the full text is in its tooltip. */
 export const AGENT_ERROR_MAX_LENGTH = 60;
@@ -17,11 +17,6 @@ export function agentErrorsPath(agent: string, versionIds: readonly string[]): s
     for (const id of versionIds) query.append("version", id);
     const text = query.toString();
     return `/agents/${encodeURIComponent(agent)}/agent-errors${text === "" ? "" : `?${text}`}`;
-}
-
-/** The first rows, as the server sorted them (the highest share of errors first). */
-export function errorRows(list: readonly AgentError[]): AgentError[] {
-    return list.slice(0, AGENT_ERRORS_MAX_ROWS);
 }
 
 /** "3/12": the samples without an answer over the samples asked. */

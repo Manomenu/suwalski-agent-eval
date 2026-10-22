@@ -1,5 +1,4 @@
 // What the agent pages show, as plain functions: links, labels and the JSON of a schema.
-import { PAGE_SIZE } from "../runs/paging";
 import { versionTitle } from "../runs/results";
 
 export const agentHref = (name: string) => `/agents/${encodeURIComponent(name)}`;
@@ -104,16 +103,6 @@ export function consideredVersionIds(
     versionIds: readonly string[] = [],
 ): string[] {
     return allowedVersionIds(versions, showArchived, models, dataVersions, versionIds) ?? versions.map((version) => version.id);
-}
-
-/** The first `pages` pages of `items` (a page is `PAGE_SIZE` of them) — what a list with "Show more" displays. */
-export function firstPages<T>(items: T[], pages: number): T[] {
-    return items.slice(0, pages * PAGE_SIZE);
-}
-
-/** Whether `items` has more than `pages` pages, so "Show more" has something to show. */
-export function hasMorePages(items: unknown[], pages: number): boolean {
-    return items.length > pages * PAGE_SIZE;
 }
 
 /** The comparison page takes at least two runs and at most twenty (the server's limit). */

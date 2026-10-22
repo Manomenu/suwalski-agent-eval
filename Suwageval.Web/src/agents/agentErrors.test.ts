@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { AGENT_ERROR_MAX_LENGTH, AGENT_ERRORS_MAX_ROWS, agentErrorsPath, errorRows, errorsOfSamples, shortError } from "./agentErrors";
+import { AGENT_ERROR_MAX_LENGTH, agentErrorsPath, errorsOfSamples, shortError } from "./agentErrors";
 import type { AgentError } from "./api";
 
 const item = (over: Partial<AgentError> = {}): AgentError => ({
@@ -16,13 +16,6 @@ const item = (over: Partial<AgentError> = {}): AgentError => ({
 describe("errorsOfSamples", () => {
     it("is the errors over the samples asked", () => {
         expect(errorsOfSamples(item())).toBe("3/12");
-    });
-});
-
-describe("errorRows", () => {
-    it("keeps the first rows in the server's order", () => {
-        const list = Array.from({ length: AGENT_ERRORS_MAX_ROWS + 2 }, (_, i) => item({ scenarioKey: `s${i}` }));
-        expect(errorRows(list)).toEqual(list.slice(0, AGENT_ERRORS_MAX_ROWS));
     });
 });
 

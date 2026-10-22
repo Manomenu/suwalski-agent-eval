@@ -1,12 +1,14 @@
-import { Alert, Anchor, Badge, Button, Checkbox, Group, Pagination, Paper, Stack, Switch, Table, Text, Title } from "@mantine/core";
+import { Alert, Anchor, Badge, Button, Checkbox, Group, Paper, Stack, Switch, Table, Text, Title } from "@mantine/core";
 import { useState } from "react";
 
 import { formatTime, variantsGroupHref } from "../runs/results";
 import { archiveRunGroups, deleteRunGroup, fetchRunGroupDeletion, type RunGroupSummary } from "./api";
 import { DeleteModal } from "./DeleteModal";
-import { groupSelection, pageOfGroups, visibleGroups } from "./groups";
+import { groupSelection, visibleGroups } from "./groups";
 import { HeaderHelp } from "../runs/HeaderHelp";
-import { useGroupsPage } from "./useGroupsPage";
+import { ListPagination } from "../pagination/ListPagination";
+import { pageOfItems } from "../pagination/pages";
+import { usePageParam } from "../pagination/usePageParam";
 
 const GROUPS_HELP =
     "Runs started with `suwageval run --group <name>`: the runs of one sweep, typically one per model or configuration. Open a group to see its runs side by side as variants. A group's runs are experiments: no regression states, never a reference, not in the pass-rate trend. Archive a group to hide it; only an archived group can be deleted, with its runs.";
@@ -33,8 +35,9 @@ export function RunGroupsSection({
     const [notice, setNotice] = useState<string | null>(null);
     const [deleting, setDeleting] = useState(false);
 
-    const [requestedPage, setRequestedPage] = useGroupsPage();
-    const { groups: listed, page, pageCount } = pageOfGroups(visibleGroups(groups, showArchived), requestedPage);
+    const [requestedPage, setRequestedPage] = usePageParam("groupsPage");
+    const shown = visibleGroups(groups, showArchived);
+    const { items: listed, page } = pageOfItems(shown, requestedPage);
     const { toArchive, toRestore, toDelete } = groupSelection(listed, selected);
 
     async function change(names: string[], archived: boolean) {
@@ -167,16 +170,14 @@ export function RunGroupsSection({
                                 </Table.Tbody>
                             </Table>
                         </Table.ScrollContainer>
-                        {pageCount > 1 && (
-                            <Pagination
-                                total={pageCount}
-                                value={page}
-                                onChange={(next) => {
-                                    setRequestedPage(next);
-                                    setSelected(new Set());
-                                }}
-                            />
-                        )}
+                        <ListPagination
+                            totalCount={shown.length}
+                            page={page}
+                            onChange={(next) => {
+                                setRequestedPage(next);
+                                setSelected(new Set());
+                            }}
+                        />
                         {listed.length === 0 && (
                             <Text c="dimmed">All groups are archived — switch on Show archived groups to see them.</Text>
                         )}

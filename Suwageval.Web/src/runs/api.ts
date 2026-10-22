@@ -22,13 +22,14 @@ export type ConversationItem = components["schemas"]["ConversationItem"];
 /** One page of the runs of one agent (by name), newest first; see `runsPath`. */
 export function fetchRuns(
     agent: string,
-    before: string | null,
+    page: number,
+    pageSize: number,
     versionIds: readonly string[],
     group: string | null,
     grouping: "None" | "Any" | null,
     signal: AbortSignal,
 ): Promise<RunList> {
-    return request<RunList>(runsPath(agent, before, versionIds, group, grouping), { signal });
+    return request<RunList>(runsPath(agent, page, pageSize, versionIds, group, grouping), { signal });
 }
 
 export function fetchRunResults(runId: string, signal: AbortSignal): Promise<RunResults> {

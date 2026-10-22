@@ -1,12 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { PAGE_SIZE } from "../runs/paging";
 import {
     agentHref,
     allowedVersionIds,
     consideredVersionIds,
-    firstPages,
-    hasMorePages,
     canCompare,
     compareHref,
     dataText,
@@ -189,24 +186,6 @@ describe("consideredVersionIds", () => {
 
     it("is empty when the filters show none", () => {
         expect(consideredVersionIds([old], false, [], [])).toEqual([]);
-    });
-});
-
-describe("firstPages", () => {
-    const items = Array.from({ length: PAGE_SIZE * 2 + 1 }, (_, index) => index);
-
-    it("shows a page, then the next one, and everything once the pages cover the list", () => {
-        expect(firstPages(items, 1)).toHaveLength(PAGE_SIZE);
-        expect(firstPages(items, 2)).toHaveLength(PAGE_SIZE * 2);
-        expect(firstPages(items, 3)).toEqual(items);
-    });
-
-    it("says there is more until the shown pages cover the list", () => {
-        expect(hasMorePages(items, 1)).toBe(true);
-        expect(hasMorePages(items, 2)).toBe(true);
-        expect(hasMorePages(items, 3)).toBe(false);
-        expect(hasMorePages(items.slice(0, PAGE_SIZE), 1)).toBe(false);
-        expect(hasMorePages([], 1)).toBe(false);
     });
 });
 

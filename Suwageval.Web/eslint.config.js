@@ -130,6 +130,12 @@ export default defineConfig(
                             from: { element: { type: "feature", captured: { name } } },
                             allow: { to: { element: { type: "feature", captured: { name: "tagFilter" } } } },
                         })),
+                        // Every list of the agent page and the agents list pages the same way (numbered pages, the page in the
+                        // address): pagination/ owns that, agents/ places it.
+                        {
+                            from: { element: { type: "feature", captured: { name: "agents" } } },
+                            allow: { to: { element: { type: "feature", captured: { name: "pagination" } } } },
+                        },
                         // Example of an explicit edge — a feature's screen embedding another feature:
                         // {
                         //     from: { element: { type: "feature", captured: { name: "notes" } } },

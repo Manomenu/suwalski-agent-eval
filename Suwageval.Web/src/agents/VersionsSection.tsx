@@ -5,9 +5,10 @@ import { formatTime, versionTitle } from "../runs/results";
 import { archiveVersions, deleteVersion, fetchVersionDeletion, type AgentVersion } from "./api";
 import { DeleteModal } from "./DeleteModal";
 import { HeaderHelp } from "../runs/HeaderHelp";
+import { ListPagination } from "../pagination/ListPagination";
+import { pageOfItems } from "../pagination/pages";
+import { usePageParam } from "../pagination/usePageParam";
 import {
-    firstPages,
-    hasMorePages,
     compareVersionsTitle,
     selectionActions,
     versionCompareHref,
@@ -38,14 +39,14 @@ export function VersionsSection({
     onChanged: () => void;
 }) {
     const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
-    // How many pages of versions are shown ("Show more" adds one).
-    const [pages, setPages] = useState(1);
+    const [requestedPage, setRequestedPage] = usePageParam("versionsPage");
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [deleting, setDeleting] = useState(false);
     const [notice, setNotice] = useState<string | null>(null);
 
-    const listed = visibleVersions(versions, showArchived);
+    const shown = visibleVersions(versions, showArchived);
+    const { items: listed, page } = pageOfItems(shown, requestedPage);
     const { toArchive, toRestore } = selectionActions(listed, selected);
     const toCompare = versionsToCompare(listed, selected);
     const toDelete = versionToDelete(listed, selected);
@@ -133,7 +134,8 @@ export function VersionsSection({
                                 label="Show archived"
                                 checked={showArchived}
                                 onChange={(event) => {
-                                    setPages(1);
+                                    setRequestedPage(1);
+                                    setSelected(new Set());
                                     onShowArchivedChange(event.currentTarget.checked);
                                 }}
                             />
@@ -161,7 +163,7 @@ export function VersionsSection({
                                     </Table.Tr>
                                 </Table.Thead>
                                 <Table.Tbody>
-                                    {firstPages(listed, pages).map((version) => (
+                                    {listed.map((version) => (
                                         <Table.Tr key={version.id}>
                                             <Table.Td>
                                                 <Checkbox
@@ -191,18 +193,14 @@ export function VersionsSection({
                                 </Table.Tbody>
                             </Table>
                         </Table.ScrollContainer>
-                        {hasMorePages(listed, pages) && (
-                            <Group justify="center">
-                                <Button
-                                    variant="light"
-                                    onClick={() => {
-                                        setPages(pages + 1);
-                                    }}
-                                >
-                                    Show more
-                                </Button>
-                            </Group>
-                        )}
+                        <ListPagination
+                            totalCount={shown.length}
+                            page={page}
+                            onChange={(next) => {
+                                setRequestedPage(next);
+                                setSelected(new Set());
+                            }}
+                        />
                         {listed.length === 0 && <Text c="dimmed">All versions are archived — switch on Show archived to see them.</Text>}
                     </Stack>
                 </Paper>
