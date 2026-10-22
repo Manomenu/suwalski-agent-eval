@@ -4,7 +4,7 @@ using Suwageval.Server.Agents;
 using Suwageval.Server.Problems;
 using Suwageval.Server.Scenarios;
 
-namespace Suwageval.Server.Runs;
+namespace Suwageval.Server.Runs.Variants;
 
 /// <summary>The route of the variants view: runs of one agent side by side, picked one by one or by their group.</summary>
 internal static class VariantEndpoints

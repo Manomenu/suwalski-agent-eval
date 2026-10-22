@@ -23,14 +23,12 @@ internal static class RunEndpoints
         app.MapPost("/runs", CreateAsync).Produces<RunCreated>(StatusCodes.Status202Accepted);
         app.MapGet("/runs", ListAsync).Produces<RunList>();
         app.MapGet("/runs/compare", CompareAsync).Produces<RunComparison>();
-        app.MapVariants();
         app.MapGet("/runs/{id:guid}", GetAsync).Produces<RunSummary>();
         app.MapGet("/runs/{id:guid}/results", ResultsAsync).Produces<RunResults>();
         app.MapPost("/runs/{id:guid}/rerun", RerunAsync).Produces<RunCreated>(StatusCodes.Status202Accepted);
         app.MapGet("/runs/{id:guid}/recheck", RecheckPlanAsync).Produces<RecheckPlan>();
         app.MapPost("/runs/{id:guid}/recheck", RecheckAsync).Produces<RunCreated>(StatusCodes.Status202Accepted);
         app.MapPost("/runs/{id:guid}/cancel", CancelAsync).Produces(StatusCodes.Status202Accepted);
-        app.MapRunGroups();
         app.MapGet("/agents/{agent}/pass-rates", PassRatesAsync).Produces<IReadOnlyList<RunPassRates>>();
         app.MapGet("/agents/{agent}/unstable-checks", UnstableChecksAsync).Produces<IReadOnlyList<UnstableCheck>>();
         app.MapGet("/agents/{agent}/agent-errors", AgentErrorsAsync).Produces<IReadOnlyList<AgentError>>();
