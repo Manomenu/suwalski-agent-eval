@@ -1,33 +1,18 @@
-import { Anchor, Badge, Button, Group, Stack, Text, Tooltip } from "@mantine/core";
+import { Anchor, Badge, Button, Stack, Text, Tooltip } from "@mantine/core";
 
 import type { AgentVersion } from "../agents/api";
 import { dataText, versionHref } from "../agents/view";
-import { ModelJudgedIcon } from "../checks/ModelJudgedIcon";
 import { compareGroupHref, formatTime, runHref, shortId, statusColor, statusLabel } from "../runs/results";
-import type { ComparedRun, VariantRun } from "./api";
-import { timeDeltaText, trendColor, TIME_DELTA_HELP } from "./compare";
+import type { VariantRun } from "./api";
 import { columnTitle, runTagsText } from "./variants";
 
-const HELP_WIDTH = 280;
-
 /**
- * What choosing a baseline brings to a column: the button that makes it the baseline (or, on the baseline itself, takes it back), and,
- * once there is a baseline, the judge and turn time changes the server computed against it.
+ * The button that makes a column the baseline (or, on the baseline itself, takes it back). The changes against the baseline are in the
+ * table's rows, never here: the header keeps its height, so the button stays where it was clicked.
  */
 export interface BaselineInfo {
-    /** The column against the baseline; none while no baseline is chosen. */
-    compared: ComparedRun | null;
-    baselineJudgeModel: string | null;
     isBaseline: boolean;
     onToggleBaseline: () => void;
-}
-
-/** The turn time changes of a run against the baseline's, as the server computed them: median and p95. */
-function timeChanges({ medianChange, p95Change }: ComparedRun) {
-    return [
-        ...(medianChange == null ? [] : [{ label: "median", change: medianChange }]),
-        ...(p95Change == null ? [] : [{ label: "p95", change: p95Change }]),
-    ];
 }
 
 /**
@@ -83,45 +68,15 @@ export function ColumnHeader({
                     {statusLabel(run.status)}
                 </Badge>
             )}
-            {baseline !== null && <BaselineLines baseline={baseline} runId={run.id} />}
+            {baseline !== null && <BaselineButton baseline={baseline} runId={run.id} />}
         </Stack>
     );
 }
 
-function BaselineLines({ baseline, runId }: { baseline: BaselineInfo; runId: string }) {
-    const { compared, isBaseline } = baseline;
+function BaselineButton({ baseline, runId }: { baseline: BaselineInfo; runId: string }) {
+    const { isBaseline } = baseline;
     return (
-        <>
-            {compared?.judgeModel != null && (
-                <Group gap={4} wrap="nowrap">
-                    <ModelJudgedIcon model={compared.judgeModel} />
-                    <Text size="xs" fw="normal">
-                        judge {compared.judgeModel}
-                    </Text>
-                    {compared.judgeChanged && (
-                        <Tooltip
-                            label={`The baseline was judged by ${baseline.baselineJudgeModel ?? ""}: a different verdict may come from the judge, not the agent`}
-                            multiline
-                            w={HELP_WIDTH}
-                        >
-                            <Badge size="xs" variant="light" color="orange" style={{ cursor: "help" }}>
-                                other judge
-                            </Badge>
-                        </Tooltip>
-                    )}
-                </Group>
-            )}
-            {compared !== null && !isBaseline && (
-                <Tooltip label={TIME_DELTA_HELP} multiline w={HELP_WIDTH}>
-                    <Group gap="xs" wrap="nowrap" w="fit-content" style={{ cursor: "help" }}>
-                        {timeChanges(compared).map(({ label, change }) => (
-                            <Text key={label} size="xs" fw="normal" c={trendColor(change.trend)}>
-                                {label} {timeDeltaText(change)}
-                            </Text>
-                        ))}
-                    </Group>
-                </Tooltip>
-            )}
+        <Tooltip label="Click to unselect the baseline" disabled={!isBaseline}>
             <Button
                 size="compact-xs"
                 variant={isBaseline ? "filled" : "light"}
@@ -134,6 +89,6 @@ function BaselineLines({ baseline, runId }: { baseline: BaselineInfo; runId: str
             >
                 {isBaseline ? "Baseline" : "Use as baseline"}
             </Button>
-        </>
+        </Tooltip>
     );
 }
