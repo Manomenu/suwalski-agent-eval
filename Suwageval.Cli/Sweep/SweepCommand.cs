@@ -38,7 +38,8 @@ internal static partial class SweepCommand
         };
         var select = new Option<bool>("--select")
         {
-            Description = "Instead of naming variants, pick them from a numbered list of the variants folder (answer \"1,3\", \"2-4\" or \"all\"). Needs a terminal.",
+            Description =
+                "Instead of naming variants, pick them from a numbered list of the variants folder (answer \"1,3\", \"2-4\" or \"all\"). Needs a terminal.",
         };
         var tag = new Option<string[]>("--tag")
         {

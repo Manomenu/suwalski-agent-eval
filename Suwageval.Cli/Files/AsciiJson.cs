@@ -9,8 +9,7 @@ namespace Suwageval.Cli.Files;
 internal static partial class AsciiJson
 {
     /// <summary>The JSON with every non-ASCII character as a <c>\uXXXX</c> escape: outside a string JSON has none, so only strings change.</summary>
-    public static string Escape(string json) =>
-        NonAscii().Replace(json, character => $"\\u{(int)character.Value[0]:x4}");
+    public static string Escape(string json) => NonAscii().Replace(json, character => $"\\u{(int)character.Value[0]:x4}");
 
     [GeneratedRegex("[^\x00-\x7F]")]
     private static partial Regex NonAscii();
