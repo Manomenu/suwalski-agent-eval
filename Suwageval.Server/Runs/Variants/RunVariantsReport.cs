@@ -1,7 +1,7 @@
 using Suwageval.Contracts.Runs;
 using Suwageval.Server.Scenarios;
 
-namespace Suwageval.Server.Runs;
+namespace Suwageval.Server.Runs.Variants;
 
 /// <summary>The variants view of runs, as a pure function over their results: the checks and tags are counted by the rules of <see cref="RunComparer"/>.</summary>
 internal static class RunVariantsReport

@@ -2,7 +2,7 @@ using Suwageval.Contracts.Runs;
 using Suwageval.Server.Agents;
 using Suwageval.Server.Problems;
 
-namespace Suwageval.Server.Runs;
+namespace Suwageval.Server.Runs.Groups;
 
 /// <summary>The routes of run groups: list them, archive or restore them, delete an archived one with its runs.</summary>
 internal static class RunGroupEndpoints

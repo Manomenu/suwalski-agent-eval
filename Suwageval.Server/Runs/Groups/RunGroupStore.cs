@@ -3,7 +3,7 @@ using Suwageval.Contracts.Runs;
 using Suwageval.Server.Agents;
 using Suwageval.Server.Database;
 
-namespace Suwageval.Server.Runs;
+namespace Suwageval.Server.Runs.Groups;
 
 /// <summary>The groups of an agent's runs: listing, archiving and deleting them. Plain SQL, mapped by Dapper.</summary>
 internal sealed class RunGroupStore(Pool pool)

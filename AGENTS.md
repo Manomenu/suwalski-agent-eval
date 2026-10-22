@@ -56,7 +56,7 @@ app keeps its tests beside its code, so those folders would only split the .NET 
 | --- | --- |
 | `Suwageval.slnx` | the .NET solution: the server, the CLI, the contracts and their tests |
 | `global.json`, `Directory.Build.props`, `Directory.Packages.props` | the SDK band; the settings every C# project shares (nullable, analyzers, warnings as errors, lockfiles); every NuGet package and its version, named once |
-| `Suwageval.Server/` | the HTTP API (ASP.NET Core minimal APIs, PostgreSQL through Npgsql, SQL written by hand and mapped by Dapper). One folder — one namespace — per part: `Api/`, `Database/`, then one per feature. `Runs/` holds the queue's worker (`RunWorker`, a hosted service); the tests share one database, so they run the server without it (`RunTestApp`) and take runs themselves, per agent. `Models/` holds the models Suwageval itself calls (`Models:<name>`): one chat client and one pool of concurrent calls per model. `Judges/` holds the verdict of a `judge` check (a Microsoft Agent Framework agent over a model's client) and the daily `live-check` command (`Program.cs` runs it for the chart's CronJob). `Simulation/` holds the simulated user of a simulated scenario (`Models:simulator` when configured, else the judge's model and so its pool) |
+| `Suwageval.Server/` | the HTTP API (ASP.NET Core minimal APIs, PostgreSQL through Npgsql, SQL written by hand and mapped by Dapper). One folder — one namespace — per part: `Api/`, `Database/`, then one per feature, a sub-feature as a folder inside it (section 5.1: `Runs/Groups/`, `Runs/Variants/`). `Runs/` holds the queue's worker (`RunWorker`, a hosted service); the tests share one database, so they run the server without it (`RunTestApp`) and take runs themselves, per agent. `Models/` holds the models Suwageval itself calls (`Models:<name>`): one chat client and one pool of concurrent calls per model. `Judges/` holds the verdict of a `judge` check (a Microsoft Agent Framework agent over a model's client) and the daily `live-check` command (`Program.cs` runs it for the chart's CronJob). `Simulation/` holds the simulated user of a simulated scenario (`Models:simulator` when configured, else the judge's model and so its pool) |
 | `Suwageval.Server/Database/Migrations/up/` | numbered SQL migrations, applied at start-up by grate (`Database/Migrator.cs`) |
 | `Suwageval.Server.Tests/` | the server's tests (xUnit v3), mirroring the server's folders; `ContractsTests.cs` holds the import contracts, `ProjectReferencesTests.cs` the project graph. `EndToEnd/` is the one place where the CLI runs against the server in process (`push`, `run`, `rerun`); only its types may use the CLI (`EndToEndContractsTests.cs`); `EveryEndpointHasACliCommandTests.cs` there lists every route the server maps with the command that covers it (or the reason it has none) |
 | `Suwageval.AgentSdk/` | the SDK of an agent under test, packed as a NuGet package for .NET agents (`net9.0;net10.0`, with the ASP.NET Core shared framework): `Agents/` the `AgentContract` with its parts and `AgentContractRules` (shared with the server), `Conversations/` the log items, `Invocation/` `TurnRequest`, `TurnResponse`, the two interfaces an agent implements and `MapSuwagevalAgent`, and `ContractJson` at the root. Namespace = folder path under `Suwageval.AgentSdk`; `Suwageval.Contracts` references it |
@@ -235,7 +235,7 @@ not by reviewers; a dependency against it fails with the types involved.
 | Where | `Layers` in `Suwageval.Server.Tests/ContractsTests.cs` (ArchUnitNET, on the compiled assembly) | `boundaries/*` in `Suwageval.Web/eslint.config.js` |
 | Today | `Api` → `Runs` → `Judges` → `Simulation` → `Checks` \| `Invocation` \| `Models` → `Scenarios` → `Agents` → `Database` | `main`/`App` → features → `api` |
 | A new feature | **must** get a layer — `Every_server_namespace_has_a_layer` fails otherwise | is a folder `src/<feature>/`, independent of other features by default |
-| Inside a feature | a feature with several concerns declares its own order (e.g. endpoints → store → model) as a test beside the first | free |
+| Inside a feature | a sub-feature (a folder inside it, section 5.1) is used by neither its feature nor its siblings — checked for every one; a feature with several concerns declares its own order (e.g. endpoints → store → model) as a test beside the first | free |
 | Feature uses feature | only downwards, by its position in the layer list | only through an explicit policy in `eslint.config.js`, with a comment saying why |
 
 **The CLI** is layered the same way, by `Layers` in `Suwageval.Cli.Tests/ContractsTests.cs`:
@@ -299,10 +299,45 @@ In practice:
 - **A new capability starts as a new folder**, or goes into the existing feature it
   belongs to — never into a shared bucket. Name it in the users' terms, the same on both
   sides, so `Suwageval.Server/Scenarios/` and `Suwageval.Web/src/scenarios/` are obviously
-  one thing (PascalCase for the C# namespace, camelCase for the web folder).
+  one thing (PascalCase for the C# namespace, camelCase for the web folder). The *word* is
+  the same on every side, the *tree* need not be: the web cuts by screens, the CLI by commands,
+  the server by routes and data, so a part can be a folder on one side, a sub-folder on another
+  and a single file on a third. What is never fine is one word for two things, or two words
+  for one.
 - **Shared code is the exception and is earned:** it moves down to a shared level only when
   a second feature really needs it, and only as plumbing (`Database/`, `api/client.ts`) — never as
-  a grab-bag of helpers.
+  a grab-bag of helpers. A shared folder is named after what its code *is* (`Output/`), not
+  after who uses it — "what the commands share" is a grab-bag with a better name.
+
+### 5.1 When a feature folder grows: split it, two ways
+
+A feature folder that holds several features becomes a grab-bag of its own. There is **no
+limit on the number of files** — one type per file makes a three-line record count as much as
+a store, and forty records in a contracts folder are fine. The signs are about content:
+
+- **a second set of routes** — a second `*Endpoints.cs` in one namespace. The gate checks it
+  (`Every_namespace_has_at_most_one_endpoints_class` in `Suwageval.Server.Tests/ContractsTests.cs`);
+- a group of files that change together and not with the rest, often sharing a name prefix
+  (`RunGroup*`, `Variant*`);
+- a feature the web or the CLI already has as a folder or command of its own (`compare`,
+  `trend`) living as loose files in a bigger folder on the server.
+
+Then split, choosing by which way the code depends:
+
+- **A sub-feature — a folder inside the feature** (`Runs/Groups/`, namespace
+  `Suwageval.Server.Runs.Groups`) when the part is built on its feature: it uses the feature's
+  types and means nothing without it. It may use its feature and everything below; **its
+  feature and its sibling sub-features never use it** — what they need moves up into the
+  feature itself. Its routes are mapped by `Api/` next to the feature's. It shares its feature's
+  layer, so it needs no entry in `Layers`; the gate checks the direction
+  (`Sub_features_are_used_by_neither_their_feature_nor_their_siblings`). One level deep: a
+  sub-feature that needs sub-features of its own is a feature.
+- **A sibling feature — a folder on the same level** when the part stands on its own: it reads
+  or writes its own data, or another feature would use it too. It gets its own layer in
+  `Layers` like any feature.
+
+The tests follow the same tree (`Suwageval.Server.Tests/Runs/Groups/`). Split in a change of
+its own, not mixed into a feature: moves only, so the diff is easy to review.
 
 A change to one feature should touch one place on each side.
 
@@ -358,7 +393,7 @@ A change to one feature should touch one place on each side.
 - **State:** component state and props. No global store and no data-fetching library until
   a second screen needs shared server state.
 
-### 5.1 The web app (React) — practices
+### 5.2 The web app (React) — practices
 
 The frontend is React 19 with Mantine and Vite, TypeScript strict. `src/health/` is
 the base's only feature and shows the pattern end to end: `api.ts` → `status.ts` (+ test) →

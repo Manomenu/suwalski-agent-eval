@@ -21,7 +21,9 @@ namespace Suwageval.Server.Tests;
 /// "Database",
 /// </code>
 /// A feature with an inner order of its own (endpoints &gt; store &gt; model) gets a test like
-/// <see cref="Layers_use_only_the_layers_below_them"/> over its sub-namespaces.
+/// <see cref="Layers_use_only_the_layers_below_them"/> over its sub-namespaces. A sub-feature (a folder inside a
+/// feature, <c>Runs/Groups/</c>) needs no entry: it shares its feature's layer, and
+/// <see cref="Sub_features_are_used_by_neither_their_feature_nor_their_siblings"/> keeps it on top of that feature.
 /// </remarks>
 public sealed class ContractsTests
 {
@@ -84,6 +86,61 @@ public sealed class ContractsTests
             .ToHashSet();
 
         Assert.True(parts.IsSubsetOf(layered), $"add to Layers in ContractsTests.cs: {string.Join(", ", parts.Except(layered).Order())}");
+    }
+
+    /// <summary>
+    /// Every <c>Root.Feature.Sub</c> namespace with the namespaces that must not use it: the feature's own (<c>Root.Feature</c>) and
+    /// its other sub-features (AGENTS.md, section 5: a sub-feature is built on its feature, never the other way round).
+    /// </summary>
+    public static TheoryData<string, string> SubFeatureEdges()
+    {
+        var data = new TheoryData<string, string>();
+        var subFeatures = Server
+            .Namespaces.Select(ns => ns.FullName)
+            .Where(name => name.StartsWith(Root + ".", StringComparison.Ordinal))
+            .Select(name => name[(Root.Length + 1)..].Split('.'))
+            .Where(segments => segments.Length >= 2)
+            .Select(segments => (Feature: segments[0], Sub: segments[1]))
+            .Distinct()
+            .ToArray();
+        foreach (var (feature, sub) in subFeatures)
+        {
+            data.Add($@"^{Root}\.{feature}\.{sub}(\..+)?$", $@"^{Root}\.{feature}$");
+            foreach (var (_, sibling) in subFeatures.Where(other => other.Feature == feature && other.Sub != sub))
+            {
+                data.Add($@"^{Root}\.{feature}\.{sub}(\..+)?$", $@"^{Root}\.{feature}\.{sibling}(\..+)?$");
+            }
+        }
+        return data;
+    }
+
+    [Theory]
+    [MemberData(nameof(SubFeatureEdges))]
+    public void Sub_features_are_used_by_neither_their_feature_nor_their_siblings(string subFeature, string user) =>
+        Types()
+            .That()
+            .ResideInNamespaceMatching(user)
+            .Should()
+            .NotDependOnAny(Types().That().ResideInNamespaceMatching(subFeature))
+            .WithoutRequiringPositiveResults()
+            .Check(Server);
+
+    /// <summary>
+    /// A second set of routes in one folder is a second feature in it (AGENTS.md, section 5): it moves to a folder of its own,
+    /// beside the feature or inside it as a sub-feature.
+    /// </summary>
+    [Fact]
+    public void Every_namespace_has_at_most_one_endpoints_class()
+    {
+        var crowded = typeof(ServerApp)
+            .Assembly.GetTypes()
+            .Where(type => type.Name.EndsWith("Endpoints", StringComparison.Ordinal))
+            .GroupBy(type => type.Namespace)
+            .Where(group => group.Count() > 1)
+            .Select(group => $"{group.Key}: {string.Join(", ", group.Select(type => type.Name).Order())}")
+            .ToArray();
+
+        Assert.True(crowded.Length == 0, $"give each its own folder: {string.Join("; ", crowded)}");
     }
 
     private static string Pattern(string part) => $@"^{Root}\.{part}(\..+)?$";

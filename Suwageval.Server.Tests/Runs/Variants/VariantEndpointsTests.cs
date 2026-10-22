@@ -7,7 +7,7 @@ using Suwageval.Server.Runs;
 using Suwageval.Server.Scenarios;
 using Suwageval.Server.Tests.Api;
 
-namespace Suwageval.Server.Tests.Runs;
+namespace Suwageval.Server.Tests.Runs.Variants;
 
 /// <summary>The variants view over runs stored in the real database: its columns, tags and scenario cells, and what it refuses.</summary>
 public sealed class VariantEndpointsTests(TestDatabase database) : IAsyncDisposable

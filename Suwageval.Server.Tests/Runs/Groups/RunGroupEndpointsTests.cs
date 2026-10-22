@@ -6,7 +6,7 @@ using Suwageval.Server.Runs;
 using Suwageval.Server.Scenarios;
 using Suwageval.Server.Tests.Api;
 
-namespace Suwageval.Server.Tests.Runs;
+namespace Suwageval.Server.Tests.Runs.Groups;
 
 /// <summary>Archiving, restoring and deleting run groups, and listing runs by whether they are in a group — on a real PostgreSQL.</summary>
 public sealed class RunGroupEndpointsTests(TestDatabase database) : IAsyncDisposable
