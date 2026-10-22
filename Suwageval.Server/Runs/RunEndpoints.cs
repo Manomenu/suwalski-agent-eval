@@ -485,16 +485,16 @@ internal static class RunEndpoints
     }
 
     /// <summary>
-    /// A page of runs, newest first, with the id to continue from. <c>limit</c> (default 20, 1 to 100), <c>before</c> (a run id: only
-    /// older runs), <c>version</c> (repeatable agent version ids: only their runs), <c>group</c> (only the runs started in that group), <c>grouping</c> (<c>None</c>: only runs in no group,
-    /// <c>Any</c>: only runs in some group; a re-check counts as in the group of the run it was made from; default <c>All</c>). 404: no such agent; 422: a bad limit, an unknown
-    /// <c>before</c>, or both a group and a grouping other than <c>All</c>.
+    /// A page of runs, newest first, with how many runs match. <c>page</c> (1-based, default 1; past the last page gives the last one),
+    /// <c>pageSize</c> (default 20, 1 to 100), <c>version</c> (repeatable agent version ids: only their runs), <c>group</c> (only the runs started in that group), <c>grouping</c> (<c>None</c>: only runs in no group,
+    /// <c>Any</c>: only runs in some group; a re-check counts as in the group of the run it was made from; default <c>All</c>). 404: no such agent; 422: a bad page or page size,
+    /// or both a group and a grouping other than <c>All</c>.
     /// </summary>
     private static async Task<IResult> ListAsync(
         [FromQuery] string? agent,
-        [FromQuery] Guid? before,
+        [FromQuery] int? page,
         [FromQuery] Guid[]? version,
-        [FromQuery] int? limit,
+        [FromQuery] int? pageSize,
         [FromQuery] string? group,
         [FromQuery] RunGrouping? grouping,
         AgentStore agents,
@@ -506,10 +506,14 @@ internal static class RunEndpoints
         {
             return ProblemResults.Invalid("grouping", "Name a group or a grouping (none, any), not both.");
         }
-        var size = limit ?? DefaultPageSize;
+        var size = pageSize ?? DefaultPageSize;
         if (size is < 1 or > MaxPageSize)
         {
-            return ProblemResults.Invalid("limit", $"The limit is between 1 and {MaxPageSize}.");
+            return ProblemResults.Invalid("pageSize", $"The page size is between 1 and {MaxPageSize}.");
+        }
+        if (page is < 1)
+        {
+            return ProblemResults.Invalid("page", "The page is 1 or more.");
         }
         Guid? agentId = null;
         if (agent is not null)
@@ -521,22 +525,19 @@ internal static class RunEndpoints
             }
             agentId = found.Id;
         }
-        if (before is { } cursor && await runs.GetAsync(cursor, cancellationToken) is null)
-        {
-            return ProblemResults.Invalid("before", $"There is no run {cursor}.");
-        }
-        // One more than asked for tells whether an older run exists.
-        var rows = await runs.ListPageAsync(
-            agentId,
-            before,
-            version ?? [],
-            size + 1,
-            string.IsNullOrEmpty(group) ? null : group,
-            grouping ?? RunGrouping.All,
-            cancellationToken
+        var runGroup = string.IsNullOrEmpty(group) ? null : group;
+        var runGrouping = grouping ?? RunGrouping.All;
+        var totalCount = await runs.CountAsync(agentId, version ?? [], runGroup, runGrouping, cancellationToken);
+        var shownPage = Math.Min(page ?? 1, Math.Max(1, (totalCount + size - 1) / size));
+        var rows = await runs.ListPageAsync(agentId, version ?? [], (shownPage - 1) * size, size, runGroup, runGrouping, cancellationToken);
+        return Results.Ok(
+            new RunList
+            {
+                Runs = [.. rows.Select(RunReport.Summary)],
+                Page = shownPage,
+                TotalCount = totalCount,
+            }
         );
-        var page = rows.Take(size).Select(RunReport.Summary).ToList();
-        return Results.Ok(new RunList { Runs = page, Next = rows.Count > size ? page[^1].Id : null });
     }
 
     private static async Task<IResult> GetAsync(Guid id, RunStore runs, CancellationToken cancellationToken)

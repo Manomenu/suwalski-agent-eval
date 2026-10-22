@@ -3,8 +3,8 @@
 import type { UnstableCheck } from "./api";
 import { versionTitle } from "./results";
 
-/** The agent page lists at most this many unstable checks. */
-export const UNSTABLE_CARD_MAX_ROWS = 8;
+/** How many unstable checks a page of the agent page's card lists. */
+export const UNSTABLE_CARD_PAGE_SIZE = 8;
 
 /** What the agent page's "Unstable checks" card lists: the checks that are still open. */
 export const UNSTABLE_CARD_RULE =
@@ -72,11 +72,6 @@ export function unstableRowTooltip(items: readonly UnstableCheck[]): string {
     const [only] = items;
     if (items.length === 1 && only !== undefined) return unstableTooltip(only);
     return `Unstable: ${items.map((item) => `${failedIn(item)} of version ${versionTitle(item.agentVersionId, item.versionLabel)}`).join("; ")}`;
-}
-
-/** The rows the agent page's card shows: the first ones, as the server sorted them (the most often failing first). */
-export function cardRows(list: readonly UnstableCheck[]): UnstableCheck[] {
-    return list.slice(0, UNSTABLE_CARD_MAX_ROWS);
 }
 
 /** "7/9": the runs the check passed in over the runs of its version. */

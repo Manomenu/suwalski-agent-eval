@@ -115,16 +115,24 @@ internal sealed class RunStore(Pool pool)
         return [.. rows];
     }
 
+    private const string ListFilter = """
+        WHERE (@agentId::uuid IS NULL OR r.agent_id = @agentId)
+          AND (@runGroup::text IS NULL OR r.run_group = @runGroup)
+          AND (@grouping = 'All'
+               OR (@grouping = 'None') = (COALESCE(r.run_group, (SELECT o.run_group FROM runs o WHERE o.id = r.recheck_of)) IS NULL))
+          AND (cardinality(@versionIds::uuid[]) = 0 OR r.agent_version_id = ANY(@versionIds::uuid[]))
+        """;
+
     /// <summary>
-    /// A page of runs, newest first (<c>created_at</c> descending, then <c>id</c>): at most <paramref name="limit"/> of them,
-    /// only those strictly after run <paramref name="before"/> in that order, only those of the given agent versions when
-    /// <paramref name="versionIds"/> is not empty, only those of <paramref name="runGroup"/> when one is given, only those in no group or in some group as <paramref name="grouping"/> says
-    /// (a re-check counts as in the group of the run it was made from). A <paramref name="before"/> that is no run gives an empty page.
+    /// A page of runs, newest first (<c>created_at</c> descending, then <c>id</c>): at most <paramref name="limit"/> of them after
+    /// the first <paramref name="offset"/>, only those of the given agent versions when <paramref name="versionIds"/> is not empty,
+    /// only those of <paramref name="runGroup"/> when one is given, only those in no group or in some group as <paramref name="grouping"/> says
+    /// (a re-check counts as in the group of the run it was made from).
     /// </summary>
     public async Task<IReadOnlyList<RunRow>> ListPageAsync(
         Guid? agentId,
-        Guid? before,
         IReadOnlyCollection<Guid> versionIds,
+        int offset,
         int limit,
         string? runGroup = null,
         RunGrouping grouping = RunGrouping.All,
@@ -136,22 +144,15 @@ internal sealed class RunStore(Pool pool)
             new CommandDefinition(
                 $"""
                 {RunSelect}
-                WHERE (@agentId::uuid IS NULL OR r.agent_id = @agentId)
-                  AND (@runGroup::text IS NULL OR r.run_group = @runGroup)
-                  AND (@grouping = 'All'
-                       OR (@grouping = 'None') = (COALESCE(r.run_group, (SELECT o.run_group FROM runs o WHERE o.id = r.recheck_of)) IS NULL))
-                  AND (cardinality(@versionIds::uuid[]) = 0 OR r.agent_version_id = ANY(@versionIds::uuid[]))
-                  AND (@before::uuid IS NULL OR EXISTS (
-                        SELECT 1 FROM runs b
-                        WHERE b.id = @before AND (r.created_at < b.created_at OR (r.created_at = b.created_at AND r.id > b.id))))
+                {ListFilter}
                 ORDER BY r.created_at DESC, r.id
-                LIMIT @limit
+                OFFSET @offset LIMIT @limit
                 """,
                 new
                 {
                     agentId,
-                    before,
                     versionIds = versionIds.ToArray(),
+                    offset,
                     limit,
                     runGroup,
                     grouping = grouping.ToString(),
@@ -160,6 +161,31 @@ internal sealed class RunStore(Pool pool)
             )
         );
         return [.. rows];
+    }
+
+    /// <summary>How many runs <see cref="ListPageAsync"/> pages through with the same filters.</summary>
+    public async Task<int> CountAsync(
+        Guid? agentId,
+        IReadOnlyCollection<Guid> versionIds,
+        string? runGroup = null,
+        RunGrouping grouping = RunGrouping.All,
+        CancellationToken cancellationToken = default
+    )
+    {
+        await using var connection = await pool.OpenAsync(cancellationToken);
+        return await connection.ExecuteScalarAsync<int>(
+            new CommandDefinition(
+                $"SELECT count(*) FROM runs r {ListFilter}",
+                new
+                {
+                    agentId,
+                    versionIds = versionIds.ToArray(),
+                    runGroup,
+                    grouping = grouping.ToString(),
+                },
+                cancellationToken: cancellationToken
+            )
+        );
     }
 
     /// <summary>

@@ -2,7 +2,10 @@ import { Anchor, Group, Paper, Stack, Text, Title, Tooltip } from "@mantine/core
 
 import { UNSTABLE_EXPLANATION, UnstableCheckIcon } from "../checks/UnstableCheckIcon";
 import type { UnstableCheck } from "../runs/api";
-import { cardRows, passedOfRuns, UNSTABLE_CARD_RULE } from "../runs/stability";
+import { ListPagination } from "../pagination/ListPagination";
+import { pageOfItems } from "../pagination/pages";
+import { usePageParam } from "../pagination/usePageParam";
+import { passedOfRuns, UNSTABLE_CARD_PAGE_SIZE, UNSTABLE_CARD_RULE } from "../runs/stability";
 import { runHref, versionTitle } from "../runs/results";
 
 const HEADING_HELP_WIDTH = 340;
@@ -12,7 +15,9 @@ const HEADING_HELP_WIDTH = 340;
  * when there are none. Each row opens the newest run that failed the check.
  */
 export function UnstableChecksCard({ checks }: { checks: UnstableCheck[] }) {
+    const [requestedPage, setRequestedPage] = usePageParam("unstablePage");
     if (checks.length === 0) return null;
+    const { items: listed, page } = pageOfItems(checks, requestedPage, UNSTABLE_CARD_PAGE_SIZE);
     return (
         <Paper withBorder p="md">
             <Stack gap="sm">
@@ -37,7 +42,7 @@ export function UnstableChecksCard({ checks }: { checks: UnstableCheck[] }) {
                 <Text c="dimmed" size="sm">
                     Passed in some runs of a version and failed in others.
                 </Text>
-                {cardRows(checks).map((check) => (
+                {listed.map((check) => (
                     <Group
                         key={JSON.stringify([check.agentVersionId, check.scenarioKey, check.checkKey, check.checkRevision])}
                         justify="space-between"
@@ -55,6 +60,7 @@ export function UnstableChecksCard({ checks }: { checks: UnstableCheck[] }) {
                         </Group>
                     </Group>
                 ))}
+                <ListPagination totalCount={checks.length} page={page} pageSize={UNSTABLE_CARD_PAGE_SIZE} onChange={setRequestedPage} />
             </Stack>
         </Paper>
     );

@@ -1,16 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { UnstableCheck } from "./api";
-import {
-    UNSTABLE_CARD_MAX_ROWS,
-    cardRows,
-    findUnstable,
-    passedOfRuns,
-    unstableChecksPath,
-    unstableInRuns,
-    unstableRowTooltip,
-    unstableTooltip,
-} from "./stability";
+import { findUnstable, passedOfRuns, unstableChecksPath, unstableInRuns, unstableRowTooltip, unstableTooltip } from "./stability";
 
 const item = (over: Partial<UnstableCheck> = {}): UnstableCheck => ({
     scenarioKey: "refund",
@@ -66,13 +57,5 @@ describe("unstableInRuns", () => {
         expect(unstableInRuns(list, ["v2"], [cell(1)], "refund", "says-sorry")).toEqual([]);
         expect(unstableInRuns(list, ["v1"], [cell(1)], "refund", "missing")).toEqual([]);
         expect(unstableInRuns(list, ["v1", "v2"], [null, cell(2)], "refund", "says-sorry").map((x) => x.agentVersionId)).toEqual(["v2"]);
-    });
-});
-
-describe("cardRows", () => {
-    it("keeps the first rows only", () => {
-        const many = Array.from({ length: UNSTABLE_CARD_MAX_ROWS + 3 }, (_, index) => item({ checkKey: `c${index}` }));
-        expect(cardRows(many)).toEqual(many.slice(0, UNSTABLE_CARD_MAX_ROWS));
-        expect(cardRows([])).toEqual([]);
     });
 });

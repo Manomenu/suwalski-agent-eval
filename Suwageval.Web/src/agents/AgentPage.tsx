@@ -16,6 +16,9 @@ import {
 } from "@mantine/core";
 import { lazy, Suspense, useState } from "react";
 
+import { ListPagination } from "../pagination/ListPagination";
+import { usePageParam } from "../pagination/usePageParam";
+import { RUNS_PAGE_SIZE } from "../runs/paging";
 import { useUnstableChecks } from "../runs/useUnstableChecks";
 import { ChecksCount, SamplesCount } from "../runs/RunCounts";
 import {
@@ -143,12 +146,22 @@ function AgentView({
     const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
     // The server pages the runs, so the filters reach it as the versions they allow (none sent: every version).
     const versionIds = allowedVersionIds(versions, showArchived, models, dataVersions, versionFilter);
-    const { runs, hasMore, loading, loadingMore, error, loadMore } = useRuns(
+    const [requestedPage, setRequestedPage] = usePageParam("runsPage");
+    const { runs, totalCount, page, loading, error } = useRuns(
         agent.name,
         versionIds?.join(",") ?? null,
         `${reload}`,
         groupFilter,
+        requestedPage,
+        RUNS_PAGE_SIZE,
     );
+    // A filter changes which runs there are, so the list starts again from its first page.
+    const filtered = <Value,>(change: (value: Value) => void) => {
+        return (value: Value) => {
+            change(value);
+            setRequestedPage(1);
+        };
+    };
     // Only what is listed counts: a run the filter hides is not compared.
     const toCompare = runsToCompare(runs, selected);
     // The problem cards decide over the versions the filters show: a newer version the filters hide closes nothing. With none shown, nothing is asked.
@@ -226,7 +239,7 @@ function AgentView({
                                 placeholder={models.length === 0 ? "All models" : undefined}
                                 data={modelsOf(versions)}
                                 value={models}
-                                onChange={setModels}
+                                onChange={filtered(setModels)}
                                 clearable
                                 miw={MODEL_FILTER_MIN_WIDTH}
                             />
@@ -235,7 +248,7 @@ function AgentView({
                                 placeholder={dataVersions.length === 0 ? "All data versions" : undefined}
                                 data={dataVersionsOf(versions)}
                                 value={dataVersions}
-                                onChange={setDataVersions}
+                                onChange={filtered(setDataVersions)}
                                 clearable
                                 miw={MODEL_FILTER_MIN_WIDTH}
                             />
@@ -244,7 +257,7 @@ function AgentView({
                                 placeholder={versionFilter.length === 0 ? "All versions" : undefined}
                                 data={versionOptions(versions)}
                                 value={versionFilter}
-                                onChange={setVersionFilter}
+                                onChange={filtered(setVersionFilter)}
                                 clearable
                                 miw={MODEL_FILTER_MIN_WIDTH}
                             />
@@ -252,9 +265,9 @@ function AgentView({
                                 label={<HeaderHelp label="Group" help={GROUP_HELP} />}
                                 data={filterOptions(groups, groupFilter)}
                                 value={filterValue(groupFilter)}
-                                onChange={(value) => {
+                                onChange={filtered((value: string | null) => {
                                     setGroupFilter(filterOfValue(value));
-                                }}
+                                })}
                                 allowDeselect={false}
                                 miw={MODEL_FILTER_MIN_WIDTH}
                             />
@@ -386,13 +399,17 @@ function AgentView({
                                     </Table.Tbody>
                                 </Table>
                             </Table.ScrollContainer>
-                            {hasMore && (
-                                <Group justify="center" mt="md">
-                                    <Button variant="light" disabled={loading || loadingMore} loading={loadingMore} onClick={loadMore}>
-                                        Load more
-                                    </Button>
-                                </Group>
-                            )}
+                            <Group justify="center" mt="md">
+                                <ListPagination
+                                    totalCount={totalCount}
+                                    page={page}
+                                    pageSize={RUNS_PAGE_SIZE}
+                                    onChange={(next) => {
+                                        setRequestedPage(next);
+                                        setSelected(new Set());
+                                    }}
+                                />
+                            </Group>
                         </Paper>
                     )}
 
@@ -400,7 +417,7 @@ function AgentView({
                         agentName={agent.name}
                         versions={versions}
                         showArchived={showArchived}
-                        onShowArchivedChange={setShowArchived}
+                        onShowArchivedChange={filtered(setShowArchived)}
                         onChanged={onChanged}
                     />
 

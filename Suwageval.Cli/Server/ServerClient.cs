@@ -110,18 +110,14 @@ internal sealed class ServerClient(HttpClient http)
     )
     {
         var runs = new List<RunSummary>();
-        Guid? before = null;
-        while (runs.Count < limit)
+        // One page size throughout: the server pages by number, so changing it between requests would skip or repeat runs.
+        var size = referenceOnly ? MaxPageSize : Math.Min(limit, MaxPageSize);
+        for (var page = 1; runs.Count < limit; page++)
         {
-            var size = referenceOnly ? MaxPageSize : Math.Min(limit - runs.Count, MaxPageSize);
-            var url = $"runs?agent={Uri.EscapeDataString(agent)}&limit={size}";
+            var url = $"runs?agent={Uri.EscapeDataString(agent)}&page={page}&pageSize={size}";
             foreach (var version in versions ?? [])
             {
                 url += $"&version={version}";
-            }
-            if (before is { } cursor)
-            {
-                url += $"&before={cursor}";
             }
             if (group is not null)
             {
@@ -131,13 +127,12 @@ internal sealed class ServerClient(HttpClient http)
             {
                 url += $"&grouping={grouping}";
             }
-            var page = await SendAsync<RunList>(() => http.GetAsync(new Uri(url, UriKind.Relative), cancellationToken), cancellationToken);
-            runs.AddRange(referenceOnly ? page.Runs.Where(run => run.Reference) : page.Runs);
-            if (page.Next is not { } next)
+            var list = await SendAsync<RunList>(() => http.GetAsync(new Uri(url, UriKind.Relative), cancellationToken), cancellationToken);
+            runs.AddRange(referenceOnly ? list.Runs.Where(run => run.Reference) : list.Runs);
+            if (page * size >= list.TotalCount)
             {
                 break;
             }
-            before = next;
         }
         return runs.Count > limit ? runs[..limit] : runs;
     }

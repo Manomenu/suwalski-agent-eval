@@ -394,7 +394,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         var runs = await GetAsync<RunList>(client, $"/runs?agent={agent.Name}");
 
         Assert.Equal([second.RunId, first.RunId], runs.Runs.Select(run => run.Id));
-        Assert.Null(runs.Next);
+        Assert.Equal(runs.Runs.Count, runs.TotalCount);
         Assert.Equal(
             HttpStatusCode.NotFound,
             (await client.GetAsync(new Uri("/runs?agent=nope", UriKind.Relative), Cancellation)).StatusCode
@@ -451,7 +451,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
     }
 
     [Fact]
-    public async Task The_run_list_is_paged_by_limit_and_before()
+    public async Task The_run_list_is_paged_by_page_and_page_size_with_the_total_and_a_page_past_the_end_is_the_last()
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
         var client = Client();
@@ -463,20 +463,39 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         }
         started.Reverse();
 
-        var first = await GetAsync<RunList>(client, $"/runs?agent={agent.Name}&limit=2");
-        var second = await GetAsync<RunList>(client, $"/runs?agent={agent.Name}&limit=2&before={first.Next}");
+        var first = await GetAsync<RunList>(client, $"/runs?agent={agent.Name}&pageSize=2");
+        var second = await GetAsync<RunList>(client, $"/runs?agent={agent.Name}&pageSize=2&page=2");
+        var pastTheEnd = await GetAsync<RunList>(client, $"/runs?agent={agent.Name}&pageSize=2&page=9");
 
         Assert.Equal(started.Take(2), first.Runs.Select(run => run.Id));
-        Assert.Equal(started[1], first.Next);
         Assert.Equal(started.Skip(2), second.Runs.Select(run => run.Id));
-        Assert.Null(second.Next);
+        Assert.Equal((1, 2, 3), (first.Page, second.Page, first.TotalCount));
+        Assert.Equal(second.Runs.Select(run => run.Id), pastTheEnd.Runs.Select(run => run.Id));
+        Assert.Equal((2, 3), (pastTheEnd.Page, pastTheEnd.TotalCount));
+    }
+
+    [Fact]
+    public async Task The_total_counts_only_the_runs_a_filter_leaves()
+    {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
+        var client = Client();
+        var agent = await NewAgentAsync(fake.Url.AbsoluteUri);
+        await StartAsync(client, new RunRequest { Agent = agent.Name });
+        await StartAsync(client, new RunRequest { Agent = agent.Name, Group = "sweep-1" });
+        await StartAsync(client, new RunRequest { Agent = agent.Name, Group = "sweep-1" });
+
+        var inGroup = await GetAsync<RunList>(client, $"/runs?agent={agent.Name}&group=sweep-1&pageSize=1");
+        var outsideGroups = await GetAsync<RunList>(client, $"/runs?agent={agent.Name}&grouping=None&pageSize=1");
+
+        Assert.Equal((1, 2), (inGroup.Runs.Count, inGroup.TotalCount));
+        Assert.Equal((1, 1), (outsideGroups.Runs.Count, outsideGroups.TotalCount));
     }
 
     [Theory]
-    [InlineData("limit=0")]
-    [InlineData("limit=101")]
-    [InlineData("before=00000000-0000-0000-0000-000000000001")]
-    public async Task A_bad_limit_or_an_unknown_before_is_422(string query)
+    [InlineData("pageSize=0")]
+    [InlineData("pageSize=101")]
+    [InlineData("page=0")]
+    public async Task A_bad_page_or_page_size_is_422(string query)
     {
         var response = await Client().GetAsync(new Uri($"/runs?{query}", UriKind.Relative), Cancellation);
 

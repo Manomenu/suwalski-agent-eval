@@ -735,9 +735,9 @@ export interface paths {
             parameters: {
                 query?: {
                     agent?: string;
-                    before?: string;
+                    page?: number;
                     version?: string[];
-                    limit?: number;
+                    pageSize?: number;
                     group?: string;
                     grouping?: components["schemas"]["RunGrouping"];
                 };
@@ -2095,10 +2095,15 @@ export interface components {
         RunList: {
             runs: components["schemas"]["RunSummary"][];
             /**
-             * Format: uuid
-             * @description The run id to pass as `before` to get the next page; null when there are no older runs.
+             * Format: int32
+             * @description The page these runs are (1-based): the one asked for, or the last one when that is past the end.
              */
-            next?: null | string;
+            page: number;
+            /**
+             * Format: int32
+             * @description How many runs match the filters, over all pages.
+             */
+            totalCount: number;
         };
         /**
          * @description Where the agent's repository stood when a run was started: the facts the CLI reads from git (or from the CI's environment). The
