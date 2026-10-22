@@ -1,13 +1,15 @@
 using Suwageval.AgentSdk.Agents;
 using Suwageval.AgentSdk.Conversations;
 using Suwageval.Contracts.Checks;
+using Suwageval.Contracts.Scenarios;
 
 namespace Suwageval.Server.Runs;
 
 /// <summary>
 /// Whether an agent version can be run against scenarios and checks written for it: every tool call and tool a check names
 /// must be a tool of the version, every event a type its context declares, a retrieval needs a version that retrieves and
-/// fixtures need a version that declares a fixtures schema.
+/// fixtures need a version that declares a fixtures schema. A check of a simulated scenario never picks a turn by its number (a rule of
+/// the files, checked here too because the scenario may have become a simulation after the check was pushed).
 /// A run that fails these only after the agent was called would waste the call and say nothing useful.
 /// </summary>
 internal static class RunCompatibility
@@ -51,8 +53,16 @@ internal static class RunCompatibility
             }
         }
 
+        var continuationOf = scenarios.ToDictionary(scenario => scenario.Key, scenario => scenario.Content.Continuation);
         foreach (var check in checks)
         {
+            if (
+                continuationOf.TryGetValue(check.ScenarioKey, out var continuation)
+                && ContinuationRules.CheckProblem(check, continuation) is { } turnProblem
+            )
+            {
+                mismatches.Add($"check '{check.Key}': {turnProblem}");
+            }
             if (CheckRules.NamedTool(check) is { } named && ToolProblem(agents, named.Tool, named.By) is { } problem)
             {
                 mismatches.Add($"check '{check.Key}': it names tool '{named.Tool}'{problem}");

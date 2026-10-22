@@ -27,7 +27,7 @@ export function ConfigurationSection({
                     <Table.Tbody>
                         <Table.Tr>
                             <Table.Th>Endpoint</Table.Th>
-                            <Table.Td>{endpointUrl}</Table.Td>
+                            <Table.Td className="wrap-key">{endpointUrl}</Table.Td>
                         </Table.Tr>
                         <Table.Tr>
                             <Table.Th>
@@ -50,7 +50,7 @@ export function ConfigurationSection({
                             <Table.Th>
                                 <HeaderHelp label="Regression branches" help={REGRESSION_BRANCHES_HELP} />
                             </Table.Th>
-                            <Table.Td>
+                            <Table.Td className="wrap-key">
                                 <Text span inherit c={branches.isDefault ? "dimmed" : "inherit"}>
                                     {branches.text}
                                 </Text>

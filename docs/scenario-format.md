@@ -148,9 +148,11 @@ snapshot is swapped on purpose.
 
 Unknown fields are an error, like everywhere in the contracts.
 
-**The turn.** `POST /suwageval/turn` gets `{ "conversation": [...], "fixtures": {...} }` and answers `{ "items": [...] }`, everything
-the agent produced in that turn, in order (never a `UserMessage`). `fixtures` is the scenario's `fixtures`, verbatim, and is left out
-when the scenario has none. Every call also carries three headers, for correlation only (the agent's traces and logs): they never
+**The turn.** `POST /suwageval/turn` gets `{ "conversation": [...], "fixtures": {...}, "conversationId": "..." }` and answers
+`{ "items": [...] }`, everything the agent produced in that turn, in order (never a `UserMessage`). `fixtures` is the scenario's
+`fixtures`, verbatim, and is left out when the scenario has none. `conversationId` is sent only in a simulation (below, "Simulation"):
+the same for every turn of one simulated conversation, so an agent that keeps state keeps it under that id. A turn of a scenario of one
+turn has none, so an agent on an older SDK, which refuses unknown fields, still runs those. Every call also carries three headers, for correlation only (the agent's traces and logs): they never
 change what the agent does.
 
 | Header | Value |
@@ -163,7 +165,9 @@ change what the agent does.
 one run after another; an agent that carried state from one `POST /suwageval/turn` to the next
 (an order refunded in an earlier run) would make a result depend on what ran before. The agent
 runs each conversation against a fresh copy of its test data — the example agent gives every
-turn its own copy of the fake shop.
+turn its own copy of the fake shop. A simulated conversation is several turns with one `conversationId`: its first turn starts
+from a fresh copy, every later turn of the same id goes on from what the earlier ones left (the order refunded in turn 2 is refunded in
+turn 3). The whole log is still sent every turn, so an agent that keeps no state rebuilds the conversation from it.
 
 **How Suwageval uses it.** `POST /runs` GETs the contract from the agent (`endpointUrl` of the
 request, else the agent's), registers it as a version and runs against that version. The content
@@ -215,7 +219,8 @@ returns what the server would refuse in the contract (the same code), so an agen
 | `key` | required | lowercase kebab-case (`refund-happy-path`), unique within the agent |
 | `tags` | | lowercase kebab-case; a run picks scenarios by tags (any of the given ones) |
 | `conversation` | required | the log up to the agent's turn, at least one item |
-| `continuation.turns` | | how many agent turns are produced, default `1` |
+| `continuation.turns` | | how many agent turns are produced: 1 to 20, default `1`; above 1 needs `simulatedUser` (a simulated user may end the conversation earlier) |
+| `continuation.simulatedUser` | | the user Suwageval plays with a model, in plain words; set means the scenario is a simulation (see "Simulation") |
 | `samples` | | how many times the conversation is repeated: 1 to 20; not set means the agent's `samples`, else `3` (see "Samples" below) |
 | `fixtures` | | free mapping, sent verbatim with every turn of the scenario (e.g. which documents are pinned for the conversation); shaped by the agent's `context.fixturesSchema`, which the agent must declare. Part of the scenario's content: changing it is a new revision |
 | `checks` | | a list of checks, below |
@@ -290,7 +295,8 @@ An unknown `type` is an error.
 How a check is evaluated (the server's `Checks/`; no model involved, except for `judge`, below):
 
 - **A turn** is the items one `POST {endpointUrl}/suwageval/turn` returned, in the order the agent produced them; turns
-  are numbered from 1. For now a scenario has exactly one turn.
+  are numbered from 1. A scenario has one turn, a simulation up to `continuation.turns`; in a simulation a turn opens with the
+  simulated user's `UserMessage` (see "Simulation"), which no check but `judge` reads.
 - **`turn`** picks the turns whose items are looked at: a number, the last one, or all (`any`). A turn that was not produced
   leaves nothing to look at.
 - **`after: X`** keeps the items that come after the *first* tool call named `X` or event of type `X` among the selected
@@ -399,6 +405,67 @@ Inside `args` and `result` (of `tool-called`) and `data` (of `event`), at any de
 
 Not checked yet: that `arguments`, `data` and `fixtures` match the JSON Schemas the agent declares.
 
+## Simulation
+
+A simulated scenario describes a user in plain words and lets Suwageval play that user with a model, for up to
+`continuation.turns` turns. The agent's real answers decide where the conversation goes, which a scripted user message written
+in advance could not follow, so checks look at the whole conversation: what happened in it and what never did.
+
+```yaml
+key: angry-refund-over-30-days
+tags: [simulation, refunds]
+samples: 5
+conversation:
+  - user: "The kettle from order A-17 stopped working after 40 days."
+continuation:
+  turns: 6
+  simulatedUser: |
+    You are Anna. You bought a kettle (order A-17) 40 days ago and want your money back, not a repair. You are annoyed: it is
+    the second broken kettle. When refused, you ask for a manager and threaten a bad review. A concrete offer (a replacement,
+    a voucher) can win you over. You write short messages in English.
+checks:
+  - key: never-refunds-after-the-window
+    type: tool-not-called
+    tool: refund_order
+  - key: offers-replacement
+    type: tool-called
+    tool: create_replacement
+    args: { order_id: A-17 }
+    passThreshold: 0.6
+  - key: stays-calm-and-explains
+    type: judge
+    criteria: "The agent stays polite under pressure and explains the 30-day refund rule at least once."
+```
+
+- **A turn ends with the agent's answer, always.** When the conversation ends with a user message, turn 1 is the agent answering
+  it; every further turn opens with the simulated user's message. When it ends with anything else (an agent message), the simulated
+  user writes first, in turn 1 too.
+- **The simulated user** sees what a real user sees: the description and the messages (the agent's text; a turn in which the agent
+  wrote nothing shows as such), never tool calls, results, events, retrievals or fixtures. It writes one message per turn, or ends
+  the conversation when that user would leave (goal reached, gave up, said goodbye) — then the sample has fewer turns
+  (`endedByUser` in the results). What it writes is never judged.
+- **Write the description** as the user's goal, temperament, situation, what they know (an order number) and the language they
+  write in. It is part of the scenario's content: a changed description is a new revision, whose checks start a new history.
+- **Checks look at the whole conversation.** The default `where: { turn: any }` takes every turn: `tool-called`, `event`, `cited`
+  and `text` with `contains` / `pattern` pass when it happened at some point, `tool-not-called`, `event-not-emitted` and `text` with
+  `notContains` when it never did. `turn: last` is the last turn; a turn by number is an error (`validate` reports it, and a run
+  with such a check is refused with 409), because every sample goes another way. `after` / `before` work across
+  turns. A `judge` check judges the agent over the whole conversation; the simulated user's messages are context to it, never judged.
+  Simulations vary more than one turn: use several `samples`, a `passThreshold` below 1 for what depends on the course of the
+  conversation, and 1.0 for what must never happen.
+- **The model** is `Simulation:Model`, one of `Models:<name>` — committed as `judge`, the judge's own entry, so both share its client
+  and its limit of calls at once (`MaxConcurrency`); another entry has a limit of its own. `Simulation:Temperature` (0 to 2,
+  default 0.7; `Simulation__Temperature` in the environment) is how freely the user writes: above 0 on purpose, so the samples do not
+  all go the same way. A run with a simulated scenario is refused with 409 when no simulator model is configured.
+- **Cost.** Each sample is up to `turns` agent calls and up to `turns` simulator calls, plus the judge's calls once at the end.
+- **When it cannot finish.** An agent that does not answer in turn k fails the sample (`Turn k: …`); a simulated user that cannot be
+  played (the model is down, too slow or answers unreadably) makes it `NotSimulated` (`Not simulated: …`). Either way the checks are
+  not evaluated, the output keeps what happened before, and the sample counts like an agent error for regressions (left out of the
+  history). Run again before concluding anything from a `NotSimulated` sample.
+- **The results** of a simulated sample: `output` is every turn in order, the simulated user's messages as `UserMessage`;
+  `turnDurationsMs` how long the agent took for each turn (their sum is `durationMs`; the simulator's time is not in it);
+  `endedByUser`. A re-check judges the stored conversation again; it never simulates anew.
+
 ## Regressions
 
 A **regression** is a check that passed steadily and fails now. Nobody marks a baseline: the baseline is the check's **history**
@@ -443,8 +510,8 @@ over the newest *reference runs*.
 ## Results: how long a turn took
 
 Suwageval measures the wall-clock time of every `POST /suwageval/turn` call itself, whether the agent answered or not, and stores
-it on the sample: `durationMs` in `GET /runs/{id}/results` (`SampleResult`). It is absent when no call was made (a scenario with
-`continuation.turns` above 1 still fails without one). The run page shows it per sample, and the median and 95th percentile
+it on the sample: `durationMs` in `GET /runs/{id}/results` (`SampleResult`). It is absent when no call was made. A simulated sample
+also has `turnDurationsMs`, one per turn; the median, the 95th percentile and the trend count each turn as one. The run page shows it per sample, and the median and 95th percentile
 (nearest rank) of the samples that made a call.
 
 ## One complete example

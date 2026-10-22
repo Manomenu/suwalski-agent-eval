@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # `just tmux-dev`: the local stack in one tmux session.
 #   left:  a shell in the example agent's repo, for the suwageval CLI
-#   right: server (+ database) | web  /  example agent | a spare shell
+#   right: server (+ database) | web  /  example agent (suwexag) | a spare shell
+# The example agent (suwexag) runs from its source, `dotnet watch`, so a change to it reloads like the server's; only when its
+# source is not there, from its local image (suwexag:local, `just build-image` in its repo). With neither the session is not
+# started. Its model settings are its repo's .env either way.
 # The session is reused when it exists; --restart kills it (and everything running in it) first.
 # Inside tmux the client is switched, not nested.
 # TMUX_DEV_NO_ATTACH=1 builds the session and stops there (used to inspect the layout).
@@ -10,6 +13,7 @@ set -euo pipefail
 SESSION=suwageval-dev
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 AGENT_DIR="${SUWAGEVAL_AGENT_DIR:-$HOME/repos/suwalski-example-agent}"
+AGENT_IMAGE=suwexag:local
 
 restart=0
 case "${1:-}" in
@@ -50,13 +54,26 @@ if tmux has-session -t "=$SESSION" 2>/dev/null; then
   exit 0
 fi
 
+agent_env="$AGENT_DIR/.env"
+if [[ -f "$AGENT_DIR/ExampleAgent/ExampleAgent.csproj" ]]; then
+  agent_command="cd $(printf '%q' "$AGENT_DIR") && dotnet watch --project ExampleAgent"
+elif docker image inspect "$AGENT_IMAGE" >/dev/null 2>&1; then
+  # --rm and a fixed name: a session killed by --restart leaves no container behind to block the next one's port.
+  env_file=""
+  [[ -f "$agent_env" ]] && env_file="--env-file $(printf '%q' "$agent_env")"
+  agent_command="docker rm -f suwexag >/dev/null 2>&1; docker run --rm --name suwexag -p 127.0.0.1:7010:7010 $env_file $AGENT_IMAGE"
+else
+  echo "No example agent: neither its source ($AGENT_DIR, set SUWAGEVAL_AGENT_DIR) nor the $AGENT_IMAGE image (just build-image in its repo)." >&2
+  exit 1
+fi
+if [[ ! -f "$agent_env" ]]; then
+  echo "warning: no $agent_env: the example agent has no model, so its turns will fail (copy its .env.example)" >&2
+fi
+left_dir="$REPO"
+[[ -d "$AGENT_DIR" ]] && left_dir="$AGENT_DIR"
+
 # Types a command into a pane's shell, so the pane survives the command's exit.
 run() { tmux send-keys -t "$1" "$2" Enter; }
-
-agent_present=1
-[[ -d "$AGENT_DIR" ]] || agent_present=0
-left_dir="$AGENT_DIR"
-((agent_present)) || left_dir="$REPO"
 
 left=$(tmux new-session -d -s "$SESSION" -c "$left_dir" -x 220 -y 50 -P -F '#{pane_id}')
 top_left=$(tmux split-window -h -t "$left" -c "$REPO" -P -F '#{pane_id}')
@@ -68,18 +85,13 @@ tmux set-option -t "$SESSION" pane-border-status top
 tmux select-pane -t "$left" -T "cli"
 tmux select-pane -t "$top_left" -T "server"
 tmux select-pane -t "$top_right" -T "web"
-tmux select-pane -t "$bottom_left" -T "example agent"
+tmux select-pane -t "$bottom_left" -T "example agent (suwexag)"
 tmux select-pane -t "$bottom_right" -T "shell"
 
 run "$top_left" "just db up && just server"
 run "$top_right" "just web"
 
-if ((agent_present)); then
-  run "$bottom_left" "cd $(printf '%q' "$AGENT_DIR") && uv run uvicorn example_agent.app:app --port 7010"
-else
-  run "$bottom_left" "echo $(printf '%q' "Example agent not found: $AGENT_DIR (set SUWAGEVAL_AGENT_DIR)")"
-  run "$left" "echo $(printf '%q' "Example agent not found: $AGENT_DIR (set SUWAGEVAL_AGENT_DIR); this shell is in the suwageval repo")"
-fi
+run "$bottom_left" "$agent_command"
 
 tmux select-pane -t "$left"
 attach

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Suwageval.AgentSdk.Conversations;
 using Suwageval.Contracts.Scenarios;
+using Suwageval.Server.Checks;
 
 namespace Suwageval.Server.Runs;
 
@@ -16,4 +17,10 @@ internal sealed record ScenarioContent
 
     /// <summary>Not set (null): the agent's default, else 3.</summary>
     public int? Samples { get; init; }
+
+    /// <summary>Whether the scenario is a simulation: a model plays the user and the conversation goes on for up to its turns.</summary>
+    public bool Simulated => Continuation.SimulatedUser is not null;
+
+    /// <summary>The trace of a sample's output: a simulation's turns, each opened by the simulated user's message; otherwise one turn.</summary>
+    public Trace TraceOf(IReadOnlyList<ConversationItem> output) => Simulated ? Trace.Of(output) : new Trace([output]);
 }

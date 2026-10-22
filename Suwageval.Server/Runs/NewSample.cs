@@ -12,5 +12,7 @@ internal sealed record NewSample(
     string? Error,
     int? DurationMs,
     IReadOnlyList<string> Undeclared,
-    IReadOnlyList<NewCheckResult> Checks
+    IReadOnlyList<NewCheckResult> Checks,
+    IReadOnlyList<int>? TurnDurationsMs = null,
+    bool EndedByUser = false
 );

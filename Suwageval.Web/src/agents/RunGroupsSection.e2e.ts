@@ -9,7 +9,8 @@ test("the runs table hides group runs by default, and a group is archived, shown
     try {
         const suffix = String(Date.now());
         const name = `e2e-groups-${suffix}`;
-        const group = `e2e-sweep-${suffix}`;
+        // As long as a real sweep's name: the long Group column is what squeezes the others.
+        const group = `e2e-sweep-${suffix}-smart-router-salesbot`;
         await createAgent(request, { name, endpointUrl: agentServer.endpointUrl });
         const [plain, grouped] = await Promise.all([runToEnd(request, { agent: name }), runToEnd(request, { agent: name, group })]);
         const plainBox = page.getByRole("checkbox", { name: `Select run ${plain.slice(0, 8)}`, exact: true });
@@ -42,6 +43,11 @@ test("the runs table hides group runs by default, and a group is archived, shown
         await page.getByRole("option", { name: "All runs", exact: true }).click();
         await expect(plainBox).toBeVisible();
         await expect(groupedBox).toBeVisible();
+        // The Group column squeezes the others: still no badge (Done, Reference, …) is cut short.
+        const clippedBadges = await page
+            .locator("td.no-wrap .mantine-Badge-label")
+            .evaluateAll((labels) => labels.filter((label) => label.scrollWidth > label.clientWidth).map((label) => label.textContent));
+        expect(clippedBadges).toEqual([]);
         await page.goto(`/agents/${name}?group=${group}`);
         await expect(groupedBox).toBeVisible();
         await expect(plainBox).toHaveCount(0);

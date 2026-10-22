@@ -7,6 +7,7 @@ using Suwageval.Server.Invocation;
 using Suwageval.Server.Judges;
 using Suwageval.Server.Problems;
 using Suwageval.Server.Scenarios;
+using Suwageval.Server.Simulation;
 
 namespace Suwageval.Server.Runs;
 
@@ -199,7 +200,7 @@ internal static class RunEndpoints
     /// registered here. 404: no such agent; 422: the request or what it selects is not runnable (a bad endpoint, no scenario
     /// with the tag); 502: the agent's contract could not be read or is not valid; 409: the version does not fit the scenarios
     /// and checks — the mismatches are listed and nothing is queued; 409 also when a judge check or a <c>$judge</c> argument matcher is
-    /// picked and no judge model is configured.
+    /// picked and no judge model is configured, or a simulated scenario and no simulator model.
     /// </summary>
     private static Task<IResult> CreateAsync(
         RunRequest request,
@@ -209,8 +210,9 @@ internal static class RunEndpoints
         RunStore runs,
         AgentClient client,
         Judge judge,
+        UserSimulator simulator,
         CancellationToken cancellationToken
-    ) => StartAsync(request, null, agents, scenarios, checks, runs, client, judge, cancellationToken);
+    ) => StartAsync(request, null, agents, scenarios, checks, runs, client, judge, simulator, cancellationToken);
 
     /// <summary>
     /// <see cref="CreateAsync"/> with the placement of the run (origin, reference, compared branch) given by the caller — a rerun's is its
@@ -225,6 +227,7 @@ internal static class RunEndpoints
         RunStore runs,
         AgentClient client,
         Judge judge,
+        UserSimulator simulator,
         CancellationToken cancellationToken
     )
     {
@@ -314,6 +317,15 @@ internal static class RunEndpoints
             );
         }
 
+        if (!simulator.IsConfigured && picked.Any(scenario => StoredContent.Scenario(scenario.Content).Simulated))
+        {
+            return Results.Problem(
+                title: "No simulator model is configured",
+                detail: "The scenarios have a simulated user, but the simulator's model is not configured (Models:<Simulation:Model>:BaseUrl and :Model); nothing was queued.",
+                statusCode: StatusCodes.Status409Conflict
+            );
+        }
+
         var placement = inherited ?? RunPlacement.Decide(request.Origin, agent.Regression);
         if (request.Group is not null)
         {
@@ -354,6 +366,7 @@ internal static class RunEndpoints
         RunStore runs,
         AgentClient client,
         Judge judge,
+        UserSimulator simulator,
         CancellationToken cancellationToken
     )
     {
@@ -377,6 +390,7 @@ internal static class RunEndpoints
             runs,
             client,
             judge,
+            simulator,
             cancellationToken
         );
     }

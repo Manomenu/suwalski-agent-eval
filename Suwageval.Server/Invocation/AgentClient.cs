@@ -75,7 +75,15 @@ internal sealed class AgentClient(HttpClient http)
         var url = new Uri(endpointUrl.AbsoluteUri.TrimEnd('/') + "/suwageval/turn");
         var request = new HttpRequestMessage(HttpMethod.Post, url)
         {
-            Content = JsonContent.Create(new TurnRequest { Conversation = conversation, Fixtures = context.Fixtures }, options: Request),
+            Content = JsonContent.Create(
+                new TurnRequest
+                {
+                    Conversation = conversation,
+                    Fixtures = context.Fixtures,
+                    ConversationId = context.ConversationId,
+                },
+                options: Request
+            ),
         };
         request.Headers.Add(TurnCorrelation.RunIdHeader, context.RunId.ToString());
         request.Headers.Add(TurnCorrelation.ScenarioHeader, context.ScenarioKey);

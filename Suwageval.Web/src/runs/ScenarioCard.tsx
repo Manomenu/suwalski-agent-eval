@@ -11,16 +11,8 @@ import { CheckHistory } from "./CheckHistory";
 import { stateLabel } from "./regression";
 import { StateBadge } from "./StateBadge";
 import { findUnstable, unstableTooltip } from "./stability";
-import {
-    checkAnchor,
-    checkSummary,
-    failedEvidenceKeys,
-    formatSeconds,
-    notJudgedCount,
-    sampleVerdict,
-    samplesToOpen,
-    scenarioAnchor,
-} from "./results";
+import { checkAnchor, checkSummary, failedEvidenceKeys, notJudgedCount, sampleVerdict, samplesToOpen, scenarioAnchor } from "./results";
+import { isSimulated, sampleTitle } from "./simulation";
 
 const VERDICT_COLOR = { passed: "green", failed: "red", "not judged": "yellow", "no output": "red" } as const;
 
@@ -28,10 +20,7 @@ function SampleRowLabel({ scenario, sample }: { scenario: ScenarioRunResult; sam
     const verdict = sampleVerdict(scenario, sample.sample);
     return (
         <Group gap="xs">
-            <span>
-                Agent output, sample {sample.sample}
-                {sample.durationMs != null && ` · ${formatSeconds(sample.durationMs)}`}
-            </span>
+            <span>{sampleTitle(sample)}</span>
             {verdict.kind !== "unchecked" && (
                 <Badge color={VERDICT_COLOR[verdict.kind]} variant={verdict.kind === "failed" ? "filled" : "light"}>
                     {verdict.kind === "failed"
@@ -80,6 +69,11 @@ export function ScenarioCard({
                         {sample.status === "Failed" && (
                             <Alert color="red" title={`Sample ${sample.sample}: the agent returned nothing`}>
                                 {sample.error}
+                            </Alert>
+                        )}
+                        {sample.status === "NotSimulated" && (
+                            <Alert color="orange" title={`Sample ${sample.sample}: the simulated user could not be played`}>
+                                {sample.error} Not the agent's doing: run it again.
                             </Alert>
                         )}
                         {(sample.undeclared?.length ?? 0) > 0 && (
@@ -152,7 +146,11 @@ export function ScenarioCard({
                                 <SampleRowLabel scenario={scenario} sample={sample} />
                             </Accordion.Control>
                             <Accordion.Panel>
-                                <ConversationView items={sample.output ?? []} highlight={failedEvidenceKeys(scenario, sample.sample)} />
+                                <ConversationView
+                                    items={sample.output ?? []}
+                                    highlight={failedEvidenceKeys(scenario, sample.sample)}
+                                    simulated={isSimulated(sample)}
+                                />
                             </Accordion.Panel>
                         </Accordion.Item>
                     ))}
