@@ -1,18 +1,19 @@
-import { Alert, Anchor, Group, Loader, Paper, SegmentedControl, Stack, Switch, Table, Text, Title, Tooltip } from "@mantine/core";
+import { Alert, Anchor, Badge, Group, Loader, Paper, SegmentedControl, Stack, Switch, Table, Text, Title, Tooltip } from "@mantine/core";
 import { useState } from "react";
 
 import { fetchVersion, fetchVersions, type AgentVersion } from "../agents/api";
 import { useLoaded } from "../agents/useLoaded";
 import { agentHref } from "../agents/view";
+import { ModelJudgedIcon } from "../checks/ModelJudgedIcon";
 import { HeaderHelp } from "../runs/HeaderHelp";
 import { ChecksCount, SamplesCount } from "../runs/RunCounts";
 import { durationSummary, percent, RUN_CHECKS_HELP, RUN_SAMPLES_HELP } from "../runs/results";
 import { filteredLabel, keepsTags, selectedTagRows } from "../tagFilter/tagSelection";
 import { TagFilter } from "../tagFilter/TagFilter";
 import { useTagFilter } from "../tagFilter/useTagFilter";
-import { fetchComparison, type RunComparison } from "./api";
+import { fetchComparison, type ComparedRun, type RunComparison } from "./api";
 import { ColumnHeader, type BaselineInfo } from "./ColumnHeader";
-import { baselineOf, deltaText, searchWithBaseline, toggledBaseline, trendColor } from "./compare";
+import { baselineOf, deltaText, searchWithBaseline, TIME_DELTA_HELP, timeDeltaText, toggledBaseline, trendColor } from "./compare";
 import { contractDifferences, type Difference } from "./contractDiff";
 import { COLUMN_MIN_WIDTH, LABEL_COLUMN_WIDTH, tableMinWidth } from "./layout";
 import { ScenarioRows } from "./ScenarioRows";
@@ -152,13 +153,11 @@ function View({
                         <Table.Thead>
                             <Table.Tr>
                                 <Table.Th w={LABEL_COLUMN_WIDTH} />
-                                {variants.runs.map((variant, column) => {
+                                {variants.runs.map((variant) => {
                                     const baselineInfo: BaselineInfo | null =
                                         columns < 2
                                             ? null
                                             : {
-                                                  compared: compared?.[column] ?? null,
-                                                  baselineJudgeModel: baselineJudgeModel(variants),
                                                   isBaseline: variant.run.id === baseline?.runId,
                                                   onToggleBaseline: () => {
                                                       onBaseline(variant.run.id);
@@ -210,12 +209,23 @@ function View({
                             </Table.Tr>
                             <Table.Tr>
                                 <Table.Td fw={500}>{filtered ? "Turn time (all scenarios)" : "Turn time"}</Table.Td>
-                                {variants.runs.map((variant) => (
+                                {variants.runs.map((variant, column) => (
                                     <Table.Td key={variant.run.id}>
                                         <Text size="sm">{durationSummary(variant)?.replace("Turn time: ", "") ?? "—"}</Text>
+                                        <TimeChanges compared={compared?.[column]} />
                                     </Table.Td>
                                 ))}
                             </Table.Tr>
+                            {compared !== null && (
+                                <Table.Tr>
+                                    <Table.Td fw={500}>Judge</Table.Td>
+                                    {compared.map((run) => (
+                                        <Table.Td key={run.run.id}>
+                                            <Judge compared={run} baselineJudgeModel={baselineJudgeModel(variants)} />
+                                        </Table.Td>
+                                    ))}
+                                </Table.Tr>
+                            )}
                         </Table.Tbody>
                         <Table.Tbody>
                             <SectionRow columns={columns} title="Pass rate per tag" help={TAG_RATE_HELP} />
@@ -323,6 +333,51 @@ function View({
 /** The judge of the baseline's own column: what the "other judge" badge of the others is measured against. */
 function baselineJudgeModel({ baseline }: RunComparison): string | null {
     return baseline?.runs.find((compared) => compared.run.id === baseline.runId)?.judgeModel ?? null;
+}
+
+/** The turn time changes of a run against the baseline's, as the server computed them: median and p95. Nothing on the baseline itself. */
+function TimeChanges({ compared }: { compared: ComparedRun | undefined }) {
+    if (compared === undefined) return null;
+    const changes = [
+        ...(compared.medianChange == null ? [] : [{ label: "median", change: compared.medianChange }]),
+        ...(compared.p95Change == null ? [] : [{ label: "p95", change: compared.p95Change }]),
+    ];
+    if (changes.length === 0) return null;
+    return (
+        <Tooltip label={TIME_DELTA_HELP} multiline w={HELP_WIDTH}>
+            <Group gap="xs" wrap="nowrap" w="fit-content" style={{ cursor: "help" }}>
+                {changes.map(({ label, change }) => (
+                    <Text key={label} size="xs" c={trendColor(change.trend)}>
+                        {label} {timeDeltaText(change)}
+                    </Text>
+                ))}
+            </Group>
+        </Tooltip>
+    );
+}
+
+/** The model that judged a run, and a warning when it is not the baseline's: a different verdict may come from the judge. */
+function Judge({ compared, baselineJudgeModel }: { compared: ComparedRun; baselineJudgeModel: string | null }) {
+    if (compared.judgeModel == null) return <Text size="sm">—</Text>;
+    return (
+        <Group gap={4} wrap="nowrap">
+            <ModelJudgedIcon model={compared.judgeModel} />
+            <Text size="sm" className="wrap-key">
+                {compared.judgeModel}
+            </Text>
+            {compared.judgeChanged && (
+                <Tooltip
+                    label={`The baseline was judged by ${baselineJudgeModel ?? ""}: a different verdict may come from the judge, not the agent`}
+                    multiline
+                    w={HELP_WIDTH}
+                >
+                    <Badge size="xs" variant="light" color="orange" style={{ cursor: "help" }}>
+                        other judge
+                    </Badge>
+                </Tooltip>
+            )}
+        </Group>
+    );
 }
 
 function SectionRow({ columns, title, help }: { columns: number; title: string; help?: string }) {
