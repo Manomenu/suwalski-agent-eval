@@ -20,6 +20,8 @@ public sealed class SweepCommandTests : IDisposable
     private readonly List<string> commands = [];
     private string label = "default";
     private string? servedLabel;
+    private string typed = "";
+    private bool interactive;
 
     public void Dispose() => folder.Delete(recursive: true);
 
@@ -111,10 +113,11 @@ public sealed class SweepCommandTests : IDisposable
         using var error = new StringWriter();
         var exit = CliApp.Run(
             ["sweep", "--dir", dir, .. args],
-            new StringReader(""),
+            new StringReader(typed),
             output,
             error,
             http,
+            interactive: interactive,
             origins: new RunOriginReader((_, _) => null, _ => null),
             shell: Shell,
             labelPollInterval: TimeSpan.FromMilliseconds(10)
@@ -146,6 +149,43 @@ public sealed class SweepCommandTests : IDisposable
         var (exit, _, error) = Sweep(dir, "turbo");
         Assert.Equal(2, exit);
         Assert.Contains("No such variant: turbo", error, StringComparison.Ordinal);
+        Assert.Empty(commands);
+    }
+
+    [Fact]
+    public void Select_runs_the_variants_picked_from_the_list_and_asks_again_after_a_bad_answer()
+    {
+        var dir = Agent(Section, "fast", "slow", "turbo");
+        interactive = true;
+        typed = "9\n1,3\n";
+
+        var (exit, output, error) = Sweep(dir, "--select");
+
+        Assert.Equal(0, exit);
+        Assert.Equal(["reconfigure fast", "reconfigure turbo", "restore"], commands);
+        Assert.Contains("2) slow", output, StringComparison.Ordinal);
+        Assert.Contains("'9' is outside 1-3", error, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Select_together_with_named_variants_is_refused()
+    {
+        interactive = true;
+
+        var (exit, _, error) = Sweep(Agent(Section, "fast"), "--select", "fast");
+
+        Assert.Equal(2, exit);
+        Assert.Contains("not both", error, StringComparison.Ordinal);
+        Assert.Empty(commands);
+    }
+
+    [Fact]
+    public void Select_without_a_terminal_is_refused_and_says_to_name_the_variants()
+    {
+        var (exit, _, error) = Sweep(Agent(Section, "fast"), "--select");
+
+        Assert.Equal(2, exit);
+        Assert.Contains("name the variants instead", error, StringComparison.Ordinal);
         Assert.Empty(commands);
     }
 

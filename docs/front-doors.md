@@ -36,7 +36,7 @@ The server has one interface, its HTTP API. Three users reach it:
   no, the run goes on and the exit code is 130. Without a terminal to ask on (a CI job being stopped) the
   run is cancelled, since nobody would read its results. For machines, `--json` on either prints the results (and opens nothing).
 - **`suwageval sweep` runs the variants for you.** The agent's repository says how to switch the agent to a variant in the
-  `sweep:` section of `agent.yaml` (see scenario-format.md); `suwageval sweep [variant…] [--tag t]… [--group g]` then, for each
+  `sweep:` section of `agent.yaml` (see scenario-format.md); `suwageval sweep [variant…] [--select] [--tag t]… [--group g]` then, for each
   variant (a file in `variantsDir`, named like the file without its extension; none named means all): runs `before`, runs
   `reconfigure` with `{variant}` filled in, waits until `GET {endpointUrl}/suwageval/contract` carries `label == <variant>`
   (at most `waitSeconds`), starts a run in the group (default `sweep-<yyyymmdd-hhmm>-<agent>`), waits for it and runs `after`.
@@ -45,6 +45,9 @@ The server has one interface, its HTTP API. Three users reach it:
   (`cmd /c` on Windows); `restore` runs once at the end, `after` after every variant, also after Ctrl+C (which cancels the run
   being waited for). It exits 0, 2 when any variant failed or `restore` failed, 130 after Ctrl+C. It does not `push`: push first.
   The output ends with a row per variant and the link to the group's variants page.
+  `--select` replaces naming the variants: it lists the files of `variantsDir` as a numbered list and reads the answer (`1,3`,
+  `2-4` or `all`; asked again when it is not valid). It cannot be combined with named variants, and without a terminal
+  (input redirected) it exits 2: name the variants then.
 - **Runs are compared on one page.** `/compare?runs=<id>,<id>,â€¦` and `/variants?group=<name>[&agent=<name>]` (or
   `/variants?runs=<id>,â€¦`) open the same page: a column per run. On an agent's page tick runs and press **Compare**, or open a group from its **Groups** section; `suwageval compare <runId> <runId> â€¦` and `suwageval variants` print
   the same data on stdout (`--json` for the records, `--open` for the page) and `suwageval runs` lists the runs to pick from. Claude
