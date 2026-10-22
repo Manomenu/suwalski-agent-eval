@@ -1,7 +1,7 @@
 import { Box, Code, Text } from "@mantine/core";
 import { useEffect, useState } from "react";
 
-import { hangingIndent } from "./definition";
+import { hangingIndents } from "./definition";
 import { DEFINITION_THEME, loadHighlighter } from "./highlighter";
 
 const PRE_STYLE =
@@ -9,7 +9,7 @@ const PRE_STYLE =
 
 /**
  * YAML in the theme's own colours, never scrolled sideways: a long line wraps and hangs under the start of its value
- * (`hangingIndent`), one block per line, as YAML would indent it. While the highlighter loads the plain text shows in a code block. The HTML comes from
+ * (`hangingIndents`), one block per line, as YAML would indent it. While the highlighter loads the plain text shows in a code block. The HTML comes from
  * shiki, which escapes the text it is given; it is set with `dangerouslySetInnerHTML` because turning shiki's tree into
  * React elements would need another package for no gain.
  */
@@ -22,7 +22,7 @@ export function HighlightedYaml({ yaml }: { yaml: string }) {
         loadHighlighter().then(
             (highlighter) => {
                 if (ignore) return;
-                const lines = yaml.split("\n");
+                const hangs = hangingIndents(yaml.split("\n"));
                 setHighlighted({
                     yaml,
                     html: highlighter.codeToHtml(yaml, {
@@ -38,7 +38,7 @@ export function HighlightedYaml({ yaml }: { yaml: string }) {
                                     node.children = node.children.filter((child) => child.type !== "text");
                                 },
                                 line(node, line) {
-                                    const hang = hangingIndent(lines[line - 1] ?? "");
+                                    const hang = hangs[line - 1] ?? 0;
                                     node.properties.style = `display:block;padding-left:${String(hang)}ch;text-indent:-${String(hang)}ch`;
                                 },
                             },
