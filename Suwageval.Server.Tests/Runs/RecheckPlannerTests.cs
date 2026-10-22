@@ -9,7 +9,7 @@ public sealed class RecheckPlannerTests
         RecheckPlanner.Of(status, samples, samples, [], [], [], SeededAgent.ExampleVersion);
 
     private static ScenarioResultRow Sample(string key) =>
-        new(Guid.NewGuid(), key, 1, 1, "Done", "[]", null, "[]", 10, Guid.NewGuid(), "{}", "[]");
+        new(Guid.NewGuid(), key, 1, 1, "Done", "[]", null, "[]", 10, Guid.NewGuid(), "{}", "[]", null, false);
 
     [Theory]
     [InlineData(RunStatus.Queued)]

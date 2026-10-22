@@ -34,6 +34,10 @@ spec:
             - name: ASPNETCORE_HTTP_PORTS
               value: {{ .Values.server.port | quote }}
             {{- include "app.judgeEnv" . | nindent 12 }}
+            {{- with .Values.simulation.temperature }}
+            - name: Simulation__Temperature
+              value: {{ . | quote }}
+            {{- end }}
           {{- if or .Values.server.databaseSecret .Values.judgeModel.secret }}
           envFrom:
             {{- with .Values.server.databaseSecret }}

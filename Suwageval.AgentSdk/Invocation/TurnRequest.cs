@@ -47,4 +47,11 @@ public sealed record TurnRequest
     /// assistant message.
     /// </exception>
     public IReadOnlyList<HistoryTurn> HistoryTurns() => HistoryTurnSplitter.Split(Conversation.Take(Conversation.Count - 1));
+
+    /// <summary>
+    /// The same for every turn of one simulated conversation (a scenario with a simulated user), omitted otherwise. An agent that keeps
+    /// state — its test data, a state machine — keeps it under this id: the first turn of an id starts from fresh test data, every
+    /// later turn of it goes on from what the earlier ones left. The conversation sent is still the whole log.
+    /// </summary>
+    public string? ConversationId { get; init; }
 }

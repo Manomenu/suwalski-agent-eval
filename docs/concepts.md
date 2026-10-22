@@ -16,6 +16,10 @@ A scenario is a frozen moment of a conversation with the agent, plus what we exp
   - the last message — the user's turn the agent answers next.
 - **The tests** run on the agent's answer to that last message.
 
+A **simulated scenario** describes a user in plain words instead of what they say next: Suwageval plays that user with a model,
+turn after turn, for up to the scenario's number of turns, and its checks look at the whole conversation (what happened and what never
+did, and a judge over the agent's behaviour). The simulated user's messages are never judged.
+
 ## A run
 
 The agent under test receives the context and produces its next turn: a tool call, an answer,

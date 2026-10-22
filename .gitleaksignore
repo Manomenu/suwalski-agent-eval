@@ -1,0 +1,3 @@
+# False positives only — never a real value (AGENTS.md section 7: a real one is removed and rotated).
+# A check's name in a docs example of the multi-turn branch (since renamed), read as an API key by generic-api-key.
+f265943be1fb254dfd873019718bf6b09c54def3:docs/scenario-format.md:generic-api-key:413

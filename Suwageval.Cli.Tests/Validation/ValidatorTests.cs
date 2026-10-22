@@ -235,9 +235,51 @@ public sealed class ValidatorTests
             "kebab-case"
         );
 
+    [Theory]
+    [InlineData("turns: 0, simulatedUser: Anna")]
+    [InlineData("turns: 21, simulatedUser: Anna")]
+    public void Turns_are_from_one_to_twenty(string continuation) =>
+        AssertProblem(
+            Validate($"key: k\ncontinuation: {{ {continuation} }}\nconversation:\n  - user: hi\n"),
+            "continuation.turns",
+            "from 1 to 20"
+        );
+
     [Fact]
-    public void Turns_are_at_least_one() =>
-        AssertProblem(Validate("key: k\ncontinuation: { turns: 0 }\nconversation:\n  - user: hi\n"), "continuation.turns", "at least 1");
+    public void More_than_one_turn_needs_a_simulated_user() =>
+        AssertProblem(
+            Validate("key: k\ncontinuation: { turns: 2 }\nconversation:\n  - user: hi\n"),
+            "continuation.turns",
+            "needs continuation.simulatedUser"
+        );
+
+    [Fact]
+    public void A_simulated_scenario_is_valid_and_its_checks_never_pick_a_turn_by_number()
+    {
+        const string scenario = """
+            key: k
+            continuation:
+              turns: 3
+              simulatedUser: |
+                Anna wants a refund and is annoyed.
+            conversation:
+              - assistant: "Hello! How can I help?"
+            checks:
+              - key: polite
+                type: text
+                notContains: idiot
+              - key: second
+                type: text
+                contains: refund
+                where: { turn: 2 }
+            """;
+
+        var result = Validate(scenario);
+
+        var problem = Assert.Single(result.Problems);
+        Assert.Equal("checks[1].where.turn", problem.Path);
+        Assert.Contains("'any' or 'last'", problem.Message, StringComparison.Ordinal);
+    }
 
     [Theory]
     [InlineData("samples: 0")]

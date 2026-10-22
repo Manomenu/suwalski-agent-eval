@@ -134,6 +134,8 @@ internal static class RunReport
             Output = row.Output is null ? null : Items(row.Output),
             Error = row.Error,
             DurationMs = row.DurationMs,
+            TurnDurationsMs = row.TurnDurationsMs,
+            EndedByUser = row.EndedByUser,
             Undeclared = JsonSerializer.Deserialize<IReadOnlyList<string>>(row.Undeclared, ContractJson.Options) ?? [],
         };
 

@@ -4,12 +4,14 @@ using Microsoft.Extensions.Options;
 using Suwageval.AgentSdk.Conversations;
 using Suwageval.Contracts.Checks;
 using Suwageval.Server.Checks;
+using Suwageval.Server.Simulation;
 
 namespace Suwageval.Server.Judges;
 
 /// <summary>
-/// The daily check from production's network (<c>Suwageval.Server live-check</c>, the chart's CronJob): two calls with fixed tiny
-/// cases — one <c>judge</c> check and one <c>$judge</c> argument — through the production registration of the model and the judges. The model is not ours, so it can change
+/// The daily check from production's network (<c>Suwageval.Server live-check</c>, the chart's CronJob): calls with fixed tiny
+/// cases — one <c>judge</c> check, one <c>$judge</c> argument and, when one is configured, the simulated user
+/// (<see cref="SimulatorLiveCheck"/>) — through the production registration of the models, the judges and the simulator. The model is not ours, so it can change
 /// its answer without a commit here; this is what notices. A problem is logged, posted to the Discord alerts channel when a
 /// webhook is configured, and makes the process exit non-zero. It writes nothing anywhere, so there is nothing to roll back.
 /// </summary>
@@ -82,23 +84,27 @@ internal static class JudgeLiveCheck
     {
         var builder = Host.CreateApplicationBuilder(args);
         builder.Services.AddJudges(builder.Configuration);
+        builder.Services.AddSimulation(builder.Configuration);
         builder.Services.AddOptions<LiveCheckOptions>().Bind(builder.Configuration.GetSection(LiveCheckOptions.Section)).ValidateOnStart();
         builder.Services.AddSingleton<IValidateOptions<LiveCheckOptions>, LiveCheckOptions.Validator>();
         using var host = builder.Build();
         await host.StartAsync(); // validates the options (ValidateOnStart) and runs no service of ours
 
-        var problem = await ProblemAsync(
-            host.Services.GetRequiredService<Judge>(),
-            host.Services.GetRequiredService<ArgumentJudge>(),
-            CancellationToken.None
-        );
+        var problem =
+            await ProblemAsync(
+                host.Services.GetRequiredService<Judge>(),
+                host.Services.GetRequiredService<ArgumentJudge>(),
+                CancellationToken.None
+            ) ?? await SimulatorLiveCheck.ProblemAsync(host.Services.GetRequiredService<UserSimulator>(), CancellationToken.None);
         if (problem is null)
         {
-            await Console.Out.WriteLineAsync("The judge model answered as expected (a judge check and a $judge argument).");
+            await Console.Out.WriteLineAsync(
+                "The models answered as expected (a judge check, a $judge argument and the simulated user, when configured)."
+            );
             return 0;
         }
 
-        await Console.Error.WriteLineAsync($"The judge model live check failed: {problem}");
+        await Console.Error.WriteLineAsync($"The model live check failed: {problem}");
         if (host.Services.GetRequiredService<IOptions<LiveCheckOptions>>().Value.DiscordWebhookUrl is { } webhook)
         {
             try
@@ -106,7 +112,7 @@ internal static class JudgeLiveCheck
                 using var http = new HttpClient();
                 using var response = await http.PostAsJsonAsync(
                     webhook,
-                    new { content = $"suwageval: the judge model live check failed. {problem}" }
+                    new { content = $"suwageval: the model live check failed. {problem}" }
                 );
                 response.EnsureSuccessStatusCode();
             }

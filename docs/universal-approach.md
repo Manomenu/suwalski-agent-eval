@@ -199,7 +199,7 @@ under-report it. The web shows median and p95 per run.
 
 | Not added | Why |
 | --- | --- |
-| Multi-turn with a simulated user | A different kind of evaluation, not needed by regression scenarios. Designed in TODO.md, also a model call. |
+| Multi-turn with a simulated user | A different kind of evaluation, not needed by regression scenarios. Built since: "Simulation" in scenario-format.md; scripted user messages are still left out, for the reason above. |
 | `where: { state: … }` | Part of the v1 design, but no scenario needs it yet (AGENTS.md §0). Kept in TODO.md. |
 | Informational checks that never fail the run | One use (measured-only forbidden tools), and a pass rate per check already measures them. |
 | Token usage in the turn answer | No check or view reads it yet. |

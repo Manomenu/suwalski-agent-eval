@@ -125,6 +125,12 @@
     white-space: nowrap;
 }
 
+/* Mantine clips a badge's label (overflow hidden, an ellipsis), so a table squeezed by more columns would cut "Done" short:
+   in a no-wrap cell a badge is always as wide as its text. */
+.no-wrap .mantine-Badge-root {
+    min-width: max-content;
+}
+
 /* A long tag wraps inside its button instead of widening the page. */
 .tag-filter-label {
     white-space: normal;
