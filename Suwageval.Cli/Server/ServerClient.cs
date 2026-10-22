@@ -300,30 +300,27 @@ internal sealed class ServerClient(HttpClient http)
         }
     }
 
-    /// <summary>Two to five runs of one agent side by side (the first is the baseline).</summary>
-    public Task<RunComparison> CompareAsync(IEnumerable<Guid> runIds, CancellationToken cancellationToken) =>
-        SendAsync<RunComparison>(
-            () =>
-                http.GetAsync(
-                    new Uri($"runs/compare?{string.Join('&', runIds.Select(id => $"runs={id}"))}", UriKind.Relative),
-                    cancellationToken
-                ),
-            cancellationToken
-        );
-
-    /// <summary>The runs named by <paramref name="runIds"/>, or those of <paramref name="group"/> (of <paramref name="agent"/> when given), as variants.</summary>
-    public Task<RunVariants> VariantsAsync(
+    /// <summary>
+    /// The runs named by <paramref name="runIds"/>, or those of <paramref name="group"/> (of <paramref name="agent"/> when given), side by
+    /// side; with <paramref name="baseline"/> (one of the runs) also how the others stand against it.
+    /// </summary>
+    public Task<RunComparison> CompareAsync(
         IReadOnlyCollection<Guid> runIds,
         string? group,
         string? agent,
+        Guid? baseline,
         CancellationToken cancellationToken
     )
     {
         var query = group is null
             ? string.Join('&', runIds.Select(id => $"runs={id}"))
             : $"group={Uri.EscapeDataString(group)}{(agent is null ? "" : $"&agent={Uri.EscapeDataString(agent)}")}";
-        return SendAsync<RunVariants>(
-            () => http.GetAsync(new Uri($"runs/variants?{query}", UriKind.Relative), cancellationToken),
+        return SendAsync<RunComparison>(
+            () =>
+                http.GetAsync(
+                    new Uri($"runs/compare?{query}{(baseline is null ? "" : $"&baseline={baseline}")}", UriKind.Relative),
+                    cancellationToken
+                ),
             cancellationToken
         );
     }

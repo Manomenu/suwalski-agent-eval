@@ -3,16 +3,16 @@ import { useState } from "react";
 
 import { fetchVersion, fetchVersions, type AgentVersion } from "../agents/api";
 import { useLoaded } from "../agents/useLoaded";
-import { agentHref, BASELINE_MAX_RUNS, COMPARE_MIN_RUNS } from "../agents/view";
+import { agentHref } from "../agents/view";
 import { HeaderHelp } from "../runs/HeaderHelp";
 import { ChecksCount, SamplesCount } from "../runs/RunCounts";
 import { durationSummary, percent, RUN_CHECKS_HELP, RUN_SAMPLES_HELP } from "../runs/results";
 import { filteredLabel, keepsTags, selectedTagRows } from "../tagFilter/tagSelection";
 import { TagFilter } from "../tagFilter/TagFilter";
 import { useTagFilter } from "../tagFilter/useTagFilter";
-import { fetchComparison, fetchVariants, type RunComparison, type RunVariants } from "./api";
+import { fetchComparison, type RunComparison } from "./api";
 import { ColumnHeader, type BaselineInfo } from "./ColumnHeader";
-import { baselineFirst, deltaText, trendColor } from "./compare";
+import { baselineOf, deltaText, searchWithBaseline, toggledBaseline, trendColor } from "./compare";
 import { contractDifferences, type Difference } from "./contractDiff";
 import { COLUMN_MIN_WIDTH, LABEL_COLUMN_WIDTH, tableMinWidth } from "./layout";
 import { ScenarioRows } from "./ScenarioRows";
@@ -34,73 +34,62 @@ const BEST_BACKGROUND = "var(--mantine-color-green-light)";
 const HELP_WIDTH = 280;
 
 /**
- * `/compare` and `/variants`: runs of one agent side by side, one column per run. The runs come as `?runs=<id>,<id>,…` or as the
- * `?group=<name>[&agent=<name>]` they were started in; the parameters are the query as it came, this checks them.
+ * `/compare`: runs of one agent side by side, one column per run. The runs come as `?runs=<id>,<id>,…` or as the
+ * `?group=<name>[&agent=<name>]` they were started in; `?baseline=<id>` (one of them) reads the others against that run. The parameters
+ * are the query as it came, this checks them.
  */
-export function ComparePage({ runs, group, agent }: { runs: string; group: string; agent: string }) {
+export function ComparePage({ runs, group, agent, baseline }: { runs: string; group: string; agent: string; baseline: string }) {
     const selection = selectionOf(runs, group, agent);
     // A wrong query asks for nothing: no request is made.
-    return selection.kind === "error" ? <Problem message={selection.message} /> : <Comparison selection={selection} />;
+    return selection.kind === "error" ? (
+        <Problem message={selection.message} />
+    ) : (
+        <Comparison selection={selection} baseline={baselineOf(baseline)} />
+    );
 }
 
-function Comparison({ selection }: { selection: ValidSelection }) {
-    // The server reads the first run as the baseline: another baseline is the same runs asked for again, that run first.
-    const [baselineId, setBaselineId] = useState<string | null>(null);
-    const asked: ValidSelection =
-        selection.kind === "runs" ? { kind: "runs", ids: baselineFirst(selection.ids, baselineId ?? selection.ids[0] ?? "") } : selection;
-    const state = useLoaded(JSON.stringify(asked), (signal) => fetchVariants(asked, signal));
+function Comparison({ selection, baseline }: { selection: ValidSelection; baseline: string | null }) {
+    // The baseline is in the address so the view can be shared; changing it asks the server again but does not reload the page.
+    const [baselineId, setBaselineId] = useState(baseline);
+    const chooseBaseline = (runId: string) => {
+        const next = toggledBaseline(baselineId, runId);
+        setBaselineId(next);
+        const { pathname, search, hash } = window.location;
+        window.history.replaceState(null, "", `${pathname}${searchWithBaseline(search, next)}${hash}`);
+    };
+    const state = useLoaded(JSON.stringify([selection, baselineId]), (signal) => fetchComparison(selection, baselineId, signal));
 
     if (state.kind === "loading") return <Loader aria-label="Loading the comparison" />;
     if (state.kind === "error") return <Problem message={state.error.message} />;
-    return <Loaded selection={asked} variants={state.value} onBaseline={setBaselineId} />;
-}
-
-/** Whether runs are read against a baseline: 2 to 5 runs named one by one, none of them an experiment (a run in a group). */
-function readsAgainstBaseline(selection: ValidSelection, variants: RunVariants): boolean {
-    return (
-        selection.kind === "runs" &&
-        variants.runs.length >= COMPARE_MIN_RUNS &&
-        variants.runs.length <= BASELINE_MAX_RUNS &&
-        variants.runs.every((column) => column.run.group == null)
-    );
+    return <Loaded selection={selection} comparison={state.value} onBaseline={chooseBaseline} />;
 }
 
 function Loaded({
     selection,
-    variants,
+    comparison,
     onBaseline,
 }: {
     selection: ValidSelection;
-    variants: RunVariants;
+    comparison: RunComparison;
     onBaseline: (runId: string) => void;
 }) {
-    const agent = variants.agent;
-    const withBaseline = readsAgainstBaseline(selection, variants);
-    const versionIds = [...new Set(variants.runs.map((column) => column.run.agentVersionId))];
-    const base = useLoaded(
-        `${agent}/${versionIds.join(",")}/${withBaseline ? variants.runs.map((column) => column.run.id).join(",") : "-"}`,
-        async (signal) => {
-            const [versions, details, comparison] = await Promise.all([
-                fetchVersions(agent, signal),
-                Promise.all(versionIds.map((id) => fetchVersion(agent, id, signal))),
-                withBaseline
-                    ? fetchComparison(
-                          variants.runs.map((column) => column.run.id),
-                          signal,
-                      )
-                    : Promise.resolve(null),
-            ]);
-            return { versions, details, comparison };
-        },
-    );
+    const agent = comparison.agent;
+    const versionIds = [...new Set(comparison.runs.map((column) => column.run.agentVersionId))];
+    const base = useLoaded(`${agent}/${versionIds.join(",")}`, async (signal) => {
+        const [versions, details] = await Promise.all([
+            fetchVersions(agent, signal),
+            Promise.all(versionIds.map((id) => fetchVersion(agent, id, signal))),
+        ]);
+        return { versions, details };
+    });
 
     if (base.kind === "loading") return <Loader aria-label="Loading the comparison" />;
     if (base.kind === "error") return <Problem message={base.error.message} />;
-    const { versions, details, comparison } = base.value;
+    const { versions, details } = base.value;
     const differences =
         versionIds.length > 1
             ? contractDifferences(
-                  variants.runs.map((column) => ({
+                  comparison.runs.map((column) => ({
                       versionId: column.run.agentVersionId,
                       contract: (details.find((detail) => detail.id === column.run.agentVersionId) ?? details[0])?.content ?? {
                           agents: [],
@@ -108,30 +97,19 @@ function Loaded({
                   })),
               )
             : [];
-    return (
-        <View
-            selection={selection}
-            variants={variants}
-            versions={versions}
-            comparison={comparison}
-            differences={differences}
-            onBaseline={onBaseline}
-        />
-    );
+    return <View selection={selection} variants={comparison} versions={versions} differences={differences} onBaseline={onBaseline} />;
 }
 
 function View({
     selection,
     variants,
     versions,
-    comparison,
     differences,
     onBaseline,
 }: {
     selection: ValidSelection;
-    variants: RunVariants;
+    variants: RunComparison;
     versions: readonly AgentVersion[];
-    comparison: RunComparison | null;
     differences: Difference[];
     onBaseline: (runId: string) => void;
 }) {
@@ -146,8 +124,9 @@ function View({
     const scenarios = tagged.filter((scenario) => !onlyDifferences || scenarioDiffers(scenario.cells));
     const sections = scenarioSections(scenarios, byTag, selectedTags);
     const tagRows = visibleTagRows(selectedTagRows(variants.tags, selectedTags));
-    const compared = comparison?.runs ?? null;
-    const comparedTags = comparison === null ? null : selectedTagRows(comparison.tags, selectedTags);
+    const { baseline } = variants;
+    const compared = baseline?.runs ?? null;
+    const comparedTags = baseline == null ? null : selectedTagRows(baseline.tags, selectedTags);
 
     return (
         <Stack gap="md">
@@ -159,8 +138,8 @@ function View({
                 {variants.group == null ? "" : `Group ${variants.group} · `}
                 {columns} {columns === 1 ? "run" : "runs"}, one column each.
                 {compared === null
-                    ? " A check passes when its pass rate reaches its threshold; the best column of a row is marked."
-                    : " Every run is read against the baseline: the first run, until you pick another by its header. A check passes when its pass rate reaches its threshold."}
+                    ? " A check passes when its pass rate reaches its threshold; the best column of a row is marked. Pick a baseline by a column's header to read the others against it."
+                    : " Every run is read against the baseline; pick another by its header, or click the baseline again to go back to the plain view. A check passes when its pass rate reaches its threshold."}
             </Text>
             <TagFilter
                 tags={[...variants.scenarios.flatMap((scenario) => scenario.tags), ...variants.tags.flatMap((row) => row.tag ?? [])]}
@@ -174,15 +153,14 @@ function View({
                             <Table.Tr>
                                 <Table.Th w={LABEL_COLUMN_WIDTH} />
                                 {variants.runs.map((variant, column) => {
-                                    const comparedRun = compared?.[column];
-                                    const baseline: BaselineInfo | null =
-                                        comparedRun === undefined
+                                    const baselineInfo: BaselineInfo | null =
+                                        columns < 2
                                             ? null
                                             : {
-                                                  compared: comparedRun,
-                                                  baselineJudgeModel: compared?.[0]?.judgeModel ?? null,
-                                                  isBaseline: column === 0,
-                                                  onUseAsBaseline: () => {
+                                                  compared: compared?.[column] ?? null,
+                                                  baselineJudgeModel: baselineJudgeModel(variants),
+                                                  isBaseline: variant.run.id === baseline?.runId,
+                                                  onToggleBaseline: () => {
                                                       onBaseline(variant.run.id);
                                                   },
                                               };
@@ -192,7 +170,7 @@ function View({
                                                 agent={variants.agent}
                                                 variant={variant}
                                                 version={versions.find((candidate) => candidate.id === variant.run.agentVersionId)}
-                                                baseline={baseline}
+                                                baseline={baselineInfo}
                                             />
                                         </Table.Th>
                                     );
@@ -340,6 +318,11 @@ function View({
             </Paper>
         </Stack>
     );
+}
+
+/** The judge of the baseline's own column: what the "other judge" badge of the others is measured against. */
+function baselineJudgeModel({ baseline }: RunComparison): string | null {
+    return baseline?.runs.find((compared) => compared.run.id === baseline.runId)?.judgeModel ?? null;
 }
 
 function SectionRow({ columns, title, help }: { columns: number; title: string; help?: string }) {

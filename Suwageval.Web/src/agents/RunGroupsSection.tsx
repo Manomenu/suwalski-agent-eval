@@ -1,7 +1,7 @@
 import { Alert, Anchor, Badge, Button, Checkbox, Group, Paper, Stack, Switch, Table, Text, Title } from "@mantine/core";
 import { useState } from "react";
 
-import { formatTime, variantsGroupHref } from "../runs/results";
+import { formatTime, compareGroupHref } from "../runs/results";
 import { archiveRunGroups, deleteRunGroup, fetchRunGroupDeletion, type RunGroupSummary } from "./api";
 import { DeleteModal } from "./DeleteModal";
 import { groupSelection, visibleGroups } from "./groups";
@@ -17,7 +17,7 @@ const GROUP_VERSIONS_HELP = "How many different agent versions those runs used: 
 const GROUP_NEWEST_HELP = "When the group's newest run was queued.";
 const GROUPS_TABLE_MIN_WIDTH = 500;
 
-/** The agent's run groups: each opens the variants page of its runs; select some to archive them, see archived ones with "Show archived", restore or delete one. */
+/** The agent's run groups: each opens the compare page of its runs; select some to archive them, see archived ones with "Show archived", restore or delete one. */
 export function RunGroupsSection({
     agentName,
     groups,
@@ -154,7 +154,7 @@ export function RunGroupsSection({
                                             </Table.Td>
                                             <Table.Td className="wrap-key">
                                                 <Group gap="xs">
-                                                    <Anchor href={variantsGroupHref(group.name, agentName)}>{group.name}</Anchor>
+                                                    <Anchor href={compareGroupHref(group.name, agentName)}>{group.name}</Anchor>
                                                     {group.archivedAt != null && (
                                                         <Badge color="gray" variant="light">
                                                             Archived

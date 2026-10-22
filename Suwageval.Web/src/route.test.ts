@@ -14,21 +14,23 @@ describe("pageOf", () => {
         expect(pageOf(`/runs/${ID}/`)).toEqual({ kind: "run", runId: ID });
     });
 
-    it("reads the runs query of /compare, as it is", () => {
-        expect(pageOf("/compare", "?runs=a,b")).toEqual({ kind: "compare", runs: "a,b", group: "", agent: "" });
-        expect(pageOf("/compare/", "?runs=a,b&x=1")).toEqual({ kind: "compare", runs: "a,b", group: "", agent: "" });
-        expect(pageOf("/compare", "?group=sweep-1&agent=bot")).toEqual({ kind: "compare", runs: "", group: "sweep-1", agent: "bot" });
-        expect(pageOf("/compare")).toEqual({ kind: "compare", runs: "", group: "", agent: "" });
-    });
-
-    it("reads the runs, group and agent queries of /variants, as they are", () => {
-        expect(pageOf("/variants", "?runs=a,b")).toEqual({ kind: "variants", runs: "a,b", group: "", agent: "" });
-        expect(pageOf("/variants/", "?group=sweep-1&agent=my+bot")).toEqual({
-            kind: "variants",
+    it("reads the runs, group, agent and baseline queries of /compare, as they are", () => {
+        expect(pageOf("/compare", "?runs=a,b")).toEqual({ kind: "compare", runs: "a,b", group: "", agent: "", baseline: "" });
+        expect(pageOf("/compare/", "?runs=a,b&x=1")).toEqual({ kind: "compare", runs: "a,b", group: "", agent: "", baseline: "" });
+        expect(pageOf("/compare", "?group=sweep-1&agent=my+bot")).toEqual({
+            kind: "compare",
             runs: "",
             group: "sweep-1",
             agent: "my bot",
+            baseline: "",
         });
+        expect(pageOf("/compare", "?runs=a,b&baseline=b")).toEqual({ kind: "compare", runs: "a,b", group: "", agent: "", baseline: "b" });
+        expect(pageOf("/compare")).toEqual({ kind: "compare", runs: "", group: "", agent: "", baseline: "" });
+    });
+
+    it("no longer knows /variants", () => {
+        expect(pageOf("/variants", "?runs=a,b")).toEqual({ kind: "unknown" });
+        expect(pageOf("/variants/", "?group=sweep-1")).toEqual({ kind: "unknown" });
     });
 
     it("reads the name of /agents/<name>, decoded", () => {

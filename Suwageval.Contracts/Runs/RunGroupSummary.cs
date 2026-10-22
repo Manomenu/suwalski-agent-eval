@@ -1,6 +1,6 @@
 namespace Suwageval.Contracts.Runs;
 
-/// <summary>A group of an agent's runs (run --group) at a glance: where the variants page of the group starts.</summary>
+/// <summary>A group of an agent's runs (run --group) at a glance: where the compare page of the group starts.</summary>
 public sealed record RunGroupSummary
 {
     public required string Name { get; init; }

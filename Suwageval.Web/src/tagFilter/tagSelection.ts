@@ -1,4 +1,4 @@
-// The tag filter of the run, comparison and variants pages: which tags are selected (the `tag` parameters of the address), which rows
+// The tag filter of the run and comparison pages: which tags are selected (the `tag` parameters of the address), which rows
 // they keep and what the narrowed numbers are called. Selecting nothing keeps everything.
 const TAG_PARAM = "tag";
 

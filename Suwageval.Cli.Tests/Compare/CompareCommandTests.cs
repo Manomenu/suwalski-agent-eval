@@ -12,83 +12,53 @@ public sealed class CompareCommandTests
 {
     private static readonly Guid First = Guid.Parse("11111111-2222-3333-4444-555555555551");
     private static readonly Guid Second = Guid.Parse("11111111-2222-3333-4444-555555555552");
-    private static readonly Guid Third = Guid.Parse("11111111-2222-3333-4444-555555555553");
+    private static readonly Guid Version = Guid.Parse("aaaaaaaa-2222-3333-4444-555555555555");
+
+    private static string Sample => Path.Combine(AppContext.BaseDirectory, "Sample", "suwageval");
 
     private sealed class FakeApi(Func<HttpRequestMessage, HttpResponseMessage> answer) : HttpMessageHandler
     {
-        public List<string> Paths { get; } = [];
+        public List<string> PathsAndQueries { get; } = [];
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            Paths.Add(request.RequestUri?.AbsolutePath ?? "");
+            PathsAndQueries.Add(request.RequestUri?.PathAndQuery ?? "");
             return Task.FromResult(answer(request));
         }
     }
 
-    private static HttpResponseMessage Summary(Guid id, string agent) =>
-        new(HttpStatusCode.OK)
+    private static RunSummary Summary(Guid id, int checksPassed, int checksFailed, string? label = null) =>
+        new()
         {
-            Content = new StringContent(
-                JsonSerializer.Serialize(
-                    new RunSummary
-                    {
-                        Id = id,
-                        Agent = agent,
-                        AgentVersionId = Guid.NewGuid(),
-                        EndpointUrl = "http://localhost:7010",
-                        Status = RunStatus.Done,
-                        SamplesTotal = 1,
-                        SamplesDone = 1,
-                        ChecksPassed = 1,
-                        ChecksFailed = 0,
-                        CreatedAt = DateTime.UtcNow,
-                    },
-                    ContractJson.Options
-                ),
-                Encoding.UTF8,
-                "application/json"
-            ),
+            Id = id,
+            Agent = "example-agent",
+            AgentVersionId = Version,
+            Tags = ["nightly"],
+            EndpointUrl = "http://localhost:7010",
+            Status = RunStatus.Done,
+            SamplesTotal = 4,
+            SamplesDone = 4,
+            SamplesFailed = 1,
+            ChecksPassed = checksPassed,
+            ChecksFailed = checksFailed,
+            CreatedAt = DateTime.UtcNow,
+            Label = label,
         };
 
-    private static HttpResponseMessage OfAgent(HttpRequestMessage request, Func<Guid, string> agentOf) =>
-        Guid.TryParse(request.RequestUri?.AbsolutePath.Split('/').Last(), out var id)
-            ? Summary(id, agentOf(id))
-            : new HttpResponseMessage(HttpStatusCode.NotFound);
-
-    private static (int Exit, string Output, string Error, FakeApi Api, List<Uri> Opened) Compare(
-        Func<HttpRequestMessage, HttpResponseMessage> answer,
-        Action<Uri>? open = null,
-        params string[] args
-    )
-    {
-        var api = new FakeApi(answer);
-        using var http = new HttpClient(api, disposeHandler: false) { BaseAddress = new Uri("http://api.test/") };
-        using var output = new StringWriter();
-        using var error = new StringWriter();
-        var opened = new List<Uri>();
-        var exit = CliApp.Run(["compare", "--open", .. args], new StringReader(""), output, error, http, open ?? opened.Add);
-        return (exit, output.ToString(), error.ToString(), api, opened);
-    }
-
-    private static readonly Guid Version = Guid.Parse("aaaaaaaa-2222-3333-4444-555555555555");
+    private static VariantRun Column(Guid id, string? versionLabel, int checksPassed, int checksFailed, string? runLabel = null) =>
+        new()
+        {
+            Run = Summary(id, checksPassed, checksFailed, runLabel),
+            VersionLabel = versionLabel,
+            ModelNames = ["gpt-4o"],
+            MedianMs = 1500,
+            P95Ms = 3000,
+        };
 
     private static ComparedRun Compared(Guid id, string? judge, bool judgeChanged, double? passRate, TimeChange? median = null) =>
         new()
         {
-            Run = new RunSummary
-            {
-                Id = id,
-                Agent = "support-bot",
-                AgentVersionId = Version,
-                Tags = ["nightly"],
-                EndpointUrl = "http://localhost:7010",
-                Status = RunStatus.Done,
-                SamplesTotal = 1,
-                SamplesDone = 1,
-                ChecksPassed = 1,
-                ChecksFailed = 0,
-                CreatedAt = DateTime.UtcNow,
-            },
+            Run = Summary(id, 1, 0),
             JudgeModel = judge,
             JudgeChanged = judgeChanged,
             PassRate = passRate,
@@ -112,9 +82,23 @@ public sealed class CompareCommandTests
             Trend = trend,
         };
 
-    private static RunComparison Comparison() =>
+    private static ComparedCheck Check(string key, bool differs, bool comparable, params ComparedCell?[] cells) =>
         new()
         {
+            ScenarioKey = "greeting",
+            ScenarioTags = [],
+            CheckKey = key,
+            Definition = new Contracts.Checks.TextCheck { Key = "k", ScenarioKey = "s" },
+            JudgedByModel = false,
+            Differs = differs,
+            Comparable = comparable,
+            Cells = cells,
+        };
+
+    private static BaselineComparison Baseline(Guid id) =>
+        new()
+        {
+            RunId = id,
             Runs =
             [
                 Compared(First, "judge-a", false, 0.5),
@@ -134,95 +118,149 @@ public sealed class CompareCommandTests
             ],
             Checks =
             [
-                new ComparedCheck
-                {
-                    ScenarioKey = "greeting",
-                    ScenarioTags = [],
-                    CheckKey = "polite",
-                    Definition = new Contracts.Checks.TextCheck { Key = "k", ScenarioKey = "s" },
-                    JudgedByModel = true,
-                    Differs = true,
-                    Comparable = true,
-                    Cells = [Cell(false, 1, null, "judge-a", 1), Cell(true, 3, Contracts.Runs.Trend.Better, "judge-b", 2)],
-                },
-                new ComparedCheck
-                {
-                    ScenarioKey = "greeting",
-                    ScenarioTags = [],
-                    CheckKey = "short",
-                    Definition = new Contracts.Checks.TextCheck { Key = "k", ScenarioKey = "s" },
-                    JudgedByModel = false,
-                    Differs = true,
-                    Comparable = false,
-                    Cells = [Cell(true, 3, null, null, 1), null],
-                },
-                new ComparedCheck
-                {
-                    ScenarioKey = "greeting",
-                    ScenarioTags = [],
-                    CheckKey = "same",
-                    Definition = new Contracts.Checks.TextCheck { Key = "k", ScenarioKey = "s" },
-                    JudgedByModel = false,
-                    Differs = false,
-                    Comparable = true,
-                    Cells = [Cell(true, 3, null, null, 1), Cell(true, 3, Contracts.Runs.Trend.Same, null, 1)],
-                },
+                Check("polite", true, true, Cell(false, 1, null, "judge-a", 1), Cell(true, 3, Contracts.Runs.Trend.Better, "judge-b", 2)),
+                Check("short", true, false, Cell(true, 3, null, null, 1), null),
+                Check("same", false, true, Cell(true, 3, null, null, 1), Cell(true, 3, Contracts.Runs.Trend.Same, null, 1)),
             ],
         };
 
-    private static (int Exit, string Output, string Error, FakeApi Api, List<Uri> Opened) Print(params string[] args)
-    {
-        var api = new FakeApi(_ => new HttpResponseMessage(HttpStatusCode.OK)
+    private static RunComparison Comparison(Guid? baseline) =>
+        new()
         {
-            Content = new StringContent(JsonSerializer.Serialize(Comparison(), ContractJson.Options), Encoding.UTF8, "application/json"),
-        });
+            Agent = "example-agent",
+            Group = "sweep-1",
+            Runs = [Column(First, "gpt-4o", 75, 22), Column(Second, "gpt-4o", 80, 17, "relabelled")],
+            Tags =
+            [
+                new ComparedTag { Tag = null, Rates = [new ComparedRate(0.77), new ComparedRate(0.82)] },
+                new ComparedTag { Tag = "billing", Rates = [new ComparedRate(0.5), new ComparedRate()] },
+            ],
+            Scenarios =
+            [
+                new VariantScenario
+                {
+                    Key = "refund",
+                    Tags = ["billing"],
+                    Cells =
+                    [
+                        new VariantCell
+                        {
+                            ChecksPassed = 3,
+                            ChecksTotal = 4,
+                            FailedChecks = ["refund-event"],
+                            Checks = [],
+                            Samples = 1,
+                            SamplesFailed = 0,
+                            NoAnswers = [],
+                        },
+                        null,
+                    ],
+                },
+            ],
+            Baseline = baseline is { } id ? Baseline(id) : null,
+        };
+
+    private static HttpResponseMessage Answer(HttpRequestMessage request)
+    {
+        var query = request.RequestUri?.Query ?? "";
+        var baseline = query.Contains($"baseline={First}", StringComparison.Ordinal) ? First : (Guid?)null;
+        return new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(
+                JsonSerializer.Serialize(Comparison(baseline), ContractJson.Options),
+                Encoding.UTF8,
+                "application/json"
+            ),
+        };
+    }
+
+    private static (int Exit, string Output, string Error, FakeApi Api, List<Uri> Opened) Compare(
+        Func<HttpRequestMessage, HttpResponseMessage> answer,
+        Action<Uri>? open,
+        params string[] args
+    )
+    {
+        var api = new FakeApi(answer);
         using var http = new HttpClient(api, disposeHandler: false) { BaseAddress = new Uri("http://api.test/") };
         using var output = new StringWriter();
         using var error = new StringWriter();
         var opened = new List<Uri>();
-        var exit = CliApp.Run(["compare", .. args], new StringReader(""), output, error, http, opened.Add);
+        var exit = CliApp.Run(["compare", .. args, "--dir", Sample], new StringReader(""), output, error, http, open ?? opened.Add);
         return (exit, output.ToString(), error.ToString(), api, opened);
     }
 
+    private static (int Exit, string Output, string Error, FakeApi Api, List<Uri> Opened) Print(params string[] args) =>
+        Compare(Answer, null, args);
+
     [Fact]
-    public void By_default_it_prints_the_comparison_from_one_request_and_opens_nothing()
+    public void Runs_are_printed_as_a_lettered_column_each_with_checks_per_scenario_and_the_failed_ones_and_no_changes()
     {
         var (exit, output, error, api, opened) = Print(First.ToString(), Second.ToString());
 
         Assert.Equal(0, exit);
         Assert.Empty(error);
         Assert.Empty(opened);
-        Assert.Equal(["/runs/compare"], api.Paths);
+        Assert.Equal([$"/runs/compare?runs={First}&runs={Second}"], api.PathsAndQueries);
+        Assert.Contains("comparison of example-agent (group sweep-1), 2 runs", output, StringComparison.Ordinal);
+        Assert.Contains("B  relabelled  models", output, StringComparison.Ordinal);
         Assert.Contains(
-            "#1 baseline  run 11111111  version aaaaaaaa  tags nightly  judge judge-a  pass 50%",
+            "A  gpt-4o  models gpt-4o  run 11111111  checks 75/97 passed, 22 failed  samples 3/4 answered",
             output,
             StringComparison.Ordinal
         );
-        Assert.Contains("#2  run 11111111", output, StringComparison.Ordinal);
-        Assert.Contains("judge judge-b (judge differs from baseline)  pass 75%", output, StringComparison.Ordinal);
+        Assert.Contains("billing  50%", output, StringComparison.Ordinal);
+        Assert.Contains("refund    3/4", output, StringComparison.Ordinal);
+        Assert.Contains("A failed: refund-event", output, StringComparison.Ordinal);
+        Assert.Contains("page: http://localhost:3230/compare?runs=", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("baseline", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("pts", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_baseline_is_asked_for_and_adds_the_changes_against_it()
+    {
+        var (exit, output, _, api, _) = Print(First.ToString(), Second.ToString(), "--baseline", First.ToString());
+
+        Assert.Equal(0, exit);
+        Assert.Equal([$"/runs/compare?runs={First}&runs={Second}&baseline={First}"], api.PathsAndQueries);
+        Assert.Contains("A baseline  gpt-4o  models", output, StringComparison.Ordinal);
+        Assert.Contains("A baseline  judge judge-a  pass 50%", output, StringComparison.Ordinal);
+        Assert.Contains("B  judge judge-b (judge differs from baseline)  pass 75%", output, StringComparison.Ordinal);
         Assert.Contains("median 1.2s (-0.3s faster)", output, StringComparison.Ordinal);
         Assert.Contains("All    50%", output, StringComparison.Ordinal);
         Assert.Contains("75% (+25 pts ▲)", output, StringComparison.Ordinal);
         Assert.Contains("50% (-50 pts ▼)", output, StringComparison.Ordinal);
         Assert.Contains("greeting / polite", output, StringComparison.Ordinal);
-        Assert.Contains("#1  failed 1/3 (33%)", output, StringComparison.Ordinal);
-        Assert.Contains("#2  passed 3/3 (100%) ▲  judge judge-b  revision 2 (baseline 1)", output, StringComparison.Ordinal);
+        Assert.Contains("A  failed 1/3 (33%)", output, StringComparison.Ordinal);
+        Assert.Contains("B  passed 3/3 (100%) ▲  judge judge-b  revision 2 (baseline 1)", output, StringComparison.Ordinal);
         Assert.Contains("greeting / short  (not comparable", output, StringComparison.Ordinal);
         Assert.DoesNotContain("greeting / same", output, StringComparison.Ordinal);
         Assert.Contains("1 check is the same in every run.", output, StringComparison.Ordinal);
-        Assert.Contains("/compare?runs=", output, StringComparison.Ordinal);
+        Assert.Contains($"&baseline={First}", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_group_is_asked_for_by_name_and_the_agent_of_agent_yaml_and_takes_a_baseline_too()
+    {
+        var (exit, output, _, api, _) = Print("--group", "sweep-1", "--baseline", First.ToString());
+
+        Assert.Equal(0, exit);
+        Assert.Equal([$"/runs/compare?group=sweep-1&agent=example-agent&baseline={First}"], api.PathsAndQueries);
+        Assert.Contains("comparison of example-agent (group sweep-1)", output, StringComparison.Ordinal);
+        Assert.Contains("against the baseline:", output, StringComparison.Ordinal);
     }
 
     [Fact]
     public void Json_prints_the_comparison_record()
     {
-        var (exit, output, _, _, opened) = Print(First.ToString(), Second.ToString(), "--json");
+        var (exit, output, _, _, opened) = Print(First.ToString(), Second.ToString(), "--baseline", First.ToString(), "--json");
 
         Assert.Equal(0, exit);
         Assert.Empty(opened);
         var parsed = JsonSerializer.Deserialize<RunComparison>(output, ContractJson.Options);
         Assert.Equal(2, parsed?.Runs.Count);
-        Assert.Equal(3, parsed?.Checks.Count);
+        Assert.Equal(First, parsed?.Baseline?.RunId);
+        Assert.Equal(3, parsed?.Baseline?.Checks.Count);
     }
 
     [Fact]
@@ -231,64 +269,55 @@ public sealed class CompareCommandTests
         var (exit, _, _, api, _) = Print(First.ToString(), Second.ToString(), "--json", "--open");
 
         Assert.NotEqual(0, exit);
-        Assert.Empty(api.Paths);
+        Assert.Empty(api.PathsAndQueries);
     }
 
     [Fact]
-    public void It_prints_and_opens_the_comparison_with_the_runs_in_the_order_given()
+    public void Open_opens_the_page_with_the_runs_in_the_order_given_and_the_baseline()
     {
         var (exit, output, error, api, opened) = Compare(
-            request => OfAgent(request, _ => "support-bot"),
+            Answer,
             null,
             Second.ToString(),
             First.ToString(),
-            Third.ToString(),
+            "--baseline",
+            First.ToString(),
+            "--open",
             "--server",
             "https://eval.example/"
         );
 
-        var page = new Uri($"https://eval.example/compare?runs={Second},{First},{Third}");
+        var page = new Uri($"https://eval.example/compare?runs={Second},{First}&baseline={First}");
         Assert.Equal(0, exit);
         Assert.Equal($"{page}{Environment.NewLine}", output);
         Assert.Empty(error);
         Assert.Equal([page], opened);
-        Assert.Equal([$"/runs/{Second}", $"/runs/{First}", $"/runs/{Third}"], api.Paths);
+        Assert.Equal([$"/runs/compare?runs={Second}&runs={First}&baseline={First}"], api.PathsAndQueries);
+    }
+
+    [Fact]
+    public void Open_for_a_group_opens_its_page_with_the_agent()
+    {
+        var (exit, _, _, _, opened) = Print("--group", "sweep-1", "--open");
+
+        Assert.Equal(0, exit);
+        Assert.Equal([new Uri("http://localhost:3230/compare?group=sweep-1&agent=example-agent")], opened);
     }
 
     [Fact]
     public void A_run_that_does_not_exist_exits_2_and_opens_nothing()
     {
         var (exit, output, error, _, opened) = Compare(
-            request =>
-                request.RequestUri?.AbsolutePath.EndsWith(Second.ToString(), StringComparison.Ordinal) == true
-                    ? new HttpResponseMessage(HttpStatusCode.NotFound)
-                    : OfAgent(request, _ => "support-bot"),
+            _ => new HttpResponseMessage(HttpStatusCode.NotFound),
             null,
             First.ToString(),
-            Second.ToString()
+            Second.ToString(),
+            "--open"
         );
 
         Assert.Equal(2, exit);
         Assert.Empty(output);
         Assert.Contains("404", error, StringComparison.Ordinal);
-        Assert.Empty(opened);
-    }
-
-    [Fact]
-    public void Runs_of_different_agents_exit_2_and_open_nothing()
-    {
-        var (exit, output, error, _, opened) = Compare(
-            request => OfAgent(request, id => id == First ? "support-bot" : "sales-bot"),
-            null,
-            First.ToString(),
-            Second.ToString()
-        );
-
-        Assert.Equal(2, exit);
-        Assert.Empty(output);
-        Assert.Contains("Runs of different agents cannot be compared", error, StringComparison.Ordinal);
-        Assert.Contains("support-bot", error, StringComparison.Ordinal);
-        Assert.Contains("sales-bot", error, StringComparison.Ordinal);
         Assert.Empty(opened);
     }
 
@@ -299,7 +328,8 @@ public sealed class CompareCommandTests
             _ => throw new HttpRequestException("connection refused"),
             null,
             First.ToString(),
-            Second.ToString()
+            Second.ToString(),
+            "--open"
         );
 
         Assert.Equal(2, exit);
@@ -311,10 +341,11 @@ public sealed class CompareCommandTests
     public void Without_a_browser_the_link_is_printed_and_the_exit_is_0()
     {
         var (exit, output, error, _, _) = Compare(
-            request => OfAgent(request, _ => "support-bot"),
+            Answer,
             _ => throw new Win32Exception("no opener"),
             First.ToString(),
-            Second.ToString()
+            Second.ToString(),
+            "--open"
         );
 
         Assert.Equal(0, exit);
@@ -322,39 +353,47 @@ public sealed class CompareCommandTests
         Assert.Contains("No browser could be opened", error, StringComparison.Ordinal);
     }
 
-    [Theory]
-    [InlineData(0)]
-    [InlineData(1)]
-    [InlineData(6)]
-    public void Fewer_than_two_or_more_than_five_runs_are_refused_before_any_request(int count)
+    [Fact]
+    public void Run_ids_and_a_group_together_or_neither_are_refused_before_any_request()
     {
-        var ids = Enumerable
-            .Range(0, count)
-            .Select(index => Guid.Parse($"11111111-2222-3333-4444-55555555556{index}").ToString())
-            .ToArray();
+        var (bothExit, _, _, bothApi, _) = Print(First.ToString(), "--group", "sweep-1");
+        var (neitherExit, _, _, neitherApi, _) = Print();
 
-        var (exit, _, _, api, opened) = Compare(request => OfAgent(request, _ => "support-bot"), null, ids);
-
-        Assert.NotEqual(0, exit);
-        Assert.Empty(api.Paths);
-        Assert.Empty(opened);
+        Assert.NotEqual(0, bothExit);
+        Assert.NotEqual(0, neitherExit);
+        Assert.Empty(bothApi.PathsAndQueries);
+        Assert.Empty(neitherApi.PathsAndQueries);
     }
 
     [Fact]
-    public void The_same_run_twice_is_not_two_runs()
+    public void A_baseline_that_is_not_among_the_runs_or_has_no_other_run_to_compare_is_refused_before_any_request()
     {
-        var (exit, _, _, api, _) = Compare(request => OfAgent(request, _ => "support-bot"), null, First.ToString(), First.ToString());
+        var (outsideExit, _, _, outsideApi, _) = Print(First.ToString(), Second.ToString(), "--baseline", Guid.NewGuid().ToString());
+        var (aloneExit, _, _, aloneApi, _) = Print(First.ToString(), "--baseline", First.ToString());
+
+        Assert.NotEqual(0, outsideExit);
+        Assert.NotEqual(0, aloneExit);
+        Assert.Empty(outsideApi.PathsAndQueries);
+        Assert.Empty(aloneApi.PathsAndQueries);
+    }
+
+    [Fact]
+    public void More_than_twenty_runs_are_refused_before_any_request()
+    {
+        var ids = Enumerable.Range(0, 21).Select(_ => Guid.NewGuid().ToString()).ToArray();
+
+        var (exit, _, _, api, _) = Print(ids);
 
         Assert.NotEqual(0, exit);
-        Assert.Empty(api.Paths);
+        Assert.Empty(api.PathsAndQueries);
     }
 
     [Fact]
     public void An_id_that_is_not_a_run_id_is_refused_before_any_request()
     {
-        var (exit, _, _, api, _) = Compare(request => OfAgent(request, _ => "support-bot"), null, First.ToString(), "not-a-run");
+        var (exit, _, _, api, _) = Print(First.ToString(), "not-a-run");
 
         Assert.NotEqual(0, exit);
-        Assert.Empty(api.Paths);
+        Assert.Empty(api.PathsAndQueries);
     }
 }

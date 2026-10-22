@@ -5,8 +5,8 @@ using Suwageval.Server.Agents;
 using Suwageval.Server.Checks;
 using Suwageval.Server.Database;
 using Suwageval.Server.Runs;
+using Suwageval.Server.Runs.Compare;
 using Suwageval.Server.Runs.Groups;
-using Suwageval.Server.Runs.Variants;
 using Suwageval.Server.Scenarios;
 
 namespace Suwageval.Server.Api;
@@ -51,7 +51,7 @@ internal static class ServerApp
         app.MapScenarios();
         app.MapChecks();
         app.MapRuns();
-        app.MapVariants();
+        app.MapCompare();
         app.MapRunGroups();
         return app;
     }

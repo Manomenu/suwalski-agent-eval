@@ -35,16 +35,18 @@ internal static class ServerAddress
     /// <summary>The web page of a run.</summary>
     public static Uri RunPage(Uri site, Guid runId) => new(site, $"runs/{runId}");
 
-    /// <summary>The web page comparing runs; the first is the baseline.</summary>
-    public static Uri ComparePage(Uri site, IEnumerable<Guid> runIds) => new(site, $"compare?runs={string.Join(',', runIds)}");
-
-    /// <summary>The variants page of runs named one by one, or of the runs of a group (of <paramref name="agent"/>, when known).</summary>
-    public static Uri VariantsPage(Uri site, IReadOnlyCollection<Guid> runIds, string? group, string? agent) =>
+    /// <summary>
+    /// The compare page of runs named one by one, or of the runs of a group (of <paramref name="agent"/>, when known); with
+    /// <paramref name="baseline"/> it also shows the changes against that run.
+    /// </summary>
+    public static Uri ComparePage(Uri site, IReadOnlyCollection<Guid> runIds, string? group, string? agent, Guid? baseline) =>
         new(
             site,
-            group is null
-                ? $"variants?runs={string.Join(',', runIds)}"
-                : $"variants?group={Uri.EscapeDataString(group)}{(agent is null ? "" : $"&agent={Uri.EscapeDataString(agent)}")}"
+            (
+                group is null
+                    ? $"compare?runs={string.Join(',', runIds)}"
+                    : $"compare?group={Uri.EscapeDataString(group)}{(agent is null ? "" : $"&agent={Uri.EscapeDataString(agent)}")}"
+            ) + (baseline is null ? "" : $"&baseline={baseline}")
         );
 
     /// <summary>The web page showing what changed between two versions of an agent.</summary>

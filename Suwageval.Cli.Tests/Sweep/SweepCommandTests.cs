@@ -134,7 +134,7 @@ public sealed class SweepCommandTests : IDisposable
 
         Assert.Equal(0, exit);
         Assert.Equal(["reconfigure fast", "reconfigure slow", "restore"], commands);
-        Assert.Contains("/variants?group=sweep-test&agent=example-agent", output, StringComparison.Ordinal);
+        Assert.Contains("/compare?group=sweep-test&agent=example-agent", output, StringComparison.Ordinal);
     }
 
     [Fact]

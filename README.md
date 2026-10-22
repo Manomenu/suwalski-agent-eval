@@ -23,7 +23,7 @@ agent and diffs any two.
 
 ![Diff of two agent versions](docs/images/version-diff.png)
 
-Also: comparing 2–5 runs side by side, and re-checking stored answers after you fix a check.
+Also: comparing up to 20 runs side by side, optionally against a baseline run, and re-checking stored answers after you fix a check.
 
 ## Claude Code plugin
 

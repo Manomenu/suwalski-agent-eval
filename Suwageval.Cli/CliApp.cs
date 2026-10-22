@@ -19,7 +19,6 @@ using Suwageval.Cli.Sweep;
 using Suwageval.Cli.Trend;
 using Suwageval.Cli.Unstable;
 using Suwageval.Cli.Validate;
-using Suwageval.Cli.Variants;
 using Suwageval.Cli.Versions;
 
 namespace Suwageval.Cli;
@@ -59,7 +58,6 @@ internal static class CliApp
             CancelCommand.Create(http),
             ResultsCommand.Create(http, openBrowser),
             CompareCommand.Create(http, openBrowser),
-            VariantsCommand.Create(http, openBrowser),
             SweepCommand.Create(terminal, http, origins, shell, labelPollInterval),
             RunsCommand.Create(http),
             AgentsCommand.Create(http),

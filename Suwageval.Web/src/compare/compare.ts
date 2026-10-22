@@ -1,11 +1,29 @@
-// What the comparison page shows of the baseline-relative numbers the server computed (`GET /runs/compare`): the baseline order of the
-// runs, and the markers, colours and texts of changes. Every rate, trend and change is the server's.
+// What the comparison page shows of the baseline-relative numbers the server computed (`GET /runs/compare?baseline=`): the baseline in
+// the address, and the markers, colours and texts of changes. Every rate, trend and change is the server's.
 import { formatSeconds } from "../runs/results";
 import type { RateChange, TimeChange, Trend } from "./api";
 
-/** The run ids with the baseline first, the others in the order they were: the server reads the first run as the baseline. */
-export function baselineFirst(ids: readonly string[], baselineId: string): string[] {
-    return [baselineId, ...ids.filter((id) => id !== baselineId)];
+const BASELINE_PARAM = "baseline";
+
+/** The baseline the address asks for (`?baseline=<id>`); null when it asks for none. */
+export function baselineOf(baseline: string): string | null {
+    const id = baseline.trim();
+    return id === "" ? null : id;
+}
+
+/** The baseline after a click on a column's button: that run, or none when it already is the baseline (back to the absolute view). */
+export function toggledBaseline(current: string | null, clicked: string): string | null {
+    return current === clicked ? null : clicked;
+}
+
+/** The query with its baseline parameter set to `baseline` (removed when null); every other parameter stays exactly as it was written. */
+export function searchWithBaseline(search: string, baseline: string | null): string {
+    const parts = search
+        .replace(/^\?/, "")
+        .split("&")
+        .filter((part) => part !== "" && part.split("=")[0] !== BASELINE_PARAM);
+    if (baseline !== null) parts.push(`${BASELINE_PARAM}=${encodeURIComponent(baseline)}`);
+    return parts.length === 0 ? "" : `?${parts.join("&")}`;
 }
 
 /** The change of a value against the baseline's: none when either run has nothing to compare. */

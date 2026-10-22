@@ -37,7 +37,7 @@ test("A check that passed in the reference runs and fails now is a regression wi
         await section.getByText("Regression", { exact: true }).hover();
         await expect(page.getByText("Fails now after passing in every one of the newest reference runs", { exact: false })).toBeVisible();
         const link = page.getByRole("link", { name: "Compare with the last passing run", exact: true });
-        await expect(link).toHaveAttribute("href", `/compare?runs=${lastPassed},${failing}`);
+        await expect(link).toHaveAttribute("href", `/compare?runs=${lastPassed},${failing}&baseline=${lastPassed}`);
 
         await expect(page.getByText("Goodbye.", { exact: true })).toBeHidden();
         await section.getByRole("link", { name: "greets / says-hello", exact: true }).click();

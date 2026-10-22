@@ -1,8 +1,9 @@
 using Suwageval.Contracts.Runs;
 using Suwageval.Server.Runs;
+using Suwageval.Server.Runs.Compare;
 using Suwageval.Server.Scenarios;
 
-namespace Suwageval.Server.Tests.Runs;
+namespace Suwageval.Server.Tests.Runs.Compare;
 
 /// <summary>The rules of comparing runs on results built by hand (the web's own tests of them, ported).</summary>
 public sealed class RunComparerTests
@@ -93,7 +94,7 @@ public sealed class RunComparerTests
         var baseline = Run(Scenario("s1", Check("a", 1, 1), Check("b", 0, 1)));
         var other = Run(Scenario("s1", Check("b", 1, 1), Check("c", 1, 1)), Scenario("s2", Check("a", 1, 1)));
 
-        var rows = RunComparer.AlignRows([baseline, other]);
+        var rows = RunComparer.AlignRows([baseline, other], 0);
 
         Assert.Equal(["s1/a", "s1/b", "s1/c", "s2/a"], Keys(rows));
         Assert.Equal([true, null], rows[0].Cells.Select(cell => cell?.Passed));
@@ -105,7 +106,7 @@ public sealed class RunComparerTests
     [Fact]
     public void A_cell_takes_the_verdict_the_pass_rate_and_the_samples_that_passed()
     {
-        var below = RunComparer.AlignRows([Run(Scenario("s", Check("c", 3, 5))), Run(Scenario("s", Check("c", 3, 5, 0.6)))]).Single();
+        var below = RunComparer.AlignRows([Run(Scenario("s", Check("c", 3, 5))), Run(Scenario("s", Check("c", 3, 5, 0.6)))], 0).Single();
 
         Assert.Equal(
             (false, 0.6, 3, 5, 0),
@@ -123,7 +124,7 @@ public sealed class RunComparerTests
     [Fact]
     public void A_cell_counts_the_samples_nobody_could_judge()
     {
-        var row = RunComparer.AlignRows([Run(Scenario("s", Check("c", 0, 2, notJudged: 1)))]).Single();
+        var row = RunComparer.AlignRows([Run(Scenario("s", Check("c", 0, 2, notJudged: 1)))], 0).Single();
 
         Assert.Equal(1, row.Cells[0]!.NotJudged);
     }
@@ -133,7 +134,9 @@ public sealed class RunComparerTests
     {
         static ComparedCheck Row(params CheckRunResult?[] checks)
         {
-            return RunComparer.AlignRows([.. checks.Select(check => Run(check is null ? Scenario("s") : Scenario("s", check)))]).Single();
+            return RunComparer
+                .AlignRows([.. checks.Select(check => Run(check is null ? Scenario("s") : Scenario("s", check)))], 0)
+                .Single();
         }
 
         var pass = Check("c", 1, 1);
@@ -153,11 +156,14 @@ public sealed class RunComparerTests
     [Fact]
     public void A_cell_is_better_or_worse_by_the_verdict_first_then_by_the_pass_rate()
     {
-        var rows = RunComparer.AlignRows([
-            Run(Scenario("s", Check("a", 0, 3), Check("b", 1, 3), Check("c", 3, 3), Check("d", 1, 3))),
-            Run(Scenario("s", Check("a", 3, 3), Check("b", 2, 3), Check("c", 3, 3), Check("e", 1, 1))),
-            Run(Scenario("s", Check("a", 0, 3), Check("b", 0, 3), Check("c", 0, 3), Check("d", 1, 3))),
-        ]);
+        var rows = RunComparer.AlignRows(
+            [
+                Run(Scenario("s", Check("a", 0, 3), Check("b", 1, 3), Check("c", 3, 3), Check("d", 1, 3))),
+                Run(Scenario("s", Check("a", 3, 3), Check("b", 2, 3), Check("c", 3, 3), Check("e", 1, 1))),
+                Run(Scenario("s", Check("a", 0, 3), Check("b", 0, 3), Check("c", 0, 3), Check("d", 1, 3))),
+            ],
+            0
+        );
 
         Assert.Equal([Trend.Same, Trend.Better, Trend.Same], rows.Single(row => row.CheckKey == "a").Cells.Select(cell => cell?.Trend));
         Assert.Equal([Trend.Same, Trend.Better, Trend.Worse], rows.Single(row => row.CheckKey == "b").Cells.Select(cell => cell?.Trend));
@@ -173,8 +179,8 @@ public sealed class RunComparerTests
         var first = Check("c", 1, 1) with { Revision = 1, JudgedByModel = false };
         var second = Check("c", 1, 1) with { Revision = 2, JudgedByModel = true };
 
-        var both = RunComparer.AlignRows([Run(Scenario("s", first)), Run(Scenario("s", second))]).Single();
-        var late = RunComparer.AlignRows([Run(Scenario("s")), Run(Scenario("s", second))]).Single();
+        var both = RunComparer.AlignRows([Run(Scenario("s", first)), Run(Scenario("s", second))], 0).Single();
+        var late = RunComparer.AlignRows([Run(Scenario("s")), Run(Scenario("s", second))], 0).Single();
 
         Assert.False(both.JudgedByModel);
         Assert.True(late.JudgedByModel);
@@ -197,7 +203,7 @@ public sealed class RunComparerTests
     {
         var tagged = Scenario("refund", Check("called", 1, 1)) with { Tags = ["billing", "smoke"] };
 
-        var row = RunComparer.AlignRows([Run(tagged)]).Single();
+        var row = RunComparer.AlignRows([Run(tagged)], 0).Single();
 
         Assert.Equal(["billing", "smoke"], row.ScenarioTags);
     }
@@ -225,7 +231,7 @@ public sealed class RunComparerTests
         var greet = Scenario("greet", Check("hello", 1, 1));
         var tags = new[] { Life("refund", "billing"), Life("greet", "smoke") };
 
-        var rows = RunComparer.TagRows([Run(refund), Run(greet), Run(refund, greet)], tags);
+        var rows = RunComparer.TagRows([Run(refund), Run(greet), Run(refund, greet)], tags, 0);
 
         var billing = rows.Single(row => row.Tag == "billing");
         Assert.Equal([0.5, null, 0.5], billing.Rates.Select(rate => rate.PassRate));
@@ -326,7 +332,8 @@ public sealed class RunComparerTests
                 Run([Judged("b")], medianMs: 1500, p95Ms: null),
                 Run([Judged("a")], medianMs: 1010, p95Ms: 2000),
             ],
-            []
+            [],
+            0
         );
 
         Assert.Equal(["a", "b", "a"], comparison.Runs.Select(run => run.JudgeModel));
@@ -338,5 +345,31 @@ public sealed class RunComparerTests
         );
         Assert.Equal([null, null, new TimeChange(0, Trend.Same)], comparison.Runs.Select(run => run.P95Change));
         Assert.Equal([null], comparison.Tags.Select(row => row.Tag));
+        Assert.Equal(comparison.Runs[0].Run.Id, comparison.RunId);
+    }
+
+    [Fact]
+    public void The_baseline_is_the_run_asked_for_not_the_first_and_every_column_keeps_its_place()
+    {
+        var comparison = RunComparer.Compare(
+            [
+                Run([Scenario("s", Check("c", 1, 1))], medianMs: 1000),
+                Run([Scenario("s", Check("c", 0, 1))], medianMs: 2000),
+                Run([Scenario("s", Check("c", 1, 1))], medianMs: 1000),
+            ],
+            [],
+            1
+        );
+
+        Assert.Equal(comparison.Runs[1].Run.Id, comparison.RunId);
+        Assert.Equal(
+            [new TimeChange(-1000, Trend.Better), null, new TimeChange(-1000, Trend.Better)],
+            comparison.Runs.Select(run => run.MedianChange)
+        );
+        Assert.Equal([Trend.Better, Trend.Same, Trend.Better], comparison.Checks.Single().Cells.Select(cell => cell!.Trend));
+        Assert.Equal(
+            [new RateChange(100, Trend.Better), null, new RateChange(100, Trend.Better)],
+            comparison.Tags[0].Rates.Select(rate => rate.Change)
+        );
     }
 }

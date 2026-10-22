@@ -22,7 +22,6 @@ internal static class RunEndpoints
         ArgumentNullException.ThrowIfNull(app);
         app.MapPost("/runs", CreateAsync).Produces<RunCreated>(StatusCodes.Status202Accepted);
         app.MapGet("/runs", ListAsync).Produces<RunList>();
-        app.MapGet("/runs/compare", CompareAsync).Produces<RunComparison>();
         app.MapGet("/runs/{id:guid}", GetAsync).Produces<RunSummary>();
         app.MapGet("/runs/{id:guid}/results", ResultsAsync).Produces<RunResults>();
         app.MapPost("/runs/{id:guid}/rerun", RerunAsync).Produces<RunCreated>(StatusCodes.Status202Accepted);
@@ -556,50 +555,6 @@ internal static class RunEndpoints
     {
         var run = await runs.GetAsync(id, cancellationToken);
         return run is null ? ProblemResults.NotFound("Run", id.ToString()) : Results.Ok(RunReport.Summary(run));
-    }
-
-    /// <summary>
-    /// Two to five runs of one agent side by side (<c>runs</c>, repeatable run ids, each once; the first is the baseline). 404: no such
-    /// run; 422: fewer than two or more than five runs, or runs of different agents.
-    /// </summary>
-    private static async Task<IResult> CompareAsync(
-        [FromQuery] Guid[]? runs,
-        RunStore store,
-        ScenarioStore scenarios,
-        CancellationToken cancellationToken
-    )
-    {
-        var ids = (runs ?? []).Distinct().ToList();
-        if (ids.Count is < RunComparer.MinRuns or > RunComparer.MaxRuns)
-        {
-            return ProblemResults.Invalid("runs", $"Choose {RunComparer.MinRuns} to {RunComparer.MaxRuns} runs to compare.");
-        }
-        var rows = new List<RunRow>();
-        foreach (var id in ids)
-        {
-            var row = await store.GetAsync(id, cancellationToken);
-            if (row is null)
-            {
-                return ProblemResults.NotFound("Run", id.ToString());
-            }
-            rows.Add(row);
-        }
-        if (rows.Select(row => row.AgentId).Distinct().Count() > 1)
-        {
-            return ProblemResults.Invalid("runs", "Runs of different agents cannot be compared.");
-        }
-        var results = new List<RunResults>();
-        foreach (var row in rows)
-        {
-            results.Add(
-                RunReport.Results(
-                    row,
-                    await store.ListScenarioResultsAsync(row.Id, cancellationToken),
-                    await store.ListCheckResultsAsync(row.Id, cancellationToken)
-                )
-            );
-        }
-        return Results.Ok(RunComparer.Compare(results, await scenarios.ListLifetimesAsync(rows[0].AgentId, cancellationToken)));
     }
 
     /// <summary>

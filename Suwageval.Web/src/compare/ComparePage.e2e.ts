@@ -1,5 +1,5 @@
 // The comparison page, from both of its entries: runs ticked on the agent page and a group opened from the Groups section (the same
-// page). The agent is a tiny HTTP server; the runs come in two rounds, "before" (its first answer fails one check) and "after" (it
+// page). It shows absolute values; a baseline is picked by a column's header and lives in the address. The agent is a tiny HTTP server; the runs come in two rounds, "before" (its first answer fails one check) and "after" (it
 // passes both), each round once outside a group and once in one.
 import { expect, test, type APIRequestContext } from "@playwright/test";
 
@@ -45,7 +45,7 @@ test.afterAll(() => {
     seed.agentServer.close();
 });
 
-test("two runs ticked on the agent page are compared against the older one, and a scenario opens into the run", async ({ page }) => {
+test("two runs ticked on the agent page are shown side by side, and a scenario opens into the run", async ({ page }) => {
     const { name, plainBefore, plainAfter } = seed;
     await page.goto(`/agents/${name}`);
     const compare = page.getByRole("button", { name: "Compare (0)", exact: true });
@@ -57,7 +57,7 @@ test("two runs ticked on the agent page are compared against the older one, and 
 
     await expect(page).toHaveURL(`/compare?runs=${plainBefore},${plainAfter}`);
     await expect(page.getByRole("heading", { name: `Compare runs of ${name}`, exact: true })).toBeVisible();
-    await expect(page.getByText("Baseline", { exact: true })).toHaveCount(1);
+    await expect(page.getByText("Baseline", { exact: true })).toHaveCount(0);
     await expect(page.getByText("2/3 passed · 1 failed", { exact: true })).toBeVisible();
     await expect(page.getByText("3/3 passed", { exact: true })).toBeVisible();
 
@@ -73,15 +73,13 @@ test("two runs ticked on the agent page are compared against the older one, and 
     await expect(page.getByRole("heading", { name: "greets", exact: true })).toBeInViewport();
 });
 
-test("a group is opened from the agent page as the same comparison, without a baseline, and the tag choice survives a reload", async ({
-    page,
-}) => {
+test("a group is opened from the agent page as the same comparison, and the tag choice survives a reload", async ({ page }) => {
     const { name, group, groupedBefore, groupedAfter } = seed;
     await page.goto(`/agents/${name}`);
     await expect(page.getByRole("heading", { name: "Groups", exact: true })).toBeVisible();
     await page.getByRole("link", { name: group, exact: true }).first().click();
 
-    await expect(page).toHaveURL(`/variants?${new URLSearchParams({ group, agent: name }).toString()}`);
+    await expect(page).toHaveURL(`/compare?${new URLSearchParams({ group, agent: name }).toString()}`);
     await expect(page.getByRole("heading", { name: `Compare runs of ${name}`, exact: true })).toBeVisible();
     await expect(page.getByText("Baseline", { exact: true })).toHaveCount(0);
     await expect(page.getByRole("link", { name: `Run ${groupedBefore.slice(0, 8)}`, exact: true })).toBeVisible();
@@ -101,4 +99,33 @@ test("a group is opened from the agent page as the same comparison, without a ba
     await expect(page).toHaveURL(`/compare?runs=${groupedBefore},${groupedAfter}`);
     await expect(page.getByRole("heading", { name: `Compare runs of ${name}`, exact: true })).toBeVisible();
     await expect(page.getByText("Baseline", { exact: true })).toHaveCount(0);
+});
+
+test("a baseline is picked by a column's header, lives in the address and is taken back by a second click", async ({ page }) => {
+    const { name, plainBefore, plainAfter } = seed;
+    await page.goto(`/compare?runs=${plainBefore},${plainAfter}`);
+    await expect(page.getByRole("heading", { name: `Compare runs of ${name}`, exact: true })).toBeVisible();
+    await expect(page.getByText("Baseline", { exact: true })).toHaveCount(0);
+    await expect(page.getByText(/[▲▼±].* pp$/)).toHaveCount(0);
+
+    await page.getByRole("button", { name: `Use run ${plainBefore.slice(0, 8)} as the baseline`, exact: true }).click();
+    await expect(page).toHaveURL(`/compare?runs=${plainBefore},${plainAfter}&baseline=${plainBefore}`);
+    const baseline = page.getByRole("button", { name: `Run ${plainBefore.slice(0, 8)} is the baseline: click to remove it`, exact: true });
+    await expect(baseline).toBeVisible();
+    await expect(page.getByText("Baseline", { exact: true })).toHaveCount(1);
+    await expect(page.getByText(/▲ \d+(\.\d+)? pp/).first()).toBeVisible();
+
+    await page.getByRole("button", { name: `Use run ${plainAfter.slice(0, 8)} as the baseline`, exact: true }).click();
+    await expect(page).toHaveURL(`/compare?runs=${plainBefore},${plainAfter}&baseline=${plainAfter}`);
+
+    await page.getByRole("button", { name: `Run ${plainAfter.slice(0, 8)} is the baseline: click to remove it`, exact: true }).click();
+    await expect(page).toHaveURL(`/compare?runs=${plainBefore},${plainAfter}`);
+    await expect(page.getByText("Baseline", { exact: true })).toHaveCount(0);
+    await expect(page.getByText(/[▲▼±].* pp$/)).toHaveCount(0);
+});
+
+test("a baseline in the address of a group is read at once", async ({ page }) => {
+    const { name, group, groupedBefore } = seed;
+    await page.goto(`/compare?${new URLSearchParams({ group, agent: name, baseline: groupedBefore }).toString()}`);
+    await expect(page.getByText("Baseline", { exact: true })).toHaveCount(1);
 });
