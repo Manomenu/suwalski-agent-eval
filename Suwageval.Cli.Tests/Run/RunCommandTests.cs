@@ -702,6 +702,50 @@ public sealed class RunCommandTests
     }
 
     [Fact]
+    public void Wait_with_json_prints_one_valid_document_whatever_kinds_of_items_and_quotes_the_samples_hold()
+    {
+        var quoted = JsonSerializer.SerializeToElement(new { list = "“My List” \"My List\"\nnext", n = 1 });
+        var results = Results(RunStatus.Done) with
+        {
+            Scenarios =
+            [
+                Results(RunStatus.Done).Scenarios[0] with
+                {
+                    Samples =
+                    [
+                        new SampleResult
+                        {
+                            Sample = 1,
+                            Status = SampleStatus.Done,
+                            Output =
+                            [
+                                new ToolCall
+                                {
+                                    Id = "1",
+                                    Name = "t",
+                                    Arguments = quoted,
+                                },
+                                new ToolResult { CallId = "1", Content = "\"My List\"" },
+                                new Event { Type = "e", Data = quoted },
+                                new Retrieval { Query = "\"q\"", Chunks = [new RetrievedChunk { Text = "\"My List\"", Source = "s" }] },
+                                new AssistantMessage { Text = "\"My List\"", Sources = ["a\"b"] },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        };
+
+        var (_, output, error, _) = Run((request, _) => Server(request, Summary(RunStatus.Done), results), "--wait", "--json");
+
+        // A console that is not UTF-8 would turn the typographic quotes into plain ones: the document is ASCII.
+        Assert.All(output, character => Assert.True(character < 128));
+        using var printed = JsonDocument.Parse(output);
+        Assert.Equal(5, printed.RootElement.GetProperty("scenarios")[0].GetProperty("samples")[0].GetProperty("output").GetArrayLength());
+        Assert.Empty(error);
+    }
+
+    [Fact]
     public void A_refusal_by_the_server_exits_2_with_its_reason()
     {
         var (exit, output, error, _) = Run(

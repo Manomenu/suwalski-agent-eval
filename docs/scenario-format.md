@@ -60,7 +60,21 @@ what really ran. A `version:` key is an error.
 | `endpointUrl` | required | where the agent is reached: `POST {endpointUrl}/suwageval/turn`, `GET {endpointUrl}/suwageval/contract`. `validate`, `run` and `rerun` take `--endpoint`, else `SUWAGEVAL_ENDPOINT_URL`, over it (`run` and `rerun`: else the endpoint registered by `push` / of the earlier run); `push` always registers this one |
 | `samples` | optional | how many times each scenario's conversation is sent to the agent by default: 1 to 20, default `3` (see "Samples" under Scenarios; a scenario or a check can set its own) |
 | `regression` | optional | how regressions are found (next block, section "Regressions") |
+| `sweep` | optional | how `suwageval sweep` switches the agent to each variant (below). For the CLI only: not pushed, not stored |
 | `suwagevalUrl` | optional | where Suwageval is: the address of its web app (the API is under `/api`), an absolute http(s) address. For the CLI only — `push` does not send it and the server does not store it. Used when neither `--server` nor `SUWAGEVAL_URL` is set; without it the default is `http://localhost:3230` |
+
+```yaml
+sweep:
+  variantsDir: setups # required: relative to this file; every file is a variant, named without its extension
+  reconfigure: ./scripts/use-variant.sh {variant} # required: leaves the agent serving it, its contract's label == the name
+  before: ./scripts/start-model.sh {variant} # optional: before reconfigure, for each variant
+  after: ./scripts/stop-model.sh {variant} # optional: after each variant, whatever happened
+  restore: ./scripts/use-variant.sh default # optional: once at the end, whatever happened
+  waitSeconds: 180 # optional: how long the label may take to show up; 1 to 3600, default 180
+```
+
+`{variant}` and `{group}` (the sweep's run group) are replaced in every command; variant names are letters, digits, `.`, `_`
+and `-`. The commands run from the folder `suwageval sweep` is started in (see front-doors.md).
 
 ```yaml
 regression:

@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using Suwageval.Cli.Files;
 
 namespace Suwageval.Cli.Validation;
 
@@ -35,14 +36,16 @@ internal static class ValidationReport
     }
 
     public static string Json(ValidationResult result) =>
-        JsonSerializer.Serialize(
-            new JsonReport(
-                result.IsValid,
-                result.NamesChecked,
-                result.Notice,
-                [.. result.Problems.Select(p => new JsonProblem(p.File, p.Path, p.Message))]
-            ),
-            JsonOptions
+        AsciiJson.Escape(
+            JsonSerializer.Serialize(
+                new JsonReport(
+                    result.IsValid,
+                    result.NamesChecked,
+                    result.Notice,
+                    [.. result.Problems.Select(p => new JsonProblem(p.File, p.Path, p.Message))]
+                ),
+                JsonOptions
+            )
         );
 
     private sealed record JsonReport(bool Valid, bool NamesChecked, string? Notice, IReadOnlyList<JsonProblem> Problems);

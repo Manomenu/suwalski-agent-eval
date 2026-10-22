@@ -15,6 +15,7 @@ using Suwageval.Cli.Run;
 using Suwageval.Cli.Runs;
 using Suwageval.Cli.Scenarios;
 using Suwageval.Cli.Server;
+using Suwageval.Cli.Sweep;
 using Suwageval.Cli.Trend;
 using Suwageval.Cli.Unstable;
 using Suwageval.Cli.Validate;
@@ -30,6 +31,7 @@ internal static class CliApp
     // openBrowser: how results, compare and versions diff open a page; null is the system's browser.
     // interactive: whether a person answers on input; without one, nothing is asked.
     // origins: how run reads the repository and the CI environment; null is the real ones.
+    // shell, labelPollInterval: how sweep runs its command lines and how often it reads the agent's label; null is the real shell and 2 s.
     // interrupt: Ctrl+C (Program.cs). It cancels what a command does; run and rerun --wait ask then whether to cancel the run too.
     public static int Run(
         string[] args,
@@ -40,6 +42,8 @@ internal static class CliApp
         Action<Uri>? openBrowser = null,
         bool interactive = false,
         RunOriginReader? origins = null,
+        ShellCommand? shell = null,
+        TimeSpan? labelPollInterval = null,
         CancellationToken interrupt = default
     )
     {
@@ -56,6 +60,7 @@ internal static class CliApp
             ResultsCommand.Create(http, openBrowser),
             CompareCommand.Create(http, openBrowser),
             VariantsCommand.Create(http, openBrowser),
+            SweepCommand.Create(http, origins, shell, labelPollInterval),
             RunsCommand.Create(http),
             AgentsCommand.Create(http),
             AgentCommand.Create(http),
