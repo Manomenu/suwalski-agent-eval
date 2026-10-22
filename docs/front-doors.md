@@ -36,7 +36,7 @@ The server has one interface, its HTTP API. Three users reach it:
   no, the run goes on and the exit code is 130. Without a terminal to ask on (a CI job being stopped) the
   run is cancelled, since nobody would read its results. For machines, `--json` on either prints the results (and opens nothing).
 - **`suwageval sweep` runs the variants for you.** The agent's repository says how to switch the agent to a variant in the
-  `sweep:` section of `agent.yaml` (see scenario-format.md); `suwageval sweep [variant…] [--select] [--tag t]… [--group g]` then, for each
+  `sweep:` section of `agent.yaml` (see scenario-format.md); `suwageval sweep [variantâ€¦] [--select] [--tag t]â€¦ [--group g]` then, for each
   variant (a file in `variantsDir`, named like the file without its extension; none named means all): runs `before`, runs
   `reconfigure` with `{variant}` filled in, waits until `GET {endpointUrl}/suwageval/contract` carries `label == <variant>`
   (at most `waitSeconds`), starts a run in the group (default `sweep-<yyyymmdd-hhmm>-<agent>`), waits for it and runs `after`.
