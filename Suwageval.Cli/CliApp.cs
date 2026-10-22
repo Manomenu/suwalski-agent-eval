@@ -60,7 +60,7 @@ internal static class CliApp
             ResultsCommand.Create(http, openBrowser),
             CompareCommand.Create(http, openBrowser),
             VariantsCommand.Create(http, openBrowser),
-            SweepCommand.Create(http, origins, shell, labelPollInterval),
+            SweepCommand.Create(terminal, http, origins, shell, labelPollInterval),
             RunsCommand.Create(http),
             AgentsCommand.Create(http),
             AgentCommand.Create(http),

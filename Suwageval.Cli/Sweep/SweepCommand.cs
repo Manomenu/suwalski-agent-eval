@@ -18,11 +18,13 @@ internal static partial class SweepCommand
 {
     private static readonly TimeSpan CancelTimeout = TimeSpan.FromSeconds(10);
 
+    /// <param name="terminal">Where <c>--select</c> asks which variants to run.</param>
     /// <param name="http">The client to the API and the agent; none means one for each (the tests pass their own).</param>
     /// <param name="origins">Reads where the agent's repository stands; none means the real one and the CI environment (the tests pass their own).</param>
     /// <param name="shell">Runs the command lines; none means the real shell (the tests pass their own).</param>
     /// <param name="pollInterval">How often the label is read while waiting for it; none means every 2 s.</param>
     public static Command Create(
+        Terminal terminal,
         HttpClient? http = null,
         RunOriginReader? origins = null,
         ShellCommand? shell = null,
@@ -33,6 +35,10 @@ internal static partial class SweepCommand
         {
             Description = "The variants to run, as named in the variants folder. Default: all of them.",
             Arity = ArgumentArity.ZeroOrMore,
+        };
+        var select = new Option<bool>("--select")
+        {
+            Description = "Instead of naming variants, pick them from a numbered list of the variants folder (answer \"1,3\", \"2-4\" or \"all\"). Needs a terminal.",
         };
         var tag = new Option<string[]>("--tag")
         {
@@ -57,6 +63,7 @@ internal static partial class SweepCommand
         )
         {
             variants,
+            select,
             tag,
             group,
             endpoint,
@@ -67,9 +74,11 @@ internal static partial class SweepCommand
         command.SetAction(
             (parsed, cancellationToken) =>
                 RunAsync(
+                    terminal,
                     new Arguments(
                         parsed.GetRequiredValue(dir),
                         parsed.GetValue(variants) ?? [],
+                        parsed.GetValue(select),
                         parsed.GetValue(tag) ?? [],
                         parsed.GetValue(group),
                         AgentEndpoint.Override(parsed.GetValue(endpoint)),
@@ -91,6 +100,7 @@ internal static partial class SweepCommand
     private sealed record Arguments(
         string Dir,
         string[] Variants,
+        bool Select,
         string[] Tags,
         string? Group,
         string? EndpointOverride,
@@ -99,6 +109,7 @@ internal static partial class SweepCommand
     );
 
     private static async Task<int> RunAsync(
+        Terminal terminal,
         Arguments arguments,
         HttpClient? http,
         RunOriginReader origins,
@@ -109,6 +120,16 @@ internal static partial class SweepCommand
         CancellationToken cancellationToken
     )
     {
+        if (arguments.Select && arguments.Variants.Length > 0)
+        {
+            await error.WriteLineAsync("Name the variants or use --select, not both.");
+            return 2;
+        }
+        if (arguments.Select && !terminal.Interactive)
+        {
+            await error.WriteLineAsync("--select asks on a terminal and input is redirected here: name the variants instead.");
+            return 2;
+        }
         var agent = AgentReader.Read(arguments.Dir, error);
         if (agent is null)
         {
@@ -129,9 +150,17 @@ internal static partial class SweepCommand
         }
         var group = arguments.Group ?? DefaultGroup(agent.Definition.Name);
         var chosen = ChooseVariants(Path.Combine(arguments.Dir, settings.VariantsDir), arguments.Variants, group, out var problem);
+        if (chosen is not null && arguments.Select)
+        {
+            chosen = await SelectAsync(chosen, terminal, output, error, cancellationToken);
+            problem = "";
+        }
         if (chosen is null)
         {
-            await error.WriteLineAsync(problem);
+            if (problem.Length > 0)
+            {
+                await error.WriteLineAsync(problem);
+            }
             return 2;
         }
 
@@ -202,6 +231,36 @@ internal static partial class SweepCommand
         catch (ServerClientException failure)
         {
             return new VariantOutcome("", created?.RunId, failure.Message, true);
+        }
+    }
+
+    /// <summary>Lists the variants and reads the answer, asking again until it is valid; null when the input ends first.</summary>
+    private static async Task<List<string>?> SelectAsync(
+        List<string> available,
+        Terminal terminal,
+        TextWriter output,
+        TextWriter error,
+        CancellationToken cancellationToken
+    )
+    {
+        await output.WriteLineAsync("Variants:");
+        await output.WriteLineAsync(VariantSelection.Menu(available));
+        while (true)
+        {
+            await output.WriteAsync("Run which? (e.g. 1,3 or all): ");
+            await output.FlushAsync(cancellationToken);
+            var answer = await terminal.Input.ReadLineAsync(cancellationToken);
+            if (answer is null)
+            {
+                await error.WriteLineAsync("No variants selected: the input ended.");
+                return null;
+            }
+            var selected = VariantSelection.Parse(answer, available, out var problem);
+            if (selected is not null)
+            {
+                return selected;
+            }
+            await error.WriteLineAsync(problem);
         }
     }
 
