@@ -1,35 +1,36 @@
 using Suwageval.Contracts.Runs;
 using Suwageval.Server.Scenarios;
 
-namespace Suwageval.Server.Runs;
+namespace Suwageval.Server.Runs.Compare;
 
 /// <summary>
 /// The rules of comparing runs, as pure functions over their results: how their checks line up, the pass rate per tag, what counts as a
-/// difference, the judge of each run and the changes against the baseline (the first run).
+/// difference, the judge of each run and the changes against the baseline, the run asked for.
 ///
 /// Words: a check is "passed" when its pass rate reaches its threshold; its pass rate is the share of its samples that passed. A run's
 /// pass rate over some scenarios is the share of their checks that are passed — a check counts once, however many samples it has.
 /// </summary>
 internal static class RunComparer
 {
-    public const int MinRuns = 2;
-    public const int MaxRuns = 5;
-
     /// <summary>A turn time within this share of the baseline's counts as the same...</summary>
     public const double TimeSameShare = 0.05;
 
     /// <summary>...and so does one within this many milliseconds (a fast agent's noise).</summary>
     public const double TimeSameMs = 100;
 
-    /// <summary>The comparison of <paramref name="runs"/>, the first of them the baseline; <paramref name="scenarios"/>: the agent's scenarios, for the tags.</summary>
-    public static RunComparison Compare(IReadOnlyList<RunResults> runs, IReadOnlyList<ScenarioLifetime> scenarios)
+    /// <summary>
+    /// How <paramref name="runs"/> stand against the one at <paramref name="baselineColumn"/>, in the order of the runs;
+    /// <paramref name="scenarios"/>: the agent's scenarios, for the tags.
+    /// </summary>
+    public static BaselineComparison Compare(IReadOnlyList<RunResults> runs, IReadOnlyList<ScenarioLifetime> scenarios, int baselineColumn)
     {
         ArgumentNullException.ThrowIfNull(runs);
         ArgumentNullException.ThrowIfNull(scenarios);
-        var baseline = runs[0];
+        var baseline = runs[baselineColumn];
         var baselineJudge = JudgeModel(baseline);
-        return new RunComparison
+        return new BaselineComparison
         {
+            RunId = baseline.Run.Id,
             Runs =
             [
                 .. runs.Select(
@@ -44,24 +45,24 @@ internal static class RunComparer
                             PassRate = PassRate(results.Scenarios),
                             MedianMs = results.MedianMs,
                             P95Ms = results.P95Ms,
-                            MedianChange = column == 0 ? null : TimeChangeOf(results.MedianMs, baseline.MedianMs),
-                            P95Change = column == 0 ? null : TimeChangeOf(results.P95Ms, baseline.P95Ms),
+                            MedianChange = column == baselineColumn ? null : TimeChangeOf(results.MedianMs, baseline.MedianMs),
+                            P95Change = column == baselineColumn ? null : TimeChangeOf(results.P95Ms, baseline.P95Ms),
                         };
                     }
                 ),
             ],
-            Tags = TagRows(runs, scenarios),
-            Checks = AlignRows(runs),
+            Tags = TagRows(runs, scenarios, baselineColumn),
+            Checks = AlignRows(runs, baselineColumn),
         };
     }
 
     /// <summary>The checks of all runs lined up by scenario key and check key, in the order they first appear (the baseline's first).</summary>
-    public static IReadOnlyList<ComparedCheck> AlignRows(IReadOnlyList<RunResults> runs)
+    public static IReadOnlyList<ComparedCheck> AlignRows(IReadOnlyList<RunResults> runs, int baselineColumn)
     {
         ArgumentNullException.ThrowIfNull(runs);
         var rows = new Dictionary<(string Scenario, string Check), CheckRunResult?[]>();
         var tagsOf = new Dictionary<string, IReadOnlyList<string>>();
-        for (var column = 0; column < runs.Count; column++)
+        foreach (var column in Enumerable.Range(0, runs.Count).OrderBy(column => column == baselineColumn ? 0 : 1))
         {
             foreach (var scenario in runs[column].Scenarios)
             {
@@ -83,8 +84,8 @@ internal static class RunComparer
             {
                 var cells = row.Value.Select(check => check is null ? null : Cell(check)).ToList();
                 // The check as the baseline ran it, else as the first run that has it.
-                var shown = row.Value[0] ?? row.Value.First(check => check is not null)!;
-                var baseline = cells[0];
+                var shown = row.Value[baselineColumn] ?? row.Value.First(check => check is not null)!;
+                var baseline = cells[baselineColumn];
                 return new ComparedCheck
                 {
                     ScenarioKey = row.Key.Scenario,
@@ -176,7 +177,11 @@ internal static class RunComparer
     /// The pass rate over every check (no tag), then one row per tag, sorted by name. A run has a rate for a tag only when it ran every
     /// scenario of the tag (<see cref="TagCoverage"/>); a scenario the agent no longer has still carries its tags.
     /// </summary>
-    public static IReadOnlyList<ComparedTag> TagRows(IReadOnlyList<RunResults> runs, IReadOnlyList<ScenarioLifetime> scenarios)
+    public static IReadOnlyList<ComparedTag> TagRows(
+        IReadOnlyList<RunResults> runs,
+        IReadOnlyList<ScenarioLifetime> scenarios,
+        int? baselineColumn = null
+    )
     {
         ArgumentNullException.ThrowIfNull(runs);
         ArgumentNullException.ThrowIfNull(scenarios);
@@ -195,7 +200,7 @@ internal static class RunComparer
             .Order(StringComparer.Ordinal);
         return
         [
-            Row(null, [.. runs.Select(run => PassRate(run.Scenarios))], []),
+            Row(null, [.. runs.Select(run => PassRate(run.Scenarios))], [], baselineColumn),
             .. tags.Select(tag =>
                 Row(
                     tag,
@@ -211,13 +216,14 @@ internal static class RunComparer
                         .. runs.Select(run =>
                             TagCoverage.Counts(tag, run.Run.CreatedAt, [.. run.Scenarios.Select(scenario => scenario.Key)], scenarios)
                         ),
-                    ]
+                    ],
+                    baselineColumn
                 )
             ),
         ];
     }
 
-    private static ComparedTag Row(string? tag, List<double?> rates, List<(int Ran, int Total)> coverage) =>
+    private static ComparedTag Row(string? tag, List<double?> rates, List<(int Ran, int Total)> coverage, int? baselineColumn) =>
         new()
         {
             Tag = tag,
@@ -227,7 +233,7 @@ internal static class RunComparer
                     (rate, column) =>
                         new ComparedRate(
                             rate,
-                            column == 0 ? null : Change(rate, rates[0]),
+                            baselineColumn is not { } baseline || column == baseline ? null : Change(rate, rates[baseline]),
                             coverage.Count > column ? coverage[column].Ran : null,
                             coverage.Count > column ? coverage[column].Total : null
                         )

@@ -1,6 +1,6 @@
 namespace Suwageval.Contracts.Runs;
 
-/// <summary>A column of the variants view: the run, the variant it is of and its turn times.</summary>
+/// <summary>A column of the compare view: the run, the variant it is of and its turn times.</summary>
 public sealed record VariantRun
 {
     public required RunSummary Run { get; init; }

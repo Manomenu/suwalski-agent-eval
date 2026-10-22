@@ -1,6 +1,6 @@
 namespace Suwageval.Contracts.Runs;
 
-/// <summary>One check of a scenario in one run, for the detail of a variants row: its verdict and why the samples that failed it did.</summary>
+/// <summary>One check of a scenario in one run, for the detail of a compare row: its verdict and why the samples that failed it did.</summary>
 public sealed record VariantCheck
 {
     public required string Key { get; init; }

@@ -73,10 +73,10 @@ The agent's own address (`validate`, `run`, `rerun`) is `--endpoint` on the comm
 | see how the pass rate moved over the runs | `suwageval trend` (`--json`): per finished run, oldest first, pass rate, median and p95 turn time and the rate per tag (only for a tag whose every scenario the run ran: a `--tag` run has no rate for another tag it ran in part) |
 | list the checks that pass in some runs of a version and fail in others | `suwageval unstable` (`--json`; `--version <id>` repeatable): open ones only, i.e. unstable in the newest version (not archived by default) that ran the check at least twice; per check `scenarioKey`, `checkKey`, `passedRuns` of `runs`, the version; "No unstable checks." when none |
 | list the scenarios where the agent gave no answer (HTTP error, timeout) | `suwageval agent-errors` (`--json`; `--version <id>` repeatable): open ones only, i.e. the newest version (not archived by default) that ran the scenario has errors; per version and scenario `errors` of `samples`, `newestErrorRunId`, `newestError`; "No agent errors." when none. Such samples do not count against checks: an agent that fails here is unreliable itself, not a check to fix |
-| compare 2 to 5 runs of one agent | `suwageval compare <runId> <runId>...`: prints on stdout, no browser (the first run is the baseline): a header per run (version, tags, judge model, pass rate and turn times against the baseline), the pass rate per tag, the checks that differ with the trend (▲ better, ▼ worse), a `judge differs from baseline` warning when the judge model changed. `--json` prints the record. Exit 2 for an unknown run or runs of different agents |
-| compare runs of one agent as variants (a model or configuration each, started with the same `--group`) | `suwageval variants --group <name>` or `suwageval variants <runId>...` (`--json`): a column per run (version label, models, checks passed, samples answered, turn times), pass rate per tag and checks per scenario with the failed ones. Prefer it to opening a browser; `--open` only when the user wants the page |
+| put up to 20 runs of one agent side by side (for example the variants of a sweep, started with the same `--group`) | `suwageval compare <runId>...` or `suwageval compare --group <name>` (`--json`): prints on stdout, no browser, absolute values — a lettered column per run (version label, models, checks passed, samples answered, turn times), the pass rate per tag and the checks per scenario with the failed ones. There is no default baseline. Prefer it to opening a browser. Exit 2 for an unknown run or group or runs of different agents |
+| read the others against one of those runs | add `--baseline <runId>` (one of the runs; with `--group`, any run of the group): also prints, against that run, each run's judge model, pass rate and turn time changes, the pass rate changes per tag and the checks that differ with the trend (▲ better, ▼ worse), with a `judge differs from baseline` warning when the judge model changed |
 | archive, restore or delete a run group | `suwageval groups archive <name>...` / `unarchive <name>...` (hidden from the web's Groups section, kept); `suwageval groups delete <name>` deletes an archived group with its runs (`--dry-run`, `--yes`; ask the user first: it cannot be undone) |
-| open that comparison on the web, only when the user wants the page | `suwageval compare <runId> <runId>... --open` |
+| open that comparison on the web, only when the user wants the page | `suwageval compare <runId>... --open` (or `--group <name>`; with `--baseline` when meant) |
 | show what the server stores for the repository's agent | `suwageval agent` (`--json`): endpoint, number of versions, scenarios and checks, samples, regression settings |
 | list the agent's versions | `suwageval versions` (`--archived` to include archived ones, `--json`) |
 | archive or restore versions | `suwageval versions archive <versionId>...`, `suwageval versions unarchive <versionId>...` |
@@ -85,8 +85,8 @@ The agent's own address (`validate`, `run`, `rerun`) is `--endpoint` on the comm
 | see what changed between two versions of the agent | `suwageval versions diff <versionA> <versionB>`: a unified-style diff of both contracts on stdout (`---`/`+++` headers, `@@` hunks, `+`/`-` lines, `+A −R lines`, `No changes.`); the older is the base; `--json` prints the record; exit 2 for an unknown version. Read it instead of opening a browser; `--open` opens the page for a person |
 | print one version with its contract | `suwageval versions show <versionId>` (`--json`) |
 
-A run's page is `{SUWAGEVAL_URL}/runs/{runId}`; the comparison of runs is `{SUWAGEVAL_URL}/compare?runs={id},{id},...`.
-The comparison of runs (one page, columns per run) is `{SUWAGEVAL_URL}/variants?group={name}&agent={agent}` or `{SUWAGEVAL_URL}/compare?runs={id},{id},...`.
+A run's page is `{SUWAGEVAL_URL}/runs/{runId}`.
+The comparison of runs (one page, a column per run) is `{SUWAGEVAL_URL}/compare?runs={id},{id},...` or `{SUWAGEVAL_URL}/compare?group={name}&agent={agent}`; add `&baseline={id}` (one of the runs) to read the others against that run.
 The comparison of two versions is `{SUWAGEVAL_URL}/agents/{agent}/versions/compare?a={id}&b={id}`.
 
 ### Exit codes
@@ -218,7 +218,7 @@ A run that finished has `results.regression` (what it was compared with, and cou
 `history`: the verdicts the state follows from, oldest first; the CLI prints them as `✓✓✓✗ → ✗`, the last mark being
 this run). A regression is a check that passed steadily over the newest reference runs (clean tree, pushed commit,
 the default branch or `regression.branches` of `agent.yaml`) and fails now. Report in this order: **regressions and new
-failing checks** first (scenario, check, why; `lastPassedRun` is the run to compare with: `{SUWAGEVAL_URL}/compare?runs={lastPassedRun},{run.id}`),
+failing checks** first (scenario, check, why; `lastPassedRun` is the run to compare with: `{SUWAGEVAL_URL}/compare?runs={lastPassedRun},{run.id}&baseline={lastPassedRun}`),
 then **already broken** (not caused by this run), then fixed and unstable ones; known failures only as a count. An
 **agent error** failed only because the agent gave no answer (the CLI prints the agent's error): report it as the agent failing,
 not the check; it is not counted in the check's history. Never change a check to hide a regression. When a behaviour
@@ -242,7 +242,7 @@ vary to keep runs fast.
 
 ## Comparing runs
 
-To compare 2 to 5 runs of the same agent (for example the new run with the previous one): find
+To compare runs of the same agent (for example the new run with the previous one): find
 the runs with `suwageval runs --json` (newest first), fetch `suwageval results <runId> --json`
 for each, and take the oldest as the baseline unless the user names another. Align checks by
 scenario `key` and check `key`; a check **passes** when `passed` is true (its `passRate`
@@ -258,7 +258,7 @@ reached `passThreshold`). Report:
 - the agent versions of the runs (`run.agentVersionId`) and their models, so a change is not
   blamed on the wrong thing.
 
-`suwageval compare <runId> <runId>...` does this alignment for you and prints it: read its output (or `--json`) instead of fetching every run; it flags a changed judge model, so a different verdict is not blamed on the agent. Finish with the comparison's link, `{SUWAGEVAL_URL}/compare?runs={id},{id},...` (the page `compare --open` opens; open it only if the user wants that).
+`suwageval compare <runId> <runId>... --baseline <runId>` does this alignment for you and prints it: read its output (or `--json`) instead of fetching every run; it flags a changed judge model, so a different verdict is not blamed on the agent. Finish with the comparison's link, `{SUWAGEVAL_URL}/compare?runs={id},{id},...&baseline={id}` (the page `compare --open` opens; open it only if the user wants that).
 
 ## Rules
 

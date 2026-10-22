@@ -11,7 +11,7 @@ namespace Suwageval.Cli.Sweep;
 /// <summary>
 /// <c>suwageval sweep [variant…]</c>: runs the scenarios of the agent of <c>suwageval/agent.yaml</c> once per variant, as the file's
 /// <c>sweep:</c> section says (<see cref="SweepSettings"/>), all in one run group, then prints a row per variant and the link to the
-/// group's variants page. It exits 0 when every variant was run to its end (failing checks are results, not failures), 2 when one could
+/// group's compare page. It exits 0 when every variant was run to its end (failing checks are results, not failures), 2 when one could
 /// not be (reconfiguring, the label, the run) or <c>restore</c> failed, 130 after Ctrl+C. The files are not pushed: run <c>push</c> first.
 /// </summary>
 internal static partial class SweepCommand
@@ -186,7 +186,7 @@ internal static partial class SweepCommand
                 await output.WriteAsync(Table(result, group));
                 if (result.Outcomes.Any(outcome => outcome.RunId is not null))
                 {
-                    await output.WriteLineAsync($"Compare: {ServerAddress.VariantsPage(site, [], group, agent.Definition.Name)}");
+                    await output.WriteLineAsync($"Compare: {ServerAddress.ComparePage(site, [], group, agent.Definition.Name, null)}");
                 }
                 return result.Interrupted ? RunOutput.Interrupted
                     : result.Failed ? 2

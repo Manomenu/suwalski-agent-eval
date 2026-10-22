@@ -1,11 +1,30 @@
 import { describe, expect, it } from "vitest";
 
-import { baselineFirst, deltaText, timeDeltaText, trendColor } from "./compare";
+import { baselineOf, deltaText, searchWithBaseline, timeDeltaText, toggledBaseline, trendColor } from "./compare";
 
-describe("baselineFirst", () => {
-    it("puts the baseline first and keeps the others in order", () => {
-        expect(baselineFirst(["a", "b", "c"], "b")).toEqual(["b", "a", "c"]);
-        expect(baselineFirst(["a", "b"], "a")).toEqual(["a", "b"]);
+describe("baselineOf", () => {
+    it("is the run the address names, or none", () => {
+        expect(baselineOf("abc")).toBe("abc");
+        expect(baselineOf(" abc ")).toBe("abc");
+        expect(baselineOf("")).toBeNull();
+    });
+});
+
+describe("toggledBaseline", () => {
+    it("picks the clicked run and drops the baseline when it is clicked again", () => {
+        expect(toggledBaseline(null, "a")).toBe("a");
+        expect(toggledBaseline("a", "b")).toBe("b");
+        expect(toggledBaseline("a", "a")).toBeNull();
+    });
+});
+
+describe("searchWithBaseline", () => {
+    it("sets, replaces and removes the baseline and keeps every other parameter", () => {
+        expect(searchWithBaseline("?runs=a,b", "a")).toBe("?runs=a,b&baseline=a");
+        expect(searchWithBaseline("?runs=a,b&baseline=a&tag=x", "b")).toBe("?runs=a,b&tag=x&baseline=b");
+        expect(searchWithBaseline("?runs=a,b&baseline=a", null)).toBe("?runs=a,b");
+        expect(searchWithBaseline("?baseline=a", null)).toBe("");
+        expect(searchWithBaseline("", null)).toBe("");
     });
 });
 

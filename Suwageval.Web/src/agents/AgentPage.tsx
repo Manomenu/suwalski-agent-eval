@@ -30,7 +30,7 @@ import {
     shortId,
     statusColor,
     statusLabel,
-    variantsGroupHref,
+    compareGroupHref,
 } from "../runs/results";
 import { fetchAgent, fetchPassRates, fetchRunGroups, fetchVersions, type AgentVersion, type RunGroupSummary } from "./api";
 import { AgentErrorsCard } from "./AgentErrorsCard";
@@ -375,7 +375,7 @@ function AgentView({
                                                     {run.group == null ? (
                                                         "—"
                                                     ) : (
-                                                        <Anchor href={variantsGroupHref(run.group, agent.name)}>{run.group}</Anchor>
+                                                        <Anchor href={compareGroupHref(run.group, agent.name)}>{run.group}</Anchor>
                                                     )}
                                                 </Table.Td>
                                                 <Table.Td>

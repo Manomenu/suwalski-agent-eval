@@ -82,7 +82,7 @@ export function historyText(summary: RegressionSummary): string {
 
 /** The compare page of the last run the check passed in and this one, or null when it never passed in the history. */
 export function regressionCompareHref(runId: string, lastPassedRun: string | null | undefined): string | null {
-    return lastPassedRun == null ? null : `/compare?runs=${lastPassedRun},${runId}`;
+    return lastPassedRun == null ? null : `/compare?runs=${lastPassedRun},${runId}&baseline=${lastPassedRun}`;
 }
 
 /**
@@ -93,7 +93,9 @@ export function compareLink(runId: string, regression: CheckRegression | null | 
     if (regression == null || regression.state === "AlreadyBroken") return null;
     if (regression.state === "Fixed") {
         const failed = [...(regression.history ?? [])].reverse().find((point) => !point.passed);
-        return failed === undefined ? null : { label: "Compare with the last failing run", href: `/compare?runs=${failed.runId},${runId}` };
+        return failed === undefined
+            ? null
+            : { label: "Compare with the last failing run", href: `/compare?runs=${failed.runId},${runId}&baseline=${failed.runId}` };
     }
     const href = regressionCompareHref(runId, regression.lastPassedRun);
     return href === null ? null : { label: "Compare with the last passing run", href };

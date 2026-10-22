@@ -109,10 +109,7 @@ export function consideredVersionIds(
 export const COMPARE_MIN_RUNS = 2;
 export const COMPARE_MAX_RUNS = 20;
 
-/** The most runs the page reads against a baseline; more of them are shown side by side without one. */
-export const BASELINE_MAX_RUNS = 5;
-
-/** The compare page for these runs; with a baseline, the first is it. */
+/** The compare page for these runs, side by side with no baseline (the page lets the user pick one). */
 export const compareHref = (runIds: readonly string[]) => `/compare?runs=${runIds.join(",")}`;
 
 /** Whether the selection is a number of runs the compare page accepts. */
@@ -120,7 +117,7 @@ export function canCompare(count: number): boolean {
     return count >= COMPARE_MIN_RUNS && count <= COMPARE_MAX_RUNS;
 }
 
-/** The selected runs oldest first (the oldest is the baseline). `runs` is as the list has it, newest first. */
+/** The selected runs oldest first. `runs` is as the list has it, newest first. */
 export function runsToCompare(runs: { id: string }[], selected: ReadonlySet<string>): string[] {
     return runs
         .filter((run) => selected.has(run.id))

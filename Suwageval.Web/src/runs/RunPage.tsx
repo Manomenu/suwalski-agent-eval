@@ -19,7 +19,7 @@ import {
     scenariosChecksCounts,
     scenariosSamplesCounts,
     statusColor,
-    variantsGroupHref,
+    compareGroupHref,
 } from "./results";
 import { filteredLabel, keepsTags } from "../tagFilter/tagSelection";
 import { TagFilter } from "../tagFilter/TagFilter";
@@ -73,7 +73,7 @@ export function RunPage({ runId }: { runId: string }) {
                     {run.group != null && (
                         <>
                             {" · group "}
-                            <Anchor href={variantsGroupHref(run.group, run.agent)}>{run.group}</Anchor>
+                            <Anchor href={compareGroupHref(run.group, run.agent)}>{run.group}</Anchor>
                         </>
                     )}
                     {" · "}

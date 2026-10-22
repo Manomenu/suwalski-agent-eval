@@ -1,26 +1,28 @@
 using Suwageval.Contracts.Runs;
 using Suwageval.Server.Scenarios;
 
-namespace Suwageval.Server.Runs.Variants;
+namespace Suwageval.Server.Runs.Compare;
 
-/// <summary>The variants view of runs, as a pure function over their results: the checks and tags are counted by the rules of <see cref="RunComparer"/>.</summary>
-internal static class RunVariantsReport
+/// <summary>The compare view of runs, as a pure function over their results: the checks and tags are counted by the rules of <see cref="RunComparer"/>.</summary>
+internal static class RunComparisonReport
 {
-    /// <summary>The most runs a variants view holds.</summary>
+    /// <summary>The most runs a comparison holds.</summary>
     public const int MaxRuns = 20;
 
-    public static RunVariants Build(
+    public static RunComparison Build(
         string agent,
         string? group,
         IReadOnlyList<(RunResults Results, string? VersionLabel, IReadOnlyList<string> ModelNames)> runs,
-        IReadOnlyList<ScenarioLifetime> scenarios
+        IReadOnlyList<ScenarioLifetime> scenarios,
+        int? baselineColumn
     )
     {
         ArgumentNullException.ThrowIfNull(runs);
         ArgumentNullException.ThrowIfNull(scenarios);
         var tagsOf = scenarios.ToDictionary(scenario => scenario.Key, scenario => (IReadOnlyList<string>)scenario.Tags);
         var keys = runs.SelectMany(run => run.Results.Scenarios).Select(scenario => scenario.Key).Distinct().Order(StringComparer.Ordinal);
-        return new RunVariants
+        var results = runs.Select(run => run.Results).ToList();
+        return new RunComparison
         {
             Agent = agent,
             Group = group,
@@ -35,7 +37,8 @@ internal static class RunVariantsReport
                     P95Ms = run.Results.P95Ms,
                 }),
             ],
-            Tags = RunComparer.TagRows([.. runs.Select(run => run.Results)], scenarios),
+            Tags = RunComparer.TagRows(results, scenarios),
+            Baseline = baselineColumn is { } baseline ? RunComparer.Compare(results, scenarios, baseline) : null,
             Scenarios =
             [
                 .. keys.Select(key => new VariantScenario

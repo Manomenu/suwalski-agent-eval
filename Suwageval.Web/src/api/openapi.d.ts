@@ -789,43 +789,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/runs/compare": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: {
-                    runs?: string[];
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["RunComparison"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/runs/{id}": {
         parameters: {
             query?: never;
@@ -1149,7 +1112,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/runs/variants": {
+    "/runs/compare": {
         parameters: {
             query?: never;
             header?: never;
@@ -1162,6 +1125,7 @@ export interface paths {
                     runs?: string[];
                     group?: string;
                     agent?: string;
+                    baseline?: string;
                 };
                 header?: never;
                 path?: never;
@@ -1175,7 +1139,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["RunVariants"];
+                        "application/json": components["schemas"]["RunComparison"];
                     };
                 };
             };
@@ -1480,6 +1444,20 @@ export interface components {
         ArchiveVersionsRequest: {
             versionIds: string[];
             archived: boolean;
+        };
+        /** @description What a comparison adds when one of its runs is chosen as the baseline: how the others stand against it. */
+        BaselineComparison: {
+            /**
+             * Format: uuid
+             * @description The baseline run: one of the compared runs.
+             */
+            runId: string;
+            /** @description One per compared run, in the order of the columns; the baseline's own entry has no changes. */
+            runs: components["schemas"]["ComparedRun"][];
+            /** @description The pass rate over every check first, then one row per tag, sorted by name; every rate carries its change against the baseline. */
+            tags: components["schemas"]["ComparedTag"][];
+            /** @description The checks of all runs lined up by scenario key and check key, in the order they first appear (the baseline's first). */
+            checks: components["schemas"]["ComparedCheck"][];
         };
         /** @description A check whose verdict a re-check would not copy from the run: it changed, was added or was removed since. */
         ChangedCheck: {
@@ -2049,14 +2027,21 @@ export interface components {
             /** Format: double */
             score?: null | number;
         };
-        /** @description Two to five runs of one agent side by side, everything a comparison shows: the first run is the baseline the others are compared with. */
+        /**
+         * @description Runs of one agent side by side (typically one per model or configuration, each its own agent version): a column per run, the pass
+         *     rate per tag and a row per scenario. When a baseline was asked for, also how the other runs stand against it.
+         */
         RunComparison: {
-            /** @description In the order asked for. */
-            runs: components["schemas"]["ComparedRun"][];
-            /** @description The pass rate over every check first, then one row per tag, sorted by name. */
+            agent: string;
+            /** @description The group the runs were picked by; none when they were named one by one. */
+            group?: null | string;
+            /** @description The columns: in the order asked for, or by creation time for a group. */
+            runs: components["schemas"]["VariantRun"][];
+            /** @description The pass rate over every check first, then one row per tag; the rates carry no changes (those are in BaselineComparison? RunComparison.Baseline). */
             tags: components["schemas"]["ComparedTag"][];
-            /** @description The checks of all runs lined up by scenario key and check key, in the order they first appear (the baseline's first). */
-            checks: components["schemas"]["ComparedCheck"][];
+            /** @description Every scenario any run ran, sorted by key. */
+            scenarios: components["schemas"]["VariantScenario"][];
+            baseline?: null | components["schemas"]["BaselineComparison"];
         };
         RunCreated: {
             /** Format: uuid */
@@ -2079,7 +2064,7 @@ export interface components {
             /** Format: int32 */
             verdicts: number;
         };
-        /** @description A group of an agent's runs (run --group) at a glance: where the variants page of the group starts. */
+        /** @description A group of an agent's runs (run --group) at a glance: where the compare page of the group starts. */
         RunGroupSummary: {
             name: string;
             /** Format: int32 */
@@ -2275,21 +2260,6 @@ export interface components {
             /** @description The distinct models that gave the run's verdicts, sorted by name; empty for a run with no model-judged check (or one made before the name was recorded). */
             judgeModels?: string[];
         };
-        /**
-         * @description Runs of one agent side by side as variants (typically one per model or configuration, each its own agent version): a column per run,
-         *     the pass rate per tag and a row per scenario.
-         */
-        RunVariants: {
-            agent: string;
-            /** @description The group the runs were picked by; none when they were named one by one. */
-            group?: null | string;
-            /** @description The columns: in the order asked for, or by creation time for a group. */
-            runs: components["schemas"]["VariantRun"][];
-            /** @description The pass rate over every check first, then one row per tag, as in a comparison (the changes against the first run are not meant here). */
-            tags: components["schemas"]["ComparedTag"][];
-            /** @description Every scenario any run ran, sorted by key. */
-            scenarios: components["schemas"]["VariantScenario"][];
-        };
         /** @description What the agent produced for one sample of a scenario. */
         SampleResult: {
             /**
@@ -2471,7 +2441,7 @@ export interface components {
             /** @description The samples where the agent gave no answer, with their errors. */
             noAnswers: components["schemas"]["VariantNoAnswer"][];
         };
-        /** @description One check of a scenario in one run, for the detail of a variants row: its verdict and why the samples that failed it did. */
+        /** @description One check of a scenario in one run, for the detail of a compare row: its verdict and why the samples that failed it did. */
         VariantCheck: {
             key: string;
             /** @description True when double VariantCheck.PassRate reaches the check's pass threshold. */
@@ -2506,7 +2476,7 @@ export interface components {
             sample: number;
             error?: null | string;
         };
-        /** @description A column of the variants view: the run, the variant it is of and its turn times. */
+        /** @description A column of the compare view: the run, the variant it is of and its turn times. */
         VariantRun: {
             run: components["schemas"]["RunSummary"];
             /** @description The label the run's version carries: the name of the variant. */
@@ -2521,11 +2491,11 @@ export interface components {
             /** Format: double */
             p95Ms?: null | number;
         };
-        /** @description A row of the variants view: one scenario and what each run made of it. */
+        /** @description A row of the compare view: one scenario and what each run made of it. */
         VariantScenario: {
             key: string;
             tags: string[];
-            /** @description One per run, in the order of IReadOnlyList&lt;VariantRun&gt; RunVariants.Runs; null for a run that did not run the scenario. */
+            /** @description One per run, in the order of IReadOnlyList&lt;VariantRun&gt; RunComparison.Runs; null for a run that did not run the scenario. */
             cells: components["schemas"]["VariantCell"][];
         };
         /** @description What deleting an archived version removes with it: the runs (re-checks of them included), their samples and the verdicts on those. */

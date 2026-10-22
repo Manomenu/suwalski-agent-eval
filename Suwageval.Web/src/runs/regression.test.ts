@@ -77,7 +77,7 @@ describe("headings", () => {
 
 describe("regressionCompareHref", () => {
     it("links the last passing run with this one", () => {
-        expect(regressionCompareHref("b", "a")).toBe("/compare?runs=a,b");
+        expect(regressionCompareHref("b", "a")).toBe("/compare?runs=a,b&baseline=a");
     });
     it("has no link when the check never passed", () => {
         expect(regressionCompareHref("b", null)).toBeNull();
@@ -128,13 +128,13 @@ describe("compareLink", () => {
     it("compares a fixed check with the newest run it failed in", () => {
         expect(compareLink("now", { state: "Fixed", history })).toEqual({
             label: "Compare with the last failing run",
-            href: "/compare?runs=dddd,now",
+            href: "/compare?runs=dddd,now&baseline=dddd",
         });
     });
     it("compares the other states with the last passing run", () => {
         expect(compareLink("now", { state: "Regression", lastPassedRun: "eeee", history })).toEqual({
             label: "Compare with the last passing run",
-            href: "/compare?runs=eeee,now",
+            href: "/compare?runs=eeee,now&baseline=eeee",
         });
     });
     it("has no link for an already broken check, or without a run to compare with", () => {

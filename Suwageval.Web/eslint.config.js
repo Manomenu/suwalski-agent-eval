@@ -88,7 +88,7 @@ export default defineConfig(
                             from: { element: { type: "feature", captured: { name: "compare" } } },
                             allow: { to: { element: { type: "feature", captured: { name: "agents" } } } },
                         },
-                        // The compare page (it also serves /variants) marks the judge of a run with the icon of the run page's
+                        // The compare page marks the judge of a run with the icon of the run page's
                         // model-judged checks: checks/ owns the icon and the definition drawer, compare/ and runs/ place them.
                         {
                             from: { element: { type: "feature", captured: { name: "runs" } } },

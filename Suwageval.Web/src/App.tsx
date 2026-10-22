@@ -62,8 +62,8 @@ export function App() {
                         </Suspense>
                     )}
                     {page.kind === "run" && <RunPage runId={page.runId} />}
-                    {(page.kind === "compare" || page.kind === "variants") && (
-                        <ComparePage runs={page.runs} group={page.group} agent={page.agent} />
+                    {page.kind === "compare" && (
+                        <ComparePage runs={page.runs} group={page.group} agent={page.agent} baseline={page.baseline} />
                     )}
                     {page.kind === "unknown" && <Anchor href="/">Page not found — back to the list of agents</Anchor>}
                 </Box>

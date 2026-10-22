@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { CheckRunResult, ConversationItem, ScenarioRunResult } from "./api";
 import {
     checkAnchor,
+    compareGroupHref,
     checksCounts,
     checkSummary,
     durationSummary,
@@ -297,5 +298,11 @@ describe("sampleVerdict", () => {
 
     it("says nothing of a sample no check looked at", () => {
         expect(sampleVerdict(scenario([]), 1).kind).toBe("unchecked");
+    });
+});
+
+describe("compareGroupHref", () => {
+    it("opens the compare page of the group of an agent, both escaped", () => {
+        expect(compareGroupHref("sweep-1", "my bot")).toBe("/compare?group=sweep-1&agent=my+bot");
     });
 });

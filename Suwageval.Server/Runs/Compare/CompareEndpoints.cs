@@ -4,28 +4,30 @@ using Suwageval.Server.Agents;
 using Suwageval.Server.Problems;
 using Suwageval.Server.Scenarios;
 
-namespace Suwageval.Server.Runs.Variants;
+namespace Suwageval.Server.Runs.Compare;
 
-/// <summary>The route of the variants view: runs of one agent side by side, picked one by one or by their group.</summary>
-internal static class VariantEndpoints
+/// <summary>The route of the compare view: runs of one agent side by side, picked one by one or by their group.</summary>
+internal static class CompareEndpoints
 {
-    public static IEndpointRouteBuilder MapVariants(this IEndpointRouteBuilder app)
+    public static IEndpointRouteBuilder MapCompare(this IEndpointRouteBuilder app)
     {
         ArgumentNullException.ThrowIfNull(app);
-        app.MapGet("/runs/variants", VariantsAsync).Produces<RunVariants>();
+        app.MapGet("/runs/compare", CompareAsync).Produces<RunComparison>();
         return app;
     }
 
     /// <summary>
-    /// The runs of one agent as variants (<see cref="RunVariantsReport"/>): either <c>runs</c> (repeatable run ids, each once, in that
+    /// The runs of one agent side by side (<see cref="RunComparisonReport"/>): either <c>runs</c> (repeatable run ids, each once, in that
     /// order) or <c>group</c> (every run started in that group, oldest first; <c>agent</c> names the agent when the group has runs of
-    /// several). 404: no such run, group or agent; 422: both or neither of runs and group, more than <see cref="RunVariantsReport.MaxRuns"/>
-    /// runs, runs of different agents, a bad group.
+    /// several). 404: no such run, group or agent; 422: both or neither of runs and group, more than <see cref="RunComparisonReport.MaxRuns"/>
+    /// runs, runs of different agents, a bad group, a baseline that is not one of the runs or the only run.
+    /// <c>baseline</c> (a run id among the shown runs) adds how the others stand against it.
     /// </summary>
-    private static async Task<IResult> VariantsAsync(
+    private static async Task<IResult> CompareAsync(
         [FromQuery] Guid[]? runs,
         [FromQuery] string? group,
         [FromQuery] string? agent,
+        [FromQuery] Guid? baseline,
         AgentStore agents,
         RunStore store,
         ScenarioStore scenarios,
@@ -43,9 +45,9 @@ internal static class VariantEndpoints
         var rows = new List<RunRow>();
         if (ids.Count > 0)
         {
-            if (ids.Count > RunVariantsReport.MaxRuns)
+            if (ids.Count > RunComparisonReport.MaxRuns)
             {
-                return ProblemResults.Invalid("runs", $"Choose at most {RunVariantsReport.MaxRuns} runs.");
+                return ProblemResults.Invalid("runs", $"Choose at most {RunComparisonReport.MaxRuns} runs.");
             }
             foreach (var id in ids)
             {
@@ -78,7 +80,7 @@ internal static class VariantEndpoints
                 agentId,
                 [],
                 0,
-                RunVariantsReport.MaxRuns + 1,
+                RunComparisonReport.MaxRuns + 1,
                 group,
                 cancellationToken: cancellationToken
             );
@@ -86,9 +88,12 @@ internal static class VariantEndpoints
             {
                 return ProblemResults.NotFound("Run group", group!);
             }
-            if (newestFirst.Count > RunVariantsReport.MaxRuns)
+            if (newestFirst.Count > RunComparisonReport.MaxRuns)
             {
-                return ProblemResults.Invalid("group", $"The group has more than {RunVariantsReport.MaxRuns} runs; name the runs to show.");
+                return ProblemResults.Invalid(
+                    "group",
+                    $"The group has more than {RunComparisonReport.MaxRuns} runs; name the runs to show."
+                );
             }
             rows = [.. newestFirst.Reverse()];
         }
@@ -98,9 +103,24 @@ internal static class VariantEndpoints
             return ProblemResults.Invalid(
                 group is null ? "runs" : "group",
                 group is null
-                    ? "Runs of different agents cannot be shown as variants."
+                    ? "Runs of different agents cannot be compared."
                     : $"The group has runs of several agents ({string.Join(", ", agentNames)}): add agent=<name>."
             );
+        }
+
+        int? baselineColumn = null;
+        if (baseline is { } baselineId)
+        {
+            var index = rows.FindIndex(row => row.Id == baselineId);
+            if (index < 0)
+            {
+                return ProblemResults.Invalid("baseline", "The baseline must be one of the compared runs.");
+            }
+            if (rows.Count < 2)
+            {
+                return ProblemResults.Invalid("baseline", "A baseline needs at least two runs to compare.");
+            }
+            baselineColumn = index;
         }
 
         var columns = new List<(RunResults, string?, IReadOnlyList<string>)>();
@@ -125,7 +145,13 @@ internal static class VariantEndpoints
             );
         }
         return Results.Ok(
-            RunVariantsReport.Build(agentNames[0], group, columns, await scenarios.ListLifetimesAsync(rows[0].AgentId, cancellationToken))
+            RunComparisonReport.Build(
+                agentNames[0],
+                group,
+                columns,
+                await scenarios.ListLifetimesAsync(rows[0].AgentId, cancellationToken),
+                baselineColumn
+            )
         );
     }
 }

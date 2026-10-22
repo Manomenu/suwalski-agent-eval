@@ -13,8 +13,7 @@ export type Page =
     | { kind: "version"; name: string; versionId: string }
     | { kind: "versionCompare"; name: string; a: string; b: string }
     | { kind: "run"; runId: string }
-    | { kind: "compare"; runs: string; group: string; agent: string }
-    | { kind: "variants"; runs: string; group: string; agent: string }
+    | { kind: "compare"; runs: string; group: string; agent: string; baseline: string }
     | { kind: "unknown" };
 
 function decode(segment: string): string | null {
@@ -28,20 +27,21 @@ function decode(segment: string): string | null {
 /**
  * The page a path opens: `/`, `/agents/<name>`, `/agents/<name>/versions/<guid>`, `/runs/<guid>` (which `suwageval results` opens)
  * `/agents/<name>/versions/compare?a=<guid>&b=<guid>` (what changed between two versions; `suwageval versions diff` opens it),
- * `/compare?runs=<guid>,<guid>,…` (which `suwageval compare` opens; `runs` is passed on as it is, the page checks it),
- * or `/variants?runs=<guid>,…` / `/variants?group=<name>[&agent=<name>]` (the runs of a sweep; `suwageval variants` opens it). Both paths
- * open the same page, which also takes `group` and `agent` on `/compare`.
+ * or `/compare?runs=<guid>,<guid>,…` / `/compare?group=<name>[&agent=<name>]` (runs side by side; `suwageval compare` and `suwageval sweep`
+ * open it), each with an optional `&baseline=<guid>` (one of the runs: the others are read against it). The queries are passed on as
+ * they are, the page checks them.
  */
 export function pageOf(pathname: string, search = ""): Page {
     if (pathname === "/") return { kind: "agents" };
     if (pathname === "/compare" || pathname === "/compare/") {
         const query = new URLSearchParams(search);
-        return { kind: "compare", runs: query.get("runs") ?? "", group: query.get("group") ?? "", agent: query.get("agent") ?? "" };
-    }
-
-    if (pathname === "/variants" || pathname === "/variants/") {
-        const query = new URLSearchParams(search);
-        return { kind: "variants", runs: query.get("runs") ?? "", group: query.get("group") ?? "", agent: query.get("agent") ?? "" };
+        return {
+            kind: "compare",
+            runs: query.get("runs") ?? "",
+            group: query.get("group") ?? "",
+            agent: query.get("agent") ?? "",
+            baseline: query.get("baseline") ?? "",
+        };
     }
 
     const run = RUN_PATH.exec(pathname);
