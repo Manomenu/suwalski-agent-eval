@@ -11,6 +11,7 @@ namespace Suwageval.Cli.Files;
 internal static class AgentFileReader
 {
     public const string SuwagevalUrlField = "suwagevalUrl";
+    public const string SweepField = "sweep";
 
     /// <summary>The file's <c>suwagevalUrl</c> when it is a valid address, else null; problems are not reported (the file may be broken otherwise).</summary>
     public static string? SuwagevalUrl(string file, string text)
@@ -61,6 +62,19 @@ internal static class AgentFileReader
             }
         }
 
+        SweepSettings? sweep = null;
+        var sweepValid = true;
+        if (root.Remove(SweepField, out var section))
+        {
+            sweep = ContractReader.Read<SweepSettings>(source, section, SweepField, problems);
+            sweepValid = sweep is not null;
+            foreach (var (path, message) in sweep?.Problems() ?? [])
+            {
+                problems.Add(source.Problem($"{SweepField}.{path}", message));
+                sweepValid = false;
+            }
+        }
+
         var definition = ContractReader.Read<AgentDefinition>(source, root, "", problems);
         if (definition is null)
         {
@@ -68,6 +82,6 @@ internal static class AgentFileReader
         }
         var found = AgentRules.Problems(definition);
         problems.AddRange(found.Select(problem => source.Problem(problem.Path, problem.Message)));
-        return found.Count == 0 && urlValid ? new LoadedAgent(source, definition, suwagevalUrl) : null;
+        return found.Count == 0 && urlValid && sweepValid ? new LoadedAgent(source, definition, suwagevalUrl, sweep) : null;
     }
 }

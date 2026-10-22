@@ -5,7 +5,8 @@ namespace Suwageval.AgentSdk.Invocation;
 /// <summary>One earlier turn of the conversation: a user message and everything the agent did until its next one.</summary>
 public sealed record HistoryTurn
 {
-    public required UserMessage User { get; init; }
+    /// <summary>Null for the turn of whatever was logged before the first user message (an assistant greeting).</summary>
+    public UserMessage? User { get; init; }
 
     /// <summary>Everything between the user message and the assistant message, as logged and in order: tool calls and results, events, retrievals.</summary>
     public required IReadOnlyList<ConversationItem> Items { get; init; }

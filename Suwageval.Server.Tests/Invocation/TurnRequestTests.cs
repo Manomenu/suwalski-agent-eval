@@ -45,12 +45,23 @@ public sealed class TurnRequestTests
 
         Assert.Equal(2, turns.Count);
         var first = turns[0];
-        Assert.Equal("one", first.User.Text);
+        Assert.Equal("one", first.User!.Text);
         Assert.Equal("first", first.Assistant!.Text);
         Assert.Equal("ToolCall,ToolResult,Event", string.Join(",", first.Items.Select(item => item.GetType().Name)));
         var exchange = Assert.Single(first.ToolExchanges);
         Assert.Equal(("a", "a"), (exchange.Call.Id, exchange.Result.CallId));
         Assert.Empty(turns[1].Items);
+    }
+
+    [Fact]
+    public void Items_before_the_first_user_message_are_a_leading_turn_without_a_user()
+    {
+        var turns = Request(Assistant("welcome"), User("one"), Assistant("first"), User("current")).HistoryTurns();
+
+        Assert.Equal(2, turns.Count);
+        Assert.Null(turns[0].User);
+        Assert.Equal("welcome", turns[0].Assistant!.Text);
+        Assert.Equal("one", turns[1].User!.Text);
     }
 
     [Fact]

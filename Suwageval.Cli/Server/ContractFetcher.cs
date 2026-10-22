@@ -3,7 +3,7 @@ using System.Text.Json;
 using Suwageval.AgentSdk;
 using Suwageval.AgentSdk.Agents;
 
-namespace Suwageval.Cli.Validate;
+namespace Suwageval.Cli.Server;
 
 /// <summary>
 /// Reads the contract the running agent serves (<c>GET {endpointUrl}/suwageval/contract</c>), so that tool and event

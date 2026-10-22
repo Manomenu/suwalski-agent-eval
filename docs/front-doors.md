@@ -35,6 +35,16 @@ The server has one interface, its HTTP API. Three users reach it:
   while `run --wait` (or `rerun --wait`, `recheck --wait`) waits asks whether to cancel the run on the server too; answered
   no, the run goes on and the exit code is 130. Without a terminal to ask on (a CI job being stopped) the
   run is cancelled, since nobody would read its results. For machines, `--json` on either prints the results (and opens nothing).
+- **`suwageval sweep` runs the variants for you.** The agent's repository says how to switch the agent to a variant in the
+  `sweep:` section of `agent.yaml` (see scenario-format.md); `suwageval sweep [variant…] [--tag t]… [--group g]` then, for each
+  variant (a file in `variantsDir`, named like the file without its extension; none named means all): runs `before`, runs
+  `reconfigure` with `{variant}` filled in, waits until `GET {endpointUrl}/suwageval/contract` carries `label == <variant>`
+  (at most `waitSeconds`), starts a run in the group (default `sweep-<yyyymmdd-hhmm>-<agent>`), waits for it and runs `after`.
+  A variant that could not be run (a command exited non-zero, the label never showed up, the run failed) is a row of the
+  summary and the sweep goes on; failing checks are results, not failures. The commands run from the current folder through `sh -c`
+  (`cmd /c` on Windows); `restore` runs once at the end, `after` after every variant, also after Ctrl+C (which cancels the run
+  being waited for). It exits 0, 2 when any variant failed or `restore` failed, 130 after Ctrl+C. It does not `push`: push first.
+  The output ends with a row per variant and the link to the group's variants page.
 - **Runs are compared on one page.** `/compare?runs=<id>,<id>,â€¦` and `/variants?group=<name>[&agent=<name>]` (or
   `/variants?runs=<id>,â€¦`) open the same page: a column per run. On an agent's page tick runs and press **Compare**, or open a group from its **Groups** section; `suwageval compare <runId> <runId> â€¦` and `suwageval variants` print
   the same data on stdout (`--json` for the records, `--open` for the page) and `suwageval runs` lists the runs to pick from. Claude
@@ -57,8 +67,8 @@ The server has one interface, its HTTP API. Three users reach it:
 - **Variants of an agent are compared side by side.** To compare models or configurations of one agent, restart the agent with
   each variant (its contract carries the model, so every variant is its own agent version; the contract's `label` names the
   variant) and start a run of each with the same group: `suwageval run --group sweep-2026-10-21 --wait`. A group name is
-  lowercase kebab-case, at most 64 characters, and a run's group is set when it starts and not edited later. A sweep script in
-  the agent's repository can loop over the variants this way and print the group's link, `/variants?group=<name>`. **A run in a
+  lowercase kebab-case, at most 64 characters, and a run's group is set when it starts and not edited later. `suwageval sweep` does the loop (below); a script in
+  the agent's repository can do it by hand and print the group's link, `/variants?group=<name>`. **A run in a
   group is an experiment**: it never becomes a reference run, its checks get no regression state (a re-check of it neither), it
   is left out of the pass-rate trend, the unstable checks and the agent errors (the chart says so), and `run --wait` exits as with
   `--strict` (1 when any check fails its threshold). The agent's runs table lists the runs in no group by default; its **Group**

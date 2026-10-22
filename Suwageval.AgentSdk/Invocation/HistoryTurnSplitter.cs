@@ -9,12 +9,13 @@ internal static class HistoryTurnSplitter
         var turns = new List<HistoryTurn>();
         var callsById = new Dictionary<string, ToolCall>();
         UserMessage? user = null;
+        var open = false;
         var items = new List<ConversationItem>();
         var exchanges = new List<ToolExchange>();
 
         void Close(AssistantMessage? assistant)
         {
-            if (user is null)
+            if (!open)
             {
                 return;
             }
@@ -32,6 +33,7 @@ internal static class HistoryTurnSplitter
                 }
             );
             user = null;
+            open = false;
             items.Clear();
             exchanges.Clear();
         }
@@ -43,19 +45,14 @@ internal static class HistoryTurnSplitter
                 case UserMessage userMessage:
                     Close(null);
                     user = userMessage;
+                    open = true;
                     break;
                 case AssistantMessage assistantMessage:
-                    if (user is null)
-                    {
-                        throw new TurnRejectedException("The conversation must start with a user message.");
-                    }
+                    open = true;
                     Close(assistantMessage);
                     break;
                 default:
-                    if (user is null)
-                    {
-                        throw new TurnRejectedException("The conversation must start with a user message.");
-                    }
+                    open = true;
                     Add(item, callsById, items, exchanges);
                     break;
             }
