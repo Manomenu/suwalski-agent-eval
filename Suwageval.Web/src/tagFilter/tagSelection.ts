@@ -17,12 +17,8 @@ export function searchWithTags(search: string, tags: readonly string[]): string 
     return text === "" ? "" : `?${text}`;
 }
 
-export function toggledTags(selected: readonly string[], tag: string): string[] {
-    return selected.includes(tag) ? selected.filter((candidate) => candidate !== tag) : [...selected, tag];
-}
-
-/** What the chips offer: every tag the view has, and any selected tag it does not have (so it can be unselected), sorted. */
-export function chipTags(present: Iterable<string>, selected: readonly string[]): string[] {
+/** What the filter offers: every tag the view has, and any selected tag it does not have (so it can be unselected), sorted. */
+export function offeredTags(present: Iterable<string>, selected: readonly string[]): string[] {
     return [...new Set([...present, ...selected])].sort((a, b) => a.localeCompare(b));
 }
 

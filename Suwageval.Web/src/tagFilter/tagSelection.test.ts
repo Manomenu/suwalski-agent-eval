@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { chipTags, filteredLabel, keepsTags, selectedTagRows, searchWithTags, selectedTagsOf, toggledTags } from "./tagSelection";
+import { offeredTags, filteredLabel, keepsTags, selectedTagRows, searchWithTags, selectedTagsOf } from "./tagSelection";
 
 describe("the address", () => {
     it("selects the tags given, each once, and nothing without them", () => {
@@ -15,13 +15,8 @@ describe("the address", () => {
 });
 
 describe("selecting", () => {
-    it("toggles a tag in and out", () => {
-        expect(toggledTags(["a"], "b")).toEqual(["a", "b"]);
-        expect(toggledTags(["a", "b"], "a")).toEqual(["b"]);
-    });
-
     it("offers the tags of the view and the selected ones it lacks, sorted", () => {
-        expect(chipTags(["smoke", "billing", "smoke"], ["gone"])).toEqual(["billing", "gone", "smoke"]);
+        expect(offeredTags(["smoke", "billing", "smoke"], ["gone"])).toEqual(["billing", "gone", "smoke"]);
     });
 });
 

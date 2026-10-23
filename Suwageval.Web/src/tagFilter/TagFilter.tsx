@@ -1,8 +1,16 @@
-import { Button, Group } from "@mantine/core";
+import { MultiSelect } from "@mantine/core";
 
-import { chipTags, toggledTags } from "./tagSelection";
+import { offeredTags } from "./tagSelection";
 
-/** A button per tag of the view above its tables: a pressed one narrows the rows to the scenarios that carry it. */
+/** The field's width: wide enough for a few picked tags, never wider than the page. */
+const TAG_FILTER_WIDTH = 480;
+/** How tall the list of tags may grow before it scrolls. */
+const DROPDOWN_HEIGHT = 280;
+
+/**
+ * The tag filter above a view's tables: a field that searches the view's tags as you type and keeps the picked ones as pills.
+ * A picked tag narrows the rows to the scenarios that carry it; any of the picked tags is enough.
+ */
 export function TagFilter({
     tags,
     selected,
@@ -12,39 +20,21 @@ export function TagFilter({
     selected: readonly string[];
     onChange: (tags: string[]) => void;
 }) {
-    const offered = chipTags(tags, selected);
+    const offered = offeredTags(tags, selected);
     if (offered.length === 0) return null;
     return (
-        <Group gap="xs" role="group" aria-label="Filter by tag">
-            {offered.map((tag) => {
-                const pressed = selected.includes(tag);
-                return (
-                    <Button
-                        key={tag}
-                        size="compact-sm"
-                        radius="xl"
-                        variant={pressed ? "filled" : "light"}
-                        aria-pressed={pressed}
-                        classNames={{ label: "tag-filter-label" }}
-                        onClick={() => {
-                            onChange(toggledTags(selected, tag));
-                        }}
-                    >
-                        {tag}
-                    </Button>
-                );
-            })}
-            {selected.length > 0 && (
-                <Button
-                    size="compact-sm"
-                    variant="subtle"
-                    onClick={() => {
-                        onChange([]);
-                    }}
-                >
-                    Clear filter
-                </Button>
-            )}
-        </Group>
+        <MultiSelect
+            label="Filter by tag"
+            placeholder={selected.length === 0 ? "Every scenario — type to find a tag" : undefined}
+            data={offered}
+            value={[...selected]}
+            onChange={onChange}
+            searchable
+            clearable
+            nothingFoundMessage="No such tag"
+            maxDropdownHeight={DROPDOWN_HEIGHT}
+            maw={TAG_FILTER_WIDTH}
+            w="100%"
+        />
     );
 }
