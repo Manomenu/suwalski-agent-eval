@@ -12,9 +12,9 @@ public sealed record TurnRequest
     /// <summary>The scenario's fixtures, verbatim; omitted when it has none. <see cref="FixturesAs{T}"/> reads them as a type.</summary>
     public JsonElement? Fixtures { get; init; }
 
-    /// <summary>Read from the request's headers by <see cref="SuwagevalAgentEndpoints.MapSuwagevalAgent"/>; never part of the body.</summary>
+    /// <summary>Read from the request's <c>baggage</c> header by <see cref="SuwagevalAgentEndpoints.MapSuwagevalAgent"/>; never part of the body.</summary>
     [JsonIgnore]
-    public TurnCorrelation Correlation { get; init; } = new(null, null, null);
+    public TurnCorrelation Correlation { get; init; } = TurnCorrelation.None;
 
     /// <summary>
     /// The fixtures as <typeparamref name="T"/>, or null when the scenario has none. A member the type does not declare is
@@ -49,9 +49,10 @@ public sealed record TurnRequest
     public IReadOnlyList<HistoryTurn> HistoryTurns() => HistoryTurnSplitter.Split(Conversation.Take(Conversation.Count - 1));
 
     /// <summary>
-    /// The same for every turn of one simulated conversation (a scenario with a simulated user), omitted otherwise. An agent that keeps
-    /// state — its test data, a state machine — keeps it under this id: the first turn of an id starts from fresh test data, every
-    /// later turn of it goes on from what the earlier ones left. The conversation sent is still the whole log.
+    /// One id per conversation, always sent: a fresh one for every sample of a scenario, the same for every turn of a simulated
+    /// conversation. An agent that keeps state — its test data, a state machine — keeps it under this id: the first turn of an id
+    /// starts from fresh test data, every later turn of it goes on from what the earlier ones left. The conversation sent is still
+    /// the whole log. Null only when something other than suwageval calls the agent.
     /// </summary>
     public string? ConversationId { get; init; }
 }

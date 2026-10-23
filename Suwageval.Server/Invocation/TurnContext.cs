@@ -1,10 +1,21 @@
 using System.Text.Json;
+using Suwageval.AgentSdk.Invocation;
 
 namespace Suwageval.Server.Invocation;
 
 /// <summary>
-/// What goes with a turn besides the conversation: the scenario's fixtures and, in a simulation, the conversation's id (sent in the
-/// body), and where the call comes from (sent as the headers <c>Suwageval-Run-Id</c>, <c>Suwageval-Scenario</c>, <c>Suwageval-Sample</c>,
-/// for the agent's traces and logs — they never change behaviour).
+/// What goes with a turn besides the conversation: the scenario's fixtures and the conversation's id (sent in the body), and where
+/// the call comes from (sent in the <c>baggage</c> header, for the agent's traces and logs — it never changes behaviour).
+/// <paramref name="ConversationId"/> is one per sample: a plain scenario's single turn is the first turn of its id, a simulation's turns share it.
 /// </summary>
-internal sealed record TurnContext(Guid RunId, string ScenarioKey, int Sample, JsonElement? Fixtures = null, string? ConversationId = null);
+internal sealed record TurnContext(
+    Guid RunId,
+    string ScenarioKey,
+    int Sample,
+    ScenarioType ScenarioType,
+    IReadOnlyList<string> ScenarioTags,
+    IReadOnlyList<string> RunTags,
+    string? RunGroup,
+    string ConversationId,
+    JsonElement? Fixtures = null
+);

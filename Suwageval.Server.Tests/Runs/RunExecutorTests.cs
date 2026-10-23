@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Suwageval.AgentSdk.Conversations;
+using Suwageval.AgentSdk.Invocation;
 using Suwageval.Contracts.Checks;
 using Suwageval.Contracts.Runs;
 using Suwageval.Server.Agents;
@@ -146,9 +147,15 @@ public sealed class RunExecutorTests(TestDatabase database)
             .Requests.Zip(fake.RequestHeaders, (body, headers) => (Body: JsonDocument.Parse(body).RootElement, Headers: headers))
             .ToList();
         Assert.Equal(3, turns.Count);
-        Assert.All(turns, turn => Assert.Equal(run.Id.ToString(), turn.Headers["Suwageval-Run-Id"]));
-        var withFixtures = turns.Where(turn => turn.Headers["Suwageval-Scenario"] == "with-fixtures").ToList();
-        Assert.Equal(["1", "2"], withFixtures.Select(turn => turn.Headers["Suwageval-Sample"]).Order());
+        var baggage = turns.Select(turn => (turn.Body, Baggage: Baggage(turn.Headers))).ToList();
+        Assert.All(baggage, turn => Assert.Equal(run.Id.ToString(), turn.Baggage[SuwagevalBaggage.RunId]));
+        Assert.All(baggage, turn => Assert.Equal("Turn", turn.Baggage[SuwagevalBaggage.ScenarioTypeKey]));
+        Assert.All(baggage, turn => Assert.Equal("regression", turn.Baggage[SuwagevalBaggage.ScenarioTags]));
+        Assert.All(baggage, turn => Assert.DoesNotContain(SuwagevalBaggage.RunTags, turn.Baggage.Keys));
+        Assert.All(baggage, turn => Assert.DoesNotContain(SuwagevalBaggage.RunGroup, turn.Baggage.Keys));
+        Assert.Equal(3, baggage.Select(turn => turn.Body.GetProperty("conversationId").GetString()).Distinct().Count());
+        var withFixtures = baggage.Where(turn => turn.Baggage[SuwagevalBaggage.ScenarioKey] == "with-fixtures").ToList();
+        Assert.Equal(["1", "2"], withFixtures.Select(turn => turn.Baggage[SuwagevalBaggage.Sample]).Order());
         Assert.All(
             withFixtures,
             turn =>
@@ -157,7 +164,7 @@ public sealed class RunExecutorTests(TestDatabase database)
                     turn.Body.GetProperty("fixtures").GetRawText()
                 )
         );
-        var (withoutBody, _) = Assert.Single(turns, turn => turn.Headers["Suwageval-Scenario"] == "without-fixtures");
+        var (withoutBody, _) = Assert.Single(baggage, turn => turn.Baggage[SuwagevalBaggage.ScenarioKey] == "without-fixtures");
         Assert.False(withoutBody.TryGetProperty("fixtures", out _));
     }
 
@@ -732,6 +739,9 @@ public sealed class RunExecutorTests(TestDatabase database)
         return await ResultsAsync(run.Id);
     }
 
+    private static IReadOnlyDictionary<string, string> Baggage(IReadOnlyDictionary<string, string> headers) =>
+        SuwagevalBaggage.Decode([headers["baggage"]]);
+
     private static string? ConversationIdOf(string body) =>
         JsonDocument.Parse(body).RootElement.TryGetProperty("conversationId", out var id) ? id.GetString() : null;
 
@@ -902,14 +912,14 @@ public sealed class RunExecutorTests(TestDatabase database)
     }
 
     [Fact]
-    public async Task A_scenario_of_one_turn_sends_no_conversation_id()
+    public async Task A_scenario_of_one_turn_sends_a_conversation_id_of_its_own()
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.PlainTurn);
         var agent = await SeededAgent.CreateAsync(database.Pool, fake.Url.AbsoluteUri, [SeededAgent.Scenario("once")], []);
 
         var results = await RunAsync(agent);
 
-        Assert.Null(ConversationIdOf(Assert.Single(fake.Requests)));
+        Assert.True(Guid.TryParse(ConversationIdOf(Assert.Single(fake.Requests)), out _));
         var sample = Assert.Single(Assert.Single(results.Scenarios).Samples);
         Assert.Null(sample.TurnDurationsMs);
         Assert.False(sample.EndedByUser);

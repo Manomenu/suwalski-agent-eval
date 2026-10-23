@@ -63,6 +63,31 @@ internal sealed class AgentClient(HttpClient http)
         return result with { DurationMs = (int)clock.ElapsedMilliseconds };
     }
 
+    /// <summary>The <c>baggage</c> header's value: the keys of <see cref="SuwagevalBaggage"/>, a list or group left out when empty.</summary>
+    internal static string Baggage(TurnContext context)
+    {
+        var members = new List<KeyValuePair<string, string>>
+        {
+            new(SuwagevalBaggage.RunId, context.RunId.ToString()),
+            new(SuwagevalBaggage.ScenarioKey, context.ScenarioKey),
+            new(SuwagevalBaggage.ScenarioTypeKey, context.ScenarioType.ToString()),
+            new(SuwagevalBaggage.Sample, context.Sample.ToString(CultureInfo.InvariantCulture)),
+        };
+        if (context.ScenarioTags.Count > 0)
+        {
+            members.Add(new(SuwagevalBaggage.ScenarioTags, string.Join(',', context.ScenarioTags)));
+        }
+        if (context.RunTags.Count > 0)
+        {
+            members.Add(new(SuwagevalBaggage.RunTags, string.Join(',', context.RunTags)));
+        }
+        if (context.RunGroup is { Length: > 0 } group)
+        {
+            members.Add(new(SuwagevalBaggage.RunGroup, group));
+        }
+        return SuwagevalBaggage.Encode(members);
+    }
+
     private Task<TurnResult> CallAsync(
         Uri endpointUrl,
         IReadOnlyList<ConversationItem> conversation,
@@ -85,9 +110,7 @@ internal sealed class AgentClient(HttpClient http)
                 options: Request
             ),
         };
-        request.Headers.Add(TurnCorrelation.RunIdHeader, context.RunId.ToString());
-        request.Headers.Add(TurnCorrelation.ScenarioHeader, context.ScenarioKey);
-        request.Headers.Add(TurnCorrelation.SampleHeader, context.Sample.ToString(CultureInfo.InvariantCulture));
+        request.Headers.Add(SuwagevalBaggage.HeaderName, Baggage(context));
         return SendAsync<TurnResponse, TurnResult>(
             request,
             new Messages(

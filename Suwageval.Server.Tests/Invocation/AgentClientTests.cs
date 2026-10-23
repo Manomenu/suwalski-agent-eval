@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using Suwageval.AgentSdk.Conversations;
+using Suwageval.AgentSdk.Invocation;
 using Suwageval.Server.Invocation;
 
 namespace Suwageval.Server.Tests.Invocation;
@@ -12,7 +13,16 @@ public sealed class AgentClientTests
 
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
 
-    private static readonly TurnContext Context = new(Guid.Parse("11111111-2222-3333-4444-555555555555"), "refund-flow", 3);
+    private static readonly TurnContext Context = new(
+        Guid.Parse("11111111-2222-3333-4444-555555555555"),
+        "refund-flow",
+        3,
+        ScenarioType.Simulation,
+        ["refunds", "tier-1"],
+        ["smoke"],
+        "sweep 1, a=b",
+        "conv-1"
+    );
 
     private sealed class Stub(Func<HttpRequestMessage, Task<HttpResponseMessage>> answer) : HttpMessageHandler
     {
@@ -56,7 +66,7 @@ public sealed class AgentClientTests
 
         Assert.Equal(new Uri("http://agent.test/base/suwageval/turn"), stub.RequestUri);
         Assert.Equal( /*lang=json,strict*/
-            """{"conversation":[{"kind":"UserMessage","text":"hi"}]}""",
+            """{"conversation":[{"kind":"UserMessage","text":"hi"}],"conversationId":"conv-1"}""",
             stub.RequestBody
         );
         Assert.Null(result.Error);
@@ -103,9 +113,24 @@ public sealed class AgentClientTests
 
         using var body = JsonDocument.Parse(stub.RequestBody ?? "");
         Assert.Equal(fixtures.GetRawText(), body.RootElement.GetProperty("fixtures").GetRawText());
-        Assert.Equal("11111111-2222-3333-4444-555555555555", stub.RequestHeaders["Suwageval-Run-Id"]);
-        Assert.Equal("refund-flow", stub.RequestHeaders["Suwageval-Scenario"]);
-        Assert.Equal("3", stub.RequestHeaders["Suwageval-Sample"]);
+        Assert.Equal("conv-1", body.RootElement.GetProperty("conversationId").GetString());
+        Assert.DoesNotContain(stub.RequestHeaders.Keys, name => name.StartsWith("Suwageval-", StringComparison.OrdinalIgnoreCase));
+        Assert.Equal(
+            "suwageval.run.id=11111111-2222-3333-4444-555555555555,suwageval.scenario.key=refund-flow,suwageval.scenario.type=Simulation,"
+                + "suwageval.sample=3,suwageval.scenario.tags=refunds%2Ctier-1,suwageval.run.tags=smoke,suwageval.run.group=sweep%201%2C%20a=b",
+            stub.RequestHeaders["baggage"]
+        );
+    }
+
+    [Fact]
+    public void Leaves_out_the_baggage_of_what_the_run_does_not_have()
+    {
+        var bare = Context with { ScenarioTags = [], RunTags = [], RunGroup = null, ScenarioType = ScenarioType.Turn };
+
+        Assert.Equal(
+            "suwageval.run.id=11111111-2222-3333-4444-555555555555,suwageval.scenario.key=refund-flow,suwageval.scenario.type=Turn,suwageval.sample=3",
+            AgentClient.Baggage(bare)
+        );
     }
 
     [Fact]

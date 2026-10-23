@@ -35,7 +35,8 @@ public sealed class SuwagevalAgentEndpointsTests : IAsyncLifetime
 
     private sealed class EchoHandler : ITurnHandler
     {
-        private static string Who(TurnCorrelation correlation) => $"{correlation.RunId}/{correlation.Scenario}/{correlation.Sample}";
+        private static string Who(TurnCorrelation correlation) =>
+            $"{correlation.RunId}/{correlation.Scenario}/{correlation.ScenarioType}/{correlation.Sample}/{string.Join('+', correlation.ScenarioTags)}/{string.Join('+', correlation.RunTags)}/{correlation.RunGroup}";
 
         public Task<TurnResponse> HandleAsync(TurnRequest request, CancellationToken cancellationToken)
         {
@@ -127,7 +128,7 @@ public sealed class SuwagevalAgentEndpointsTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task The_correlation_headers_reach_the_handler_and_absent_ones_are_null()
+    public async Task The_baggage_reaches_the_handler_and_absent_ones_are_null()
     {
         using var content = new StringContent(
             /*lang=json,strict*/
@@ -136,12 +137,14 @@ public sealed class SuwagevalAgentEndpointsTests : IAsyncLifetime
             "application/json"
         );
         using var request = new HttpRequestMessage(HttpMethod.Post, new Uri("/suwageval/turn", UriKind.Relative)) { Content = content };
-        request.Headers.Add(TurnCorrelation.RunIdHeader, "run-1");
-        request.Headers.Add(TurnCorrelation.SampleHeader, "2");
+        request.Headers.Add(
+            SuwagevalBaggage.HeaderName,
+            "suwageval.run.id=run-1,suwageval.sample=2,suwageval.scenario.type=Simulation,suwageval.scenario.tags=a%2Cb,other=x"
+        );
 
         using var response = await client!.SendAsync(request, Cancellation);
 
         var turn = await response.Content.ReadFromJsonAsync<TurnResponse>(ContractJson.Options, Cancellation);
-        Assert.Equal("run-1//2", Assert.IsType<AssistantMessage>(Assert.Single(turn!.Items)).Text);
+        Assert.Equal("run-1//Simulation/2/a+b//", Assert.IsType<AssistantMessage>(Assert.Single(turn!.Items)).Text);
     }
 }

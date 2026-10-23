@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using Suwageval.AgentSdk;
 using Suwageval.AgentSdk.Agents;
 using Suwageval.AgentSdk.Conversations;
+using Suwageval.AgentSdk.Invocation;
 using Suwageval.Contracts.Checks;
 using Suwageval.Contracts.Runs;
 using Suwageval.Server.Agents;
@@ -161,7 +162,17 @@ internal sealed partial class RunExecutor(
         var turn = await agent.TurnAsync(
             new Uri(run.EndpointUrl),
             scenario.Content.Conversation,
-            new TurnContext(run.Id, scenario.Row.Key, sample, scenario.Content.Fixtures),
+            new TurnContext(
+                run.Id,
+                scenario.Row.Key,
+                sample,
+                ScenarioType.Turn,
+                scenario.Row.Tags,
+                run.Tags,
+                run.RunGroup,
+                Guid.NewGuid().ToString(),
+                scenario.Content.Fixtures
+            ),
             cancellationToken
         );
         return turn.Items is { } items
@@ -187,7 +198,17 @@ internal sealed partial class RunExecutor(
         var conversation = new List<ConversationItem>(content.Conversation);
         var output = new List<ConversationItem>();
         var durations = new List<int>();
-        var context = new TurnContext(run.Id, scenario.Row.Key, sample, content.Fixtures, Guid.NewGuid().ToString());
+        var context = new TurnContext(
+            run.Id,
+            scenario.Row.Key,
+            sample,
+            ScenarioType.Simulation,
+            scenario.Row.Tags,
+            run.Tags,
+            run.RunGroup,
+            Guid.NewGuid().ToString(),
+            content.Fixtures
+        );
         var agentStarts = content.Conversation is [.., UserMessage];
         for (var turn = 1; turn <= content.Continuation.Turns; turn++)
         {

@@ -167,36 +167,15 @@ belongs to.
     plugin's skill lists it, and Claude saves a report only when asked, then says where. Open question: how the server renders
     the PDF — a headless browser printing the web's print view (one rendering, but a new component in the image, compose and
     the chart: say why) or a PDF library in .NET (no new component, but a second layout to keep in step with the web's).
-- **More correlation headers for the agent's traces (Langfuse, OpenTelemetry).** Today a turn carries `Suwageval-Run-Id`,
-  `Suwageval-Scenario` and `Suwageval-Sample`. Add, on the same rules (correlation only: the agent must never change what it
-  does on them; values in headers, never in the body), and as members of the SDK's `TurnCorrelation`:
-  - `Suwageval-Scenario-Type`: `Turn` (a recorded conversation, the agent answers the last message) or `Simulation` (a
-    simulated user) — a scenario's kind, not the run's: one run can hold both;
-  - `Suwageval-Scenario-Tags`: the scenario's tags from its YAML, comma-separated (tags are kebab-case, so never hold a
-    comma) — they say which area of behaviour a trace belongs to, even in a run of every scenario;
-  - `Suwageval-Run-Tags`: the tags the run was limited to (`run --tag`), comma-separated; absent for a run of every
-    scenario;
-  - `Suwageval-Run-Group`: the run's group (`run --group`, a sweep), absent outside a group — every trace of one
-    experiment together.
-  Document them in `docs/scenario-format.md` (the agent contract) and `docs/universal-approach.md`, and the mapping a
-  Langfuse user would choose (below): everything an agent derives from them is marked as Suwageval's — metadata
-  under one `suwageval` object (or keys prefixed `suwageval_` where nesting does not work), tags prefixed `suwageval_`
-  (`suwageval_scenario_tag:refunds`, never a bare `scenario`). Later, only if this proves useful: Suwageval sending its verdicts to Langfuse as scores
-  per trace — an outside service, so it brings a live test, the daily check and a secret (AGENTS.md, section 3).
-- **suwexag: integrate Langfuse** (in `suwalski-example-agent`, as the reference of how an agent does it). Send its traces to
-  Langfuse (its SDK or OpenTelemetry; keys in the gitignored `.env`, the service in its compose) and map the correlation
-  headers onto the trace. **Every name it adds carries the `suwageval_` prefix**, so in Langfuse it is always clear what came
-  from an evaluation and nothing clashes with the agent's own names:
-  - `sessionId`: the run id;
-  - metadata grouped in one object, `metadata.suwageval = { run_id, scenario, sample, scenario_type, run_group,
-    scenario_tags: [...], run_tags: [...] }` — Langfuse metadata is free JSON. Check first, on the Langfuse version used, that
-    its metadata filter (and the OpenTelemetry mapping, whose attributes are flat, dotted names) reaches a nested key such as
-    `suwageval.scenario`; if it does not, fall back to flat prefixed keys (`suwageval_scenario`, `suwageval_run_id`, …);
-  - tags (a flat list of plain strings in Langfuse — no grouping — so the prefix and the kind go into each): `suwageval_scenario_tag:<tag>` per
-    scenario tag, `suwageval_run_tag:<tag>` per run tag, `suwageval_run_group:<group>`;
-  - `environment: suwageval` whenever the headers
-  are present, so evaluation traffic never mixes with real use. Its README says how to find a failing sample's trace from a
-  run's page.
+- **suwexag: integrate Langfuse** (in `suwalski-example-agent`, as the reference of how an agent does it) — being built. Suwageval
+  now sends the W3C `baggage` header and always a `conversationId` (`docs/scenario-format.md`, with the Langfuse / OpenTelemetry
+  mapping); the agent sends its traces to Langfuse (keys in the gitignored `.env`, the service in its compose), session from
+  `conversationId`, `environment: suwageval`, metadata and tags prefixed `suwageval_`, the values on every span through baggage and
+  a span processor, and does not forward the baggage to its model provider. Its README says how to find a failing sample's trace
+  from a run's page.
+- **Later, only if this proves useful:** Suwageval sending its verdicts to Langfuse as scores per trace (an outside service, so a
+  live test, the daily check and a secret, AGENTS.md section 3); Suwageval reading traces back; a `traceparent` header so the
+  agent's spans join a trace Suwageval starts.
 - **Hide versions whose runs are all in groups, as the runs are.** Every run registers its version, so a sweep over three
   models makes three versions that the Versions section, the version/model/data filters above the runs and
   `suwageval versions` show like the agent's main line. The numbers are not affected (trend, unstable checks and agent errors
