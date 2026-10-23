@@ -144,3 +144,19 @@ belongs to.
   marking its best column green; instead every cell better than the baseline's is green and every worse one red (the
   baseline's own cell and unchanged ones stay neutral), using the trend the server already computes per cell. Without a
   baseline the best-column mark stays as it is.
+- **Reports: print the run page and the comparison.** Done the way `zaawansowane-aplikacje-internetowe-2026Z` did its print
+  (`docs/progress/F24-print.md` there): the same view, changed only by `@media print` rules and an `@page` size — no separate
+  report screen — and a "Print" button (`window.print()`) beside the view's filters; on paper no buttons, links, inputs or
+  filters, only the data with the filters applied (the selected tags, a hidden-passed filter, the baseline) said in a line at
+  the top. A4 **landscape** (`@page { size: A4 landscape }`): wider than tall. E2E tests in print media check that nothing is
+  cut off at the paper's edge and no control shows.
+  - Run page: every scenario and check expanded; rows not split across pages, table headers repeated.
+  - Comparison: every scenario row expanded. Up to 20 run columns do not fit one landscape page, and shrinking them to one
+    page (what F24 did with 12 series) leaves them unreadable — so the columns are split into **page-wide chunks laid out
+    side by side**: as many run columns per page as fit at a readable width (derived from `COLUMN_MIN_WIDTH`), the label
+    column repeated on every chunk; the whole report is those chunks one after another (one PDF from the browser's dialog,
+    or several if the user prints the chunks apart). **With a baseline**, the baseline's column is repeated as the first run
+    column of every chunk, so every page reads against it on its own.
+  - Open questions: whether the chunks are a print-only layout (CSS can't split a table's columns — likely a print-only
+    rendering of the same data, which F24's rule "no separate print view" did not need; say why it is needed here), and
+    the CLI's parity (probably none: its text output already is the report).
