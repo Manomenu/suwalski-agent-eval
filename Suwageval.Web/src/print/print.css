@@ -14,6 +14,13 @@
     display: none;
 }
 
+/* What is folded on the screen is in the page all the time, only hidden: the paper shows it by these rules alone, with no
+   re-render on the way to the print dialog (a real dialog lays the paper out before React could react to it). */
+.folded-row,
+.folded-block {
+    display: none;
+}
+
 @media print {
     /* The app is dark on the screen; paper is white with dark text: the variables of Mantine's light scheme (copied from its styles.css,
        the palette is the theme's), applied to the dark scheme the page is forced into (`html:root`: more specific than the theme's colors, which the provider
@@ -184,6 +191,14 @@
 
     .print-only-inline {
         display: inline;
+    }
+
+    .folded-row {
+        display: table-row;
+    }
+
+    .folded-block {
+        display: block;
     }
 
     .print-line {

@@ -133,7 +133,7 @@ test("the line names the runs, the baseline and the filters; they stay applied; 
     await expect(line).toContainText("scenarios with tags: billing");
     await expect(page.getByRole("table", { name: "Checks of refunds by run", exact: true })).toBeVisible();
     await expect(page.getByRole("table", { name: "Checks of greets by run", exact: true })).toHaveCount(0);
-    await expect(page.getByText("Baseline", { exact: true })).toHaveCount(1);
+    await expect(page.getByText("Baseline", { exact: true }).filter({ visible: true })).toHaveCount(1);
     expect(await visibleOnPaperButNotWanted(page)).toEqual([]);
 });
 

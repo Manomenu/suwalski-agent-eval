@@ -21,7 +21,6 @@ import { OnPaper } from "../print/OnPaper";
 import { ModelJudgedIcon } from "../checks/ModelJudgedIcon";
 import { scenarioInRunHref } from "../routes/links";
 import { shortId } from "../format/names";
-import { usePrinting } from "../print/usePrinting";
 
 const BEST_BACKGROUND = "var(--mantine-color-green-light)";
 
@@ -39,8 +38,6 @@ export function ScenarioRows({
     open: readonly string[];
     onToggle: (key: string) => void;
 }) {
-    // On paper every scenario row is open (the detail is not rendered while folded, so this is state, not CSS).
-    const printing = usePrinting();
     return (
         <>
             {section.title !== null && (
@@ -59,7 +56,7 @@ export function ScenarioRows({
                     baseline === null
                         ? []
                         : scenario.cells.map((cell, column) => (column === baselineColumn ? null : scenarioCellChange(cell, baselineCell)));
-                const expanded = printing || open.includes(scenario.key);
+                const expanded = open.includes(scenario.key);
                 const detailId = `scenario-detail-${scenario.key}`;
                 return (
                     <ScenarioRow
@@ -71,7 +68,6 @@ export function ScenarioRows({
                         baseline={baseline}
                         baselineColumn={baselineColumn}
                         expanded={expanded}
-                        printing={printing}
                         detailId={detailId}
                         onToggle={() => {
                             onToggle(scenario.key);
@@ -91,7 +87,6 @@ function ScenarioRow({
     baseline,
     baselineColumn,
     expanded,
-    printing,
     detailId,
     onToggle,
 }: {
@@ -102,7 +97,6 @@ function ScenarioRow({
     baseline: BaselineComparison | null;
     baselineColumn: number;
     expanded: boolean;
-    printing: boolean;
     detailId: string;
     onToggle: () => void;
 }) {
@@ -110,33 +104,29 @@ function ScenarioRow({
         <>
             <Table.Tr>
                 <Table.Td className="wrap-key">
-                    {printing ? (
-                        // The scenario's name, without the button that folds the row.
-                        <Text span inherit className="wrap-key">
-                            {scenario.key}
-                        </Text>
-                    ) : (
-                        <UnstyledButton onClick={onToggle} aria-expanded={expanded} aria-controls={detailId} w="100%">
-                            <Group gap={4} wrap="nowrap" align="flex-start">
-                                {expanded ? <IconChevronDown size={16} aria-hidden /> : <IconChevronRight size={16} aria-hidden />}
-                                <Text span inherit className="wrap-key">
-                                    {scenario.key}
-                                </Text>
-                            </Group>
-                        </UnstyledButton>
-                    )}
+                    <UnstyledButton onClick={onToggle} aria-expanded={expanded} aria-controls={detailId} w="100%" className="no-print">
+                        <Group gap={4} wrap="nowrap" align="flex-start">
+                            {expanded ? <IconChevronDown size={16} aria-hidden /> : <IconChevronRight size={16} aria-hidden />}
+                            <Text span inherit className="wrap-key">
+                                {scenario.key}
+                            </Text>
+                        </Group>
+                    </UnstyledButton>
+                    {/* On paper the scenario's name, without the button that folds the row. */}
+                    <Text span inherit className="wrap-key print-only-inline">
+                        {scenario.key}
+                    </Text>
                 </Table.Td>
                 {scenario.cells.map((cell, column) => (
                     <CellView key={columns[column]?.run.id} cell={cell} best={best.has(column)} change={changes[column] ?? null} />
                 ))}
             </Table.Tr>
-            {expanded && (
-                <Table.Tr>
-                    <Table.Td colSpan={columns.length + 1} id={detailId}>
-                        <ScenarioDetail scenario={scenario} columns={columns} baseline={baseline} baselineColumn={baselineColumn} />
-                    </Table.Td>
-                </Table.Tr>
-            )}
+            {/* Always in the page; folded it is hidden on the screen and still printed (print.css). */}
+            <Table.Tr className={expanded ? undefined : "folded-row"}>
+                <Table.Td colSpan={columns.length + 1} id={detailId}>
+                    <ScenarioDetail scenario={scenario} columns={columns} baseline={baseline} baselineColumn={baselineColumn} />
+                </Table.Td>
+            </Table.Tr>
         </>
     );
 }

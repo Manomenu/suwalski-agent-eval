@@ -6,7 +6,6 @@ import { LineDiffView } from "../diff/LineDiffView";
 import { type Difference } from "./contractDiff";
 import type { VariantRun } from "./api";
 import { columnName } from "./variants";
-import { usePrinting } from "../print/usePrinting";
 import { fetchVersionDiff } from "../agents/versions/api";
 
 const nameOf = (column: VariantRun | undefined) => (column === undefined ? "" : columnName(column));
@@ -96,11 +95,8 @@ function DifferenceRows({
     onToggle: (column: number) => void;
     colSpan: number;
 }) {
-    // On paper a changed prompt shows its diff, and the button that opens it is gone.
-    const printing = usePrinting();
-    const changedColumns = difference.cells.flatMap((cell, column) => (cell.changed ? [column] : []));
-    const shownDiffs = printing ? changedColumns : openDiffs;
-    const open = difference.isPrompt ? shownDiffs.filter((column) => difference.cells[column]?.changed === true) : [];
+    // Every changed prompt's diff is in the page; one the person did not open is hidden on the screen and still printed (print.css).
+    const changed = difference.isPrompt ? difference.cells.flatMap((cell, column) => (cell.changed ? [column] : [])) : [];
     return (
         <>
             <Table.Tr>
@@ -109,18 +105,24 @@ function DifferenceRows({
                 </Table.Td>
                 {difference.cells.map((cell, column) => (
                     <Table.Td key={columns[column]?.run.id} className="wrap-key">
-                        {difference.isPrompt && cell.changed && !printing ? (
-                            <Button
-                                size="compact-xs"
-                                variant="light"
-                                aria-expanded={openDiffs.includes(column)}
-                                aria-label={`Prompt changed in ${nameOf(columns[column])}: ${openDiffs.includes(column) ? "hide" : "show"} the diff`}
-                                onClick={() => {
-                                    onToggle(column);
-                                }}
-                            >
-                                {cell.text ?? ""} · {openDiffs.includes(column) ? "hide diff" : "show diff"}
-                            </Button>
+                        {difference.isPrompt && cell.changed ? (
+                            <>
+                                <Button
+                                    className="no-print"
+                                    size="compact-xs"
+                                    variant="light"
+                                    aria-expanded={openDiffs.includes(column)}
+                                    aria-label={`Prompt changed in ${nameOf(columns[column])}: ${openDiffs.includes(column) ? "hide" : "show"} the diff`}
+                                    onClick={() => {
+                                        onToggle(column);
+                                    }}
+                                >
+                                    {cell.text ?? ""} · {openDiffs.includes(column) ? "hide diff" : "show diff"}
+                                </Button>
+                                <Text size="sm" fw={600} className="print-only-inline">
+                                    {cell.text ?? ""}
+                                </Text>
+                            </>
                         ) : (
                             <Text size="sm" fw={cell.changed ? 600 : 400} c={cell.text === null ? "dimmed" : "inherit"}>
                                 {cell.text ?? "—"}
@@ -129,8 +131,8 @@ function DifferenceRows({
                     </Table.Td>
                 ))}
             </Table.Tr>
-            {open.map((column) => (
-                <Table.Tr key={`diff-${String(column)}`}>
+            {changed.map((column) => (
+                <Table.Tr key={`diff-${String(column)}`} className={openDiffs.includes(column) ? undefined : "folded-row"}>
                     <Table.Td colSpan={colSpan}>
                         <PromptDiff agent={agent} columns={columns} column={column} />
                     </Table.Td>
