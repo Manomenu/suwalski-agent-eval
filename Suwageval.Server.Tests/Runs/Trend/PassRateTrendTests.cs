@@ -1,7 +1,7 @@
 using Suwageval.Contracts.Runs;
-using Suwageval.Server.Runs;
+using Suwageval.Server.Runs.Trend;
 
-namespace Suwageval.Server.Tests.Runs;
+namespace Suwageval.Server.Tests.Runs.Trend;
 
 public sealed class PassRateTrendTests
 {

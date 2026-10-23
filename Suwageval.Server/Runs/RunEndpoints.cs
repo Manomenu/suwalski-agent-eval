@@ -28,7 +28,6 @@ internal static class RunEndpoints
         app.MapGet("/runs/{id:guid}/recheck", RecheckPlanAsync).Produces<RecheckPlan>();
         app.MapPost("/runs/{id:guid}/recheck", RecheckAsync).Produces<RunCreated>(StatusCodes.Status202Accepted);
         app.MapPost("/runs/{id:guid}/cancel", CancelAsync).Produces(StatusCodes.Status202Accepted);
-        app.MapGet("/agents/{agent}/pass-rates", PassRatesAsync).Produces<IReadOnlyList<RunPassRates>>();
         app.MapGet("/agents/{agent}/unstable-checks", UnstableChecksAsync).Produces<IReadOnlyList<UnstableCheck>>();
         app.MapGet("/agents/{agent}/agent-errors", AgentErrorsAsync).Produces<IReadOnlyList<AgentError>>();
         return app;
@@ -125,71 +124,6 @@ internal static class RunEndpoints
                 })
                 .ToList()
         );
-    }
-
-    /// <summary>
-    /// The pass-rate trend of an agent: its finished runs that called the agent (the newest <see cref="PassRateTrend.MaxRuns"/>, oldest first) with
-    /// the rate over all checks and per tag and the turn time (median, p95) over the same samples. A run has a rate for a tag only when it ran every scenario of the tag (<see cref="TagCoverage"/>); a run with no check is left out. 404: no such agent.
-    /// </summary>
-    private static async Task<IResult> PassRatesAsync(
-        string agent,
-        AgentStore agents,
-        ScenarioStore scenarios,
-        RunStore runs,
-        CancellationToken cancellationToken
-    )
-    {
-        var found = await agents.GetAsync(agent, cancellationToken);
-        if (found is null)
-        {
-            return ProblemResults.NotFound("Agent", agent);
-        }
-        var picked = EffectiveRuns.Pick(await runs.ListAsync(found.Id, cancellationToken), PassRateTrend.MaxRuns);
-        var versions = (await agents.ListVersionsAsync(found.Id, cancellationToken)).ToDictionary(version => version.Id);
-        var lifetimes = await scenarios.ListLifetimesAsync(found.Id, cancellationToken);
-        var tagsOf = lifetimes.ToDictionary(scenario => scenario.Key, scenario => (IReadOnlyList<string>)scenario.Tags);
-        var shownIds = picked.Select(point => point.Shown.Id).ToList();
-        var checksOf = (await runs.ListTrendChecksAsync(shownIds, cancellationToken)).ToLookup(row => row.RunId);
-        var durationsOf = (await runs.ListTrendDurationsAsync(shownIds, cancellationToken)).ToLookup(row => row.RunId);
-        var ranOf = (await runs.ListTrendScenariosAsync(shownIds, cancellationToken)).ToLookup(row => row.RunId);
-        var points = new List<RunPassRates>();
-        foreach (var (run, recheck) in picked)
-        {
-            var shown = recheck ?? run;
-            if (
-                PassRateTrend.Rates(
-                    [
-                        .. checksOf[shown.Id]
-                            .Select(row => (row.ScenarioKey, RunReport.Reaches(row.SamplesPassed, row.Samples, row.PassThreshold))),
-                    ],
-                    [.. durationsOf[shown.Id].Select(row => (row.ScenarioKey, row.DurationMs))],
-                    tagsOf,
-                    TagCoverage.CompleteTags(run.CreatedAt, [.. ranOf[shown.Id].Select(row => row.ScenarioKey)], lifetimes)
-                )
-                is not { } rates
-            )
-            {
-                continue;
-            }
-            var version = versions[run.AgentVersionId];
-            points.Add(
-                new RunPassRates
-                {
-                    RunId = run.Id,
-                    CreatedAt = run.CreatedAt,
-                    RecheckedBy = recheck?.Id,
-                    AgentVersionId = version.Id,
-                    LimitedToTags = run.Tags,
-                    VersionLabel = version.Label,
-                    ModelNames = ContractContent.ModelNames(ContractContent.Read(version.Content)),
-                    PassRate = rates.PassRate,
-                    MedianMs = rates.MedianMs,
-                    P95Ms = rates.P95Ms,
-                    Tags = rates.Tags,
-                }
-            );
-        }
-        return Results.Ok(points);
     }
 
     /// <summary>

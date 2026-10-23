@@ -1,7 +1,7 @@
 // The "Pass rate" and "Turn time" sections of the agent page: a hint until two runs have finished, then the chart with a legend that toggles lines.
 import { expect, test } from "@playwright/test";
 
-import { createAgent, runToEnd, serveAgent } from "../../e2e/helpers";
+import { createAgent, runToEnd, serveAgent } from "../../../e2e/helpers";
 
 test("the pass rate chart appears with the second finished run and its legend hides a line", async ({ page, request }) => {
     const agentServer = await serveAgent({ label: "e2e-trend" });

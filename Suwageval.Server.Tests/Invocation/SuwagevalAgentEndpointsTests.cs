@@ -89,7 +89,9 @@ public sealed class SuwagevalAgentEndpointsTests : IAsyncLifetime
         Assert.Equal("main", Assert.Single(contract!.Agents).Name);
 
         // The discriminator comes last here: it must still be read.
-        using var response = await PostTurn("""{"conversation":[{"text":"hi","kind":"UserMessage"}]}""");
+        using var response = await PostTurn( /*lang=json,strict*/
+            """{"conversation":[{"text":"hi","kind":"UserMessage"}]}"""
+        );
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var turn = await response.Content.ReadFromJsonAsync<TurnResponse>(ContractJson.Options, Cancellation);
@@ -97,9 +99,15 @@ public sealed class SuwagevalAgentEndpointsTests : IAsyncLifetime
     }
 
     [Theory]
-    [InlineData("""{"conversation":[]}""")]
-    [InlineData("""{"conversation":[{"kind":"AssistantMessage","text":"hello"}]}""")]
-    [InlineData("""{"conversation":[{"kind":"UserMessage","text":"hi"}],"typo":1}""")]
+    [InlineData( /*lang=json,strict*/
+        """{"conversation":[]}"""
+    )]
+    [InlineData( /*lang=json,strict*/
+        """{"conversation":[{"kind":"AssistantMessage","text":"hello"}]}"""
+    )]
+    [InlineData( /*lang=json,strict*/
+        """{"conversation":[{"kind":"UserMessage","text":"hi"}],"typo":1}"""
+    )]
     public async Task A_request_that_is_not_a_turn_to_answer_is_a_400(string json)
     {
         using var response = await PostTurn(json);
@@ -110,7 +118,9 @@ public sealed class SuwagevalAgentEndpointsTests : IAsyncLifetime
     [Fact]
     public async Task A_turn_the_handler_rejects_is_a_400_with_its_reason()
     {
-        using var response = await PostTurn("""{"conversation":[{"kind":"UserMessage","text":"reject"}]}""");
+        using var response = await PostTurn( /*lang=json,strict*/
+            """{"conversation":[{"kind":"UserMessage","text":"reject"}]}"""
+        );
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Contains("Rejected by the handler.", await response.Content.ReadAsStringAsync(Cancellation), StringComparison.Ordinal);
@@ -120,6 +130,7 @@ public sealed class SuwagevalAgentEndpointsTests : IAsyncLifetime
     public async Task The_correlation_headers_reach_the_handler_and_absent_ones_are_null()
     {
         using var content = new StringContent(
+            /*lang=json,strict*/
             """{"conversation":[{"kind":"UserMessage","text":"who"}]}""",
             System.Text.Encoding.UTF8,
             "application/json"

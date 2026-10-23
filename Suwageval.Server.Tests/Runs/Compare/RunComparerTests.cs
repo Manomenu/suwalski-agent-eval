@@ -165,11 +165,23 @@ public sealed class RunComparerTests
             0
         );
 
-        Assert.Equal([Trend.Same, Trend.Better, Trend.Same], rows.Single(row => row.CheckKey == "a").Cells.Select(cell => cell?.Trend));
-        Assert.Equal([Trend.Same, Trend.Better, Trend.Worse], rows.Single(row => row.CheckKey == "b").Cells.Select(cell => cell?.Trend));
-        Assert.Equal([Trend.Same, Trend.Same, Trend.Worse], rows.Single(row => row.CheckKey == "c").Cells.Select(cell => cell?.Trend));
+        Assert.Equal(
+            [Contracts.Runs.Trend.Same, Contracts.Runs.Trend.Better, Contracts.Runs.Trend.Same],
+            rows.Single(row => row.CheckKey == "a").Cells.Select(cell => cell?.Trend)
+        );
+        Assert.Equal(
+            [Contracts.Runs.Trend.Same, Contracts.Runs.Trend.Better, Contracts.Runs.Trend.Worse],
+            rows.Single(row => row.CheckKey == "b").Cells.Select(cell => cell?.Trend)
+        );
+        Assert.Equal(
+            [Contracts.Runs.Trend.Same, Contracts.Runs.Trend.Same, Contracts.Runs.Trend.Worse],
+            rows.Single(row => row.CheckKey == "c").Cells.Select(cell => cell?.Trend)
+        );
         // A check one of the runs lacks has nothing to compare.
-        Assert.Equal([Trend.Same, null, Trend.Same], rows.Single(row => row.CheckKey == "d").Cells.Select(cell => cell?.Trend));
+        Assert.Equal(
+            [Contracts.Runs.Trend.Same, null, Contracts.Runs.Trend.Same],
+            rows.Single(row => row.CheckKey == "d").Cells.Select(cell => cell?.Trend)
+        );
         Assert.Equal([null, null, null], rows.Single(row => row.CheckKey == "e").Cells.Select(cell => cell?.Trend));
     }
 
@@ -235,9 +247,9 @@ public sealed class RunComparerTests
 
         var billing = rows.Single(row => row.Tag == "billing");
         Assert.Equal([0.5, null, 0.5], billing.Rates.Select(rate => rate.PassRate));
-        Assert.Equal([null, null, new RateChange(0, Trend.Same)], billing.Rates.Select(rate => rate.Change));
+        Assert.Equal([null, null, new RateChange(0, Contracts.Runs.Trend.Same)], billing.Rates.Select(rate => rate.Change));
         var all = rows[0];
-        Assert.Equal(new RateChange(50, Trend.Better), all.Rates[1].Change);
+        Assert.Equal(new RateChange(50, Contracts.Runs.Trend.Better), all.Rates[1].Change);
         Assert.Null(all.Rates[0].Change);
     }
 
@@ -257,10 +269,10 @@ public sealed class RunComparerTests
     [Fact]
     public void A_rate_change_is_in_percentage_points_rounded_to_one_decimal()
     {
-        Assert.Equal(new RateChange(25, Trend.Better), RunComparer.Change(0.75, 0.5));
-        Assert.Equal(new RateChange(-16.7, Trend.Worse), RunComparer.Change(0.5, 2 / 3.0));
-        Assert.Equal(new RateChange(0, Trend.Same), RunComparer.Change(0.5, 0.5));
-        Assert.Equal(Trend.Same, RunComparer.Change(0.5001, 0.5)!.Trend);
+        Assert.Equal(new RateChange(25, Contracts.Runs.Trend.Better), RunComparer.Change(0.75, 0.5));
+        Assert.Equal(new RateChange(-16.7, Contracts.Runs.Trend.Worse), RunComparer.Change(0.5, 2 / 3.0));
+        Assert.Equal(new RateChange(0, Contracts.Runs.Trend.Same), RunComparer.Change(0.5, 0.5));
+        Assert.Equal(Contracts.Runs.Trend.Same, RunComparer.Change(0.5001, 0.5)!.Trend);
         Assert.Null(RunComparer.Change(null, 0.5));
         Assert.Null(RunComparer.Change(0.5, null));
     }
@@ -268,17 +280,17 @@ public sealed class RunComparerTests
     [Fact]
     public void A_turn_time_is_better_when_faster_and_worse_when_slower()
     {
-        Assert.Equal(new TimeChange(-2000, Trend.Better), RunComparer.TimeChangeOf(8000, 10_000));
-        Assert.Equal(new TimeChange(2000, Trend.Worse), RunComparer.TimeChangeOf(12_000, 10_000));
+        Assert.Equal(new TimeChange(-2000, Contracts.Runs.Trend.Better), RunComparer.TimeChangeOf(8000, 10_000));
+        Assert.Equal(new TimeChange(2000, Contracts.Runs.Trend.Worse), RunComparer.TimeChangeOf(12_000, 10_000));
     }
 
     [Fact]
     public void A_turn_time_is_the_same_under_five_percent_of_the_baseline_or_under_the_noise_floor()
     {
-        Assert.Equal(Trend.Same, RunComparer.TimeChangeOf(10_400, 10_000)!.Trend);
-        Assert.Equal(Trend.Worse, RunComparer.TimeChangeOf(10_500, 10_000)!.Trend);
-        Assert.Equal(Trend.Same, RunComparer.TimeChangeOf(400 + RunComparer.TimeSameMs - 1, 400)!.Trend);
-        Assert.Equal(Trend.Worse, RunComparer.TimeChangeOf(400 + RunComparer.TimeSameMs, 400)!.Trend);
+        Assert.Equal(Contracts.Runs.Trend.Same, RunComparer.TimeChangeOf(10_400, 10_000)!.Trend);
+        Assert.Equal(Contracts.Runs.Trend.Worse, RunComparer.TimeChangeOf(10_500, 10_000)!.Trend);
+        Assert.Equal(Contracts.Runs.Trend.Same, RunComparer.TimeChangeOf(400 + RunComparer.TimeSameMs - 1, 400)!.Trend);
+        Assert.Equal(Contracts.Runs.Trend.Worse, RunComparer.TimeChangeOf(400 + RunComparer.TimeSameMs, 400)!.Trend);
     }
 
     [Fact]
@@ -340,10 +352,10 @@ public sealed class RunComparerTests
         Assert.Equal([false, true, false], comparison.Runs.Select(run => run.JudgeChanged));
         Assert.Equal([1.0, 1.0, 1.0], comparison.Runs.Select(run => run.PassRate));
         Assert.Equal(
-            [null, new TimeChange(500, Trend.Worse), new TimeChange(10, Trend.Same)],
+            [null, new TimeChange(500, Contracts.Runs.Trend.Worse), new TimeChange(10, Contracts.Runs.Trend.Same)],
             comparison.Runs.Select(run => run.MedianChange)
         );
-        Assert.Equal([null, null, new TimeChange(0, Trend.Same)], comparison.Runs.Select(run => run.P95Change));
+        Assert.Equal([null, null, new TimeChange(0, Contracts.Runs.Trend.Same)], comparison.Runs.Select(run => run.P95Change));
         Assert.Equal([null], comparison.Tags.Select(row => row.Tag));
         Assert.Equal(comparison.Runs[0].Run.Id, comparison.RunId);
     }
@@ -363,12 +375,15 @@ public sealed class RunComparerTests
 
         Assert.Equal(comparison.Runs[1].Run.Id, comparison.RunId);
         Assert.Equal(
-            [new TimeChange(-1000, Trend.Better), null, new TimeChange(-1000, Trend.Better)],
+            [new TimeChange(-1000, Contracts.Runs.Trend.Better), null, new TimeChange(-1000, Contracts.Runs.Trend.Better)],
             comparison.Runs.Select(run => run.MedianChange)
         );
-        Assert.Equal([Trend.Better, Trend.Same, Trend.Better], comparison.Checks.Single().Cells.Select(cell => cell!.Trend));
         Assert.Equal(
-            [new RateChange(100, Trend.Better), null, new RateChange(100, Trend.Better)],
+            [Contracts.Runs.Trend.Better, Contracts.Runs.Trend.Same, Contracts.Runs.Trend.Better],
+            comparison.Checks.Single().Cells.Select(cell => cell!.Trend)
+        );
+        Assert.Equal(
+            [new RateChange(100, Contracts.Runs.Trend.Better), null, new RateChange(100, Contracts.Runs.Trend.Better)],
             comparison.Tags[0].Rates.Select(rate => rate.Change)
         );
     }

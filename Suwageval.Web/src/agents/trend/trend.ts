@@ -1,5 +1,5 @@
-import type { RunPassRates } from "./api";
-import { percentValue, seconds, versionTitle } from "../runs/results";
+import type { RunPassRates } from "../api";
+import { percentValue, seconds, versionTitle } from "../../runs/results";
 
 /** The series of every run's rate over all checks. */
 export const ALL_SERIES = "All";

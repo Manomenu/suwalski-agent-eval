@@ -162,13 +162,13 @@ public sealed class CompareEndpointsTests(TestDatabase database) : IAsyncDisposa
         Assert.Equal(["judge-a"], baseline.Runs[1].Run.JudgeModels);
         Assert.Equal([null, null], baseline.Runs.Select(run => run.JudgeModel));
         Assert.Equal([1750.0, 2000.0], baseline.Runs.Select(run => run.MedianMs));
-        Assert.Equal(new TimeChange(-250, Trend.Better), baseline.Runs[0].MedianChange);
+        Assert.Equal(new TimeChange(-250, Contracts.Runs.Trend.Better), baseline.Runs[0].MedianChange);
         Assert.Null(baseline.Runs[1].MedianChange);
         Assert.Equal(
             ["|0.6666666666666666|0.6666666666666666", "billing|1|0.5"],
             baseline.Tags.Select(row => $"{row.Tag}|{row.Rates[0].PassRate:R}|{row.Rates[1].PassRate:R}")
         );
-        Assert.Equal(new RateChange(50, Trend.Better), baseline.Tags.Single(row => row.Tag == "billing").Rates[0].Change);
+        Assert.Equal(new RateChange(50, Contracts.Runs.Trend.Better), baseline.Tags.Single(row => row.Tag == "billing").Rates[0].Change);
         Assert.Equal(
             ["plain/plain-called|True|True", "refund/refund-called|False|True", "refund/refund-event|True|True"],
             baseline
@@ -177,7 +177,7 @@ public sealed class CompareEndpointsTests(TestDatabase database) : IAsyncDisposa
         );
         var eventRow = baseline.Checks.Single(row => row.CheckKey == "refund-event");
         Assert.Equal([true, false], eventRow.Cells.Select(cell => cell?.Passed));
-        Assert.Equal([Trend.Better, Trend.Same], eventRow.Cells.Select(cell => cell?.Trend));
+        Assert.Equal([Contracts.Runs.Trend.Better, Contracts.Runs.Trend.Same], eventRow.Cells.Select(cell => cell?.Trend));
         Assert.Equal("refund-event", eventRow.Definition.Key);
     }
 
