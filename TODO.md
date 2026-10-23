@@ -137,3 +137,10 @@ belongs to.
   "trying model X"). Shown on the run page, in the runs list and in the comparison; set on the web and with the CLI
   (`suwageval run --note …`, and a command to change it later). It changes no verdict and no regression state — it is not a
   baseline mark (that is the manual mode above). Build it when comparing runs shows the missing "why".
+- **Hide passed checks on the run page.** A filter (like the tag filter, kept in the address) that hides the checks that
+  passed, so a long run shows only what needs attention: failed, not judged, agent errors. CLI parity: `results` already
+  prints the failing checks first; decide whether it gets a matching `--failed-only`.
+- **Compare against a baseline: colour every cell by its change, not the best one.** With a baseline picked, a row stops
+  marking its best column green; instead every cell better than the baseline's is green and every worse one red (the
+  baseline's own cell and unchanged ones stay neutral), using the trend the server already computes per cell. Without a
+  baseline the best-column mark stays as it is.
