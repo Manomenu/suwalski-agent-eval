@@ -97,7 +97,7 @@ internal static class ResultsText
             .AppendLine(
                 string.Create(
                     CultureInfo.InvariantCulture,
-                    $"left out: {passedChecks} passed checks, {passedScenarios} passed scenarios (the totals above are the run's)"
+                    $"left out: {passedChecks} passed {(passedChecks == 1 ? "check" : "checks")}{(passedScenarios == 0 ? "" : $" ({passedScenarios} {(passedScenarios == 1 ? "scenario" : "scenarios")} passed entirely)")}; the samples and checks totals above count the whole run"
                 )
             );
     }

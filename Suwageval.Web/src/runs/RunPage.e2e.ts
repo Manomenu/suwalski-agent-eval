@@ -54,7 +54,7 @@ test("Hide passed checks leaves the failed check, is kept in the address and sur
         await expect(page.getByText("says-hello", { exact: true })).toHaveCount(0);
         await expect(page.getByText("mentions-refund", { exact: true })).toBeVisible();
         await expect(
-            page.getByText("Hidden: 1 passed check, 0 passed scenarios. The counts above are the run's totals.", { exact: true }),
+            page.getByText("Hidden: 1 passed check. Samples and Checks at the top still count the whole run.", { exact: true }),
         ).toBeVisible();
 
         await page.reload();
