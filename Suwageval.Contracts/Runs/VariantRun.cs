@@ -11,6 +11,9 @@ public sealed record VariantRun
     /// <summary>The models the run's version uses.</summary>
     public required IReadOnlyList<string> ModelNames { get; init; }
 
+    /// <summary>The model that judged the run: the most common known model among its model-judged checks; absent when none was judged by a known model.</summary>
+    public string? JudgeModel { get; init; }
+
     /// <summary>The median turn time over the run's samples that made a call, in milliseconds; null when none did.</summary>
     public double? MedianMs { get; init; }
 

@@ -129,7 +129,7 @@ public sealed class CompareCommandTests
         {
             Agent = "example-agent",
             Group = "sweep-1",
-            Runs = [Column(First, "gpt-4o", 75, 22), Column(Second, "gpt-4o", 80, 17, "relabelled")],
+            Runs = [Column(First, "gpt-4o", 75, 22) with { JudgeModel = "judge-a" }, Column(Second, "gpt-4o", 80, 17, "relabelled")],
             Tags =
             [
                 new ComparedTag { Tag = null, Rates = [new ComparedRate(0.77), new ComparedRate(0.82)] },
@@ -148,7 +148,19 @@ public sealed class CompareCommandTests
                             ChecksPassed = 3,
                             ChecksTotal = 4,
                             FailedChecks = ["refund-event"],
-                            Checks = [],
+                            Checks =
+                            [
+                                new VariantCheck
+                                {
+                                    Key = "refund-event",
+                                    Passed = false,
+                                    PassRate = 0,
+                                    Samples = 1,
+                                    SamplesPassed = 0,
+                                    JudgedByModel = true,
+                                    Failures = [],
+                                },
+                            ],
                             Samples = 1,
                             SamplesFailed = 0,
                             NoAnswers = [],
@@ -210,7 +222,8 @@ public sealed class CompareCommandTests
         );
         Assert.Contains("billing  50%", output, StringComparison.Ordinal);
         Assert.Contains("refund    3/4", output, StringComparison.Ordinal);
-        Assert.Contains("A failed: refund-event", output, StringComparison.Ordinal);
+        Assert.Contains("A failed: refund-event (model-judged)", output, StringComparison.Ordinal);
+        Assert.Contains("  judge judge-a", output, StringComparison.Ordinal);
         Assert.Contains("page: http://localhost:3230/compare?runs=", output, StringComparison.Ordinal);
         Assert.DoesNotContain("baseline", output, StringComparison.Ordinal);
         Assert.DoesNotContain("pts", output, StringComparison.Ordinal);

@@ -72,6 +72,7 @@ const check = (key: string, passed: boolean, samplesPassed: number, samples: num
     passed,
     passRate: samplesPassed / samples,
     samples,
+    judgedByModel: false,
     samplesPassed,
     failures: [],
 });

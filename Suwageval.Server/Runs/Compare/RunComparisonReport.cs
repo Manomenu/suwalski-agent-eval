@@ -33,6 +33,7 @@ internal static class RunComparisonReport
                     Run = run.Results.Run,
                     VersionLabel = run.VersionLabel,
                     ModelNames = run.ModelNames,
+                    JudgeModel = RunComparer.JudgeModel(run.Results),
                     MedianMs = run.Results.MedianMs,
                     P95Ms = run.Results.P95Ms,
                 }),
@@ -71,6 +72,7 @@ internal static class RunComparisonReport
                     PassRate = check.PassRate,
                     Samples = check.Samples.Count,
                     SamplesPassed = check.Samples.Count(sample => sample.Passed),
+                    JudgedByModel = check.JudgedByModel,
                     Failures =
                     [
                         .. check

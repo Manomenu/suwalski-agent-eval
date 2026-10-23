@@ -15,6 +15,9 @@ public sealed record VariantCheck
 
     public required int SamplesPassed { get; init; }
 
+    /// <summary>A model gives the verdict (a judge check, or a <c>$judge</c> matcher): the check is not deterministic.</summary>
+    public required bool JudgedByModel { get; init; }
+
     /// <summary>The samples that did not pass, with the message the run page shows for them.</summary>
     public required IReadOnlyList<VariantFailure> Failures { get; init; }
 }
