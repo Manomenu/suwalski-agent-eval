@@ -186,16 +186,20 @@ belongs to.
   - `Suwageval-Run-Group`: the run's group (`run --group`, a sweep), absent outside a group — every trace of one
     experiment together.
   Document them in `docs/scenario-format.md` (the agent contract) and `docs/universal-approach.md`, and the mapping a
-  Langfuse user would choose (below): every metadata key and tag an agent derives from them is prefixed `suwageval_`
-  (`suwageval_scenario`, not `scenario`). Later, only if this proves useful: Suwageval sending its verdicts to Langfuse as scores
+  Langfuse user would choose (below): everything an agent derives from them is marked as Suwageval's — metadata
+  under one `suwageval` object (or keys prefixed `suwageval_` where nesting does not work), tags prefixed `suwageval_`
+  (`suwageval_scenario_tag:refunds`, never a bare `scenario`). Later, only if this proves useful: Suwageval sending its verdicts to Langfuse as scores
   per trace — an outside service, so it brings a live test, the daily check and a secret (AGENTS.md, section 3).
 - **suwexag: integrate Langfuse** (in `suwalski-example-agent`, as the reference of how an agent does it). Send its traces to
   Langfuse (its SDK or OpenTelemetry; keys in the gitignored `.env`, the service in its compose) and map the correlation
   headers onto the trace. **Every name it adds carries the `suwageval_` prefix**, so in Langfuse it is always clear what came
   from an evaluation and nothing clashes with the agent's own names:
   - `sessionId`: the run id;
-  - metadata: `suwageval_run_id`, `suwageval_scenario`, `suwageval_sample`, `suwageval_scenario_type`, `suwageval_run_group`;
-  - tags (Langfuse tags are plain strings, so the prefix and the kind go into each): `suwageval_scenario_tag:<tag>` per
+  - metadata grouped in one object, `metadata.suwageval = { run_id, scenario, sample, scenario_type, run_group,
+    scenario_tags: [...], run_tags: [...] }` — Langfuse metadata is free JSON. Check first, on the Langfuse version used, that
+    its metadata filter (and the OpenTelemetry mapping, whose attributes are flat, dotted names) reaches a nested key such as
+    `suwageval.scenario`; if it does not, fall back to flat prefixed keys (`suwageval_scenario`, `suwageval_run_id`, …);
+  - tags (a flat list of plain strings in Langfuse — no grouping — so the prefix and the kind go into each): `suwageval_scenario_tag:<tag>` per
     scenario tag, `suwageval_run_tag:<tag>` per run tag, `suwageval_run_group:<group>`;
   - `environment: suwageval` whenever the headers
   are present, so evaluation traffic never mixes with real use. Its README says how to find a failing sample's trace from a
