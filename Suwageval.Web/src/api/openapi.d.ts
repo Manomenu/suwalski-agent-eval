@@ -2195,10 +2195,11 @@ export interface components {
         };
         /**
          * @description Where a run stands. `Failed` is the run itself breaking down; a scenario the agent did not answer is a result,
-         *     not a failure.
+         *     not a failure. `Interrupted` is the server stopping while the run was going (a restart, a deploy): the samples stored so far are
+         *     kept, nothing is wrong with the agent, and `rerun` starts it again.
          * @enum {unknown}
          */
-        RunStatus: "Queued" | "Running" | "Done" | "Failed" | "Cancelled";
+        RunStatus: "Queued" | "Running" | "Done" | "Failed" | "Cancelled" | "Interrupted";
         /** @description A run and how far it is. A sample is one scenario run once; the checks are counted per sample. */
         RunSummary: {
             /** Format: uuid */

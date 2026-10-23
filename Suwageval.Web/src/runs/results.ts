@@ -70,6 +70,8 @@ export function statusLabel(status: Status): string {
             return "failed";
         case "Cancelled":
             return "cancelled";
+        case "Interrupted":
+            return "interrupted";
     }
 }
 
@@ -84,6 +86,8 @@ export function statusColor(status: Status): string {
             return "red";
         case "Cancelled":
             return "gray";
+        case "Interrupted":
+            return "orange";
     }
 }
 

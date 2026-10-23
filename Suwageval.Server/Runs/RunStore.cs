@@ -311,6 +311,30 @@ internal sealed class RunStore(Pool pool)
         );
     }
 
+    /// <summary>
+    /// Marks every run still <c>Running</c> as <c>Interrupted</c> (finished now, with the reason in its error) and says how many there
+    /// were. Called when the worker starts: the chart and compose run one server (<c>replicas: 1</c>), so after a start no other process
+    /// can hold a run — with more replicas a worker heartbeat would be needed instead. <paramref name="agentId"/> narrows it to one
+    /// agent's runs (the tests share a database; the worker passes none).
+    /// </summary>
+    public async Task<int> InterruptRunningAsync(Guid? agentId = null, CancellationToken cancellationToken = default)
+    {
+        await using var connection = await pool.OpenAsync(cancellationToken);
+        return await connection.ExecuteAsync(
+            new CommandDefinition(
+                """
+                UPDATE runs
+                SET status = 'Interrupted', finished_at = now(), error = @error
+                WHERE status = 'Running' AND (@agentId::uuid IS NULL OR agent_id = @agentId)
+                """,
+                new { agentId, error = InterruptedError },
+                cancellationToken: cancellationToken
+            )
+        );
+    }
+
+    public const string InterruptedError = "Interrupted: the server stopped during the run; start it again with rerun.";
+
     /// <summary>Stores a finished sample and the verdicts of its checks, all or nothing.</summary>
     public async Task AddSampleAsync(Guid runId, NewSample sample, CancellationToken cancellationToken = default)
     {

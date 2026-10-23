@@ -641,6 +641,21 @@ public sealed class RunCommandTests
     }
 
     [Fact]
+    public void An_interrupted_run_exits_2_and_says_to_rerun_it()
+    {
+        var state = Summary(RunStatus.Interrupted, "Interrupted: the server stopped during the run; start it again with rerun.");
+
+        var (exit, output, _, _) = Run(
+            (request, _) => Server(request, state, Results(RunStatus.Interrupted) with { Run = state }),
+            "--wait"
+        );
+
+        Assert.Equal(2, exit);
+        Assert.Contains("interrupted", output, StringComparison.Ordinal);
+        Assert.Contains($"suwageval rerun {RunId}", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_cancelled_run_exits_2()
     {
         var (exit, _, _, _) = Run((request, _) => Server(request, Summary(RunStatus.Cancelled), Results(RunStatus.Cancelled)), "--wait");
