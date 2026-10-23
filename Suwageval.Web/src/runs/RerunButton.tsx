@@ -2,7 +2,7 @@ import { Alert, Button, Stack } from "@mantine/core";
 import { useState } from "react";
 
 import { rerun } from "./api";
-import { runHref } from "./results";
+import { runHref } from "../routes/links";
 
 /** "Run again": a new run like this one, then its page. Any status may be repeated; the server's refusal is shown as it came. */
 export function RerunButton({ runId }: { runId: string }) {

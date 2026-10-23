@@ -3,11 +3,10 @@ import { useState } from "react";
 
 import { fetchVersion, fetchVersions, type AgentVersion } from "../agents/api";
 import { useRequest } from "../api/useRequest";
-import { agentHref } from "../agents/view";
 import { ModelJudgedIcon } from "../checks/ModelJudgedIcon";
-import { HeaderHelp } from "../runs/HeaderHelp";
+import { HeaderHelp } from "../help/HeaderHelp";
 import { ChecksCount, SamplesCount } from "../runs/RunCounts";
-import { durationSummary, percent, RUN_CHECKS_HELP, RUN_SAMPLES_HELP } from "../runs/results";
+import { durationSummary, RUN_CHECKS_HELP, RUN_SAMPLES_HELP } from "../runs/results";
 import { filteredLabel, keepsTags, selectedTagRows } from "../tagFilter/tagSelection";
 import { TagFilter } from "../tagFilter/TagFilter";
 import { useTagFilter } from "../tagFilter/useTagFilter";
@@ -30,6 +29,8 @@ import {
     visibleTagRows,
 } from "./variants";
 import { WhatDiffers } from "./WhatDiffers";
+import { agentHref } from "../routes/links";
+import { percent } from "../format/numbers";
 
 const BEST_BACKGROUND = "var(--mantine-color-green-light)";
 const HELP_WIDTH = 280;

@@ -19,28 +19,17 @@ import { lazy, Suspense, useState } from "react";
 import { ListPagination } from "../pagination/ListPagination";
 import { usePageParam } from "../pagination/usePageParam";
 import { RUNS_PAGE_SIZE } from "../runs/paging";
-import { useUnstableChecks } from "../runs/useUnstableChecks";
+import { useUnstableChecks } from "../unstable/useUnstableChecks";
 import { ChecksCount, SamplesCount } from "../runs/RunCounts";
-import {
-    formatTime,
-    RUN_CHECKS_HELP,
-    RUN_SAMPLES_HELP,
-    runHref,
-    runLabel,
-    shortId,
-    statusColor,
-    statusLabel,
-    compareGroupHref,
-} from "../runs/results";
-import { fetchAgent, fetchPassRates, fetchRunGroups, fetchVersions, type AgentVersion, type RunGroupSummary } from "./api";
-import { AgentErrorsCard } from "./AgentErrorsCard";
+import { RUN_CHECKS_HELP, RUN_SAMPLES_HELP, runLabel, statusColor, statusLabel } from "../runs/results";
+import { deleteAgent, fetchAgent, fetchAgentDeletion, fetchVersions, type AgentVersion } from "./api";
 import { ConfigurationSection } from "./ConfigurationSection";
-import { DeleteAgentModal } from "./DeleteAgentModal";
-import { HeaderHelp } from "../runs/HeaderHelp";
+import { DeleteModal } from "./DeleteModal";
+import { agentDeletionSummary } from "./deletion";
+import { HeaderHelp } from "../help/HeaderHelp";
 import { filterOfValue, filterOptions, filterValue } from "./groupFilter";
 import { Page } from "./Page";
-import { RunGroupsSection } from "./RunGroupsSection";
-import { useAgentErrors } from "./useAgentErrors";
+import { RunGroupsSection } from "./groups/RunGroupsSection";
 import { useGroupFilter } from "./useGroupFilter";
 import { useRequest } from "../api/useRequest";
 import { useRuns } from "./useRuns";
@@ -48,15 +37,11 @@ import {
     allowedVersionIds,
     canCompare,
     consideredVersionIds,
-    compareHref,
     dataVersionsOf,
     modelsOf,
     runsToCompare,
-    versionHref,
     versionOptions,
     visibleRuns,
-    COMPARE_MAX_RUNS,
-    COMPARE_MIN_RUNS,
     RUN_CREATED_HELP,
     RUN_FINISHED_HELP,
     RUN_GROUP_HELP,
@@ -65,8 +50,15 @@ import {
     RUNS_SECTION_HELP,
     VERSION_HELP,
 } from "./view";
-import { UnstableChecksCard } from "./UnstableChecksCard";
+import { UnstableChecksCard } from "../unstable/UnstableChecksCard";
 import { VersionsSection } from "./versions/VersionsSection";
+import { runHref, compareGroupHref, compareHref, versionHref, COMPARE_MAX_RUNS, COMPARE_MIN_RUNS } from "../routes/links";
+import { formatTime } from "../format/time";
+import { shortId } from "../format/names";
+import { fetchPassRates } from "./trend/api";
+import { fetchRunGroups, type RunGroupSummary } from "./groups/api";
+import { AgentErrorsCard } from "./errors/AgentErrorsCard";
+import { useAgentErrors } from "./errors/useAgentErrors";
 
 // The chart library is the largest part of the app: it loads only when an agent's page is opened.
 /** What the filters and the runs table's columns mean, said on hover over their labels. */
@@ -174,8 +166,16 @@ function AgentView({
         <Stack gap="lg">
             <Anchor href="/">← Agents</Anchor>
             {deleting && (
-                <DeleteAgentModal
-                    name={agent.name}
+                <DeleteModal
+                    noun="agent"
+                    title="Delete this agent?"
+                    subject={agent.name}
+                    note="Files in its repository are not touched, but the next push registers it again, empty."
+                    typedLabel="Type the agent name to confirm"
+                    expected={agent.name}
+                    loadPreview={(signal) => fetchAgentDeletion(agent.name, signal)}
+                    summary={agentDeletionSummary}
+                    remove={() => deleteAgent(agent.name)}
                     onClose={() => {
                         setDeleting(false);
                     }}

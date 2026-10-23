@@ -2,7 +2,7 @@ import { Alert, Anchor, Badge, Group, List, Loader, Paper, Stack, Text, Title } 
 
 import { isNotFound } from "../api/client";
 import { CancelButton } from "./CancelButton";
-import { HeaderHelp } from "./HeaderHelp";
+import { HeaderHelp } from "../help/HeaderHelp";
 import { ChecksCount, SamplesCount } from "./RunCounts";
 import { RecheckButton } from "./RecheckButton";
 import { RegressionSection } from "./RegressionSection";
@@ -10,23 +10,22 @@ import { RerunButton } from "./RerunButton";
 import { ScenarioCard } from "./ScenarioCard";
 import {
     durationSummary,
-    formatTime,
     isActive,
     RUN_CHECKS_HELP,
     RUN_SAMPLES_HELP,
-    runHref,
     runStatusLabel,
     scenariosChecksCounts,
     scenariosSamplesCounts,
     statusColor,
-    compareGroupHref,
 } from "./results";
 import { filteredLabel, keepsTags } from "../tagFilter/tagSelection";
 import { TagFilter } from "../tagFilter/TagFilter";
 import { useTagFilter } from "../tagFilter/useTagFilter";
 import { useRunResults } from "./useRunResults";
 import { useScrollToHash } from "./useScrollToHash";
-import { useUnstableChecks } from "./useUnstableChecks";
+import { useUnstableChecks } from "../unstable/useUnstableChecks";
+import { agentHref, runHref, compareGroupHref } from "../routes/links";
+import { formatTime } from "../format/time";
 
 /** One run's results at `/runs/<id>`: the header, then a card per scenario. */
 export function RunPage({ runId }: { runId: string }) {
@@ -57,7 +56,7 @@ export function RunPage({ runId }: { runId: string }) {
         <>
             <Stack gap="md">
                 <Group gap="xs">
-                    <Anchor href="/">Agents</Anchor>/<Anchor href={`/agents/${encodeURIComponent(run.agent)}`}>{run.agent}</Anchor>
+                    <Anchor href="/">Agents</Anchor>/<Anchor href={agentHref(run.agent)}>{run.agent}</Anchor>
                 </Group>
                 <Group gap="sm">
                     <Title order={2}>Run {run.agent}</Title>

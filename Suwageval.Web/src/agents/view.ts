@@ -1,8 +1,6 @@
 // What the agent pages show, as plain functions: links, labels and the JSON of a schema.
-import { versionTitle } from "../runs/results";
-
-export const agentHref = (name: string) => `/agents/${encodeURIComponent(name)}`;
-export const versionHref = (name: string, versionId: string) => `${agentHref(name)}/versions/${versionId}`;
+import { COMPARE_MAX_RUNS, COMPARE_MIN_RUNS } from "../routes/links";
+import { versionTitle } from "../format/names";
 
 /** A version's label, or a dash for one registered without it. */
 export function versionLabel(version: { label?: string | null }): string {
@@ -100,13 +98,6 @@ export function consideredVersionIds(
     return allowedVersionIds(versions, showArchived, models, dataVersions, versionIds) ?? versions.map((version) => version.id);
 }
 
-/** The comparison page takes at least two runs and at most twenty (the server's limit). */
-export const COMPARE_MIN_RUNS = 2;
-export const COMPARE_MAX_RUNS = 20;
-
-/** The compare page for these runs, side by side with no baseline (the page lets the user pick one). */
-export const compareHref = (runIds: readonly string[]) => `/compare?runs=${runIds.join(",")}`;
-
 /** Whether the selection is a number of runs the compare page accepts. */
 export function canCompare(count: number): boolean {
     return count >= COMPARE_MIN_RUNS && count <= COMPARE_MAX_RUNS;
@@ -119,9 +110,6 @@ export function runsToCompare(runs: { id: string }[], selected: ReadonlySet<stri
         .map((run) => run.id)
         .reverse();
 }
-
-/** The page showing what changed between two versions of the agent. */
-export const versionCompareHref = (name: string, a: string, b: string) => `${agentHref(name)}/versions/compare?a=${a}&b=${b}`;
 
 /** The two selected versions to compare, or null unless exactly two are selected. */
 export function versionsToCompare(versions: { id: string }[], selected: ReadonlySet<string>): [string, string] | null {

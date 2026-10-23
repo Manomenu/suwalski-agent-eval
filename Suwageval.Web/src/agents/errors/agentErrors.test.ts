@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { AGENT_ERROR_MAX_LENGTH, agentErrorsPath, errorsOfSamples, shortError } from "./agentErrors";
-import type { AgentError } from "./api";
+import { type AgentError } from "./api";
 
 const item = (over: Partial<AgentError> = {}): AgentError => ({
     scenarioKey: "refund",

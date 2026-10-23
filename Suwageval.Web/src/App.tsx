@@ -7,7 +7,7 @@ import { AgentsPage } from "./agents/AgentsPage";
 import { VersionPage } from "./agents/versions/VersionPage";
 import { ComparePage } from "./compare/ComparePage";
 import { ServerStatus } from "./health/ServerStatus";
-import { pageOf } from "./route";
+import { pageOf } from "./routes/pageOf";
 import { RunPage } from "./runs/RunPage";
 import { AppNavbar } from "./shell/AppNavbar";
 import { CONTENT_MAX_WIDTH, HEADER_HEIGHT, LOGO_SIZE, NAVBAR_WIDTH } from "./shell/layout";

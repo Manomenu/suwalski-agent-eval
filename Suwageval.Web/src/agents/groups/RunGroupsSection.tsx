@@ -1,16 +1,18 @@
 import { Anchor, Badge, Checkbox, Group, Paper, Stack, Table, Text, Title } from "@mantine/core";
 import { useState } from "react";
 
-import { formatTime, compareGroupHref } from "../runs/results";
+import { DeleteModal } from "../DeleteModal";
+import { deletionSummary } from "../deletion";
+import { archiveSelection, visibleItems } from "../archive";
+import { ArchiveControls, type ArchiveLabels } from "../ArchiveControls";
+import { useArchiveList } from "../useArchiveList";
+import { HeaderHelp } from "../../help/HeaderHelp";
+import { ListPagination } from "../../pagination/ListPagination";
+import { pageOfItems } from "../../pagination/pages";
+import { usePageParam } from "../../pagination/usePageParam";
+import { compareGroupHref } from "../../routes/links";
+import { formatTime } from "../../format/time";
 import { archiveRunGroups, deleteRunGroup, fetchRunGroupDeletion, type RunGroupSummary } from "./api";
-import { DeleteModal } from "./DeleteModal";
-import { archiveSelection, visibleItems } from "./archive";
-import { ArchiveControls, type ArchiveLabels } from "./ArchiveControls";
-import { useArchiveList } from "./useArchiveList";
-import { HeaderHelp } from "../runs/HeaderHelp";
-import { ListPagination } from "../pagination/ListPagination";
-import { pageOfItems } from "../pagination/pages";
-import { usePageParam } from "../pagination/usePageParam";
 
 const GROUPS_HELP =
     "Runs started with `suwageval run --group <name>`: the runs of one sweep, typically one per model or configuration. Open a group to see its runs side by side as variants. A group's runs are experiments: no regression states, never a reference, not in the pass-rate trend. Archive a group to hide it; only an archived group can be deleted, with its runs.";
@@ -150,6 +152,7 @@ export function RunGroupsSection({
                     subject={toDelete}
                     typedLabel="Type the group name to confirm"
                     expected={toDelete}
+                    summary={deletionSummary}
                     loadPreview={(signal) => fetchRunGroupDeletion(agentName, toDelete, signal)}
                     remove={() => deleteRunGroup(agentName, toDelete)}
                     onClose={() => {

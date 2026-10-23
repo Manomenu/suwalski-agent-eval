@@ -1,13 +1,13 @@
 import { Anchor, Paper, Stack, Table, Text, Title } from "@mantine/core";
 
-import { formatTime } from "../runs/results";
 import { ListPagination } from "../pagination/ListPagination";
 import { pageOfItems } from "../pagination/pages";
 import { usePageParam } from "../pagination/usePageParam";
 import { fetchAgents } from "./api";
 import { Page } from "./Page";
 import { useRequest } from "../api/useRequest";
-import { agentHref } from "./view";
+import { agentHref } from "../routes/links";
+import { formatTime } from "../format/time";
 
 /** `/`: every agent, each linking to its page. */
 export function AgentsPage() {

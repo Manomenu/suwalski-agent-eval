@@ -2,7 +2,7 @@
 // archives a group, shows it again on request and deletes it with its runs after its name is typed. Layout is checked here too, once.
 import { expect, test } from "@playwright/test";
 
-import { createAgent, runToEnd, serveAgent } from "../../e2e/helpers";
+import { createAgent, runToEnd, serveAgent } from "../../../e2e/helpers";
 
 test("the runs table hides group runs by default, and a group is archived, shown again and deleted", async ({ page, request }) => {
     const agentServer = await serveAgent({ label: "e2e-groups" });

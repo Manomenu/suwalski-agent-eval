@@ -1,16 +1,13 @@
 import { Anchor, Badge, Button, Checkbox, Group, Paper, Stack, Table, Text, Title } from "@mantine/core";
 
-import { formatTime, versionTitle } from "../../runs/results";
-import { archiveVersions, deleteVersion, fetchVersionDeletion, type AgentVersion } from "../api";
+import { type AgentVersion } from "../api";
 import { DeleteModal } from "../DeleteModal";
-import { HeaderHelp } from "../../runs/HeaderHelp";
+import { HeaderHelp } from "../../help/HeaderHelp";
 import { ListPagination } from "../../pagination/ListPagination";
 import { pageOfItems } from "../../pagination/pages";
 import { usePageParam } from "../../pagination/usePageParam";
 import {
     compareVersionsTitle,
-    versionCompareHref,
-    versionHref,
     versionLabel,
     versionsToCompare,
     VERSION_CREATED_HELP,
@@ -18,9 +15,14 @@ import {
     VERSION_LABEL_HELP,
     VERSIONS_SECTION_HELP,
 } from "../view";
+import { deletionSummary } from "../deletion";
 import { archiveSelection, visibleItems } from "../archive";
 import { ArchiveControls, type ArchiveLabels } from "../ArchiveControls";
 import { useArchiveList } from "../useArchiveList";
+import { versionCompareHref, versionHref } from "../../routes/links";
+import { formatTime } from "../../format/time";
+import { versionTitle } from "../../format/names";
+import { archiveVersions, deleteVersion, fetchVersionDeletion } from "./api";
 
 const LABELS: ArchiveLabels = {
     archive: "Archive selected",
@@ -165,6 +167,7 @@ export function VersionsSection({
                     subject={toDelete.label?.trim() ? toDelete.label : toDelete.id}
                     typedLabel="Type the version id to confirm"
                     expected={toDelete.id}
+                    summary={deletionSummary}
                     loadPreview={(signal) => fetchVersionDeletion(agentName, toDelete.id, signal)}
                     remove={() => deleteVersion(agentName, toDelete.id)}
                     onClose={() => {

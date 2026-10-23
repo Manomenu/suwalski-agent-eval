@@ -1,38 +1,16 @@
 // What the run page shows, as plain functions: labels, numbers and which items to highlight.
+import { formatSeconds, percent } from "../format/numbers";
+import { versionTitle } from "../format/names";
 import type { CheckRunResult, ConversationItem, RunResults, RunSummary, ScenarioRunResult } from "./api";
 
 export const POLL_INTERVAL_MS = 2000;
 
 type Status = RunSummary["status"];
 
-/** The page of a run. */
-export const runHref = (runId: string) => `/runs/${runId}`;
-
-/** The compare page of the runs of a group; `agent` says whose, for a group name used by several agents. */
-export const compareGroupHref = (group: string, agent: string) => `/compare?${new URLSearchParams({ group, agent }).toString()}`;
-
-/** The first eight characters of a guid — enough to tell runs and versions apart in a table. */
-export function shortId(id: string): string {
-    return id.slice(0, 8);
-}
-
-/** What names a version in its page's title: its label, or the start of its id when it has none. */
-export function versionTitle(id: string, label: string | null | undefined): string {
-    return label?.trim() ? label : shortId(id);
-}
-
 /** What names a run: the label its contract carried when it started, else its version's label, else the start of the version's id. */
 export function runLabel(run: Pick<RunSummary, "label" | "agentVersionId">, versionLabel?: string | null): string {
     return run.label?.trim() ? run.label : versionTitle(run.agentVersionId, versionLabel);
 }
-
-/** The id of a scenario's card on the run page, so a link can jump to it (`#scenario-<key>`). */
-export function scenarioAnchor(scenarioKey: string): string {
-    return `scenario-${scenarioKey}`;
-}
-
-/** The scenario's card on the run page: where the comparison's "open in run" leads. */
-export const scenarioInRunHref = (runId: string, scenarioKey: string) => `${runHref(runId)}#${scenarioAnchor(scenarioKey)}`;
 
 /** The id of a check's row on the run page, so a link can jump to it (`#check-<scenario>--<check>`). */
 export function checkAnchor(scenarioKey: string, checkKey: string): string {
@@ -107,21 +85,6 @@ export function statusColor(status: Status): string {
         case "Cancelled":
             return "gray";
     }
-}
-
-/** 0.666 → 66.7: a share as a percentage rounded to one decimal. */
-export function percentValue(share: number): number {
-    return Math.round(share * 1000) / 10;
-}
-
-/** 0.666 → "66.7%" (no trailing zeros, like the CLI report). */
-export function percent(share: number): string {
-    return `${percentValue(share)}%`;
-}
-
-export function formatTime(iso: string | null | undefined): string {
-    if (!iso) return "—";
-    return new Date(iso).toLocaleString("en-GB");
 }
 
 export function checkSummary(check: CheckRunResult): string {
@@ -254,16 +217,6 @@ export function itemBody(item: ConversationItem): string {
             break;
     }
     return "";
-}
-
-/** Milliseconds as seconds rounded to one decimal: 9840 → 9.8. */
-export function seconds(milliseconds: number): number {
-    return Math.round(milliseconds / 100) / 10;
-}
-
-/** 9800 → "9.8 s" (one decimal). */
-export function formatSeconds(milliseconds: number): string {
-    return `${seconds(milliseconds).toFixed(1)} s`;
 }
 
 /** "Turn time: median 9.8 s · p95 109.1 s" over all samples of the run that made a call; null when none did. `label` replaces "Turn time". */

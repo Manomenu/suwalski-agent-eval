@@ -1,12 +1,14 @@
 import { Anchor, Group, Paper, Stack, Text, Title, Tooltip } from "@mantine/core";
 
 import { UNSTABLE_EXPLANATION, UnstableCheckIcon } from "../checks/UnstableCheckIcon";
-import type { UnstableCheck } from "../runs/api";
 import { ListPagination } from "../pagination/ListPagination";
 import { pageOfItems } from "../pagination/pages";
 import { usePageParam } from "../pagination/usePageParam";
-import { passedOfRuns, UNSTABLE_CARD_PAGE_SIZE, UNSTABLE_CARD_RULE } from "../runs/stability";
-import { runHref, versionTitle } from "../runs/results";
+import { passedOfRuns, UNSTABLE_CARD_RULE } from "./stability";
+import { runHref } from "../routes/links";
+import { versionTitle } from "../format/names";
+import { type UnstableCheck } from "./api";
+import { UNSTABLE_CARD_PAGE_SIZE } from "./stability";
 
 const HEADING_HELP_WIDTH = 340;
 

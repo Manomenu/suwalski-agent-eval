@@ -4,15 +4,17 @@ import { Accordion, Alert, Badge, Card, Group, List, Stack, Text, Title } from "
 import { CheckDefinitionButton } from "../checks/CheckDefinitionButton";
 import { ModelJudgedIcon } from "../checks/ModelJudgedIcon";
 import { UnstableCheckIcon } from "../checks/UnstableCheckIcon";
-import type { SampleResult, ScenarioRunResult, UnstableCheck } from "./api";
+import type { SampleResult, ScenarioRunResult } from "./api";
 import { ConversationView } from "./ConversationView";
 import { ScenarioDefinitionButton } from "./ScenarioDefinitionButton";
 import { CheckHistory } from "./CheckHistory";
 import { stateLabel } from "./regression";
 import { StateBadge } from "./StateBadge";
-import { findUnstable, unstableTooltip } from "./stability";
-import { checkAnchor, checkSummary, failedEvidenceKeys, notJudgedCount, sampleVerdict, samplesToOpen, scenarioAnchor } from "./results";
+import { findUnstable, unstableTooltip } from "../unstable/stability";
+import { checkAnchor, checkSummary, failedEvidenceKeys, notJudgedCount, sampleVerdict, samplesToOpen } from "./results";
 import { isSimulated, sampleTitle } from "./simulation";
+import { scenarioAnchor } from "../routes/links";
+import { type UnstableCheck } from "../unstable/api";
 
 const VERDICT_COLOR = { passed: "green", failed: "red", "not judged": "yellow", "no output": "red" } as const;
 

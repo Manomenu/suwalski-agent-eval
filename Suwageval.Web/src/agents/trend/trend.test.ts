@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 
-import type { RunPassRates } from "../api";
 import {
     ALL_SERIES,
     DETAILS_KEY,
@@ -19,6 +18,7 @@ import {
     versionChanges,
     withTurnTimes,
 } from "./trend";
+import { type RunPassRates } from "./api";
 
 function point(
     id: string,

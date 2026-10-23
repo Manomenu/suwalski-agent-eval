@@ -42,8 +42,11 @@ export default defineConfig(
         settings: {
             "import/resolver": { node: { extensions: [".ts", ".tsx"] } },
             "boundaries/elements": [
-                // Order matters: the first matching pattern wins, so api/ is not a feature.
+                // Order matters: the first matching pattern wins, so api/ and the shared folders are not features.
                 { type: "api", pattern: "src/api" },
+                // routes/ (the addresses of the pages, built and read), format/ (ids, times, shares and durations as the pages write
+                // them) and help/ (a header that explains itself) are used by every feature the way api/ is: no feature owns them.
+                { type: "shared", pattern: ["src/routes", "src/format", "src/help"] },
                 { type: "feature", pattern: "src/*", capture: ["name"] },
             ],
             // The entry points at the root of src/ (main.tsx, App.tsx) put the page together.
@@ -61,10 +64,12 @@ export default defineConfig(
                         // The entry points compose everything.
                         {
                             from: { file: { categories: "entry" } },
-                            allow: { to: [{ file: { categories: "entry" } }, { element: { types: { anyOf: ["feature", "api"] } } }] },
+                            allow: {
+                                to: [{ file: { categories: "entry" } }, { element: { types: { anyOf: ["feature", "api", "shared"] } } }],
+                            },
                         },
-                        // A feature uses the shared HTTP plumbing…
-                        { from: { element: { type: "feature" } }, allow: { to: { element: { type: "api" } } } },
+                        // A feature uses the shared HTTP plumbing and the shared folders…
+                        { from: { element: { type: "feature" } }, allow: { to: { element: { types: { anyOf: ["api", "shared"] } } } } },
                         // …and its own files, never another feature's (unless an edge is added here).
                         {
                             from: { element: { type: "feature" } },
@@ -98,12 +103,6 @@ export default defineConfig(
                             from: { element: { type: "feature", captured: { name: "compare" } } },
                             allow: { to: { element: { type: "feature", captured: { name: "checks" } } } },
                         },
-                        // The agent page marks its "Unstable checks" card with the icon the run page and the comparison use
-                        // for an unstable check: checks/ owns the icon, agents/ places it in the heading.
-                        {
-                            from: { element: { type: "feature", captured: { name: "agents" } } },
-                            allow: { to: { element: { type: "feature", captured: { name: "checks" } } } },
-                        },
                         // diff/ is the line diff of two texts: agents/ shows two versions of an agent with it, runs/ the
                         // checks a re-check changes. It wraps a long line of YAML under the start of its value the way the
                         // definition drawer does: checks/ owns that rule (`hangingIndent`).
@@ -130,6 +129,21 @@ export default defineConfig(
                             from: { element: { type: "feature", captured: { name } } },
                             allow: { to: { element: { type: "feature", captured: { name: "tagFilter" } } } },
                         })),
+                        // Unstable checks have a feature of their own (the server's route, the CLI's `unstable`): the agent page places
+                        // their card, the run page marks each check with the list. The card sits under the icon of an unstable check
+                        // (checks/ owns it, runs/ places it too) and pages its rows like every list (pagination/ owns that).
+                        ...["agents", "runs"].map((name) => ({
+                            from: { element: { type: "feature", captured: { name } } },
+                            allow: { to: { element: { type: "feature", captured: { name: "unstable" } } } },
+                        })),
+                        {
+                            from: { element: { type: "feature", captured: { name: "unstable" } } },
+                            allow: { to: { element: { type: "feature", captured: { name: "checks" } } } },
+                        },
+                        {
+                            from: { element: { type: "feature", captured: { name: "unstable" } } },
+                            allow: { to: { element: { type: "feature", captured: { name: "pagination" } } } },
+                        },
                         // Every list of the agent page and the agents list pages the same way (numbered pages, the page in the
                         // address): pagination/ owns that, agents/ places it.
                         {

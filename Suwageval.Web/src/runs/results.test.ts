@@ -3,11 +3,9 @@ import { describe, expect, it } from "vitest";
 import type { CheckRunResult, ConversationItem, ScenarioRunResult } from "./api";
 import {
     checkAnchor,
-    compareGroupHref,
     checksCounts,
     checkSummary,
     durationSummary,
-    formatSeconds,
     failedEvidenceKeys,
     isActive,
     needsFullResults,
@@ -15,16 +13,10 @@ import {
     itemKey,
     itemTitle,
     notJudgedCount,
-    percent,
-    percentValue,
-    runHref,
     runLabel,
     sampleVerdict,
     samplesCounts,
     samplesToOpen,
-    seconds,
-    shortId,
-    versionTitle,
     canCancel,
     isCancelling,
     runStatusLabel,
@@ -79,12 +71,6 @@ describe("results", () => {
 
     it("labels statuses in English", () => {
         expect(statusLabel("Done")).toBe("done");
-    });
-
-    it("writes shares as percent without trailing zeros", () => {
-        expect(percent(1)).toBe("100%");
-        expect(percent(0.5)).toBe("50%");
-        expect(percent(0.6667)).toBe("66.7%");
     });
 
     it("summarizes a check", () => {
@@ -152,11 +138,6 @@ describe("results", () => {
     });
 
     describe("durations", () => {
-        it("writes seconds with one decimal", () => {
-            expect(formatSeconds(9800)).toBe("9.8 s");
-            expect(formatSeconds(109_050)).toBe("109.1 s");
-        });
-
         it("summarizes the server's median and p95", () => {
             expect(durationSummary({ medianMs: 3000, p95Ms: 20_000 })).toBe("Turn time: median 3.0 s · p95 20.0 s");
         });
@@ -207,18 +188,6 @@ describe("samplesToOpen", () => {
     });
 });
 
-describe("runHref", () => {
-    it("is the run's page", () => {
-        expect(runHref("abc")).toBe("/runs/abc");
-    });
-});
-
-describe("shortId", () => {
-    it("keeps eight characters", () => {
-        expect(shortId("3f2b8c1e-5d4a")).toBe("3f2b8c1e");
-    });
-});
-
 describe("runLabel", () => {
     const run = { agentVersionId: "3f2b8c1e-5d4a-4e6f-9a7b-0c1d2e3f4a5b" };
 
@@ -226,28 +195,6 @@ describe("runLabel", () => {
         expect(runLabel({ ...run, label: "gpt-5" }, "gpt-4o")).toBe("gpt-5");
         expect(runLabel({ ...run, label: " " }, "gpt-4o")).toBe("gpt-4o");
         expect(runLabel(run, null)).toBe("3f2b8c1e");
-    });
-});
-
-describe("versionTitle", () => {
-    it("is the label, or the start of the id without one", () => {
-        expect(versionTitle("3f2b8c1e-5d4a", "v2")).toBe("v2");
-        expect(versionTitle("3f2b8c1e-5d4a", null)).toBe("3f2b8c1e");
-    });
-});
-
-describe("percentValue", () => {
-    it("rounds to one decimal", () => {
-        expect(percentValue(0.12345)).toBe(12.3);
-        expect(percentValue(1)).toBe(100);
-    });
-});
-
-describe("seconds", () => {
-    it("rounds milliseconds to seconds with one decimal", () => {
-        expect(seconds(1240)).toBe(1.2);
-        expect(seconds(1250)).toBe(1.3);
-        expect(seconds(0)).toBe(0);
     });
 });
 
@@ -298,11 +245,5 @@ describe("sampleVerdict", () => {
 
     it("says nothing of a sample no check looked at", () => {
         expect(sampleVerdict(scenario([]), 1).kind).toBe("unchecked");
-    });
-});
-
-describe("compareGroupHref", () => {
-    it("opens the compare page of the group of an agent, both escaped", () => {
-        expect(compareGroupHref("sweep-1", "my bot")).toBe("/compare?group=sweep-1&agent=my+bot");
     });
 });

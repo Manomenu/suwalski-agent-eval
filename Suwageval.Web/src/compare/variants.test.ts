@@ -19,7 +19,7 @@ import {
     selectionOf,
     visibleTagRows,
 } from "./variants";
-import { COMPARE_MAX_RUNS } from "../agents/view";
+import { COMPARE_MAX_RUNS } from "../routes/links";
 
 const ID = "3f2b8c1e-5d4a-4e6f-9a7b-0c1d2e3f4a5b";
 const OTHER = "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d";

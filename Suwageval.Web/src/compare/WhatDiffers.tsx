@@ -1,12 +1,12 @@
 import { Button, Loader, Table, Text } from "@mantine/core";
 import { useState } from "react";
 
-import { fetchVersionDiff } from "../agents/api";
 import { useRequest } from "../api/useRequest";
 import { LineDiffView } from "../diff/LineDiffView";
 import { type Difference } from "./contractDiff";
 import type { VariantRun } from "./api";
 import { columnName } from "./variants";
+import { fetchVersionDiff } from "../agents/versions/api";
 
 const nameOf = (column: VariantRun | undefined) => (column === undefined ? "" : columnName(column));
 

@@ -1,5 +1,5 @@
 import type { ConversationItem, ScenarioRunResult } from "./api";
-import { formatSeconds } from "./results";
+import { formatSeconds } from "../format/numbers";
 
 type SampleResult = ScenarioRunResult["samples"][number];
 

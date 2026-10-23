@@ -2,7 +2,6 @@ import { LineChart } from "@mantine/charts";
 import { Button, ColorSwatch, Group, Paper, Stack, Text } from "@mantine/core";
 import { useState } from "react";
 
-import type { RunPassRates } from "../api";
 import {
     ALL_SERIES,
     DETAILS_KEY,
@@ -18,7 +17,8 @@ import {
     versionChanges,
     type TrendRow,
 } from "./trend";
-import { runHref } from "../../runs/results";
+import { runHref } from "../../routes/links";
+import { type RunPassRates } from "./api";
 
 /** Said under every trend chart: group runs are experiments and never make a point. */
 const GROUP_RUNS_NOT_INCLUDED = "Runs started in a group are experiments and are not included in this chart.";
