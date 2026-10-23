@@ -4,8 +4,7 @@ import {
     allowedVersionIds,
     consideredVersionIds,
     canCompare,
-    dataText,
-    dataVersionsOf,
+    dataVersionOptions,
     jsonText,
     modelsOf,
     runsToCompare,
@@ -73,8 +72,15 @@ describe("data versions", () => {
     ];
 
     it("lists each data version once, sorted, leaving out versions without retrieval", () => {
-        expect(dataVersionsOf([...versions, { dataVersion: "build-1" }])).toEqual(["build-1", "build-2"]);
-        expect(dataVersionsOf([])).toEqual([]);
+        expect(dataVersionOptions([...versions, { dataVersion: "build-1" }]).map((option) => option.value)).toEqual(["build-1", "build-2"]);
+        expect(dataVersionOptions([])).toEqual([]);
+        const hash = "93a4af9723bf03c6f0d0d6825d1e7786b5015441813b5273fe381e0d2f7351eb";
+        expect(
+            dataVersionOptions([
+                { dataVersion: hash, dataDescription: "" },
+                { dataVersion: hash, dataDescription: "12 knowledge base resources, searched by their RAG descriptions" },
+            ]),
+        ).toEqual([{ value: hash, label: "93a4af97… · 12 knowledge base resources, searched by…" }]);
     });
 
     it("keeps the runs of the chosen data versions; none chosen means all", () => {
@@ -86,12 +92,6 @@ describe("data versions", () => {
     it("combines with the model filter", () => {
         expect(visibleRuns(runs, versions, false, ["large"], ["build-2"])).toEqual([]);
         expect(visibleRuns(runs, versions, false, ["large"], ["build-1"])).toEqual([runs[0]]);
-    });
-
-    it("says the data version with its description when there is one", () => {
-        expect(dataText({ dataVersion: "build-7", dataDescription: "1832 articles" })).toBe("data build-7 · 1832 articles");
-        expect(dataText({ dataVersion: "build-7", dataDescription: " " })).toBe("data build-7");
-        expect(dataText({ dataVersion: null })).toBeNull();
     });
 });
 

@@ -39,7 +39,7 @@ import {
     allowedVersionIds,
     canCompare,
     consideredVersionIds,
-    dataVersionsOf,
+    dataVersionOptions,
     modelsOf,
     runsToCompare,
     versionOptions,
@@ -253,7 +253,7 @@ function AgentView({
                             <MultiSelect
                                 label={<HeaderHelp label="Data version" help={DATA_VERSION_HELP} />}
                                 placeholder={dataVersions.length === 0 ? "All data versions" : undefined}
-                                data={dataVersionsOf(versions)}
+                                data={dataVersionOptions(versions)}
                                 value={dataVersions}
                                 onChange={filtered(setDataVersions)}
                                 clearable

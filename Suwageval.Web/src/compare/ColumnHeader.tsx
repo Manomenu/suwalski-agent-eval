@@ -1,7 +1,7 @@
 import { Anchor, Badge, Button, Stack, Text, Tooltip } from "@mantine/core";
 
+import { DataVersion } from "../dataVersion/DataVersion";
 import type { AgentVersion } from "../agents/api";
-import { dataText } from "../agents/view";
 import { statusColor, statusLabel } from "../runs/results";
 import type { VariantRun } from "./api";
 import { columnTitle, runTagsText } from "./variants";
@@ -35,7 +35,6 @@ export function ColumnHeader({
 }) {
     const { run } = variant;
     const labelled = run.label?.trim() ? true : false;
-    const data = version === undefined ? null : dataText(version);
     return (
         <Stack gap={2}>
             <Text fw={600} c={labelled ? "inherit" : "dimmed"} className="wrap-key">
@@ -50,11 +49,7 @@ export function ColumnHeader({
             <Text size="xs" fw="normal" className="wrap-key">
                 Models: {variant.modelNames.length === 0 ? "unknown" : variant.modelNames.join(", ")}
             </Text>
-            {data !== null && (
-                <Text size="xs" fw="normal">
-                    {data}
-                </Text>
-            )}
+            {version?.dataVersion != null && <DataVersion dataVersion={version.dataVersion} description={version.dataDescription} />}
             <Text size="xs" fw="normal" className="wrap-key">
                 Tags: {runTagsText(run.tags)}
             </Text>
