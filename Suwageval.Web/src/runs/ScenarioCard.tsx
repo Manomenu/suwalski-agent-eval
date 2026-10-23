@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Accordion, Alert, Badge, Box, Card, Group, List, Stack, Text, Title } from "@mantine/core";
 
+import { OnPaper } from "../print/OnPaper";
 import { CheckDefinitionButton } from "../checks/CheckDefinitionButton";
 import { ModelJudgedIcon } from "../checks/ModelJudgedIcon";
 import { UnstableCheckIcon } from "../checks/UnstableCheckIcon";
@@ -117,14 +118,24 @@ export function ScenarioCard({
                                     <Text c="dimmed">{checkSummary(check)}</Text>
                                 </Group>
                                 {/* The marks and the definition sit at the right edge, apart from the check's text. */}
-                                <Group gap={4} wrap="nowrap" className="no-print">
-                                    {check.judgedByModel && <ModelJudgedIcon model={check.judgeModel} />}
-                                    {unstableCheck !== undefined && <UnstableCheckIcon label={unstableTooltip(unstableCheck)} />}
-                                    <CheckDefinitionButton
-                                        definition={check.definition}
-                                        revision={check.revision}
-                                        latestRevision={check.latestRevision}
-                                    />
+                                <Group gap={4} wrap="nowrap">
+                                    {check.judgedByModel && (
+                                        <OnPaper text="model-judged">
+                                            <ModelJudgedIcon model={check.judgeModel} />
+                                        </OnPaper>
+                                    )}
+                                    {unstableCheck !== undefined && (
+                                        <OnPaper text="unstable">
+                                            <UnstableCheckIcon label={unstableTooltip(unstableCheck)} />
+                                        </OnPaper>
+                                    )}
+                                    <Box component="span" className="no-print">
+                                        <CheckDefinitionButton
+                                            definition={check.definition}
+                                            revision={check.revision}
+                                            latestRevision={check.latestRevision}
+                                        />
+                                    </Box>
                                 </Group>
                             </Group>
                             <List size="sm" listStyleType="none">
