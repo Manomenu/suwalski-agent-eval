@@ -27,7 +27,7 @@ const ALL_STROKE_WIDTH = 4;
 const TAG_STROKE_WIDTH = 2;
 
 /**
- * The line chart the trend cards share: "All" and the picked tags' lines (every tag's with none picked) with their legend, a
+ * The line chart the trend cards share: "All" and the picked tags' lines (the recent tags' with none picked) with their legend, a
  * tooltip of the series the run measured, a click that opens the run. `format` writes a value with its unit; `domain` is the y axis's.
  */
 export function TrendChart({
@@ -35,19 +35,22 @@ export function TrendChart({
     rows,
     names,
     picked,
+    recent,
     format,
     domain,
 }: {
     points: RunPassRates[];
     rows: TrendRow[];
     names: string[];
-    /** The tags picked above the charts; none: every tag. */
+    /** The tags picked above the charts; none: the recent ones. */
     picked: readonly string[];
+    /** The tags drawn while none is picked. */
+    recent: readonly string[];
     format: (value: number) => string;
     domain: [number, number | "auto"];
 }) {
     // The colours follow `names`, so a line keeps its colour whatever else is picked.
-    const shown = shownSeries(names, picked);
+    const shown = shownSeries(names, picked, recent);
     // The x axis is keyed by run (two runs can share a minute); its ticks show the run's short date.
     const labelOf = new Map(rows.map((row) => [row[RUN_KEY], row[LABEL_KEY]]));
     const changes = versionChanges(points, rows);

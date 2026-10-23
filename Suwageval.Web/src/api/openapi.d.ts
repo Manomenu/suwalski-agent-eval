@@ -616,7 +616,9 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["TagUsage"][];
+                    };
                 };
             };
         };
@@ -740,6 +742,7 @@ export interface paths {
                     pageSize?: number;
                     group?: string;
                     grouping?: components["schemas"]["RunGrouping"];
+                    tag?: string[];
                 };
                 header?: never;
                 path?: never;
@@ -2368,6 +2371,12 @@ export interface components {
             medianMs?: null | number;
             /** Format: double */
             p95Ms?: null | number;
+        };
+        /** @description A tag in use and how many live scenarios carry it. */
+        TagUsage: {
+            tag: string;
+            /** Format: int32 */
+            scenarioCount: number;
         };
         /**
          * @description A turn time against the baseline's. For time lower is better, so Trend.Better is faster. A change under 5 % of the

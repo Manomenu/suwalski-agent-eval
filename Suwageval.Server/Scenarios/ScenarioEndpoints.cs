@@ -18,7 +18,7 @@ internal static class ScenarioEndpoints
         app.MapGet("/agents/{agent}/scenarios/{key}/revisions", ListRevisionsAsync);
         app.MapDelete("/agents/{agent}/scenarios/{key}", DeleteAsync);
         app.MapPost("/agents/{agent}/scenarios/tags", ChangeTagsAsync);
-        app.MapGet("/agents/{agent}/tags", ListTagsAsync);
+        app.MapGet("/agents/{agent}/tags", ListTagsAsync).Produces<IReadOnlyList<TagUsage>>();
     }
 
     private static async Task<IResult> PutAsync(

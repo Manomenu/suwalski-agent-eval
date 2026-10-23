@@ -339,7 +339,8 @@ internal static class RunEndpoints
     /// A page of runs, newest first, with how many runs match. <c>page</c> (1-based, default 1; past the last page gives the last one),
     /// <c>pageSize</c> (default 20, 1 to 100), <c>version</c> (repeatable agent version ids: only their runs), <c>group</c> (only the runs started in that group), <c>grouping</c> (<c>None</c>: only runs in no group,
     /// <c>Any</c>: only runs in some group; a re-check counts as in the group of the run it was made from; default <c>All</c>). 404: no such agent; 422: a bad page or page size,
-    /// or both a group and a grouping other than <c>All</c>.
+    /// or both a group and a grouping other than <c>All</c>. <c>tag</c> (repeatable): only the runs that ran the scenarios of any of these tags, i.e. limited
+    /// to tags including one of them, or not limited at all.
     /// </summary>
     private static async Task<IResult> ListAsync(
         [FromQuery] string? agent,
@@ -348,6 +349,7 @@ internal static class RunEndpoints
         [FromQuery] int? pageSize,
         [FromQuery] string? group,
         [FromQuery] RunGrouping? grouping,
+        [FromQuery] string[]? tag,
         AgentStore agents,
         RunStore runs,
         CancellationToken cancellationToken
@@ -378,9 +380,18 @@ internal static class RunEndpoints
         }
         var runGroup = string.IsNullOrEmpty(group) ? null : group;
         var runGrouping = grouping ?? RunGrouping.All;
-        var totalCount = await runs.CountAsync(agentId, version ?? [], runGroup, runGrouping, cancellationToken);
+        var totalCount = await runs.CountAsync(agentId, version ?? [], runGroup, runGrouping, tag ?? [], cancellationToken);
         var shownPage = Math.Min(page ?? 1, Math.Max(1, (totalCount + size - 1) / size));
-        var rows = await runs.ListPageAsync(agentId, version ?? [], (shownPage - 1) * size, size, runGroup, runGrouping, cancellationToken);
+        var rows = await runs.ListPageAsync(
+            agentId,
+            version ?? [],
+            (shownPage - 1) * size,
+            size,
+            runGroup,
+            runGrouping,
+            tag ?? [],
+            cancellationToken
+        );
         return Results.Ok(
             new RunList
             {

@@ -364,4 +364,31 @@ public sealed class RunStoreTests(TestDatabase database)
         Assert.Equal([second, first], both.Select(run => run.Id).Where(id => id == first || id == second));
         Assert.Equal([second], onlyOther.Select(run => run.Id));
     }
+
+    [Fact]
+    public async Task A_page_can_be_narrowed_to_tags_a_run_ran_and_the_count_follows()
+    {
+        var store = Store();
+        var agent = await NewAgentAsync();
+        var smoke = await EnqueueAsync(store, agent, "smoke");
+        var both = await EnqueueAsync(store, agent, "billing", "smoke");
+        var billing = await EnqueueAsync(store, agent, "billing");
+        var everything = await EnqueueAsync(store, agent);
+
+        async Task<IReadOnlyList<Guid>> ForAsync(params string[] tags)
+        {
+            return [.. (await store.ListPageAsync(agent.Id, [], 0, 10, tags: tags, cancellationToken: Cancellation)).Select(run => run.Id)];
+        }
+
+        Assert.Equal([everything, billing, both, smoke], await ForAsync());
+        Assert.Equal([everything, both, smoke], await ForAsync("smoke"));
+        Assert.Equal([everything, billing, both, smoke], await ForAsync("smoke", "billing"));
+        Assert.Equal([everything], await ForAsync("nothing"));
+        Assert.Equal(3, await store.CountAsync(agent.Id, [], tags: ["smoke"], cancellationToken: Cancellation));
+        Assert.Equal(1, await store.CountAsync(agent.Id, [], tags: ["nothing"], cancellationToken: Cancellation));
+        Assert.Equal(
+            [both],
+            (await store.ListPageAsync(agent.Id, [], 1, 1, tags: ["smoke"], cancellationToken: Cancellation)).Select(run => run.Id)
+        );
+    }
 }

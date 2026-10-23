@@ -97,7 +97,8 @@ internal sealed class ServerClient(HttpClient http)
     /// The agent's newest runs, newest first, at most <paramref name="limit"/> of them (asked for in pages the server accepts); only those of
     /// <paramref name="versions"/> when any are given, and, with <paramref name="referenceOnly"/>, only reference runs (the server has no
     /// filter for those, so older pages are read until enough are found); only those started in <paramref name="group"/> when one is given;
-    /// only those in no group or in some group as <paramref name="grouping"/> says.
+    /// only those in no group or in some group as <paramref name="grouping"/> says;
+    /// only those that ran the scenarios of any of <paramref name="tags"/> (limited to tags including one of them, or not limited) when some are given.
     /// </summary>
     public async Task<IReadOnlyList<RunSummary>> RunsAsync(
         string agent,
@@ -106,7 +107,8 @@ internal sealed class ServerClient(HttpClient http)
         IReadOnlyList<Guid>? versions = null,
         bool referenceOnly = false,
         string? group = null,
-        RunGrouping grouping = RunGrouping.All
+        RunGrouping grouping = RunGrouping.All,
+        IReadOnlyList<string>? tags = null
     )
     {
         var runs = new List<RunSummary>();
@@ -126,6 +128,10 @@ internal sealed class ServerClient(HttpClient http)
             if (grouping != RunGrouping.All)
             {
                 url += $"&grouping={grouping}";
+            }
+            foreach (var tag in tags ?? [])
+            {
+                url += $"&tag={Uri.EscapeDataString(tag)}";
             }
             var list = await SendAsync<RunList>(() => http.GetAsync(new Uri(url, UriKind.Relative), cancellationToken), cancellationToken);
             runs.AddRange(referenceOnly ? list.Runs.Where(run => run.Reference) : list.Runs);

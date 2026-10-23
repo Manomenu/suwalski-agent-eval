@@ -105,9 +105,25 @@ export function seriesColor(name: string, series: string[]): string {
     return `${TAG_COLORS[index % TAG_COLORS.length] ?? "blue"}.5`;
 }
 
-/** The series a chart draws: "All" always, then the picked tags it has, or every tag when none is picked. */
-export function shownSeries(series: readonly string[], picked: readonly string[]): string[] {
-    return series.filter((name) => name === ALL_SERIES || picked.length === 0 || picked.includes(name));
+/** How many tags the charts draw beside "All" while none is picked. */
+export const DEFAULT_TAG_LINES = 10;
+
+/** The tags used most recently, newest first, at most `limit`: walks the points from the newest and takes each tag that has a reading there. */
+export function recentTags(points: readonly RunPassRates[], limit: number): string[] {
+    const recent = new Set<string>();
+    for (const point of [...points].reverse()) {
+        for (const tag of point.tags) {
+            if (recent.size < limit) recent.add(tag.tag);
+        }
+        if (recent.size >= limit) break;
+    }
+    return [...recent];
+}
+
+/** The series a chart draws: "All" always, then the picked tags it has, or the `recent` ones when none is picked. */
+export function shownSeries(series: readonly string[], picked: readonly string[], recent: readonly string[]): string[] {
+    const tags = picked.length === 0 ? recent : picked;
+    return series.filter((name) => name === ALL_SERIES || tags.includes(name));
 }
 
 /** The tags the charts can draw: every series but "All". */

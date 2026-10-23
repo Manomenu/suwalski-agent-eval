@@ -22,7 +22,7 @@ import { RUNS_PAGE_SIZE } from "../runs/paging";
 import { useUnstableChecks } from "../unstable/useUnstableChecks";
 import { ChecksCount, SamplesCount } from "../runs/RunCounts";
 import { RUN_CHECKS_HELP, RUN_SAMPLES_HELP, runLabel, statusColor, statusLabel } from "../runs/results";
-import { deleteAgent, fetchAgent, fetchAgentDeletion, fetchVersions, type AgentVersion } from "./api";
+import { deleteAgent, fetchAgent, fetchAgentDeletion, fetchTags, fetchVersions, type AgentVersion, type TagUsage } from "./api";
 import { ConfigurationSection } from "./ConfigurationSection";
 import { DeleteModal } from "./DeleteModal";
 import { agentDeletionSummary } from "./deletion";
@@ -30,6 +30,8 @@ import { HeaderHelp } from "../help/HeaderHelp";
 import { filterOfValue, filterOptions, filterValue } from "./groupFilter";
 import { Page } from "./Page";
 import { RunGroupsSection } from "./groups/RunGroupsSection";
+import { TagSelect } from "../tagSelect/TagSelect";
+import { useTagFilter } from "../tagFilter/useTagFilter";
 import { useGroupFilter } from "./useGroupFilter";
 import { useRequest } from "../api/useRequest";
 import { useRuns } from "./useRuns";
@@ -70,6 +72,7 @@ const VERSIONS_FILTER_HELP =
     "Show only runs of these agent versions (newest first; empty means all). The chart, the unstable checks and the agent errors follow the filter.";
 const GROUP_HELP =
     "Which runs to list by group (run --group): those in no group (the default), those in any group, all runs, or one group. Group runs are experiments, kept out of the regression history and the pass-rate trend. Open a group from the Groups section to compare its runs as variants.";
+const TAG_FILTER_PLACEHOLDER = "Every run — type to find a tag";
 const TAG_HELP = "The scenario tags the run was limited to (run --tag, repeatable); — means every scenario of the agent ran.";
 
 const Trends = lazy(() => import("./trend/Trends").then((module) => ({ default: module.Trends })));
@@ -82,23 +85,25 @@ export function AgentPage({ name }: { name: string }) {
     // Bumped after versions are archived or restored: the lists are loaded again (the page stays until the new ones arrive).
     const [reload, setReload] = useState(0);
     const state = useRequest(`${name}/${reload}`, async (signal) => {
-        const [agent, versions, passRates, groups] = await Promise.all([
+        const [agent, versions, passRates, groups, tags] = await Promise.all([
             fetchAgent(name, signal),
             fetchVersions(name, signal),
             fetchPassRates(name, signal),
             fetchRunGroups(name, signal),
+            fetchTags(name, signal),
         ]);
-        return { agent, versions, passRates, groups };
+        return { agent, versions, passRates, groups, tags };
     });
 
     return (
         <Page state={state} notFound={`There is no agent ${name}.`}>
-            {({ agent, versions, passRates, groups }) => (
+            {({ agent, versions, passRates, groups, tags }) => (
                 <AgentView
                     agent={agent}
                     versions={versions}
                     passRates={passRates}
                     groups={groups}
+                    tags={tags}
                     reload={reload}
                     onChanged={() => {
                         setReload(reload + 1);
@@ -117,6 +122,7 @@ function AgentView({
     versions,
     passRates,
     groups,
+    tags,
     reload,
     onChanged,
 }: {
@@ -124,6 +130,7 @@ function AgentView({
     versions: AgentVersion[];
     passRates: PassRates;
     groups: RunGroupSummary[];
+    tags: TagUsage[];
     reload: number;
     onChanged: () => void;
 }) {
@@ -134,6 +141,7 @@ function AgentView({
     const [dataVersions, setDataVersions] = useState<string[]>([]);
     const [versionFilter, setVersionFilter] = useState<string[]>([]);
     const [groupFilter, setGroupFilter] = useGroupFilter();
+    const [tagFilter, setTagFilter] = useTagFilter();
     const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
     // The server pages the runs, so the filters reach it as the versions they allow (none sent: every version).
     const versionIds = allowedVersionIds(versions, showArchived, models, dataVersions, versionFilter);
@@ -145,6 +153,7 @@ function AgentView({
         groupFilter,
         requestedPage,
         RUNS_PAGE_SIZE,
+        tagFilter,
     );
     // A filter changes which runs there are, so the list starts again from its first page.
     const filtered = <Value,>(change: (value: Value) => void) => {
@@ -268,6 +277,13 @@ function AgentView({
                                 })}
                                 allowDeselect={false}
                                 miw={MODEL_FILTER_MIN_WIDTH}
+                            />
+                            <TagSelect
+                                label="Filter runs by tag"
+                                placeholder={TAG_FILTER_PLACEHOLDER}
+                                tags={tags.map((usage) => usage.tag)}
+                                selected={tagFilter}
+                                onChange={filtered(setTagFilter)}
                             />
                         </Group>
                         <Button

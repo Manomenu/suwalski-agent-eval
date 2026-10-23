@@ -113,6 +113,15 @@ public sealed class RunsCommandTests
     }
 
     [Fact]
+    public void Tag_is_passed_on_to_the_server_can_be_repeated_and_goes_with_the_other_options()
+    {
+        var (exit, _, _, paths) = Runs("--tag", "smoke", "--tag", "billing", "--group", "sweep-1");
+
+        Assert.Equal(0, exit);
+        Assert.Equal(["/runs?agent=example-agent&page=1&pageSize=10&group=sweep-1&tag=smoke&tag=billing"], paths);
+    }
+
+    [Fact]
     public void Reference_lists_only_reference_runs()
     {
         var (_, output, _, _) = Runs("--reference");

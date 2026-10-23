@@ -21,6 +21,13 @@ export function fetchVersions(name: string, signal: AbortSignal): Promise<AgentV
     return request<AgentVersion[]>(`${agentPath(name)}/versions`, { signal });
 }
 
+export type TagUsage = components["schemas"]["TagUsage"];
+
+/** The tags of the agent's scenarios, with how many scenarios carry each. */
+export function fetchTags(name: string, signal: AbortSignal): Promise<TagUsage[]> {
+    return request<TagUsage[]>(`${agentPath(name)}/tags`, { signal });
+}
+
 export type AgentDeletion = components["schemas"]["AgentDeletion"];
 
 /** What deleting the agent would remove; the server refuses like the deletion would (409: a run in progress). */

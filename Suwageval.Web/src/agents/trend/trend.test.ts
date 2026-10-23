@@ -10,6 +10,7 @@ import {
     hasRechecks,
     legendColor,
     measuredSeries,
+    recentTags,
     seriesColor,
     shownSeries,
     trendRows,
@@ -68,12 +69,31 @@ describe("trendRows", () => {
     });
 });
 
-describe("shownSeries", () => {
-    it("draws All and every tag with nothing picked, All and the picked tags otherwise", () => {
-        const series = [ALL_SERIES, "billing", "smoke"];
+describe("recentTags", () => {
+    const run = (id: string, ...tags: string[]) =>
+        point(
+            id,
+            1,
+            tags.map((tag) => [tag, 1]),
+        );
 
-        expect(shownSeries(series, [])).toEqual(series);
-        expect(shownSeries(series, ["smoke", "gone"])).toEqual([ALL_SERIES, "smoke"]);
+    it("is every tag when there are fewer than the limit", () => {
+        expect(recentTags([run("a", "billing"), run("b", "smoke")], 10).sort()).toEqual(["billing", "smoke"]);
+    });
+
+    it("takes the newest-used tags, newest first, and drops one used only long ago", () => {
+        const points = [run("a", "old"), run("b", "t1", "t2"), run("c", "t3"), run("d", "t4", "t1")];
+
+        expect(recentTags(points, 3)).toEqual(["t4", "t1", "t3"]);
+    });
+});
+
+describe("shownSeries", () => {
+    it("draws All and the recent tags with nothing picked, All and the picked tags otherwise", () => {
+        const series = [ALL_SERIES, "billing", "old", "smoke"];
+
+        expect(shownSeries(series, [], ["smoke", "billing"])).toEqual([ALL_SERIES, "billing", "smoke"]);
+        expect(shownSeries(series, ["old", "gone"], ["smoke", "billing"])).toEqual([ALL_SERIES, "old"]);
     });
 });
 
