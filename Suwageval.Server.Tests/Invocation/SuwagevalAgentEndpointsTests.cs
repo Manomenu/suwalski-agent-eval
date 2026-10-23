@@ -36,7 +36,7 @@ public sealed class SuwagevalAgentEndpointsTests : IAsyncLifetime
     private sealed class EchoHandler : ITurnHandler
     {
         private static string Who(TurnCorrelation correlation) =>
-            $"{correlation.RunId}/{correlation.Scenario}/{correlation.ScenarioType}/{correlation.Sample}/{string.Join('+', correlation.ScenarioTags)}/{string.Join('+', correlation.RunTags)}/{correlation.RunGroup}";
+            $"{correlation.RunId}/{correlation.Scenario}/{correlation.ScenarioType}/{correlation.Sample}/{string.Join('+', correlation.ScenarioTags)}/{string.Join('+', correlation.RunTags)}/{correlation.RunGroup}/{correlation.AgentVersionId}";
 
         public Task<TurnResponse> HandleAsync(TurnRequest request, CancellationToken cancellationToken)
         {
@@ -139,12 +139,12 @@ public sealed class SuwagevalAgentEndpointsTests : IAsyncLifetime
         using var request = new HttpRequestMessage(HttpMethod.Post, new Uri("/suwageval/turn", UriKind.Relative)) { Content = content };
         request.Headers.Add(
             SuwagevalBaggage.HeaderName,
-            "suwageval.run.id=run-1,suwageval.scenario.sample=2,suwageval.scenario.type=Simulation,suwageval.scenario.tags=a%2Cb,other=x"
+            "suwageval.run.id=run-1,suwageval.agent.version.id=v-9,suwageval.scenario.sample=2,suwageval.scenario.type=Simulation,suwageval.scenario.tags=a%2Cb,other=x"
         );
 
         using var response = await client!.SendAsync(request, Cancellation);
 
         var turn = await response.Content.ReadFromJsonAsync<TurnResponse>(ContractJson.Options, Cancellation);
-        Assert.Equal("run-1//Simulation/2/a+b//", Assert.IsType<AssistantMessage>(Assert.Single(turn!.Items)).Text);
+        Assert.Equal("run-1//Simulation/2/a+b///v-9", Assert.IsType<AssistantMessage>(Assert.Single(turn!.Items)).Text);
     }
 }

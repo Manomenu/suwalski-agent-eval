@@ -171,7 +171,8 @@ internal sealed partial class RunExecutor(
                 run.Tags,
                 run.RunGroup,
                 Guid.NewGuid().ToString(),
-                scenario.Content.Fixtures
+                scenario.Content.Fixtures,
+                run.AgentVersionId
             ),
             cancellationToken
         );
@@ -207,7 +208,8 @@ internal sealed partial class RunExecutor(
             run.Tags,
             run.RunGroup,
             Guid.NewGuid().ToString(),
-            content.Fixtures
+            content.Fixtures,
+            run.AgentVersionId
         );
         var agentStarts = content.Conversation is [.., UserMessage];
         for (var turn = 1; turn <= content.Continuation.Turns; turn++)

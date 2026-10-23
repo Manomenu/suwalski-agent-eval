@@ -161,6 +161,7 @@ percent-encoded as UTF-8 (a space is `%20`, a comma `%2C`, `%` is `%25`; `=` may
 | Key | Value |
 | --- | --- |
 | `suwageval.run.id` | the run's id (a GUID) |
+| `suwageval.agent.version.id` | the id Suwageval registered the agent's version under (its version page); the agent reports its own label and release itself |
 | `suwageval.scenario.key` | the scenario's key |
 | `suwageval.scenario.type` | `Turn` (a recorded conversation, the agent answers its last message) or `Simulation` (a simulated user) |
 | `suwageval.scenario.sample` | the scenario sample's number, from 1 |

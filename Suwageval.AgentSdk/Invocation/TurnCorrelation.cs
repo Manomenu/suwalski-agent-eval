@@ -14,6 +14,8 @@ namespace Suwageval.AgentSdk.Invocation;
 /// <param name="ScenarioTags">The scenario's tags from its YAML.</param>
 /// <param name="RunTags">The tags the run was limited to; empty for a run of every scenario.</param>
 /// <param name="RunGroup">The run's group; null outside a group.</param>
+/// <param name="AgentVersionId">The id Suwageval registered the agent's version under (its version page); the agent's own label and
+/// release are its own to report.</param>
 public sealed record TurnCorrelation(
     string? RunId,
     string? Scenario,
@@ -21,7 +23,8 @@ public sealed record TurnCorrelation(
     string? Sample,
     IReadOnlyList<string> ScenarioTags,
     IReadOnlyList<string> RunTags,
-    string? RunGroup
+    string? RunGroup,
+    string? AgentVersionId = null
 )
 {
     /// <summary>A turn with no baggage.</summary>
@@ -39,7 +42,8 @@ public sealed record TurnCorrelation(
             ValueOf(members, SuwagevalBaggage.ScenarioSample),
             ListOf(members, SuwagevalBaggage.ScenarioTags),
             ListOf(members, SuwagevalBaggage.RunTags),
-            ValueOf(members, SuwagevalBaggage.RunGroup)
+            ValueOf(members, SuwagevalBaggage.RunGroup),
+            ValueOf(members, SuwagevalBaggage.AgentVersionId)
         );
     }
 

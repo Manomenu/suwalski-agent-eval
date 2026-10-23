@@ -66,13 +66,16 @@ internal sealed class AgentClient(HttpClient http)
     /// <summary>The <c>baggage</c> header's value: the keys of <see cref="SuwagevalBaggage"/>, a list or group left out when empty.</summary>
     internal static string Baggage(TurnContext context)
     {
-        var members = new List<KeyValuePair<string, string>>
+        var members = new List<KeyValuePair<string, string>> { new(SuwagevalBaggage.RunId, context.RunId.ToString()) };
+        if (context.AgentVersionId is { } versionId)
         {
-            new(SuwagevalBaggage.RunId, context.RunId.ToString()),
+            members.Add(new(SuwagevalBaggage.AgentVersionId, versionId.ToString()));
+        }
+        members.AddRange([
             new(SuwagevalBaggage.ScenarioKey, context.ScenarioKey),
             new(SuwagevalBaggage.ScenarioTypeKey, context.ScenarioType.ToString()),
             new(SuwagevalBaggage.ScenarioSample, context.Sample.ToString(CultureInfo.InvariantCulture)),
-        };
+        ]);
         if (context.ScenarioTags.Count > 0)
         {
             members.Add(new(SuwagevalBaggage.ScenarioTags, string.Join(',', context.ScenarioTags)));
