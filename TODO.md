@@ -210,3 +210,7 @@ belongs to.
   - CLI, mirroring `runs`: `suwageval versions` leaves them out; `--any-group` lists only them, `--all-versions` lists both
     (as `runs --any-group` / `--all-runs`); `--archived` stays separate. The plugin's skill says so;
   - archiving stays the user's own decision and is not mixed with this.
+- **Compare: "What differs" collapsible, collapsed by default.** The section can grow long (a row per changed prompt line,
+  config line, model, data version) and pushes the results down. Its header becomes a toggle (an accessible button with
+  `aria-expanded`, like a scenario row) saying how many rows it holds ("What differs · 7"); collapsed on first view, the
+  choice kept in the address or the browser's storage (a convenience only, AGENTS.md 5.2). A print/report shows it expanded.
