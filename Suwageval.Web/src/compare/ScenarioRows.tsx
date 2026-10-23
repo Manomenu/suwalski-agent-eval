@@ -1,4 +1,4 @@
-import { Anchor, Badge, Box, Group, List, Stack, Table, Text, Title, UnstyledButton } from "@mantine/core";
+import { Anchor, Badge, Group, List, Stack, Table, Text, Title, UnstyledButton } from "@mantine/core";
 import { IconChevronDown, IconChevronRight } from "@tabler/icons-react";
 
 import type { BaselineComparison, VariantCell, VariantRun, VariantScenario } from "./api";
@@ -17,6 +17,7 @@ import {
     noAnswerText,
     type ScenarioSection,
 } from "./variants";
+import { OnPaper } from "../print/OnPaper";
 import { ModelJudgedIcon } from "../checks/ModelJudgedIcon";
 import { scenarioInRunHref } from "../routes/links";
 import { shortId } from "../format/names";
@@ -220,9 +221,9 @@ function ScenarioDetail({
                                         <Table.Td className="wrap-key">
                                             <Group gap={4} wrap="nowrap" align="flex-start">
                                                 {row.checks.some((check) => check?.judgedByModel === true) && (
-                                                    <Box component="span" className="no-print">
+                                                    <OnPaper text="model-judged">
                                                         <ModelJudgedIcon />
-                                                    </Box>
+                                                    </OnPaper>
                                                 )}
                                                 <Text span inherit>
                                                     {row.key}

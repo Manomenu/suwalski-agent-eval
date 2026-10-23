@@ -9,7 +9,8 @@
     margin: 10mm;
 }
 
-.print-only {
+.print-only,
+.print-only-inline {
     display: none;
 }
 
@@ -179,6 +180,10 @@
 
     .print-only {
         display: block;
+    }
+
+    .print-only-inline {
+        display: inline;
     }
 
     .print-line {
