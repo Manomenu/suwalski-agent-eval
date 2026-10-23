@@ -14,6 +14,7 @@ internal static class KnownFailureResults
             [
                 new ScenarioRunResult
                 {
+                    PassedFully = false,
                     Key = "refund",
                     Tags = [],
                     Revision = 1,
@@ -34,6 +35,7 @@ internal static class KnownFailureResults
                                 Contains = "x",
                             },
                             Passed = false,
+                            PassedFully = false,
                             PassRate = 0,
                             PassThreshold = 1,
                             Samples =

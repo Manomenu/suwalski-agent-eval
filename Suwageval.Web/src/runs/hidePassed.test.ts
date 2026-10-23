@@ -1,33 +1,26 @@
 import { describe, expect, it } from "vitest";
 
-import type { CheckRunResult, SampleResult, ScenarioRunResult } from "./api";
-import {
-    checkPassed,
-    hiddenCounts,
-    hiddenLine,
-    hidePassedOf,
-    scenarioPassed,
-    searchWithHidePassed,
-    visibleChecks,
-    visibleScenarios,
-} from "./hidePassed";
+import type { CheckRunResult, ScenarioRunResult } from "./api";
+import { hiddenCounts, hiddenLine, hidePassedOf, searchWithHidePassed, visibleChecks, visibleScenarios } from "./hidePassed";
 
-function check(key: string, passed: boolean, notJudged = false): CheckRunResult {
+// "Passed fully" is the server's (RunReportTests); here it is given, and the tests check what the page does with it.
+function check(key: string, passedFully: boolean): CheckRunResult {
     return {
         key,
         revision: 1,
         latestRevision: 1,
         judgedByModel: false,
         definition: { type: "text", key, scenarioKey: "s", contains: "x" },
-        passed,
-        passRate: passed ? 1 : 0,
+        passed: passedFully,
+        passedFully,
+        passRate: passedFully ? 1 : 0,
         passThreshold: 1,
-        samples: [{ sample: 1, passed, notJudged, evidence: [], message: "" }],
+        samples: [{ sample: 1, passed: passedFully, notJudged: false, evidence: [], message: "" }],
     };
 }
 
-function scenario(key: string, checks: CheckRunResult[], status: SampleResult["status"] = "Done"): ScenarioRunResult {
-    return { key, tags: [], revision: 1, definitionYaml: "", samples: [{ sample: 1, status }], checks };
+function scenario(key: string, checks: CheckRunResult[], passedFully = checks.every((c) => c.passedFully)): ScenarioRunResult {
+    return { key, tags: [], revision: 1, definitionYaml: "", samples: [{ sample: 1, status: "Done" }], checks, passedFully };
 }
 
 describe("the address", () => {
@@ -43,22 +36,15 @@ describe("the address", () => {
 });
 
 describe("what stays", () => {
-    it("hides a passed check; keeps a failed one and one with a sample not judged", () => {
-        expect(checkPassed(check("a", true))).toBe(true);
-        expect(checkPassed(check("a", false))).toBe(false);
-        expect(checkPassed(check("a", true, true))).toBe(false);
-        const mixed = scenario("s", [check("ok", true), check("bad", false), check("maybe", true, true)]);
+    it("hides the checks the server says passed fully, keeps the others", () => {
+        const mixed = scenario("s", [check("ok", true), check("bad", false), check("maybe", false)]);
         expect(visibleChecks(mixed, true).map((c) => c.key)).toEqual(["bad", "maybe"]);
         expect(visibleChecks(mixed, false)).toHaveLength(3);
     });
 
-    it("hides a scenario only when every check passed and every sample answered", () => {
-        expect(scenarioPassed(scenario("s", [check("a", true)]))).toBe(true);
-        expect(scenarioPassed(scenario("s", [check("a", true), check("b", false)]))).toBe(false);
-        expect(scenarioPassed(scenario("s", [check("a", true)], "Failed"))).toBe(false);
-        expect(scenarioPassed(scenario("s", [check("a", true)], "NotSimulated"))).toBe(false);
-        expect(scenarioPassed(scenario("s", [check("a", true, true)]))).toBe(false);
-        expect(scenarioPassed(scenario("s", []))).toBe(false);
+    it("keeps a scenario the server does not call passed, even with every check passed (e.g. a sample without an answer)", () => {
+        const noAnswer = scenario("no-answer", [check("a", true)], false);
+        expect(visibleScenarios([noAnswer], true).map((s) => s.key)).toEqual(["no-answer"]);
     });
 
     it("lists the scenarios that stay", () => {

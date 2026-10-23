@@ -1,8 +1,7 @@
-// "Hide passed checks" on the run page: the switch in the address (`&hide=passed`) and what it keeps. A check passed when it reached
-// its threshold and no sample of it went unjudged; a scenario passed when it has checks, all of them passed and its samples all answered.
-// Failed checks, checks not judged and samples with an agent error always stay. The CLI's `results --failed-only` follows the same rules.
+// "Hide passed checks" on the run page: the switch in the address (`&hide=passed`) and what it keeps. What "passed" means is the
+// server's (`passedFully` on each check and scenario of the results, decided once in RunReport); the CLI's `results --failed-only`
+// reads the same fields, so the two never differ.
 import type { CheckRunResult, ScenarioRunResult } from "./api";
-import { notJudgedCount } from "./results";
 
 const HIDE_PARAM = "hide";
 const HIDE_PASSED = "passed";
@@ -21,31 +20,21 @@ export function searchWithHidePassed(search: string, hide: boolean): string {
     return text === "" ? "" : `?${text}`;
 }
 
-/** A check that passed for good: its threshold was reached and every sample of it was judged. */
-export function checkPassed(check: CheckRunResult): boolean {
-    return check.passed && notJudgedCount(check) === 0;
-}
-
-/** A scenario with nothing to look at: it has checks, all passed, and the agent answered every sample. */
-export function scenarioPassed(scenario: ScenarioRunResult): boolean {
-    return scenario.checks.length > 0 && scenario.checks.every(checkPassed) && scenario.samples.every((sample) => sample.status === "Done");
-}
-
 /** The checks of a scenario to show: all, or without the passed ones. */
 export function visibleChecks(scenario: ScenarioRunResult, hidePassed: boolean): CheckRunResult[] {
-    return hidePassed ? scenario.checks.filter((check) => !checkPassed(check)) : scenario.checks;
+    return hidePassed ? scenario.checks.filter((check) => !check.passedFully) : scenario.checks;
 }
 
 /** The scenarios to show: all, or without those that passed. */
 export function visibleScenarios(scenarios: readonly ScenarioRunResult[], hidePassed: boolean): ScenarioRunResult[] {
-    return hidePassed ? scenarios.filter((scenario) => !scenarioPassed(scenario)) : [...scenarios];
+    return hidePassed ? scenarios.filter((scenario) => !scenario.passedFully) : [...scenarios];
 }
 
 /** How many passed checks (in the scenarios still shown or not) and passed scenarios the switch hides. */
 export function hiddenCounts(scenarios: readonly ScenarioRunResult[]): { checks: number; scenarios: number } {
     return {
-        checks: scenarios.reduce((total, scenario) => total + scenario.checks.filter(checkPassed).length, 0),
-        scenarios: scenarios.filter(scenarioPassed).length,
+        checks: scenarios.reduce((total, scenario) => total + scenario.checks.filter((check) => check.passedFully).length, 0),
+        scenarios: scenarios.filter((scenario) => scenario.passedFully).length,
     };
 }
 

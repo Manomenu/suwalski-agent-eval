@@ -77,12 +77,26 @@ internal static class RunReport
                     DefinitionYaml = DefinitionYaml(group.MaxBy(sample => sample.ScenarioRevision)!),
                     Samples = [.. group.OrderBy(sample => sample.Sample).Select(Sample)],
                     Checks = [.. checks],
+                    PassedFully = false,
                 };
             });
-        var results = new RunResults { Run = Summary(run), Scenarios = [.. scenarios] };
+        var results = new RunResults { Run = Summary(run), Scenarios = [.. scenarios.Select(WithPassedFully)] };
         var durations = TurnTimes.Durations(results.Scenarios);
         return results with { MedianMs = TurnTimes.Median(durations), P95Ms = TurnTimes.P95(durations) };
     }
+
+    /// <summary>
+    /// A scenario with nothing to look at: it has checks, every one passed fully, and the agent answered every sample. The one place
+    /// this is decided; the run page's "Hide passed checks" and <c>results --failed-only</c> read it.
+    /// </summary>
+    private static ScenarioRunResult WithPassedFully(ScenarioRunResult scenario) =>
+        scenario with
+        {
+            PassedFully =
+                scenario.Checks.Count > 0
+                && scenario.Checks.All(check => check.PassedFully)
+                && scenario.Samples.All(sample => sample.Status == SampleStatus.Done),
+        };
 
     private static string DefinitionYaml(ScenarioResultRow sample)
     {
@@ -109,6 +123,8 @@ internal static class RunReport
                 .Select(group => group.Key)
                 .FirstOrDefault(),
             Passed = Reaches(passed, rows.Count, threshold),
+            // Passed for good: the threshold reached and every sample judged (one not judged leaves the verdict open).
+            PassedFully = Reaches(passed, rows.Count, threshold) && !rows.Any(row => row.NotJudged),
             PassRate = passRate,
             PassThreshold = threshold,
             Samples =

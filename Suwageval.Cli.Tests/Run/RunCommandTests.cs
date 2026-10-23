@@ -73,6 +73,7 @@ public sealed class RunCommandTests
                 Contains = "x",
             },
             Passed = passed,
+            PassedFully = passed && !notJudged,
             PassRate =
                 rate >= 0 ? rate
                 : passed ? 1.0
@@ -113,6 +114,7 @@ public sealed class RunCommandTests
                         },
                     ],
                     Checks = checks,
+                    PassedFully = checks.Length > 0 && checks.All(check => check.PassedFully),
                 },
             ],
         };

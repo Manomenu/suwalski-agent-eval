@@ -1690,6 +1690,11 @@ export interface components {
             passThreshold: number;
             samples: components["schemas"]["CheckSampleResult"][];
             regression?: null | components["schemas"]["CheckRegression"];
+            /**
+             * @description Passed for good: the threshold was reached and every sample was judged (a sample not judged leaves the verdict open). What
+             *     "Hide passed checks" and `results --failed-only` leave out; the server decides it, the web and the CLI only read it.
+             */
+            passedFully: boolean;
         };
         /** @description A check's verdict on one sample. */
         CheckSampleResult: {
@@ -2338,6 +2343,11 @@ export interface components {
             definitionYaml: string;
             samples: components["schemas"]["SampleResult"][];
             checks: components["schemas"]["CheckRunResult"][];
+            /**
+             * @description Nothing to look at: the scenario has checks, every one passed fully, and the agent answered every sample. What the run page's
+             *     "Hide passed checks" and `results --failed-only` leave out; the server decides it, the web and the CLI only read it.
+             */
+            passedFully: boolean;
         };
         /** @description A scenario as listed: its latest revision's number, without the conversation. */
         ScenarioSummary: {

@@ -21,4 +21,10 @@ public sealed record ScenarioRunResult
     public required IReadOnlyList<SampleResult> Samples { get; init; }
 
     public required IReadOnlyList<CheckRunResult> Checks { get; init; }
+
+    /// <summary>
+    /// Nothing to look at: the scenario has checks, every one passed fully, and the agent answered every sample. What the run page's
+    /// "Hide passed checks" and <c>results --failed-only</c> leave out; the server decides it, the web and the CLI only read it.
+    /// </summary>
+    public required bool PassedFully { get; init; }
 }

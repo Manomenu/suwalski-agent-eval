@@ -27,6 +27,7 @@ public sealed class RunComparerTests
             JudgedByModel = judgedByModel,
             JudgeModel = judgeModel,
             Passed = RunReport.Reaches(passes, samples, threshold),
+            PassedFully = RunReport.Reaches(passes, samples, threshold) && notJudged == 0,
             PassRate = passes / (double)samples,
             PassThreshold = threshold,
             Samples =
@@ -53,6 +54,7 @@ public sealed class RunComparerTests
             DefinitionYaml = "",
             Samples = [],
             Checks = checks,
+            PassedFully = false,
         };
 
     private static RunResults Run(IReadOnlyList<ScenarioRunResult> scenarios, double? medianMs = null, double? p95Ms = null) =>
