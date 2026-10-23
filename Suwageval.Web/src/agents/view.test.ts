@@ -1,20 +1,16 @@
 import { describe, expect, it } from "vitest";
 
 import {
-    agentHref,
     allowedVersionIds,
     consideredVersionIds,
     canCompare,
-    compareHref,
     dataText,
     dataVersionsOf,
     jsonText,
     modelsOf,
     runsToCompare,
     compareVersionsTitle,
-    versionCompareHref,
     versionsToCompare,
-    versionHref,
     versionLabel,
     versionOptions,
     visibleRuns,
@@ -29,13 +25,6 @@ describe("visibleRuns", () => {
     it("hides the runs of an archived version unless asked, and keeps a run of an unknown version", () => {
         expect(visibleRuns(runs, [old, current], false)).toEqual([runs[1], runs[2]]);
         expect(visibleRuns(runs, [old, current], true)).toEqual(runs);
-    });
-});
-
-describe("links", () => {
-    it("encodes the agent name", () => {
-        expect(agentHref("my bot")).toBe("/agents/my%20bot");
-        expect(versionHref("my bot", "abc")).toBe("/agents/my%20bot/versions/abc");
     });
 });
 
@@ -118,10 +107,6 @@ describe("comparing", () => {
         expect([0, 1, 2, 20, 21].map(canCompare)).toEqual([false, false, true, true, false]);
     });
 
-    it("links the runs in the order given", () => {
-        expect(compareHref(["a", "b"])).toBe("/compare?runs=a,b");
-    });
-
     it("puts the oldest selected run first, whatever the order of selecting", () => {
         const newestFirst = [{ id: "c" }, { id: "b" }, { id: "a" }];
         expect(runsToCompare(newestFirst, new Set(["c", "a"]))).toEqual(["a", "c"]);
@@ -190,7 +175,6 @@ describe("versionsToCompare", () => {
     });
 
     it("names the page and says why it cannot open yet", () => {
-        expect(versionCompareHref("my bot", "a", "b")).toBe("/agents/my%20bot/versions/compare?a=a&b=b");
         expect(compareVersionsTitle(false)).toContain("exactly two");
         expect(compareVersionsTitle(true)).toContain("changed");
     });

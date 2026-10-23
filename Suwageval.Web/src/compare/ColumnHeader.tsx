@@ -1,10 +1,13 @@
 import { Anchor, Badge, Button, Stack, Text, Tooltip } from "@mantine/core";
 
 import type { AgentVersion } from "../agents/api";
-import { dataText, versionHref } from "../agents/view";
-import { compareGroupHref, formatTime, runHref, shortId, statusColor, statusLabel } from "../runs/results";
+import { dataText } from "../agents/view";
+import { statusColor, statusLabel } from "../runs/results";
 import type { VariantRun } from "./api";
 import { columnTitle, runTagsText } from "./variants";
+import { versionHref, compareGroupHref, runHref } from "../routes/links";
+import { formatTime } from "../format/time";
+import { shortId } from "../format/names";
 
 /**
  * The button that makes a column the baseline (or, on the baseline itself, takes it back). The changes against the baseline are in the

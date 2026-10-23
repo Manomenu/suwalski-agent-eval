@@ -2,7 +2,6 @@
 import { request } from "../api/client";
 import type { components } from "../api/openapi";
 import { runsPath } from "./paging";
-import { unstableChecksPath } from "./stability";
 
 export type RunResults = components["schemas"]["RunResults"];
 export type RunCreated = components["schemas"]["RunCreated"];
@@ -11,7 +10,6 @@ export type RunSummary = components["schemas"]["RunSummary"];
 export type ScenarioRunResult = components["schemas"]["ScenarioRunResult"];
 export type SampleResult = components["schemas"]["SampleResult"];
 export type CheckRunResult = components["schemas"]["CheckRunResult"];
-export type UnstableCheck = components["schemas"]["UnstableCheck"];
 export type RecheckPlan = components["schemas"]["RecheckPlan"];
 export type ChangedCheck = components["schemas"]["ChangedCheck"];
 export type CheckRegression = components["schemas"]["CheckRegression"];
@@ -49,11 +47,6 @@ export function cancelRun(runId: string): Promise<void> {
 /** A new run with the agent, tag and endpoint of this one, against the version the agent serves now. */
 export function rerun(runId: string): Promise<RunCreated> {
     return request<RunCreated>(`/runs/${runId}/rerun`, { method: "POST" });
-}
-
-/** The agent's unstable checks (see `stability.ts`), limited to the given versions (none: every version not archived). */
-export function fetchUnstableChecks(agent: string, versionIds: readonly string[], signal: AbortSignal): Promise<UnstableCheck[]> {
-    return request<UnstableCheck[]>(unstableChecksPath(agent, versionIds), { signal });
 }
 
 /** What a re-check of the run would do and whether it can start; nothing is started. */

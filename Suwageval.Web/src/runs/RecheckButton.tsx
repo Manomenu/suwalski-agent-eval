@@ -8,9 +8,9 @@ import { diffBlocks, diffRows } from "../diff/lineDiff";
 import { LineDiffView } from "../diff/LineDiffView";
 import { fetchRecheckPlan, recheck, type ChangedCheck, type RunSummary } from "./api";
 import { changesByScenario, judgedNote, planHeadline, recheckDisabledReason, recheckTooltip } from "./recheck";
+import { runHref } from "../routes/links";
 
 const RECHECK_TOOLTIP_WIDTH = 340;
-import { runHref } from "./results";
 
 /**
  * "Re-check": judges this run's stored answers again with the current checks — the agent is not asked. Enabled for a finished run;

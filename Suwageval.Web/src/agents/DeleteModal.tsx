@@ -1,33 +1,39 @@
 import { Alert, Button, Group, Loader, Modal, Stack, Text, TextInput } from "@mantine/core";
 import { useState } from "react";
 
-import { confirmsDeletion, deletionSummary } from "./deletion";
+import { confirmsDeletion } from "./deletion";
 import { useRequest } from "../api/useRequest";
 
 /**
- * Deleting an archived version or run group: says what goes with it (the server counts), and the button waits until its id or name
- * is typed. The server's refusal (a run still queued or running) is shown in the modal.
+ * Deleting an agent, or an archived version or run group: says what goes with it (the server counts, `summary` words it), and the
+ * button waits until its id or name is typed. The server's refusal (a run still queued or running) is shown in the modal.
  */
-export function DeleteModal({
+export function DeleteModal<Preview>({
     noun,
     title,
     subject,
+    note,
     typedLabel,
     expected,
     loadPreview,
+    summary,
     remove,
     onClose,
     onDeleted,
 }: {
-    /** "version" or "run group": names what is deleted in the messages. */
+    /** "agent", "version" or "run group": names what is deleted in the messages. */
     noun: string;
     title: string;
     /** What the first line calls the thing: its label, id or name. */
     subject: string;
+    /** Said after the first line, when the thing needs more than that. */
+    note?: string;
     typedLabel: string;
     /** What must be typed to confirm. */
     expected: string;
-    loadPreview: (signal: AbortSignal) => Promise<{ runs: number; samples: number; verdicts: number }>;
+    loadPreview: (signal: AbortSignal) => Promise<Preview>;
+    /** What goes with it, as the preview counts it (without the closing full stop). */
+    summary: (preview: Preview) => string;
     remove: () => Promise<void>;
     onClose: () => void;
     /** Called once the server deleted it. */
@@ -65,9 +71,10 @@ export function DeleteModal({
                 <Text>
                     {noun[0]?.toUpperCase()}
                     {noun.slice(1)} <b>{subject}</b> is deleted for good, with everything that belongs to it.
+                    {note === undefined ? "" : ` ${note}`}
                 </Text>
                 {preview.kind === "loading" && <Loader size="sm" />}
-                {preview.kind === "loaded" && <Text>{deletionSummary(preview.value)}.</Text>}
+                {preview.kind === "loaded" && <Text>{summary(preview.value)}.</Text>}
                 {preview.kind === "error" && (
                     <Alert color="red" title={`The ${noun} cannot be deleted`}>
                         {preview.error.message}

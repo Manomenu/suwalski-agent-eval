@@ -1,9 +1,9 @@
 import { Paper, Stack, Text, Title } from "@mantine/core";
 
-import type { RunPassRates } from "../api";
-import { HeaderHelp } from "../../runs/HeaderHelp";
+import { HeaderHelp } from "../../help/HeaderHelp";
 import { TrendChart } from "./TrendChart";
 import { TREND_MIN_RUNS, trendRows, trendSeries } from "./trend";
+import { type RunPassRates } from "./api";
 
 /** What the chart shows, said on hover over its heading. */
 const PASS_RATE_HELP =

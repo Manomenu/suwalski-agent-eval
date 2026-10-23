@@ -1,7 +1,7 @@
 // What the comparison page shows of what the server computed (`GET /runs/compare`): which runs the address asks for, and the titles,
 // texts, grouping and highlighting of its table. What passed, every rate and every turn time is the server's.
-import { COMPARE_MAX_RUNS } from "../agents/view";
 import type { ComparedRate, ComparedTag, VariantCell, VariantCheck, VariantRun, VariantScenario } from "./api";
+import { COMPARE_MAX_RUNS } from "../routes/links";
 
 const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

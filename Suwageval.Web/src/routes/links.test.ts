@@ -1,0 +1,25 @@
+import { describe, expect, it } from "vitest";
+
+import { agentHref, compareGroupHref, compareHref, runHref, scenarioInRunHref, versionCompareHref, versionHref } from "./links";
+
+describe("links", () => {
+    it("encodes the agent name", () => {
+        expect(agentHref("my bot")).toBe("/agents/my%20bot");
+        expect(versionHref("my bot", "abc")).toBe("/agents/my%20bot/versions/abc");
+        expect(versionCompareHref("my bot", "a", "b")).toBe("/agents/my%20bot/versions/compare?a=a&b=b");
+    });
+
+    it("links a run, and a scenario in it", () => {
+        expect(runHref("abc")).toBe("/runs/abc");
+        expect(scenarioInRunHref("abc", "refund")).toBe("/runs/abc#scenario-refund");
+    });
+
+    it("links the comparison of runs, with a baseline when there is one", () => {
+        expect(compareHref(["a", "b"])).toBe("/compare?runs=a,b");
+        expect(compareHref(["a", "b"], "a")).toBe("/compare?runs=a,b&baseline=a");
+    });
+
+    it("links the comparison of a group of an agent", () => {
+        expect(compareGroupHref("sweep-1", "my bot")).toBe("/compare?group=sweep-1&agent=my+bot");
+    });
+});

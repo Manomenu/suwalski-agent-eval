@@ -1,12 +1,13 @@
 import { Anchor, Group, Paper, Stack, Text, Title } from "@mantine/core";
 
-import { formatTime } from "../../runs/results";
-import { fetchVersionDiff, type AgentVersion } from "../api";
+import { type AgentVersion } from "../api";
 import { Page } from "../Page";
 import { useRequest } from "../../api/useRequest";
 import { LineDiffView } from "../../diff/LineDiffView";
-import { versionTitle } from "../../runs/results";
-import { agentHref, versionHref } from "../view";
+import { agentHref, versionHref } from "../../routes/links";
+import { formatTime } from "../../format/time";
+import { versionTitle } from "../../format/names";
+import { fetchVersionDiff } from "./api";
 
 function VersionCard({ name, role, version }: { name: string; role: string; version: AgentVersion }) {
     return (

@@ -1,7 +1,8 @@
 // What a check's state against its history means for the pages (the server decides the state): labels, colours, the order the run
 // page lists them in and the links to follow.
 import type { CheckRegression, CheckRunResult, RegressionState, RegressionSummary, RunResults } from "./api";
-import { runHref, shortId } from "./results";
+import { compareHref, runHref } from "../routes/links";
+import { shortId } from "../format/names";
 
 export function stateLabel(state: RegressionState): string {
     switch (state) {
@@ -82,7 +83,7 @@ export function historyText(summary: RegressionSummary): string {
 
 /** The compare page of the last run the check passed in and this one, or null when it never passed in the history. */
 export function regressionCompareHref(runId: string, lastPassedRun: string | null | undefined): string | null {
-    return lastPassedRun == null ? null : `/compare?runs=${lastPassedRun},${runId}&baseline=${lastPassedRun}`;
+    return lastPassedRun == null ? null : compareHref([lastPassedRun, runId], lastPassedRun);
 }
 
 /**
@@ -95,7 +96,7 @@ export function compareLink(runId: string, regression: CheckRegression | null | 
         const failed = [...(regression.history ?? [])].reverse().find((point) => !point.passed);
         return failed === undefined
             ? null
-            : { label: "Compare with the last failing run", href: `/compare?runs=${failed.runId},${runId}&baseline=${failed.runId}` };
+            : { label: "Compare with the last failing run", href: compareHref([failed.runId, runId], failed.runId) };
     }
     const href = regressionCompareHref(runId, regression.lastPassedRun);
     return href === null ? null : { label: "Compare with the last passing run", href };

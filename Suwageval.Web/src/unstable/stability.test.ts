@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import type { UnstableCheck } from "./api";
 import { findUnstable, passedOfRuns, unstableChecksPath, unstableInRuns, unstableRowTooltip, unstableTooltip } from "./stability";
+import { type UnstableCheck } from "./api";
 
 const item = (over: Partial<UnstableCheck> = {}): UnstableCheck => ({
     scenarioKey: "refund",

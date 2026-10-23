@@ -233,7 +233,7 @@ not by reviewers; a dependency against it fails with the types involved.
 | | Server | Web |
 | --- | --- | --- |
 | Where | `Layers` in `Suwageval.Server.Tests/ContractsTests.cs` (ArchUnitNET, on the compiled assembly) | `boundaries/*` in `Suwageval.Web/eslint.config.js` |
-| Today | `Api` → `Runs` → `Judges` → `Simulation` → `Checks` \| `Invocation` \| `Models` → `Scenarios` → `Agents` → `Database` | `main`/`App` → features → `api` |
+| Today | `Api` → `Runs` → `Judges` → `Simulation` → `Checks` \| `Invocation` \| `Models` → `Scenarios` → `Agents` → `Database` | `main`/`App` → features → `api` \| `routes` \| `format` \| `help` (shared: plumbing, page addresses, formatting, the help header) |
 | A new feature | **must** get a layer — `Every_server_namespace_has_a_layer` fails otherwise | is a folder `src/<feature>/`, independent of other features by default |
 | Inside a feature | a sub-feature (a folder inside it, section 5.1) is used by neither its feature nor its siblings — checked for every one; a feature with several concerns declares its own order (e.g. endpoints → store → model) as a test beside the first | free |
 | Feature uses feature | only downwards, by its position in the layer list | only through an explicit policy in `eslint.config.js`, with a comment saying why |
@@ -374,7 +374,7 @@ A change to one feature should touch one place on each side.
   so a reader can tell whether changing a type changes the API.
 - **Web:** one folder per feature under `src/`, holding its components, hooks, logic and its
   HTTP calls (`<feature>/api.ts`, typed from `api/openapi.d.ts` — no hand-written copies of
-  server models). `api/` is the only shared folder: HTTP plumbing.
+  server models). `api/` is the shared folder for HTTP plumbing; `routes/` (the addresses of the pages, built and read), `format/` (ids, times, shares, durations) and `help/` (the header that explains itself) are shared the same way, each named for what it is.
 - **No catch-all folders** (`Common/`, `Helpers/`, `Utils/`, `Shared/`, `ui/`, `components/`).
   A piece that seems to belong nowhere usually belongs with others that change together: name
   that feature and give it a folder.

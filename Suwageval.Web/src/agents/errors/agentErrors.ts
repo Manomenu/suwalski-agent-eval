@@ -1,6 +1,6 @@
+import { type AgentError } from "./api";
 // Where the agent itself gave no answer (an HTTP error, a timeout, an unreadable answer). Such a sample counts against no check, so
 // the agent page lists them apart. The server finds them (`GET /agents/<name>/agent-errors`); this is what the card does with the list.
-import type { AgentError } from "./api";
 
 /** How many scenarios with errors a page of the agent page's card lists. */
 export const AGENT_ERRORS_PAGE_SIZE = 8;

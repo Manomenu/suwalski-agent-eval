@@ -1,7 +1,7 @@
 // Which checks are unstable: they passed in some runs of one agent version and failed in others, so a failure there is noise
 // as much as a regression. The server finds them (`GET /agents/<name>/unstable-checks`); this is what the pages do with the list.
-import type { UnstableCheck } from "./api";
-import { versionTitle } from "./results";
+import { versionTitle } from "../format/names";
+import { type UnstableCheck } from "./api";
 
 /** How many unstable checks a page of the agent page's card lists. */
 export const UNSTABLE_CARD_PAGE_SIZE = 8;

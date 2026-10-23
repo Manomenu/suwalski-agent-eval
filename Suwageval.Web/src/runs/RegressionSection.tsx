@@ -4,8 +4,10 @@ import { Fragment, useState } from "react";
 import type { RunResults } from "./api";
 import { comparedWithHeading, groupChecks, historyText, compareLink, stateLabel, statedChecks, type StatedCheck } from "./regression";
 import { CheckHistory } from "./CheckHistory";
-import { checkAnchor, runHref, shortId } from "./results";
+import { checkAnchor } from "./results";
 import { StateBadge } from "./StateBadge";
+import { runHref } from "../routes/links";
+import { shortId } from "../format/names";
 
 /** What a check's state says about it: its name, its history strip, then since when it fails and what to compare with. One cell each, so the columns line up. */
 function CheckLine({ item, runId }: { item: StatedCheck; runId: string }) {

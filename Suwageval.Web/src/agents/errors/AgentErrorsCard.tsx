@@ -1,12 +1,13 @@
 import { Anchor, Group, Paper, Stack, Text, Title, Tooltip } from "@mantine/core";
 
-import { runHref, versionTitle } from "../runs/results";
 import { AGENT_ERRORS_EXPLANATION, AGENT_ERRORS_PAGE_SIZE, errorsOfSamples, shortError } from "./agentErrors";
-import type { AgentError } from "./api";
-import { HeaderHelp } from "../runs/HeaderHelp";
-import { ListPagination } from "../pagination/ListPagination";
-import { pageOfItems } from "../pagination/pages";
-import { usePageParam } from "../pagination/usePageParam";
+import { HeaderHelp } from "../../help/HeaderHelp";
+import { ListPagination } from "../../pagination/ListPagination";
+import { pageOfItems } from "../../pagination/pages";
+import { usePageParam } from "../../pagination/usePageParam";
+import { runHref } from "../../routes/links";
+import { versionTitle } from "../../format/names";
+import { type AgentError } from "./api";
 
 const ERROR_TOOLTIP_WIDTH = 340;
 

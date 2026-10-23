@@ -1,11 +1,12 @@
 import { Anchor, Badge, Code, Paper, Stack, Text, Title } from "@mantine/core";
 
-import { formatTime } from "../../runs/results";
 import { fetchVersion } from "../api";
 import { Page } from "../Page";
 import { useRequest } from "../../api/useRequest";
-import { versionTitle } from "../../runs/results";
-import { agentHref, jsonText } from "../view";
+import { jsonText } from "../view";
+import { agentHref } from "../../routes/links";
+import { formatTime } from "../../format/time";
+import { versionTitle } from "../../format/names";
 
 /** `/agents/<name>/versions/<id>`: the contract the agent served in that version. */
 export function VersionPage({ name, versionId }: { name: string; versionId: string }) {

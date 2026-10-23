@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { pageOf } from "./route";
+import { pageOf } from "./pageOf";
 
 const ID = "3f2b8c1e-5d4a-4e6f-9a7b-0c1d2e3f4a5b";
 

@@ -1,7 +1,7 @@
 // What the comparison page shows of the baseline-relative numbers the server computed (`GET /runs/compare?baseline=`): the baseline in
 // the address, and the markers, colours and texts of changes. Every rate, trend and change is the server's.
-import { formatSeconds } from "../runs/results";
 import type { RateChange, TimeChange, Trend } from "./api";
+import { formatSeconds } from "../format/numbers";
 
 const BASELINE_PARAM = "baseline";
 

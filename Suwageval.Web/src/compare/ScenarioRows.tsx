@@ -1,7 +1,6 @@
 import { Anchor, Badge, Group, List, Stack, Table, Text, Title, UnstyledButton } from "@mantine/core";
 import { IconChevronDown, IconChevronRight } from "@tabler/icons-react";
 
-import { scenarioInRunHref, shortId } from "../runs/results";
 import type { VariantCell, VariantRun, VariantScenario } from "./api";
 import { COLUMN_MIN_WIDTH, LABEL_COLUMN_WIDTH } from "./layout";
 import {
@@ -16,6 +15,8 @@ import {
     noAnswerText,
     type ScenarioSection,
 } from "./variants";
+import { scenarioInRunHref } from "../routes/links";
+import { shortId } from "../format/names";
 
 const BEST_BACKGROUND = "var(--mantine-color-green-light)";
 
