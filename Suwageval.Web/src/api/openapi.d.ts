@@ -197,7 +197,9 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    grouping?: components["schemas"]["RunGrouping"];
+                };
                 header?: never;
                 path: {
                     agent: string;
@@ -1408,7 +1410,9 @@ export interface components {
         /**
          * @description A registered version of an agent, without its content (but with the names of the models its LLM agents use, so runs can be
          *     filtered by model, the version of its retrieval data and its description, if it has any);
-         *     `ArchivedAt` is set while the version is archived.
+         *     `ArchivedAt` is set while the version is archived. `GroupRunsOnly` is true when the version has runs and every one is in a
+         *     group (run --group; a re-check counts as in the group of the run it was made from): an experiment's version, like a sweep's
+         *     variant, hidden by default as the runs in groups are. A version with no runs, or one run outside a group, is not.
          */
         AgentVersion: {
             /** Format: uuid */
@@ -1424,6 +1428,7 @@ export interface components {
             archivedAt?: null | string;
             dataVersion?: null | string;
             dataDescription?: null | string;
+            groupRunsOnly: boolean;
         };
         /** @description A registered version of an agent with its content (`Content.Label` is the version's label). */
         AgentVersionDetail: {

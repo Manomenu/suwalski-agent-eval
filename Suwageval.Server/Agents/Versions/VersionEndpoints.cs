@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Suwageval.AgentSdk.Agents;
 using Suwageval.Contracts.Agents;
+using Suwageval.Contracts.Runs;
 using Suwageval.Server.Problems;
 
 namespace Suwageval.Server.Agents.Versions;
@@ -20,14 +21,36 @@ internal static class VersionEndpoints
         return app;
     }
 
-    private static async Task<IResult> ListVersionsAsync(string agent, AgentStore store, CancellationToken cancellationToken)
+    /// <summary>
+    /// The agent's versions, newest first. <c>grouping</c> (default <c>All</c>): <c>None</c> only the ordinary versions, <c>Any</c> only those whose
+    /// every run is in a group (<c>groupRunsOnly</c>), as the runs list does for runs.
+    /// </summary>
+    private static async Task<IResult> ListVersionsAsync(
+        string agent,
+        [FromQuery] RunGrouping? grouping,
+        AgentStore store,
+        VersionStore versions,
+        CancellationToken cancellationToken
+    )
     {
         var row = await store.GetAsync(agent, cancellationToken);
         if (row is null)
         {
             return ProblemResults.NotFound("Agent", agent);
         }
-        return Results.Ok((await store.ListVersionsAsync(row.Id, cancellationToken)).Select(ToVersion));
+        var groupRunsOnly = await versions.GroupRunsOnlyAsync(row.Id, cancellationToken);
+        return Results.Ok(
+            (await store.ListVersionsAsync(row.Id, cancellationToken))
+                .Where(version =>
+                    (grouping ?? RunGrouping.All) switch
+                    {
+                        RunGrouping.None => !groupRunsOnly.Contains(version.Id),
+                        RunGrouping.Any => groupRunsOnly.Contains(version.Id),
+                        RunGrouping.All or _ => true,
+                    }
+                )
+                .Select(version => ToVersion(version, groupRunsOnly.Contains(version.Id)))
+        );
     }
 
     private static async Task<IResult> ArchiveVersionsAsync(
@@ -100,6 +123,7 @@ internal static class VersionEndpoints
         [FromQuery] Guid? from,
         [FromQuery] Guid? to,
         AgentStore store,
+        VersionStore versions,
         CancellationToken cancellationToken
     )
     {
@@ -136,12 +160,13 @@ internal static class VersionEndpoints
         }
         // The older one is the base; versions made at the same time stay in the order asked for.
         var (older, newer) = second.CreatedAt < first.CreatedAt ? (second, first) : (first, second);
+        var groupRunsOnly = await versions.GroupRunsOnlyAsync(row.Id, cancellationToken);
         var rows = LineDiff.Rows(ContractYaml.Of(ContentOf(older)), ContractYaml.Of(ContentOf(newer)));
         return Results.Ok(
             new VersionDiff
             {
-                From = ToVersion(older),
-                To = ToVersion(newer),
+                From = ToVersion(older, groupRunsOnly.Contains(older.Id)),
+                To = ToVersion(newer, groupRunsOnly.Contains(newer.Id)),
                 Added = rows.Count(line => line.Kind == DiffKind.Added),
                 Removed = rows.Count(line => line.Kind == DiffKind.Removed),
                 Blocks = LineDiff.Blocks(rows),
@@ -192,7 +217,7 @@ internal static class VersionEndpoints
         );
     }
 
-    private static AgentVersion ToVersion(AgentVersionRow row)
+    private static AgentVersion ToVersion(AgentVersionRow row, bool groupRunsOnly)
     {
         var contract = ContractContent.Read(row.Content);
         return new AgentVersion(
@@ -205,6 +230,9 @@ internal static class VersionEndpoints
             row.ArchivedAt,
             contract.Context.Retrieval?.DataVersion,
             row.DataDescription
-        );
+        )
+        {
+            GroupRunsOnly = groupRunsOnly,
+        };
     }
 }

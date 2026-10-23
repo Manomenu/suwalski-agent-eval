@@ -51,7 +51,10 @@ public sealed class AgentEndpointsTests(TestDatabase database) : IAsyncDisposabl
             row.ArchivedAt,
             contract.Context.Retrieval?.DataVersion,
             contract.Context.Retrieval?.Description
-        );
+        )
+        {
+            GroupRunsOnly = false,
+        };
     }
 
     [Fact]
