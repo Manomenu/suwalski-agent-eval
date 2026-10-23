@@ -184,9 +184,10 @@ clashes with the agent's own names:
   OpenTelemetry attribute `session.id`);
 - the **environment** is `suwageval` (Langfuse `environment`, attribute `langfuse.environment`) whenever the baggage is present;
 - **metadata** prefixed `suwageval_`: `suwageval_run_id`, `suwageval_scenario`, `suwageval_scenario_type`, `suwageval_sample`,
-  `suwageval_run_group`, `suwageval_run_tags`; a run's traces are found by the metadata `suwageval_run_id`;
-- **tags** only from a small, fixed set — the scenario's own tags, as `suwageval_scenario_tag:<tag>`. Never a run id, a group or
-  a sample as a tag: each is new every time and would grow the backend's tag list for good;
+  `suwageval_run_group`, `suwageval_run_tags`, `suwageval_scenario_tags`; a run's traces are found by the metadata
+  `suwageval_run_id`;
+- **no backend tags** from these values: a run id, a group, a sample or a scenario tag (often one per task) can be new on any
+  run, and as a tag each would stay in the backend's tag list for good — metadata filters just as well;
 - the values belong on **every span** of the turn, not only the root: put them into the OpenTelemetry baggage of the request
   (`Baggage.SetBaggage`) and add a span processor that copies the baggage entries onto each span as attributes when the span
   starts. If the process also forwards baggage outward, apply the warning above.
