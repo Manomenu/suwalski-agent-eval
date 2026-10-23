@@ -33,31 +33,6 @@ To do in that change:
       platform repo's `setup.sh`; tell the owner to run it and `just secrets backup` there.
 - [ ] AGENTS.md, section 7: replace the `.env` description with the above.
 
-## Decided for the slices to come
-
-The design lives in the Claude artifact "suwageval — organizacja projektu i API"
-(`docs/claude-artifacts/README.md`), section "Decyzje"; each item lands with the slice it
-belongs to.
-
-- **Tags (Scenarios):** a run picks scenarios by tag, no "suite" entity.
-  `POST /agents/{agentId}/scenarios/tags` with `{ scenarioKeys, add, remove }` sets and
-  removes tags on a list of scenarios at once. Tags are metadata: changing them makes no new
-  revision.
-- **The agent under test (Invocation):** first an external agent over HTTP, contract v1:
-  `POST {agentUrl}/suwageval/turn` with `{ conversation }` → `{ items }` (the turn's tool
-  calls, tool results, events and final message, as log items with `kind`). The agent runs
-  its own tools against test data. Example: `~/repos/suwalski-example-agent` (Python,
-  Microsoft Agent Framework). An agent built inside suwageval from an `AgentVersion` may
-  come later as a second way.
-- **Who calls the API from an agent's repo:** for now JSON files in that repo
-  (`suwageval/agent.yaml`, `suwageval/scenarios/*.yaml`) and a script. Target: a CLI
-  `suwageval` (`push` a folder = agent, scenarios, checks; `run --tag … --wait` with an
-  exit code for CI) and a CI step around it. (The Claude Code plugin driving the CLI exists: `claude-plugin/`.)
-- **Non-determinism (Runs, Checks):** one sample by default; `samples: N` on a scenario
-  (the conversation is repeated, not the check), `passThreshold` on a check (default 100%)
-  over its pass rate. Later, when the same settings repeat: profiles — named presets
-  (`noisy`: 5 samples, 80%) assigned by name like a tag.
-
 ## Later, after the MVP
 
 - **Scenarios from real conversations of a connected agent** (the owner's idea). The agents send their conversations
@@ -84,12 +59,6 @@ belongs to.
   The result goes back as a PR comment: totals against `master`, the tags that moved, checks that got worse (stable ones
   first, unstable ones marked as possible noise), links to the comparison and the version diff. Open question: how the
   server reaches the agent built from a PR (started in the job behind a tunnel, or a preview deployment).
-
-- **Regressions, the automatic mode** (designed, to be built first; the artifact "Regresje w Suwageval",
-  `docs/claude-artifacts/README.md`). A regression is a check that passed steadily and fails now; the baseline is the
-  check's history over the newest reference runs (runs from a branch of `regression.branches` in `agent.yaml`, default the
-  repo's default branch, with a clean tree and a pushed commit), so nobody sets or marks anything. Open decisions are at
-  the end of the artifact.
 
 - **Regressions, the manual mode** — only if the automatic one proves not enough in practice: marking a run as the
   baseline by hand, `expected fail` on a check (with a reason or an issue link), accepting a change by hand. Left out
@@ -123,6 +92,8 @@ belongs to.
   then say `where: { state: { node: awaiting_payment } }` — one source of truth, nothing the
   agent has to repeat on every call. Built with its first user.
 
+- **Sample profiles.** `samples` and `passThreshold` are set per scenario or check today; when the same pair keeps repeating,
+  named presets (`noisy`: 5 samples, 80%) assigned by name like a tag.
 - **Judge control.** A person can mark a model-judged verdict (a `judge` check or a `$judge` matcher) as wrong on the run
   page; Suwageval keeps these marks and shows how often the judge is wrong per check and per criteria, so a `judge` check can
   be trusted or its criteria fixed. Open questions: where the mark lives (per sample verdict), whether a marked verdict changes
