@@ -73,6 +73,7 @@ The agent's own address (`validate`, `run`, `rerun`) is `--endpoint` on the comm
 | see how the pass rate moved over the runs | `suwageval trend` (`--json`): per finished run, oldest first, pass rate, median and p95 turn time and the rate per tag (only for a tag whose every scenario the run ran: a `--tag` run has no rate for another tag it ran in part) |
 | list the checks that pass in some runs of a version and fail in others | `suwageval unstable` (`--json`; `--version <id>` repeatable): open ones only, i.e. unstable in the newest version (not archived by default) that ran the check at least twice; per check `scenarioKey`, `checkKey`, `passedRuns` of `runs`, the version; "No unstable checks." when none |
 | list the scenarios where the agent gave no answer (HTTP error, timeout) | `suwageval agent-errors` (`--json`; `--version <id>` repeatable): open ones only, i.e. the newest version (not archived by default) that ran the scenario has errors; per version and scenario `errors` of `samples`, `newestErrorRunId`, `newestError`; "No agent errors." when none. Such samples do not count against checks: an agent that fails here is unreliable itself, not a check to fix |
+| run the scenarios once per variant of the agent (models, prompts, settings: the `sweep:` section of `agent.yaml`) | `suwageval sweep <variant>...` (the variant names are the files of `sweep.variantsDir`; `--tag`, `--endpoint`, `--ref`, `--group <name>`): for each variant it runs `reconfigure`, waits until the agent's contract `label` equals the variant's name, starts a run in one group and waits for it; `restore` and `after` always run. Prints a row per variant and the group's compare link. `--select` asks in a terminal, so never use it here: name the variants. Give `--group` a name (see **Names**) instead of the default `sweep-<time>-<agent>` |
 | put up to 20 runs of one agent side by side (for example the variants of a sweep, started with the same `--group`) | `suwageval compare <runId>...` or `suwageval compare --group <name>` (`--json`): prints on stdout, no browser, absolute values — a lettered column per run (version label, models, checks passed, samples answered, turn times), the pass rate per tag and the checks per scenario with the failed ones. There is no default baseline. Prefer it to opening a browser. Exit 2 for an unknown run or group or runs of different agents |
 | read the others against one of those runs | add `--baseline <runId>` (one of the runs; with `--group`, any run of the group): also prints, against that run, each run's judge model, pass rate and turn time changes, the pass rate changes per tag and the checks that differ with the trend (▲ better, ▼ worse), with a `judge differs from baseline` warning when the judge model changed |
 | archive, restore or delete a run group | `suwageval groups archive <name>...` / `unarchive <name>...` (hidden from the web's Groups section, kept); `suwageval groups delete <name>` deletes an archived group with its runs (`--dry-run`, `--yes`; ask the user first: it cannot be undone) |
@@ -100,6 +101,21 @@ The comparison of two versions is `{SUWAGEVAL_URL}/agents/{agent}/versions/compa
 `validate` exits 0 with a notice when the agent was unreachable: the names were then not
 checked (`namesChecked: false` in `--json`). Say so; do not call the scenarios verified.
 
+## Names
+
+Where a command or a file lets you choose a name, choose one that says what it is, so a person reading the runs list,
+the groups or the compare page later knows it without opening anything. Do this by default, without being asked:
+
+- **`--group`** of `run`, `rerun` and `sweep`: lowercase kebab-case, what the runs compare and the day, e.g.
+  `models-gpt-4o-vs-mini-2026-10-23`, `prompt-concise-2026-10-23`. Never a bare `test`, `exp1` or a timestamp alone; reuse an
+  existing group's name only to add runs to that very experiment (`suwageval runs --groups` lists them).
+- **The contract's `label`** (when you wire or change the agent): the short git SHA of the agent's code (with `-dirty` when the
+  tree has changes), or, for an agent configured by a sweep, the variant's name exactly (the sweep waits for it). It names the
+  version on the web and in `compare`, and is not part of the version's content.
+- **Scenario files and keys** say what is checked (`refund-damaged-item.yaml`, key `refund-damaged-item`), **check keys** what
+  the check asserts (`refund-called-with-order-id`, `explains-14-day-period`), **tags** a group of behaviour reused across
+  scenarios (`refunds`, `escalation`); copy the conventions of the existing files first.
+
 ## Wiring an agent to the contract
 
 When you add or change the agent's `GET /suwageval/contract` and `POST /suwageval/turn` (format:
@@ -109,6 +125,7 @@ the spec above, "The agent contract"), these decisions are yours:
   (free text: its system prompt or whatever defines it) and only the `tools` it may call. Never glue
   several prompts into one agent: a change to one of them must show as that agent's change. What
   belongs to the system, not to one agent (retries, routing rules, timeouts), goes to `otherConfig`.
+- **Set `label`** as **Names** says: the git SHA of the agent's code, or the variant's name under a sweep.
 - **Report `agent` on every tool call** of a multi-agent system, the name from `agents`. Without it
   `by:` checks cannot pass and the results cannot say who acted.
 - **`fixtures` only for what a scenario must fix explicitly** (for example the documents a retrieval
@@ -242,23 +259,23 @@ vary to keep runs fast.
 
 ## Comparing runs
 
-To compare runs of the same agent (for example the new run with the previous one): find
-the runs with `suwageval runs --json` (newest first), fetch `suwageval results <runId> --json`
-for each, and take the oldest as the baseline unless the user names another. Align checks by
-scenario `key` and check `key`; a check **passes** when `passed` is true (its `passRate`
-reached `passThreshold`). Report:
+`suwageval compare` aligns runs of one agent by scenario and check key and prints them side by side: read it (or `--json`)
+instead of fetching every run's results.
 
-- **per tag**: the share of passed checks over the scenarios with that tag, per run, and the
-  change against the baseline in percentage points (tags are the scenarios' `tags`, from
-  `GET {SUWAGEVAL_URL}/api/agents/{agent}/scenarios`; there is no CLI for them, so fetch that);
-  skip a tag for a run that did not run all of its scenarios, as `compare` and `trend` do;
-- **regressions** (passed in the baseline, fails now, or the pass rate fell) and **improvements**
-  (the opposite), each with scenario key, check key and the pass rates;
-- checks present in some runs only: say so, they are not a regression;
-- the agent versions of the runs (`run.agentVersionId`) and their models, so a change is not
-  blamed on the wrong thing.
-
-`suwageval compare <runId> <runId>... --baseline <runId>` does this alignment for you and prints it: read its output (or `--json`) instead of fetching every run; it flags a changed judge model, so a different verdict is not blamed on the agent. Finish with the comparison's link, `{SUWAGEVAL_URL}/compare?runs={id},{id},...&baseline={id}` (the page `compare --open` opens; open it only if the user wants that).
+- **Which runs:** `suwageval runs --json` lists the newest first; `compare <runId>...` takes up to 20, `compare --group <name>`
+  every run of a group.
+- **There is no default baseline.** Without `--baseline` the values are absolute: per run the version label, models, checks
+  passed, samples answered and turn times, the pass rate per tag, and the checks per scenario with the failed ones. With
+  `--baseline <runId>` (one of the runs) it adds, for every other run, the changes against that run: pass rate and turn time,
+  the pass rate per tag, the checks that differ with their trend (▲ better, ▼ worse), and a `judge differs from baseline`
+  warning when the judge model changed — then a different verdict may be the judge's, not the agent's. Pick the baseline
+  for the question asked: the previous run when asking what a change did, the run that last passed for a regression, the
+  run the user names.
+- **Report** the regressions (passed in the baseline, fails now, or the pass rate fell) and improvements with scenario key,
+  check key and pass rates; checks present in some runs only (not a regression); and the runs' versions and models, so a
+  change is not blamed on the wrong thing.
+- Finish with the page's link, `{SUWAGEVAL_URL}/compare?runs={id},{id},...` (`&baseline={id}` when you read against one;
+  `?group={name}&agent={agent}` for a group) — the page `compare --open` opens; open it only if the user wants that.
 
 ## Rules
 

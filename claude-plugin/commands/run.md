@@ -1,6 +1,6 @@
 ---
 description: Push the agent's Suwageval files, run the scenarios and explain what failed
-argument-hint: "[tag <name>] — run only the scenarios with this tag"
+argument-hint: "[tag <name>] [group <name>] — only the scenarios with this tag; the run in a named experiment group"
 allowed-tools: Bash(suwageval:*)
 ---
 
@@ -15,7 +15,8 @@ $ARGUMENTS
    (newest first) and run `suwageval rerun <id> --wait --json` instead: it keeps that run's tags and
    endpoint and uses the version the agent serves now. Summarise as for a run, and offer the comparison
    with the original run (`{SUWAGEVAL_URL or http://localhost:3230}/compare?runs={original},{run.id}&baseline={original}`).
-   Otherwise run `suwageval run --wait --json`, with `--tag <name>` (repeat it for several) if the user named tags. Exit code 0
+   Otherwise run `suwageval run --wait --json`, with `--tag <name>` (repeat it for several) if the user named tags, and
+   `--group <name>` when the run is an experiment (a model or a setting being tried): name the group as the skill's **Names** says. Exit code 0
    means no regression and no new failing check (known, already broken and unstable failures leave it 0;
    `--strict` makes any failed check exit 1), 1 a check regressed, is new and failing, or is an agent error, 2 the run could
    not finish (or was cancelled). 1 is a result, not an error; for 2 show `run.error` or the message and stop. 130 means the waiting was
@@ -33,8 +34,9 @@ $ARGUMENTS
    `{SUWAGEVAL_URL or http://localhost:3230}/runs/{run.id}`.
 4. Offer to compare with the agent's previous run: `suwageval runs --json` lists the agent's
    newest runs, so the previous one is the next after `run.id`. If there is one, say how the
-   totals changed, and, if the user wants more, compare the two as the skill's "Comparing runs"
-   describes, ending with the link `{SUWAGEVAL_URL or http://localhost:3230}/compare?runs={previous},{run.id}&baseline={previous}`.
+   totals changed, and, if the user wants more, run `suwageval compare {previous} {run.id} --baseline {previous}` and
+   report it as the skill's "Comparing runs" describes, ending with the link
+   `{SUWAGEVAL_URL or http://localhost:3230}/compare?runs={previous},{run.id}&baseline={previous}`.
    Do not run `suwageval compare --open` without asking: it opens a browser.
 5. Do not change files or checks to make a failure go away, a regression above all; if you suspect a bad check, say so.
    When the user says the behaviour change was intended, the check is what is out of date: update it (`/suwageval:fix`)
