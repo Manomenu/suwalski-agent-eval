@@ -1,7 +1,7 @@
 import { ActionIcon, CopyButton, Group, Stack, Text, Tooltip } from "@mantine/core";
 import { IconCheck, IconCopy } from "@tabler/icons-react";
 
-import { shortDataVersion } from "./dataVersion";
+import { shortDataVersion } from "./shortDataVersion";
 
 /** How many lines a data description takes before it is cut (the whole text is on hover). */
 const DESCRIPTION_LINES = 2;
