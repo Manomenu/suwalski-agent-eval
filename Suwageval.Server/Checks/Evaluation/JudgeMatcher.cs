@@ -1,7 +1,7 @@
 using System.Text.Json;
 using Suwageval.Contracts.Checks;
 
-namespace Suwageval.Server.Checks;
+namespace Suwageval.Server.Checks.Evaluation;
 
 /// <summary>
 /// The <c>$judge</c> matcher inside a check's expected <c>args</c> / <c>data</c>: an object whose ONLY property is <c>$judge</c> stands

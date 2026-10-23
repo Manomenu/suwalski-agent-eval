@@ -1,4 +1,4 @@
-namespace Suwageval.Server.Runs;
+namespace Suwageval.Server.Runs.AgentErrors;
 
 /// <summary>
 /// Which agent errors are open: the rule, over rows already read. A scenario's errors are open, and listed, only while the newest

@@ -1,6 +1,6 @@
-using Suwageval.Server.Checks;
+using Suwageval.Server.Checks.Evaluation;
 
-namespace Suwageval.Server.Tests.Checks;
+namespace Suwageval.Server.Tests.Checks.Evaluation;
 
 public sealed class JsonSubsetTests
 {

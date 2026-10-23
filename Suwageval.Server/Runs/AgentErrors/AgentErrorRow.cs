@@ -1,4 +1,4 @@
-namespace Suwageval.Server.Runs;
+namespace Suwageval.Server.Runs.AgentErrors;
 
 /// <summary>
 /// One scenario of one agent version over the finished runs read: the samples asked, those without an answer, and the newest of them (none

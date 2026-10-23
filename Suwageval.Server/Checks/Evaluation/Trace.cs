@@ -1,6 +1,6 @@
 using Suwageval.AgentSdk.Conversations;
 
-namespace Suwageval.Server.Checks;
+namespace Suwageval.Server.Checks.Evaluation;
 
 /// <summary>
 /// What the agent produced for one sample, turn by turn: the items one <c>POST /suwageval/turn</c> returned are one turn,

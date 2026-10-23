@@ -1,6 +1,6 @@
-using Suwageval.Server.Runs;
+using Suwageval.Server.Runs.Unstable;
 
-namespace Suwageval.Server.Tests.Runs;
+namespace Suwageval.Server.Tests.Runs.Unstable;
 
 public sealed class UnstableChecksTests
 {

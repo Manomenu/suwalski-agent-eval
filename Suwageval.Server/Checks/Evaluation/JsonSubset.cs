@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
-namespace Suwageval.Server.Checks;
+namespace Suwageval.Server.Checks.Evaluation;
 
 /// <summary>"Is this JSON a subset of that one" — how a check's <c>args</c>, <c>data</c> and <c>result</c> are matched.</summary>
 internal static class JsonSubset

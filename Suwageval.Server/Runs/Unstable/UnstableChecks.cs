@@ -1,6 +1,6 @@
 using Suwageval.Contracts.Runs;
 
-namespace Suwageval.Server.Runs;
+namespace Suwageval.Server.Runs.Unstable;
 
 /// <summary>
 /// Which checks are open unstable ones: the rule, over rows already read. A check (scenario, check key, revision) is unstable in a version

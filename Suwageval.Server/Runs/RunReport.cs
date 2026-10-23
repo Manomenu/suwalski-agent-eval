@@ -4,7 +4,7 @@ using Suwageval.AgentSdk.Conversations;
 using Suwageval.Contracts.Checks;
 using Suwageval.Contracts.Runs;
 using Suwageval.Contracts.Scenarios;
-using Suwageval.Server.Checks;
+using Suwageval.Server.Checks.Evaluation;
 using Suwageval.Server.Scenarios;
 
 namespace Suwageval.Server.Runs;

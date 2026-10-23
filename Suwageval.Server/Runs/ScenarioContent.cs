@@ -1,7 +1,7 @@
 using System.Text.Json;
 using Suwageval.AgentSdk.Conversations;
 using Suwageval.Contracts.Scenarios;
-using Suwageval.Server.Checks;
+using Suwageval.Server.Checks.Evaluation;
 
 namespace Suwageval.Server.Runs;
 
