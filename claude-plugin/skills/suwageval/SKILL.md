@@ -132,12 +132,14 @@ the spec above, "The agent contract"), these decisions are yours:
 - **`fixtures` only for what a scenario must fix explicitly** (for example the documents a retrieval
   is pinned to). The agent declares them in `context.fixturesSchema`; it never reads a hidden header
   or an environment switch instead.
-- **Correlation headers** `Suwageval-Run-Id`, `Suwageval-Scenario`, `Suwageval-Sample` may go into the
-  agent's traces and logs. They must never change what the agent does.
+- **Correlation baggage.** Every turn carries the W3C `baggage` header (`suwageval.run.id`, `.scenario.key`, `.scenario.type`,
+  `.sample`, `.scenario.tags`, `.run.tags`, `.run.group`), read by the SDK as `TurnRequest.Correlation`. It may go into the agent's
+  traces and logs. It must never change what the agent does, and an instrumented HTTP client may forward it to the model provider
+  (docs/scenario-format.md says how to stop that).
 - **Report `sources`** (document ids) on the assistant messages whose answer is grounded, so `cited`
   can check them.
 - **Every conversation starts from the same test data**: a fresh copy per turn, no state carried over —
-  except within a simulation: the turns of one `conversationId` (sent only in simulated scenarios) go on
+  except within a simulation: the turns of one `conversationId` (always sent: a new one per sample, shared by a simulation's turns) go on
   from the state the earlier ones left, and the first turn of a new id starts fresh.
 - **Retrieval data version.** With `usesRetrieval: true` the contract needs `context.retrieval` with
   `dataVersion`: new data is a new agent version, so runs on different data are not compared as one.

@@ -150,22 +150,50 @@ Unknown fields are an error, like everywhere in the contracts.
 
 **The turn.** `POST /suwageval/turn` gets `{ "conversation": [...], "fixtures": {...}, "conversationId": "..." }` and answers
 `{ "items": [...] }`, everything the agent produced in that turn, in order (never a `UserMessage`). `fixtures` is the scenario's
-`fixtures`, verbatim, and is left out when the scenario has none. `conversationId` is sent only in a simulation (below, "Simulation"):
-the same for every turn of one simulated conversation, so an agent that keeps state keeps it under that id. A turn of a scenario of one
-turn has none, so an agent on an older SDK, which refuses unknown fields, still runs those. Every call also carries three headers, for correlation only (the agent's traces and logs): they never
-change what the agent does.
+`fixtures`, verbatim, and is left out when the scenario has none. `conversationId` is always sent: one id per conversation, i.e. a
+new one for every sample of a scenario (its single turn is the first turn of that id, so the agent starts from fresh state), and the
+same one for every turn of a simulated conversation (below, "Simulation"). An agent that keeps state keeps it under that id. (Contract
+v1 sent it only in a simulation; an agent on an SDK that does not know the field refuses the turn, so update the SDK.) Where the call
+comes from goes in one standard HTTP header, W3C `baggage`, never in the body. It is for correlation only (the agent's traces and
+logs): **an agent must never change what it does on it.** The members are `key=value` pairs separated by commas, each value
+percent-encoded as UTF-8 (a space is `%20`, a comma `%2C`, `%` is `%25`; `=` may stay as it is, the first one in a member splits key from value):
 
-| Header | Value |
+| Key | Value |
 | --- | --- |
-| `Suwageval-Run-Id` | the run's id (a GUID) |
-| `Suwageval-Scenario` | the scenario's key |
-| `Suwageval-Sample` | the sample's number, from 1 |
+| `suwageval.run.id` | the run's id (a GUID) |
+| `suwageval.scenario.key` | the scenario's key |
+| `suwageval.scenario.type` | `Turn` (a recorded conversation, the agent answers its last message) or `Simulation` (a simulated user) |
+| `suwageval.sample` | the sample's number, from 1 |
+| `suwageval.scenario.tags` | the scenario's tags, comma-separated inside the value (so `a%2Cb` in the header); left out when it has none |
+| `suwageval.run.tags` | the tags the run was limited to (`run --tag`), comma-separated; left out for a run of every scenario |
+| `suwageval.run.group` | the run's group; left out outside a group |
+
+Other members in the header (a tracing library's own) are not Suwageval's to read. The SDK reads these into `TurnRequest.Correlation`
+(`TurnCorrelation`); `SuwagevalBaggage` is the encoding both ends use.
+
+**Beware of forwarding.** An HTTP client instrumented by OpenTelemetry (or any propagator that includes `baggage`) forwards the header
+on its outgoing calls, e.g. to the model provider, which then sees the run id, scenario key and tags. The SDK does not set anything on
+`Activity.Current`, so only an agent that puts these values into its own baggage or `Activity` does. If your agent's calls leave your
+network, stop the propagation: in .NET `DistributedContextPropagator.Current = DistributedContextPropagator.CreateNoOutputPropagator();`
+at start-up, or leave `baggage` out of the propagators of that client (with the OpenTelemetry SDKs: `OTEL_PROPAGATORS=tracecontext`).
+
+**Langfuse / OpenTelemetry mapping.** What an agent author may choose, so that evaluation traffic is always recognizable and never
+clashes with the agent's own names:
+
+- the **session** comes from `conversationId`, as the agent does for production conversations (Langfuse `sessionId`,
+  OpenTelemetry attribute `session.id`);
+- the **environment** is `suwageval` (Langfuse `environment`, attribute `langfuse.environment`) whenever the baggage is present;
+- **metadata and tags** are prefixed `suwageval_`: `suwageval_run_id`, `suwageval_scenario_key`, `suwageval_scenario_type`,
+  `suwageval_sample`, `suwageval_run_group`, tags `suwageval_scenario_tag:<tag>`, `suwageval_run_tag:<tag>`;
+- the values belong on **every span** of the turn, not only the root: put them into the OpenTelemetry baggage of the request
+  (`Baggage.SetBaggage`) and add a span processor that copies the baggage entries onto each span as attributes when the span
+  starts. If the process also forwards baggage outward, apply the warning above.
 
 **Every conversation starts from the same test data.** Suwageval runs scenarios in parallel and
 one run after another; an agent that carried state from one `POST /suwageval/turn` to the next
 (an order refunded in an earlier run) would make a result depend on what ran before. The agent
 runs each conversation against a fresh copy of its test data — the example agent gives every
-turn its own copy of the fake shop. A simulated conversation is several turns with one `conversationId`: its first turn starts
+turn its own copy of the fake shop. Every conversation has its own `conversationId`; a simulated one is several turns with one: its first turn starts
 from a fresh copy, every later turn of the same id goes on from what the earlier ones left (the order refunded in turn 2 is refunded in
 turn 3). The whole log is still sent every turn, so an agent that keeps no state rebuilds the conversation from it.
 

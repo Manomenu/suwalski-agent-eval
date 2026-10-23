@@ -172,12 +172,20 @@ form, `$judge` for free text whose meaning matters.
 
 ## The run: how it is observed
 
-### Correlation headers (`Suwageval-Run-Id`, `-Scenario`, `-Sample`)
+### Correlation: the `baggage` header, and a `conversationId` always
 
 The agent's traces (Langfuse, OpenTelemetry) are where a failing sample is understood. Without a
-shared id, finding the trace of one sample means matching timestamps. The headers are
-**correlation only**: an agent must not change behaviour on them. That is why everything that
-does change behaviour (fixtures) is in the body.
+shared id, finding the trace of one sample means matching timestamps. Where a turn comes from (run, scenario, its type and tags, the
+run's tags and group, the sample) goes in **one standard header, W3C `baggage`**, instead of a custom header per value: OpenTelemetry
+tooling already reads it, a new value is a new key and not a new header, and no agent has to learn a private format. Keys are
+namespaced `suwageval.*` so they never clash with the agent's own baggage; values are percent-encoded, lists comma-separated inside
+one value. It is **correlation only**: an agent must not change behaviour on it. That is why everything that does change behaviour
+(fixtures) is in the body. The price of the standard is that a propagator may forward `baggage` to third parties; the contract warns
+about it and says how to stop it.
+
+`conversationId` is always sent, a new one per sample, because a trace system's session is the conversation: the agent can use the
+same session id it uses in production, and one sample is one session. For a plain scenario that costs nothing: its single turn is the
+first turn of a fresh id, which is the fresh state the contract already demanded.
 
 ### `durationMs` per sample
 
