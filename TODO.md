@@ -160,6 +160,12 @@ belongs to.
   - Open questions: whether the chunks are a print-only layout (CSS can't split a table's columns — likely a print-only
     rendering of the same data, which F24's rule "no separate print view" did not need; say why it is needed here), and
     whether the web's print and the server's PDF (below) are one rendering or two.
+  - **A simpler option worth weighing first: a cap instead of chunks.** A comparison report is made only for as many runs as
+    fit one landscape A4 page at a readable width (the limit derived from `COLUMN_MIN_WIDTH`, a named constant shared by the
+    web, the server and the CLI); with more runs the "Print" button is disabled with the reason, the server's endpoint
+    answers 422, and the CLI refuses before asking (exit 2, saying the limit). A user with more runs compares them in a few
+    smaller sets (with the same baseline when there is one) and makes a report of each. No page-wide chunks, no print-only
+    layout — so it may answer the open question above; decide between the two when building it.
   - **CLI and plugin make the same report** (AGENTS.md, section 5: anything the web can do, the CLI can do). The server
     serves it as a PDF through an endpoint (e.g. `GET /runs/{id}/report.pdf`, `GET /runs/compare/report.pdf?runs=…|group=…
     [&baseline=…]&tag=…`, the same parameters as the views), and the CLI saves it: `suwageval results <runId> --report
