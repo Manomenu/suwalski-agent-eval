@@ -3,6 +3,7 @@ import { useState } from "react";
 
 import { useRequest } from "../api/useRequest";
 import { LineDiffView } from "../diff/LineDiffView";
+import { blocksFrom } from "../diff/lineDiff";
 import { type Difference } from "./contractDiff";
 import type { VariantRun } from "./api";
 import { columnName } from "./variants";
@@ -177,7 +178,7 @@ function PromptDiff({
                     {state.error.message}
                 </Text>
             )}
-            {state.kind === "loaded" && <LineDiffView blocks={state.value.blocks} />}
+            {state.kind === "loaded" && <LineDiffView blocks={blocksFrom(state.value, first.run.agentVersionId)} />}
         </>
     );
 }

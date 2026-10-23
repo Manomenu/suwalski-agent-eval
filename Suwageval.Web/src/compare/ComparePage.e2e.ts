@@ -170,3 +170,32 @@ test("the comparison takes the whole width of a wide screen, and its table scrol
     await expect.poll(() => scroller.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
+
+test("a prompt's diff reads from the baseline's version, whichever column the baseline is", async ({ page, request }) => {
+    // Three versions, oldest first; the baseline is the third and newest, so the server (which puts the older version first) gives
+    // each diff the other way round, and the page turns it back.
+    const served: ServedAgent = { label: "p1", config: "Prompt one.", reply: "Hello." };
+    const agentServer = await serveAgent(served);
+    try {
+        const name = `e2e-diff-${String(Date.now())}`;
+        const scenarios = [{ key: "greets", samples: 1, conversation: CONVERSATION }];
+        const checks = [{ type: "text", key: "says-hello", scenarioKey: "greets", contains: "Hello" }];
+        await createAgent(request, { name, endpointUrl: agentServer.endpointUrl, scenarios, checks });
+        const first = await runToEnd(request, { agent: name });
+        Object.assign(served, { label: "p2", config: "Prompt two." });
+        const second = await runToEnd(request, { agent: name });
+        Object.assign(served, { label: "p3", config: "Prompt three." });
+        const third = await runToEnd(request, { agent: name });
+
+        await page.goto(`/compare?runs=${first},${second},${third}&baseline=${third}`);
+        await page.getByRole("button", { name: "Prompt changed in p1: show the diff", exact: true }).click();
+
+        // The diff of p1's column only (p2's is in the page too, folded until it is opened or printed).
+        const diff = page.getByRole("row").filter({ hasText: "Contract diff: p3 → p1" });
+        await expect(diff).toBeVisible();
+        await expect(diff.locator(".line-diff-row-removed", { hasText: "Prompt three." })).toBeVisible();
+        await expect(diff.locator(".line-diff-row-added", { hasText: "Prompt one." })).toBeVisible();
+    } finally {
+        agentServer.close();
+    }
+});
