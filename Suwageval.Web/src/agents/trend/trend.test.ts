@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { RunPassRates } from "./api";
+import type { RunPassRates } from "../api";
 import {
     ALL_SERIES,
     DETAILS_KEY,

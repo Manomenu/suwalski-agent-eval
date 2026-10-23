@@ -119,7 +119,7 @@ internal static class RunComparer
         a is null || b is null ? a is null && b is null : a.Passed == b.Passed && a.PassRate == b.PassRate;
 
     /// <summary>How a cell stands against the baseline's: better, worse, the same, or null when either has no check to compare.</summary>
-    public static Trend? TrendOf(ComparedCell? cell, ComparedCell? baseline)
+    public static Contracts.Runs.Trend? TrendOf(ComparedCell? cell, ComparedCell? baseline)
     {
         if (cell is null || baseline is null)
         {
@@ -127,13 +127,13 @@ internal static class RunComparer
         }
         if (cell.Passed != baseline.Passed)
         {
-            return cell.Passed ? Trend.Better : Trend.Worse;
+            return cell.Passed ? Contracts.Runs.Trend.Better : Contracts.Runs.Trend.Worse;
         }
         if (cell.PassRate == baseline.PassRate)
         {
-            return Trend.Same;
+            return Contracts.Runs.Trend.Same;
         }
-        return cell.PassRate > baseline.PassRate ? Trend.Better : Trend.Worse;
+        return cell.PassRate > baseline.PassRate ? Contracts.Runs.Trend.Better : Contracts.Runs.Trend.Worse;
     }
 
     /// <summary>
@@ -251,9 +251,9 @@ internal static class RunComparer
         var points = Math.Floor(((rate.Value - baseline.Value) * 1000) + 0.5) / 10;
         return new RateChange(
             points,
-            points > 0 ? Trend.Better
-                : points < 0 ? Trend.Worse
-                : Trend.Same
+            points > 0 ? Contracts.Runs.Trend.Better
+                : points < 0 ? Contracts.Runs.Trend.Worse
+                : Contracts.Runs.Trend.Same
         );
     }
 
@@ -268,9 +268,9 @@ internal static class RunComparer
         var small = Math.Abs(change) < TimeSameMs || Math.Abs(change) < TimeSameShare * baseline.Value;
         return new TimeChange(
             change,
-            small ? Trend.Same
-                : change < 0 ? Trend.Better
-                : Trend.Worse
+            small ? Contracts.Runs.Trend.Same
+                : change < 0 ? Contracts.Runs.Trend.Better
+                : Contracts.Runs.Trend.Worse
         );
     }
 }

@@ -1,6 +1,6 @@
 using Suwageval.Contracts.Runs;
 
-namespace Suwageval.Server.Runs;
+namespace Suwageval.Server.Runs.Trend;
 
 /// <summary>The points of an agent's pass-rate trend: which runs count and what each one's rates are.</summary>
 internal static class PassRateTrend

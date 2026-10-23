@@ -5,6 +5,8 @@ namespace Suwageval.Server.Tests.Runs;
 
 public sealed class EffectiveRunsTests
 {
+    private const int MaxRuns = 50;
+
     private static RunRow Run(RunStatus status, int minute, Guid? recheckOf = null, string? runGroup = null) =>
         new(
             Guid.NewGuid(),
@@ -38,9 +40,9 @@ public sealed class EffectiveRunsTests
             .Prepend(Run(RunStatus.Failed, 101))
             .ToList();
 
-        var picked = EffectiveRuns.Pick(newestFirst, PassRateTrend.MaxRuns);
+        var picked = EffectiveRuns.Pick(newestFirst, MaxRuns);
 
-        Assert.Equal(PassRateTrend.MaxRuns, picked.Count);
+        Assert.Equal(MaxRuns, picked.Count);
         Assert.All(picked, point => Assert.Equal(RunStatus.Done, point.Run.State));
         Assert.Equal(picked.Select(point => point.Run).OrderBy(run => run.CreatedAt), picked.Select(point => point.Run));
         Assert.Equal(newestFirst[2].Id, picked[^1].Run.Id);
@@ -52,7 +54,7 @@ public sealed class EffectiveRunsTests
     {
         var plain = Run(RunStatus.Done, 1);
 
-        var picked = EffectiveRuns.Pick([Run(RunStatus.Done, 2, runGroup: "sweep-1"), plain], PassRateTrend.MaxRuns);
+        var picked = EffectiveRuns.Pick([Run(RunStatus.Done, 2, runGroup: "sweep-1"), plain], MaxRuns);
 
         Assert.Equal(plain.Id, Assert.Single(picked).Run.Id);
     }
@@ -62,7 +64,7 @@ public sealed class EffectiveRunsTests
     {
         var original = Run(RunStatus.Done, 1);
 
-        var picked = EffectiveRuns.Pick([Run(RunStatus.Done, 3, original.Id), original], PassRateTrend.MaxRuns);
+        var picked = EffectiveRuns.Pick([Run(RunStatus.Done, 3, original.Id), original], MaxRuns);
 
         Assert.Equal(original.Id, Assert.Single(picked).Run.Id);
     }
@@ -76,7 +78,7 @@ public sealed class EffectiveRunsTests
         var running = Run(RunStatus.Running, 4, original.Id);
         var other = Run(RunStatus.Done, 0);
 
-        var picked = EffectiveRuns.Pick([running, newer, older, original, other], PassRateTrend.MaxRuns);
+        var picked = EffectiveRuns.Pick([running, newer, older, original, other], MaxRuns);
 
         Assert.Equal([other.Id, original.Id], picked.Select(point => point.Run.Id));
         Assert.Equal([null, newer.Id], picked.Select(point => point.RecheckedBy?.Id));
@@ -87,10 +89,7 @@ public sealed class EffectiveRunsTests
     {
         var original = Run(RunStatus.Done, 1);
 
-        var picked = EffectiveRuns.Pick(
-            [Run(RunStatus.Running, 2, original.Id), Run(RunStatus.Queued, 3, original.Id), original],
-            PassRateTrend.MaxRuns
-        );
+        var picked = EffectiveRuns.Pick([Run(RunStatus.Running, 2, original.Id), Run(RunStatus.Queued, 3, original.Id), original], MaxRuns);
 
         Assert.Null(Assert.Single(picked).RecheckedBy);
     }
@@ -102,9 +101,9 @@ public sealed class EffectiveRunsTests
         var rechecks = originals.Select(run => Run(RunStatus.Done, 100, run.Id));
         var newestFirst = rechecks.Concat(Enumerable.Reverse(originals)).ToList();
 
-        var picked = EffectiveRuns.Pick(newestFirst, PassRateTrend.MaxRuns);
+        var picked = EffectiveRuns.Pick(newestFirst, MaxRuns);
 
-        Assert.Equal(PassRateTrend.MaxRuns, picked.Count);
+        Assert.Equal(MaxRuns, picked.Count);
         Assert.All(picked, point => Assert.NotNull(point.RecheckedBy));
     }
 }

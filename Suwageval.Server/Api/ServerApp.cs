@@ -7,6 +7,7 @@ using Suwageval.Server.Database;
 using Suwageval.Server.Runs;
 using Suwageval.Server.Runs.Compare;
 using Suwageval.Server.Runs.Groups;
+using Suwageval.Server.Runs.Trend;
 using Suwageval.Server.Scenarios;
 
 namespace Suwageval.Server.Api;
@@ -28,7 +29,12 @@ internal static class ServerApp
     {
         var builder = WebApplication.CreateBuilder(args);
         builder.Services.AddDatabase(builder.Configuration, migrateOnStart: !WritingOpenApiDocument);
-        builder.Services.AddSingleton<AgentStore>().AddSingleton<ScenarioStore>().AddSingleton<CheckStore>().AddSingleton<RunGroupStore>();
+        builder
+            .Services.AddSingleton<AgentStore>()
+            .AddSingleton<ScenarioStore>()
+            .AddSingleton<CheckStore>()
+            .AddSingleton<RunGroupStore>()
+            .AddSingleton<TrendStore>();
         builder.Services.ConfigureHttpJsonOptions(options =>
         {
             ContractJson.Configure(options.SerializerOptions);
@@ -53,6 +59,7 @@ internal static class ServerApp
         app.MapRuns();
         app.MapCompare();
         app.MapRunGroups();
+        app.MapTrend();
         return app;
     }
 }

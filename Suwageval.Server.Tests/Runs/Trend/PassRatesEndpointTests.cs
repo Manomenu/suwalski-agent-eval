@@ -7,7 +7,7 @@ using Suwageval.Server.Checks;
 using Suwageval.Server.Runs;
 using Suwageval.Server.Scenarios;
 
-namespace Suwageval.Server.Tests.Runs;
+namespace Suwageval.Server.Tests.Runs.Trend;
 
 /// <summary>The pass-rate trend endpoint over a realistic history: its numbers are pinned, whatever way they are computed.</summary>
 public sealed class PassRatesEndpointTests(TestDatabase database) : IAsyncDisposable
