@@ -1,5 +1,6 @@
 // "What differs" of the comparison: which fields of the contract are not the same in the versions the columns ran. A plain function over
 // the contracts the server stored; the line diff of the whole contract is the server's (`GET /agents/<name>/versions/diff`).
+import { shortDataVersion } from "../dataVersion/dataVersion";
 import type { AgentVersionDetail } from "../agents/api";
 
 type Contract = AgentVersionDetail["content"];
@@ -46,9 +47,19 @@ const lines = (text: string | null | undefined): string[] =>
         .filter((line) => line !== "");
 
 /** A row of values: shown only when the columns do not all have the same one. */
-function valueRow(label: string, values: (string | null)[]): Difference[] {
+/** A row of the values that differ; `show` writes a value for its cell (the comparison is on the whole value). */
+function valueRow(label: string, values: (string | null)[], show: (value: string) => string = (value) => value): Difference[] {
     if (values.every((value) => value === values[0])) return [];
-    return [{ label, isPrompt: false, cells: values.map((text, column) => ({ text, changed: column > 0 && text !== values[0] })) }];
+    return [
+        {
+            label,
+            isPrompt: false,
+            cells: values.map((value, column) => ({
+                text: value === null ? null : show(value),
+                changed: column > 0 && value !== values[0],
+            })),
+        },
+    ];
 }
 
 /** A row of "present"/"absent" for a member the columns do not all have. */
@@ -146,6 +157,7 @@ export function contractDifferences(columns: readonly ColumnContract[]): Differe
         ...valueRow(
             "Retrieval data version",
             contracts.map((contract) => contract.context?.retrieval?.dataVersion ?? null),
+            shortDataVersion,
         ),
     );
     return differences;

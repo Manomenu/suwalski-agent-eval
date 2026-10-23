@@ -1,3 +1,4 @@
+import { shortDataVersion } from "../dataVersion/dataVersion";
 // What the agent pages show, as plain functions: links, labels and the JSON of a schema.
 import { COMPARE_MAX_RUNS, COMPARE_MIN_RUNS } from "../routes/links";
 import { versionTitle } from "../format/names";
@@ -12,11 +13,32 @@ export function modelsOf(versions: { modelNames: string[] }[]): string[] {
     return [...new Set(versions.flatMap((version) => version.modelNames))].sort((a, b) => a.localeCompare(b));
 }
 
-/** The data versions of the versions that have retrieval, sorted, each once — what the data version filter offers. */
-export function dataVersionsOf(versions: { dataVersion?: string | null }[]): string[] {
-    return [...new Set(versions.flatMap((version) => (version.dataVersion == null ? [] : [version.dataVersion])))].sort((a, b) =>
-        a.localeCompare(b),
-    );
+/** How long a data description may be in the data version filter before it is cut (the field is narrow; the version page has it whole). */
+const DATA_OPTION_DESCRIPTION_MAX = 40;
+
+/**
+ * What the data version filter offers: each data version once, sorted, by its start and its description (cut), so a long hash and a
+ * long description never widen the field; the value stays the whole data version.
+ */
+export function dataVersionOptions(
+    versions: { dataVersion?: string | null; dataDescription?: string | null }[],
+): { value: string; label: string }[] {
+    const described = new Map<string, string>();
+    for (const version of versions) {
+        if (version.dataVersion == null) continue;
+        const description = version.dataDescription?.trim() ?? "";
+        if (!described.has(version.dataVersion) || (described.get(version.dataVersion) === "" && description !== ""))
+            described.set(version.dataVersion, description);
+    }
+    return [...described.entries()]
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([value, description]) => ({
+            value,
+            label:
+                description === ""
+                    ? shortDataVersion(value)
+                    : `${shortDataVersion(value)} · ${description.length > DATA_OPTION_DESCRIPTION_MAX ? `${description.slice(0, DATA_OPTION_DESCRIPTION_MAX).trimEnd()}…` : description}`,
+        }));
 }
 
 /** The versions as the version filter offers them: newest first, each named by its title (label, or the start of its id). */
@@ -24,13 +46,6 @@ export function versionOptions(versions: { id: string; label?: string | null; cr
     return [...versions]
         .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
         .map((version) => ({ value: version.id, label: versionTitle(version.id, version.label) }));
-}
-
-/** "data build-7 · 1832 articles": the version of an agent's retrieval data and what it is; null for an agent without retrieval. */
-export function dataText(version: { dataVersion?: string | null; dataDescription?: string | null }): string | null {
-    if (version.dataVersion == null) return null;
-    const description = version.dataDescription?.trim();
-    return description ? `data ${version.dataVersion} · ${description}` : `data ${version.dataVersion}`;
 }
 
 /**
