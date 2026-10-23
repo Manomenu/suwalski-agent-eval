@@ -1,4 +1,4 @@
-namespace Suwageval.Cli.Server;
+namespace Suwageval.Cli.Output;
 
 /// <summary>Where the CLI can ask the person running it a question: the input they type into, and whether anyone is there to type.</summary>
 /// <param name="Input">What the person types.</param>

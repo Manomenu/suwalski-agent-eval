@@ -1,5 +1,6 @@
 using System.CommandLine;
 using Suwageval.Cli.Files;
+using Suwageval.Cli.Output;
 using Suwageval.Cli.Server;
 using Suwageval.Contracts.Runs;
 

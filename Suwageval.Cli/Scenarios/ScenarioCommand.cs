@@ -1,4 +1,5 @@
 using System.CommandLine;
+using Suwageval.Cli.Output;
 using Suwageval.Cli.Server;
 
 namespace Suwageval.Cli.Scenarios;

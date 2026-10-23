@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Suwageval.Cli.Server;
+namespace Suwageval.Cli.Output;
 
 /// <summary>A turn time as the text commands print it (<c>results</c>, <c>trend</c>).</summary>
 internal static class TurnTime

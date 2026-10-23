@@ -2,7 +2,7 @@ using System.Globalization;
 using System.Text;
 using Suwageval.Contracts.Runs;
 
-namespace Suwageval.Cli.Server;
+namespace Suwageval.Cli.Output;
 
 /// <summary>
 /// What <c>run --wait</c> prints about a run that has a regression summary: what it was compared with, then the checks that need attention
