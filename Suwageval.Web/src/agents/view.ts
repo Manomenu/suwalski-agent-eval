@@ -159,7 +159,7 @@ export const VERSION_ID_HELP = "The version's id; open it to see the contract.";
 export const RUNS_SECTION_HELP = "One run of the scenarios against a version of the agent.";
 export const RUN_ID_HELP = "The start of the run's id; open it for its results. Tick runs to compare them.";
 export const RUN_STATUS_HELP =
-    "Queued, Running, Done, Failed or Cancelled. Reference marks a run that makes the history regressions are measured against; Re-check a run that judged an earlier run's stored answers again.";
+    "Queued, Running, Done, Failed, Cancelled or Interrupted (the server stopped during the run: Run again on its page starts it anew). Reference marks a run that makes the history regressions are measured against; Re-check a run that judged an earlier run's stored answers again.";
 export const RUN_GROUP_HELP =
     "The group the run was started in (run --group). A group's runs are experiments: no regression states, never a reference, not in the pass-rate trend.";
 export const RUN_CREATED_HELP = "When the run was queued.";
