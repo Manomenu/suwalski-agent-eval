@@ -34,4 +34,10 @@ public sealed record CheckRunResult
 
     /// <summary>The verdict against the check's history; none until the run is done.</summary>
     public CheckRegression? Regression { get; init; }
+
+    /// <summary>
+    /// Passed for good: the threshold was reached and every sample was judged (a sample not judged leaves the verdict open). What
+    /// "Hide passed checks" and <c>results --failed-only</c> leave out; the server decides it, the web and the CLI only read it.
+    /// </summary>
+    public required bool PassedFully { get; init; }
 }

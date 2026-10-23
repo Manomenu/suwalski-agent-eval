@@ -52,6 +52,7 @@ public sealed class ResultsCommandTests
             [
                 new ScenarioRunResult
                 {
+                    PassedFully = false,
                     Key = "refund",
                     Tags = [],
                     Revision = 1,
@@ -72,6 +73,7 @@ public sealed class ResultsCommandTests
                                 Contains = "x",
                             },
                             Passed = false,
+                            PassedFully = false,
                             PassRate = 0,
                             PassThreshold = 1,
                             Samples = [],
@@ -223,6 +225,7 @@ public sealed class ResultsCommandTests
                 Contains = "x",
             },
             Passed = passed,
+            PassedFully = passed && !notJudged,
             PassRate = passed ? 1 : 0,
             PassThreshold = 1,
             Samples =
@@ -241,6 +244,7 @@ public sealed class ResultsCommandTests
     private static ScenarioRunResult Scenario(string key, SampleStatus sample, params CheckRunResult[] checks) =>
         new()
         {
+            PassedFully = checks.Length > 0 && checks.All(check => check.PassedFully) && sample == SampleStatus.Done,
             Key = key,
             Tags = [],
             Revision = 1,

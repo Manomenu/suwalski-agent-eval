@@ -30,6 +30,7 @@ const reply: ConversationItem = { kind: "AssistantMessage", text: "hi" };
 
 function check(samples: CheckRunResult["samples"]): CheckRunResult {
     return {
+        passedFully: false,
         key: "c",
         revision: 1,
         latestRevision: 1,
@@ -104,6 +105,7 @@ describe("results", () => {
 
     it("collects the evidence of failed check samples of one sample only", () => {
         const scenario: ScenarioRunResult = {
+            passedFully: false,
             key: "s",
             tags: [],
             revision: 1,
@@ -151,6 +153,7 @@ describe("results", () => {
 
 describe("the counts of some scenarios", () => {
     const scenario = (passedChecks: boolean[], failedSamples: number, samples: number): ScenarioRunResult => ({
+        passedFully: false,
         key: "s",
         tags: [],
         revision: 1,

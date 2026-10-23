@@ -8,7 +8,7 @@ namespace Suwageval.Cli.Results;
 /// <summary>
 /// What <c>suwageval results</c> prints for a run: a header (status, version, tags, branch), what <c>run --wait</c> prints (the regression
 /// summary, else the totals), every failing check with the reason of its first failing sample, and the turn times. With
-/// <c>failedOnly</c> the failing checks give way to everything that did not pass (see <see cref="PassedFilter"/>) and a line of how much was left out.
+/// <c>failedOnly</c> the failing checks give way to everything that did not pass (see <c>PassedFully</c> on the scenario and the check results) and a line of how much was left out.
 /// </summary>
 internal static class ResultsText
 {
@@ -70,7 +70,7 @@ internal static class ResultsText
 
     private static void AppendNotPassed(StringBuilder text, RunResults results)
     {
-        var left = results.Scenarios.Where(scenario => !PassedFilter.ScenarioPassed(scenario)).ToList();
+        var left = results.Scenarios.Where(scenario => !scenario.PassedFully).ToList();
         if (left.Count > 0)
         {
             text.AppendLine().AppendLine("not passed:");
@@ -86,13 +86,13 @@ internal static class ResultsText
                     )
                 );
             }
-            foreach (var check in scenario.Checks.Where(check => !PassedFilter.CheckPassed(check)))
+            foreach (var check in scenario.Checks.Where(check => !check.PassedFully))
             {
                 AppendCheck(text, scenario.Key, check);
             }
         }
-        var passedChecks = results.Scenarios.Sum(scenario => scenario.Checks.Count(PassedFilter.CheckPassed));
-        var passedScenarios = results.Scenarios.Count(PassedFilter.ScenarioPassed);
+        var passedChecks = results.Scenarios.Sum(scenario => scenario.Checks.Count(check => check.PassedFully));
+        var passedScenarios = results.Scenarios.Count(scenario => scenario.PassedFully);
         text.AppendLine()
             .AppendLine(
                 string.Create(
