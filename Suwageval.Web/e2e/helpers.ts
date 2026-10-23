@@ -2,7 +2,7 @@
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 
-import { expect, type APIRequestContext } from "@playwright/test";
+import { expect, type APIRequestContext, type Page } from "@playwright/test";
 
 export interface ServedAgent {
     label: string;
@@ -107,4 +107,29 @@ export async function runToEnd(request: APIRequestContext, data: object): Promis
     const runId = await startRun(request, data);
     await waitUntilDone(request, runId);
     return runId;
+}
+
+/** Counts the calls of `window.print` in `window.printed`, without opening the dialog. */
+export async function stubPrint(page: Page): Promise<void> {
+    await page.addInitScript(() => {
+        (window as unknown as { printed: number }).printed = 0;
+        window.print = () => {
+            (window as unknown as { printed: number }).printed++;
+        };
+    });
+}
+
+export const printedCount = (page: Page) => page.evaluate(() => (window as unknown as { printed: number }).printed);
+
+/** What a page shows on paper that must not be there: controls, whatever is marked `no-print`, the app's header and navbar. */
+export function visibleOnPaperButNotWanted(page: Page): Promise<string[]> {
+    return page.locator("button, input, select, textarea, [role=switch], .no-print, header, nav").evaluateAll((elements) =>
+        elements
+            .filter((element) => {
+                const style = getComputedStyle(element);
+                const rect = element.getBoundingClientRect();
+                return style.display !== "none" && style.visibility !== "hidden" && rect.width > 0 && rect.height > 0;
+            })
+            .map((element) => element.outerHTML.slice(0, 100)),
+    );
 }

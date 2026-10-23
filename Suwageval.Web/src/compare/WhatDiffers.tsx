@@ -6,6 +6,7 @@ import { LineDiffView } from "../diff/LineDiffView";
 import { type Difference } from "./contractDiff";
 import type { VariantRun } from "./api";
 import { columnName } from "./variants";
+import { usePrinting } from "../print/usePrinting";
 import { fetchVersionDiff } from "../agents/versions/api";
 
 const nameOf = (column: VariantRun | undefined) => (column === undefined ? "" : columnName(column));
@@ -95,7 +96,11 @@ function DifferenceRows({
     onToggle: (column: number) => void;
     colSpan: number;
 }) {
-    const open = difference.isPrompt ? openDiffs.filter((column) => difference.cells[column]?.changed === true) : [];
+    // On paper a changed prompt shows its diff, and the button that opens it is gone.
+    const printing = usePrinting();
+    const changedColumns = difference.cells.flatMap((cell, column) => (cell.changed ? [column] : []));
+    const shownDiffs = printing ? changedColumns : openDiffs;
+    const open = difference.isPrompt ? shownDiffs.filter((column) => difference.cells[column]?.changed === true) : [];
     return (
         <>
             <Table.Tr>
@@ -104,7 +109,7 @@ function DifferenceRows({
                 </Table.Td>
                 {difference.cells.map((cell, column) => (
                     <Table.Td key={columns[column]?.run.id} className="wrap-key">
-                        {difference.isPrompt && cell.changed ? (
+                        {difference.isPrompt && cell.changed && !printing ? (
                             <Button
                                 size="compact-xs"
                                 variant="light"

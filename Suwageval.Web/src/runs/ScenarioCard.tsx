@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Accordion, Alert, Badge, Card, Group, List, Stack, Text, Title } from "@mantine/core";
+import { Accordion, Alert, Badge, Box, Card, Group, List, Stack, Text, Title } from "@mantine/core";
 
 import { CheckDefinitionButton } from "../checks/CheckDefinitionButton";
 import { ModelJudgedIcon } from "../checks/ModelJudgedIcon";
@@ -67,7 +67,9 @@ export function ScenarioCard({
                     <Title order={3} className="wrap-key">
                         {scenario.key}
                     </Title>
-                    <ScenarioDefinitionButton scenarioKey={scenario.key} revision={scenario.revision} yaml={scenario.definitionYaml} />
+                    <Box component="span" className="no-print">
+                        <ScenarioDefinitionButton scenarioKey={scenario.key} revision={scenario.revision} yaml={scenario.definitionYaml} />
+                    </Box>
                 </Group>
 
                 {scenario.samples.map((sample) => (
@@ -115,7 +117,7 @@ export function ScenarioCard({
                                     <Text c="dimmed">{checkSummary(check)}</Text>
                                 </Group>
                                 {/* The marks and the definition sit at the right edge, apart from the check's text. */}
-                                <Group gap={4} wrap="nowrap">
+                                <Group gap={4} wrap="nowrap" className="no-print">
                                     {check.judgedByModel && <ModelJudgedIcon model={check.judgeModel} />}
                                     {unstableCheck !== undefined && <UnstableCheckIcon label={unstableTooltip(unstableCheck)} />}
                                     <CheckDefinitionButton
@@ -145,13 +147,18 @@ export function ScenarioCard({
                     );
                 })}
 
-                <Accordion multiple variant="contained" value={openSamples} onChange={setOpenSamples}>
+                {/* Folded panels stay mounted as display:none, so print.css can open them all on paper. */}
+                <Accordion multiple variant="contained" value={openSamples} onChange={setOpenSamples} keepMountedMode="display-none">
                     {scenario.samples.map((sample) => (
                         <Accordion.Item key={sample.sample} value={String(sample.sample)}>
                             <Accordion.Control>
                                 <SampleRowLabel scenario={scenario} sample={sample} />
                             </Accordion.Control>
                             <Accordion.Panel>
+                                {/* On paper the control (a button) is gone: its title and verdict stand here. */}
+                                <Box className="print-only" fw={600} mb="xs">
+                                    <SampleRowLabel scenario={scenario} sample={sample} />
+                                </Box>
                                 <ConversationView
                                     items={sample.output ?? []}
                                     highlight={failedEvidenceKeys(scenario, sample.sample)}

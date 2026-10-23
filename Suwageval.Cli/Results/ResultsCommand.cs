@@ -8,7 +8,8 @@ namespace Suwageval.Cli.Results;
 /// <c>suwageval results &lt;runId&gt;</c>: waits for the run to end and prints its results on stdout as text (status, version, tags, branch,
 /// what it was compared with and the regressions, failing checks with their reasons, turn times, the link to its page); <c>--json</c>
 /// prints the results as JSON instead (all of them: <c>--failed-only</c> narrows the text only). Both exit like <c>run --wait --strict</c> (0 every check passed, 1 one did not, 2 the run did not
-/// finish). <c>--open</c> instead opens the run's page on the web — the link is printed too, for a terminal with no browser — and exits 0.
+/// finish). <c>--open</c> instead opens the run's page on the web — the link is printed too, for a terminal with no browser — and exits 0;
+/// with <c>--print</c> the page also opens the browser's print dialog (for a person; <c>--print</c> without <c>--open</c> exits 2).
 /// Either way a run that does not exist or a web that does not answer exits 2.
 /// </summary>
 internal static class ResultsCommand
@@ -23,6 +24,11 @@ internal static class ResultsCommand
             Description = "Print the results as JSON instead of text; waits for the run to end and exits by its checks.",
         };
         var open = new Option<bool>("--open") { Description = "Open the run's page on the web instead of printing the results." };
+        var print = new Option<bool>("--print")
+        {
+            Description =
+                "With --open: the page opens the browser's print dialog (A4 landscape; \"Save as PDF\" is in it). For a person: nothing is printed without one.",
+        };
         var failedOnly = new Option<bool>("--failed-only")
         {
             Description =
@@ -35,6 +41,7 @@ internal static class ResultsCommand
             runId,
             json,
             open,
+            print,
             failedOnly,
             server,
         };
@@ -51,7 +58,16 @@ internal static class ResultsCommand
         });
         command.SetAction(
             (parsed, cancellationToken) =>
-                ServerCall.RunAsync(
+            {
+                if (parsed.GetValue(print) && !parsed.GetValue(open))
+                {
+                    // Exit 2 like every refusal of a command that is understood but cannot be done.
+                    return CommandOptions.RefuseAsync(
+                        parsed.InvocationConfiguration.Error,
+                        "--print needs --open: it opens the page's print dialog."
+                    );
+                }
+                return ServerCall.RunAsync(
                     parsed.GetValue(server),
                     http,
                     parsed.InvocationConfiguration.Error,
@@ -63,7 +79,7 @@ internal static class ResultsCommand
                         {
                             await client.GetAsync(id, cancellationToken);
                             await WebPage.ShowAsync(
-                                ServerAddress.RunPage(site, id),
+                                ServerAddress.RunPage(site, id, parsed.GetValue(print)),
                                 output,
                                 parsed.InvocationConfiguration.Error,
                                 openBrowser
@@ -79,7 +95,8 @@ internal static class ResultsCommand
                         );
                         return RunVerdict.ExitCode(results, strict: true);
                     }
-                )
+                );
+            }
         );
         return command;
     }

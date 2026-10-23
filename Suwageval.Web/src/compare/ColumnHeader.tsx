@@ -8,6 +8,7 @@ import { columnTitle, runTagsText } from "./variants";
 import { versionHref, compareGroupHref, runHref } from "../routes/links";
 import { formatTime } from "../format/time";
 import { shortId } from "../format/names";
+import { usePrinting } from "../print/usePrinting";
 
 /**
  * The button that makes a column the baseline (or, on the baseline itself, takes it back). The changes against the baseline are in the
@@ -73,6 +74,8 @@ export function ColumnHeader({
 
 function BaselineButton({ baseline, runId }: { baseline: BaselineInfo; runId: string }) {
     const { isBaseline } = baseline;
+    // On paper the baseline is named, and the button that picks one is gone.
+    if (usePrinting()) return isBaseline ? <Badge w="fit-content">Baseline</Badge> : null;
     return (
         <Tooltip label="Click to unselect the baseline" disabled={!isBaseline}>
             <Button

@@ -8,6 +8,7 @@ import { checkAnchor } from "./results";
 import { StateBadge } from "./StateBadge";
 import { runHref } from "../routes/links";
 import { shortId } from "../format/names";
+import { usePrinting } from "../print/usePrinting";
 
 /** What a check's state says about it: its name, its history strip, then since when it fails and what to compare with. One cell each, so the columns line up. */
 function CheckLine({ item, runId }: { item: StatedCheck; runId: string }) {
@@ -28,7 +29,11 @@ function CheckLine({ item, runId }: { item: StatedCheck; runId: string }) {
                         failing since <Anchor href={runHref(failingSince)}>run {shortId(failingSince)}</Anchor>
                     </Text>
                 )}
-                {compare !== null && <Anchor href={compare.href}>{compare.label}</Anchor>}
+                {compare !== null && (
+                    <Anchor href={compare.href} className="no-print">
+                        {compare.label}
+                    </Anchor>
+                )}
             </Group>
         </li>
     );
@@ -37,6 +42,9 @@ function CheckLine({ item, runId }: { item: StatedCheck; runId: string }) {
 /** Known failures are not news: the same header as the other groups, the checks folded until asked for. */
 function KnownFailures({ known, runId }: { known: readonly StatedCheck[]; runId: string }) {
     const [opened, setOpened] = useState(false);
+    // On paper the known failures are listed too.
+    const printing = usePrinting();
+    const shown = opened || printing;
     return (
         <>
             <Group gap="xs" className="regression-checks-heading">
@@ -46,11 +54,18 @@ function KnownFailures({ known, runId }: { known: readonly StatedCheck[]; runId:
                 <Text span c="dimmed">
                     ({known.length})
                 </Text>
-                <Anchor component="button" type="button" size="sm" aria-expanded={opened} onClick={() => setOpened((open) => !open)}>
+                <Anchor
+                    component="button"
+                    type="button"
+                    size="sm"
+                    className="no-print"
+                    aria-expanded={opened}
+                    onClick={() => setOpened((open) => !open)}
+                >
                     {opened ? "hide" : "show"}
                 </Anchor>
             </Group>
-            {opened && (
+            {shown && (
                 <ul className="regression-checks-group">
                     {known.map((item) => (
                         <CheckLine key={`${item.scenarioKey}/${item.check.key}`} item={item} runId={runId} />

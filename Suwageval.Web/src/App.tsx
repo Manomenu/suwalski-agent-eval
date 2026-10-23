@@ -28,7 +28,7 @@ export function App() {
             navbar={{ width: NAVBAR_WIDTH, breakpoint: "sm", collapsed: { mobile: !navbarOpened } }}
             padding="md"
         >
-            <AppShell.Header>
+            <AppShell.Header className="no-print">
                 <Group h="100%" px="md" justify="space-between" wrap="nowrap">
                     <Group gap="sm" wrap="nowrap">
                         <Burger opened={navbarOpened} onClick={toggle} hiddenFrom="sm" size="sm" aria-label="Menu" />
@@ -45,7 +45,7 @@ export function App() {
                     <ServerStatus />
                 </Group>
             </AppShell.Header>
-            <AppShell.Navbar p="xs">
+            <AppShell.Navbar p="xs" className="no-print">
                 <AppNavbar
                     agentsActive={page.kind === "agents"}
                     agentName={page.kind === "agent" || page.kind === "version" || page.kind === "versionCompare" ? page.name : null}
@@ -53,7 +53,7 @@ export function App() {
                 />
             </AppShell.Navbar>
             <AppShell.Main>
-                <Box maw={contentMaxWidth(page.kind)}>
+                <Box maw={contentMaxWidth(page.kind)} className="print-content">
                     {page.kind === "agents" && <AgentsPage />}
                     {page.kind === "agent" && <AgentPage name={page.name} />}
                     {page.kind === "version" && <VersionPage name={page.name} versionId={page.versionId} />}

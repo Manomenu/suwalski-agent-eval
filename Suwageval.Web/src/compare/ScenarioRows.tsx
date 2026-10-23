@@ -1,4 +1,4 @@
-import { Anchor, Badge, Group, List, Stack, Table, Text, Title, UnstyledButton } from "@mantine/core";
+import { Anchor, Badge, Box, Group, List, Stack, Table, Text, Title, UnstyledButton } from "@mantine/core";
 import { IconChevronDown, IconChevronRight } from "@tabler/icons-react";
 
 import type { BaselineComparison, VariantCell, VariantRun, VariantScenario } from "./api";
@@ -20,6 +20,7 @@ import {
 import { ModelJudgedIcon } from "../checks/ModelJudgedIcon";
 import { scenarioInRunHref } from "../routes/links";
 import { shortId } from "../format/names";
+import { usePrinting } from "../print/usePrinting";
 
 const BEST_BACKGROUND = "var(--mantine-color-green-light)";
 
@@ -37,6 +38,8 @@ export function ScenarioRows({
     open: readonly string[];
     onToggle: (key: string) => void;
 }) {
+    // On paper every scenario row is open (the detail is not rendered while folded, so this is state, not CSS).
+    const printing = usePrinting();
     return (
         <>
             {section.title !== null && (
@@ -55,7 +58,7 @@ export function ScenarioRows({
                     baseline === null
                         ? []
                         : scenario.cells.map((cell, column) => (column === baselineColumn ? null : scenarioCellChange(cell, baselineCell)));
-                const expanded = open.includes(scenario.key);
+                const expanded = printing || open.includes(scenario.key);
                 const detailId = `scenario-detail-${scenario.key}`;
                 return (
                     <ScenarioRow
@@ -67,6 +70,7 @@ export function ScenarioRows({
                         baseline={baseline}
                         baselineColumn={baselineColumn}
                         expanded={expanded}
+                        printing={printing}
                         detailId={detailId}
                         onToggle={() => {
                             onToggle(scenario.key);
@@ -86,6 +90,7 @@ function ScenarioRow({
     baseline,
     baselineColumn,
     expanded,
+    printing,
     detailId,
     onToggle,
 }: {
@@ -96,6 +101,7 @@ function ScenarioRow({
     baseline: BaselineComparison | null;
     baselineColumn: number;
     expanded: boolean;
+    printing: boolean;
     detailId: string;
     onToggle: () => void;
 }) {
@@ -103,14 +109,21 @@ function ScenarioRow({
         <>
             <Table.Tr>
                 <Table.Td className="wrap-key">
-                    <UnstyledButton onClick={onToggle} aria-expanded={expanded} aria-controls={detailId} w="100%">
-                        <Group gap={4} wrap="nowrap" align="flex-start">
-                            {expanded ? <IconChevronDown size={16} aria-hidden /> : <IconChevronRight size={16} aria-hidden />}
-                            <Text span inherit className="wrap-key">
-                                {scenario.key}
-                            </Text>
-                        </Group>
-                    </UnstyledButton>
+                    {printing ? (
+                        // The scenario's name, without the button that folds the row.
+                        <Text span inherit className="wrap-key">
+                            {scenario.key}
+                        </Text>
+                    ) : (
+                        <UnstyledButton onClick={onToggle} aria-expanded={expanded} aria-controls={detailId} w="100%">
+                            <Group gap={4} wrap="nowrap" align="flex-start">
+                                {expanded ? <IconChevronDown size={16} aria-hidden /> : <IconChevronRight size={16} aria-hidden />}
+                                <Text span inherit className="wrap-key">
+                                    {scenario.key}
+                                </Text>
+                            </Group>
+                        </UnstyledButton>
+                    )}
                 </Table.Td>
                 {scenario.cells.map((cell, column) => (
                     <CellView key={columns[column]?.run.id} cell={cell} best={best.has(column)} change={changes[column] ?? null} />
@@ -177,12 +190,20 @@ function ScenarioDetail({
                 </Text>
             ) : (
                 <Table.ScrollContainer minWidth={LABEL_COLUMN_WIDTH + columns.length * COLUMN_MIN_WIDTH}>
-                    <Table layout="fixed" verticalSpacing="xs" withColumnBorders aria-label={`Checks of ${scenario.key} by run`}>
+                    <Table
+                        layout="fixed"
+                        verticalSpacing="xs"
+                        withColumnBorders
+                        className="compare-table"
+                        aria-label={`Checks of ${scenario.key} by run`}
+                    >
                         <Table.Thead>
                             <Table.Tr>
-                                <Table.Th w={LABEL_COLUMN_WIDTH}>Check</Table.Th>
+                                <Table.Th w={LABEL_COLUMN_WIDTH} className="compare-label-column">
+                                    Check
+                                </Table.Th>
                                 {columns.map((column) => (
-                                    <Table.Th key={column.run.id} miw={COLUMN_MIN_WIDTH} className="wrap-key">
+                                    <Table.Th key={column.run.id} miw={COLUMN_MIN_WIDTH} className="wrap-key compare-run-column">
                                         {columnName(column)}
                                     </Table.Th>
                                 ))}
@@ -198,7 +219,11 @@ function ScenarioDetail({
                                     <Table.Tr key={row.key}>
                                         <Table.Td className="wrap-key">
                                             <Group gap={4} wrap="nowrap" align="flex-start">
-                                                {row.checks.some((check) => check?.judgedByModel === true) && <ModelJudgedIcon />}
+                                                {row.checks.some((check) => check?.judgedByModel === true) && (
+                                                    <Box component="span" className="no-print">
+                                                        <ModelJudgedIcon />
+                                                    </Box>
+                                                )}
                                                 <Text span inherit>
                                                     {row.key}
                                                 </Text>
@@ -264,7 +289,7 @@ function ScenarioDetail({
                     </List>
                 </Stack>
             )}
-            <Group gap="md">
+            <Group gap="md" className="no-print">
                 {columns.map((column, index) =>
                     scenario.cells[index] == null ? null : (
                         <Anchor key={column.run.id} size="sm" href={scenarioInRunHref(column.run.id, scenario.key)}>
