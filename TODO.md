@@ -98,6 +98,23 @@ To do in that change:
   page; Suwageval keeps these marks and shows how often the judge is wrong per check and per criteria, so a `judge` check can
   be trusted or its criteria fixed. Open questions: where the mark lives (per sample verdict), whether a marked verdict changes
   the run's result (probably not — a separate "judge accuracy" view), and the CLI parity (a command to mark and to list).
+- **Reflection on failed checks: the agent's fault or the check's?** Started by a person on a finished run (a button on the
+  run page, `suwageval reflect <runId>` in the CLI, the plugin offering it after a failed run). For each check that did not
+  pass, a model (the judge's pool, `Models:`) reads what the verdict came from — the scenario's conversation, what the agent
+  answered and did (tool calls, events, retrieved sources), the check's definition, the verdict's message and evidence, and
+  the check's history (regression state, unstable, agent errors) — and says which it most likely is: **the agent got it
+  wrong**, **the check is wrong** (too strict, a `$pattern` or criteria that misses a valid answer, an outdated expectation
+  after an intended change), **the scenario is ambiguous**, **judge noise** (a model-judged check flipping), or **not the
+  agent's answer at all** (an agent error, a simulated user that could not be played). With its reasoning and a suggested fix:
+  a change to the check (what to edit in the YAML) or a hint at what the agent did wrong. It never changes a verdict or a
+  regression state — it is advice, stored with the run and shown next to each failed check; a person decides (the fix goes
+  through the repo's files and `push`, as always; a fixed check is confirmed with `recheck`).
+  - **Over several runs** (the comparison or a group) it has a signal one run lacks: a check failing in every variant points
+    at the check or the scenario, one failing in a single variant at that variant of the agent. Worth it once the single-run
+    reflection proves useful; the comparison page is where it would start.
+  - Open questions: the cost (a model call per failed check; a cap per run), whether its classes feed "Judge control"
+    (a reflection saying "judge noise" is a candidate mark), and how it differs from what Claude Code already does locally with
+    `/suwageval:fix` (this one works on the web and for anyone, with the run's whole history at hand).
 - **Cost and tokens per run.** The agent's contract could report token usage per turn (an optional field in the turn answer),
   and the judge's calls are Suwageval's own; show tokens and an estimated cost per run, per scenario and in the trends — samples
   default to 3, so the calls tripled and the cost should be visible. Open questions: the field in contract v1 (an optional
