@@ -1,4 +1,4 @@
-import { Alert, Anchor, Badge, Group, List, Loader, Paper, Stack, Text, Title } from "@mantine/core";
+import { Alert, Anchor, Badge, Group, List, Loader, Paper, Stack, Switch, Text, Title } from "@mantine/core";
 
 import { isNotFound } from "../api/client";
 import { CancelButton } from "./CancelButton";
@@ -21,6 +21,8 @@ import {
 import { filteredLabel, keepsTags } from "../tagFilter/tagSelection";
 import { TagFilter } from "../tagFilter/TagFilter";
 import { useTagFilter } from "../tagFilter/useTagFilter";
+import { hiddenCounts, hiddenLine, visibleScenarios } from "./hidePassed";
+import { useHidePassed } from "./useHidePassed";
 import { useRunResults } from "./useRunResults";
 import { useScrollToHash } from "./useScrollToHash";
 import { useUnstableChecks } from "../unstable/useUnstableChecks";
@@ -31,6 +33,7 @@ import { formatTime } from "../format/time";
 export function RunPage({ runId }: { runId: string }) {
     const state = useRunResults(runId);
     const [selectedTags, selectTags] = useTagFilter();
+    const [hidePassed, setHidePassed] = useHidePassed();
     // Asked once the run is known: the agent's unstable checks of this run's version.
     const loadedRun = state.kind === "loaded" ? state.results.run : null;
     const unstable = useUnstableChecks(loadedRun?.agent ?? null, loadedRun === null ? [] : [loadedRun.agentVersionId]);
@@ -116,6 +119,14 @@ export function RunPage({ runId }: { runId: string }) {
                     selected={selectedTags}
                     onChange={selectTags}
                 />
+                <Switch
+                    label="Hide passed checks"
+                    checked={hidePassed}
+                    onChange={(event) => {
+                        setHidePassed(event.currentTarget.checked);
+                    }}
+                />
+                {hidePassed && <Text size="sm">{hiddenLine(hiddenCounts(scenarios))}</Text>}
                 <Paper withBorder p="md">
                     <Group gap="lg">
                         <Text>
@@ -144,8 +155,14 @@ export function RunPage({ runId }: { runId: string }) {
                 )}
                 <RegressionSection results={state.results} />
                 {scenarios.length === 0 && <Text c="dimmed">No scenario has any of the selected tags.</Text>}
-                {scenarios.map((scenario) => (
-                    <ScenarioCard key={scenario.key} scenario={scenario} versionId={run.agentVersionId} unstable={unstable} />
+                {visibleScenarios(scenarios, hidePassed).map((scenario) => (
+                    <ScenarioCard
+                        key={scenario.key}
+                        scenario={scenario}
+                        versionId={run.agentVersionId}
+                        unstable={unstable}
+                        hidePassed={hidePassed}
+                    />
                 ))}
             </Stack>
         </>

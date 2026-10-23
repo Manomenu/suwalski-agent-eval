@@ -12,6 +12,7 @@ import { stateLabel } from "./regression";
 import { StateBadge } from "./StateBadge";
 import { findUnstable, unstableTooltip } from "../unstable/stability";
 import { checkAnchor, checkSummary, failedEvidenceKeys, notJudgedCount, sampleVerdict, samplesToOpen } from "./results";
+import { visibleChecks } from "./hidePassed";
 import { isSimulated, sampleTitle } from "./simulation";
 import { scenarioAnchor } from "../routes/links";
 import { type UnstableCheck } from "../unstable/api";
@@ -39,11 +40,14 @@ export function ScenarioCard({
     scenario,
     versionId,
     unstable,
+    hidePassed,
 }: {
     scenario: ScenarioRunResult;
     /** The agent version the run is of, and the agent's unstable checks: a check unstable in that version is marked. */
     versionId: string;
     unstable: UnstableCheck[];
+    /** Passed checks are left out of the list (the samples below stay). */
+    hidePassed: boolean;
 }) {
     const [openSamples, setOpenSamples] = useState<string[]>([]);
     // A link to one of this scenario's checks (`#check-…`) opens the outputs it is about, so the answer is right below.
@@ -87,7 +91,7 @@ export function ScenarioCard({
                 ))}
 
                 {scenario.checks.length === 0 && <Text c="dimmed">No checks.</Text>}
-                {scenario.checks.map((check) => {
+                {visibleChecks(scenario, hidePassed).map((check) => {
                     const unstableCheck = findUnstable(unstable, versionId, scenario.key, check.key, check.revision);
                     return (
                         <Stack key={check.key} gap={4} id={checkAnchor(scenario.key, check.key)} className="check-target">

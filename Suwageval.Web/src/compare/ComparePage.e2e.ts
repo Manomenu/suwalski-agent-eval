@@ -129,6 +129,26 @@ test("a baseline is picked by a column's header, lives in the address and is tak
     await expect(page.getByText(/[▲▼±].* pp$/)).toHaveCount(0);
 });
 
+test("with a baseline every cell is read by its change, and no cell is marked best", async ({ page }) => {
+    const { name, plainBefore, plainAfter } = seed;
+    await page.goto(`/compare?runs=${plainBefore},${plainAfter}`);
+    await expect(page.getByRole("heading", { name: `Compare runs of ${name}`, exact: true })).toBeVisible();
+    await expect(page.locator("[data-change]")).toHaveCount(0);
+
+    await page.getByRole("button", { name: `Use run ${plainBefore.slice(0, 8)} as the baseline`, exact: true }).click();
+    const greets = page.getByRole("row", { name: /^greets /, exact: false });
+    await expect(greets.locator('td[data-change="better"]')).toHaveCount(1);
+    await expect(greets.getByText("better than the baseline", { exact: true })).toHaveCount(1);
+    const tagRow = page.getByRole("row", { name: /^smoke /, exact: false });
+    await expect(tagRow.locator('td[data-change="better"]')).toHaveCount(1);
+    await expect(page.locator('td[data-change="worse"]')).toHaveCount(0);
+    await expect(page.locator("td[style*='font-weight: 700']")).toHaveCount(0);
+
+    await page.getByRole("button", { name: `Use run ${plainAfter.slice(0, 8)} as the baseline`, exact: true }).click();
+    await expect(page.locator('td[data-change="worse"]').first()).toBeVisible();
+    await expect(page.locator('td[data-change="better"]')).toHaveCount(0);
+});
+
 test("a baseline in the address of a group is read at once", async ({ page }) => {
     const { name, group, groupedBefore } = seed;
     await page.goto(`/compare?${new URLSearchParams({ group, agent: name, baseline: groupedBefore }).toString()}`);
