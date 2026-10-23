@@ -1,6 +1,6 @@
 // "What differs" of the comparison: which fields of the contract are not the same in the versions the columns ran. A plain function over
 // the contracts the server stored; the line diff of the whole contract is the server's (`GET /agents/<name>/versions/diff`).
-import { shortDataVersion } from "../dataVersion/dataVersion";
+import { shortDataVersion } from "../dataVersion/shortDataVersion";
 import type { AgentVersionDetail } from "../agents/api";
 
 type Contract = AgentVersionDetail["content"];

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { shortDataVersion } from "./dataVersion";
+import { shortDataVersion } from "./shortDataVersion";
 
 describe("shortDataVersion", () => {
     it("keeps a short data version and cuts a long one to its start", () => {

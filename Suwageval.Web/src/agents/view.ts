@@ -1,4 +1,4 @@
-import { shortDataVersion } from "../dataVersion/dataVersion";
+import { shortDataVersion } from "../dataVersion/shortDataVersion";
 // What the agent pages show, as plain functions: links, labels and the JSON of a schema.
 import { COMPARE_MAX_RUNS, COMPARE_MIN_RUNS } from "../routes/links";
 import { versionTitle } from "../format/names";
