@@ -149,6 +149,7 @@ public sealed class RunExecutorTests(TestDatabase database)
         Assert.Equal(3, turns.Count);
         var baggage = turns.Select(turn => (turn.Body, Baggage: Baggage(turn.Headers))).ToList();
         Assert.All(baggage, turn => Assert.Equal(run.Id.ToString(), turn.Baggage[SuwagevalBaggage.RunId]));
+        Assert.All(baggage, turn => Assert.Equal(run.AgentVersionId.ToString(), turn.Baggage[SuwagevalBaggage.AgentVersionId]));
         Assert.All(baggage, turn => Assert.Equal("Turn", turn.Baggage[SuwagevalBaggage.ScenarioTypeKey]));
         Assert.All(baggage, turn => Assert.Equal("regression", turn.Baggage[SuwagevalBaggage.ScenarioTags]));
         Assert.All(baggage, turn => Assert.DoesNotContain(SuwagevalBaggage.RunTags, turn.Baggage.Keys));

@@ -12,6 +12,7 @@ public static class SuwagevalBaggage
     public const string HeaderName = "baggage";
 
     public const string RunId = "suwageval.run.id";
+    public const string AgentVersionId = "suwageval.agent.version.id";
     public const string ScenarioKey = "suwageval.scenario.key";
     public const string ScenarioTypeKey = "suwageval.scenario.type";
     public const string ScenarioSample = "suwageval.scenario.sample";
