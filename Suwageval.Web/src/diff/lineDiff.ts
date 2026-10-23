@@ -56,3 +56,38 @@ export function diffBlocks(rows: DiffRow[], context = DIFF_CONTEXT): DiffBlock[]
     }
     return blocks;
 }
+
+/** The same diff read the other way round: added lines become removed ones and back, the line numbers swap sides, and in each
+ * run of changes the removed lines come first again (as a diff is read). */
+function reversedBlocks(blocks: readonly DiffBlock[]): DiffBlock[] {
+    return blocks.map((block) => {
+        const swapped = block.rows.map((row): DiffRow => ({
+            ...row,
+            kind: row.kind === "Added" ? "Removed" : row.kind === "Removed" ? "Added" : row.kind,
+            fromLine: row.toLine ?? null,
+            toLine: row.fromLine ?? null,
+        }));
+        const rows: DiffRow[] = [];
+        let run: DiffRow[] = [];
+        const flush = () => {
+            rows.push(...run.filter((row) => row.kind === "Removed"), ...run.filter((row) => row.kind === "Added"));
+            run = [];
+        };
+        for (const row of swapped) {
+            if (row.kind === "Same") {
+                flush();
+                rows.push(row);
+            } else {
+                run.push(row);
+            }
+        }
+        flush();
+        return { ...block, rows };
+    });
+}
+
+/** A version diff's blocks read from `fromVersionId`: the server puts the older version first, so a diff asked from the newer one is
+ * turned around. */
+export function blocksFrom(diff: { from: { id: string }; blocks: readonly DiffBlock[] }, fromVersionId: string): DiffBlock[] {
+    return diff.from.id === fromVersionId ? [...diff.blocks] : reversedBlocks(diff.blocks);
+}

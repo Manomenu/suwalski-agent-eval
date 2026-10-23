@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { diffBlocks, diffRows } from "./lineDiff";
+import { diffBlocks, diffRows, blocksFrom, type DiffBlock } from "./lineDiff";
 
 describe("diffRows", () => {
     it("numbers the lines of each side", () => {
@@ -39,5 +39,35 @@ describe("diffBlocks", () => {
         expect(make(7).some((block) => block.folded)).toBe(false);
         const folded = make(8).filter((block) => block.folded);
         expect(folded.map((block) => block.rows.length)).toEqual([2]);
+    });
+});
+
+describe("blocksFrom", () => {
+    const blocks: DiffBlock[] = [
+        {
+            folded: false,
+            rows: [
+                { kind: "Same", text: "agents:", fromLine: 1, toLine: 1 },
+                { kind: "Removed", text: "Keep answers short.", fromLine: 2 },
+                { kind: "Added", text: "Answer in one sentence.", toLine: 2 },
+            ],
+        },
+    ];
+
+    it("keeps the server's diff when it is asked from the version the server took as the base", () => {
+        expect(blocksFrom({ from: { id: "old" }, blocks }, "old")).toEqual(blocks);
+    });
+
+    it("turns it around when asked from the other version: added and removed swap, so do the line numbers", () => {
+        expect(blocksFrom({ from: { id: "old" }, blocks }, "new")).toEqual([
+            {
+                folded: false,
+                rows: [
+                    { kind: "Same", text: "agents:", fromLine: 1, toLine: 1 },
+                    { kind: "Removed", text: "Answer in one sentence.", fromLine: 2, toLine: null },
+                    { kind: "Added", text: "Keep answers short.", fromLine: null, toLine: 2 },
+                ],
+            },
+        ]);
     });
 });
