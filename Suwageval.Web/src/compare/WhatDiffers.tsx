@@ -11,22 +11,25 @@ import { fetchVersionDiff } from "../agents/versions/api";
 const nameOf = (column: VariantRun | undefined) => (column === undefined ? "" : columnName(column));
 
 const WHAT_DIFFERS_HELP =
-    "The fields of the agent's contract that are not the same in the versions these columns ran: models and their parameters, tools, other config lines, the retrieval data version. A prompt is only marked changed — open its diff to read it.";
+    "The fields of the agent's contract that are not the same in the versions these columns ran: models and their parameters, tools, other config lines, the retrieval data version. Each column is read against the baseline when one is picked, else against the first column. A prompt is only marked changed — open its diff to read it.";
 
 /** "What differs" as the table's first section: one row per contract field that differs between the columns' versions; none when they ran one version. */
 export function WhatDiffers({
     agent,
     columns,
+    reference,
     differences,
     colSpan,
 }: {
     agent: string;
     columns: readonly VariantRun[];
+    /** The column the others are read against: the baseline's, else the first. */
+    reference: number;
     /** Null while the contracts are loading. */
     differences: Difference[] | null;
     colSpan: number;
 }) {
-    // The columns whose prompt diff (against the first column's version) is open.
+    // The columns whose prompt diff (against the reference column's version) is open.
     const [openDiffs, setOpenDiffs] = useState<readonly number[]>([]);
     const versions = new Set(columns.map((column) => column.run.agentVersionId));
     const toggle = (column: number) => {
@@ -70,6 +73,7 @@ export function WhatDiffers({
                     key={difference.label}
                     agent={agent}
                     columns={columns}
+                    reference={reference}
                     difference={difference}
                     openDiffs={openDiffs}
                     onToggle={toggle}
@@ -83,6 +87,7 @@ export function WhatDiffers({
 function DifferenceRows({
     agent,
     columns,
+    reference,
     difference,
     openDiffs,
     onToggle,
@@ -90,6 +95,7 @@ function DifferenceRows({
 }: {
     agent: string;
     columns: readonly VariantRun[];
+    reference: number;
     difference: Difference;
     openDiffs: readonly number[];
     onToggle: (column: number) => void;
@@ -134,7 +140,7 @@ function DifferenceRows({
             {changed.map((column) => (
                 <Table.Tr key={`diff-${String(column)}`} className={openDiffs.includes(column) ? undefined : "folded-row"}>
                     <Table.Td colSpan={colSpan}>
-                        <PromptDiff agent={agent} columns={columns} column={column} />
+                        <PromptDiff agent={agent} columns={columns} reference={reference} column={column} />
                     </Table.Td>
                 </Table.Tr>
             ))}
@@ -142,9 +148,19 @@ function DifferenceRows({
     );
 }
 
-/** The server's line diff of the whole contract between the first column's version and this column's. */
-function PromptDiff({ agent, columns, column }: { agent: string; columns: readonly VariantRun[]; column: number }) {
-    const first = columns[0];
+/** The server's line diff of the whole contract between the reference column's version and this column's. */
+function PromptDiff({
+    agent,
+    columns,
+    reference,
+    column,
+}: {
+    agent: string;
+    columns: readonly VariantRun[];
+    reference: number;
+    column: number;
+}) {
+    const first = columns[reference];
     const other = columns[column];
     const state = useRequest(`${first?.run.agentVersionId ?? ""}/${other?.run.agentVersionId ?? ""}`, (signal) =>
         fetchVersionDiff(agent, first?.run.agentVersionId ?? "", other?.run.agentVersionId ?? "", signal),

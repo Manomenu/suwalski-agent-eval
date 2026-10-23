@@ -46,9 +46,16 @@ const lines = (text: string | null | undefined): string[] =>
         .map((line) => line.trim())
         .filter((line) => line !== "");
 
-/** A row of values: shown only when the columns do not all have the same one. */
-/** A row of the values that differ; `show` writes a value for its cell (the comparison is on the whole value). */
-function valueRow(label: string, values: (string | null)[], show: (value: string) => string = (value) => value): Difference[] {
+/**
+ * A row of the values that differ, shown only when the columns do not all have the same one; a cell is changed when it differs from
+ * the `reference` column's. `show` writes a value for its cell (the comparison is on the whole value).
+ */
+function valueRow(
+    reference: number,
+    label: string,
+    values: (string | null)[],
+    show: (value: string) => string = (value) => value,
+): Difference[] {
     if (values.every((value) => value === values[0])) return [];
     return [
         {
@@ -56,20 +63,23 @@ function valueRow(label: string, values: (string | null)[], show: (value: string
             isPrompt: false,
             cells: values.map((value, column) => ({
                 text: value === null ? null : show(value),
-                changed: column > 0 && value !== values[0],
+                changed: column !== reference && value !== values[reference],
             })),
         },
     ];
 }
 
-/** A row of "present"/"absent" for a member the columns do not all have. */
-function presenceRow(label: string, has: boolean[]): Difference[] {
+/** A row of "present"/"absent" for a member the columns do not all have; changed against the `reference` column. */
+function presenceRow(reference: number, label: string, has: boolean[]): Difference[] {
     if (has.every((value) => value === has[0])) return [];
     return [
         {
             label,
             isPrompt: false,
-            cells: has.map((value, column) => ({ text: value ? PRESENT : ABSENT, changed: column > 0 && value !== has[0] })),
+            cells: has.map((value, column) => ({
+                text: value ? PRESENT : ABSENT,
+                changed: column !== reference && value !== has[reference],
+            })),
         },
     ];
 }
@@ -77,11 +87,12 @@ function presenceRow(label: string, has: boolean[]): Difference[] {
 const unique = (names: string[]) => [...new Set(names)];
 
 /**
- * The contract fields that differ between the columns, the first column being the one the others are read against: per LLM agent its
+ * The contract fields that differ between the columns, each read against the `reference` column (the baseline when one is picked,
+ * else the first column): per LLM agent its
  * model, each model parameter, its tools (added, removed, changed) and its prompt (just "changed"); the lines of `otherConfig` that
  * not every column has; the retrieval data version. Nothing for columns of one version.
  */
-export function contractDifferences(columns: readonly ColumnContract[]): Difference[] {
+export function contractDifferences(columns: readonly ColumnContract[], reference = 0): Difference[] {
     const contracts = columns.map((column) => column.contract);
     const differences: Difference[] = [];
 
@@ -90,12 +101,14 @@ export function contractDifferences(columns: readonly ColumnContract[]): Differe
         const agents = contracts.map((contract) => contract.agents.find((agent) => agent.name === name));
         differences.push(
             ...presenceRow(
+                reference,
                 `Agent ${name}`,
                 agents.map((agent) => agent !== undefined),
             ),
         );
         differences.push(
             ...valueRow(
+                reference,
                 `Agent ${name} · model`,
                 agents.map((agent) => agent?.model.name ?? null),
             ),
@@ -105,6 +118,7 @@ export function contractDifferences(columns: readonly ColumnContract[]): Differe
         for (const key of unique(parameters.flatMap((entries) => [...entries.keys()]))) {
             differences.push(
                 ...valueRow(
+                    reference,
                     `Agent ${name} · ${key}`,
                     parameters.map((entries) => entries.get(key) ?? null),
                 ),
@@ -117,8 +131,8 @@ export function contractDifferences(columns: readonly ColumnContract[]): Differe
                 label: `Agent ${name} · prompt`,
                 isPrompt: true,
                 cells: prompts.map((prompt, column) => ({
-                    text: prompt === null ? null : column === 0 ? SAME : prompt === prompts[0] ? SAME : CHANGED,
-                    changed: column > 0 && prompt !== prompts[0],
+                    text: prompt === null ? null : column === reference || prompt === prompts[reference] ? SAME : CHANGED,
+                    changed: column !== reference && prompt !== prompts[reference],
                 })),
             });
         }
@@ -132,13 +146,13 @@ export function contractDifferences(columns: readonly ColumnContract[]): Differe
             if (has.every(Boolean)) {
                 const definitions = tools.map((entries) => entries.get(tool) ?? null);
                 differences.push(
-                    ...valueRow(label, definitions).map((row) => ({
+                    ...valueRow(reference, label, definitions).map((row) => ({
                         ...row,
                         cells: row.cells.map((cell) => ({ ...cell, text: cell.text === null ? null : cell.changed ? CHANGED : SAME })),
                     })),
                 );
             } else {
-                differences.push(...presenceRow(label, has));
+                differences.push(...presenceRow(reference, label, has));
             }
         }
     }
@@ -147,6 +161,7 @@ export function contractDifferences(columns: readonly ColumnContract[]): Differe
     for (const line of unique(otherLines.flat())) {
         differences.push(
             ...presenceRow(
+                reference,
                 `Other config: ${line}`,
                 otherLines.map((own) => own.includes(line)),
             ),
@@ -155,6 +170,7 @@ export function contractDifferences(columns: readonly ColumnContract[]): Differe
 
     differences.push(
         ...valueRow(
+            reference,
             "Retrieval data version",
             contracts.map((contract) => contract.context?.retrieval?.dataVersion ?? null),
             shortDataVersion,

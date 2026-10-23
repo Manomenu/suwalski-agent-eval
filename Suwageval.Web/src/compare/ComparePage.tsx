@@ -41,6 +41,7 @@ import {
     toggledBaseline,
     trendColor,
     type Change,
+    referenceColumn,
 } from "./compare";
 import { contractDifferences, type Difference } from "./contractDiff";
 import {
@@ -136,6 +137,7 @@ function Loaded({
                           agents: [],
                       },
                   })),
+                  referenceColumn(comparison),
               )
             : [];
     return <View selection={selection} variants={comparison} versions={versions} differences={differences} onBaseline={onBaseline} />;
@@ -253,7 +255,13 @@ function View({
                                 })}
                             </Table.Tr>
                         </Table.Thead>
-                        <WhatDiffers agent={variants.agent} columns={variants.runs} differences={differences} colSpan={columns + 1} />
+                        <WhatDiffers
+                            agent={variants.agent}
+                            columns={variants.runs}
+                            reference={referenceColumn(variants)}
+                            differences={differences}
+                            colSpan={columns + 1}
+                        />
                         <Table.Tbody>
                             <SectionRow columns={columns} title="Summary" />
                             <Table.Tr>
