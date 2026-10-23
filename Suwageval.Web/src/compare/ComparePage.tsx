@@ -1,4 +1,19 @@
-import { Alert, Anchor, Badge, Group, Loader, Paper, SegmentedControl, Stack, Switch, Table, Text, Title, Tooltip } from "@mantine/core";
+import {
+    Alert,
+    Anchor,
+    Badge,
+    Box,
+    Group,
+    Loader,
+    Paper,
+    SegmentedControl,
+    Stack,
+    Switch,
+    Table,
+    Text,
+    Title,
+    Tooltip,
+} from "@mantine/core";
 import { useState } from "react";
 
 import { fetchVersion, fetchVersions, type AgentVersion } from "../agents/api";
@@ -28,7 +43,15 @@ import {
     type Change,
 } from "./compare";
 import { contractDifferences, type Difference } from "./contractDiff";
-import { COLUMN_MIN_WIDTH, LABEL_COLUMN_WIDTH, tableMinWidth } from "./layout";
+import {
+    COLUMN_MIN_WIDTH,
+    LABEL_COLUMN_WIDTH,
+    PRINT_COLUMN_WIDTH,
+    PRINT_LABEL_COLUMN_WIDTH,
+    PRINT_MAX_RUNS,
+    tableMinWidth,
+} from "./layout";
+import { comparePrintLine, printDisabledReason } from "./printing";
 import { ScenarioRows } from "./ScenarioRows";
 import { useOpenScenarios } from "./useOpenScenarios";
 import {
@@ -45,6 +68,8 @@ import {
 import { WhatDiffers } from "./WhatDiffers";
 import { agentHref } from "../routes/links";
 import { percent } from "../format/numbers";
+import { PrintButton } from "../print/PrintButton";
+import { usePrintOnLoad } from "../print/usePrintOnLoad";
 
 const BEST_BACKGROUND = "var(--mantine-color-green-light)";
 const HELP_WIDTH = 280;
@@ -134,6 +159,7 @@ function View({
     const [byTag, setByTag] = useState(false);
     const [selectedTags, selectTags] = useTagFilter();
     const [open, toggleOpen] = useOpenScenarios();
+    usePrintOnLoad(true);
     const filtered = selectedTags.length > 0;
     const columns = variants.runs.length;
     const tagged = variants.scenarios.filter((scenario) => keepsTags(scenario.tags, selectedTags));
@@ -154,7 +180,7 @@ function View({
 
     return (
         <Stack gap="md">
-            <Group gap="xs">
+            <Group gap="xs" className="no-print">
                 <Anchor href="/">Agents</Anchor>/<Anchor href={agentHref(variants.agent)}>{variants.agent}</Anchor>
             </Group>
             <Title order={2}>Compare runs of {variants.agent}</Title>
@@ -165,17 +191,40 @@ function View({
                     ? " A check passes when its pass rate reaches its threshold; the best column of a row is marked. Pick a baseline by a column's header to read the others against it."
                     : " Every run is read against the baseline: a cell better than the baseline's is green, a worse one red. Pick another by its header, or click the baseline again to go back to the plain view. A check passes when its pass rate reaches its threshold."}
             </Text>
-            <TagFilter
-                tags={[...variants.scenarios.flatMap((scenario) => scenario.tags), ...variants.tags.flatMap((row) => row.tag ?? [])]}
-                selected={selectedTags}
-                onChange={selectTags}
-            />
-            <Paper withBorder p="md">
+            {/* The filters stay applied on paper; the print-only line says which. */}
+            <Text className="print-only print-line">
+                {comparePrintLine({
+                    agent: variants.agent,
+                    group: variants.group,
+                    runIds: variants.runs.map((variant) => variant.run.id),
+                    baselineId: baseline?.runId,
+                    selectedTags,
+                    onlyDifferences,
+                    byTag,
+                })}
+            </Text>
+            <Box className="no-print">
+                <TagFilter
+                    tags={[...variants.scenarios.flatMap((scenario) => scenario.tags), ...variants.tags.flatMap((row) => row.tag ?? [])]}
+                    selected={selectedTags}
+                    onChange={selectTags}
+                />
+            </Box>
+            <PrintButton disabledReason={printDisabledReason(columns, PRINT_MAX_RUNS)} />
+            <Paper withBorder p="md" className="compare-paper">
                 <Table.ScrollContainer minWidth={tableMinWidth(columns)}>
-                    <Table layout="fixed" verticalSpacing="xs">
+                    <Table
+                        layout="fixed"
+                        verticalSpacing="xs"
+                        className="compare-table"
+                        style={{
+                            "--print-label-width": `${PRINT_LABEL_COLUMN_WIDTH}px`,
+                            "--print-column-width": `${PRINT_COLUMN_WIDTH}px`,
+                        }}
+                    >
                         <Table.Thead>
                             <Table.Tr>
-                                <Table.Th w={LABEL_COLUMN_WIDTH} />
+                                <Table.Th w={LABEL_COLUMN_WIDTH} className="compare-label-column" />
                                 {variants.runs.map((variant) => {
                                     const baselineInfo: BaselineInfo | null =
                                         columns < 2
@@ -187,7 +236,12 @@ function View({
                                                   },
                                               };
                                     return (
-                                        <Table.Th key={variant.run.id} miw={COLUMN_MIN_WIDTH} style={{ verticalAlign: "top" }}>
+                                        <Table.Th
+                                            key={variant.run.id}
+                                            miw={COLUMN_MIN_WIDTH}
+                                            className="compare-run-column"
+                                            style={{ verticalAlign: "top" }}
+                                        >
                                             <ColumnHeader
                                                 agent={variants.agent}
                                                 variant={variant}
@@ -329,7 +383,7 @@ function View({
                                 <Table.Th colSpan={columns + 1} bg="var(--mantine-color-default)">
                                     <Group justify="space-between">
                                         Scenarios
-                                        <Group gap="lg">
+                                        <Group gap="lg" className="no-print">
                                             <Switch
                                                 label="Only rows that differ"
                                                 checked={onlyDifferences}
@@ -414,7 +468,9 @@ function Judge({ model, changed, baselineModel }: { model: string | null | undef
     if (model == null) return <Text size="sm">—</Text>;
     return (
         <Group gap={4} wrap="nowrap">
-            <ModelJudgedIcon model={model} />
+            <Box component="span" className="no-print">
+                <ModelJudgedIcon model={model} />
+            </Box>
             <Text size="sm" className="wrap-key">
                 {model}
             </Text>

@@ -38,6 +38,7 @@ export function DataVersion({
                             <ActionIcon
                                 size="xs"
                                 variant="subtle"
+                                className="no-print"
                                 color={copied ? "teal" : "gray"}
                                 aria-label="Copy the data version"
                                 onClick={copy}

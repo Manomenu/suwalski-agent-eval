@@ -1,4 +1,4 @@
-import { Alert, Anchor, Badge, Group, List, Loader, Paper, Stack, Switch, Text, Title } from "@mantine/core";
+import { Alert, Anchor, Badge, Box, Group, List, Loader, Paper, Stack, Switch, Text, Title } from "@mantine/core";
 
 import { isNotFound } from "../api/client";
 import { CancelButton } from "./CancelButton";
@@ -28,6 +28,9 @@ import { useScrollToHash } from "./useScrollToHash";
 import { useUnstableChecks } from "../unstable/useUnstableChecks";
 import { agentHref, runHref, compareGroupHref } from "../routes/links";
 import { formatTime } from "../format/time";
+import { PrintButton } from "../print/PrintButton";
+import { usePrintOnLoad } from "../print/usePrintOnLoad";
+import { runPrintLine } from "./printLine";
 
 /** One run's results at `/runs/<id>`: the header, then a card per scenario. */
 export function RunPage({ runId }: { runId: string }) {
@@ -38,6 +41,7 @@ export function RunPage({ runId }: { runId: string }) {
     const loadedRun = state.kind === "loaded" ? state.results.run : null;
     const unstable = useUnstableChecks(loadedRun?.agent ?? null, loadedRun === null ? [] : [loadedRun.agentVersionId]);
     useScrollToHash(state.kind === "loaded");
+    usePrintOnLoad(state.kind === "loaded");
 
     if (state.kind === "loading") return <Loader aria-label="Loading results" />;
     if (state.kind === "error") {
@@ -58,7 +62,7 @@ export function RunPage({ runId }: { runId: string }) {
     return (
         <>
             <Stack gap="md">
-                <Group gap="xs">
+                <Group gap="xs" className="no-print">
                     <Anchor href="/">Agents</Anchor>/<Anchor href={agentHref(run.agent)}>{run.agent}</Anchor>
                 </Group>
                 <Group gap="sm">
@@ -109,24 +113,35 @@ export function RunPage({ runId }: { runId: string }) {
                         )}
                     </Alert>
                 )}
-                <Group gap="sm" align="flex-start">
+                <Group gap="sm" align="flex-start" className="no-print">
                     <RerunButton runId={run.id} />
                     <RecheckButton run={run} />
                     <CancelButton run={run} />
                 </Group>
-                <TagFilter
-                    tags={state.results.scenarios.flatMap((scenario) => scenario.tags)}
-                    selected={selectedTags}
-                    onChange={selectTags}
-                />
-                <Switch
-                    label="Hide passed checks"
-                    checked={hidePassed}
-                    onChange={(event) => {
-                        setHidePassed(event.currentTarget.checked);
-                    }}
-                />
-                {hidePassed && <Text size="sm">{hiddenLine(hiddenCounts(scenarios))}</Text>}
+                {/* The filters stay applied on paper; the print-only line says which. */}
+                <Text className="print-only print-line">{runPrintLine(run, selectedTags, hidePassed)}</Text>
+                <Box className="no-print">
+                    <TagFilter
+                        tags={state.results.scenarios.flatMap((scenario) => scenario.tags)}
+                        selected={selectedTags}
+                        onChange={selectTags}
+                    />
+                </Box>
+                <Group gap="lg" className="no-print">
+                    <Switch
+                        label="Hide passed checks"
+                        checked={hidePassed}
+                        onChange={(event) => {
+                            setHidePassed(event.currentTarget.checked);
+                        }}
+                    />
+                    <PrintButton />
+                </Group>
+                {hidePassed && (
+                    <Text size="sm" className="no-print">
+                        {hiddenLine(hiddenCounts(scenarios))}
+                    </Text>
+                )}
                 <Paper withBorder p="md">
                     <Group gap="lg">
                         <Text>

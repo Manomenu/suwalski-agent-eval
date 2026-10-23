@@ -66,4 +66,11 @@ internal static class CommandOptions
         }
         return ids;
     }
+
+    /// <summary>A command that understood its arguments but will not do what they ask: the reason on stderr, exit 2.</summary>
+    public static async Task<int> RefuseAsync(TextWriter error, string reason)
+    {
+        await error.WriteLineAsync(reason);
+        return 2;
+    }
 }

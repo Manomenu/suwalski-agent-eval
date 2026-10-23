@@ -122,6 +122,29 @@ public sealed class ResultsCommandTests
     }
 
     [Fact]
+    public void Open_with_print_opens_the_page_that_opens_the_print_dialog()
+    {
+        var (exit, output, error, _, opened) = Results(Api(), RunId.ToString(), "--open", "--print", "--server", "https://eval.example/");
+
+        Assert.Equal(0, exit);
+        Assert.Equal($"https://eval.example/runs/{RunId}?print=1{Environment.NewLine}", output);
+        Assert.Empty(error);
+        Assert.Equal([new Uri($"https://eval.example/runs/{RunId}?print=1")], opened);
+    }
+
+    [Fact]
+    public void Print_without_open_is_refused_before_anything_is_asked()
+    {
+        var (exit, output, error, api, opened) = Results(Api(), RunId.ToString(), "--print");
+
+        Assert.Equal(2, exit);
+        Assert.Empty(output);
+        Assert.Contains("--print needs --open", error, StringComparison.Ordinal);
+        Assert.Empty(api.Paths);
+        Assert.Empty(opened);
+    }
+
+    [Fact]
     public void A_run_that_does_not_exist_exits_2_and_opens_nothing()
     {
         var (exit, output, error, _, opened) = Results(_ => new HttpResponseMessage(HttpStatusCode.NotFound), RunId.ToString(), "--open");

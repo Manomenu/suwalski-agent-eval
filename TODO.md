@@ -125,36 +125,15 @@ To do in that change:
   "trying model X"). Shown on the run page, in the runs list and in the comparison; set on the web and with the CLI
   (`suwageval run --note …`, and a command to change it later). It changes no verdict and no regression state — it is not a
   baseline mark (that is the manual mode above). Build it when comparing runs shows the missing "why".
-- **Reports: print the run page and the comparison.** Done the way `zaawansowane-aplikacje-internetowe-2026Z` did its print
-  (`docs/progress/F24-print.md` there): the same view, changed only by `@media print` rules and an `@page` size — no separate
-  report screen — and a "Print" button (`window.print()`) beside the view's filters; on paper no buttons, links, inputs or
-  filters, only the data with the filters applied (the selected tags, a hidden-passed filter, the baseline) said in a line at
-  the top. A4 **landscape** (`@page { size: A4 landscape }`): wider than tall. E2E tests in print media check that nothing is
-  cut off at the paper's edge and no control shows.
-  - Run page: every scenario and check expanded; rows not split across pages, table headers repeated.
-  - Comparison: every scenario row expanded. Up to 20 run columns do not fit one landscape page, and shrinking them to one
-    page (what F24 did with 12 series) leaves them unreadable — so the columns are split into **page-wide chunks laid out
-    side by side**: as many run columns per page as fit at a readable width (derived from `COLUMN_MIN_WIDTH`), the label
-    column repeated on every chunk; the whole report is those chunks one after another (one PDF from the browser's dialog,
-    or several if the user prints the chunks apart). **With a baseline**, the baseline's column is repeated as the first run
-    column of every chunk, so every page reads against it on its own.
-  - Open questions: whether the chunks are a print-only layout (CSS can't split a table's columns — likely a print-only
-    rendering of the same data, which F24's rule "no separate print view" did not need; say why it is needed here), and
-    whether the web's print and the server's PDF (below) are one rendering or two.
-  - **A simpler option worth weighing first: a cap instead of chunks.** A comparison report is made only for as many runs as
-    fit one landscape A4 page at a readable width (the limit derived from `COLUMN_MIN_WIDTH`, a named constant shared by the
-    web, the server and the CLI); with more runs the "Print" button is disabled with the reason, the server's endpoint
-    answers 422, and the CLI refuses before asking (exit 2, saying the limit). A user with more runs compares them in a few
-    smaller sets (with the same baseline when there is one) and makes a report of each. No page-wide chunks, no print-only
-    layout — so it may answer the open question above; decide between the two when building it.
-  - **CLI and plugin make the same report** (AGENTS.md, section 5: anything the web can do, the CLI can do). The server
-    serves it as a PDF through an endpoint (e.g. `GET /runs/{id}/report.pdf`, `GET /runs/compare/report.pdf?runs=…|group=…
-    [&baseline=…]&tag=…`, the same parameters as the views), and the CLI saves it: `suwageval results <runId> --report
-    [path]`, `suwageval compare … --report [path]`. The path is optional — a file, or a folder to put it in; without it
-    the current folder and a name that says what it is (`report-run-<id8>.pdf`, `report-compare-<group or ids>.pdf`). The
-    plugin's skill lists it, and Claude saves a report only when asked, then says where. Open question: how the server renders
-    the PDF — a headless browser printing the web's print view (one rendering, but a new component in the image, compose and
-    the chart: say why) or a PDF library in .NET (no new component, but a second layout to keep in step with the web's).
+- **Reports: a PDF without a person.** The print of the run page and of the comparison is built (the "Print" button and
+  `results`/`compare --open --print`, `docs/front-doors.md`): the browser's dialog is the preview and gives "Save as PDF". What is left is
+  a file made with nobody at the screen (a report in CI): the server prints the same web view to PDF with a headless Chromium, as the
+  sibling project's `scripts/.internal/package.sh` does for its documents (a new component in the image, compose and the chart: say why),
+  through `GET /runs/{id}/report.pdf` and `GET /runs/compare/report.pdf?…` (the views' parameters), and the CLI saves it: `suwageval
+  results <runId> --report [path]`, `suwageval compare … --report [path]` (a file or a folder; without it the current folder and a name
+  that says what it is). The comparison keeps the cap of the print (the chunks of columns were dropped in its favour: more runs than fit
+  a page are compared in smaller sets); the answer above it is 422, the CLI refuses before asking. The plugin lists it, and Claude
+  saves a report only when asked. Build it when a report is wanted in CI.
 - **Later, only if this proves useful:** Suwageval sending its verdicts to Langfuse as scores per trace (an outside service, so a
   live test, the daily check and a secret, AGENTS.md section 3); Suwageval reading traces back; a `traceparent` header so the
   agent's spans join a trace Suwageval starts.

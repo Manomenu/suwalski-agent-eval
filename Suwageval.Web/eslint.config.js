@@ -130,6 +130,12 @@ export default defineConfig(
                             from: { element: { type: "feature", captured: { name } } },
                             allow: { to: { element: { type: "feature", captured: { name: "tagFilter" } } } },
                         })),
+                        // The run and comparison pages place the same Print button and open the print dialog the same way
+                        // (`print=1` in the address): print/ owns them and print.css, the pages mark what is not printed.
+                        ...["runs", "compare"].map((name) => ({
+                            from: { element: { type: "feature", captured: { name } } },
+                            allow: { to: { element: { type: "feature", captured: { name: "print" } } } },
+                        })),
                         // Unstable checks have a feature of their own (the server's route, the CLI's `unstable`): the agent page places
                         // their card, the run page marks each check with the list. The card sits under the icon of an unstable check
                         // (checks/ owns it, runs/ places it too) and pages its rows like every list (pagination/ owns that).
