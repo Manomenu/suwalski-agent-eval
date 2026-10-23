@@ -94,20 +94,14 @@ internal static class RunGroupEndpoints
             return ProblemResults.NotFound("Agent", agent);
         }
         var result = await groups.DeleteAsync(found.Id, name, dryRun, cancellationToken);
-        return result.Outcome switch
-        {
-            DeletionOutcome.NotFound => ProblemResults.NotFound("Run group", name),
-            DeletionOutcome.NotArchived => ProblemResults.Conflict(
-                "Run group not archived",
-                "Only an archived run group can be deleted: archive it first."
-            ),
-            DeletionOutcome.HasActiveRuns => ProblemResults.Conflict(
+        return result.ToHttp(
+            "Run group",
+            name,
+            new DeletionRefusal("Run group not archived", "Only an archived run group can be deleted: archive it first."),
+            new DeletionRefusal(
                 "Run group has active runs",
                 "A run of this group (or a re-check of one) is queued or running: cancel it or wait until it ends."
-            ),
-            DeletionOutcome.Allowed => Results.Ok(result.Contents),
-            DeletionOutcome.Deleted => Results.NoContent(),
-            _ => throw new InvalidOperationException($"Unexpected outcome {result.Outcome}."),
-        };
+            )
+        );
     }
 }

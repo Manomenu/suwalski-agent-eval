@@ -181,21 +181,15 @@ internal static class VersionEndpoints
             return ProblemResults.NotFound("Agent", agent);
         }
         var result = await versions.DeleteVersionAsync(row.Id, versionId, dryRun, cancellationToken);
-        return result.Outcome switch
-        {
-            DeletionOutcome.NotFound => ProblemResults.NotFound("Version", versionId.ToString()),
-            DeletionOutcome.NotArchived => ProblemResults.Conflict(
-                "Version not archived",
-                "Only an archived version can be deleted: archive it first."
-            ),
-            DeletionOutcome.HasActiveRuns => ProblemResults.Conflict(
+        return result.ToHttp(
+            "Version",
+            versionId.ToString(),
+            new DeletionRefusal("Version not archived", "Only an archived version can be deleted: archive it first."),
+            new DeletionRefusal(
                 "Version has active runs",
                 "A run of this version (or a re-check of one) is queued or running: cancel it or wait until it ends."
-            ),
-            DeletionOutcome.Allowed => Results.Ok(result.Contents),
-            DeletionOutcome.Deleted => Results.NoContent(),
-            _ => throw new InvalidOperationException($"Unexpected outcome {result.Outcome}."),
-        };
+            )
+        );
     }
 
     private static AgentVersion ToVersion(AgentVersionRow row)
