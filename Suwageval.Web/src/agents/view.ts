@@ -9,11 +9,6 @@ export function versionLabel(version: { label?: string | null }): string {
     return version.label?.trim() ? version.label : "—";
 }
 
-/** The versions to list: all of them with "Show archived" on, otherwise the active ones. */
-export function visibleVersions<T extends { archivedAt?: string | null }>(versions: T[], showArchived: boolean): T[] {
-    return showArchived ? versions : versions.filter((version) => version.archivedAt == null);
-}
-
 /** The models (the `model.name` of every LLM agent) of the versions, sorted, each once — what the model filter offers. */
 export function modelsOf(versions: { modelNames: string[] }[]): string[] {
     return [...new Set(versions.flatMap((version) => version.modelNames))].sort((a, b) => a.localeCompare(b));
@@ -123,18 +118,6 @@ export function runsToCompare(runs: { id: string }[], selected: ReadonlySet<stri
         .filter((run) => selected.has(run.id))
         .map((run) => run.id)
         .reverse();
-}
-
-/** What the selected versions need: the active ones can be archived, the archived ones restored. */
-export function selectionActions(
-    versions: { id: string; archivedAt?: string | null }[],
-    selected: ReadonlySet<string>,
-): { toArchive: string[]; toRestore: string[] } {
-    const chosen = versions.filter((version) => selected.has(version.id));
-    return {
-        toArchive: chosen.filter((version) => version.archivedAt == null).map((version) => version.id),
-        toRestore: chosen.filter((version) => version.archivedAt != null).map((version) => version.id),
-    };
 }
 
 /** The page showing what changed between two versions of the agent. */

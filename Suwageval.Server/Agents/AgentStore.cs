@@ -174,7 +174,11 @@ internal sealed class AgentStore(Pool pool)
     /// Deletes the agent with everything that belongs to it (the foreign keys cascade), unless one of its runs is queued or running;
     /// <paramref name="dryRun"/> only decides and counts. The agent's row is locked, so no run is queued for it in between.
     /// </summary>
-    public async Task<AgentDeletionResult> DeleteAgentAsync(Guid agentId, bool dryRun, CancellationToken cancellationToken = default)
+    public async Task<DeletionResult<AgentDeletion>> DeleteAgentAsync(
+        Guid agentId,
+        bool dryRun,
+        CancellationToken cancellationToken = default
+    )
     {
         await using var connection = await pool.OpenAsync(cancellationToken);
         await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
@@ -188,7 +192,7 @@ internal sealed class AgentStore(Pool pool)
         );
         if (name is null)
         {
-            return new AgentDeletionResult(DeletionOutcome.NotFound, null);
+            return new DeletionResult<AgentDeletion>(DeletionOutcome.NotFound, null);
         }
         var counts = await connection.QuerySingleAsync<AgentDeletionCounts>(
             new CommandDefinition(
@@ -220,11 +224,11 @@ internal sealed class AgentStore(Pool pool)
         );
         if (counts.Active > 0)
         {
-            return new AgentDeletionResult(DeletionOutcome.HasActiveRuns, contents);
+            return new DeletionResult<AgentDeletion>(DeletionOutcome.HasActiveRuns, contents);
         }
         if (dryRun)
         {
-            return new AgentDeletionResult(DeletionOutcome.Allowed, contents);
+            return new DeletionResult<AgentDeletion>(DeletionOutcome.Allowed, contents);
         }
         await connection.ExecuteAsync(
             new CommandDefinition(
@@ -235,7 +239,7 @@ internal sealed class AgentStore(Pool pool)
             )
         );
         await transaction.CommitAsync(cancellationToken);
-        return new AgentDeletionResult(DeletionOutcome.Deleted, contents);
+        return new DeletionResult<AgentDeletion>(DeletionOutcome.Deleted, contents);
     }
 
     private sealed record AgentDeletionCounts(int Versions, int Scenarios, int Checks, int Runs, int Active, int Samples, int Verdicts);

@@ -1,10 +1,12 @@
-import { Alert, Anchor, Badge, Button, Checkbox, Group, Paper, Stack, Switch, Table, Text, Title } from "@mantine/core";
+import { Anchor, Badge, Checkbox, Group, Paper, Stack, Table, Text, Title } from "@mantine/core";
 import { useState } from "react";
 
 import { formatTime, compareGroupHref } from "../runs/results";
 import { archiveRunGroups, deleteRunGroup, fetchRunGroupDeletion, type RunGroupSummary } from "./api";
 import { DeleteModal } from "./DeleteModal";
-import { groupSelection, visibleGroups } from "./groups";
+import { archiveSelection, visibleItems } from "./archive";
+import { ArchiveControls, type ArchiveLabels } from "./ArchiveControls";
+import { useArchiveList } from "./useArchiveList";
 import { HeaderHelp } from "../runs/HeaderHelp";
 import { ListPagination } from "../pagination/ListPagination";
 import { pageOfItems } from "../pagination/pages";
@@ -16,6 +18,14 @@ const GROUP_RUNS_HELP = "How many runs were started in the group (re-checks of t
 const GROUP_VERSIONS_HELP = "How many different agent versions those runs used: the variants, when each run is of its own version.";
 const GROUP_NEWEST_HELP = "When the group's newest run was queued.";
 const GROUPS_TABLE_MIN_WIDTH = 500;
+const LABELS: ArchiveLabels = {
+    archive: "Archive selected groups",
+    unarchive: "Unarchive selected groups",
+    remove: "Delete group",
+    removeHint: "Select one archived group to delete it.",
+    showArchived: "Show archived groups",
+    errorTitle: "Could not change the groups",
+};
 
 /** The agent's run groups: each opens the compare page of its runs; select some to archive them, see archived ones with "Show archived", restore or delete one. */
 export function RunGroupsSection({
@@ -28,32 +38,15 @@ export function RunGroupsSection({
     /** Called after the server archived, restored or deleted groups, so the page loads its lists again. */
     onChanged: () => void;
 }) {
-    const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
     const [showArchived, setShowArchived] = useState(false);
-    const [busy, setBusy] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [notice, setNotice] = useState<string | null>(null);
-    const [deleting, setDeleting] = useState(false);
-
     const [requestedPage, setRequestedPage] = usePageParam("groupsPage");
-    const shown = visibleGroups(groups, showArchived);
-    const { items: listed, page } = pageOfItems(shown, requestedPage);
-    const { toArchive, toRestore, toDelete } = groupSelection(listed, selected);
+    const list = useArchiveList((names, archived) => archiveRunGroups(agentName, names, archived), onChanged);
+    const { selected } = list;
 
-    async function change(names: string[], archived: boolean) {
-        setBusy(true);
-        setError(null);
-        setNotice(null);
-        try {
-            await archiveRunGroups(agentName, names, archived);
-            setSelected(new Set());
-            onChanged();
-        } catch (e: unknown) {
-            setError(e instanceof Error ? e.message : String(e));
-        } finally {
-            setBusy(false);
-        }
-    }
+    const shown = visibleItems(groups, showArchived);
+    const { items: listed, page } = pageOfItems(shown, requestedPage);
+    const { toArchive, toRestore, toDelete: groupToDelete } = archiveSelection(listed, selected, (group) => group.name);
+    const toDelete = groupToDelete?.name ?? null;
 
     return (
         <Stack gap="sm">
@@ -68,58 +61,27 @@ export function RunGroupsSection({
             ) : (
                 <Paper withBorder p="md">
                     <Stack gap="sm">
-                        <Group justify="space-between">
-                            <Group gap="sm">
-                                <Button
-                                    variant="light"
-                                    disabled={toArchive.length === 0 || busy}
-                                    onClick={() => {
-                                        void change(toArchive, true);
-                                    }}
-                                >
-                                    Archive selected groups
-                                </Button>
-                                {showArchived && (
-                                    <Button
-                                        variant="light"
-                                        disabled={toRestore.length === 0 || busy}
-                                        onClick={() => {
-                                            void change(toRestore, false);
-                                        }}
-                                    >
-                                        Unarchive selected groups
-                                    </Button>
-                                )}
-                                {showArchived && (
-                                    <Button
-                                        color="red"
-                                        variant="light"
-                                        disabled={toDelete === null || busy}
-                                        title={toDelete === null ? "Select one archived group to delete it." : undefined}
-                                        onClick={() => {
-                                            setDeleting(true);
-                                        }}
-                                    >
-                                        Delete group
-                                    </Button>
-                                )}
-                            </Group>
-                            <Switch
-                                label="Show archived groups"
-                                checked={showArchived}
-                                onChange={(event) => {
-                                    setShowArchived(event.currentTarget.checked);
-                                    setRequestedPage(1);
-                                    setSelected(new Set());
-                                }}
-                            />
-                        </Group>
-                        {notice !== null && <Alert color="green">{notice}</Alert>}
-                        {error !== null && (
-                            <Alert color="red" title="Could not change the groups">
-                                {error}
-                            </Alert>
-                        )}
+                        <ArchiveControls
+                            labels={LABELS}
+                            toArchive={toArchive}
+                            toRestore={toRestore}
+                            canDelete={toDelete !== null}
+                            busy={list.busy}
+                            showArchived={showArchived}
+                            notice={list.notice}
+                            error={list.error}
+                            onChange={(names, archived) => {
+                                void list.change(names, archived);
+                            }}
+                            onDelete={() => {
+                                list.setDeleting(true);
+                            }}
+                            onShowArchivedChange={(show) => {
+                                setShowArchived(show);
+                                setRequestedPage(1);
+                                list.clear();
+                            }}
+                        />
                         <Table.ScrollContainer minWidth={GROUPS_TABLE_MIN_WIDTH}>
                             <Table highlightOnHover>
                                 <Table.Thead>
@@ -145,10 +107,7 @@ export function RunGroupsSection({
                                                     aria-label={`Select group ${group.name}`}
                                                     checked={selected.has(group.name)}
                                                     onChange={(event) => {
-                                                        const next = new Set(selected);
-                                                        if (event.currentTarget.checked) next.add(group.name);
-                                                        else next.delete(group.name);
-                                                        setSelected(next);
+                                                        list.toggle(group.name, event.currentTarget.checked);
                                                     }}
                                                 />
                                             </Table.Td>
@@ -175,7 +134,7 @@ export function RunGroupsSection({
                             page={page}
                             onChange={(next) => {
                                 setRequestedPage(next);
-                                setSelected(new Set());
+                                list.clear();
                             }}
                         />
                         {listed.length === 0 && (
@@ -184,7 +143,7 @@ export function RunGroupsSection({
                     </Stack>
                 </Paper>
             )}
-            {deleting && toDelete !== null && (
+            {list.deleting && toDelete !== null && (
                 <DeleteModal
                     noun="run group"
                     title="Delete this run group?"
@@ -194,13 +153,10 @@ export function RunGroupsSection({
                     loadPreview={(signal) => fetchRunGroupDeletion(agentName, toDelete, signal)}
                     remove={() => deleteRunGroup(agentName, toDelete)}
                     onClose={() => {
-                        setDeleting(false);
+                        list.setDeleting(false);
                     }}
                     onDeleted={() => {
-                        setDeleting(false);
-                        setSelected(new Set());
-                        setNotice(`Deleted group ${toDelete} with its runs.`);
-                        onChanged();
+                        list.deleted(`Deleted group ${toDelete} with its runs.`);
                     }}
                 />
             )}

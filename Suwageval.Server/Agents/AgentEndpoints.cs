@@ -100,18 +100,12 @@ internal static class AgentEndpoints
             return ProblemResults.NotFound("Agent", agent);
         }
         var result = await store.DeleteAgentAsync(row.Id, dryRun, cancellationToken);
-        return result.Outcome switch
-        {
-            DeletionOutcome.NotFound => ProblemResults.NotFound("Agent", agent),
-            DeletionOutcome.NotArchived => throw new InvalidOperationException("An agent is not archived."),
-            DeletionOutcome.HasActiveRuns => ProblemResults.Conflict(
-                "Agent has active runs",
-                "A run of this agent is queued or running: cancel it or wait until it ends."
-            ),
-            DeletionOutcome.Allowed => Results.Ok(result.Contents),
-            DeletionOutcome.Deleted => Results.NoContent(),
-            _ => throw new InvalidOperationException($"Unexpected outcome {result.Outcome}."),
-        };
+        return result.ToHttp(
+            "Agent",
+            agent,
+            null,
+            new DeletionRefusal("Agent has active runs", "A run of this agent is queued or running: cancel it or wait until it ends.")
+        );
     }
 
     private static Agent ToAgent(AgentRow row) =>

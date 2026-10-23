@@ -72,7 +72,7 @@ internal sealed class RunGroupStore(Pool pool)
     /// or running; <paramref name="dryRun"/> only decides and counts. The group's archive row is locked, so no run is queued in it in between
     /// (starting one would put the group back in use).
     /// </summary>
-    public async Task<RunGroupDeletionResult> DeleteAsync(
+    public async Task<DeletionResult<RunGroupDeletion>> DeleteAsync(
         Guid agentId,
         string name,
         bool dryRun,
@@ -111,20 +111,20 @@ internal sealed class RunGroupStore(Pool pool)
         );
         if (counts.Runs == 0)
         {
-            return new RunGroupDeletionResult(DeletionOutcome.NotFound, null);
+            return new DeletionResult<RunGroupDeletion>(DeletionOutcome.NotFound, null);
         }
         var contents = new RunGroupDeletion(name, counts.Runs, counts.Samples, counts.Verdicts);
         if (archived is null)
         {
-            return new RunGroupDeletionResult(DeletionOutcome.NotArchived, contents);
+            return new DeletionResult<RunGroupDeletion>(DeletionOutcome.NotArchived, contents);
         }
         if (counts.Active > 0)
         {
-            return new RunGroupDeletionResult(DeletionOutcome.HasActiveRuns, contents);
+            return new DeletionResult<RunGroupDeletion>(DeletionOutcome.HasActiveRuns, contents);
         }
         if (dryRun)
         {
-            return new RunGroupDeletionResult(DeletionOutcome.Allowed, contents);
+            return new DeletionResult<RunGroupDeletion>(DeletionOutcome.Allowed, contents);
         }
         await connection.ExecuteAsync(
             new CommandDefinition(
@@ -150,7 +150,7 @@ internal sealed class RunGroupStore(Pool pool)
             )
         );
         await transaction.CommitAsync(cancellationToken);
-        return new RunGroupDeletionResult(DeletionOutcome.Deleted, contents);
+        return new DeletionResult<RunGroupDeletion>(DeletionOutcome.Deleted, contents);
     }
 
     private sealed record DeletionCounts(int Runs, int Active, int Samples, int Verdicts);

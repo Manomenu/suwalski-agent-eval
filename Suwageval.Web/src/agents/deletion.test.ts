@@ -1,23 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { agentDeletionSummary, confirmsDeletion, deletionSummary, versionToDelete } from "./deletion";
-
-const active = { id: "a", archivedAt: null };
-const archived = { id: "b", archivedAt: "2026-10-01T10:00:00Z" };
-const otherArchived = { id: "c", archivedAt: "2026-10-02T10:00:00Z" };
-
-describe("versionToDelete", () => {
-    it("is the one selected archived version", () => {
-        expect(versionToDelete([active, archived], new Set(["b"]))).toBe(archived);
-    });
-
-    it("is nothing for no selection, an active version or several", () => {
-        expect(versionToDelete([active, archived], new Set())).toBeNull();
-        expect(versionToDelete([active, archived], new Set(["a"]))).toBeNull();
-        expect(versionToDelete([active, archived, otherArchived], new Set(["b", "c"]))).toBeNull();
-        expect(versionToDelete([active, archived], new Set(["a", "b"]))).toBeNull();
-    });
-});
+import { agentDeletionSummary, confirmsDeletion, deletionSummary } from "./deletion";
 
 describe("confirmsDeletion", () => {
     it("wants the id exactly", () => {

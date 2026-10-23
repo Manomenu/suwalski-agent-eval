@@ -1,5 +1,4 @@
-import { Alert, Anchor, Badge, Button, Checkbox, Group, Paper, Stack, Switch, Table, Text, Title } from "@mantine/core";
-import { useState } from "react";
+import { Anchor, Badge, Button, Checkbox, Group, Paper, Stack, Table, Text, Title } from "@mantine/core";
 
 import { formatTime, versionTitle } from "../../runs/results";
 import { archiveVersions, deleteVersion, fetchVersionDeletion, type AgentVersion } from "../api";
@@ -10,7 +9,6 @@ import { pageOfItems } from "../../pagination/pages";
 import { usePageParam } from "../../pagination/usePageParam";
 import {
     compareVersionsTitle,
-    selectionActions,
     versionCompareHref,
     versionHref,
     versionLabel,
@@ -19,9 +17,19 @@ import {
     VERSION_ID_HELP,
     VERSION_LABEL_HELP,
     VERSIONS_SECTION_HELP,
-    visibleVersions,
 } from "../view";
-import { versionToDelete } from "../deletion";
+import { archiveSelection, visibleItems } from "../archive";
+import { ArchiveControls, type ArchiveLabels } from "../ArchiveControls";
+import { useArchiveList } from "../useArchiveList";
+
+const LABELS: ArchiveLabels = {
+    archive: "Archive selected",
+    unarchive: "Unarchive selected",
+    remove: "Delete",
+    removeHint: "Select one archived version to delete it.",
+    showArchived: "Show archived",
+    errorTitle: "Could not change the versions",
+};
 
 /** The agent's versions: select some to archive them (hidden), switch "Show archived" to see, restore or delete them (an archived version, with its runs). */
 export function VersionsSection({
@@ -38,40 +46,14 @@ export function VersionsSection({
     /** Called after the server archived or restored versions, so the page loads the list again. */
     onChanged: () => void;
 }) {
-    const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
     const [requestedPage, setRequestedPage] = usePageParam("versionsPage");
-    const [busy, setBusy] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [deleting, setDeleting] = useState(false);
-    const [notice, setNotice] = useState<string | null>(null);
+    const list = useArchiveList((ids, archived) => archiveVersions(agentName, ids, archived), onChanged);
+    const { selected } = list;
 
-    const shown = visibleVersions(versions, showArchived);
+    const shown = visibleItems(versions, showArchived);
     const { items: listed, page } = pageOfItems(shown, requestedPage);
-    const { toArchive, toRestore } = selectionActions(listed, selected);
+    const { toArchive, toRestore, toDelete } = archiveSelection(listed, selected, (version) => version.id);
     const toCompare = versionsToCompare(listed, selected);
-    const toDelete = versionToDelete(listed, selected);
-
-    function toggle(id: string, checked: boolean) {
-        const next = new Set(selected);
-        if (checked) next.add(id);
-        else next.delete(id);
-        setSelected(next);
-    }
-
-    async function change(ids: string[], archived: boolean) {
-        setBusy(true);
-        setError(null);
-        setNotice(null);
-        try {
-            await archiveVersions(agentName, ids, archived);
-            setSelected(new Set());
-            onChanged();
-        } catch (e: unknown) {
-            setError(e instanceof Error ? e.message : String(e));
-        } finally {
-            setBusy(false);
-        }
-    }
 
     return (
         <Stack gap="sm">
@@ -83,17 +65,16 @@ export function VersionsSection({
             ) : (
                 <Paper withBorder p="md">
                     <Stack gap="sm">
-                        <Group justify="space-between">
-                            <Group gap="sm">
-                                <Button
-                                    variant="light"
-                                    disabled={toArchive.length === 0 || busy}
-                                    onClick={() => {
-                                        void change(toArchive, true);
-                                    }}
-                                >
-                                    Archive selected
-                                </Button>
+                        <ArchiveControls
+                            labels={LABELS}
+                            toArchive={toArchive}
+                            toRestore={toRestore}
+                            canDelete={toDelete !== null}
+                            busy={list.busy}
+                            showArchived={showArchived}
+                            notice={list.notice}
+                            error={list.error}
+                            extra={
                                 <Button
                                     variant="light"
                                     disabled={toCompare === null}
@@ -105,47 +86,19 @@ export function VersionsSection({
                                 >
                                     Compare versions
                                 </Button>
-                                {showArchived && (
-                                    <Button
-                                        variant="light"
-                                        disabled={toRestore.length === 0 || busy}
-                                        onClick={() => {
-                                            void change(toRestore, false);
-                                        }}
-                                    >
-                                        Unarchive selected
-                                    </Button>
-                                )}
-                                {showArchived && (
-                                    <Button
-                                        color="red"
-                                        variant="light"
-                                        disabled={toDelete === null || busy}
-                                        title={toDelete === null ? "Select one archived version to delete it." : undefined}
-                                        onClick={() => {
-                                            setDeleting(true);
-                                        }}
-                                    >
-                                        Delete
-                                    </Button>
-                                )}
-                            </Group>
-                            <Switch
-                                label="Show archived"
-                                checked={showArchived}
-                                onChange={(event) => {
-                                    setRequestedPage(1);
-                                    setSelected(new Set());
-                                    onShowArchivedChange(event.currentTarget.checked);
-                                }}
-                            />
-                        </Group>
-                        {notice !== null && <Alert color="green">{notice}</Alert>}
-                        {error !== null && (
-                            <Alert color="red" title="Could not change the versions">
-                                {error}
-                            </Alert>
-                        )}
+                            }
+                            onChange={(ids, archived) => {
+                                void list.change(ids, archived);
+                            }}
+                            onDelete={() => {
+                                list.setDeleting(true);
+                            }}
+                            onShowArchivedChange={(show) => {
+                                setRequestedPage(1);
+                                list.clear();
+                                onShowArchivedChange(show);
+                            }}
+                        />
                         <Table.ScrollContainer minWidth={500}>
                             <Table highlightOnHover>
                                 <Table.Thead>
@@ -170,7 +123,7 @@ export function VersionsSection({
                                                     aria-label={`Select version ${versionTitle(version.id, version.label)}`}
                                                     checked={selected.has(version.id)}
                                                     onChange={(event) => {
-                                                        toggle(version.id, event.currentTarget.checked);
+                                                        list.toggle(version.id, event.currentTarget.checked);
                                                     }}
                                                 />
                                             </Table.Td>
@@ -198,14 +151,14 @@ export function VersionsSection({
                             page={page}
                             onChange={(next) => {
                                 setRequestedPage(next);
-                                setSelected(new Set());
+                                list.clear();
                             }}
                         />
                         {listed.length === 0 && <Text c="dimmed">All versions are archived — switch on Show archived to see them.</Text>}
                     </Stack>
                 </Paper>
             )}
-            {deleting && toDelete !== null && (
+            {list.deleting && toDelete !== null && (
                 <DeleteModal
                     noun="version"
                     title="Delete this version?"
@@ -215,13 +168,10 @@ export function VersionsSection({
                     loadPreview={(signal) => fetchVersionDeletion(agentName, toDelete.id, signal)}
                     remove={() => deleteVersion(agentName, toDelete.id)}
                     onClose={() => {
-                        setDeleting(false);
+                        list.setDeleting(false);
                     }}
                     onDeleted={() => {
-                        setDeleting(false);
-                        setSelected(new Set());
-                        setNotice(`Deleted version ${versionTitle(toDelete.id, toDelete.label)} with its runs.`);
-                        onChanged();
+                        list.deleted(`Deleted version ${versionTitle(toDelete.id, toDelete.label)} with its runs.`);
                     }}
                 />
             )}

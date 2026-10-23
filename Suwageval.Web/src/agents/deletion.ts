@@ -1,14 +1,4 @@
-// The rules of deleting a version or an agent, as plain functions: which version the selection means, when the typed text confirms, what goes.
-
-/** The version "Delete" acts on: exactly one selected version, and an archived one (only those can be deleted); otherwise null. */
-export function versionToDelete<T extends { id: string; archivedAt?: string | null }>(
-    versions: T[],
-    selected: ReadonlySet<string>,
-): T | null {
-    const chosen = versions.filter((version) => selected.has(version.id));
-    const [only] = chosen;
-    return only && chosen.length === 1 && only.archivedAt != null ? only : null;
-}
+// The rules of deleting a version or an agent, as plain functions: when the typed text confirms, what goes.
 
 /** The deletion is confirmed by typing what is deleted (the version's id, the agent's name), exactly. */
 export function confirmsDeletion(typed: string, expected: string): boolean {

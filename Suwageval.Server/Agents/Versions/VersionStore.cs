@@ -56,7 +56,7 @@ internal sealed class VersionStore(Pool pool)
     /// Deletes an archived version of the agent, with its runs, samples and verdicts (the foreign keys cascade), unless one of those runs is
     /// queued or running; <paramref name="dryRun"/> only decides and counts. The version's row is locked, so no run is queued for it in between.
     /// </summary>
-    public async Task<VersionDeletionResult> DeleteVersionAsync(
+    public async Task<DeletionResult<VersionDeletion>> DeleteVersionAsync(
         Guid agentId,
         Guid versionId,
         bool dryRun,
@@ -75,7 +75,7 @@ internal sealed class VersionStore(Pool pool)
         );
         if (version is null)
         {
-            return new VersionDeletionResult(DeletionOutcome.NotFound, null);
+            return new DeletionResult<VersionDeletion>(DeletionOutcome.NotFound, null);
         }
         // The runs that go: those of the version and, however far the chain goes, the re-checks and verdict copies of them.
         var counts = await connection.QuerySingleAsync<DeletionCounts>(
@@ -100,15 +100,15 @@ internal sealed class VersionStore(Pool pool)
         var contents = new VersionDeletion(versionId, counts.Runs, counts.Samples, counts.Verdicts, version.Label);
         if (!version.Archived)
         {
-            return new VersionDeletionResult(DeletionOutcome.NotArchived, contents);
+            return new DeletionResult<VersionDeletion>(DeletionOutcome.NotArchived, contents);
         }
         if (counts.Active > 0)
         {
-            return new VersionDeletionResult(DeletionOutcome.HasActiveRuns, contents);
+            return new DeletionResult<VersionDeletion>(DeletionOutcome.HasActiveRuns, contents);
         }
         if (dryRun)
         {
-            return new VersionDeletionResult(DeletionOutcome.Allowed, contents);
+            return new DeletionResult<VersionDeletion>(DeletionOutcome.Allowed, contents);
         }
         await connection.ExecuteAsync(
             new CommandDefinition(
@@ -119,7 +119,7 @@ internal sealed class VersionStore(Pool pool)
             )
         );
         await transaction.CommitAsync(cancellationToken);
-        return new VersionDeletionResult(DeletionOutcome.Deleted, contents);
+        return new DeletionResult<VersionDeletion>(DeletionOutcome.Deleted, contents);
     }
 
     private sealed record VersionToDelete(string? Label, bool Archived);
