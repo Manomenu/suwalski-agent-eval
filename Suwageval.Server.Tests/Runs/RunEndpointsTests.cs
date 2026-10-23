@@ -472,6 +472,24 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Repeated_tag_parameters_keep_the_runs_of_any_of_the_tags_and_the_unlimited_ones()
+    {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
+        var client = Client();
+        var agent = await NewAgentAsync(fake.Url.AbsoluteUri);
+        var store = new RunStore(database.Pool);
+        var smoke = await store.EnqueueAsync(agent.Id, agent.VersionId, ["smoke"], agent.EndpointUrl, cancellationToken: Cancellation);
+        await store.EnqueueAsync(agent.Id, agent.VersionId, ["billing"], agent.EndpointUrl, cancellationToken: Cancellation);
+        var everything = await store.EnqueueAsync(agent.Id, agent.VersionId, [], agent.EndpointUrl, cancellationToken: Cancellation);
+
+        var one = await GetAsync<RunList>(client, $"/runs?agent={agent.Name}&tag=smoke");
+        var two = await GetAsync<RunList>(client, $"/runs?agent={agent.Name}&tag=smoke&tag=billing");
+
+        Assert.Equal(new[] { everything, smoke }.Order(), one.Runs.Select(run => run.Id).Order());
+        Assert.Equal((2, 3), (one.TotalCount, two.TotalCount));
+    }
+
+    [Fact]
     public async Task The_total_counts_only_the_runs_a_filter_leaves()
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);

@@ -9,7 +9,7 @@ namespace Suwageval.Cli.Runs;
 /// <summary>
 /// <c>suwageval runs</c>: the runs of the agent named in <c>suwageval/agent.yaml</c>, newest first — id, status, tags, version, checks
 /// passed of all, creation time, branch and a "reference" mark; <c>--limit</c> keeps the newest ones (default 10), <c>--version</c> (repeatable)
-/// those of the given agent versions, <c>--reference</c> only reference runs, <c>--group</c> only the runs of a group, <c>--any-group</c> only the runs in some group, <c>--all-runs</c> grouped or not (the default is the runs in no group,
+/// those of the given agent versions, <c>--reference</c> only reference runs, <c>--tag</c> (repeatable) only the runs that ran the scenarios of any of the tags (limited to tags including one, or not limited), <c>--group</c> only the runs of a group, <c>--any-group</c> only the runs in some group, <c>--all-runs</c> grouped or not (the default is the runs in no group,
 /// like the web: group runs are experiments), <c>--groups</c> lists the groups instead (<c>--archived</c>: the archived ones too), <c>--json</c> prints the run summaries. It is how a
 /// run to compare with is found (<c>suwageval compare</c>). Exits 0, or 2 when the agent file or the server is wrong.
 /// </summary>
@@ -34,6 +34,12 @@ internal static class RunsCommand
         {
             Description = "Only reference runs: the ones that make the history regressions are measured against.",
         };
+        var tag = new Option<string[]>("--tag")
+        {
+            Description =
+                "Only the runs that ran the scenarios of this tag: limited to tags including it, or not limited at all (repeat it for several: any of them).",
+            AllowMultipleArgumentsPerToken = false,
+        };
         var group = CommandOptions.Group("Only the runs started in this group (run --group).");
         var anyGroup = new Option<bool>("--any-group") { Description = "Only the runs started in some group." };
         var allRuns = new Option<bool>("--all-runs")
@@ -57,6 +63,7 @@ internal static class RunsCommand
             limit,
             version,
             reference,
+            tag,
             group,
             anyGroup,
             allRuns,
@@ -116,7 +123,8 @@ internal static class RunsCommand
                             parsed.GetValue(group),
                             parsed.GetValue(anyGroup) ? RunGrouping.Any
                                 : parsed.GetValue(allRuns) || parsed.GetValue(group) is not null ? RunGrouping.All
-                                : RunGrouping.None
+                                : RunGrouping.None,
+                            parsed.GetValue(tag)
                         );
                         var output = parsed.InvocationConfiguration.Output;
                         if (parsed.GetValue(json))

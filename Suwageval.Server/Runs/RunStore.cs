@@ -121,13 +121,15 @@ internal sealed class RunStore(Pool pool)
           AND (@grouping = 'All'
                OR (@grouping = 'None') = (COALESCE(r.run_group, (SELECT o.run_group FROM runs o WHERE o.id = r.recheck_of)) IS NULL))
           AND (cardinality(@versionIds::uuid[]) = 0 OR r.agent_version_id = ANY(@versionIds::uuid[]))
+          AND (cardinality(@tags::text[]) = 0 OR cardinality(r.tags) = 0 OR r.tags && @tags::text[])
         """;
 
     /// <summary>
     /// A page of runs, newest first (<c>created_at</c> descending, then <c>id</c>): at most <paramref name="limit"/> of them after
     /// the first <paramref name="offset"/>, only those of the given agent versions when <paramref name="versionIds"/> is not empty,
     /// only those of <paramref name="runGroup"/> when one is given, only those in no group or in some group as <paramref name="grouping"/> says
-    /// (a re-check counts as in the group of the run it was made from).
+    /// (a re-check counts as in the group of the run it was made from),
+    /// only those that ran the scenarios of any of <paramref name="tags"/> when some are given: limited to tags including one of them, or not limited at all.
     /// </summary>
     public async Task<IReadOnlyList<RunRow>> ListPageAsync(
         Guid? agentId,
@@ -136,6 +138,7 @@ internal sealed class RunStore(Pool pool)
         int limit,
         string? runGroup = null,
         RunGrouping grouping = RunGrouping.All,
+        IReadOnlyCollection<string>? tags = null,
         CancellationToken cancellationToken = default
     )
     {
@@ -156,6 +159,7 @@ internal sealed class RunStore(Pool pool)
                     limit,
                     runGroup,
                     grouping = grouping.ToString(),
+                    tags = (tags ?? []).ToArray(),
                 },
                 cancellationToken: cancellationToken
             )
@@ -169,6 +173,7 @@ internal sealed class RunStore(Pool pool)
         IReadOnlyCollection<Guid> versionIds,
         string? runGroup = null,
         RunGrouping grouping = RunGrouping.All,
+        IReadOnlyCollection<string>? tags = null,
         CancellationToken cancellationToken = default
     )
     {
@@ -182,6 +187,7 @@ internal sealed class RunStore(Pool pool)
                     versionIds = versionIds.ToArray(),
                     runGroup,
                     grouping = grouping.ToString(),
+                    tags = (tags ?? []).ToArray(),
                 },
                 cancellationToken: cancellationToken
             )
