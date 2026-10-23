@@ -159,4 +159,12 @@ belongs to.
     column of every chunk, so every page reads against it on its own.
   - Open questions: whether the chunks are a print-only layout (CSS can't split a table's columns — likely a print-only
     rendering of the same data, which F24's rule "no separate print view" did not need; say why it is needed here), and
-    the CLI's parity (probably none: its text output already is the report).
+    whether the web's print and the server's PDF (below) are one rendering or two.
+  - **CLI and plugin make the same report** (AGENTS.md, section 5: anything the web can do, the CLI can do). The server
+    serves it as a PDF through an endpoint (e.g. `GET /runs/{id}/report.pdf`, `GET /runs/compare/report.pdf?runs=…|group=…
+    [&baseline=…]&tag=…`, the same parameters as the views), and the CLI saves it: `suwageval results <runId> --report
+    [path]`, `suwageval compare … --report [path]`. The path is optional — a file, or a folder to put it in; without it
+    the current folder and a name that says what it is (`report-run-<id8>.pdf`, `report-compare-<group or ids>.pdf`). The
+    plugin's skill lists it, and Claude saves a report only when asked, then says where. Open question: how the server renders
+    the PDF — a headless browser printing the web's print view (one rendering, but a new component in the image, compose and
+    the chart: say why) or a PDF library in .NET (no new component, but a second layout to keep in step with the web's).
