@@ -209,6 +209,107 @@ public sealed class ResultsCommandTests
         Assert.Empty(api.Paths);
     }
 
+    private static CheckRunResult Check(string key, bool passed, bool notJudged = false) =>
+        new()
+        {
+            Key = key,
+            Revision = 1,
+            LatestRevision = 1,
+            JudgedByModel = false,
+            Definition = new TextCheck
+            {
+                Key = key,
+                ScenarioKey = "s",
+                Contains = "x",
+            },
+            Passed = passed,
+            PassRate = passed ? 1 : 0,
+            PassThreshold = 1,
+            Samples =
+            [
+                new CheckSampleResult
+                {
+                    Sample = 1,
+                    Passed = passed,
+                    NotJudged = notJudged,
+                    Evidence = [],
+                    Message = passed ? "ok" : "wrong",
+                },
+            ],
+        };
+
+    private static ScenarioRunResult Scenario(string key, SampleStatus sample, params CheckRunResult[] checks) =>
+        new()
+        {
+            Key = key,
+            Tags = [],
+            Revision = 1,
+            DefinitionYaml = "",
+            Samples =
+            [
+                new SampleResult
+                {
+                    Sample = 1,
+                    Status = sample,
+                    Error = sample == SampleStatus.Done ? null : "timeout",
+                },
+            ],
+            Checks = checks,
+        };
+
+    [Fact]
+    public void Failed_only_prints_what_did_not_pass_and_how_much_was_left_out()
+    {
+        var mixed = Failing(RunStatus.Done) with
+        {
+            Scenarios =
+            [
+                Scenario("all-good", SampleStatus.Done, Check("fine", passed: true), Check("also-fine", passed: true)),
+                Scenario("mixed", SampleStatus.Done, Check("fine-too", passed: true), Check("broken", passed: false)),
+                Scenario("unjudged", SampleStatus.Done, Check("maybe", passed: true, notJudged: true)),
+                Scenario("silent", SampleStatus.Failed, Check("quiet", passed: true)),
+            ],
+        };
+        var (_, output, _, _, _) = Results(
+            request => request.RequestUri?.AbsolutePath == $"/runs/{RunId}" ? Json(Summary(RunStatus.Done)) : Json(mixed),
+            RunId.ToString(),
+            "--failed-only"
+        );
+
+        Assert.Contains("not passed:", output, StringComparison.Ordinal);
+        Assert.Contains("mixed / broken", output, StringComparison.Ordinal);
+        Assert.Contains("unjudged / maybe", output, StringComparison.Ordinal);
+        Assert.Contains("not judged: 1 of 1 samples", output, StringComparison.Ordinal);
+        Assert.Contains("silent  sample 1: no answer: timeout", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("all-good", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("also-fine", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("mixed / fine-too", output, StringComparison.Ordinal);
+        Assert.Contains("left out: 4 passed checks, 1 passed scenarios", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Without_failed_only_nothing_is_left_out_and_json_is_not_narrowed()
+    {
+        var passing = Failing(RunStatus.Done) with { Scenarios = [Scenario("all-good", SampleStatus.Done, Check("fine", passed: true))] };
+        HttpResponseMessage answer(HttpRequestMessage request)
+        {
+            return request.RequestUri?.AbsolutePath == $"/runs/{RunId}" ? Json(Summary(RunStatus.Done)) : Json(passing);
+        }
+
+        Assert.DoesNotContain("left out", Results(answer, RunId.ToString()).Output, StringComparison.Ordinal);
+        var json = Results(answer, RunId.ToString(), "--failed-only", "--json").Output;
+        Assert.Equal("fine", JsonSerializer.Deserialize<RunResults>(json, ContractJson.Options)?.Scenarios[0].Checks[0].Key);
+    }
+
+    [Fact]
+    public void Failed_only_and_open_together_are_refused()
+    {
+        var (exit, _, _, api, _) = Results(Api(), RunId.ToString(), "--failed-only", "--open");
+
+        Assert.NotEqual(0, exit);
+        Assert.Empty(api.Paths);
+    }
+
     [Fact]
     public void A_run_id_that_is_not_one_is_refused_before_any_request()
     {

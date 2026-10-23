@@ -12,7 +12,21 @@ import { TagFilter } from "../tagFilter/TagFilter";
 import { useTagFilter } from "../tagFilter/useTagFilter";
 import { fetchComparison, type ComparedRun, type RunComparison } from "./api";
 import { ColumnHeader, type BaselineInfo } from "./ColumnHeader";
-import { baselineOf, deltaText, searchWithBaseline, TIME_DELTA_HELP, timeDeltaText, toggledBaseline, trendColor } from "./compare";
+import { ChangeNote } from "./ChangeNote";
+import {
+    baselineOf,
+    changeBackground,
+    changeOfTrend,
+    checksChange,
+    deltaText,
+    samplesChange,
+    searchWithBaseline,
+    TIME_DELTA_HELP,
+    timeDeltaText,
+    toggledBaseline,
+    trendColor,
+    type Change,
+} from "./compare";
 import { contractDifferences, type Difference } from "./contractDiff";
 import { COLUMN_MIN_WIDTH, LABEL_COLUMN_WIDTH, tableMinWidth } from "./layout";
 import { ScenarioRows } from "./ScenarioRows";
@@ -129,6 +143,14 @@ function View({
     const { baseline } = variants;
     const compared = baseline?.runs ?? null;
     const comparedTags = baseline == null ? null : selectedTagRows(baseline.tags, selectedTags);
+    const baselineColumn = baseline == null ? -1 : variants.runs.findIndex((variant) => variant.run.id === baseline.runId);
+    // The totals a column's summary shows: the run's own, or over the scenarios left by the tag filter.
+    const totalsOf = (column: number) => (filtered ? columnTotals(scenarios, column) : variants.runs[column]?.run);
+    const summaryChange = (column: number, change: typeof checksChange | typeof samplesChange): Change | null => {
+        const own = totalsOf(column);
+        const base = totalsOf(baselineColumn);
+        return baseline == null || column === baselineColumn || own === undefined || base === undefined ? null : change(own, base);
+    };
 
     return (
         <Stack gap="md">
@@ -141,7 +163,7 @@ function View({
                 {columns} {columns === 1 ? "run" : "runs"}, one column each.
                 {compared === null
                     ? " A check passes when its pass rate reaches its threshold; the best column of a row is marked. Pick a baseline by a column's header to read the others against it."
-                    : " Every run is read against the baseline; pick another by its header, or click the baseline again to go back to the plain view. A check passes when its pass rate reaches its threshold."}
+                    : " Every run is read against the baseline: a cell better than the baseline's is green, a worse one red. Pick another by its header, or click the baseline again to go back to the plain view. A check passes when its pass rate reaches its threshold."}
             </Text>
             <TagFilter
                 tags={[...variants.scenarios.flatMap((scenario) => scenario.tags), ...variants.tags.flatMap((row) => row.tag ?? [])]}
@@ -188,11 +210,20 @@ function View({
                                         </Text>
                                     </Tooltip>
                                 </Table.Td>
-                                {variants.runs.map((variant, column) => (
-                                    <Table.Td key={variant.run.id} className="no-wrap">
-                                        <ChecksCount run={filtered ? columnTotals(scenarios, column) : variant.run} />
-                                    </Table.Td>
-                                ))}
+                                {variants.runs.map((variant, column) => {
+                                    const change = summaryChange(column, checksChange);
+                                    return (
+                                        <Table.Td
+                                            key={variant.run.id}
+                                            className="no-wrap"
+                                            bg={changeBackground(change)}
+                                            data-change={change ?? undefined}
+                                        >
+                                            <ChecksCount run={filtered ? columnTotals(scenarios, column) : variant.run} />
+                                            <ChangeNote change={change} />
+                                        </Table.Td>
+                                    );
+                                })}
                             </Table.Tr>
                             <Table.Tr>
                                 <Table.Td fw={500}>
@@ -202,11 +233,20 @@ function View({
                                         </Text>
                                     </Tooltip>
                                 </Table.Td>
-                                {variants.runs.map((variant, column) => (
-                                    <Table.Td key={variant.run.id} className="no-wrap">
-                                        <SamplesCount run={filtered ? columnTotals(scenarios, column) : variant.run} />
-                                    </Table.Td>
-                                ))}
+                                {variants.runs.map((variant, column) => {
+                                    const change = summaryChange(column, samplesChange);
+                                    return (
+                                        <Table.Td
+                                            key={variant.run.id}
+                                            className="no-wrap"
+                                            bg={changeBackground(change)}
+                                            data-change={change ?? undefined}
+                                        >
+                                            <SamplesCount run={filtered ? columnTotals(scenarios, column) : variant.run} />
+                                            <ChangeNote change={change} />
+                                        </Table.Td>
+                                    );
+                                })}
                             </Table.Tr>
                             <Table.Tr>
                                 <Table.Td fw={500}>{filtered ? "Turn time (all scenarios)" : "Turn time"}</Table.Td>
@@ -235,7 +275,8 @@ function View({
                         <Table.Tbody>
                             <SectionRow columns={columns} title="Pass rate per tag" help={TAG_RATE_HELP} />
                             {tagRows.map((row) => {
-                                const best = bestColumns(row.rates.map(({ passRate }) => passRate));
+                                // With a baseline every cell is read by its change; without one the best column of the row is marked.
+                                const best = baseline == null ? bestColumns(row.rates.map(({ passRate }) => passRate)) : new Set<number>();
                                 const changes = comparedTags?.find((candidate) => candidate.tag === row.tag);
                                 return (
                                     <Table.Tr key={row.tag ?? "\u0000all"}>
@@ -245,13 +286,15 @@ function View({
                                         {row.rates.map((rate, column) => {
                                             const { passRate } = rate;
                                             const change = changes?.rates[column]?.change;
+                                            const cellChange = changeOfTrend(change?.trend);
                                             const hint = coverageHint(row.tag, rate);
                                             return (
                                                 <Table.Td
                                                     key={variants.runs[column]?.run.id}
-                                                    bg={change === undefined && best.has(column) ? BEST_BACKGROUND : "transparent"}
+                                                    bg={best.has(column) ? BEST_BACKGROUND : changeBackground(cellChange)}
                                                     fw={best.has(column) ? 700 : 400}
                                                     className="no-wrap"
+                                                    data-change={cellChange ?? undefined}
                                                 >
                                                     <Group gap="xs" wrap="nowrap">
                                                         <Text inherit>{passRate == null ? "—" : percent(passRate)}</Text>
@@ -273,6 +316,7 @@ function View({
                                                             </Text>
                                                         )}
                                                     </Group>
+                                                    <ChangeNote change={cellChange} />
                                                 </Table.Td>
                                             );
                                         })}
@@ -314,6 +358,7 @@ function View({
                                     key={section.title ?? ""}
                                     section={section}
                                     columns={variants.runs}
+                                    baseline={baseline ?? null}
                                     open={open}
                                     onToggle={toggleOpen}
                                 />

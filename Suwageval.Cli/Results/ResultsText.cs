@@ -7,11 +7,12 @@ namespace Suwageval.Cli.Results;
 
 /// <summary>
 /// What <c>suwageval results</c> prints for a run: a header (status, version, tags, branch), what <c>run --wait</c> prints (the regression
-/// summary, else the totals), every failing check with the reason of its first failing sample, and the turn times.
+/// summary, else the totals), every failing check with the reason of its first failing sample, and the turn times. With
+/// <c>failedOnly</c> the failing checks give way to everything that did not pass (see <see cref="PassedFilter"/>) and a line of how much was left out.
 /// </summary>
 internal static class ResultsText
 {
-    public static string Describe(RunResults results, Uri page)
+    public static string Describe(RunResults results, Uri page, bool failedOnly = false)
     {
         ArgumentNullException.ThrowIfNull(results);
         ArgumentNullException.ThrowIfNull(page);
@@ -37,32 +38,85 @@ internal static class ResultsText
                 run.Status == RunStatus.Done && results.Regression is not null ? RegressionText.Describe(results) : RunVerdict.Line(results)
             );
 
-        var failing = results
-            .Scenarios.SelectMany(scenario => scenario.Checks.Where(check => !check.Passed).Select(check => (scenario.Key, check)))
-            .ToList();
-        if (failing.Count > 0)
+        if (failedOnly)
         {
-            text.AppendLine().AppendLine("failing checks:");
-            foreach (var (scenario, check) in failing)
-            {
-                var sample = check.Samples.FirstOrDefault(sample => !sample.Passed);
-                text.AppendLine(
-                    string.Create(
-                        CultureInfo.InvariantCulture,
-                        $"  {scenario} / {check.Key}  {check.PassRate * 100:0}% passed, needs {check.PassThreshold * 100:0}%{(check.JudgeModel is null ? "" : $"  judge {check.JudgeModel}")}"
-                    )
-                );
-                if (sample is not null)
-                {
-                    text.AppendLine(
-                        string.Create(CultureInfo.InvariantCulture, $"    sample {sample.Sample}: {sample.Message.ReplaceLineEndings(" ")}")
-                    );
-                }
-            }
+            AppendNotPassed(text, results);
+        }
+        else
+        {
+            AppendFailing(text, results);
         }
 
         text.AppendLine().AppendLine($"turn time: median {TurnTime.Format(results.MedianMs)}, p95 {TurnTime.Format(results.P95Ms)}");
         text.Append(page);
         return text.ToString();
+    }
+
+    private static void AppendFailing(StringBuilder text, RunResults results)
+    {
+        var failing = results
+            .Scenarios.SelectMany(scenario => scenario.Checks.Where(check => !check.Passed).Select(check => (scenario.Key, check)))
+            .ToList();
+        if (failing.Count == 0)
+        {
+            return;
+        }
+        text.AppendLine().AppendLine("failing checks:");
+        foreach (var (scenario, check) in failing)
+        {
+            AppendCheck(text, scenario, check);
+        }
+    }
+
+    private static void AppendNotPassed(StringBuilder text, RunResults results)
+    {
+        var left = results.Scenarios.Where(scenario => !PassedFilter.ScenarioPassed(scenario)).ToList();
+        if (left.Count > 0)
+        {
+            text.AppendLine().AppendLine("not passed:");
+        }
+        foreach (var scenario in left)
+        {
+            foreach (var sample in scenario.Samples.Where(sample => sample.Status != SampleStatus.Done))
+            {
+                text.AppendLine(
+                    string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"  {scenario.Key}  sample {sample.Sample}: {(sample.Status == SampleStatus.Failed ? "no answer" : "simulated user not played")}: {sample.Error?.ReplaceLineEndings(" ") ?? "no error given"}"
+                    )
+                );
+            }
+            foreach (var check in scenario.Checks.Where(check => !PassedFilter.CheckPassed(check)))
+            {
+                AppendCheck(text, scenario.Key, check);
+            }
+        }
+        var passedChecks = results.Scenarios.Sum(scenario => scenario.Checks.Count(PassedFilter.CheckPassed));
+        var passedScenarios = results.Scenarios.Count(PassedFilter.ScenarioPassed);
+        text.AppendLine()
+            .AppendLine(
+                string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"left out: {passedChecks} passed checks, {passedScenarios} passed scenarios (the totals above are the run's)"
+                )
+            );
+    }
+
+    private static void AppendCheck(StringBuilder text, string scenario, CheckRunResult check)
+    {
+        var notJudged = check.Samples.Count(sample => sample.NotJudged);
+        text.AppendLine(
+            string.Create(
+                CultureInfo.InvariantCulture,
+                $"  {scenario} / {check.Key}  {check.PassRate * 100:0}% passed, needs {check.PassThreshold * 100:0}%{(check.JudgeModel is null ? "" : $"  judge {check.JudgeModel}")}{(notJudged > 0 ? $"  not judged: {notJudged} of {check.Samples.Count} samples" : "")}"
+            )
+        );
+        var sample = check.Samples.FirstOrDefault(sample => !sample.Passed);
+        if (sample is not null)
+        {
+            text.AppendLine(
+                string.Create(CultureInfo.InvariantCulture, $"    sample {sample.Sample}: {sample.Message.ReplaceLineEndings(" ")}")
+            );
+        }
     }
 }

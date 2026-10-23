@@ -4,6 +4,8 @@ import type { components } from "../api/openapi";
 import type { ValidSelection } from "./variants";
 
 export type RunComparison = components["schemas"]["RunComparison"];
+export type BaselineComparison = components["schemas"]["BaselineComparison"];
+export type ComparedCheck = components["schemas"]["ComparedCheck"];
 export type ComparedRun = components["schemas"]["ComparedRun"];
 export type ComparedRate = components["schemas"]["ComparedRate"];
 export type ComparedTag = components["schemas"]["ComparedTag"];
