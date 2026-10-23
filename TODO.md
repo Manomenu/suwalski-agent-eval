@@ -204,3 +204,16 @@ belongs to.
   - `environment: suwageval` whenever the headers
   are present, so evaluation traffic never mixes with real use. Its README says how to find a failing sample's trace from a
   run's page.
+- **Hide versions whose runs are all in groups, as the runs are.** Every run registers its version, so a sweep over three
+  models makes three versions that the Versions section, the version/model/data filters above the runs and
+  `suwageval versions` show like the agent's main line. The numbers are not affected (trend, unstable checks and agent errors
+  go through `EffectiveRuns`, which skips group runs), only the lists. A version that also has a run outside a group (e.g.
+  the current one as a sweep's `baseline` variant) is an ordinary version; one whose runs are all in groups is hidden by
+  default, with the words the runs already use:
+  - the server computes it, nothing stored: `groupRunsOnly` on `AgentVersion` (true when the version has runs and every one
+    is in a group); a later run outside a group makes it ordinary on its own;
+  - web: hidden from the Versions section and from the version, model and data filters by default; a switch "Show versions
+    with group runs only" brings them back, each marked with a grey "group runs only" badge;
+  - CLI, mirroring `runs`: `suwageval versions` leaves them out; `--any-group` lists only them, `--all-versions` lists both
+    (as `runs --any-group` / `--all-runs`); `--archived` stays separate. The plugin's skill says so;
+  - archiving stays the user's own decision and is not mixed with this.
