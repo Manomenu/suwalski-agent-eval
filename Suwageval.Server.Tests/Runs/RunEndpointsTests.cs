@@ -136,6 +136,23 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         return await response.Content.ReadFromJsonAsync<RunCreated>(Cancellation) ?? throw new InvalidOperationException("no body");
     }
 
+    [Fact]
+    public async Task An_interrupted_run_can_be_run_again()
+    {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
+        var client = Client();
+        var agent = await NewAgentAsync(fake.Url.AbsoluteUri);
+        var original = await StartAsync(client, new RunRequest { Agent = agent.Name });
+        var store = new RunStore(database.Pool);
+        await store.ClaimNextAsync(agent.Id, Cancellation);
+        await store.InterruptRunningAsync(agent.Id, Cancellation);
+
+        var again = await RerunOkAsync(client, original.RunId);
+
+        Assert.NotEqual(original.RunId, again.RunId);
+        Assert.Equal(RunStatus.Interrupted, (await GetAsync<RunSummary>(client, $"/runs/{original.RunId}")).Status);
+    }
+
     [Theory]
     [InlineData("regression")]
     [InlineData("regression", "smoke")]

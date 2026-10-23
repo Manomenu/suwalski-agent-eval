@@ -22,6 +22,7 @@ import {
     runStatusLabel,
     scenariosChecksCounts,
     scenariosSamplesCounts,
+    statusColor,
     statusLabel,
 } from "./results";
 
@@ -50,6 +51,7 @@ describe("results", () => {
         expect(isActive("Done")).toBe(false);
         expect(isActive("Failed")).toBe(false);
         expect(isActive("Cancelled")).toBe(false);
+        expect(isActive("Interrupted")).toBe(false);
     });
 
     it("offers cancelling only for a queued or running run that nobody asked to stop", () => {
@@ -72,6 +74,8 @@ describe("results", () => {
 
     it("labels statuses in English", () => {
         expect(statusLabel("Done")).toBe("done");
+        expect(statusLabel("Interrupted")).toBe("interrupted");
+        expect(statusColor("Interrupted")).toBe("orange");
     });
 
     it("summarizes a check", () => {

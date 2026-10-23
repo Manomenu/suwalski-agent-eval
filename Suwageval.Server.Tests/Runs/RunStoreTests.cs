@@ -280,6 +280,28 @@ public sealed class RunStoreTests(TestDatabase database)
     }
 
     [Fact]
+    public async Task Interrupting_marks_only_the_running_runs_with_the_reason_and_the_time()
+    {
+        var store = Store();
+        var agent = await NewAgentAsync();
+        var running = await EnqueueAsync(store, agent);
+        await store.ClaimNextAsync(agent.Id, Cancellation);
+        var queued = await EnqueueAsync(store, agent);
+        var done = await EnqueueAsync(store, agent);
+        await store.FinishAsync(done, RunStatus.Done, cancellationToken: Cancellation);
+
+        var marked = await store.InterruptRunningAsync(agent.Id, Cancellation);
+
+        Assert.Equal(1, marked);
+        var interrupted = await store.GetAsync(running, Cancellation);
+        Assert.Equal((RunStatus.Interrupted, RunStore.InterruptedError), (interrupted?.State, interrupted?.Error));
+        Assert.NotNull(interrupted?.FinishedAt);
+        Assert.Equal(RunStatus.Queued, (await store.GetAsync(queued, Cancellation))?.State);
+        var untouched = await store.GetAsync(done, Cancellation);
+        Assert.Equal((RunStatus.Done, null), (untouched?.State, untouched?.Error));
+    }
+
+    [Fact]
     public async Task List_gives_the_runs_of_an_agent_newest_first()
     {
         var store = Store();

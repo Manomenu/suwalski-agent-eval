@@ -24,6 +24,19 @@ internal sealed partial class RunWorker(
     )]
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        try
+        {
+            var interrupted = await runs.InterruptRunningAsync(cancellationToken: stoppingToken);
+            LogInterrupted(interrupted);
+        }
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+        {
+            return;
+        }
+        catch (Exception error)
+        {
+            LogPollFailed(error);
+        }
         while (!stoppingToken.IsCancellationRequested)
         {
             try
@@ -47,6 +60,9 @@ internal sealed partial class RunWorker(
             }
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Marked {Count} runs left running by the previous server as interrupted")]
+    private partial void LogInterrupted(int count);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Taking the next run from the queue failed")]
     private partial void LogPollFailed(Exception error);

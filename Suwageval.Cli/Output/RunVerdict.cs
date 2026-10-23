@@ -19,6 +19,10 @@ internal static class RunVerdict
     public static string Line(RunResults results)
     {
         var run = results.Run;
+        if (run.Status == RunStatus.Interrupted)
+        {
+            return $"The run was interrupted: the server stopped during the run. Start it again with `suwageval rerun {run.Id}`.";
+        }
         if (run.Status != RunStatus.Done)
         {
             return $"The run {run.Status.ToString().ToLowerInvariant()}{(run.Error is null ? "." : $": {run.Error}")}";

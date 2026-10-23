@@ -224,7 +224,7 @@ version on your own initiative.
 ## Reading results
 
 `run --wait --json` prints `{ run, scenarios }`. `run` has the agent, `agentVersionId`, `status`,
-`error` and the totals (`checksPassed`, `checksFailed`). Each scenario has `key` and its
+`error` and the totals (`checksPassed`, `checksFailed`). `status` `Interrupted` means the server stopped during the run (a restart, a deploy), not that the agent or a check failed: the results so far are partial, so offer `suwageval rerun <id>`. Each scenario has `key` and its
 `checks`; a check has `key`, `passed`, `passRate`, `passThreshold` and per-sample `message` and
 `evidence` — the message says why it failed. A judge check's message is the judge's reason; a sample with `notJudged: true` was not judged at all. A scenario sample with an `error` means the agent
 itself failed on that turn, which is not a check failing: say which.
