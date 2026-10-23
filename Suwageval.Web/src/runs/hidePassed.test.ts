@@ -73,10 +73,10 @@ describe("hiddenCounts / hiddenLine", () => {
         const all = [scenario("good", [check("a", true), check("b", true)]), scenario("mixed", [check("c", true), check("d", false)])];
         expect(hiddenCounts(all)).toEqual({ checks: 3, scenarios: 1 });
         expect(hiddenLine({ checks: 3, scenarios: 1 })).toBe(
-            "Hidden: 3 passed checks, 1 passed scenario. The counts above are the run's totals.",
+            "Hidden: 3 passed checks (1 scenario passed entirely and is hidden whole). Samples and Checks at the top still count the whole run.",
         );
         expect(hiddenLine({ checks: 1, scenarios: 0 })).toBe(
-            "Hidden: 1 passed check, 0 passed scenarios. The counts above are the run's totals.",
+            "Hidden: 1 passed check. Samples and Checks at the top still count the whole run.",
         );
     });
 });

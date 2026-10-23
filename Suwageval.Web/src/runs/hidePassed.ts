@@ -49,9 +49,15 @@ export function hiddenCounts(scenarios: readonly ScenarioRunResult[]): { checks:
     };
 }
 
-/** The line under the switch; the summary's counts stay the run's totals, and it says so. */
+/**
+ * The line under the switch: how many passed checks are hidden, how many scenarios went whole (their checks are among those),
+ * and that the Samples and Checks counts at the top of the page still count the whole run.
+ */
 export function hiddenLine(counts: { checks: number; scenarios: number }): string {
     const checks = `${String(counts.checks)} passed ${counts.checks === 1 ? "check" : "checks"}`;
-    const scenarios = `${String(counts.scenarios)} passed ${counts.scenarios === 1 ? "scenario" : "scenarios"}`;
-    return `Hidden: ${checks}, ${scenarios}. The counts above are the run's totals.`;
+    const whole =
+        counts.scenarios === 0
+            ? ""
+            : ` (${String(counts.scenarios)} ${counts.scenarios === 1 ? "scenario" : "scenarios"} passed entirely and ${counts.scenarios === 1 ? "is" : "are"} hidden whole)`;
+    return `Hidden: ${checks}${whole}. Samples and Checks at the top still count the whole run.`;
 }

@@ -284,7 +284,11 @@ public sealed class ResultsCommandTests
         Assert.DoesNotContain("all-good", output, StringComparison.Ordinal);
         Assert.DoesNotContain("also-fine", output, StringComparison.Ordinal);
         Assert.DoesNotContain("mixed / fine-too", output, StringComparison.Ordinal);
-        Assert.Contains("left out: 4 passed checks, 1 passed scenarios", output, StringComparison.Ordinal);
+        Assert.Contains(
+            "left out: 4 passed checks (1 scenario passed entirely); the samples and checks totals above count the whole run",
+            output,
+            StringComparison.Ordinal
+        );
     }
 
     [Fact]
