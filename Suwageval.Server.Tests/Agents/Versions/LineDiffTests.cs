@@ -1,7 +1,7 @@
 using Suwageval.Contracts.Agents;
-using Suwageval.Server.Agents;
+using Suwageval.Server.Agents.Versions;
 
-namespace Suwageval.Server.Tests.Agents;
+namespace Suwageval.Server.Tests.Agents.Versions;
 
 public sealed class LineDiffTests
 {

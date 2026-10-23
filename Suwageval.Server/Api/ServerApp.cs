@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Text.Json.Serialization;
 using Suwageval.AgentSdk;
 using Suwageval.Server.Agents;
+using Suwageval.Server.Agents.Versions;
 using Suwageval.Server.Checks;
 using Suwageval.Server.Database;
 using Suwageval.Server.Runs;
@@ -34,7 +35,8 @@ internal static class ServerApp
             .AddSingleton<ScenarioStore>()
             .AddSingleton<CheckStore>()
             .AddSingleton<RunGroupStore>()
-            .AddSingleton<TrendStore>();
+            .AddSingleton<TrendStore>()
+            .AddSingleton<VersionStore>();
         builder.Services.ConfigureHttpJsonOptions(options =>
         {
             ContractJson.Configure(options.SerializerOptions);
@@ -54,6 +56,7 @@ internal static class ServerApp
 
         // Features map their routes here: app.MapScenarios() — and get a layer in ContractsTests.cs.
         app.MapAgents();
+        app.MapVersions();
         app.MapScenarios();
         app.MapChecks();
         app.MapRuns();

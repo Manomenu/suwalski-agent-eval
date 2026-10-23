@@ -2,7 +2,7 @@
 // A version only comes from a run, and a run reads the contract the agent serves, so the test is that agent: a tiny HTTP server.
 import { expect, test } from "@playwright/test";
 
-import { createAgent, runToEnd, serveAgent } from "../../e2e/helpers";
+import { createAgent, runToEnd, serveAgent } from "../../../e2e/helpers";
 
 const LOOKUP_TOOL = {
     name: "lookup",

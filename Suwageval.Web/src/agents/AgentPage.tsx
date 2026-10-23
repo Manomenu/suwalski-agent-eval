@@ -66,7 +66,7 @@ import {
     VERSION_HELP,
 } from "./view";
 import { UnstableChecksCard } from "./UnstableChecksCard";
-import { VersionsSection } from "./VersionsSection";
+import { VersionsSection } from "./versions/VersionsSection";
 
 // The chart library is the largest part of the app: it loads only when an agent's page is opened.
 /** What the filters and the runs table's columns mean, said on hover over their labels. */
