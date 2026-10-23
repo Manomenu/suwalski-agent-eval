@@ -387,4 +387,18 @@ public sealed class RunComparerTests
             comparison.Tags[0].Rates.Select(rate => rate.Change)
         );
     }
+
+    [Fact]
+    public void Every_column_names_its_judge_and_every_check_says_whether_a_model_judges_it_without_a_baseline()
+    {
+        var judged = Run(Scenario("s", Check("c", 1, 1, judgedByModel: true, judgeModel: "test-judge-model"), Check("d", 1, 1)));
+        var plain = Run(Scenario("s", Check("d", 1, 1)));
+
+        var comparison = RunComparisonReport.Build("agent", null, [(judged, null, []), (plain, null, [])], [], baselineColumn: null);
+
+        Assert.Null(comparison.Baseline);
+        Assert.Equal(["test-judge-model", null], comparison.Runs.Select(run => run.JudgeModel));
+        var checks = comparison.Scenarios.Single().Cells[0]!.Checks;
+        Assert.Equal([true, false], checks.Select(check => check.JudgedByModel));
+    }
 }

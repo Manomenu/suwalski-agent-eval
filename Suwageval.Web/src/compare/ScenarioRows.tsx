@@ -15,6 +15,7 @@ import {
     noAnswerText,
     type ScenarioSection,
 } from "./variants";
+import { ModelJudgedIcon } from "../checks/ModelJudgedIcon";
 import { scenarioInRunHref } from "../routes/links";
 import { shortId } from "../format/names";
 
@@ -159,7 +160,14 @@ function ScenarioDetail({ scenario, columns }: { scenario: VariantScenario; colu
                         <Table.Tbody>
                             {matrix.map((row) => (
                                 <Table.Tr key={row.key}>
-                                    <Table.Td className="wrap-key">{row.key}</Table.Td>
+                                    <Table.Td className="wrap-key">
+                                        <Group gap={4} wrap="nowrap" align="flex-start">
+                                            {row.checks.some((check) => check?.judgedByModel === true) && <ModelJudgedIcon />}
+                                            <Text span inherit>
+                                                {row.key}
+                                            </Text>
+                                        </Group>
+                                    </Table.Td>
                                     {row.checks.map((check, column) => (
                                         <Table.Td key={columns[column]?.run.id}>
                                             {check === null ? (

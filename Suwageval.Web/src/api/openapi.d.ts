@@ -2464,6 +2464,8 @@ export interface components {
             samples: number;
             /** Format: int32 */
             samplesPassed: number;
+            /** @description A model gives the verdict (a judge check, or a `$judge` matcher): the check is not deterministic. */
+            judgedByModel: boolean;
             /** @description The samples that did not pass, with the message the run page shows for them. */
             failures: components["schemas"]["VariantFailure"][];
         };
@@ -2492,6 +2494,8 @@ export interface components {
             versionLabel?: null | string;
             /** @description The models the run's version uses. */
             modelNames: string[];
+            /** @description The model that judged the run: the most common known model among its model-judged checks; absent when none was judged by a known model. */
+            judgeModel?: null | string;
             /**
              * Format: double
              * @description The median turn time over the run's samples that made a call, in milliseconds; null when none did.

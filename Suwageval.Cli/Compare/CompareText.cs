@@ -72,7 +72,9 @@ internal static class CompareText
             {
                 if (scenario.Cells[column] is { FailedChecks.Count: > 0 } failing)
                 {
-                    text.AppendLine($"    {Letter(column)} failed: {string.Join(", ", failing.FailedChecks)}");
+                    text.AppendLine(
+                        $"    {Letter(column)} failed: {string.Join(", ", failing.FailedChecks.Select(key => FailedCheck(failing, key)))}"
+                    );
                 }
             }
         }
@@ -85,6 +87,10 @@ internal static class CompareText
         return text.ToString();
     }
 
+    /// <summary>A failed check's key, marked when a model judged it: its verdict may vary from run to run.</summary>
+    private static string FailedCheck(VariantCell cell, string key) =>
+        cell.Checks.Any(check => check.Key == key && check.JudgedByModel) ? $"{key} (model-judged)" : key;
+
     private static string Header(int column, VariantRun variant, Guid? baseline)
     {
         var run = variant.Run;
@@ -95,7 +101,7 @@ internal static class CompareText
         var models = variant.ModelNames.Count == 0 ? "-" : string.Join(", ", variant.ModelNames);
         return string.Create(
             CultureInfo.InvariantCulture,
-            $"{Letter(column)}{(run.Id == baseline ? " baseline" : "")}  {name}  models {models}  run {run.Id.ToString()[..8]}  checks {run.ChecksPassed}/{run.ChecksPassed + run.ChecksFailed} passed, {run.ChecksFailed} failed  samples {run.SamplesDone - run.SamplesFailed}/{run.SamplesTotal} answered  median {TurnTime.Format(variant.MedianMs)}  p95 {TurnTime.Format(variant.P95Ms)}"
+            $"{Letter(column)}{(run.Id == baseline ? " baseline" : "")}  {name}  models {models}  run {run.Id.ToString()[..8]}  checks {run.ChecksPassed}/{run.ChecksPassed + run.ChecksFailed} passed, {run.ChecksFailed} failed  samples {run.SamplesDone - run.SamplesFailed}/{run.SamplesTotal} answered  median {TurnTime.Format(variant.MedianMs)}  p95 {TurnTime.Format(variant.P95Ms)}{(variant.JudgeModel is null ? "" : $"  judge {variant.JudgeModel}")}"
         );
     }
 

@@ -217,12 +217,16 @@ function View({
                                     </Table.Td>
                                 ))}
                             </Table.Tr>
-                            {compared !== null && (
+                            {variants.runs.some((variant) => variant.judgeModel != null) && (
                                 <Table.Tr>
                                     <Table.Td fw={500}>Judge</Table.Td>
-                                    {compared.map((run) => (
-                                        <Table.Td key={run.run.id}>
-                                            <Judge compared={run} baselineJudgeModel={baselineJudgeModel(variants)} />
+                                    {variants.runs.map((variant, column) => (
+                                        <Table.Td key={variant.run.id}>
+                                            <Judge
+                                                model={variant.judgeModel}
+                                                changed={compared?.[column]?.judgeChanged ?? false}
+                                                baselineModel={baselineJudgeModel(variants)}
+                                            />
                                         </Table.Td>
                                     ))}
                                 </Table.Tr>
@@ -331,7 +335,7 @@ function View({
     );
 }
 
-/** The judge of the baseline's own column: what the "other judge" badge of the others is measured against. */
+/** The judge of the baseline's own column: what the "≠ baseline" mark of the others is measured against. */
 function baselineJudgeModel({ baseline }: RunComparison): string | null {
     return baseline?.runs.find((compared) => compared.run.id === baseline.runId)?.judgeModel ?? null;
 }
@@ -357,23 +361,26 @@ function TimeChanges({ compared }: { compared: ComparedRun | undefined }) {
     );
 }
 
-/** The model that judged a run, and a warning when it is not the baseline's: a different verdict may come from the judge. */
-function Judge({ compared, baselineJudgeModel }: { compared: ComparedRun; baselineJudgeModel: string | null }) {
-    if (compared.judgeModel == null) return <Text size="sm">—</Text>;
+/**
+ * The model that judged a run's model-judged checks. Against a baseline judged by another model it is marked "≠ baseline" — in grey,
+ * not as better or worse: it says a different verdict may come from the judge, not the agent.
+ */
+function Judge({ model, changed, baselineModel }: { model: string | null | undefined; changed: boolean; baselineModel: string | null }) {
+    if (model == null) return <Text size="sm">—</Text>;
     return (
         <Group gap={4} wrap="nowrap">
-            <ModelJudgedIcon model={compared.judgeModel} />
+            <ModelJudgedIcon model={model} />
             <Text size="sm" className="wrap-key">
-                {compared.judgeModel}
+                {model}
             </Text>
-            {compared.judgeChanged && (
+            {changed && (
                 <Tooltip
-                    label={`The baseline was judged by ${baselineJudgeModel ?? ""}: a different verdict may come from the judge, not the agent`}
+                    label={`The baseline was judged by ${baselineModel ?? "another model"}: a different verdict may come from the judge, not the agent`}
                     multiline
                     w={HELP_WIDTH}
                 >
-                    <Badge size="xs" variant="light" color="orange" style={{ cursor: "help" }}>
-                        other judge
+                    <Badge size="xs" variant="outline" color="gray" style={{ cursor: "help" }}>
+                        ≠ baseline
                     </Badge>
                 </Tooltip>
             )}
