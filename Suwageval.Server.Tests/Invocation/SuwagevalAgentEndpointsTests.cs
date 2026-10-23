@@ -139,7 +139,7 @@ public sealed class SuwagevalAgentEndpointsTests : IAsyncLifetime
         using var request = new HttpRequestMessage(HttpMethod.Post, new Uri("/suwageval/turn", UriKind.Relative)) { Content = content };
         request.Headers.Add(
             SuwagevalBaggage.HeaderName,
-            "suwageval.run.id=run-1,suwageval.sample=2,suwageval.scenario.type=Simulation,suwageval.scenario.tags=a%2Cb,other=x"
+            "suwageval.run.id=run-1,suwageval.scenario.sample=2,suwageval.scenario.type=Simulation,suwageval.scenario.tags=a%2Cb,other=x"
         );
 
         using var response = await client!.SendAsync(request, Cancellation);

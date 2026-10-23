@@ -163,7 +163,7 @@ percent-encoded as UTF-8 (a space is `%20`, a comma `%2C`, `%` is `%25`; `=` may
 | `suwageval.run.id` | the run's id (a GUID) |
 | `suwageval.scenario.key` | the scenario's key |
 | `suwageval.scenario.type` | `Turn` (a recorded conversation, the agent answers its last message) or `Simulation` (a simulated user) |
-| `suwageval.sample` | the sample's number, from 1 |
+| `suwageval.scenario.sample` | the scenario sample's number, from 1 |
 | `suwageval.scenario.tags` | the scenario's tags, comma-separated inside the value (so `a%2Cb` in the header); left out when it has none |
 | `suwageval.run.tags` | the tags the run was limited to (`run --tag`), comma-separated; left out for a run of every scenario |
 | `suwageval.run.group` | the run's group; left out outside a group |
@@ -183,9 +183,9 @@ clashes with the agent's own names:
 - the **session** comes from `conversationId`, as the agent does for production conversations (Langfuse `sessionId`,
   OpenTelemetry attribute `session.id`);
 - the **environment** is `suwageval` (Langfuse `environment`, attribute `langfuse.environment`) whenever the baggage is present;
-- **metadata** prefixed `suwageval_`: `suwageval_run_id`, `suwageval_scenario`, `suwageval_scenario_type`, `suwageval_sample`,
-  `suwageval_run_group`, `suwageval_run_tags`, `suwageval_scenario_tags`; a run's traces are found by the metadata
-  `suwageval_run_id`;
+- **metadata** under the baggage keys themselves (`suwageval.run.id`, `suwageval.scenario.key`, `suwageval.scenario.sample`,
+  …), so one value has one name from Suwageval to the backend; the agent adds whatever prefix its backend needs (Langfuse:
+  `langfuse.trace.metadata.<key>`). A run's traces are found by the metadata `suwageval.run.id`;
 - **no backend tags** from these values: a run id, a group, a sample or a scenario tag (often one per task) can be new on any
   run, and as a tag each would stay in the backend's tag list for good — metadata filters just as well;
 - the values belong on **every span** of the turn, not only the root: put them into the OpenTelemetry baggage of the request
