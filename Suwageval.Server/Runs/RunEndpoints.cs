@@ -3,6 +3,7 @@ using Suwageval.AgentSdk.Agents;
 using Suwageval.Contracts.Runs;
 using Suwageval.Server.Agents;
 using Suwageval.Server.Checks;
+using Suwageval.Server.Checks.Evaluation;
 using Suwageval.Server.Invocation;
 using Suwageval.Server.Judges;
 using Suwageval.Server.Problems;
@@ -28,102 +29,7 @@ internal static class RunEndpoints
         app.MapGet("/runs/{id:guid}/recheck", RecheckPlanAsync).Produces<RecheckPlan>();
         app.MapPost("/runs/{id:guid}/recheck", RecheckAsync).Produces<RunCreated>(StatusCodes.Status202Accepted);
         app.MapPost("/runs/{id:guid}/cancel", CancelAsync).Produces(StatusCodes.Status202Accepted);
-        app.MapGet("/agents/{agent}/unstable-checks", UnstableChecksAsync).Produces<IReadOnlyList<UnstableCheck>>();
-        app.MapGet("/agents/{agent}/agent-errors", AgentErrorsAsync).Produces<IReadOnlyList<AgentError>>();
         return app;
-    }
-
-    /// <summary>The unstable checks and the agent errors look at the newest this many finished runs of the agent.</summary>
-    internal const int UnstableCheckRuns = 200;
-
-    /// <summary>
-    /// The open unstable checks of an agent (<see cref="UnstableChecks"/>: unstable in the newest considered version that ran them at least
-    /// twice), over its newest <see cref="UnstableCheckRuns"/> finished runs of the considered versions, each with the verdicts it shows
-    /// (<see cref="EffectiveRuns"/>). The considered versions are the <c>version</c> query (repeatable agent version ids), else every
-    /// version not archived. 404: no such agent.
-    /// </summary>
-    private static async Task<IResult> UnstableChecksAsync(
-        string agent,
-        [FromQuery] Guid[]? version,
-        AgentStore agents,
-        RunStore runs,
-        CancellationToken cancellationToken
-    )
-    {
-        var found = await agents.GetAsync(agent, cancellationToken);
-        if (found is null)
-        {
-            return ProblemResults.NotFound("Agent", agent);
-        }
-        var versions = await agents.ListVersionsAsync(found.Id, cancellationToken);
-        var considered = Considered(versions, version);
-        var rows = await runs.ListRunCheckVerdictsAsync(await PickAsync(found.Id, considered, runs, cancellationToken), cancellationToken);
-        var labels = versions.ToDictionary(row => row.Id, row => row.Label);
-        return Results.Ok(
-            UnstableChecks
-                .Find(rows, considered)
-                .Select(check => check with { VersionLabel = labels.GetValueOrDefault(check.AgentVersionId) })
-                .ToList()
-        );
-    }
-
-    /// <summary>The versions the open problems are decided over, newest first: the requested ones, else every one not archived.</summary>
-    private static List<Guid> Considered(IReadOnlyList<AgentVersionRow> versionsNewestFirst, Guid[]? requested) =>
-        [
-            .. versionsNewestFirst
-                .Where(row => requested is { Length: > 0 } ? requested.Contains(row.Id) : row.ArchivedAt is null)
-                .Select(row => row.Id),
-        ];
-
-    private static async Task<IReadOnlyList<EffectiveRuns.Point>> PickAsync(
-        Guid agentId,
-        IReadOnlyCollection<Guid> considered,
-        RunStore runs,
-        CancellationToken cancellationToken
-    )
-    {
-        var newestFirst = (await runs.ListAsync(agentId, cancellationToken)).Where(run => considered.Contains(run.AgentVersionId));
-        return EffectiveRuns.Pick([.. newestFirst], UnstableCheckRuns);
-    }
-
-    /// <summary>
-    /// Where the agent gave no answer and no newer version has run the scenario without it (<see cref="OpenAgentErrors"/>): per agent
-    /// version and scenario, the errors over the samples asked, the newest run and error text, worst first. The same runs and considered
-    /// versions as the unstable checks (a re-check does not call the agent, so it is not counted). 404: no such agent.
-    /// </summary>
-    private static async Task<IResult> AgentErrorsAsync(
-        string agent,
-        [FromQuery] Guid[]? version,
-        AgentStore agents,
-        RunStore runs,
-        CancellationToken cancellationToken
-    )
-    {
-        var found = await agents.GetAsync(agent, cancellationToken);
-        if (found is null)
-        {
-            return ProblemResults.NotFound("Agent", agent);
-        }
-        var versions = await agents.ListVersionsAsync(found.Id, cancellationToken);
-        var considered = Considered(versions, version);
-        var picked = await PickAsync(found.Id, considered, runs, cancellationToken);
-        var rows = await runs.ListAgentErrorsAsync([.. picked.Select(point => point.Run.Id)], cancellationToken);
-        var labels = versions.ToDictionary(row => row.Id, row => row.Label);
-        return Results.Ok(
-            OpenAgentErrors
-                .Find(rows, considered)
-                .Select(row => new AgentError
-                {
-                    ScenarioKey = row.ScenarioKey,
-                    AgentVersionId = row.AgentVersionId,
-                    VersionLabel = labels.GetValueOrDefault(row.AgentVersionId),
-                    Errors = row.Errors,
-                    Samples = row.Samples,
-                    NewestErrorRunId = row.NewestErrorRunId!.Value,
-                    NewestError = row.NewestError ?? "",
-                })
-                .ToList()
-        );
     }
 
     /// <summary>

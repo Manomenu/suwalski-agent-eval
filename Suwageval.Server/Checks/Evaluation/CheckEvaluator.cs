@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 using Suwageval.AgentSdk.Conversations;
 using Suwageval.Contracts.Checks;
 
-namespace Suwageval.Server.Checks;
+namespace Suwageval.Server.Checks.Evaluation;
 
 /// <summary>
 /// The deterministic checks (docs/scenario-format.md, "Checks"): pure functions of a check and a trace, no I/O, no model.

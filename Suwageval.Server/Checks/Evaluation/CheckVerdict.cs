@@ -1,6 +1,6 @@
 using Suwageval.AgentSdk.Conversations;
 
-namespace Suwageval.Server.Checks;
+namespace Suwageval.Server.Checks.Evaluation;
 
 /// <summary>
 /// A check's judgement of a trace: the items that decided it (possibly none) and a sentence saying why. <paramref name="NotJudged"/>

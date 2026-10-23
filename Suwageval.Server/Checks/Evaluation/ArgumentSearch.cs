@@ -1,6 +1,6 @@
 using Suwageval.AgentSdk.Conversations;
 
-namespace Suwageval.Server.Checks;
+namespace Suwageval.Server.Checks.Evaluation;
 
 /// <summary>
 /// A <c>tool-called</c> / <c>event</c> check with <c>$judge</c> matchers, evaluated as far as no model is needed: the candidates (items in

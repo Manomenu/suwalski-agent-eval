@@ -6,9 +6,11 @@ using Suwageval.Server.Agents.Versions;
 using Suwageval.Server.Checks;
 using Suwageval.Server.Database;
 using Suwageval.Server.Runs;
+using Suwageval.Server.Runs.AgentErrors;
 using Suwageval.Server.Runs.Compare;
 using Suwageval.Server.Runs.Groups;
 using Suwageval.Server.Runs.Trend;
+using Suwageval.Server.Runs.Unstable;
 using Suwageval.Server.Scenarios;
 
 namespace Suwageval.Server.Api;
@@ -36,6 +38,8 @@ internal static class ServerApp
             .AddSingleton<CheckStore>()
             .AddSingleton<RunGroupStore>()
             .AddSingleton<TrendStore>()
+            .AddSingleton<UnstableStore>()
+            .AddSingleton<AgentErrorStore>()
             .AddSingleton<VersionStore>();
         builder.Services.ConfigureHttpJsonOptions(options =>
         {
@@ -63,6 +67,8 @@ internal static class ServerApp
         app.MapCompare();
         app.MapRunGroups();
         app.MapTrend();
+        app.MapUnstable();
+        app.MapAgentErrors();
         return app;
     }
 }

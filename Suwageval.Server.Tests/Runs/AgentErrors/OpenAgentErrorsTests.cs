@@ -1,6 +1,6 @@
-using Suwageval.Server.Runs;
+using Suwageval.Server.Runs.AgentErrors;
 
-namespace Suwageval.Server.Tests.Runs;
+namespace Suwageval.Server.Tests.Runs.AgentErrors;
 
 public sealed class OpenAgentErrorsTests
 {

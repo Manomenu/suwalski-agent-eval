@@ -3,7 +3,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Options;
 using Suwageval.AgentSdk.Conversations;
 using Suwageval.Contracts.Checks;
-using Suwageval.Server.Checks;
+using Suwageval.Server.Checks.Evaluation;
 using Suwageval.Server.Simulation;
 
 namespace Suwageval.Server.Judges;

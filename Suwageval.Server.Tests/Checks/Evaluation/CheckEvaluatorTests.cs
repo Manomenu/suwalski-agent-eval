@@ -1,9 +1,9 @@
 using Suwageval.AgentSdk.Conversations;
 using Suwageval.Contracts.Checks;
-using Suwageval.Server.Checks;
+using Suwageval.Server.Checks.Evaluation;
 using static Suwageval.Server.Tests.Checks.Items;
 
-namespace Suwageval.Server.Tests.Checks;
+namespace Suwageval.Server.Tests.Checks.Evaluation;
 
 public sealed class CheckEvaluatorTests
 {

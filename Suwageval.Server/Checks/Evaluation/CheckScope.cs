@@ -1,7 +1,7 @@
 using Suwageval.AgentSdk.Conversations;
 using Suwageval.Contracts.Checks;
 
-namespace Suwageval.Server.Checks;
+namespace Suwageval.Server.Checks.Evaluation;
 
 /// <summary>The part of a trace a check looks at, after its <c>where</c> was applied, and a phrase telling which part that was.</summary>
 internal sealed record CheckScope(IReadOnlyList<ConversationItem> Items, string Description)
