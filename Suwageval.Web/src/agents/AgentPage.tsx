@@ -33,6 +33,8 @@ import { RunGroupsSection } from "./groups/RunGroupsSection";
 import { TagSelect } from "../tagSelect/TagSelect";
 import { useTagFilter } from "../tagFilter/useTagFilter";
 import { useGroupFilter } from "./useGroupFilter";
+import { useVersionGrouping } from "./useVersionGrouping";
+import { offeredVersions, versionGroupingFor } from "./versionGrouping";
 import { useRequest } from "../api/useRequest";
 import { useRuns } from "./useRuns";
 import {
@@ -141,6 +143,7 @@ function AgentView({
     const [dataVersions, setDataVersions] = useState<string[]>([]);
     const [versionFilter, setVersionFilter] = useState<string[]>([]);
     const [groupFilter, setGroupFilter] = useGroupFilter();
+    const [versionGrouping, setVersionGrouping] = useVersionGrouping();
     const [tagFilter, setTagFilter] = useTagFilter();
     const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
     // The server pages the runs, so the filters reach it as the versions they allow (none sent: every version).
@@ -162,6 +165,8 @@ function AgentView({
             setRequestedPage(1);
         };
     };
+    // The filters offer the versions the runs table's group filter lets show: a model used only in sweeps is not offered while the table lists runs in no group.
+    const offered = offeredVersions(versions, versionGroupingFor(groupFilter), models, dataVersions, versionFilter);
     // Only what is listed counts: a run the filter hides is not compared.
     const toCompare = runsToCompare(runs, selected);
     // The problem cards decide over the versions the filters show: a newer version the filters hide closes nothing. With none shown, nothing is asked.
@@ -244,7 +249,7 @@ function AgentView({
                             <MultiSelect
                                 label={<HeaderHelp label="Model" help={MODEL_HELP} />}
                                 placeholder={models.length === 0 ? "All models" : undefined}
-                                data={modelsOf(versions)}
+                                data={modelsOf(offered)}
                                 value={models}
                                 onChange={filtered(setModels)}
                                 clearable
@@ -253,7 +258,7 @@ function AgentView({
                             <MultiSelect
                                 label={<HeaderHelp label="Data version" help={DATA_VERSION_HELP} />}
                                 placeholder={dataVersions.length === 0 ? "All data versions" : undefined}
-                                data={dataVersionOptions(versions)}
+                                data={dataVersionOptions(offered)}
                                 value={dataVersions}
                                 onChange={filtered(setDataVersions)}
                                 clearable
@@ -262,7 +267,7 @@ function AgentView({
                             <MultiSelect
                                 label={<HeaderHelp label="Versions" help={VERSIONS_FILTER_HELP} />}
                                 placeholder={versionFilter.length === 0 ? "All versions" : undefined}
-                                data={versionOptions(versions)}
+                                data={versionOptions(offered)}
                                 value={versionFilter}
                                 onChange={filtered(setVersionFilter)}
                                 clearable
@@ -432,6 +437,8 @@ function AgentView({
                         versions={versions}
                         showArchived={showArchived}
                         onShowArchivedChange={filtered(setShowArchived)}
+                        grouping={versionGrouping}
+                        onGroupingChange={setVersionGrouping}
                         onChanged={onChanged}
                     />
 

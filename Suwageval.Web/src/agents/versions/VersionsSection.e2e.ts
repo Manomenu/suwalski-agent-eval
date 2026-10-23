@@ -77,3 +77,39 @@ test("versions are archived, shown again on request, restored and deleted with t
         agentServer.close();
     }
 });
+
+test("a version whose runs are all in a group is hidden by default and listed, marked, under Any group (kept in the address)", async ({
+    page,
+    request,
+}) => {
+    const served = { label: "e2e-main", config: "Be helpful." };
+    const agentServer = await serveAgent(served);
+    try {
+        const suffix = String(Date.now());
+        const name = `e2e-version-groups-${suffix}`;
+        await createAgent(request, { name, endpointUrl: agentServer.endpointUrl });
+        await runToEnd(request, { agent: name });
+        Object.assign(served, { label: "e2e-sweep", config: "Be brief." });
+        await runToEnd(request, { agent: name, group: `e2e-sweep-${suffix}` });
+        const mainVersion = page.getByRole("checkbox", { name: "Select version e2e-main", exact: true });
+        const sweepVersion = page.getByRole("checkbox", { name: "Select version e2e-sweep", exact: true });
+        const grouping = page.getByRole("combobox", { name: "Version group", exact: true });
+
+        await page.goto(`/agents/${name}`);
+        await expect(mainVersion).toBeVisible();
+        await expect(sweepVersion).toHaveCount(0);
+
+        await grouping.click();
+        await page.getByRole("option", { name: "Any group", exact: true }).click();
+        await expect(sweepVersion).toBeVisible();
+        await expect(mainVersion).toHaveCount(0);
+        await expect(page.getByText("Group runs only", { exact: true })).toBeVisible();
+        expect(page.url()).toContain("versions=any");
+
+        await page.goto(`/agents/${name}?versions=all`);
+        await expect(mainVersion).toBeVisible();
+        await expect(sweepVersion).toBeVisible();
+    } finally {
+        agentServer.close();
+    }
+});

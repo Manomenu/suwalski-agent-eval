@@ -3,12 +3,14 @@ using System.Globalization;
 using Suwageval.Cli.Output;
 using Suwageval.Cli.Server;
 using Suwageval.Contracts.Agents;
+using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Cli.Versions;
 
 /// <summary>
 /// <c>suwageval versions</c>: lists the versions of the agent named in <c>suwageval/agent.yaml</c> (the active ones; with
-/// <c>--archived</c> the archived ones too), and <c>versions archive|unarchive &lt;versionId&gt;...</c> hides or restores them.
+/// <c>--archived</c> the archived ones too). Versions whose every run is in a group are left out, like the runs in groups
+/// (<c>--any-group</c>: only those, <c>--all-versions</c>: both; they are marked "group runs only"). And <c>versions archive|unarchive &lt;versionId&gt;...</c> hides or restores them.
 /// <c>versions diff &lt;a&gt; &lt;b&gt;</c> prints what changed between two versions as a unified-style diff (<c>--json</c> the record, <c>--open</c> the page on the web), <c>versions delete &lt;versionId&gt;</c> deletes an archived
 /// version with its runs (after the person types its id, or with <c>--yes</c>). Exits 0, or 2 when the agent file, the server or a version is wrong.
 /// </summary>
@@ -20,13 +22,23 @@ internal static class VersionsCommand
     public static Command Create(Terminal terminal, HttpClient? http = null, Action<Uri>? openBrowser = null)
     {
         var archived = new Option<bool>("--archived") { Description = "Also list the archived versions (marked archived)." };
+        var anyGroup = new Option<bool>("--any-group") { Description = "Only the versions whose every run is in a group." };
+        var allVersions = new Option<bool>("--all-versions")
+        {
+            Description = "The versions whose every run is in a group and the others (the default is the others).",
+        };
         var json = CommandOptions.Json("Print the versions as JSON.");
         var server = CommandOptions.Server();
         var dir = CommandOptions.Dir();
 
-        var command = new Command("versions", "List the agent's versions; archive or unarchive them; delete an archived one with its runs.")
+        var command = new Command(
+            "versions",
+            "List the agent's versions (those with a run outside a group, or with no run, unless --any-group or --all-versions says otherwise); archive or unarchive them; delete an archived one with its runs."
+        )
         {
             archived,
+            anyGroup,
+            allVersions,
             json,
             server,
             dir,
@@ -36,6 +48,13 @@ internal static class VersionsCommand
             Diff(http, openBrowser),
             Delete(terminal, http),
         };
+        command.Validators.Add(result =>
+        {
+            if (result.GetValue(anyGroup) && result.GetValue(allVersions))
+            {
+                result.AddError("--any-group and --all-versions cannot be used together.");
+            }
+        });
         command.SetAction(
             (parsed, cancellationToken) =>
                 ServerCall.ForAgentAsync(
@@ -45,7 +64,11 @@ internal static class VersionsCommand
                     parsed.InvocationConfiguration.Error,
                     async (client, agent, _) =>
                     {
-                        var versions = (await client.VersionsAsync(agent, cancellationToken))
+                        var grouping =
+                            parsed.GetValue(anyGroup) ? RunGrouping.Any
+                            : parsed.GetValue(allVersions) ? RunGrouping.All
+                            : RunGrouping.None;
+                        var versions = (await client.VersionsAsync(agent, cancellationToken, grouping))
                             .Where(version => parsed.GetValue(archived) || version.ArchivedAt is null)
                             .ToList();
                         var output = parsed.InvocationConfiguration.Output;

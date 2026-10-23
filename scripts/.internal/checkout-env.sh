@@ -5,6 +5,12 @@
 # A linked worktree takes a suffix from its directory name (lower-case [a-z0-9_], at most 20 chars) for
 # the database names and a port pair (20000-29999) from a stable hash of that name. Nothing is cleaned
 # up afterwards: a worktree's databases stay until you drop them. A value already in the environment wins.
+#
+# The builds leave nothing running behind them: by default MSBuild keeps worker processes (node reuse) and its server
+# alive for the next build. The gate, the e2e run and every agent worktree each started their own set, and a day of
+# them held gigabytes of RAM doing nothing. A build of the gate is a few seconds slower without them.
+export MSBUILDDISABLENODEREUSE=1
+export DOTNET_CLI_USE_MSBUILD_SERVER=0
 _checkout_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 _git_dir="$(git -C "$_checkout_root" rev-parse --absolute-git-dir)"
 _common_dir="$(git -C "$_checkout_root" rev-parse --path-format=absolute --git-common-dir)"

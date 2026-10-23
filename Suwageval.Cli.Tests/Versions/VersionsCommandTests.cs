@@ -15,7 +15,7 @@ public sealed class VersionsCommandTests
     private static readonly Guid Active = Guid.Parse("aaaaaaaa-0000-0000-0000-000000000001");
     private static readonly Guid Archived = Guid.Parse("bbbbbbbb-0000-0000-0000-000000000002");
 
-    private sealed record Call(HttpMethod Method, string Path, string Body);
+    private sealed record Call(HttpMethod Method, string Path, string Body, string Query = "");
 
     private sealed class FakeApi(Func<HttpRequestMessage, HttpResponseMessage> answer) : HttpMessageHandler
     {
@@ -24,7 +24,7 @@ public sealed class VersionsCommandTests
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             var body = request.Content is null ? "" : await request.Content.ReadAsStringAsync(cancellationToken);
-            Calls.Add(new Call(request.Method, request.RequestUri?.AbsolutePath ?? "", body));
+            Calls.Add(new Call(request.Method, request.RequestUri?.AbsolutePath ?? "", body, request.RequestUri?.Query ?? ""));
             return answer(request);
         }
     }
@@ -36,7 +36,10 @@ public sealed class VersionsCommandTests
                 JsonSerializer.Serialize(
                     new[]
                     {
-                        new AgentVersion(Active, Guid.NewGuid(), "hash2", DateTimeOffset.Parse("2026-10-02T10:00:00Z"), ["m"], "v2"),
+                        new AgentVersion(Active, Guid.NewGuid(), "hash2", DateTimeOffset.Parse("2026-10-02T10:00:00Z"), ["m"], "v2")
+                        {
+                            GroupRunsOnly = true,
+                        },
                         new AgentVersion(
                             Archived,
                             Guid.NewGuid(),
@@ -47,7 +50,10 @@ public sealed class VersionsCommandTests
                             DateTimeOffset.Parse("2026-10-03T10:00:00Z"),
                             "2026-10-01",
                             "1832 articles"
-                        ),
+                        )
+                        {
+                            GroupRunsOnly = false,
+                        },
                     },
                     ContractJson.Options
                 ),
@@ -80,6 +86,51 @@ public sealed class VersionsCommandTests
         Assert.Contains(Active.ToString(), output, StringComparison.Ordinal);
         Assert.Contains("v2", output, StringComparison.Ordinal);
         Assert.DoesNotContain(Archived.ToString(), output, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("", "?grouping=None")]
+    [InlineData("--any-group", "?grouping=Any")]
+    [InlineData("--all-versions", "")]
+    public void The_grouping_asked_of_the_server_follows_any_group_and_all_versions(string option, string query)
+    {
+        ArgumentNullException.ThrowIfNull(option);
+        var (exit, _, _, api) = Versions(_ => Versions(), option.Length == 0 ? [] : [option]);
+
+        Assert.Equal(0, exit);
+        Assert.Equal(query, api.Calls.Single().Query);
+    }
+
+    [Fact]
+    public void Any_group_and_all_versions_cannot_be_used_together()
+    {
+        var (exit, _, _, api) = Versions(_ => Versions(), "--any-group", "--all-versions");
+
+        Assert.NotEqual(0, exit);
+        Assert.Empty(api.Calls);
+    }
+
+    [Fact]
+    public void A_version_whose_every_run_is_in_a_group_is_marked_and_archived_stays_separate()
+    {
+        var (_, output, _, _) = Versions(_ => Versions(), "--all-versions", "--archived");
+
+        var lines = output.Split('\n');
+        var marked = lines.Single(line => line.Contains(Active.ToString(), StringComparison.Ordinal));
+        Assert.EndsWith("active  group runs only", marked.TrimEnd(), StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "group runs only",
+            lines.Single(line => line.Contains(Archived.ToString(), StringComparison.Ordinal)),
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void Json_carries_group_runs_only()
+    {
+        var (_, output, _, _) = Versions(_ => Versions(), "--json", "--archived");
+
+        Assert.Equal([true, false], JsonSerializer.Deserialize<AgentVersion[]>(output, ContractJson.Options)?.Select(v => v.GroupRunsOnly));
     }
 
     [Fact]
@@ -300,7 +351,7 @@ public sealed class VersionsCommandTests
     {
         static AgentVersion Version(Guid id, string? label)
         {
-            return new(id, Guid.NewGuid(), "hash", DateTimeOffset.Parse("2026-10-01T10:00:00Z"), [], label);
+            return new(id, Guid.NewGuid(), "hash", DateTimeOffset.Parse("2026-10-01T10:00:00Z"), [], label) { GroupRunsOnly = false };
         }
         return new VersionDiff
         {

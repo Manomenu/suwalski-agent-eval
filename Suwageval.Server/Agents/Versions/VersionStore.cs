@@ -7,6 +7,28 @@ namespace Suwageval.Server.Agents.Versions;
 /// <summary>Archiving and deleting the versions of an agent. Plain SQL, mapped by Dapper.</summary>
 internal sealed class VersionStore(Pool pool)
 {
+    /// <summary>
+    /// The ids of the agent's versions that have at least one run and whose every run is in a group (a re-check counts as in the group of the run it
+    /// was made from, as in the runs list). A version with no run is not among them, and neither is one with a run outside a group.
+    /// </summary>
+    public async Task<IReadOnlySet<Guid>> GroupRunsOnlyAsync(Guid agentId, CancellationToken cancellationToken = default)
+    {
+        await using var connection = await pool.OpenAsync(cancellationToken);
+        var ids = await connection.QueryAsync<Guid>(
+            new CommandDefinition(
+                $"""
+                SELECT v.id FROM agent_versions v
+                WHERE v.agent_id = @agentId
+                  AND EXISTS (SELECT 1 FROM runs r WHERE r.agent_version_id = v.id)
+                  AND NOT EXISTS (SELECT 1 FROM runs r WHERE r.agent_version_id = v.id AND {RunGroupSql.EffectiveGroup} IS NULL)
+                """,
+                new { agentId },
+                cancellationToken: cancellationToken
+            )
+        );
+        return ids.ToHashSet();
+    }
+
     /// <summary>The ids among <paramref name="versionIds"/> that are not versions of the agent.</summary>
     public async Task<IReadOnlyList<Guid>> UnknownVersionsAsync(
         Guid agentId,

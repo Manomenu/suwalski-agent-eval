@@ -115,11 +115,11 @@ internal sealed class RunStore(Pool pool)
         return [.. rows];
     }
 
-    private const string ListFilter = """
+    private const string ListFilter = $"""
         WHERE (@agentId::uuid IS NULL OR r.agent_id = @agentId)
           AND (@runGroup::text IS NULL OR r.run_group = @runGroup)
           AND (@grouping = 'All'
-               OR (@grouping = 'None') = (COALESCE(r.run_group, (SELECT o.run_group FROM runs o WHERE o.id = r.recheck_of)) IS NULL))
+               OR (@grouping = 'None') = ({RunGroupSql.EffectiveGroup} IS NULL))
           AND (cardinality(@versionIds::uuid[]) = 0 OR r.agent_version_id = ANY(@versionIds::uuid[]))
           AND (cardinality(@tags::text[]) = 0 OR cardinality(r.tags) = 0 OR r.tags && @tags::text[])
         """;

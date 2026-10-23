@@ -170,19 +170,6 @@ belongs to.
 - **Later, only if this proves useful:** Suwageval sending its verdicts to Langfuse as scores per trace (an outside service, so a
   live test, the daily check and a secret, AGENTS.md section 3); Suwageval reading traces back; a `traceparent` header so the
   agent's spans join a trace Suwageval starts.
-- **Hide versions whose runs are all in groups, as the runs are.** Every run registers its version, so a sweep over three
-  models makes three versions that the Versions section, the version/model/data filters above the runs and
-  `suwageval versions` show like the agent's main line. The numbers are not affected (trend, unstable checks and agent errors
-  go through `EffectiveRuns`, which skips group runs), only the lists. A version that also has a run outside a group (e.g.
-  the current one as a sweep's `baseline` variant) is an ordinary version; one whose runs are all in groups is hidden by
-  default, with the words the runs already use:
-  - the server computes it, nothing stored: `groupRunsOnly` on `AgentVersion` (true when the version has runs and every one
-    is in a group); a later run outside a group makes it ordinary on its own;
-  - web: hidden from the Versions section and from the version, model and data filters by default; a switch "Show versions
-    with group runs only" brings them back, each marked with a grey "group runs only" badge;
-  - CLI, mirroring `runs`: `suwageval versions` leaves them out; `--any-group` lists only them, `--all-versions` lists both
-    (as `runs --any-group` / `--all-runs`); `--archived` stays separate. The plugin's skill says so;
-  - archiving stays the user's own decision and is not mixed with this.
 - **Compare: "What differs" collapsible, collapsed by default.** The section can grow long (a row per changed prompt line,
   config line, model, data version) and pushes the results down. Its header becomes a toggle (an accessible button with
   `aria-expanded`, like a scenario row) saying how many rows it holds ("What differs · 7"); collapsed on first view, the
