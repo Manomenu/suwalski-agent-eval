@@ -1,4 +1,4 @@
-import { Anchor, Badge, Button, Stack, Text, Tooltip } from "@mantine/core";
+import { Anchor, Badge, Box, Button, Stack, Text, Tooltip } from "@mantine/core";
 
 import { DataVersion } from "../dataVersion/DataVersion";
 import type { AgentVersion } from "../agents/api";
@@ -8,7 +8,6 @@ import { columnTitle, runTagsText } from "./variants";
 import { versionHref, compareGroupHref, runHref } from "../routes/links";
 import { formatTime } from "../format/time";
 import { shortId } from "../format/names";
-import { usePrinting } from "../print/usePrinting";
 
 /**
  * The button that makes a column the baseline (or, on the baseline itself, takes it back). The changes against the baseline are in the
@@ -75,7 +74,22 @@ export function ColumnHeader({
 function BaselineButton({ baseline, runId }: { baseline: BaselineInfo; runId: string }) {
     const { isBaseline } = baseline;
     // On paper the baseline is named, and the button that picks one is gone.
-    if (usePrinting()) return isBaseline ? <Badge w="fit-content">Baseline</Badge> : null;
+    return (
+        <>
+            {isBaseline && (
+                <Badge w="fit-content" className="print-only">
+                    Baseline
+                </Badge>
+            )}
+            <Box component="span" className="no-print">
+                <BaselineToggle baseline={baseline} runId={runId} />
+            </Box>
+        </>
+    );
+}
+
+function BaselineToggle({ baseline, runId }: { baseline: BaselineInfo; runId: string }) {
+    const { isBaseline } = baseline;
     return (
         <Tooltip label="Click to unselect the baseline" disabled={!isBaseline}>
             <Button

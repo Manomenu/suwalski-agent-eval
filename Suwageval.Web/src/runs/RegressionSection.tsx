@@ -8,7 +8,6 @@ import { checkAnchor } from "./results";
 import { StateBadge } from "./StateBadge";
 import { runHref } from "../routes/links";
 import { shortId } from "../format/names";
-import { usePrinting } from "../print/usePrinting";
 
 /** What a check's state says about it: its name, its history strip, then since when it fails and what to compare with. One cell each, so the columns line up. */
 function CheckLine({ item, runId }: { item: StatedCheck; runId: string }) {
@@ -42,9 +41,6 @@ function CheckLine({ item, runId }: { item: StatedCheck; runId: string }) {
 /** Known failures are not news: the same header as the other groups, the checks folded until asked for. */
 function KnownFailures({ known, runId }: { known: readonly StatedCheck[]; runId: string }) {
     const [opened, setOpened] = useState(false);
-    // On paper the known failures are listed too.
-    const printing = usePrinting();
-    const shown = opened || printing;
     return (
         <>
             <Group gap="xs" className="regression-checks-heading">
@@ -65,13 +61,12 @@ function KnownFailures({ known, runId }: { known: readonly StatedCheck[]; runId:
                     {opened ? "hide" : "show"}
                 </Anchor>
             </Group>
-            {shown && (
-                <ul className="regression-checks-group">
-                    {known.map((item) => (
-                        <CheckLine key={`${item.scenarioKey}/${item.check.key}`} item={item} runId={runId} />
-                    ))}
-                </ul>
-            )}
+            {/* Always in the page; folded it is hidden on the screen and still printed (print.css). */}
+            <ul className={opened ? "regression-checks-group" : "regression-checks-group folded-block"}>
+                {known.map((item) => (
+                    <CheckLine key={`${item.scenarioKey}/${item.check.key}`} item={item} runId={runId} />
+                ))}
+            </ul>
         </>
     );
 }
