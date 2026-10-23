@@ -117,7 +117,7 @@ public sealed class AgentClientTests
         Assert.DoesNotContain(stub.RequestHeaders.Keys, name => name.StartsWith("Suwageval-", StringComparison.OrdinalIgnoreCase));
         Assert.Equal(
             "suwageval.run.id=11111111-2222-3333-4444-555555555555,suwageval.scenario.key=refund-flow,suwageval.scenario.type=Simulation,"
-                + "suwageval.sample=3,suwageval.scenario.tags=refunds%2Ctier-1,suwageval.run.tags=smoke,suwageval.run.group=sweep%201%2C%20a=b",
+                + "suwageval.scenario.sample=3,suwageval.scenario.tags=refunds%2Ctier-1,suwageval.run.tags=smoke,suwageval.run.group=sweep%201%2C%20a=b",
             stub.RequestHeaders["baggage"]
         );
     }
@@ -128,7 +128,7 @@ public sealed class AgentClientTests
         var bare = Context with { ScenarioTags = [], RunTags = [], RunGroup = null, ScenarioType = ScenarioType.Turn };
 
         Assert.Equal(
-            "suwageval.run.id=11111111-2222-3333-4444-555555555555,suwageval.scenario.key=refund-flow,suwageval.scenario.type=Turn,suwageval.sample=3",
+            "suwageval.run.id=11111111-2222-3333-4444-555555555555,suwageval.scenario.key=refund-flow,suwageval.scenario.type=Turn,suwageval.scenario.sample=3",
             AgentClient.Baggage(bare)
         );
     }

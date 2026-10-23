@@ -14,7 +14,7 @@ public static class SuwagevalBaggage
     public const string RunId = "suwageval.run.id";
     public const string ScenarioKey = "suwageval.scenario.key";
     public const string ScenarioTypeKey = "suwageval.scenario.type";
-    public const string Sample = "suwageval.sample";
+    public const string ScenarioSample = "suwageval.scenario.sample";
     public const string ScenarioTags = "suwageval.scenario.tags";
     public const string RunTags = "suwageval.run.tags";
     public const string RunGroup = "suwageval.run.group";

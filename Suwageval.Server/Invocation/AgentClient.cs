@@ -71,7 +71,7 @@ internal sealed class AgentClient(HttpClient http)
             new(SuwagevalBaggage.RunId, context.RunId.ToString()),
             new(SuwagevalBaggage.ScenarioKey, context.ScenarioKey),
             new(SuwagevalBaggage.ScenarioTypeKey, context.ScenarioType.ToString()),
-            new(SuwagevalBaggage.Sample, context.Sample.ToString(CultureInfo.InvariantCulture)),
+            new(SuwagevalBaggage.ScenarioSample, context.Sample.ToString(CultureInfo.InvariantCulture)),
         };
         if (context.ScenarioTags.Count > 0)
         {

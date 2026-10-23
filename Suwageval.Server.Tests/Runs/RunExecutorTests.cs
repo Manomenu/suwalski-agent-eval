@@ -155,7 +155,7 @@ public sealed class RunExecutorTests(TestDatabase database)
         Assert.All(baggage, turn => Assert.DoesNotContain(SuwagevalBaggage.RunGroup, turn.Baggage.Keys));
         Assert.Equal(3, baggage.Select(turn => turn.Body.GetProperty("conversationId").GetString()).Distinct().Count());
         var withFixtures = baggage.Where(turn => turn.Baggage[SuwagevalBaggage.ScenarioKey] == "with-fixtures").ToList();
-        Assert.Equal(["1", "2"], withFixtures.Select(turn => turn.Baggage[SuwagevalBaggage.Sample]).Order());
+        Assert.Equal(["1", "2"], withFixtures.Select(turn => turn.Baggage[SuwagevalBaggage.ScenarioSample]).Order());
         Assert.All(
             withFixtures,
             turn =>

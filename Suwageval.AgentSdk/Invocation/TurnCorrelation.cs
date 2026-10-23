@@ -36,7 +36,7 @@ public sealed record TurnCorrelation(
             ValueOf(members, SuwagevalBaggage.RunId),
             ValueOf(members, SuwagevalBaggage.ScenarioKey),
             Enum.TryParse<ScenarioType>(ValueOf(members, SuwagevalBaggage.ScenarioTypeKey), out var type) ? type : null,
-            ValueOf(members, SuwagevalBaggage.Sample),
+            ValueOf(members, SuwagevalBaggage.ScenarioSample),
             ListOf(members, SuwagevalBaggage.ScenarioTags),
             ListOf(members, SuwagevalBaggage.RunTags),
             ValueOf(members, SuwagevalBaggage.RunGroup)

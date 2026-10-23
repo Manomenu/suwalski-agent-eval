@@ -167,12 +167,6 @@ belongs to.
     plugin's skill lists it, and Claude saves a report only when asked, then says where. Open question: how the server renders
     the PDF — a headless browser printing the web's print view (one rendering, but a new component in the image, compose and
     the chart: say why) or a PDF library in .NET (no new component, but a second layout to keep in step with the web's).
-- **suwexag: integrate Langfuse** (in `suwalski-example-agent`, as the reference of how an agent does it) — being built. Suwageval
-  now sends the W3C `baggage` header and always a `conversationId` (`docs/scenario-format.md`, with the Langfuse / OpenTelemetry
-  mapping); the agent sends its traces to Langfuse (keys in the gitignored `.env`, the service in its compose), session from
-  `conversationId`, `environment: suwageval`, metadata and tags prefixed `suwageval_`, the values on every span through baggage and
-  a span processor, and does not forward the baggage to its model provider. Its README says how to find a failing sample's trace
-  from a run's page.
 - **Later, only if this proves useful:** Suwageval sending its verdicts to Langfuse as scores per trace (an outside service, so a
   live test, the daily check and a secret, AGENTS.md section 3); Suwageval reading traces back; a `traceparent` header so the
   agent's spans join a trace Suwageval starts.
