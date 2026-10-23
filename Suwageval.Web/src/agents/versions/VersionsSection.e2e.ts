@@ -3,7 +3,7 @@
 // A version only comes from a run, and a run reads the contract the agent serves, so the test is that agent: a tiny HTTP server.
 import { expect, test } from "@playwright/test";
 
-import { createAgent, runToEnd, serveAgent } from "../../e2e/helpers";
+import { createAgent, runToEnd, serveAgent } from "../../../e2e/helpers";
 
 test("versions are archived, shown again on request, restored and deleted with their runs after the id is typed", async ({
     page,

@@ -11,6 +11,7 @@ using Suwageval.Contracts.Agents;
 using Suwageval.Contracts.Checks;
 using Suwageval.Contracts.Runs;
 using Suwageval.Server.Agents;
+using Suwageval.Server.Agents.Versions;
 using Suwageval.Server.Checks;
 using Suwageval.Server.Runs;
 using Suwageval.Server.Scenarios;
@@ -785,7 +786,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         var agent = await NewAgentAsync("http://agent.test");
         await AddRunAsync(agent, agent.VersionId, true);
         await AddRunAsync(agent, agent.VersionId, false);
-        await app.Services.GetRequiredService<AgentStore>().ArchiveVersionsAsync(agent.Id, [agent.VersionId], true, Cancellation);
+        await app.Services.GetRequiredService<VersionStore>().ArchiveVersionsAsync(agent.Id, [agent.VersionId], true, Cancellation);
         var url = $"/agents/{agent.Name}/unstable-checks";
 
         Assert.Empty(await GetAsync<List<UnstableCheck>>(client, url));

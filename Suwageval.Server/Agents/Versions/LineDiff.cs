@@ -1,6 +1,6 @@
 using Suwageval.Contracts.Agents;
 
-namespace Suwageval.Server.Agents;
+namespace Suwageval.Server.Agents.Versions;
 
 /// <summary>A line diff of two texts: every line with its numbers on each side, and the hunks a reader sees (changes with their context, long unchanged runs folded).</summary>
 internal static class LineDiff

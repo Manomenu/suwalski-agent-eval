@@ -4,7 +4,7 @@ import { lazy, Suspense } from "react";
 
 import { AgentPage } from "./agents/AgentPage";
 import { AgentsPage } from "./agents/AgentsPage";
-import { VersionPage } from "./agents/VersionPage";
+import { VersionPage } from "./agents/versions/VersionPage";
 import { ComparePage } from "./compare/ComparePage";
 import { ServerStatus } from "./health/ServerStatus";
 import { pageOf } from "./route";
@@ -13,7 +13,9 @@ import { AppNavbar } from "./shell/AppNavbar";
 import { CONTENT_MAX_WIDTH, HEADER_HEIGHT, LOGO_SIZE, NAVBAR_WIDTH } from "./shell/layout";
 
 // The diff library is needed only here: the page loads when a comparison of versions is opened.
-const VersionComparePage = lazy(() => import("./agents/VersionComparePage").then((module) => ({ default: module.VersionComparePage })));
+const VersionComparePage = lazy(() =>
+    import("./agents/versions/VersionComparePage").then((module) => ({ default: module.VersionComparePage })),
+);
 
 /** Puts the page together from features: the shell (header, sidebar), then the page the path opens. */
 export function App() {

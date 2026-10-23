@@ -1,13 +1,13 @@
 import { Alert, Anchor, Badge, Button, Checkbox, Group, Paper, Stack, Switch, Table, Text, Title } from "@mantine/core";
 import { useState } from "react";
 
-import { formatTime, versionTitle } from "../runs/results";
-import { archiveVersions, deleteVersion, fetchVersionDeletion, type AgentVersion } from "./api";
-import { DeleteModal } from "./DeleteModal";
-import { HeaderHelp } from "../runs/HeaderHelp";
-import { ListPagination } from "../pagination/ListPagination";
-import { pageOfItems } from "../pagination/pages";
-import { usePageParam } from "../pagination/usePageParam";
+import { formatTime, versionTitle } from "../../runs/results";
+import { archiveVersions, deleteVersion, fetchVersionDeletion, type AgentVersion } from "../api";
+import { DeleteModal } from "../DeleteModal";
+import { HeaderHelp } from "../../runs/HeaderHelp";
+import { ListPagination } from "../../pagination/ListPagination";
+import { pageOfItems } from "../../pagination/pages";
+import { usePageParam } from "../../pagination/usePageParam";
 import {
     compareVersionsTitle,
     selectionActions,
@@ -20,8 +20,8 @@ import {
     VERSION_LABEL_HELP,
     VERSIONS_SECTION_HELP,
     visibleVersions,
-} from "./view";
-import { versionToDelete } from "./deletion";
+} from "../view";
+import { versionToDelete } from "../deletion";
 
 /** The agent's versions: select some to archive them (hidden), switch "Show archived" to see, restore or delete them (an archived version, with its runs). */
 export function VersionsSection({
