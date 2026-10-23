@@ -125,3 +125,15 @@ export function samplesChange(
         value.samplesDone === 0 ? null : (value.samplesDone - (value.samplesFailed ?? 0)) / value.samplesDone;
     return shareChange(share(run), share(baseline));
 }
+
+/** The column "What differs" reads the others against: the baseline's when one is picked, else the first. */
+export function referenceColumn({
+    runs,
+    baseline,
+}: {
+    runs: readonly { run: { id: string } }[];
+    baseline?: { runId: string } | null;
+}): number {
+    const index = baseline == null ? -1 : runs.findIndex((column) => column.run.id === baseline.runId);
+    return Math.max(index, 0);
+}

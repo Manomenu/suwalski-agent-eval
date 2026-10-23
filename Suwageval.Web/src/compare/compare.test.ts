@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+    referenceColumn,
     changeBackground,
     changeOfTrend,
     checkCellChange,
@@ -147,5 +148,14 @@ describe("changeBackground / changeOfTrend", () => {
         expect(changeOfTrend("Better")).toBe("better");
         expect(changeOfTrend("Same")).toBe("same");
         expect(changeOfTrend(null)).toBeNull();
+    });
+});
+
+describe("referenceColumn", () => {
+    const runs = ["a", "b", "c"].map((id) => ({ run: { id } }));
+    it("reads against the baseline's column when one is picked, else the first", () => {
+        expect(referenceColumn({ runs, baseline: null })).toBe(0);
+        expect(referenceColumn({ runs, baseline: { runId: "c" } })).toBe(2);
+        expect(referenceColumn({ runs, baseline: { runId: "gone" } })).toBe(0);
     });
 });

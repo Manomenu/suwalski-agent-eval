@@ -21,6 +21,18 @@ const summary = (columns: ColumnContract[]) =>
     contractDifferences(columns).map((row) => [row.label, row.cells.map((cell) => cell.text)] as const);
 
 describe("contractDifferences", () => {
+    it("reads every column against the reference one (the baseline), not the first", () => {
+        const b = column("b", { agents: [agent({ model: { name: "model-b", parameters: { reasoningEffort: "low", temperature: 0 } } })] });
+        const rows = contractDifferences([column("a"), b, column("c")], 1);
+        const model = rows.find((row) => row.label === "Agent main · model");
+
+        expect(model?.cells.map((cell) => [cell.text, cell.changed])).toEqual([
+            ["model-a", true],
+            ["model-b", false],
+            ["model-a", true],
+        ]);
+    });
+
     it("has nothing for columns with the same contract", () => {
         expect(contractDifferences([column("a"), column("b")])).toEqual([]);
     });
