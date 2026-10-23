@@ -42,7 +42,7 @@ import { Page } from "./Page";
 import { RunGroupsSection } from "./RunGroupsSection";
 import { useAgentErrors } from "./useAgentErrors";
 import { useGroupFilter } from "./useGroupFilter";
-import { useLoaded } from "./useLoaded";
+import { useRequest } from "../api/useRequest";
 import { useRuns } from "./useRuns";
 import {
     allowedVersionIds,
@@ -90,7 +90,7 @@ const RUNS_TABLE_MIN_WIDTH = 1100;
 export function AgentPage({ name }: { name: string }) {
     // Bumped after versions are archived or restored: the lists are loaded again (the page stays until the new ones arrive).
     const [reload, setReload] = useState(0);
-    const state = useLoaded(`${name}/${reload}`, async (signal) => {
+    const state = useRequest(`${name}/${reload}`, async (signal) => {
         const [agent, versions, passRates, groups] = await Promise.all([
             fetchAgent(name, signal),
             fetchVersions(name, signal),

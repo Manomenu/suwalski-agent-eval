@@ -77,7 +77,7 @@ export default defineConfig(
                             allow: { to: { element: { type: "feature", captured: { name: "runs" } } } },
                         },
                         // The compare page reads runs through runs/ (their results, labels and times) and the agent
-                        // through agents/ (versions with their model, the page's loading frame, links). The agent page
+                        // through agents/ (versions with their model, links). The agent page
                         // links to the compare page by a path of its own (agents/view.ts `compareHref`), so the edge
                         // between the two goes one way only.
                         {
@@ -143,6 +143,19 @@ export default defineConfig(
                         // },
                     ],
                 },
+            ],
+        },
+    },
+    // A request in an effect goes through api/useRequest (a signal, a key, the result ignored once aborted) — written once there.
+    {
+        files: ["src/**/*.{ts,tsx}"],
+        // useRunResults is a polling loop (a summary every few seconds, the full results when it shows something new),
+        // not one request per key: it owns its AbortController.
+        ignores: ["src/api/**", "src/**/*.e2e.ts", "src/runs/useRunResults.ts"],
+        rules: {
+            "no-restricted-syntax": [
+                "error",
+                { selector: "NewExpression[callee.name='AbortController']", message: "Requests in an effect go through api/useRequest" },
             ],
         },
     },

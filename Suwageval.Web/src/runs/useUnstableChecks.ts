@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-
+import { useRequest } from "../api/useRequest";
 import { fetchUnstableChecks, type UnstableCheck } from "./api";
 
 /**
@@ -9,31 +8,15 @@ import { fetchUnstableChecks, type UnstableCheck } from "./api";
  * of runs marks each run by its own version).
  */
 export function useUnstableChecks(agent: string | null, versionIds: readonly string[], eachVersion = false): UnstableCheck[] {
-    const [loaded, setLoaded] = useState<{ key: string; list: UnstableCheck[] } | null>(null);
-    const key = JSON.stringify([agent, versionIds, eachVersion]);
-
-    useEffect(() => {
-        if (agent === null) return;
-        // StrictMode runs effects twice in development: abort the first request, ignore its result.
-        const controller = new AbortController();
-        const asked = eachVersion
-            ? Promise.all(versionIds.map((id) => fetchUnstableChecks(agent, [id], controller.signal))).then((lists) => lists.flat())
-            : fetchUnstableChecks(agent, versionIds, controller.signal);
-        asked
-            .then((list) => {
-                if (!controller.signal.aborted) setLoaded({ key, list });
-            })
-            .catch(() => {
-                if (!controller.signal.aborted) setLoaded({ key, list: [] });
-            });
-        return () => {
-            controller.abort();
-        };
-        // `key` says what is asked for; `versionIds` is a new array on every render.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [key]);
-
-    return loaded?.key === key ? loaded.list : NONE;
+    const checks = useRequest(
+        agent === null ? null : JSON.stringify([agent, versionIds, eachVersion]),
+        (signal) =>
+            eachVersion
+                ? Promise.all(versionIds.map((id) => fetchUnstableChecks(agent ?? "", [id], signal))).then((lists) => lists.flat())
+                : fetchUnstableChecks(agent ?? "", versionIds, signal),
+        { fallback: NONE },
+    );
+    return checks.kind === "loaded" && !checks.pending ? checks.value : NONE;
 }
 
 const NONE: UnstableCheck[] = [];

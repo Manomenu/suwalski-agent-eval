@@ -6,12 +6,12 @@ import { pageOfItems } from "../pagination/pages";
 import { usePageParam } from "../pagination/usePageParam";
 import { fetchAgents } from "./api";
 import { Page } from "./Page";
-import { useLoaded } from "./useLoaded";
+import { useRequest } from "../api/useRequest";
 import { agentHref } from "./view";
 
 /** `/`: every agent, each linking to its page. */
 export function AgentsPage() {
-    const state = useLoaded("agents", fetchAgents);
+    const state = useRequest("agents", fetchAgents);
     const [requestedPage, setRequestedPage] = usePageParam("agentsPage");
 
     return (
