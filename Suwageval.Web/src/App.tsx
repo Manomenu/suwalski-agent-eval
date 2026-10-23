@@ -10,7 +10,7 @@ import { ServerStatus } from "./health/ServerStatus";
 import { pageOf } from "./routes/pageOf";
 import { RunPage } from "./runs/RunPage";
 import { AppNavbar } from "./shell/AppNavbar";
-import { CONTENT_MAX_WIDTH, HEADER_HEIGHT, LOGO_SIZE, NAVBAR_WIDTH } from "./shell/layout";
+import { contentMaxWidth, HEADER_HEIGHT, LOGO_SIZE, NAVBAR_WIDTH } from "./shell/layout";
 
 // The diff library is needed only here: the page loads when a comparison of versions is opened.
 const VersionComparePage = lazy(() =>
@@ -53,8 +53,7 @@ export function App() {
                 />
             </AppShell.Navbar>
             <AppShell.Main>
-                {/* The agent's page sets its own widths: its analytics reach the right edge on a wide screen (app.css). */}
-                <Box maw={page.kind === "agent" ? undefined : CONTENT_MAX_WIDTH}>
+                <Box maw={contentMaxWidth(page.kind)}>
                     {page.kind === "agents" && <AgentsPage />}
                     {page.kind === "agent" && <AgentPage name={page.name} />}
                     {page.kind === "version" && <VersionPage name={page.name} versionId={page.versionId} />}

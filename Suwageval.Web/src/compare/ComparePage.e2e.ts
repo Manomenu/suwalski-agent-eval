@@ -4,6 +4,8 @@
 import { expect, test, type APIRequestContext } from "@playwright/test";
 
 import { createAgent, runToEnd, serveAgent, type RunningAgent, type ServedAgent } from "../../e2e/helpers";
+import { CONTENT_MAX_WIDTH } from "../shell/layout";
+import { tableMinWidth } from "./layout";
 
 const CONVERSATION = [{ kind: "UserMessage", text: "Hello" }];
 
@@ -131,4 +133,20 @@ test("a baseline in the address of a group is read at once", async ({ page }) =>
     const { name, group, groupedBefore } = seed;
     await page.goto(`/compare?${new URLSearchParams({ group, agent: name, baseline: groupedBefore }).toString()}`);
     await expect(page.getByText("Baseline", { exact: true })).toHaveCount(1);
+});
+
+test("the comparison takes the whole width of a wide screen, and its table scrolls sideways on a narrow one", async ({ page }) => {
+    const { name, group } = seed;
+    const address = `/compare?${new URLSearchParams({ group, agent: name }).toString()}`;
+    const table = page.getByRole("table").first();
+
+    await page.setViewportSize({ width: CONTENT_MAX_WIDTH + 1000, height: 900 });
+    await page.goto(address);
+    await expect(page.getByRole("heading", { name: `Compare runs of ${name}`, exact: true })).toBeVisible();
+    expect((await table.boundingBox())?.width).toBeGreaterThan(CONTENT_MAX_WIDTH);
+
+    await page.setViewportSize({ width: tableMinWidth(2) - 100, height: 900 });
+    const scroller = page.locator(".mantine-ScrollArea-viewport, .mantine-Table-scrollContainer").filter({ has: table }).first();
+    await expect.poll(() => scroller.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
