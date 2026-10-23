@@ -2,7 +2,7 @@ import { Alert, Button, Group, Loader, Modal, Stack, Text, TextInput } from "@ma
 import { useState } from "react";
 
 import { confirmsDeletion, deletionSummary } from "./deletion";
-import { useLoaded } from "./useLoaded";
+import { useRequest } from "../api/useRequest";
 
 /**
  * Deleting an archived version or run group: says what goes with it (the server counts), and the button waits until its id or name
@@ -36,7 +36,7 @@ export function DeleteModal({
     const [typed, setTyped] = useState("");
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const preview = useLoaded(expected, loadPreview);
+    const preview = useRequest(expected, loadPreview);
 
     const confirm = () => {
         setBusy(true);

@@ -3,7 +3,7 @@ import { useState } from "react";
 
 import { deleteAgent, fetchAgentDeletion } from "./api";
 import { agentDeletionSummary, confirmsDeletion } from "./deletion";
-import { useLoaded } from "./useLoaded";
+import { useRequest } from "../api/useRequest";
 
 /**
  * Deleting an agent (one registered by mistake): says what goes with it (the server counts), and the button waits until the agent's
@@ -13,7 +13,7 @@ export function DeleteAgentModal({ name, onClose, onDeleted }: { name: string; o
     const [typed, setTyped] = useState("");
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const preview = useLoaded(name, (signal) => fetchAgentDeletion(name, signal));
+    const preview = useRequest(name, (signal) => fetchAgentDeletion(name, signal));
 
     const confirm = () => {
         setBusy(true);

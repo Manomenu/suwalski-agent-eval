@@ -2,7 +2,7 @@ import { Alert, Loader } from "@mantine/core";
 import type { ReactNode } from "react";
 
 import { isNotFound } from "../api/client";
-import type { Loaded } from "./useLoaded";
+import type { Loaded } from "../api/useRequest";
 
 /** The frame of a page that loads something: a spinner, the error (a 404 in plain words) or the content. */
 export function Page<T>({

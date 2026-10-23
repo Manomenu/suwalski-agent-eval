@@ -2,7 +2,7 @@ import { Button, Loader, Table, Text } from "@mantine/core";
 import { useState } from "react";
 
 import { fetchVersionDiff } from "../agents/api";
-import { useLoaded } from "../agents/useLoaded";
+import { useRequest } from "../api/useRequest";
 import { LineDiffView } from "../diff/LineDiffView";
 import { type Difference } from "./contractDiff";
 import type { VariantRun } from "./api";
@@ -139,7 +139,7 @@ function DifferenceRows({
 function PromptDiff({ agent, columns, column }: { agent: string; columns: readonly VariantRun[]; column: number }) {
     const first = columns[0];
     const other = columns[column];
-    const state = useLoaded(`${first?.run.agentVersionId ?? ""}/${other?.run.agentVersionId ?? ""}`, (signal) =>
+    const state = useRequest(`${first?.run.agentVersionId ?? ""}/${other?.run.agentVersionId ?? ""}`, (signal) =>
         fetchVersionDiff(agent, first?.run.agentVersionId ?? "", other?.run.agentVersionId ?? "", signal),
     );
     if (first === undefined || other === undefined) return null;

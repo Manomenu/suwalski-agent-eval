@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-
+import { useRequest } from "../api/useRequest";
 import { fetchRuns, type RunSummary } from "../runs/api";
 import { groupQuery, type GroupFilter } from "./groupFilter";
 
@@ -14,19 +13,8 @@ export interface RunsState {
     error: string | null;
 }
 
-/** What was loaded for one `key`. */
-interface Loaded {
-    key: string;
-    runs: RunSummary[];
-    totalCount: number;
-    page: number;
-    error: string | null;
-}
-
 /** The version ids of the comma-joined list; none for null (all versions) or "" (no version). */
 const idsOf = (versionIds: string | null) => (versionIds === null || versionIds === "" ? [] : versionIds.split(","));
-
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 /**
  * One page of the agent's runs, newest first. `versionIds` (comma-separated) limits them to those versions (null: all; empty: none, nothing is
@@ -42,37 +30,20 @@ export function useRuns(
     requestedPage: number,
     pageSize: number,
 ): RunsState {
-    const [loaded, setLoaded] = useState<Loaded | null>(null);
     const none = versionIds === "";
     const { group, grouping } = groupQuery(filter);
     const requestKey = JSON.stringify([agent, key, requestedPage, pageSize, versionIds, group, grouping]);
-
-    useEffect(() => {
-        if (none) return;
-        // StrictMode runs effects twice in development: abort the first request, ignore its result.
-        const controller = new AbortController();
-        // Split here, from the string: the effect depends on `versionIds`, not on a new array of each render.
-        fetchRuns(agent, requestedPage, pageSize, idsOf(versionIds), group, grouping, controller.signal)
-            .then((list) => {
-                if (!controller.signal.aborted)
-                    setLoaded({ key: requestKey, runs: list.runs, totalCount: list.totalCount, page: list.page, error: null });
-            })
-            .catch((e: unknown) => {
-                if (!controller.signal.aborted)
-                    setLoaded({ key: requestKey, runs: [], totalCount: 0, page: requestedPage, error: message(e) });
-            });
-        return () => {
-            controller.abort();
-        };
-    }, [requestKey]); // eslint-disable-line react-hooks/exhaustive-deps -- `requestKey` says what is asked for; `versionIds` is a string, the rest follows from it.
+    // Split here, from the string: the request depends on `versionIds`, not on a new array of each render.
+    const loaded = useRequest(none ? null : requestKey, (signal) =>
+        fetchRuns(agent, requestedPage, pageSize, idsOf(versionIds), group, grouping, signal),
+    );
 
     // While a new request loads, the previous runs stay; with no version allowed there is nothing to show or ask for.
-    const shown = none ? null : loaded;
     return {
-        runs: shown?.runs ?? [],
-        totalCount: shown?.totalCount ?? 0,
-        page: shown?.page ?? requestedPage,
-        loading: !none && loaded?.key !== requestKey,
-        error: none ? null : (shown?.error ?? null),
+        runs: loaded.kind === "loaded" ? loaded.value.runs : [],
+        totalCount: loaded.kind === "loaded" ? loaded.value.totalCount : 0,
+        page: loaded.kind === "loaded" ? loaded.value.page : requestedPage,
+        loading: loaded.pending,
+        error: loaded.kind === "error" ? loaded.error.message : null,
     };
 }

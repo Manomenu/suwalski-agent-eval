@@ -1,17 +1,16 @@
 import { Accordion, Alert, Button, Group, List, Loader, Modal, Stack, Text, Tooltip } from "@mantine/core";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
+import { useRequest } from "../api/useRequest";
 import { definitionYaml } from "../checks/definition";
 import { ModelJudgedIcon } from "../checks/ModelJudgedIcon";
 import { diffBlocks, diffRows } from "../diff/lineDiff";
 import { LineDiffView } from "../diff/LineDiffView";
-import { fetchRecheckPlan, recheck, type ChangedCheck, type RecheckPlan, type RunSummary } from "./api";
+import { fetchRecheckPlan, recheck, type ChangedCheck, type RunSummary } from "./api";
 import { changesByScenario, judgedNote, planHeadline, recheckDisabledReason, recheckTooltip } from "./recheck";
 
 const RECHECK_TOOLTIP_WIDTH = 340;
 import { runHref } from "./results";
-
-type PlanState = { kind: "loading" } | { kind: "error"; message: string } | { kind: "loaded"; plan: RecheckPlan };
 
 /**
  * "Re-check": judges this run's stored answers again with the current checks — the agent is not asked. Enabled for a finished run;
@@ -54,26 +53,9 @@ export function RecheckButton({ run }: { run: Pick<RunSummary, "id" | "status"> 
 
 /** Mounted only while the dialog is open: it asks for the plan when it opens and abandons the request when it closes. */
 function RecheckDialog({ runId, onClose }: { runId: string; onClose: () => void }) {
-    const [state, setState] = useState<PlanState>({ kind: "loading" });
+    const state = useRequest(runId, (signal) => fetchRecheckPlan(runId, signal));
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
-
-    useEffect(() => {
-        // StrictMode runs effects twice in development: abort the first request, ignore its result.
-        const controller = new AbortController();
-        fetchRecheckPlan(runId, controller.signal).then(
-            (plan) => {
-                setState({ kind: "loaded", plan });
-            },
-            (failure: unknown) => {
-                if (!controller.signal.aborted)
-                    setState({ kind: "error", message: failure instanceof Error ? failure.message : "The plan could not be loaded." });
-            },
-        );
-        return () => {
-            controller.abort();
-        };
-    }, [runId]);
 
     const start = () => {
         setBusy(true);
@@ -100,14 +82,14 @@ function RecheckDialog({ runId, onClose }: { runId: string; onClose: () => void 
         return (
             <Stack>
                 <Alert color="red" title="The plan could not be loaded">
-                    {state.message}
+                    {state.error.message}
                 </Alert>
                 <CloseRow onClose={onClose} />
             </Stack>
         );
     }
 
-    const { plan } = state;
+    const plan = state.value;
     const judged = judgedNote(plan);
     return (
         <Stack>

@@ -2,7 +2,7 @@ import { Alert, Anchor, Badge, Group, Loader, Paper, SegmentedControl, Stack, Sw
 import { useState } from "react";
 
 import { fetchVersion, fetchVersions, type AgentVersion } from "../agents/api";
-import { useLoaded } from "../agents/useLoaded";
+import { useRequest } from "../api/useRequest";
 import { agentHref } from "../agents/view";
 import { ModelJudgedIcon } from "../checks/ModelJudgedIcon";
 import { HeaderHelp } from "../runs/HeaderHelp";
@@ -58,7 +58,7 @@ function Comparison({ selection, baseline }: { selection: ValidSelection; baseli
         const { pathname, search, hash } = window.location;
         window.history.replaceState(null, "", `${pathname}${searchWithBaseline(search, next)}${hash}`);
     };
-    const state = useLoaded(JSON.stringify([selection, baselineId]), (signal) => fetchComparison(selection, baselineId, signal));
+    const state = useRequest(JSON.stringify([selection, baselineId]), (signal) => fetchComparison(selection, baselineId, signal));
 
     if (state.kind === "loading") return <Loader aria-label="Loading the comparison" />;
     if (state.kind === "error") return <Problem message={state.error.message} />;
@@ -76,7 +76,7 @@ function Loaded({
 }) {
     const agent = comparison.agent;
     const versionIds = [...new Set(comparison.runs.map((column) => column.run.agentVersionId))];
-    const base = useLoaded(`${agent}/${versionIds.join(",")}`, async (signal) => {
+    const base = useRequest(`${agent}/${versionIds.join(",")}`, async (signal) => {
         const [versions, details] = await Promise.all([
             fetchVersions(agent, signal),
             Promise.all(versionIds.map((id) => fetchVersion(agent, id, signal))),
