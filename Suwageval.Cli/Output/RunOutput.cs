@@ -1,6 +1,7 @@
+using Suwageval.Cli.Server;
 using Suwageval.Contracts.Runs;
 
-namespace Suwageval.Cli.Server;
+namespace Suwageval.Cli.Output;
 
 /// <summary>What <c>run</c>, <c>rerun</c> and <c>recheck</c> print once the server has queued a run, and the exit code they give.</summary>
 internal static class RunOutput

@@ -1,6 +1,6 @@
 using Suwageval.Contracts.Runs;
 
-namespace Suwageval.Cli.Server;
+namespace Suwageval.Cli.Output;
 
 /// <summary>The verdict of a finished run: the exit code and the one line a terminal or a CI log gets (the rest is on the web).</summary>
 internal static class RunVerdict

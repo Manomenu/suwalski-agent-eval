@@ -1,4 +1,4 @@
-namespace Suwageval.Cli.Server;
+namespace Suwageval.Cli.Output;
 
 internal static class RunTagsText
 {

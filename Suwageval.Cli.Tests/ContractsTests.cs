@@ -19,6 +19,7 @@ public sealed class ContractsTests
     [
         ".",
         "Init | Validate | Push | Run | Rerun | Recheck | Cancel | Runs | Unstable | AgentErrors | AgentDelete | Results | Compare | Sweep | Versions | Groups | Agents | Scenarios | Trend",
+        "Output",
         "Validation | Server",
         "Files",
     ];

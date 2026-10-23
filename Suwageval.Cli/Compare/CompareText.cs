@@ -1,6 +1,6 @@
 using System.Globalization;
 using System.Text;
-using Suwageval.Cli.Server;
+using Suwageval.Cli.Output;
 using Suwageval.Contracts.Runs;
 using RunTrend = Suwageval.Contracts.Runs.Trend;
 
