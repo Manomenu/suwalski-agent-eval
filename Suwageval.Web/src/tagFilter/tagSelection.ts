@@ -1,25 +1,20 @@
 // The tag filter of the run and comparison pages: which tags are selected (the `tag` parameters of the address), which rows
 // they keep and what the narrowed numbers are called. Selecting nothing keeps everything.
-const TAG_PARAM = "tag";
+export const TAG_PARAM = "tag";
 
 /** The tags the address selects (`?tag=a&tag=b`), each once, in the order given. */
-export function selectedTagsOf(search: string): string[] {
-    const tags = new URLSearchParams(search).getAll(TAG_PARAM).filter((tag) => tag !== "");
+export function selectedTagsOf(search: string, param = TAG_PARAM): string[] {
+    const tags = new URLSearchParams(search).getAll(param).filter((tag) => tag !== "");
     return [...new Set(tags)];
 }
 
 /** The query with its tag parameters replaced by `tags`; every other parameter stays. Empty when nothing is left. */
-export function searchWithTags(search: string, tags: readonly string[]): string {
+export function searchWithTags(search: string, tags: readonly string[], param = TAG_PARAM): string {
     const query = new URLSearchParams(search);
-    query.delete(TAG_PARAM);
-    for (const tag of tags) query.append(TAG_PARAM, tag);
+    query.delete(param);
+    for (const tag of tags) query.append(param, tag);
     const text = query.toString();
     return text === "" ? "" : `?${text}`;
-}
-
-/** What the filter offers: every tag the view has, and any selected tag it does not have (so it can be unselected), sorted. */
-export function offeredTags(present: Iterable<string>, selected: readonly string[]): string[] {
-    return [...new Set([...present, ...selected])].sort((a, b) => a.localeCompare(b));
 }
 
 /** Whether a scenario with these tags stays in view: it has any selected tag, or nothing is selected. */

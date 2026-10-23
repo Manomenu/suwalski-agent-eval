@@ -72,8 +72,7 @@ const GROUP_HELP =
     "Which runs to list by group (run --group): those in no group (the default), those in any group, all runs, or one group. Group runs are experiments, kept out of the regression history and the pass-rate trend. Open a group from the Groups section to compare its runs as variants.";
 const TAG_HELP = "The scenario tags the run was limited to (run --tag, repeatable); — means every scenario of the agent ran.";
 
-const PassRateTrend = lazy(() => import("./trend/PassRateTrend").then((module) => ({ default: module.PassRateTrend })));
-const TurnTimeTrend = lazy(() => import("./trend/TurnTimeTrend").then((module) => ({ default: module.TurnTimeTrend })));
+const Trends = lazy(() => import("./trend/Trends").then((module) => ({ default: module.Trends })));
 
 const MODEL_FILTER_MIN_WIDTH = 260;
 const RUNS_TABLE_MIN_WIDTH = 1100;
@@ -221,8 +220,7 @@ function AgentView({
                             </div>
                         )}
                         <Suspense fallback={null}>
-                            <PassRateTrend points={trendPoints} />
-                            <TurnTimeTrend points={trendPoints} />
+                            <Trends points={trendPoints} />
                         </Suspense>
                     </Stack>
                 </div>

@@ -105,11 +105,14 @@ export function seriesColor(name: string, series: string[]): string {
     return `${TAG_COLORS[index % TAG_COLORS.length] ?? "blue"}.5`;
 }
 
-/** The set of hidden series after a click on `name`. */
-export function toggleHidden(hidden: ReadonlySet<string>, name: string): ReadonlySet<string> {
-    const next = new Set(hidden);
-    if (!next.delete(name)) next.add(name);
-    return next;
+/** The series a chart draws: "All" always, then the picked tags it has, or every tag when none is picked. */
+export function shownSeries(series: readonly string[], picked: readonly string[]): string[] {
+    return series.filter((name) => name === ALL_SERIES || picked.length === 0 || picked.includes(name));
+}
+
+/** The tags the charts can draw: every series but "All". */
+export function seriesTags(points: RunPassRates[]): string[] {
+    return trendSeries(points).filter((name) => name !== ALL_SERIES);
 }
 
 /** Some point shows the results of a re-check, not of its own run: the chart says so. */

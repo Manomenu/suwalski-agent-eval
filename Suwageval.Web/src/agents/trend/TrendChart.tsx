@@ -1,6 +1,5 @@
 import { LineChart } from "@mantine/charts";
-import { Button, ColorSwatch, Group, Paper, Stack, Text } from "@mantine/core";
-import { useState } from "react";
+import { ColorSwatch, Group, Paper, Stack, Text } from "@mantine/core";
 
 import {
     ALL_SERIES,
@@ -13,7 +12,7 @@ import {
     legendColor,
     measuredSeries,
     seriesColor,
-    toggleHidden,
+    shownSeries,
     versionChanges,
     type TrendRow,
 } from "./trend";
@@ -28,25 +27,27 @@ const ALL_STROKE_WIDTH = 4;
 const TAG_STROKE_WIDTH = 2;
 
 /**
- * The line chart the trend cards share: one line per series with a legend that toggles them, a tooltip of the series the run
- * measured, a click that opens the run. `format` writes a value with its unit; `domain` is the y axis's.
+ * The line chart the trend cards share: "All" and the picked tags' lines (every tag's with none picked) with their legend, a
+ * tooltip of the series the run measured, a click that opens the run. `format` writes a value with its unit; `domain` is the y axis's.
  */
 export function TrendChart({
     points,
     rows,
     names,
+    picked,
     format,
     domain,
 }: {
     points: RunPassRates[];
     rows: TrendRow[];
     names: string[];
+    /** The tags picked above the charts; none: every tag. */
+    picked: readonly string[];
     format: (value: number) => string;
     domain: [number, number | "auto"];
 }) {
-    // The series the user switched off through the legend.
-    const [hidden, setHidden] = useState<ReadonlySet<string>>(new Set());
-    const shown = names.filter((name) => !hidden.has(name));
+    // The colours follow `names`, so a line keeps its colour whatever else is picked.
+    const shown = shownSeries(names, picked);
     // The x axis is keyed by run (two runs can share a minute); its ticks show the run's short date.
     const labelOf = new Map(rows.map((row) => [row[RUN_KEY], row[LABEL_KEY]]));
     const changes = versionChanges(points, rows);
@@ -111,28 +112,12 @@ export function TrendChart({
                     },
                 }}
             />
-            <Group gap="xs" aria-label="Series">
-                {names.map((name) => (
-                    <Button
-                        key={name}
-                        size="compact-sm"
-                        variant={hidden.has(name) ? "subtle" : "default"}
-                        c={hidden.has(name) ? "dimmed" : "var(--mantine-color-text)"}
-                        leftSection={
-                            <ColorSwatch
-                                color={`var(--mantine-color-${legendColor(name, names)}-5)`}
-                                size={10}
-                                withShadow={false}
-                                opacity={hidden.has(name) ? 0.3 : 1}
-                            />
-                        }
-                        aria-pressed={!hidden.has(name)}
-                        onClick={() => {
-                            setHidden(toggleHidden(hidden, name));
-                        }}
-                    >
-                        {name}
-                    </Button>
+            <Group gap="md" role="list" aria-label="Series">
+                {shown.map((name) => (
+                    <Group key={name} gap={6} wrap="nowrap" role="listitem">
+                        <ColorSwatch color={`var(--mantine-color-${legendColor(name, names)}-5)`} size={10} withShadow={false} />
+                        <Text size="sm">{name}</Text>
+                    </Group>
                 ))}
             </Group>
             <Text size="xs" c="dimmed">

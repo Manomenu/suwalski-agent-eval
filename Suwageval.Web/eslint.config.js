@@ -46,7 +46,7 @@ export default defineConfig(
                 { type: "api", pattern: "src/api" },
                 // routes/ (the addresses of the pages, built and read), format/ (ids, times, shares and durations as the pages write
                 // them) and help/ (a header that explains itself) are used by every feature the way api/ is: no feature owns them.
-                { type: "shared", pattern: ["src/routes", "src/format", "src/help"] },
+                { type: "shared", pattern: ["src/routes", "src/format", "src/help", "src/tagSelect"] },
                 { type: "feature", pattern: "src/*", capture: ["name"] },
             ],
             // The entry points at the root of src/ (main.tsx, App.tsx) put the page together.
@@ -123,9 +123,10 @@ export default defineConfig(
                             from: { element: { type: "feature", captured: { name: "diff" } } },
                             allow: { to: { element: { type: "feature", captured: { name: "checks" } } } },
                         },
-                        // The run and comparison pages share one tag filter (the buttons, the address's `tag`
-                        // parameters, which rows they keep): tagFilter/ owns it, the two pages place it.
-                        ...["runs", "compare"].map((name) => ({
+                        // The run and comparison pages share one tag filter (the field, the address's `tag`
+                        // parameters, which rows they keep): tagFilter/ owns it, the two pages place it. The agent page's charts
+                        // keep the lines they draw in the address the same way (its `series` parameter).
+                        ...["runs", "compare", "agents"].map((name) => ({
                             from: { element: { type: "feature", captured: { name } } },
                             allow: { to: { element: { type: "feature", captured: { name: "tagFilter" } } } },
                         })),
