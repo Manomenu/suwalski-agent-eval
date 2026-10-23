@@ -11,7 +11,7 @@ import {
     legendColor,
     measuredSeries,
     seriesColor,
-    toggleHidden,
+    shownSeries,
     trendRows,
     trendSeries,
     turnTimeMeasure,
@@ -68,14 +68,12 @@ describe("trendRows", () => {
     });
 });
 
-describe("toggleHidden", () => {
-    it("hides a shown series and shows a hidden one, leaving the input alone", () => {
-        const hidden = new Set<string>();
-        const once = toggleHidden(hidden, "smoke");
+describe("shownSeries", () => {
+    it("draws All and every tag with nothing picked, All and the picked tags otherwise", () => {
+        const series = [ALL_SERIES, "billing", "smoke"];
 
-        expect([...once]).toEqual(["smoke"]);
-        expect(hidden.size).toBe(0);
-        expect(toggleHidden(once, "smoke").size).toBe(0);
+        expect(shownSeries(series, [])).toEqual(series);
+        expect(shownSeries(series, ["smoke", "gone"])).toEqual([ALL_SERIES, "smoke"]);
     });
 });
 

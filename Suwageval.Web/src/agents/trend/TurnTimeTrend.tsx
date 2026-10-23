@@ -16,7 +16,7 @@ const STATS: { value: TurnTimeStat; label: string }[] = [
 ];
 
 /** The turn time over the agent's finished runs, like the pass-rate chart: all scenarios and one line per tag, median or p95. */
-export function TurnTimeTrend({ points }: { points: RunPassRates[] }) {
+export function TurnTimeTrend({ points, picked }: { points: RunPassRates[]; picked: readonly string[] }) {
     const [stat, setStat] = useState<TurnTimeStat>("median");
     const measured = withTurnTimes(points);
 
@@ -44,6 +44,7 @@ export function TurnTimeTrend({ points }: { points: RunPassRates[] }) {
                         points={measured}
                         rows={trendRows(measured, turnTimeMeasure(stat))}
                         names={trendSeries(measured)}
+                        picked={picked}
                         format={(value) => `${value.toFixed(1)} s`}
                         domain={[0, "auto"]}
                     />

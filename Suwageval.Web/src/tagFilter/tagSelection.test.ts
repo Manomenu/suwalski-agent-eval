@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { offeredTags, filteredLabel, keepsTags, selectedTagRows, searchWithTags, selectedTagsOf } from "./tagSelection";
+import { filteredLabel, keepsTags, selectedTagRows, searchWithTags, selectedTagsOf } from "./tagSelection";
 
 describe("the address", () => {
     it("selects the tags given, each once, and nothing without them", () => {
@@ -14,9 +14,10 @@ describe("the address", () => {
     });
 });
 
-describe("selecting", () => {
-    it("offers the tags of the view and the selected ones it lacks, sorted", () => {
-        expect(offeredTags(["smoke", "billing", "smoke"], ["gone"])).toEqual(["billing", "gone", "smoke"]);
+describe("another parameter", () => {
+    it("reads and writes its own tags, leaving the tag filter's alone", () => {
+        expect(selectedTagsOf("?tag=a&series=b&series=b", "series")).toEqual(["b"]);
+        expect(searchWithTags("?tag=a&series=b", ["c"], "series")).toBe("?tag=a&series=c");
     });
 });
 

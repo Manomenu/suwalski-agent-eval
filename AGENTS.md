@@ -374,7 +374,7 @@ A change to one feature should touch one place on each side.
   so a reader can tell whether changing a type changes the API.
 - **Web:** one folder per feature under `src/`, holding its components, hooks, logic and its
   HTTP calls (`<feature>/api.ts`, typed from `api/openapi.d.ts` — no hand-written copies of
-  server models). `api/` is the shared folder for HTTP plumbing; `routes/` (the addresses of the pages, built and read), `format/` (ids, times, shares, durations) and `help/` (the header that explains itself) are shared the same way, each named for what it is.
+  server models). `api/` is the shared folder for HTTP plumbing; `routes/` (the addresses of the pages, built and read), `format/` (ids, times, shares, durations) `help/` (the header that explains itself) and `tagSelect/` (picking tags out of a long list) are shared the same way, each named for what it is.
 - **No catch-all folders** (`Common/`, `Helpers/`, `Utils/`, `Shared/`, `ui/`, `components/`).
   A piece that seems to belong nowhere usually belongs with others that change together: name
   that feature and give it a folder.
