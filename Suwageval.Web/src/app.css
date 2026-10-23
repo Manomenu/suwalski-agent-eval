@@ -131,12 +131,6 @@
     min-width: max-content;
 }
 
-/* A long tag wraps inside its button instead of widening the page. */
-.tag-filter-label {
-    white-space: normal;
-    overflow-wrap: anywhere;
-}
-
 /* The run page's "Compared with" section: one grid for all groups, so the check names, the history strips and the extras
    (failing since, compare link) line up in columns across the groups. Below 600px each check wraps into lines of its own. */
 .regression-checks {

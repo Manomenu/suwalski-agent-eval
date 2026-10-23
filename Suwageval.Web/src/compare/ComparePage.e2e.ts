@@ -87,10 +87,13 @@ test("a group is opened from the agent page as the same comparison, and the tag 
     await expect(page.getByRole("row", { name: /^greets some failed 1\/2 checks all passed 2\/2 checks$/ })).toBeVisible();
     await expect(page.getByRole("button", { name: "steady", exact: true })).toBeVisible();
 
-    await page.getByRole("button", { name: "smoke", exact: true }).click();
+    const filter = page.getByRole("combobox", { name: "Filter by tag", exact: true });
+    await filter.fill("smo");
+    await page.getByRole("option", { name: "smoke", exact: true }).click();
     await expect(page).toHaveURL(/tag=smoke$/);
     await page.reload();
-    await expect(page.getByRole("button", { name: "smoke", exact: true, pressed: true })).toBeVisible();
+    await page.getByRole("combobox", { name: "Filter by tag", exact: true }).click();
+    await expect(page.getByRole("option", { name: "smoke", exact: true, selected: true })).toBeVisible();
 
     await page.goto(`/agents/${name}?runs=any`);
     await page.getByRole("checkbox", { name: `Select run ${groupedBefore.slice(0, 8)}`, exact: true }).check();
