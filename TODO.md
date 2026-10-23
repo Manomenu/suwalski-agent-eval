@@ -174,3 +174,23 @@ belongs to.
     plugin's skill lists it, and Claude saves a report only when asked, then says where. Open question: how the server renders
     the PDF — a headless browser printing the web's print view (one rendering, but a new component in the image, compose and
     the chart: say why) or a PDF library in .NET (no new component, but a second layout to keep in step with the web's).
+- **More correlation headers for the agent's traces (Langfuse, OpenTelemetry).** Today a turn carries `Suwageval-Run-Id`,
+  `Suwageval-Scenario` and `Suwageval-Sample`. Add, on the same rules (correlation only: the agent must never change what it
+  does on them; values in headers, never in the body), and as members of the SDK's `TurnCorrelation`:
+  - `Suwageval-Scenario-Type`: `Turn` (a recorded conversation, the agent answers the last message) or `Simulation` (a
+    simulated user) — a scenario's kind, not the run's: one run can hold both;
+  - `Suwageval-Scenario-Tags`: the scenario's tags from its YAML, comma-separated (tags are kebab-case, so never hold a
+    comma) — they say which area of behaviour a trace belongs to, even in a run of every scenario;
+  - `Suwageval-Run-Tags`: the tags the run was limited to (`run --tag`), comma-separated; absent for a run of every
+    scenario;
+  - `Suwageval-Run-Group`: the run's group (`run --group`, a sweep), absent outside a group — every trace of one
+    experiment together.
+  Document them in `docs/scenario-format.md` (the agent contract) and `docs/universal-approach.md`, and the mapping a
+  Langfuse user would choose (below). Later, only if this proves useful: Suwageval sending its verdicts to Langfuse as scores
+  per trace — an outside service, so it brings a live test, the daily check and a secret (AGENTS.md, section 3).
+- **suwexag: integrate Langfuse** (in `suwalski-example-agent`, as the reference of how an agent does it). Send its traces to
+  Langfuse (its SDK or OpenTelemetry; keys in the gitignored `.env`, the service in its compose) and map the correlation
+  headers onto the trace: `Suwageval-Run-Id` → `sessionId`, scenario and sample → `metadata`, scenario tags and run tags →
+  `tags`, run group → `metadata` (and a tag), scenario type → `metadata`, and `environment: suwageval` whenever the headers
+  are present, so evaluation traffic never mixes with real use. Its README says how to find a failing sample's trace from a
+  run's page.
