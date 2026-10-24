@@ -39,6 +39,12 @@ To do in that change:
   (how conversations arrive, the agent's tabs, `features` in `agent.yaml`, the evaluation API moved under `/api/eval/…` beside
   `/api/monitoring/…`, `dataVersion` out of the version, the stages, the open questions). The items below are its parts. Keep this link
   until live traffic is built.
+  - **Decided 2026-10-24** (details in the plan): built on the branch `epic/monitoring-tab` (created, nothing on it yet);
+    `dataVersion` leaves the version's hash (stage 0: merge versions that differ only in data; it stays on runs, and on a
+    monitored conversation only when the agent sends it); the agent's checks live in `suwageval/monitoring-checks.yaml`; the
+    running agent names its environment (`Suwageval__Environment`), `agent.yaml` lists the accepted ones
+    (`features.monitoring.environments`); about 10 conversations a day, so no `sample`, `keepDays` or judge limit in the first
+    version; an SDK only for .NET for now, the protocol documented in `docs/scenario-format.md` for agents in other languages.
   - **On `epic/monitoring-tab`, the old version filters go:** `suwageval versions --any-group` and `--all-versions`, the API's
     `grouping` parameter of `GET /agents/{agent}/versions` and the `GroupRunsOnly` field of a version — replaced by `--usage` /
     `?usage=` (built before the epic). A breaking change for an installed CLI, so it goes with the epic's other breaking changes and
