@@ -31,8 +31,9 @@ just up              # the whole stack in containers on :8093 — no cluster nee
 just build-images    # only build suwageval-server:local and suwageval-web:local, for another repository's compose stack
 just check           # the quality gate, exactly what CI runs
 just cli validate DIR  # the suwageval CLI from source; `just cli-install` installs it globally
-just tmux-dev        # tmux layout: server, web, the example agent suwexag (from source with `dotnet watch`, else its `suwexag:local` image), spare shell, CLI shell (SUWAGEVAL_AGENT_DIR sets the agent folder)
-just tmux-dev --restart  # the same, after killing the old session and everything running in it
+just tmux-dev start  # tmux layout: server, web, the example agent suwexag (from source with `dotnet watch`, else its `suwexag:local` image), spare shell, CLI shell (SUWAGEVAL_AGENT_DIR sets the agent folder)
+just tmux-dev start --restart  # the same, after killing the old session and everything running in it
+just tmux-dev stop   # kill the session and everything running in it
 just e2e             # browser tests against a real server and database
 just secrets backup  # copy the local .env files into Bitwarden (restore on a new machine)
 ```

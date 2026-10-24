@@ -555,9 +555,11 @@ Two vocabularies, chosen word by word:
 ## 10. Commands: `justfile` vs `scripts/.internal/`
 
 - **`justfile` is for humans.** `just` lists every recipe, grouped: `run` (dev servers),
-  `dev` (code generation, `just cli …` to run the CLI from source, `just cli-install` to install it as the global `suwageval`, `just agent-pack` / `just agent-publish <version>` for `Suwageval.AgentSdk` (section 12), `just tmux-dev [--restart]` for the interactive tmux layout of the local stack, the example agent suwexag from its source, else its `suwexag:local` image (`--restart` kills the old session first), humans only, via `scripts/.internal/tmux-dev.sh`), `infra` (the container stack; `just build-images` builds the `suwageval-server:local` and `suwageval-web:local` images that another repository's stack, e.g. an agent repo running Suwageval in its own compose, runs), `maintenance` (check, e2e, fmt,
-  sync), plus modules in `.just/`: `db` (`.just/db.just`: the local PostgreSQL) and
-  `secrets` (`.just/secrets.just`: the `.env` files in Bitwarden). New human-facing commands
+  `dev` (code generation, `just cli …` to run the CLI from source, `just cli-install` to install it as the global `suwageval`, `just agent-pack` / `just agent-publish <version>` for `Suwageval.AgentSdk` (section 12)), `infra` (the container stack; `just build-images` builds the `suwageval-server:local` and `suwageval-web:local` images that another repository's stack, e.g. an agent repo running Suwageval in its own compose, runs), `maintenance` (check, e2e, fmt,
+  sync), plus modules in `.just/`: `db` (`.just/db.just`: the local PostgreSQL),
+  `secrets` (`.just/secrets.just`: the `.env` files in Bitwarden) and `tmux-dev` (`.just/tmux-dev.just`: `start [--restart]` and
+  `stop` of the interactive tmux layout of the local stack, the example agent suwexag from its source, else its `suwexag:local`
+  image; humans only, via `scripts/.internal/tmux-dev.sh`). New human-facing commands
   go there, into the matching group; a family of related commands becomes a module of its
   own — a file in `.just/`, mounted with `mod <name> '.just/<name>.just'` and starting with
   `set working-directory := ".."`, so its recipes run from the repo root like the rest.
