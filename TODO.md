@@ -117,6 +117,22 @@ To do in that change:
   - Open questions: a timeout and what a failed call means (an error of the check, like an agent error, never a fail), the
     concurrency limit (the run's own), CLI parity (`scenario` and `agent` print the type's definition).
 
+  - **The pilot: `obeyed-scope-policy` on monitored conversations.** The agent has an internal scope policy (what it may answer,
+    what it must refuse or hand over); a check that every monitored conversation obeyed it shows whether that internal logic fails
+    on real traffic. Who judges it is open — three ways, none chosen yet:
+    1. **An agent-defined check type:** the agent's own endpoint decides, with its own policy code. Close to the policy, but the
+       agent judges itself: a bug in the policy code can pass both the answer and the check.
+    2. **A `judge` with extra context written in the repository:** the check gets `context` with the policy text — inline in the
+       YAML (copied, drifts from the agent's real policy) or a file next to the scenarios (`context: { file: policies/scope.md }`,
+       pushed with the checks, so it is versioned with them, but still a copy of what the agent uses).
+    3. **A `judge` with context from the agent's contract:** the agent declares its policy in its served contract (a named
+       document, e.g. `documents: { scopePolicy: … }`), so the policy is part of the version's hash, and the check names it
+       (`judge: { criteria: "…", context: { contract: scopePolicy } }`); the judge reads it from the contract of the version that
+       answered the conversation. The check depends on more than the YAML, but on something versioned and served by the agent
+       itself, never on a copy. The judge stays independent of the agent's code.
+    The doubt: 2 and 3 make a check depend on something outside its YAML file. 3 looks the most solid (one source, versioned,
+    independent judge); decide with the first agent that has such a policy, and with it whether `context` is a general field of
+    `judge` (and of `$judge`).
 - **Scored checks, not only pass/fail** (Langfuse's numeric, categorical, boolean and text scores). A check could return a
   value — a number (a judge's 1–5, a similarity), a category (`polite` / `neutral` / `rude`) — with a threshold or a list of
   accepted values that turns it into passed or failed. Everything built on the verdict stays binary and unchanged: samples
