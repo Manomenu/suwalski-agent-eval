@@ -1,17 +1,18 @@
-import { ActionIcon, Button, Code, CopyButton, Group, Loader, Modal, Stack, Text, Tooltip } from "@mantine/core";
+import { ActionIcon, Alert, Button, Code, CopyButton, Group, Loader, Modal, Select, Stack, Text, Tooltip } from "@mantine/core";
 import { IconCheck, IconCopy } from "@tabler/icons-react";
 import { useState } from "react";
 
 import { useRequest } from "../../api/useRequest";
 import { fetchScenarioDraft } from "./api";
-import { SCENARIO_DRAFT_HELP } from "./conversations";
+import { replayOptions, SCENARIO_DRAFT_HELP, SIMULATED_DRAFT_HELP, untilTurnOf } from "./conversations";
 
 /**
  * "Scenario YAML": the conversation as a scenario file to copy into the agent's repository, with the file's path. Filled red when a
  * monitoring check failed on the conversation: a failure is what is most worth keeping as a scenario.
  */
-export function ScenarioDraftButton({ conversationId, failed }: { conversationId: string; failed: boolean }) {
+export function ScenarioDraftButton({ conversationId, turns, failed }: { conversationId: string; turns: number; failed: boolean }) {
     const [opened, setOpened] = useState(false);
+    const [replay, setReplay] = useState<string | null>("");
     return (
         <>
             <Button
@@ -31,20 +32,34 @@ export function ScenarioDraftButton({ conversationId, failed }: { conversationId
                 title="This conversation as a scenario"
                 size="xl"
             >
-                {opened && <Draft conversationId={conversationId} />}
+                {opened && (
+                    <Stack gap="sm">
+                        {turns > 1 && (
+                            <Select label="Replay" data={replayOptions(turns)} value={replay} onChange={setReplay} allowDeselect={false} />
+                        )}
+                        <Draft conversationId={conversationId} untilTurn={untilTurnOf(replay)} />
+                    </Stack>
+                )}
             </Modal>
         </>
     );
 }
 
-function Draft({ conversationId }: { conversationId: string }) {
-    const draft = useRequest(conversationId, (signal) => fetchScenarioDraft(conversationId, signal));
+function Draft({ conversationId, untilTurn }: { conversationId: string; untilTurn: number | null }) {
+    const draft = useRequest(JSON.stringify([conversationId, untilTurn]), (signal) =>
+        fetchScenarioDraft(conversationId, untilTurn, signal),
+    );
     if (draft.kind === "loading") return <Loader aria-label="Loading the draft" />;
     if (draft.kind === "error") return <Text c="red">{draft.error.message}</Text>;
-    const { path, yaml } = draft.value;
+    const { path, yaml, notice } = draft.value;
     return (
         <Stack gap="sm">
-            <Text size="sm">{SCENARIO_DRAFT_HELP}</Text>
+            <Text size="sm">{untilTurn === null ? SCENARIO_DRAFT_HELP : SIMULATED_DRAFT_HELP}</Text>
+            {notice != null && (
+                <Alert color="yellow" title="Write the simulated user yourself">
+                    {notice}
+                </Alert>
+            )}
             <Group gap="xs" wrap="nowrap">
                 <Code aria-label="File path">{path}</Code>
                 <Copy value={path} label="Copy the path" />

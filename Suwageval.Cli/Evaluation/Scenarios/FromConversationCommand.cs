@@ -5,7 +5,8 @@ namespace Suwageval.Cli.Evaluation.Scenarios;
 
 /// <summary>
 /// <c>suwageval scenario from-conversation &lt;id&gt;</c>: a monitored conversation drafted as a scenario file, taken as it is (the agent
-/// answers its last message), with the checks drafted from what the agent did as comments. Prints the YAML; with <c>--write</c> writes it
+/// answers its last message) or, with <c>--until-turn N</c>, replayed to turn N and simulated after it (the simulated user drafted by
+/// Suwageval's model, to review), with the checks drafted from what the agent did as comments. Prints the YAML; with <c>--write</c> writes it
 /// to <c>&lt;dir&gt;/scenarios/&lt;key&gt;.yaml</c>, never over a file that is there. Exits 0; 1 when the file exists; 2 when the server is wrong.
 /// </summary>
 internal static class FromConversationCommand
@@ -18,14 +19,27 @@ internal static class FromConversationCommand
         {
             Description = "Write the file to <dir>/scenarios/<key>.yaml instead of printing it (never over an existing file).",
         };
+        var untilTurn = new Option<int?>("--until-turn")
+        {
+            Description =
+                "Replay the conversation up to this turn (from 1): the agent answers its message, then a simulated user, described from the real one, goes on.",
+        };
+        untilTurn.Validators.Add(result =>
+        {
+            if (result.GetValueOrDefault<int?>() is < 1)
+            {
+                result.AddError("--until-turn is a turn of the conversation, from 1.");
+            }
+        });
         var server = CommandOptions.Server();
         var dir = CommandOptions.Dir();
         var command = new Command(
             "from-conversation",
-            "Draft a scenario from a monitored conversation, as it is: the agent answers its last message; checks drafted as comments."
+            "Draft a scenario from a monitored conversation, as it is (the agent answers its last message) or replayed to --until-turn and simulated after it; checks drafted as comments."
         )
         {
             id,
+            untilTurn,
             write,
             server,
             dir,
@@ -38,8 +52,12 @@ internal static class FromConversationCommand
                     parsed.InvocationConfiguration.Error,
                     async (client, _) =>
                     {
-                        var draft = await client.ScenarioDraftAsync(parsed.GetValue(id), cancellationToken);
+                        var draft = await client.ScenarioDraftAsync(parsed.GetValue(id), cancellationToken, parsed.GetValue(untilTurn));
                         var output = parsed.InvocationConfiguration.Output;
+                        if (draft.Notice is { } notice)
+                        {
+                            await parsed.InvocationConfiguration.Error.WriteLineAsync($"{notice} Write simulatedUser yourself.");
+                        }
                         if (!parsed.GetValue(write))
                         {
                             await output.WriteAsync(draft.Yaml);

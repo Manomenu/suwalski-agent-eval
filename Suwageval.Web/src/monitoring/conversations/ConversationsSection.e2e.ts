@@ -66,3 +66,32 @@ test("Versions in monitoring lists the version answering now, marked Current and
     await expect(page.getByText("Not evaluated", { exact: true })).toBeVisible();
     await expect(page.getByRole("columnheader", { name: /Conversations, 30 d/ })).toBeVisible();
 });
+
+test("a conversation drafts as a scenario, as it is or replayed to a turn with a simulated user", async ({ page, request }) => {
+    const name = `e2e-monitoring-draft-${String(Date.now())}`;
+    const data = { name, endpointUrl: "http://localhost:9/", features: { monitoring: {} } };
+    expect((await request.post("/api/agents", { data })).ok()).toBe(true);
+    const turn = (text: string, at: string) => ({
+        id: crypto.randomUUID(),
+        conversationId: "chat-7",
+        at,
+        items: [
+            { kind: "UserMessage", text },
+            { kind: "AssistantMessage", text: `About ${text}` },
+        ],
+    });
+    await sendTurns(request, name, [turn("Where is A-17?", "2026-10-24T12:00:00Z"), turn("And B-2?", "2026-10-24T12:01:00Z")]);
+
+    await page.goto(`/agents/${name}/monitoring`);
+    await page.getByRole("link", { name: "chat-7", exact: true }).click();
+    await page.getByRole("button", { name: "Scenario YAML", exact: true }).click();
+    await expect(page.getByLabel("Scenario YAML")).toContainText("- user: And B-2?");
+
+    await page.getByRole("combobox", { name: "Replay", exact: true }).click();
+    await page.getByRole("option", { name: "To turn 1, then a simulated user", exact: true }).click();
+
+    await expect(page.getByLabel("Scenario YAML")).toContainText("simulatedUser:");
+    await expect(page.getByLabel("Scenario YAML")).not.toContainText("- user: And B-2?");
+    // The e2e server has no model: the description is the plain draft, and the page says so.
+    await expect(page.getByText("Write the simulated user yourself", { exact: true })).toBeVisible();
+});

@@ -374,6 +374,14 @@ comments: a starting point to keep what the agent must do and delete the rest, n
 may have been wrong, which is often why the conversation was picked. The conversation ran on real data Suwageval does not keep: add the
 `fixtures` the agent needs. A failure in production becomes a regression test this way.
 
+**Replayed to a turn, simulated after it.** With `--until-turn N` (or "Replay: To turn N" in the draft's window) the turns before N are
+the history, the agent answers turn N's user message, and a simulated user goes on (`continuation`, *Simulation* below) for as many
+turns as the real conversation went on from there (at most 20). Suwageval's simulator model drafts `simulatedUser` from what the real
+user wrote (`Models:simulator`, else the judge's model); without one, or when it does not answer, the draft lists the user's messages
+to rewrite and says so (`notice` in the API's answer, a line on stderr). The draft checks then come from everything the agent did from
+turn N on: in a simulation they look at the whole conversation. Use it when the conversation went wrong only after some turns, or when
+the agent should be tested against a user like this one rather than against these exact words.
+
 ### Samples
 
 A model does not answer the same way twice, so a conversation is sent to the agent several times: each time is a **sample**,

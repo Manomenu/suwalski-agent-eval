@@ -305,10 +305,20 @@ internal sealed class ServerClient(HttpClient http)
             cancellationToken
         );
 
-    /// <summary>A monitored conversation drafted as a scenario file (its key, path and YAML).</summary>
-    public Task<ScenarioDraft> ScenarioDraftAsync(Guid conversationId, CancellationToken cancellationToken) =>
+    /// <summary>
+    /// A monitored conversation drafted as a scenario file (its key, path and YAML): taken as it is, or replayed to <paramref name="untilTurn"/>
+    /// and simulated after it.
+    /// </summary>
+    public Task<ScenarioDraft> ScenarioDraftAsync(Guid conversationId, CancellationToken cancellationToken, int? untilTurn = null) =>
         SendAsync<ScenarioDraft>(
-            () => http.GetAsync(new Uri($"monitoring/conversations/{conversationId}/scenario", UriKind.Relative), cancellationToken),
+            () =>
+                http.GetAsync(
+                    new Uri(
+                        $"monitoring/conversations/{conversationId}/scenario{(untilTurn is { } turn ? $"?untilTurn={turn.ToString(CultureInfo.InvariantCulture)}" : "")}",
+                        UriKind.Relative
+                    ),
+                    cancellationToken
+                ),
             cancellationToken
         );
 

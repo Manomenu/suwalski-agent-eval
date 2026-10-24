@@ -63,4 +63,30 @@ public sealed class UserSimulatorLiveTests
         Assert.Null(turn.Failure);
         Assert.True(turn.Ended, $"The simulated user wrote instead: {turn.Message}");
     }
+
+    [Fact]
+    [Trait("live", "true")]
+    public async Task The_real_model_describes_the_user_of_a_real_conversation()
+    {
+        using var services = Services();
+        var simulator = services.GetRequiredService<UserSimulator>();
+        Assert.SkipUnless(
+            simulator.IsConfigured,
+            "No simulator model configured: set Models__judge__BaseUrl and Models__judge__Model (.env)."
+        );
+
+        var description = await services
+            .GetRequiredService<UserDescriber>()
+            .DescribeAsync(
+                [
+                    new UserMessage { Text = "My kettle from order A-17 broke after 40 days. I want my money back." },
+                    new AssistantMessage { Text = "Refunds are possible within 30 days. Can I offer a repair?" },
+                    new UserMessage { Text = "No! This is the second broken kettle. I want a refund or I'll write a review." },
+                ],
+                Cancellation
+            );
+
+        Assert.Null(description.Notice);
+        Assert.Contains("A-17", description.Text, StringComparison.Ordinal);
+    }
 }

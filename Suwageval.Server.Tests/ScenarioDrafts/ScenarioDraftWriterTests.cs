@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Suwageval.AgentSdk.Conversations;
+using Suwageval.Server.Evaluation.Simulation;
 using Suwageval.Server.ScenarioDrafts;
 
 namespace Suwageval.Server.Tests.ScenarioDrafts;
@@ -57,6 +58,36 @@ public sealed class ScenarioDraftWriterTests
         Assert.Contains("# - key: emits-state-changed\n#   type: event\n", yaml, StringComparison.Ordinal);
         Assert.Contains("# - key: cites-its-sources\n#   type: cited\n", yaml, StringComparison.Ordinal);
         Assert.DoesNotContain("\nchecks:", yaml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Until_a_turn_the_history_ends_with_its_user_message_and_a_simulated_user_goes_on()
+    {
+        var draft = ScenarioDraftWriter.Draft(
+            "chat-81",
+            Id,
+            Turns(),
+            untilTurn: 1,
+            new UserDescription("You want a refund.", "not by a model")
+        );
+
+        var yaml = draft.Yaml;
+        Assert.Contains("replayed to turn 1", yaml, StringComparison.Ordinal);
+        Assert.Contains("conversation:\n- user: Hi\n", yaml, StringComparison.Ordinal);
+        Assert.DoesNotContain("- assistant: Hello", yaml, StringComparison.Ordinal);
+        Assert.Contains("continuation:\n  turns: 2\n  simulatedUser: You want a refund.\n", yaml, StringComparison.Ordinal);
+        // The later turns' calls are drafted too: a simulation's checks look at the whole conversation.
+        Assert.Contains("# - key: calls-refund-order\n", yaml, StringComparison.Ordinal);
+        Assert.Equal("not by a model", draft.Notice);
+    }
+
+    [Fact]
+    public void Until_the_last_turn_is_the_conversation_taken_as_it_is()
+    {
+        var draft = ScenarioDraftWriter.Draft("chat-81", Id, Turns(), untilTurn: 2);
+
+        Assert.Equal(ScenarioDraftWriter.Draft("chat-81", Id, Turns()).Yaml, draft.Yaml);
+        Assert.Null(draft.Notice);
     }
 
     [Fact]

@@ -14,6 +14,7 @@ internal static class SimulationServiceCollectionExtensions
             .Validate(options => options.Temperature is >= 0 and <= 2, "Simulation:Temperature is from 0 to 2")
             .ValidateOnStart();
         services.AddSingleton<UserSimulator>();
+        services.AddSingleton<UserDescriber>();
         return services;
     }
 }

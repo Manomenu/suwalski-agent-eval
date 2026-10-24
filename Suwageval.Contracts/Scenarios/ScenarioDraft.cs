@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Suwageval.Contracts.Scenarios;
 
 /// <summary>
@@ -12,4 +14,8 @@ public sealed record ScenarioDraft
     public required string Path { get; init; }
 
     public required string Yaml { get; init; }
+
+    /// <summary>For a draft that simulates the rest of the conversation: why its simulated user was not drafted by a model; null when it was, or for one taken as it is.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Notice { get; init; }
 }

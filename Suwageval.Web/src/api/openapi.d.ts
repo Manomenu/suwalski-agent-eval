@@ -1620,7 +1620,9 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    untilTurn?: number;
+                };
                 header?: never;
                 path: {
                     id: string;
@@ -2956,6 +2958,8 @@ export interface components {
             /** @description Where the file goes, relative to the repository's root: `suwageval/scenarios/&lt;key&gt;.yaml`. */
             path: string;
             yaml: string;
+            /** @description For a draft that simulates the rest of the conversation: why its simulated user was not drafted by a model; null when it was, or for one taken as it is. */
+            notice?: null | string;
         };
         /** @description A frozen moment of a conversation; the agent answers its last message. */
         ScenarioInput: {

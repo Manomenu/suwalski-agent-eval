@@ -65,6 +65,31 @@ export function versionText(conversation: { agentVersionId: string; versionLabel
     return conversation.versionChanged === true ? `${name} (changed during it)` : name;
 }
 
+/** The path of the conversation's scenario draft: taken as it is (null), or replayed to a turn and simulated after it. */
+export function scenarioDraftPath(id: string, untilTurn: number | null): string {
+    return `/monitoring/conversations/${id}/scenario${untilTurn === null ? "" : `?untilTurn=${String(untilTurn)}`}`;
+}
+
+/** What the draft's "Replay" field offers: the conversation as it is, then each turn before the last to simulate after. */
+export function replayOptions(turns: number): { value: string; label: string }[] {
+    return [
+        { value: "", label: "As it is: the agent answers the last message" },
+        ...Array.from({ length: Math.max(turns - 1, 0) }, (_, index) => ({
+            value: String(index + 1),
+            label: `To turn ${String(index + 1)}, then a simulated user`,
+        })),
+    ];
+}
+
+/** The turn the "Replay" field's value names; null: as it is. */
+export function untilTurnOf(value: string | null): number | null {
+    const turn = Number(value);
+    return value === null || value === "" || !Number.isInteger(turn) || turn < 1 ? null : turn;
+}
+
+export const SIMULATED_DRAFT_HELP =
+    "Replayed to the chosen turn: the agent answers its message, then Suwageval's model plays the user for as many turns as the real conversation went on. The simulated user is described from the real one: review it before you save the file.";
+
 export const SCENARIO_DRAFT_HELP =
     "Taken as it is: every turn before the last is the history, and the agent answers the last user message. The checks at the end are drafts, as comments, from what the agent did: keep what it must do, delete the rest. Add the fixtures the agent needs (the conversation ran on real data). Save the file in the agent's repository, then suwageval validate and push.";
 

@@ -11,8 +11,12 @@ $ARGUMENTS
 1. Read `features` in `suwageval/agent.yaml`. Without `monitoring` there are no conversations: say so and propose switching it on
    (then `suwageval push`) instead of going on.
 2. No id given: run `suwageval monitoring conversations` and ask which one (a closed one, ideally one where the agent went wrong).
-3. Run `suwageval scenario from-conversation <id>` and show the draft. It takes the conversation as it is: every turn before the last is
-   the history, and the agent answers the last user message. The checks at the end are drafts, as comments, made from what the agent
+3. Decide with the user how to replay it. As it is (`suwageval scenario from-conversation <id>`): every turn before the last is the
+   history, and the agent answers the last user message — for a conversation that went wrong in its last answer. Replayed to a turn
+   (`--until-turn N`): the turns before N are the history, the agent answers turn N's message and a simulated user goes on — for one
+   that went wrong only later, or to test the agent against a user like this one. Run it and show the draft. With `--until-turn`, read
+   `simulatedUser` with the user and fix it (it was drafted by a model from the real user's messages; if stderr says no model wrote it,
+   write it together). The checks at the end are drafts, as comments, made from what the agent
    did: they are not the expected answer (the agent may have been wrong; that is often why the conversation was picked).
 4. With the user, decide the checks: uncomment the ones that state what the agent must do, fix their values, delete the rest, add what
    is missing (the scenario command's rules for choosing checks apply). Add the `fixtures` the agent needs, if its contract declares

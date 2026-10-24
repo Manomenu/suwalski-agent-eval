@@ -59,6 +59,19 @@ public sealed class FromConversationCommandTests : IDisposable
     }
 
     [Fact]
+    public void Until_turn_goes_to_the_server_and_a_turn_below_one_is_refused_before_it()
+    {
+        var (exit, _, _, paths) = Run("--dir", dir, "--until-turn", "2");
+        var (refused, _, error, none) = Run("--dir", dir, "--until-turn", "0");
+
+        Assert.Equal(0, exit);
+        Assert.Equal([$"/monitoring/conversations/{Id}/scenario?untilTurn=2"], paths);
+        Assert.NotEqual(0, refused);
+        Assert.Contains("--until-turn is a turn of the conversation, from 1.", error, StringComparison.Ordinal);
+        Assert.Empty(none);
+    }
+
+    [Fact]
     public void With_write_the_file_is_written_into_the_scenarios_folder_and_never_over_one_that_is_there()
     {
         var (first, firstOutput, _, _) = Run("--dir", dir, "--write");
