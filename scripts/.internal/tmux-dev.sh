@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# `just tmux-dev`: the local stack in one tmux session.
+# `just tmux-dev start [--restart]` / `just tmux-dev stop`: the local stack in one tmux session.
 #   left:  a shell in the example agent's repo, for the suwageval CLI
 #   right: server (+ database) | web  /  example agent (suwexag) | a spare shell
 # The example agent (suwexag) runs from its source, `dotnet watch`, so a change to it reloads like the server's; only when its
 # source is not there, from its local image (suwexag:local, `just build-image` in its repo). With neither the session is not
 # started. Its model settings are its repo's .env either way.
-# The session is reused when it exists; --restart kills it (and everything running in it) first.
+# The session is reused when it exists; --restart kills it (and everything running in it) first; stop kills it and stops there.
 # Inside tmux the client is switched, not nested.
 # TMUX_DEV_NO_ATTACH=1 builds the session and stops there (used to inspect the layout).
 set -euo pipefail
@@ -15,14 +15,18 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 AGENT_DIR="${SUWAGEVAL_AGENT_DIR:-$HOME/repos/suwalski-example-agent}"
 AGENT_IMAGE=suwexag:local
 
+usage() {
+  echo "usage: just tmux-dev start [--restart] | just tmux-dev stop" >&2
+  exit 2
+}
+
 restart=0
-case "${1:-}" in
-  "") ;;
-  --restart) restart=1 ;;
-  *)
-    echo "usage: just tmux-dev [--restart]" >&2
-    exit 2
-    ;;
+stop=0
+case "${1:-} ${2:-}" in
+  "start ") ;;
+  "start --restart") restart=1 ;;
+  "stop ") stop=1 ;;
+  *) usage ;;
 esac
 
 if ! command -v tmux >/dev/null 2>&1; then
@@ -41,12 +45,28 @@ attach() {
   fi
 }
 
-if ((restart)) && tmux has-session -t "=$SESSION" 2>/dev/null; then
+# Kills the session and everything running in it; the agent's container (image mode) is removed too, so nothing keeps its port.
+kill_session() {
   if [[ -n "${TMUX:-}" && "$(tmux display-message -p '#S')" == "$SESSION" ]]; then
-    echo "Run --restart from outside the $SESSION session: killing it would kill this shell too." >&2
+    echo "Run this from outside the $SESSION session: killing it would kill this shell too." >&2
     exit 1
   fi
   tmux kill-session -t "=$SESSION"
+  docker rm -f suwexag >/dev/null 2>&1 || true
+}
+
+if ((stop)); then
+  if ! tmux has-session -t "=$SESSION" 2>/dev/null; then
+    echo "No $SESSION session is running."
+    exit 0
+  fi
+  kill_session
+  echo "Stopped the $SESSION session."
+  exit 0
+fi
+
+if ((restart)) && tmux has-session -t "=$SESSION" 2>/dev/null; then
+  kill_session
 fi
 
 if tmux has-session -t "=$SESSION" 2>/dev/null; then

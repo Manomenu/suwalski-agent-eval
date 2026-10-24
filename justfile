@@ -9,6 +9,9 @@ mod db '.just/db.just'
 # A copy of the local .env files in Bitwarden — `just secrets backup|restore` (.just/secrets.just)
 mod secrets '.just/secrets.just'
 
+# The local stack in one tmux session — `just tmux-dev start [--restart]|stop` (.just/tmux-dev.just)
+mod tmux-dev '.just/tmux-dev.just'
+
 [private]
 default:
     @just --list --unsorted
@@ -42,11 +45,6 @@ api-types:
 [group('dev')]
 cli *args:
     dotnet run --project Suwageval.Cli -- {{ args }}
-
-# Open a tmux layout with the local stack: server, web, example agent, spare shell and a CLI shell (--restart: kill the old session first)
-[group('dev')]
-tmux-dev *args:
-    @./scripts/.internal/tmux-dev.sh {{ args }}
 
 # Pack the CLI and install (or update) it as the global `suwageval` command
 [group('dev')]
