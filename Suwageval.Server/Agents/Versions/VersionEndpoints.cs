@@ -30,6 +30,7 @@ internal static class VersionEndpoints
         [FromQuery] RunGrouping? grouping,
         AgentStore store,
         VersionStore versions,
+        TimeProvider time,
         CancellationToken cancellationToken
     )
     {
@@ -40,6 +41,7 @@ internal static class VersionEndpoints
         }
         var counts = await versions.RunCountsAsync(row.Id, cancellationToken);
         var data = await versions.DataAsync(row.Id, cancellationToken);
+        var monitoring = await versions.MonitoringAsync(row.Id, time.GetUtcNow().AddDays(-30), cancellationToken);
         return Results.Ok(
             (await store.ListVersionsAsync(row.Id, cancellationToken))
                 .Where(version =>
@@ -50,7 +52,12 @@ internal static class VersionEndpoints
                         RunGrouping.All or _ => true,
                     }
                 )
-                .Select(version => ToVersion(version, CountsOf(counts, version.Id), data.GetValueOrDefault(version.Id, [])))
+                .Select(version =>
+                    ToVersion(version, CountsOf(counts, version.Id), data.GetValueOrDefault(version.Id, [])) with
+                    {
+                        Monitoring = monitoring.GetValueOrDefault(version.Id, []),
+                    }
+                )
         );
     }
 

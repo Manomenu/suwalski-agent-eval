@@ -1795,6 +1795,8 @@ export interface components {
             runs: number;
             /** Format: int32 */
             groupRuns: number;
+            /** @description Where the version answers the conversations of a deployed agent (monitoring), one entry per environment; empty: nowhere. */
+            monitoring?: components["schemas"]["VersionMonitoring"][];
         };
         /** @description A registered version of an agent with its content (`Content.Label` is the version's label). */
         AgentVersionDetail: {
@@ -3248,6 +3250,18 @@ export interface components {
             removed: number;
             /** @description The hunks: every change with three unchanged lines around it, a longer unchanged run folded into one block; none for the same content. */
             blocks: components["schemas"]["DiffBlock"][];
+        };
+        /**
+         * @description A version in one monitored environment: the conversations whose last turn it answered in the last 30 days, when it last answered a turn,
+         *     and whether it is the version answering there now (the one of the environment's newest turn).
+         */
+        VersionMonitoring: {
+            environment: string;
+            /** Format: int32 */
+            conversations30Days: number;
+            /** Format: date-time */
+            lastConversationAt: string;
+            current: boolean;
         };
     };
     responses: never;

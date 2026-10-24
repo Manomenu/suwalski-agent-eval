@@ -1,4 +1,4 @@
-import { Anchor, Badge, Button, Checkbox, Chip, Group, Paper, Pill, Stack, Table, Text, Title, Tooltip } from "@mantine/core";
+import { Anchor, Badge, Button, Checkbox, Chip, Group, Paper, Pill, Select, Stack, Table, Text, Title, Tooltip } from "@mantine/core";
 
 import { type AgentVersion } from "../agents/api";
 import { DeleteModal } from "../agents/DeleteModal";
@@ -10,7 +10,9 @@ import {
     compareVersionsTitle,
     versionLabel,
     versionsToCompare,
+    VERSION_CONVERSATIONS_HELP,
     VERSION_CREATED_HELP,
+    VERSION_LAST_CONVERSATION_HELP,
     VERSION_ID_HELP,
     VERSION_GROUP_RUNS_HELP,
     VERSION_LABEL_HELP,
@@ -21,7 +23,7 @@ import { deletionSummary } from "../agents/deletion";
 import { archiveSelection } from "../archive/archive";
 import { ArchiveControls, type ArchiveLabels } from "../archive/ArchiveControls";
 import { useArchiveList } from "../archive/useArchiveList";
-import { listedVersions, usagesOfValues, VERSION_USAGE_OPTIONS } from "./versionUsage";
+import { currentText, environmentsOf, listedVersions, monitoringSummary, usagesOfValues, VERSION_USAGE_OPTIONS } from "./versionUsage";
 import { versionCompareHref, versionHref, type VersionUsage } from "../routes/links";
 import { formatTime } from "../format/time";
 import { shortId, versionTitle } from "../format/names";
@@ -39,7 +41,7 @@ const LABELS: ArchiveLabels = {
 };
 
 const VERSION_USAGE_HELP =
-    "Where the versions are used; a version is listed when it has any of the chosen usages. Evaluation: it has runs outside a group (the default). Groups: it has runs in a group (run --group), such as a sweep's variants. Unused: it has no run. Archived: the archived versions, which are listed only then.";
+    "Where the versions are used; a version is listed when it has any of the chosen usages. Evaluation: it has runs outside a group (the default). Groups: it has runs in a group (run --group), such as a sweep's variants. Monitoring: it answered conversations of the deployed agent. Unused: it has no run and no conversation. Archived: the archived versions, which are listed only then.";
 
 /** The agent's versions: select some to archive them (hidden), turn on the Archived usage chip to see, restore or delete them (an archived version, with its runs). */
 export function VersionsSection({
@@ -49,6 +51,8 @@ export function VersionsSection({
     onUsageChange,
     versionIds,
     onVersionRemoved,
+    environment,
+    onEnvironmentChange,
     onChanged,
 }: {
     agentName: string;
@@ -59,6 +63,9 @@ export function VersionsSection({
     /** The versions the list is narrowed to (none: no narrowing); each is shown as a chip that removes it. */
     versionIds: string[];
     onVersionRemoved: (id: string) => void;
+    /** The monitored environment the monitoring usage and columns are narrowed to; null: every one. */
+    environment: string | null;
+    onEnvironmentChange: (environment: string | null) => void;
     /** Called after the server archived or restored versions, so the page loads the list again. */
     onChanged: () => void;
 }) {
@@ -67,7 +74,9 @@ export function VersionsSection({
     const { selected } = list;
 
     const showArchived = usage.includes("archived");
-    const shown = listedVersions(versions, usage, versionIds);
+    const shown = listedVersions(versions, usage, versionIds, environment);
+    const environments = environmentsOf(versions);
+    const monitored = environments.length > 0;
     const { items: listed, page } = pageOfItems(shown, requestedPage);
     const { toArchive, toRestore, toDelete } = archiveSelection(listed, selected, (version) => version.id);
     const toCompare = versionsToCompare(listed, selected);
@@ -104,6 +113,21 @@ export function VersionsSection({
                                 </Group>
                             </Chip.Group>
                         </Stack>
+                        {monitored && usage.includes("monitoring") && (
+                            <Select
+                                label="Environment"
+                                placeholder="All environments"
+                                data={environments}
+                                value={environment}
+                                onChange={(value) => {
+                                    setRequestedPage(1);
+                                    list.clear();
+                                    onEnvironmentChange(value);
+                                }}
+                                clearable
+                                maw={260}
+                            />
+                        )}
                         {versionIds.length > 0 && (
                             <Pill.Group>
                                 {versionIds.map((id) => (
@@ -168,46 +192,79 @@ export function VersionsSection({
                                         <Table.Th>
                                             <HeaderHelp label="Group runs" help={VERSION_GROUP_RUNS_HELP} />
                                         </Table.Th>
+                                        {monitored && (
+                                            <>
+                                                <Table.Th>
+                                                    <HeaderHelp label="Conversations, 30 d" help={VERSION_CONVERSATIONS_HELP} />
+                                                </Table.Th>
+                                                <Table.Th>
+                                                    <HeaderHelp label="Last conversation" help={VERSION_LAST_CONVERSATION_HELP} />
+                                                </Table.Th>
+                                            </>
+                                        )}
                                         <Table.Th>
                                             <HeaderHelp label="Id" help={VERSION_ID_HELP} />
                                         </Table.Th>
                                     </Table.Tr>
                                 </Table.Thead>
                                 <Table.Tbody>
-                                    {listed.map((version) => (
-                                        <Table.Tr key={version.id}>
-                                            <Table.Td>
-                                                <Checkbox
-                                                    aria-label={`Select version ${versionTitle(version.id, version.label)}`}
-                                                    checked={selected.has(version.id)}
-                                                    onChange={(event) => {
-                                                        list.toggle(version.id, event.currentTarget.checked);
-                                                    }}
-                                                />
-                                            </Table.Td>
-                                            <Table.Td>
-                                                <Stack gap={4} align="flex-start">
-                                                    {versionLabel(version)}
-                                                    {version.archivedAt != null && (
-                                                        <Badge color="gray" variant="light">
-                                                            Archived
-                                                        </Badge>
-                                                    )}
-                                                    {version.groupRunsOnly && (
-                                                        <Badge color="gray" variant="light">
-                                                            Group runs only
-                                                        </Badge>
-                                                    )}
-                                                </Stack>
-                                            </Table.Td>
-                                            <Table.Td>{formatTime(version.createdAt)}</Table.Td>
-                                            <Table.Td>{version.runs}</Table.Td>
-                                            <Table.Td>{version.groupRuns}</Table.Td>
-                                            <Table.Td>
-                                                <Anchor href={versionHref(agentName, version.id)}>{version.id}</Anchor>
-                                            </Table.Td>
-                                        </Table.Tr>
-                                    ))}
+                                    {listed.map((version) => {
+                                        const monitoring = monitoringSummary(version, environment);
+                                        return (
+                                            <Table.Tr key={version.id}>
+                                                <Table.Td>
+                                                    <Checkbox
+                                                        aria-label={`Select version ${versionTitle(version.id, version.label)}`}
+                                                        checked={selected.has(version.id)}
+                                                        onChange={(event) => {
+                                                            list.toggle(version.id, event.currentTarget.checked);
+                                                        }}
+                                                    />
+                                                </Table.Td>
+                                                <Table.Td>
+                                                    <Stack gap={4} align="flex-start">
+                                                        {versionLabel(version)}
+                                                        {version.archivedAt != null && (
+                                                            <Badge color="gray" variant="light">
+                                                                Archived
+                                                            </Badge>
+                                                        )}
+                                                        {version.groupRunsOnly && (
+                                                            <Badge color="gray" variant="light">
+                                                                Group runs only
+                                                            </Badge>
+                                                        )}
+                                                        {monitoring.currentIn.length > 0 && (
+                                                            <Badge color="green" variant="light">
+                                                                {currentText(monitoring.currentIn, environments)}
+                                                            </Badge>
+                                                        )}
+                                                        {monitoring.notEvaluated && (
+                                                            <Badge color="yellow" variant="light">
+                                                                Not evaluated
+                                                            </Badge>
+                                                        )}
+                                                    </Stack>
+                                                </Table.Td>
+                                                <Table.Td>{formatTime(version.createdAt)}</Table.Td>
+                                                <Table.Td>{version.runs}</Table.Td>
+                                                <Table.Td>{version.groupRuns}</Table.Td>
+                                                {monitored && (
+                                                    <>
+                                                        <Table.Td>{monitoring.conversations30Days}</Table.Td>
+                                                        <Table.Td>
+                                                            {monitoring.lastConversationAt === null
+                                                                ? "—"
+                                                                : formatTime(monitoring.lastConversationAt)}
+                                                        </Table.Td>
+                                                    </>
+                                                )}
+                                                <Table.Td>
+                                                    <Anchor href={versionHref(agentName, version.id)}>{version.id}</Anchor>
+                                                </Table.Td>
+                                            </Table.Tr>
+                                        );
+                                    })}
                                 </Table.Tbody>
                             </Table>
                         </Table.ScrollContainer>

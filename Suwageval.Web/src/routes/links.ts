@@ -17,7 +17,7 @@ export const failedConversationsHref = (name: string, checkKey: string) =>
 export const agentVersionsHref = (name: string) => `${agentHref(name)}/versions`;
 
 /** Where a version is used: the kinds of usage the Versions page filters by (the closed set; a later area adds its own). */
-export type VersionUsage = "evaluation" | "groups" | "unused" | "archived";
+export type VersionUsage = "evaluation" | "groups" | "monitoring" | "unused" | "archived";
 
 /**
  * The Versions page of an agent filtered by usage, and by version when ids are given (`?usage=evaluation,groups&version=<id>,<id>`). The
@@ -31,6 +31,12 @@ export function agentVersionsFilteredHref(name: string, usage: readonly VersionU
 
 /** The versions in evaluation: the Evaluation page's "Versions in evaluation" link. */
 export const versionsInEvaluationHref = (name: string) => agentVersionsFilteredHref(name, ["evaluation"]);
+
+/** The versions answering the deployed agent's conversations: the Monitoring page's "Versions in monitoring" link. */
+export const versionsInMonitoringHref = (name: string) => agentVersionsFilteredHref(name, ["monitoring"]);
+
+/** The Versions list narrowed to one version a monitored conversation points at. */
+export const versionInMonitoringHref = (name: string, versionId: string) => agentVersionsFilteredHref(name, ["monitoring"], [versionId]);
 
 /**
  * The Versions list narrowed to one version a run of the Evaluation area points at: with the evaluation usage, and the groups' too when the

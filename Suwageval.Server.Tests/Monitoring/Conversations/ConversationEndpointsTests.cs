@@ -131,6 +131,28 @@ public sealed class ConversationEndpointsTests(TestDatabase database) : IAsyncDi
     }
 
     [Fact]
+    public async Task The_versions_list_says_where_each_version_answered_and_which_answers_now()
+    {
+        var name = await MonitoredAgent();
+        var now = DateTimeOffset.UtcNow;
+        await Send(
+            Batch(name, Contract(), withContract: true, Turn("old", "Long ago", now.AddDays(-40)), Turn("c-1", "Hi", now.AddHours(-2)))
+        );
+        await Send(Batch(name, Contract("Be brief."), withContract: true, Turn("c-2", "Hi", now.AddHours(-1))));
+
+        var versions = await TestServer.Read<AgentVersion[]>(await server.Get($"/agents/{name}/versions"));
+
+        var first = versions.Single(version => version.ContentHash == AgentContractHash.Of(Contract()));
+        var second = versions.Single(version => version.ContentHash == AgentContractHash.Of(Contract("Be brief.")));
+        var before = Assert.Single(first.Monitoring);
+        // The conversation of 40 days ago is out of the 30 days' count, but the version answered it.
+        Assert.Equal(("production", 1, false), (before.Environment, before.Conversations30Days, before.Current));
+        Assert.Equal(now.AddHours(-2), before.LastConversationAt, TimeSpan.FromSeconds(1));
+        var current = Assert.Single(second.Monitoring);
+        Assert.Equal((1, true), (current.Conversations30Days, current.Current));
+    }
+
+    [Fact]
     public async Task With_monitoring_off_the_turns_are_refused_409_naming_the_feature()
     {
         var name = AgentStoreTests.UniqueName();

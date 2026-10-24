@@ -35,4 +35,8 @@ export const VERSION_CREATED_HELP = "When a run first met this contract, which i
 export const VERSION_RUNS_HELP = "How many runs of this version are in no group: the runs the Evaluation page lists.";
 export const VERSION_GROUP_RUNS_HELP =
     "How many runs of this version are in a group (run --group); a re-check counts in its original's group.";
+export const VERSION_CONVERSATIONS_HELP =
+    "How many conversations of the deployed agent this version answered the last turn of in the last 30 days (in the chosen environment, when one is).";
+export const VERSION_LAST_CONVERSATION_HELP =
+    "When this version last answered a turn of the deployed agent. Current: it is the version answering there now. Not evaluated: it answers conversations and has no run.";
 export const VERSION_ID_HELP = "The version's id; open it to see the contract.";

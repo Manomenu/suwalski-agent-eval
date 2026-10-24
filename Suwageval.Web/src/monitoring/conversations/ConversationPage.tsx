@@ -5,7 +5,7 @@ import { useRequest } from "../../api/useRequest";
 import { ConversationItems } from "../../conversation/ConversationItems";
 import { DataVersion } from "../../dataVersion/DataVersion";
 import { formatTime } from "../../format/time";
-import { agentMonitoringHref, versionHref } from "../../routes/links";
+import { agentMonitoringHref, versionInMonitoringHref } from "../../routes/links";
 import { useReportAgent } from "../../shell/reportAgent";
 import { fetchConversation, type ConversationDetail } from "./api";
 import { versionText } from "./conversations";
@@ -43,8 +43,8 @@ function View({ detail }: { detail: ConversationDetail }) {
             </Group>
             <Text c="dimmed">
                 {conversation.environment} · {conversation.turns} turns · version{" "}
-                <Anchor href={versionHref(conversation.agent, conversation.agentVersionId)}>{versionText(conversation)}</Anchor> · from{" "}
-                {formatTime(conversation.startedAt)} to {formatTime(conversation.lastTurnAt)}
+                <Anchor href={versionInMonitoringHref(conversation.agent, conversation.agentVersionId)}>{versionText(conversation)}</Anchor>{" "}
+                · from {formatTime(conversation.startedAt)} to {formatTime(conversation.lastTurnAt)}
             </Text>
             {detail.checks != null && detail.checks.length > 0 && (
                 <Paper withBorder p="md">
@@ -81,7 +81,7 @@ function View({ detail }: { detail: ConversationDetail }) {
                                 {formatTime(turn.at)}
                             </Text>
                             {turn.agentVersionId !== conversation.agentVersionId && (
-                                <Anchor size="sm" href={versionHref(conversation.agent, turn.agentVersionId)}>
+                                <Anchor size="sm" href={versionInMonitoringHref(conversation.agent, turn.agentVersionId)}>
                                     version {turn.agentVersionId.slice(0, 8)}
                                 </Anchor>
                             )}

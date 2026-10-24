@@ -6,7 +6,7 @@ import { formatTime } from "../../format/time";
 import { HeaderHelp } from "../../help/HeaderHelp";
 import { ListPagination } from "../../pagination/ListPagination";
 import { usePageParam } from "../../pagination/usePageParam";
-import { conversationHref, versionHref } from "../../routes/links";
+import { conversationHref, versionInMonitoringHref } from "../../routes/links";
 import { fetchConversations } from "./api";
 import {
     checksColor,
@@ -113,7 +113,7 @@ export function ConversationsSection({ agent }: { agent: string }) {
                                         </Table.Td>
                                         <Table.Td>{conversation.turns}</Table.Td>
                                         <Table.Td>
-                                            <Anchor href={versionHref(agent, conversation.agentVersionId)}>
+                                            <Anchor href={versionInMonitoringHref(agent, conversation.agentVersionId)}>
                                                 {versionText(conversation)}
                                             </Anchor>
                                         </Table.Td>

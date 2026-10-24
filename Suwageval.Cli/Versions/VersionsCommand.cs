@@ -30,7 +30,7 @@ internal static class VersionsCommand
         var usage = new Option<VersionUsage[]>("--usage")
         {
             Description =
-                "Where the versions are used: evaluation (runs outside a group), groups (runs in a group), unused (no run yet), archived; the default is evaluation and unused. Repeatable and/or comma-separated; a version is listed when it has any of them. Not with --archived, --any-group or --all-versions.",
+                "Where the versions are used: evaluation (runs outside a group), groups (runs in a group), monitoring (answered conversations of the deployed agent), unused (no run and no conversation yet), archived; the default is evaluation, monitoring and unused. Repeatable and/or comma-separated; a version is listed when it has any of them. Not with --archived, --any-group or --all-versions.",
             CustomParser = result =>
             {
                 var chosen = new List<VersionUsage>();
@@ -42,7 +42,7 @@ internal static class VersionsCommand
                     }
                     else
                     {
-                        result.AddError($"'{word}' is not a usage: use evaluation, groups, unused or archived.");
+                        result.AddError($"'{word}' is not a usage: use evaluation, groups, monitoring, unused or archived.");
                     }
                 }
                 return [.. chosen];
@@ -51,6 +51,11 @@ internal static class VersionsCommand
         var only = new Option<Guid[]>("--version")
         {
             Description = "List only this version (an id, as `versions` lists it); repeatable. Still within the usage.",
+        };
+        var environment = new Option<string?>("--environment")
+        {
+            Description =
+                "Only the monitoring of this environment: the usage monitoring, the conversations and where a version is current.",
         };
         var json = CommandOptions.Json("Print the versions as JSON.");
         var server = CommandOptions.Server();
@@ -66,6 +71,7 @@ internal static class VersionsCommand
             allVersions,
             usage,
             only,
+            environment,
             json,
             server,
             dir,
@@ -115,7 +121,7 @@ internal static class VersionsCommand
                                 )
                             ).Where(version => parsed.GetValue(archived) || version.ArchivedAt is null)
                             : (await client.VersionsAsync(agent, cancellationToken)).Where(version =>
-                                VersionUsages.Matches(version, chosen)
+                                VersionUsages.Matches(version, chosen, parsed.GetValue(environment))
                             );
                         var versions = listed.Where(version => chosenIds.Length == 0 || chosenIds.Contains(version.Id)).ToList();
                         var output = parsed.InvocationConfiguration.Output;
@@ -126,7 +132,7 @@ internal static class VersionsCommand
                         }
                         foreach (var version in versions)
                         {
-                            await output.WriteLineAsync(VersionList.Line(version));
+                            await output.WriteLineAsync(VersionList.Line(version, parsed.GetValue(environment)));
                         }
                         return 0;
                     }

@@ -1,9 +1,10 @@
-import { Anchor, Paper, Stack, Text, Title } from "@mantine/core";
+import { Anchor, Group, Paper, Stack, Text, Title } from "@mantine/core";
 
 import { fetchAgent } from "../../agents/api";
 import { AreaOff } from "../../agents/AreaOff";
 import { Page } from "../../agents/Page";
 import { useRequest } from "../../api/useRequest";
+import { versionsInMonitoringHref } from "../../routes/links";
 import { ChecksSection } from "../checks/ChecksSection";
 import { ConversationsSection } from "../conversations/ConversationsSection";
 import { monitoringSettingsText } from "./settings";
@@ -21,7 +22,10 @@ export function MonitoringPage({ name }: { name: string }) {
                         <Anchor href="/">← Agents</Anchor>
                         <Paper withBorder p="md">
                             <Stack gap={4}>
-                                <Title order={2}>{agent.name}</Title>
+                                <Group justify="space-between">
+                                    <Title order={2}>{agent.name}</Title>
+                                    <Anchor href={versionsInMonitoringHref(agent.name)}>Versions in monitoring</Anchor>
+                                </Group>
                                 <Text c="dimmed">{monitoringSettingsText(agent.features.monitoring)}</Text>
                             </Stack>
                         </Paper>

@@ -187,13 +187,64 @@ public sealed class VersionsCommandTests
     }
 
     [Fact]
-    public void An_unknown_usage_is_refused_naming_the_four()
+    public void An_unknown_usage_is_refused_naming_the_five()
     {
         var (exit, _, error, api) = Versions(_ => UsageVersions(), "--usage", "forever");
 
         Assert.NotEqual(0, exit);
-        Assert.Contains("'forever' is not a usage: use evaluation, groups, unused or archived.", error, StringComparison.Ordinal);
+        Assert.Contains(
+            "'forever' is not a usage: use evaluation, groups, monitoring, unused or archived.",
+            error,
+            StringComparison.Ordinal
+        );
         Assert.Empty(api.Calls);
+    }
+
+    /// <summary>A version that answers the deployed agent's conversations in production and has no run.</summary>
+    private static HttpResponseMessage MonitoredVersion() =>
+        new(HttpStatusCode.OK)
+        {
+            Content = new StringContent(
+                JsonSerializer.Serialize(
+                    new[]
+                    {
+                        new AgentVersion(Active, Guid.NewGuid(), "hash", DateTimeOffset.Parse("2026-10-02T10:00:00Z"), ["m"], "v3")
+                        {
+                            GroupRunsOnly = false,
+                            Runs = 0,
+                            GroupRuns = 0,
+                            Monitoring =
+                            [
+                                new VersionMonitoring("production", 7, DateTimeOffset.Parse("2026-10-24T12:00:00Z"), Current: true),
+                            ],
+                        },
+                    },
+                    ContractJson.Options
+                ),
+                Encoding.UTF8,
+                "application/json"
+            ),
+        };
+
+    [Fact]
+    public void A_version_answering_conversations_is_listed_by_default_as_current_and_not_evaluated()
+    {
+        var (exit, output, _, _) = Versions(_ => MonitoredVersion());
+
+        Assert.Equal(0, exit);
+        Assert.EndsWith(
+            "runs 0  group runs 0  conversations 30 d 7  last conversation 2026-10-24 12:00Z  current (production)  not evaluated",
+            output.Trim(),
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void A_monitored_version_is_not_unused_and_the_environment_narrows_the_monitoring()
+    {
+        Assert.Empty(Versions(_ => MonitoredVersion(), "--usage", "unused").Output.Trim());
+        Assert.Empty(Versions(_ => MonitoredVersion(), "--usage", "monitoring", "--environment", "staging").Output.Trim());
+        Assert.NotEmpty(Versions(_ => MonitoredVersion(), "--usage", "monitoring", "--environment", "production").Output.Trim());
     }
 
     [Fact]

@@ -26,4 +26,7 @@ public sealed record AgentVersion(
     public required int Runs { get; init; }
 
     public required int GroupRuns { get; init; }
+
+    /// <summary>Where the version answers the conversations of a deployed agent (monitoring), one entry per environment; empty: nowhere.</summary>
+    public IReadOnlyList<VersionMonitoring> Monitoring { get; init; } = [];
 }

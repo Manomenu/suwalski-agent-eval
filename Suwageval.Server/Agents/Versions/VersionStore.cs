@@ -64,6 +64,65 @@ internal sealed class VersionStore(Pool pool)
             );
     }
 
+    /// <summary>
+    /// Where each of the agent's versions answered monitored conversations, per environment (the monitoring tables, read as the run counts
+    /// read the runs): a version that answered none is not among the keys. <paramref name="since"/> starts the window of the conversation count.
+    /// </summary>
+    public async Task<IReadOnlyDictionary<Guid, IReadOnlyList<VersionMonitoring>>> MonitoringAsync(
+        Guid agentId,
+        DateTimeOffset since,
+        CancellationToken cancellationToken = default
+    )
+    {
+        await using var connection = await pool.OpenAsync(cancellationToken);
+        var rows = await connection.QueryAsync<(Guid VersionId, string Environment, int Conversations, DateTime LastAt, bool Current)>(
+            new CommandDefinition(
+                """
+                WITH turns AS (
+                    SELECT c.environment, t.agent_version_id, t.at
+                    FROM monitoring_turns t
+                    JOIN monitoring_conversations c ON c.id = t.conversation_id
+                    WHERE c.agent_id = @agentId
+                ),
+                answered AS (
+                    SELECT environment, agent_version_id, max(at) AS last_at FROM turns GROUP BY environment, agent_version_id
+                ),
+                current AS (
+                    SELECT DISTINCT ON (environment) environment, agent_version_id FROM turns ORDER BY environment, at DESC
+                ),
+                conversations AS (
+                    SELECT environment, agent_version_id, count(*) AS n
+                    FROM monitoring_conversations
+                    WHERE agent_id = @agentId AND last_turn_at >= @since
+                    GROUP BY environment, agent_version_id
+                )
+                SELECT a.agent_version_id AS VersionId, a.environment AS Environment, COALESCE(n.n, 0)::int AS Conversations,
+                       a.last_at AS LastAt, (cur.agent_version_id = a.agent_version_id) AS Current
+                FROM answered a
+                JOIN current cur ON cur.environment = a.environment
+                LEFT JOIN conversations n ON n.environment = a.environment AND n.agent_version_id = a.agent_version_id
+                ORDER BY a.environment
+                """,
+                new { agentId, since },
+                cancellationToken: cancellationToken
+            )
+        );
+        return rows.GroupBy(row => row.VersionId)
+            .ToDictionary(
+                group => group.Key,
+                group =>
+                    (IReadOnlyList<VersionMonitoring>)
+                        [
+                            .. group.Select(row => new VersionMonitoring(
+                                row.Environment,
+                                row.Conversations,
+                                new DateTimeOffset(DateTime.SpecifyKind(row.LastAt, DateTimeKind.Utc)),
+                                row.Current
+                            )),
+                        ]
+            );
+    }
+
     /// <summary>The ids among <paramref name="versionIds"/> that are not versions of the agent.</summary>
     public async Task<IReadOnlyList<Guid>> UnknownVersionsAsync(
         Guid agentId,

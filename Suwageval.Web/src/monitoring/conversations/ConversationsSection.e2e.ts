@@ -41,3 +41,28 @@ test("a conversation the agent sent is listed on its Monitoring page and opens w
         "true",
     );
 });
+
+test("Versions in monitoring lists the version answering now, marked Current and Not evaluated", async ({ page, request }) => {
+    const name = `e2e-monitoring-versions-${String(Date.now())}`;
+    const data = { name, endpointUrl: "http://localhost:9/", features: { monitoring: {} } };
+    expect((await request.post("/api/agents", { data })).ok()).toBe(true);
+    await sendTurns(request, name, [
+        {
+            id: crypto.randomUUID(),
+            conversationId: "chat-1",
+            at: new Date().toISOString(),
+            items: [
+                { kind: "UserMessage", text: "Hi" },
+                { kind: "AssistantMessage", text: "Hello" },
+            ],
+        },
+    ]);
+
+    await page.goto(`/agents/${name}/monitoring`);
+    await page.getByRole("link", { name: "Versions in monitoring", exact: true }).click();
+
+    await expect(page).toHaveURL(/\/versions\?usage=monitoring$/);
+    await expect(page.getByText("Current", { exact: true })).toBeVisible();
+    await expect(page.getByText("Not evaluated", { exact: true })).toBeVisible();
+    await expect(page.getByRole("columnheader", { name: /Conversations, 30 d/ })).toBeVisible();
+});

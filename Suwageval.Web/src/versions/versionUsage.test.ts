@@ -1,11 +1,22 @@
 import { describe, expect, it } from "vitest";
 
-import { listedVersions, matchesUsage, searchWithFilter, usageOf, usagesOfValues, versionIdsOf } from "./versionUsage";
+import {
+    currentText,
+    environmentOf,
+    environmentsOf,
+    listedVersions,
+    matchesUsage,
+    monitoringSummary,
+    searchWithFilter,
+    usageOf,
+    usagesOfValues,
+    versionIdsOf,
+} from "./versionUsage";
 
 describe("usageOf", () => {
-    it("is evaluation and unused without a parameter and none for an empty one", () => {
-        expect(usageOf("")).toEqual(["evaluation", "unused"]);
-        expect(usageOf("?tag=a")).toEqual(["evaluation", "unused"]);
+    it("is evaluation, monitoring and unused without a parameter and none for an empty one", () => {
+        expect(usageOf("")).toEqual(["evaluation", "monitoring", "unused"]);
+        expect(usageOf("?tag=a")).toEqual(["evaluation", "monitoring", "unused"]);
         expect(usageOf("?usage=")).toEqual([]);
     });
 
@@ -17,7 +28,7 @@ describe("usageOf", () => {
     it("still reads the older versions parameter", () => {
         expect(usageOf("?versions=any")).toEqual(["groups"]);
         expect(usageOf("?versions=all")).toEqual(["evaluation", "groups", "unused"]);
-        expect(usageOf("?versions=bogus")).toEqual(["evaluation", "unused"]);
+        expect(usageOf("?versions=bogus")).toEqual(["evaluation", "monitoring", "unused"]);
         expect(usageOf("?versions=any&usage=unused")).toEqual(["unused"]);
     });
 });
@@ -32,14 +43,15 @@ describe("versionIdsOf", () => {
 
 describe("searchWithFilter", () => {
     it("leaves no parameter for the default and keeps the others", () => {
-        expect(searchWithFilter("?usage=groups", ["evaluation", "unused"], [])).toBe("");
-        expect(searchWithFilter("?versions=any&versionsPage=2", ["unused", "evaluation"], [])).toBe("?versionsPage=2");
+        expect(searchWithFilter("?usage=groups", ["evaluation", "monitoring", "unused"], [])).toBe("");
+        expect(searchWithFilter("?versions=any&versionsPage=2", ["unused", "monitoring", "evaluation"], [])).toBe("?versionsPage=2");
     });
 
     it("writes the usage in the chips' order, none as an empty parameter, and the ids", () => {
         expect(searchWithFilter("", ["groups", "evaluation"], ["a", "b"])).toBe("?usage=evaluation,groups&version=a,b");
         expect(searchWithFilter("", [], [])).toBe("?usage=");
-        expect(searchWithFilter("?version=x", ["evaluation", "unused"], [])).toBe("");
+        expect(searchWithFilter("?version=x&environment=staging", ["evaluation", "monitoring", "unused"], [])).toBe("");
+        expect(searchWithFilter("", ["monitoring"], ["a"], "production")).toBe("?usage=monitoring&version=a&environment=production");
         expect(searchWithFilter("", ["evaluation"], [])).toBe("?usage=evaluation");
     });
 });
@@ -85,5 +97,47 @@ describe("listedVersions", () => {
         expect(listedVersions(versions, ["evaluation"], []).map((v) => v.id)).toEqual(["a"]);
         expect(listedVersions(versions, ["evaluation", "groups"], ["b"]).map((v) => v.id)).toEqual(["b"]);
         expect(listedVersions(versions, ["evaluation"], ["b"])).toEqual([]);
+    });
+});
+
+describe("monitoring", () => {
+    const production = { environment: "production", conversations30Days: 5, lastConversationAt: "2026-10-24T12:00:00Z", current: true };
+    const staging = { environment: "staging", conversations30Days: 2, lastConversationAt: "2026-10-23T08:00:00Z", current: false };
+    const deployed = { runs: 0, groupRuns: 0, monitoring: [production, staging] };
+    const evaluated = { runs: 3, groupRuns: 0, monitoring: [staging] };
+
+    it("lists a version that answered conversations, in the environment when one is chosen, and never as unused", () => {
+        expect(matchesUsage(deployed, ["monitoring"])).toBe(true);
+        expect(matchesUsage(deployed, ["unused"])).toBe(false);
+        expect(matchesUsage(evaluated, ["monitoring"], "production")).toBe(false);
+        expect(matchesUsage(evaluated, ["monitoring"], "staging")).toBe(true);
+    });
+
+    it("sums the environments, names where it is current and marks it not evaluated without runs", () => {
+        expect(monitoringSummary(deployed, null)).toEqual({
+            conversations30Days: 7,
+            lastConversationAt: "2026-10-24T12:00:00Z",
+            currentIn: ["production"],
+            notEvaluated: true,
+        });
+        expect(monitoringSummary(deployed, "staging")).toEqual({
+            conversations30Days: 2,
+            lastConversationAt: "2026-10-23T08:00:00Z",
+            currentIn: [],
+            notEvaluated: true,
+        });
+        expect(monitoringSummary(evaluated, null).notEvaluated).toBe(false);
+        expect(monitoringSummary({ runs: 0, groupRuns: 0 }, null).notEvaluated).toBe(false);
+    });
+
+    it("names the environment on the Current chip only with several", () => {
+        expect(currentText(["production"], ["production"])).toBe("Current");
+        expect(currentText(["staging"], ["production", "staging"])).toBe("Current · staging");
+    });
+
+    it("offers the environments the versions answered in and reads the chosen one back", () => {
+        expect(environmentsOf([evaluated, deployed, { runs: 1, groupRuns: 0 }])).toEqual(["production", "staging"]);
+        expect(environmentOf("?environment=staging")).toBe("staging");
+        expect(environmentOf("?environment=")).toBeNull();
     });
 });

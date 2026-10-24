@@ -74,6 +74,8 @@ export function VersionsPage({ name }: { name: string }) {
                         onUsageChange={filter.setUsage}
                         versionIds={filter.versionIds}
                         onVersionRemoved={filter.removeVersion}
+                        environment={filter.environment}
+                        onEnvironmentChange={filter.setEnvironment}
                         onChanged={() => {
                             setReload(reload + 1);
                         }}
