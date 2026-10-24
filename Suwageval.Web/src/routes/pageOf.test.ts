@@ -33,9 +33,16 @@ describe("pageOf", () => {
         expect(pageOf("/variants/", "?group=sweep-1")).toEqual({ kind: "unknown" });
     });
 
-    it("reads the name of /agents/<name>, decoded", () => {
-        expect(pageOf("/agents/support-bot")).toEqual({ kind: "agent", name: "support-bot" });
-        expect(pageOf("/agents/my%20bot/")).toEqual({ kind: "agent", name: "my bot" });
+    it("opens the Versions page at /agents/<name> and /agents/<name>/versions, the name decoded", () => {
+        expect(pageOf("/agents/support-bot")).toEqual({ kind: "agentVersions", name: "support-bot" });
+        expect(pageOf("/agents/my%20bot/")).toEqual({ kind: "agentVersions", name: "my bot" });
+        expect(pageOf("/agents/support-bot/versions")).toEqual({ kind: "agentVersions", name: "support-bot" });
+        expect(pageOf("/agents/my%20bot/versions/")).toEqual({ kind: "agentVersions", name: "my bot" });
+    });
+
+    it("reads the name of /agents/<name>/evaluation, decoded", () => {
+        expect(pageOf("/agents/my%20bot/evaluation")).toEqual({ kind: "agentEvaluation", name: "my bot" });
+        expect(pageOf("/agents/bot/evaluation/")).toEqual({ kind: "agentEvaluation", name: "bot" });
     });
 
     it("reads the two versions of /agents/<name>/versions/compare", () => {
@@ -70,6 +77,7 @@ describe("pageOf", () => {
         expect(pageOf(`/runs/${ID}/extra`)).toEqual({ kind: "unknown" });
         expect(pageOf(`/other/${ID}`)).toEqual({ kind: "unknown" });
         expect(pageOf("/agents")).toEqual({ kind: "unknown" });
+        expect(pageOf("/agents/bot/evaluation/extra")).toEqual({ kind: "unknown" });
         expect(pageOf("/agents/bot/versions/abc")).toEqual({ kind: "unknown" });
         expect(pageOf("/agents/%E0%A4%A")).toEqual({ kind: "unknown" });
     });

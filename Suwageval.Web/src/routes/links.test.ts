@@ -1,10 +1,22 @@
 import { describe, expect, it } from "vitest";
 
-import { agentHref, compareGroupHref, compareHref, runHref, scenarioInRunHref, versionCompareHref, versionHref } from "./links";
+import {
+    agentEvaluationHref,
+    agentHref,
+    agentVersionsHref,
+    compareGroupHref,
+    compareHref,
+    runHref,
+    scenarioInRunHref,
+    versionCompareHref,
+    versionHref,
+} from "./links";
 
 describe("links", () => {
     it("encodes the agent name", () => {
         expect(agentHref("my bot")).toBe("/agents/my%20bot");
+        expect(agentEvaluationHref("my bot")).toBe("/agents/my%20bot/evaluation");
+        expect(agentVersionsHref("my bot")).toBe("/agents/my%20bot/versions");
         expect(versionHref("my bot", "abc")).toBe("/agents/my%20bot/versions/abc");
         expect(versionCompareHref("my bot", "a", "b")).toBe("/agents/my%20bot/versions/compare?a=a&b=b");
     });

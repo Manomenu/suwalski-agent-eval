@@ -30,10 +30,12 @@ export default defineConfig(
         },
     },
     // Import contracts: which folder of src/ may import which (AGENTS.md, "Import contracts").
-    // Every folder of src/ is a feature, and features are independent by default: a feature
-    // may import only itself and api/. When one feature really composes another, that edge is
-    // added below as its own policy, with a comment saying why — the web counterpart of a
-    // layer in pyproject.toml.
+    // src/ has three kinds of folders:
+    //  - areas (src/evaluation/, later src/monitoring/): each holds the features of one product area, a folder per feature;
+    //  - shared folders: plumbing and what every area uses (api/, routes/, agents/, versions/, …), listed below by name;
+    //  - any other folder of src/ is a feature of its own, independent by default (the fallback, so a new folder is checked).
+    // A feature of an area may import itself, the shared folders and the features of its area named in an explicit policy; never
+    // another area, and a shared folder never imports an area. The web counterpart of a layer in ContractsTests.cs.
     {
         files: ["src/**/*.{ts,tsx}"],
         // Browser tests drive the page from outside; they import only e2e/helpers.
@@ -42,11 +44,32 @@ export default defineConfig(
         settings: {
             "import/resolver": { node: { extensions: [".ts", ".tsx"] } },
             "boundaries/elements": [
-                // Order matters: the first matching pattern wins, so api/ and the shared folders are not features.
+                // Order matters: the first matching pattern wins.
                 { type: "api", pattern: "src/api" },
-                // routes/ (the addresses of the pages, built and read), format/ (ids, times, shares and durations as the pages write
-                // them) and help/ (a header that explains itself) are used by every feature the way api/ is: no feature owns them.
-                { type: "shared", pattern: ["src/routes", "src/format", "src/help", "src/tagSelect", "src/dataVersion", "src/note"] },
+                // The folders no area owns, used by every area the way api/ is: routes/ (the addresses of the pages), format/, help/,
+                // tagSelect/, tagFilter/, dataVersion/, diff/, note/, pagination/, print/, shell/ (the sidebar), health/, and the two
+                // pieces of an agent that more than one area shows: agents/ (the list, the archive and delete plumbing) and versions/.
+                {
+                    type: "shared",
+                    pattern: [
+                        "src/routes",
+                        "src/format",
+                        "src/help",
+                        "src/tagSelect",
+                        "src/tagFilter",
+                        "src/dataVersion",
+                        "src/diff",
+                        "src/note",
+                        "src/pagination",
+                        "src/print",
+                        "src/shell",
+                        "src/health",
+                        "src/agents",
+                        "src/versions",
+                    ],
+                },
+                // A feature of an area: src/<area>/<feature>. A new area is added to the braces.
+                { type: "areaFeature", pattern: "src/{evaluation,monitoring}/*", capture: ["area", "name"] },
                 { type: "feature", pattern: "src/*", capture: ["name"] },
             ],
             // The entry points at the root of src/ (main.tsx, App.tsx) put the page together.
@@ -65,103 +88,67 @@ export default defineConfig(
                         {
                             from: { file: { categories: "entry" } },
                             allow: {
-                                to: [{ file: { categories: "entry" } }, { element: { types: { anyOf: ["feature", "api", "shared"] } } }],
+                                to: [
+                                    { file: { categories: "entry" } },
+                                    { element: { types: { anyOf: ["feature", "areaFeature", "api", "shared"] } } },
+                                ],
                             },
                         },
-                        // A feature uses the shared HTTP plumbing and the shared folders…
-                        { from: { element: { type: "feature" } }, allow: { to: { element: { types: { anyOf: ["api", "shared"] } } } } },
-                        // …and its own files, never another feature's (unless an edge is added here).
+                        // A shared folder uses the shared HTTP plumbing and the other shared folders — never an area.
+                        { from: { element: { type: "shared" } }, allow: { to: { element: { types: { anyOf: ["api", "shared"] } } } } },
+                        // A feature (of an area or not) uses the shared HTTP plumbing and the shared folders…
+                        {
+                            from: { element: { types: { anyOf: ["feature", "areaFeature"] } } },
+                            allow: { to: { element: { types: { anyOf: ["api", "shared"] } } } },
+                        },
+                        // …and its own files, never another feature's (unless an edge is added here). An area feature never reaches
+                        // into another area: the area of the target is always the area of the importer.
                         {
                             from: { element: { type: "feature" } },
                             allow: { to: { element: { type: "feature", captured: { name: "{{from.element.captured.name}}" } } } },
                         },
-                        // The agent page lists the agent's runs: it reads them through runs/ and shows them
-                        // with that feature's labels (status, progress, time) instead of copying them.
                         {
-                            from: { element: { type: "feature", captured: { name: "agents" } } },
-                            allow: { to: { element: { type: "feature", captured: { name: "runs" } } } },
+                            from: { element: { type: "areaFeature" } },
+                            allow: {
+                                to: {
+                                    element: {
+                                        type: "areaFeature",
+                                        captured: { area: "{{from.element.captured.area}}", name: "{{from.element.captured.name}}" },
+                                    },
+                                },
+                            },
                         },
-                        // The compare page reads runs through runs/ (their results, labels and times) and the agent
-                        // through agents/ (versions with their model, links). The agent page
-                        // links to the compare page by a path of its own (agents/view.ts `compareHref`), so the edge
-                        // between the two goes one way only.
-                        {
-                            from: { element: { type: "feature", captured: { name: "compare" } } },
-                            allow: { to: { element: { type: "feature", captured: { name: "runs" } } } },
-                        },
-                        {
-                            from: { element: { type: "feature", captured: { name: "compare" } } },
-                            allow: { to: { element: { type: "feature", captured: { name: "agents" } } } },
-                        },
-                        // The compare page marks the judge of a run with the icon of the run page's
-                        // model-judged checks: checks/ owns the icon and the definition drawer, compare/ and runs/ place them.
-                        {
-                            from: { element: { type: "feature", captured: { name: "runs" } } },
-                            allow: { to: { element: { type: "feature", captured: { name: "checks" } } } },
-                        },
-                        {
-                            from: { element: { type: "feature", captured: { name: "compare" } } },
-                            allow: { to: { element: { type: "feature", captured: { name: "checks" } } } },
-                        },
-                        // diff/ is the line diff of two texts: agents/ shows two versions of an agent with it, runs/ the
-                        // checks a re-check changes. It wraps a long line of YAML under the start of its value the way the
-                        // definition drawer does: checks/ owns that rule (`hangingIndent`).
-                        {
-                            from: { element: { type: "feature", captured: { name: "agents" } } },
-                            allow: { to: { element: { type: "feature", captured: { name: "diff" } } } },
-                        },
-                        {
-                            from: { element: { type: "feature", captured: { name: "runs" } } },
-                            allow: { to: { element: { type: "feature", captured: { name: "diff" } } } },
-                        },
-                        // The comparison opens the diff of two versions' contracts under a changed prompt.
-                        {
-                            from: { element: { type: "feature", captured: { name: "compare" } } },
-                            allow: { to: { element: { type: "feature", captured: { name: "diff" } } } },
-                        },
-                        {
-                            from: { element: { type: "feature", captured: { name: "diff" } } },
-                            allow: { to: { element: { type: "feature", captured: { name: "checks" } } } },
-                        },
-                        // The run and comparison pages share one tag filter (the field, the address's `tag`
-                        // parameters, which rows they keep): tagFilter/ owns it, the two pages place it. The agent page's charts
-                        // keep the lines they draw in the address the same way (its `series` parameter).
-                        ...["runs", "compare", "agents"].map((name) => ({
-                            from: { element: { type: "feature", captured: { name } } },
-                            allow: { to: { element: { type: "feature", captured: { name: "tagFilter" } } } },
+                        // Edges between features of one area, each with the reason. `edge(from, to)` allows `from` to import `to` in
+                        // the same area.
+                        ...[
+                            // The agent's Evaluation page places the run groups, the pass-rate charts, the agent errors and the
+                            // unstable checks, and lists the agent's runs through runs/ with that feature's labels (status, progress,
+                            // time) instead of copying them.
+                            ["agent", "groups"],
+                            ["agent", "trend"],
+                            ["agent", "errors"],
+                            ["agent", "unstable"],
+                            ["agent", "runs"],
+                            // The compare page reads runs through runs/ (their results, labels and times). The agent page links to the
+                            // compare page by an address of routes/, so the edge between the two goes one way only.
+                            ["compare", "runs"],
+                            // The compare page marks the judge of a run with the icon of the run page's model-judged checks: checks/
+                            // owns the icon and the definition drawer, compare/ and runs/ place them.
+                            ["runs", "checks"],
+                            ["compare", "checks"],
+                            // Unstable checks have a feature of their own (the server's route, the CLI's `unstable`): the run page marks
+                            // each check with the list, and the card sits under the icon of an unstable check (checks/ owns it).
+                            ["runs", "unstable"],
+                            ["unstable", "checks"],
+                        ].map(([from, to]) => ({
+                            from: { element: { type: "areaFeature", captured: { name: from } } },
+                            allow: {
+                                to: { element: { type: "areaFeature", captured: { area: "{{from.element.captured.area}}", name: to } } },
+                            },
                         })),
-                        // The run and comparison pages place the same Print button and open the print dialog the same way
-                        // (`print=1` in the address): print/ owns them and print.css, the pages mark what is not printed.
-                        ...["runs", "compare"].map((name) => ({
-                            from: { element: { type: "feature", captured: { name } } },
-                            allow: { to: { element: { type: "feature", captured: { name: "print" } } } },
-                        })),
-                        // Unstable checks have a feature of their own (the server's route, the CLI's `unstable`): the agent page places
-                        // their card, the run page marks each check with the list. The card sits under the icon of an unstable check
-                        // (checks/ owns it, runs/ places it too) and pages its rows like every list (pagination/ owns that).
-                        ...["agents", "runs"].map((name) => ({
-                            from: { element: { type: "feature", captured: { name } } },
-                            allow: { to: { element: { type: "feature", captured: { name: "unstable" } } } },
-                        })),
-                        {
-                            from: { element: { type: "feature", captured: { name: "unstable" } } },
-                            allow: { to: { element: { type: "feature", captured: { name: "checks" } } } },
-                        },
-                        {
-                            from: { element: { type: "feature", captured: { name: "unstable" } } },
-                            allow: { to: { element: { type: "feature", captured: { name: "pagination" } } } },
-                        },
-                        // Every list of the agent page and the agents list pages the same way (numbered pages, the page in the
-                        // address): pagination/ owns that, agents/ places it.
-                        {
-                            from: { element: { type: "feature", captured: { name: "agents" } } },
-                            allow: { to: { element: { type: "feature", captured: { name: "pagination" } } } },
-                        },
-                        // Example of an explicit edge — a feature's screen embedding another feature:
-                        // {
-                        //     from: { element: { type: "feature", captured: { name: "notes" } } },
-                        //     allow: { to: { element: { type: "feature", captured: { name: "tags" } } } },
-                        // },
+                        // Example of an explicit edge — a feature's screen embedding another feature of its area: add a line above,
+                        //     ["notes", "tags"],
+                        // (the area is the importer's, so an edge can never cross into another area).
                     ],
                 },
             ],
@@ -172,7 +159,7 @@ export default defineConfig(
         files: ["src/**/*.{ts,tsx}"],
         // useRunResults is a polling loop (a summary every few seconds, the full results when it shows something new),
         // not one request per key: it owns its AbortController.
-        ignores: ["src/api/**", "src/**/*.e2e.ts", "src/runs/useRunResults.ts"],
+        ignores: ["src/api/**", "src/**/*.e2e.ts", "src/evaluation/runs/useRunResults.ts"],
         rules: {
             "no-restricted-syntax": [
                 "error",

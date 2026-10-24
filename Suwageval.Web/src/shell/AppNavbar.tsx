@@ -1,20 +1,25 @@
-import { NavLink } from "@mantine/core";
+import { Box, NavLink } from "@mantine/core";
 
-import { agentHref } from "../routes/links";
+import { agentEvaluationHref, agentHref, agentVersionsHref } from "../routes/links";
+import type { Navigation } from "./navigation";
 
-/** The sidebar: the list of agents, and below it the agent whose pages are open (`agentName`, and whether its own page is). */
-export function AppNavbar({
-    agentsActive,
-    agentName,
-    agentActive,
-}: {
-    agentsActive: boolean;
-    agentName: string | null;
-    agentActive: boolean;
-}) {
+/**
+ * The sidebar: the list of agents, and below it the agent whose pages are open, with its Versions and Evaluation. The nesting is
+ * drawn, not a NavLink with children: Mantine turns the click on a NavLink with children into a toggle, and these are all links.
+ */
+export function AppNavbar({ agentName, active }: Navigation) {
     return (
-        <NavLink href="/" label="Agents" active={agentsActive} defaultOpened={agentName !== null} childrenOffset="md">
-            {agentName !== null && <NavLink href={agentHref(agentName)} label={agentName} active={agentActive} />}
-        </NavLink>
+        <>
+            <NavLink href="/" label="Agents" active={active === "agents"} />
+            {agentName !== null && (
+                <Box ml="md">
+                    <NavLink href={agentHref(agentName)} label={agentName} />
+                    <Box ml="md">
+                        <NavLink href={agentVersionsHref(agentName)} label="Versions" active={active === "versions"} />
+                        <NavLink href={agentEvaluationHref(agentName)} label="Evaluation" active={active === "evaluation"} />
+                    </Box>
+                </Box>
+            )}
+        </>
     );
 }

@@ -1,7 +1,13 @@
 // The addresses of the pages, built in one place (`pageOf` reads them back): a page links to another by these, never by a path of its own.
 
-/** The page of an agent. */
+/** The page of an agent: its Versions, which belong to no area. */
 export const agentHref = (name: string) => `/agents/${encodeURIComponent(name)}`;
+
+/** The Evaluation page of an agent: its runs, groups, trends and problems (the agent's runs: where a link goes that means them). */
+export const agentEvaluationHref = (name: string) => `${agentHref(name)}/evaluation`;
+
+/** The Versions page of an agent: its versions, to archive, restore, delete and compare (what `agentHref` opens too). */
+export const agentVersionsHref = (name: string) => `${agentHref(name)}/versions`;
 
 /** The page of one version of an agent. */
 export const versionHref = (name: string, versionId: string) => `${agentHref(name)}/versions/${versionId}`;
