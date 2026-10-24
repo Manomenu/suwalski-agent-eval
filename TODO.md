@@ -35,6 +35,11 @@ To do in that change:
 
 ## Later, after the MVP
 
+- **Live traffic — the plan:** [Suwageval: rozmowy z produkcji i checks na żywym ruchu — plan](https://claude.ai/artifact/Y7FDEQtqn36YaaCUwA4p2e)
+  (how conversations arrive, the agent's tabs, `features` in `agent.yaml`, the evaluation API moved under `/api/eval/…` beside
+  `/api/live/…`, `dataVersion` out of the version, the stages, the open questions). The items below are its parts. Keep this link
+  until live traffic is built.
+
 - **Scenarios from real conversations of a connected agent** (the owner's idea). The agents send their conversations
   (the context they had, the turns, tool calls and results) to Suwageval, kept per agent version; on the web a person picks a
   conversation and turns it into a scenario. Two parts to design: the integration — how an agent system sends its
