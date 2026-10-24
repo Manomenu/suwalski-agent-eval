@@ -1,11 +1,12 @@
 import { Anchor, Badge, Checkbox, Paper, Stack, Table, Text, Title } from "@mantine/core";
-import { useState } from "react";
 
 import { DeleteModal } from "../../agents/DeleteModal";
 import { deletionSummary } from "../../agents/deletion";
-import { archiveSelection, visibleItems } from "../../agents/archive";
-import { ArchiveControls, type ArchiveLabels } from "../../agents/ArchiveControls";
-import { useArchiveList } from "../../agents/useArchiveList";
+import { archiveSelection, visibleItems } from "../../archive/archive";
+import { ARCHIVED_GROUPS_PARAM } from "../../archive/archivedParam";
+import { useArchivedParam } from "../../archive/useArchivedParam";
+import { ArchiveControls, type ArchiveLabels } from "../../archive/ArchiveControls";
+import { useArchiveList } from "../../archive/useArchiveList";
 import { HeaderHelp } from "../../help/HeaderHelp";
 import { ListPagination } from "../../pagination/ListPagination";
 import { pageOfItems } from "../../pagination/pages";
@@ -20,16 +21,18 @@ const GROUP_RUNS_HELP = "How many runs were started in the group (re-checks of t
 const GROUP_VERSIONS_HELP = "How many different agent versions those runs used: the variants, when each run is of its own version.";
 const GROUP_NEWEST_HELP = "When the group's newest run was queued.";
 const GROUPS_TABLE_MIN_WIDTH = 500;
+const ARCHIVED_GROUPS_HELP =
+    "Archived groups: hidden from the lists, kept with their runs; with this on they show and can be restored or deleted.";
+
 const LABELS: ArchiveLabels = {
     archive: "Archive selected groups",
     unarchive: "Unarchive selected groups",
     remove: "Delete group",
     removeHint: "Select one archived group to delete it.",
-    showArchived: "Show archived groups",
     errorTitle: "Could not change the groups",
 };
 
-/** The agent's run groups: each opens the compare page of its runs; select some to archive them, see archived ones with "Show archived", restore or delete one. */
+/** The agent's run groups: each opens the compare page of its runs; select some to archive them, see archived ones with the Archived chip, restore or delete one. */
 export function RunGroupsSection({
     agentName,
     groups,
@@ -40,7 +43,7 @@ export function RunGroupsSection({
     /** Called after the server archived, restored or deleted groups, so the page loads its lists again. */
     onChanged: () => void;
 }) {
-    const [showArchived, setShowArchived] = useState(false);
+    const [showArchived, setShowArchived] = useArchivedParam(ARCHIVED_GROUPS_PARAM);
     const [requestedPage, setRequestedPage] = usePageParam("groupsPage");
     const list = useArchiveList((names, archived) => archiveRunGroups(agentName, names, archived), onChanged);
     const { selected } = list;
@@ -78,10 +81,13 @@ export function RunGroupsSection({
                             onDelete={() => {
                                 list.setDeleting(true);
                             }}
-                            onShowArchivedChange={(show) => {
-                                setShowArchived(show);
-                                setRequestedPage(1);
-                                list.clear();
+                            archivedChip={{
+                                help: ARCHIVED_GROUPS_HELP,
+                                onChange: (show) => {
+                                    setShowArchived(show);
+                                    setRequestedPage(1);
+                                    list.clear();
+                                },
                             }}
                         />
                         <Table.ScrollContainer minWidth={GROUPS_TABLE_MIN_WIDTH}>
@@ -139,9 +145,7 @@ export function RunGroupsSection({
                                 list.clear();
                             }}
                         />
-                        {listed.length === 0 && (
-                            <Text c="dimmed">All groups are archived — switch on Show archived groups to see them.</Text>
-                        )}
+                        {listed.length === 0 && <Text c="dimmed">All groups are archived — turn on the Archived chip to see them.</Text>}
                     </Stack>
                 </Paper>
             )}

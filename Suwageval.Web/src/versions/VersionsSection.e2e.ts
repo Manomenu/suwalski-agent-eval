@@ -36,10 +36,15 @@ test("versions are archived, shown again on request, restored and deleted with t
         await expect(garbageVersion).toHaveCount(0);
         await expect(keptVersion).toBeVisible();
 
-        // The runs of an archived version are hidden on the agent's Evaluation page too, unless it includes archived versions.
+        // The runs of an archived version are hidden on the agent's Evaluation page too, unless the Archived chip is on.
         await page.goto(`/agents/${name}/evaluation`);
         await expect(runRows).toHaveCount(1);
-        await page.getByRole("switch", { name: "Include archived versions", exact: true }).check();
+        const chip = page.locator("label", { hasText: /^Archived$/ });
+        await chip.hover();
+        await expect(page.getByRole("tooltip").getByText("Runs of archived versions: hidden by default", { exact: false })).toBeVisible();
+        await chip.click();
+        await expect(page.getByRole("checkbox", { name: "Archived", exact: true })).toBeChecked();
+        await expect(page).toHaveURL(/archived=1/);
         await expect(runRows).toHaveCount(2);
 
         await page.goto(`/agents/${name}`);

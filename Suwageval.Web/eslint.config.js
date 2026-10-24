@@ -48,7 +48,7 @@ export default defineConfig(
                 { type: "api", pattern: "src/api" },
                 // The folders no area owns, used by every area the way api/ is: routes/ (the addresses of the pages), format/, help/,
                 // tagSelect/, tagFilter/, dataVersion/, diff/, note/, pagination/, print/, shell/ (the sidebar), health/, and the two
-                // pieces of an agent that more than one area shows: agents/ (the list, the archive and delete plumbing) and versions/.
+                // pieces of an agent that more than one area shows: agents/ (the list, the delete plumbing) and versions/, and archive/ (the "Archived" chip and the archive plumbing both lists share).
                 {
                     type: "shared",
                     pattern: [
@@ -65,6 +65,7 @@ export default defineConfig(
                         "src/shell",
                         "src/health",
                         "src/agents",
+                        "src/archive",
                         "src/versions",
                     ],
                 },

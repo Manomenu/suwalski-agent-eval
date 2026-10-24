@@ -10,13 +10,15 @@ import {
     Paper,
     Select,
     Stack,
-    Switch,
     Table,
     Text,
     Title,
 } from "@mantine/core";
 import { lazy, Suspense, useState } from "react";
 
+import { ARCHIVED_RUNS_PARAM } from "../../archive/archivedParam";
+import { ArchivedChip } from "../../archive/ArchivedChip";
+import { useArchivedParam } from "../../archive/useArchivedParam";
 import { ListPagination } from "../../pagination/ListPagination";
 import { usePageParam } from "../../pagination/usePageParam";
 import { RUNS_PAGE_SIZE } from "../runs/paging";
@@ -79,6 +81,8 @@ const VERSIONS_FILTER_HELP =
     "Show only runs of these agent versions (newest first; empty means all). The chart, the unstable checks and the agent errors follow the filter.";
 const GROUP_HELP =
     "Which runs to list by group (run --group): those in no group (the default), those in any group, all runs, or one group. Group runs are experiments, kept out of the regression history and the pass-rate trend. Open a group from the Groups section to compare its runs as variants.";
+const ARCHIVED_RUNS_HELP =
+    "Runs of archived versions: hidden by default; with this on they are listed and counted in the trend, the unstable checks and the agent errors.";
 const TAG_FILTER_PLACEHOLDER = "Every run — type to find a tag";
 const TAG_HELP = "The scenario tags the run was limited to (run --tag, repeatable); — means every scenario of the agent ran.";
 
@@ -141,7 +145,7 @@ function AgentView({
     reload: number;
     onChanged: () => void;
 }) {
-    const [showArchived, setShowArchived] = useState(false);
+    const [showArchived, setShowArchived] = useArchivedParam(ARCHIVED_RUNS_PARAM);
     // The model filter (empty: every model) and the runs ticked for comparison.
     const [models, setModels] = useState<string[]>([]);
     const [dataVersions, setDataVersions] = useState<string[]>([]);
@@ -266,13 +270,7 @@ function AgentView({
                                 selected={tagFilter}
                                 onChange={filtered(setTagFilter)}
                             />
-                            <Switch
-                                label="Include archived versions"
-                                checked={showArchived}
-                                onChange={(event) => {
-                                    filtered(setShowArchived)(event.currentTarget.checked);
-                                }}
-                            />
+                            <ArchivedChip checked={showArchived} help={ARCHIVED_RUNS_HELP} onChange={filtered(setShowArchived)} />
                         </Group>
                         <Button
                             disabled={!canCompare(toCompare.length)}
@@ -296,7 +294,7 @@ function AgentView({
                             error === null && (
                                 <Text c="dimmed">
                                     {versionIds !== null
-                                        ? "No run matches the filters — archived versions are hidden unless Include archived versions is on."
+                                        ? "No run matches the filters — archived versions are hidden unless the Archived chip is on."
                                         : groupFilter.kind === "none" && groups.length > 0
                                           ? "This agent has no runs outside groups yet — runs started in a group are listed under Any group or All runs."
                                           : "This agent has no runs yet."}

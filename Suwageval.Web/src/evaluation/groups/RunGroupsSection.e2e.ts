@@ -52,7 +52,7 @@ test("the runs table hides group runs by default, and a group is archived, shown
         await expect(groupedBox).toBeVisible();
         await expect(plainBox).toHaveCount(0);
 
-        // Archive the group: it leaves the Groups section until "Show archived groups" is on.
+        // Archive the group: it leaves the Groups section until the Archived chip is on.
         await page.goto(`/agents/${name}/evaluation?runs=all`);
         const archive = page.getByRole("button", { name: "Archive selected groups", exact: true });
         await expect(archive).toBeDisabled();
@@ -60,7 +60,16 @@ test("the runs table hides group runs by default, and a group is archived, shown
         await archive.click();
         await expect(page.getByRole("checkbox", { name: `Select group ${group}`, exact: true })).toHaveCount(0);
         await expect(page.getByText("All groups are archived", { exact: false })).toBeVisible();
-        await page.getByRole("switch", { name: "Show archived groups", exact: true }).check();
+        // The runs table has an Archived chip too: this one is in the groups' toolbar.
+        const chip = page
+            .locator(".mantine-Group-root")
+            .filter({ has: archive })
+            .first()
+            .locator("label", { hasText: /^Archived$/ });
+        await chip.hover();
+        await expect(page.getByRole("tooltip").getByText("Archived groups: hidden from the lists", { exact: false })).toBeVisible();
+        await chip.click();
+        await expect(page).toHaveURL(/archivedGroups=1/);
         await expect(page.getByRole("checkbox", { name: `Select group ${group}`, exact: true })).toBeVisible();
 
         // Delete it: the confirmation says what goes, and waits for the group's name.
