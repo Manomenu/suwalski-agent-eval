@@ -29,7 +29,6 @@ import { agentDeletionSummary } from "./deletion";
 import { HeaderHelp } from "../help/HeaderHelp";
 import { filterOfValue, filterOptions, filterValue } from "./groupFilter";
 import { Page } from "./Page";
-import { shortNote } from "../runs/note";
 import { RunGroupsSection } from "./groups/RunGroupsSection";
 import { TagSelect } from "../tagSelect/TagSelect";
 import { useTagFilter } from "../tagFilter/useTagFilter";
@@ -64,9 +63,6 @@ import { fetchPassRates } from "./trend/api";
 import { fetchRunGroups, type RunGroupSummary } from "./groups/api";
 import { AgentErrorsCard } from "./errors/AgentErrorsCard";
 import { useAgentErrors } from "./errors/useAgentErrors";
-
-/** How much of a long note the runs table shows; the full text is its tooltip. */
-const NOTE_LIST_LENGTH = 80;
 
 // The chart library is the largest part of the app: it loads only when an agent's page is opened.
 /** What the filters and the runs table's columns mean, said on hover over their labels. */
@@ -352,7 +348,6 @@ function AgentView({
                                             <Table.Th className="no-wrap">
                                                 <HeaderHelp label="Samples" help={RUN_SAMPLES_HELP} />
                                             </Table.Th>
-                                            <Table.Th>Note</Table.Th>
                                             <Table.Th className="no-wrap">
                                                 <HeaderHelp label="Created" help={RUN_CREATED_HELP} />
                                             </Table.Th>
@@ -415,9 +410,6 @@ function AgentView({
                                                 </Table.Td>
                                                 <Table.Td className="no-wrap">
                                                     <SamplesCount run={run} />
-                                                </Table.Td>
-                                                <Table.Td className="wrap-key" title={run.note ?? undefined}>
-                                                    {run.note?.trim() ? shortNote(run.note, NOTE_LIST_LENGTH) : "—"}
                                                 </Table.Td>
                                                 <Table.Td className="no-wrap">{formatTime(run.createdAt)}</Table.Td>
                                                 <Table.Td className="no-wrap">{formatTime(run.finishedAt)}</Table.Td>

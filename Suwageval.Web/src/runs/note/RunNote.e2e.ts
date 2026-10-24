@@ -1,7 +1,7 @@
 // A note added on the run page is saved in the background, survives a reload, and is shown in the comparison of the run with another.
 import { expect, test } from "@playwright/test";
 
-import { createAgent, runToEnd, serveAgent } from "../../e2e/helpers";
+import { createAgent, runToEnd, serveAgent } from "../../../e2e/helpers";
 
 test("a note added on the run page survives a reload and shows in the comparison", async ({ page, request }) => {
     const agentServer = await serveAgent({ label: "e2e-note", reply: "Hello there." });
@@ -18,12 +18,15 @@ test("a note added on the run page survives a reload and shows in the comparison
         await page.getByRole("textbox", { name: "Note", exact: true }).fill(note);
         await expect(page.getByRole("status")).toHaveText("Saved");
 
+        // Done turns the box back into the text, edited later in the same place.
+        await page.getByRole("button", { name: "Done", exact: true }).click();
         await page.reload();
-        await expect(page.getByText(`Note: ${note}`, { exact: true })).toBeVisible();
-        await expect(page.getByRole("button", { name: "Edit note", exact: true })).toBeVisible();
+        await expect(page.getByText(note, { exact: true })).toBeVisible();
+        await page.getByRole("button", { name: "Edit note", exact: true }).click();
+        await expect(page.getByRole("textbox", { name: "Note", exact: true })).toHaveValue(note);
 
         await page.goto(`/compare?runs=${first},${second}`);
-        await expect(page.getByText(`Note: ${note}`, { exact: true })).toBeVisible();
+        await expect(page.getByText(`Note: ${note}`, { exact: true }).filter({ visible: true })).toBeVisible();
     } finally {
         agentServer.close();
     }
