@@ -32,6 +32,10 @@ internal static class CheckEndpoints
         {
             return ProblemResults.NotFound("Agent", agent);
         }
+        if (!row.Evaluation)
+        {
+            return ProblemResults.FeatureOff(row.Name, "evaluation");
+        }
         var errors = CheckValidation.Validate(request.Checks);
         if (errors.Count == 0)
         {

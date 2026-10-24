@@ -15,4 +15,7 @@ public sealed record AgentDefinition
 
     /// <summary>How the agent's regressions are found; none means the defaults.</summary>
     public RegressionSettings? Regression { get; init; }
+
+    /// <summary>Which areas the agent uses; none means evaluation on and monitoring off.</summary>
+    public AgentFeatures? Features { get; init; }
 }

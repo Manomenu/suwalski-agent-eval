@@ -60,6 +60,7 @@ what really ran. A `version:` key is an error.
 | `endpointUrl` | required | where the agent is reached: `POST {endpointUrl}/suwageval/turn`, `GET {endpointUrl}/suwageval/contract`. `validate`, `run` and `rerun` take `--endpoint`, else `SUWAGEVAL_ENDPOINT_URL`, over it (`run` and `rerun`: else the endpoint registered by `push` / of the earlier run); `push` always registers this one |
 | `samples` | optional | how many times each scenario's conversation is sent to the agent by default: 1 to 20, default `3` (see "Samples" under Scenarios; a scenario or a check can set its own) |
 | `regression` | optional | how regressions are found (next block, section "Regressions") |
+| `features` | optional | which areas the agent uses: `evaluation` (scenarios, runs, comparisons; default `true`) and `monitoring` (conversations from a deployed agent; off unless present). Below |
 | `sweep` | optional | how `suwageval sweep` switches the agent to each variant (below). For the CLI only: not pushed, not stored |
 | `suwagevalUrl` | optional | where Suwageval is: the address of its web app (the API is under `/api`), an absolute http(s) address. For the CLI only — `push` does not send it and the server does not store it. Used when neither `--server` nor `SUWAGEVAL_URL` is set; without it the default is `http://localhost:3230` |
 
@@ -88,6 +89,21 @@ regression:
 - `history` — how many of the newest reference runs make a check's history: an integer from 1 to 20 (default 5).
 
 `suwageval validate` and `push` check both (the server answers 422 for the same problems).
+
+```yaml
+features:
+  evaluation: true # optional; default true: scenarios, runs, comparisons
+  monitoring: # absent: off (the server refuses the agent's conversations); `monitoring: {}` switches it on with the defaults
+    closeAfter: 30m # optional; a conversation with no turn for this long is closed and checked: a number with s, m or h, 1m to 24h, default 30m
+    environments: [production, staging] # optional; which environments' conversations are taken (the running agent names its own); none: any
+```
+
+The file is the source of truth: `push` carries `features`, and leaving it out puts the defaults back. A switched-off area keeps what
+it stored, but nothing new: the server answers 409 with the area in a `feature` field (a run, a re-check, scenarios and checks for
+`evaluation: false`; `push` then leaves the scenarios unsent and says so), the web leaves its item out of the sidebar and its page
+says how to switch it on, and the CLI exits 2 with the same words (and "`suwageval push` to apply it" when the local file already
+switches it on). Switching monitoring on is the repository agreeing that the deployed agent's conversations are stored. Environment
+names are lowercase words of letters and digits joined by hyphens (`production`, `demo-eu`), each named once.
 
 ## The agent contract (contract v1)
 

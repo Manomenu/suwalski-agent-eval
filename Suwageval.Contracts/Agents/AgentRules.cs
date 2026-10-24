@@ -3,7 +3,7 @@ using Suwageval.Contracts.Samples;
 namespace Suwageval.Contracts.Agents;
 
 /// <summary>
-/// What is wrong with the optional settings of an <see cref="AgentDefinition"/> (<c>samples</c>, <c>regression</c>), written once for
+/// What is wrong with the optional settings of an <see cref="AgentDefinition"/> (<c>samples</c>, <c>regression</c>, <c>features</c>), written once for
 /// <c>suwageval validate</c> and <c>push</c> and for the server when a push arrives. Paths are relative to the agent definition.
 /// </summary>
 public static class AgentRules
@@ -17,6 +17,7 @@ public static class AgentRules
             problems.Add(("samples", samples));
         }
         problems.AddRange(RegressionRules.Problems(definition.Regression));
+        problems.AddRange(FeatureRules.Problems(definition.Features));
         return problems;
     }
 }

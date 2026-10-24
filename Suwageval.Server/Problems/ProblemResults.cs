@@ -27,6 +27,18 @@ internal static class ProblemResults
     /// <summary>422 for one field.</summary>
     public static IResult Invalid(string field, string message) => Invalid([new FieldError(field, message)]);
 
+    /// <summary>
+    /// 409: the agent's <c>features</c> switch the area off (<paramref name="feature"/> is its key in <c>agent.yaml</c>: <c>evaluation</c>,
+    /// <c>monitoring</c>), so nothing of it is stored. The <c>feature</c> extension names it for the CLI.
+    /// </summary>
+    public static IResult FeatureOff(string agent, string feature) =>
+        Results.Problem(
+            title: "Feature off",
+            detail: $"{char.ToUpperInvariant(feature[0])}{feature[1..]} is off for agent '{agent}' (features.{feature} in its suwageval/agent.yaml).",
+            statusCode: StatusCodes.Status409Conflict,
+            extensions: new Dictionary<string, object?> { ["feature"] = feature }
+        );
+
     public static IResult BadGateway(string title, string detail) =>
         Results.Problem(title: title, detail: detail, statusCode: StatusCodes.Status502BadGateway);
 }

@@ -5,6 +5,7 @@ import { lazy, Suspense, useState } from "react";
 import { AgentsPage } from "./agents/AgentsPage";
 import { EvaluationPage } from "./evaluation/agent/EvaluationPage";
 import { ComparePage } from "./evaluation/compare/ComparePage";
+import { MonitoringPage } from "./monitoring/agent/MonitoringPage";
 import { ServerStatus } from "./health/ServerStatus";
 import { pageOf } from "./routes/pageOf";
 import { RunPage } from "./evaluation/runs/RunPage";
@@ -56,6 +57,7 @@ export function App() {
                     <Box maw={contentMaxWidth(page.kind)} className="print-content">
                         {page.kind === "agents" && <AgentsPage />}
                         {page.kind === "agentEvaluation" && <EvaluationPage name={page.name} />}
+                        {page.kind === "agentMonitoring" && <MonitoringPage name={page.name} />}
                         {page.kind === "agentVersions" && <VersionsPage name={page.name} />}
                         {page.kind === "version" && <VersionPage name={page.name} versionId={page.versionId} />}
                         {page.kind === "versionCompare" && (

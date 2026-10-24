@@ -308,6 +308,11 @@ instead of fetching every run's results.
 
 - **Push and run only when asked** (or when the command you were given says so): a push writes
   to the server.
+- **Areas the agent switched off stay off.** Before a command of an area, read `features` in
+  `suwageval/agent.yaml`: `evaluation: false` means no scenarios, runs or comparisons; `monitoring`
+  absent means no conversations are taken. Then propose switching it on (and `suwageval push`)
+  instead of trying the command: switching monitoring on means the deployed agent's conversations
+  are stored, the user's call. A command of a switched-off area exits 2 and says the same.
 - **Do not delete or weaken a check to make it pass.** If its intent no longer fits the agent,
   say so and let the user decide.
 - **Do not change the agent to make a scenario pass** unless the user asked for that.

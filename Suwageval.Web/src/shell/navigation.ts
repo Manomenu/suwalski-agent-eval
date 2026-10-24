@@ -2,7 +2,7 @@
 import type { Page } from "../routes/pageOf";
 
 /** The items of the sidebar: the agents list, and the pages of the open agent. */
-type NavItem = "agents" | "evaluation" | "versions";
+type NavItem = "agents" | "evaluation" | "monitoring" | "versions";
 
 export interface Navigation {
     /** The agent shown under "Agents", or null when none is open (or not yet known). */
@@ -21,6 +21,8 @@ export function navigationOf(page: Page, agentOfPage: string | null): Navigation
             return { agentName: null, active: "agents" };
         case "agentEvaluation":
             return { agentName: page.name, active: "evaluation" };
+        case "agentMonitoring":
+            return { agentName: page.name, active: "monitoring" };
         case "agentVersions":
         case "version":
         case "versionCompare":

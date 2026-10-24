@@ -22,6 +22,7 @@ public sealed class AgentCommandTests
         Checks = 9,
         Samples = 4,
         Regression = new RegressionSettings { Branches = ["master", "release"], History = 7 },
+        Features = new AgentFeatures { Monitoring = new MonitoringSettings { Environments = ["production"] } },
     };
 
     private sealed class Answer(List<string> paths) : HttpMessageHandler
@@ -60,6 +61,7 @@ public sealed class AgentCommandTests
         Assert.Equal("example-agent  http://localhost:7010  created 2026-10-02 10:00Z", lines[0]);
         Assert.Equal("2 versions  5 scenarios  9 checks  samples 4", lines[1]);
         Assert.Equal("regression: branches master, release  history 7", lines[2]);
+        Assert.Equal("features: evaluation on  monitoring on (close after 30m, environments production)", lines[3]);
     }
 
     [Fact]

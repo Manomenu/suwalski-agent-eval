@@ -30,6 +30,8 @@ import { ConfigurationSection } from "./ConfigurationSection";
 import { HeaderHelp } from "../../help/HeaderHelp";
 import { filterOfValue, filterOptions, filterValue } from "./groupFilter";
 import { Page } from "../../agents/Page";
+import { AreaOff } from "../../agents/AreaOff";
+import { areaOn } from "../../agents/features";
 import { RunGroupsSection } from "../groups/RunGroupsSection";
 import { TagSelect } from "../../tagSelect/TagSelect";
 import { useTagFilter } from "../../tagFilter/useTagFilter";
@@ -108,19 +110,23 @@ export function EvaluationPage({ name }: { name: string }) {
 
     return (
         <Page state={state} notFound={`There is no agent ${name}.`}>
-            {({ agent, versions, passRates, groups, tags }) => (
-                <AgentView
-                    agent={agent}
-                    versions={versions}
-                    passRates={passRates}
-                    groups={groups}
-                    tags={tags}
-                    reload={reload}
-                    onChanged={() => {
-                        setReload(reload + 1);
-                    }}
-                />
-            )}
+            {({ agent, versions, passRates, groups, tags }) =>
+                !areaOn(agent.features, "evaluation") ? (
+                    <AreaOff area="evaluation" />
+                ) : (
+                    <AgentView
+                        agent={agent}
+                        versions={versions}
+                        passRates={passRates}
+                        groups={groups}
+                        tags={tags}
+                        reload={reload}
+                        onChanged={() => {
+                            setReload(reload + 1);
+                        }}
+                    />
+                )
+            }
         </Page>
     );
 }

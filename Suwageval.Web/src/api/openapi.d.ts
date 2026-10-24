@@ -1421,6 +1421,7 @@ export interface components {
              */
             samples?: null | number;
             regression?: null | components["schemas"]["RegressionSettings"];
+            features?: null | components["schemas"]["AgentFeatures"];
         };
         /** @description What deleting an agent removes with it: its versions, scenarios and checks, and every run with its samples and the verdicts on those. */
         AgentDeletion: {
@@ -1460,6 +1461,8 @@ export interface components {
              */
             samples?: null | number;
             regression?: null | components["schemas"]["RegressionSettings"];
+            /** @description Which areas the agent uses, as pushed from `agent.yaml` (the defaults when it has no `features:`). */
+            features: components["schemas"]["AgentFeatures"];
         };
         /**
          * @description Samples in which the agent gave no answer (an HTTP error, a timeout, an unreadable answer) for one scenario of one agent version.
@@ -1488,6 +1491,15 @@ export interface components {
             newestErrorRunId: string;
             /** @description The error text of the newest such sample. */
             newestError: string;
+        };
+        /**
+         * @description Which areas of Suwageval an agent uses (`features:` in `agent.yaml`). The file is the source of truth: a push carries it, and
+         *     the server refuses what a switched-off area would store. Left out, an agent has evaluation and no monitoring.
+         */
+        AgentFeatures: {
+            /** @description Scenarios, runs and comparisons; on unless set to false. */
+            evaluation?: boolean;
+            monitoring?: null | components["schemas"]["MonitoringSettings"];
         };
         /**
          * @description A registered version of an agent, without its content (but with the names of the models its LLM agents use, so runs can be
@@ -2025,6 +2037,19 @@ export interface components {
         ModelDefinition: {
             name: string;
             parameters?: null | components["schemas"]["JsonElement"];
+        };
+        /** @description How the conversations of a monitored agent are taken (`features.monitoring` in `agent.yaml`), every part optional. */
+        MonitoringSettings: {
+            /**
+             * @description How long a conversation may go without a turn before it is closed and its checks run: a number with `s`, `m` or `h`
+             *     (`30m`, the default; from one minute to a day). A turn after that opens it again.
+             */
+            closeAfter?: null | string;
+            /**
+             * @description The environments whose conversations are taken (the running agent names its own, `Suwageval__Environment`); none: any.
+             *     Lowercase words joined by hyphens (`production`, `staging`, `demo-eu`).
+             */
+            environments?: null | string[];
         };
         /** @description Sets the note of a run or of a run group (NoteRules); none or blank clears it. */
         NoteRequest: {

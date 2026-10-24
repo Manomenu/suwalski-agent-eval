@@ -1,3 +1,5 @@
+using System.Text.Json;
+using Suwageval.AgentSdk;
 using Suwageval.Contracts.Agents;
 using Suwageval.Server.Problems;
 
@@ -38,10 +40,15 @@ internal static class AgentEndpoints
         {
             agent = await store.SetEndpointUrlAsync(agent.Id, definition.EndpointUrl, cancellationToken);
         }
-        // The pushed definition is the source of truth: leaving samples: or regression: out puts the defaults back.
-        if (agent.Samples != definition.Samples || !SameRegression(agent.Regression, definition.Regression))
+        // The pushed definition is the source of truth: leaving samples:, regression: or features: out puts the defaults back.
+        var features = definition.Features ?? new AgentFeatures();
+        if (
+            agent.Samples != definition.Samples
+            || !SameRegression(agent.Regression, definition.Regression)
+            || !SameFeatures(agent.Features, features)
+        )
         {
-            agent = await store.SetSettingsAsync(agent.Id, definition.Samples, definition.Regression, cancellationToken);
+            agent = await store.SetSettingsAsync(agent.Id, definition.Samples, definition.Regression, features, cancellationToken);
         }
         return creation.Created
             ? Results.Created($"/agents/{Uri.EscapeDataString(definition.Name)}", ToAgent(agent))
@@ -52,6 +59,9 @@ internal static class AgentEndpoints
         stored?.History == pushed?.History
         && (stored?.Branches is null) == (pushed?.Branches is null)
         && (stored?.Branches ?? []).SequenceEqual(pushed?.Branches ?? []);
+
+    private static bool SameFeatures(AgentFeatures stored, AgentFeatures pushed) =>
+        JsonSerializer.Serialize(stored, ContractJson.Options) == JsonSerializer.Serialize(pushed, ContractJson.Options);
 
     private static async Task<IResult> ListAsync(AgentStore store, CancellationToken cancellationToken) =>
         Results.Ok((await store.ListAsync(cancellationToken)).Select(ToAgent));
@@ -76,6 +86,7 @@ internal static class AgentEndpoints
                 Checks = counts.Checks,
                 Samples = row.Samples,
                 Regression = row.Regression,
+                Features = row.Features,
             }
         );
     }

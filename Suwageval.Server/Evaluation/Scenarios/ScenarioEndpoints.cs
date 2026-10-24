@@ -34,6 +34,10 @@ internal static class ScenarioEndpoints
         {
             return ProblemResults.NotFound("Agent", agent);
         }
+        if (!row.Evaluation)
+        {
+            return ProblemResults.FeatureOff(row.Name, "evaluation");
+        }
         var errors = ScenarioValidation.Validate(request.Scenarios);
         if (errors.Count > 0)
         {

@@ -75,17 +75,33 @@ internal static class PushCommand
             async (client, _) =>
             {
                 var (savedAgent, agentCreated) = await client.PutAgentAsync(agent.Definition, cancellationToken);
-                var scenarioResults = await client.PutScenariosAsync(
-                    savedAgent.Name,
-                    [.. validation.LoadedScenarios.Select(s => s.Scenario)],
-                    cancellationToken
+                // With evaluation off the server keeps no scenarios: they stay in the repository, unsent.
+                var evaluation = agent.Definition.Features?.Evaluation ?? true;
+                var scenarioResults = evaluation
+                    ? (
+                        await client.PutScenariosAsync(
+                            savedAgent.Name,
+                            [.. validation.LoadedScenarios.Select(s => s.Scenario)],
+                            cancellationToken
+                        )
+                    ).Results
+                    : [];
+                var checkResults = evaluation
+                    ? (
+                        await client.PutChecksAsync(
+                            savedAgent.Name,
+                            [.. validation.LoadedScenarios.SelectMany(s => s.Checks)],
+                            cancellationToken
+                        )
+                    ).Results
+                    : [];
+                var result = new PushResult(
+                    savedAgent,
+                    agentCreated,
+                    scenarioResults,
+                    checkResults,
+                    evaluation ? 0 : validation.LoadedScenarios.Count
                 );
-                var checkResults = await client.PutChecksAsync(
-                    savedAgent.Name,
-                    [.. validation.LoadedScenarios.SelectMany(s => s.Checks)],
-                    cancellationToken
-                );
-                var result = new PushResult(savedAgent, agentCreated, scenarioResults.Results, checkResults.Results);
                 await console.Output.WriteAsync(json ? OutputJson.Of(result) + Environment.NewLine : Text(result));
                 return 0;
             },
@@ -98,6 +114,10 @@ internal static class PushCommand
     {
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
         writer.WriteLine($"agent {result.Agent.Name}: {(result.AgentCreated ? "created" : "existing")}");
+        if (result.ScenariosNotSent > 0)
+        {
+            writer.WriteLine($"{result.ScenariosNotSent} scenarios not pushed: evaluation is off (features.evaluation in agent.yaml)");
+        }
         foreach (var scenario in result.Scenarios)
         {
             writer.WriteLine($"scenario {scenario.Key}: {Name(scenario.Outcome)}");

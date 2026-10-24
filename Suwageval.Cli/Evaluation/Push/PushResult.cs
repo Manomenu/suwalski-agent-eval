@@ -4,10 +4,14 @@ using Suwageval.Contracts.Scenarios;
 
 namespace Suwageval.Cli.Evaluation.Push;
 
-/// <summary>What a push did, as <c>--json</c> prints it: the agent as the server knows it, and each scenario's and check's outcome.</summary>
+/// <summary>
+/// What a push did, as <c>--json</c> prints it: the agent as the server knows it, and each scenario's and check's outcome;
+/// <c>ScenariosNotSent</c> counts the scenario files left unsent because the agent's evaluation is off.
+/// </summary>
 internal sealed record PushResult(
     Agent Agent,
     bool AgentCreated,
     IReadOnlyList<ScenarioResult> Scenarios,
-    IReadOnlyList<CheckResult> Checks
+    IReadOnlyList<CheckResult> Checks,
+    int ScenariosNotSent = 0
 );

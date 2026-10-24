@@ -6,6 +6,9 @@ export const agentHref = (name: string) => `/agents/${encodeURIComponent(name)}`
 /** The Evaluation page of an agent: its runs, groups, trends and problems (the agent's runs: where a link goes that means them). */
 export const agentEvaluationHref = (name: string) => `${agentHref(name)}/evaluation`;
 
+/** The Monitoring page of an agent: the conversations of its deployed agent and the checks run on them. */
+export const agentMonitoringHref = (name: string) => `${agentHref(name)}/monitoring`;
+
 /** The Versions page of an agent: its versions, to archive, restore, delete and compare (what `agentHref` opens too). */
 export const agentVersionsHref = (name: string) => `${agentHref(name)}/versions`;
 

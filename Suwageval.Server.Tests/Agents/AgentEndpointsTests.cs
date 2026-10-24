@@ -189,6 +189,60 @@ public sealed class AgentEndpointsTests(TestDatabase database) : IAsyncDisposabl
     }
 
     [Fact]
+    public async Task The_features_are_stored_shown_and_put_back_to_the_defaults_when_left_out()
+    {
+        var name = AgentStoreTests.UniqueName();
+        await server.Post("/agents", new AgentDefinition { Name = name, EndpointUrl = "http://a.test" });
+        var fresh = await TestServer.Read<AgentDetail>(await server.Get($"/agents/{name}"));
+
+        await server.Post(
+            "/agents",
+            new AgentDefinition
+            {
+                Name = name,
+                EndpointUrl = "http://a.test",
+                Features = new AgentFeatures
+                {
+                    Evaluation = false,
+                    Monitoring = new MonitoringSettings { CloseAfter = "2h", Environments = ["production", "staging"] },
+                },
+            }
+        );
+        var set = await TestServer.Read<AgentDetail>(await server.Get($"/agents/{name}"));
+        await server.Post("/agents", new AgentDefinition { Name = name, EndpointUrl = "http://a.test" });
+        var cleared = await TestServer.Read<AgentDetail>(await server.Get($"/agents/{name}"));
+
+        Assert.Equal((true, null), (fresh.Features.Evaluation, fresh.Features.Monitoring));
+        Assert.False(set.Features.Evaluation);
+        Assert.Equal("2h", set.Features.Monitoring?.CloseAfter);
+        Assert.Equal(["production", "staging"], set.Features.Monitoring?.Environments);
+        Assert.Equal((true, null), (cleared.Features.Evaluation, cleared.Features.Monitoring));
+    }
+
+    [Fact]
+    public async Task Invalid_features_are_a_422_naming_the_fields()
+    {
+        var response = await server.Post(
+            "/agents",
+            new AgentDefinition
+            {
+                Name = AgentStoreTests.UniqueName(),
+                EndpointUrl = "http://a.test",
+                Features = new AgentFeatures
+                {
+                    Monitoring = new MonitoringSettings { CloseAfter = "soon", Environments = ["Production", "staging", "staging"] },
+                },
+            }
+        );
+
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+        Assert.Equal(
+            ["features.monitoring.closeAfter", "features.monitoring.environments[0]", "features.monitoring.environments[2]"],
+            (await TestServer.ErrorFields(response)).Order(StringComparer.Ordinal)
+        );
+    }
+
+    [Fact]
     public async Task A_body_with_an_unknown_field_is_a_400_problem()
     {
         var response = await server.PostRaw(

@@ -76,6 +76,36 @@ public sealed class PushCommandEndToEndTests(TestDatabase database) : IAsyncDisp
     }
 
     [Fact]
+    public void With_evaluation_off_the_agent_is_pushed_with_its_features_and_the_scenarios_stay_unsent_and_run_says_why()
+    {
+        using var http = Client();
+        var dir = Folder();
+        var agentFile = Path.Combine(dir, "agent.yaml");
+        File.AppendAllText(agentFile, "features:\n  evaluation: false\n  monitoring:\n    environments: [production]\n");
+
+        var (exit, output, _) = Run(http, "push", dir);
+        var (agentExit, agentOut, _) = Run(http, "agent", "--dir", dir);
+        File.WriteAllText(
+            agentFile,
+            File.ReadAllText(agentFile).Replace("evaluation: false", "evaluation: true", StringComparison.Ordinal)
+        );
+        var (runExit, _, runError) = Run(http, "run", "--dir", dir);
+
+        Assert.Equal(0, exit);
+        Assert.Contains("3 scenarios not pushed: evaluation is off", output, StringComparison.Ordinal);
+        Assert.Equal(0, Count(output, ": created") - 1);
+        Assert.Equal(0, agentExit);
+        Assert.Contains(
+            "features: evaluation off  monitoring on (close after 30m, environments production)",
+            agentOut,
+            StringComparison.Ordinal
+        );
+        Assert.Equal(2, runExit);
+        Assert.Contains("features.evaluation", runError, StringComparison.Ordinal);
+        Assert.Contains("switches evaluation on: `suwageval push` to apply it.", runError, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_changed_scenario_is_updated_and_the_rest_stays_unchanged()
     {
         using var http = Client();

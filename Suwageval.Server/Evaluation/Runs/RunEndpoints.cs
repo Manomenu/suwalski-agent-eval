@@ -93,6 +93,10 @@ internal static class RunEndpoints
         {
             return ProblemResults.NotFound("Agent", request.Agent);
         }
+        if (!agent.Evaluation)
+        {
+            return ProblemResults.FeatureOff(agent.Name, "evaluation");
+        }
 
         var picked = await scenarios.ListAsync(agent.Id, request.Tags, cancellationToken);
         if (picked.Count == 0)
@@ -289,6 +293,10 @@ internal static class RunEndpoints
             );
         }
         var source = planned.Original;
+        if (await agents.GetAsync(source.AgentId.ToString(), cancellationToken) is { Evaluation: false } off)
+        {
+            return ProblemResults.FeatureOff(off.Name, "evaluation");
+        }
         var created = await runs.EnqueueAsync(
             source.AgentId,
             source.AgentVersionId,

@@ -491,7 +491,8 @@ internal sealed class ServerClient(HttpClient http)
             serverVersion = response.Headers.TryGetValues(ServerVersion.Header, out var versions) ? versions.FirstOrDefault() : null;
             if (!response.IsSuccessStatusCode)
             {
-                throw new ServerClientException(Describe(response.StatusCode, await response.Content.ReadAsStringAsync(cancellationToken)));
+                var body = await response.Content.ReadAsStringAsync(cancellationToken);
+                throw new ServerClientException(Describe(response.StatusCode, body), FeatureOf(body));
             }
             return await read(response);
         }
@@ -502,6 +503,25 @@ internal sealed class ServerClient(HttpClient http)
         catch (JsonException error)
         {
             throw new ServerClientException(ServerAnswers.Unreadable(error.Message, serverVersion));
+        }
+    }
+
+    /// <summary>The area a refusal says is switched off (its <c>feature</c> extension), or null.</summary>
+    private static string? FeatureOf(string body)
+    {
+        try
+        {
+            using var problem = JsonDocument.Parse(body);
+            return
+                problem.RootElement.ValueKind == JsonValueKind.Object
+                && problem.RootElement.TryGetProperty("feature", out var feature)
+                && feature.ValueKind == JsonValueKind.String
+                ? feature.GetString()
+                : null;
+        }
+        catch (JsonException)
+        {
+            return null;
         }
     }
 

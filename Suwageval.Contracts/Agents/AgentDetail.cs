@@ -22,4 +22,7 @@ public sealed record AgentDetail
 
     /// <summary>The regression settings from <c>agent.yaml</c>; none when it has no <c>regression:</c>.</summary>
     public RegressionSettings? Regression { get; init; }
+
+    /// <summary>Which areas the agent uses, as pushed from <c>agent.yaml</c> (the defaults when it has no <c>features:</c>).</summary>
+    public required AgentFeatures Features { get; init; }
 }

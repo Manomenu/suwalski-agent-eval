@@ -1,4 +1,5 @@
 using Suwageval.Cli.Files;
+using Suwageval.Contracts.Agents;
 
 namespace Suwageval.Cli.Server;
 
@@ -31,6 +32,11 @@ internal static class ServerCall
         catch (ServerClientException failure)
         {
             await error.WriteLineAsync(failure.Message);
+            // The server has the last push; when the local file switches the refused area on, the push is what is missing.
+            if (failure.Feature is { } feature && AgentReader.Quietly(agentDir)?.Definition is { } local && SwitchesOn(local, feature))
+            {
+                await error.WriteLineAsync($"{Path.Combine(agentDir, "agent.yaml")} switches {feature} on: `suwageval push` to apply it.");
+            }
             return failureExit;
         }
         finally
@@ -54,4 +60,13 @@ internal static class ServerCall
             ? 2
             : await RunAsync(serverOption, http, error, (client, site) => action(client, agent.Definition.Name, site), agentDir: dir);
     }
+
+    /// <summary>Whether the local file has the area on (what the server has is the last push).</summary>
+    private static bool SwitchesOn(AgentDefinition definition, string feature) =>
+        feature switch
+        {
+            "evaluation" => definition.Features?.Evaluation ?? true,
+            "monitoring" => definition.Features?.Monitoring is not null,
+            _ => false,
+        };
 }

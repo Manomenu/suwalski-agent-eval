@@ -57,6 +57,7 @@ internal static class AgentCommand
                                 )
                             );
                         }
+                        await output.WriteLineAsync(FeaturesText.Of(detail.Features));
                         return 0;
                     }
                 )

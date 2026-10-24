@@ -147,7 +147,7 @@ internal sealed record SeededAgent(Guid Id, string Name, Guid VersionId, string 
         );
         if (agentSamples is not null)
         {
-            await agents.SetSettingsAsync(agent.Id, agentSamples, null, TestContext.Current.CancellationToken);
+            await agents.SetSettingsAsync(agent.Id, agentSamples, null, cancellationToken: TestContext.Current.CancellationToken);
         }
         await new ScenarioStore(pool).UpsertAsync(
             agent.Id,

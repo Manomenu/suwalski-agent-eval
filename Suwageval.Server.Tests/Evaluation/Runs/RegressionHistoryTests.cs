@@ -295,7 +295,12 @@ public sealed class RegressionHistoryTests(TestDatabase database) : IAsyncDispos
         await PassAsync(agent, Reference());
         var current = await FailAsync(agent, OnBranch("feature/x"));
         var before = (await ResultsAsync(current)).Regression!;
-        await new AgentStore(database.Pool).SetSettingsAsync(agent.Id, null, new RegressionSettings { History = 2 }, Cancellation);
+        await new AgentStore(database.Pool).SetSettingsAsync(
+            agent.Id,
+            null,
+            new RegressionSettings { History = 2 },
+            cancellationToken: Cancellation
+        );
 
         var after = await ResultsAsync(current);
 
@@ -392,7 +397,12 @@ public sealed class RegressionHistoryTests(TestDatabase database) : IAsyncDispos
         Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
         var created = (await response.Content.ReadFromJsonAsync<RunCreated>(Cancellation))!;
         // The agent's settings changed since: the rerun keeps what the run it repeats decided.
-        await new AgentStore(database.Pool).SetSettingsAsync(agent.Id, null, new RegressionSettings { Branches = ["other"] }, Cancellation);
+        await new AgentStore(database.Pool).SetSettingsAsync(
+            agent.Id,
+            null,
+            new RegressionSettings { Branches = ["other"] },
+            cancellationToken: Cancellation
+        );
         var rerun = await client.PostAsync(new Uri($"/eval/runs/{created.RunId}/rerun", UriKind.Relative), null, Cancellation);
         Assert.Equal(HttpStatusCode.Accepted, rerun.StatusCode);
         var rerunId = (await rerun.Content.ReadFromJsonAsync<RunCreated>(Cancellation))!.RunId;

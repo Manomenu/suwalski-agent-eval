@@ -9,6 +9,7 @@ describe("navigationOf", () => {
 
     it("lights Evaluation on the agent's Evaluation page", () => {
         expect(navigationOf({ kind: "agentEvaluation", name: "bot" }, null)).toEqual({ agentName: "bot", active: "evaluation" });
+        expect(navigationOf({ kind: "agentMonitoring", name: "bot" }, null)).toEqual({ agentName: "bot", active: "monitoring" });
     });
 
     it("lights Versions on the versions list, a version and the comparison of versions", () => {

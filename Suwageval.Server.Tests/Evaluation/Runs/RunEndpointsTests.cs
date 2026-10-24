@@ -10,6 +10,7 @@ using Suwageval.AgentSdk.Conversations;
 using Suwageval.Contracts.Agents;
 using Suwageval.Contracts.Checks;
 using Suwageval.Contracts.Runs;
+using Suwageval.Contracts.Scenarios;
 using Suwageval.Server.Evaluation.Runs;
 
 namespace Suwageval.Server.Tests.Evaluation.Runs;
@@ -103,6 +104,43 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
             [new RetrievalData("index-1", "1832 articles"), new RetrievalData("index-2", "1900 articles")],
             version.Data.OrderBy(data => data.Version, StringComparer.Ordinal)
         );
+    }
+
+    [Fact]
+    public async Task With_evaluation_off_no_run_is_started_and_no_scenario_pushed_409_naming_the_feature()
+    {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
+        var client = Client();
+        var agent = await NewAgentAsync(fake.Url.AbsoluteUri);
+        var done = await StartAsync(client, new RunRequest { Agent = agent.Name });
+        await client.PostAsJsonAsync(
+            new Uri("/agents", UriKind.Relative),
+            new AgentDefinition
+            {
+                Name = agent.Name,
+                EndpointUrl = fake.Url.AbsoluteUri,
+                Features = new AgentFeatures { Evaluation = false, Monitoring = new MonitoringSettings() },
+            },
+            ContractJson.Options,
+            Cancellation
+        );
+
+        var run = await Post(client, new RunRequest { Agent = agent.Name });
+        var rerun = await client.PostAsync(new Uri($"/eval/runs/{done.RunId}/rerun", UriKind.Relative), null, Cancellation);
+        var scenarios = await client.PutAsJsonAsync(
+            new Uri($"/eval/agents/{agent.Name}/scenarios", UriKind.Relative),
+            new PutScenariosRequest([]),
+            ContractJson.Options,
+            Cancellation
+        );
+
+        foreach (var response in new[] { run, rerun, scenarios })
+        {
+            Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+            var problem = await response.Content.ReadFromJsonAsync<JsonElement>(Cancellation);
+            Assert.Equal("evaluation", problem.GetProperty("feature").GetString());
+            Assert.Contains("features.evaluation", problem.GetProperty("detail").GetString(), StringComparison.Ordinal);
+        }
     }
 
     [Fact]

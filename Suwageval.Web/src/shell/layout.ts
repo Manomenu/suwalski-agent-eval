@@ -9,7 +9,7 @@ export const CONTENT_MAX_WIDTH = 1400;
  * and its table scrolls sideways beyond that).
  */
 export function contentMaxWidth(kind: string): number | undefined {
-    return kind === "agentEvaluation" || kind === "compare" ? undefined : CONTENT_MAX_WIDTH;
+    return kind === "agentEvaluation" || kind === "agentMonitoring" || kind === "compare" ? undefined : CONTENT_MAX_WIDTH;
 }
 /** The app icon beside its name in the header. */
 export const LOGO_SIZE = 28;

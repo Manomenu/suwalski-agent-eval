@@ -43,6 +43,8 @@ describe("pageOf", () => {
     it("reads the name of /agents/<name>/evaluation, decoded", () => {
         expect(pageOf("/agents/my%20bot/evaluation")).toEqual({ kind: "agentEvaluation", name: "my bot" });
         expect(pageOf("/agents/bot/evaluation/")).toEqual({ kind: "agentEvaluation", name: "bot" });
+        expect(pageOf("/agents/my%20bot/monitoring")).toEqual({ kind: "agentMonitoring", name: "my bot" });
+        expect(pageOf("/agents/bot/monitoring/")).toEqual({ kind: "agentMonitoring", name: "bot" });
     });
 
     it("reads the two versions of /agents/<name>/versions/compare", () => {

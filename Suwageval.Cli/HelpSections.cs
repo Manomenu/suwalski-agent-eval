@@ -1,6 +1,8 @@
 using System.CommandLine;
 using System.CommandLine.Help;
 using System.CommandLine.Invocation;
+using Suwageval.Cli.Files;
+using Suwageval.Contracts.Agents;
 
 namespace Suwageval.Cli;
 
@@ -67,13 +69,30 @@ internal static class HelpSections
             output.WriteLine($"  {root.Name} [command] [options]");
             output.WriteLine();
             WriteSection(output, "Options", root.Options.Where(option => !option.Hidden).Select(OptionRow));
+            var local = LocalAgent();
             foreach (var (title, names) in All)
             {
-                WriteSection(output, title, names.Select(name => CommandRow(root.Subcommands.Single(command => command.Name == name))));
+                WriteSection(
+                    output,
+                    local is not null && IsOff(local, title) ? $"{title} (off for {local.Name})" : title,
+                    names.Select(name => CommandRow(root.Subcommands.Single(command => command.Name == name)))
+                );
             }
             return 0;
         }
     }
+
+    /// <summary>The agent of <c>./suwageval/agent.yaml</c>, when there is one that reads; nothing is reported (it is only the help).</summary>
+    private static AgentDefinition? LocalAgent() => AgentReader.Quietly(AgentFolder.DefaultDir)?.Definition;
+
+    /// <summary>Whether the section's area is switched off in the local file (as the server has it once pushed).</summary>
+    private static bool IsOff(AgentDefinition agent, string title) =>
+        title switch
+        {
+            "Evaluation" => agent.Features?.Evaluation == false,
+            "Monitoring" => agent.Features?.Monitoring is null,
+            _ => false,
+        };
 
     private static (string Left, string Right) OptionRow(Option option) =>
         (
