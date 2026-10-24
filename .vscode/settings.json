@@ -17,7 +17,7 @@
     "explorer.fileNesting.expand": false,
     "explorer.fileNesting.patterns": {
         "README.md": "AGENTS.md, CLAUDE.md, TODO.md, LICENSE, justfile, .editorconfig, .gitignore, .gitattributes, .dockerignore, compose.yaml",
-        "Suwageval.slnx": "global.json, Directory.Build.props, Directory.Packages.props, .csharpierrc.json",
+        "Suwageval.slnx": "global.json, Directory.Build.props, Directory.Build.rsp, Directory.Packages.props, .csharpierrc.json",
         "*.csproj": "packages.lock.json",
         "appsettings.json": "appsettings.*.json",
         "package.json": "pnpm*, .npm*, eslint*, .eslint*, prettier*, .prettier*, knip.json, tsconfig*.json, vite.config.ts, index.html",
