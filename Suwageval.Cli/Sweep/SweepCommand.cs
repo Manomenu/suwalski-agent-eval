@@ -51,6 +51,11 @@ internal static partial class SweepCommand
         {
             Description = "The run group of the sweep (lowercase kebab-case). Default: sweep-<yyyymmdd-hhmm>-<agent>.",
         };
+        var note = new Option<string?>("--note")
+        {
+            Description =
+                $"The note of the sweep's run group: what the experiment tries and why (at most {NoteRules.MaxLength} characters). The group's comparison shows it.",
+        };
         var endpoint = new Option<string?>("--endpoint")
         {
             Description = AgentEndpoint.OptionDescription("the endpointUrl of agent.yaml (the contract's label is read from there too)."),
@@ -68,11 +73,19 @@ internal static partial class SweepCommand
             select,
             tag,
             group,
+            note,
             endpoint,
             reference,
             server,
             dir,
         };
+        command.Validators.Add(result =>
+        {
+            if (NoteRules.Problem(result.GetValue(note)) is { } problem)
+            {
+                result.AddError(problem);
+            }
+        });
         command.SetAction(
             (parsed, cancellationToken) =>
                 RunAsync(
@@ -83,6 +96,7 @@ internal static partial class SweepCommand
                         parsed.GetValue(select),
                         parsed.GetValue(tag) ?? [],
                         parsed.GetValue(group),
+                        NoteRules.Normalize(parsed.GetValue(note)),
                         AgentEndpoint.Override(parsed.GetValue(endpoint)),
                         parsed.GetValue(reference),
                         parsed.GetValue(server)
@@ -105,6 +119,7 @@ internal static partial class SweepCommand
         bool Select,
         string[] Tags,
         string? Group,
+        string? Note,
         string? EndpointOverride,
         string? Reference,
         string? Server
@@ -173,11 +188,29 @@ internal static partial class SweepCommand
             error,
             async (client, site) =>
             {
+                // A group exists once it has a run, so its note is set right after the first run is created.
+                var noteSet = arguments.Note is null;
+                async Task onFirstRun(CancellationToken token)
+                {
+                    if (noteSet)
+                    {
+                        return;
+                    }
+                    noteSet = true;
+                    try
+                    {
+                        await client.SetGroupNoteAsync(agent.Definition.Name, group, arguments.Note, token);
+                    }
+                    catch (ServerClientException failure)
+                    {
+                        await error.WriteLineAsync($"The group's note was not set: {failure.Message}");
+                    }
+                }
                 var sweep = new VariantSweep(
                     settings,
                     shell,
                     async token => (await ContractFetcher.FetchAsync(http ?? agentHttp!, endpoint, token)).Contract?.Label,
-                    token => StartRunAsync(client, agent.Definition.Name, arguments, group, origins, token),
+                    token => StartRunAsync(client, agent.Definition.Name, arguments, group, origins, onFirstRun, token),
                     output,
                     TimeSpan.FromSeconds(settings.WaitSeconds),
                     pollInterval
@@ -203,6 +236,7 @@ internal static partial class SweepCommand
         Arguments arguments,
         string group,
         RunOriginReader origins,
+        Func<CancellationToken, Task> onRunCreated,
         CancellationToken cancellationToken
     )
     {
@@ -220,6 +254,7 @@ internal static partial class SweepCommand
                 },
                 cancellationToken
             );
+            await onRunCreated(cancellationToken);
             await client.WaitForEndAsync(created.RunId, cancellationToken);
             var results = await client.ResultsAsync(created.RunId, cancellationToken);
             return new VariantOutcome("", created.RunId, RunVerdict.Line(results), results.Run.Status != RunStatus.Done);

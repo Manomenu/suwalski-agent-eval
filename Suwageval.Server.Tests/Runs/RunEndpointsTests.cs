@@ -465,7 +465,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
     }
 
     private static Task<HttpResponseMessage> PutNote(HttpClient client, Guid runId, string? note) =>
-        client.PutAsJsonAsync(new Uri($"/runs/{runId}/note", UriKind.Relative), new RunNoteRequest { Note = note }, Cancellation);
+        client.PutAsJsonAsync(new Uri($"/runs/{runId}/note", UriKind.Relative), new NoteRequest { Note = note }, Cancellation);
 
     [Fact]
     public async Task A_note_set_at_start_is_trimmed_listed_and_not_inherited_by_a_rerun_and_can_be_changed_and_cleared_later()
@@ -506,13 +506,13 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         Assert.Equal("after it finished", (await GetAsync<RunSummary>(client, $"/runs/{created.RunId}")).Note);
         Assert.Equal(HttpStatusCode.NotFound, (await PutNote(client, Guid.NewGuid(), "x")).StatusCode);
 
-        var tooLong = await PutNote(client, created.RunId, new string('x', RunNoteRules.MaxLength + 1));
+        var tooLong = await PutNote(client, created.RunId, new string('x', NoteRules.MaxLength + 1));
         Assert.Equal(HttpStatusCode.UnprocessableEntity, tooLong.StatusCode);
         using var problem = JsonDocument.Parse(await tooLong.Content.ReadAsStringAsync(Cancellation));
         Assert.True(problem.RootElement.GetProperty("errors").TryGetProperty("note", out _));
         Assert.Equal("after it finished", (await GetAsync<RunSummary>(client, $"/runs/{created.RunId}")).Note);
 
-        var rejectedAtStart = await Post(client, new RunRequest { Agent = agent.Name, Note = new string('x', RunNoteRules.MaxLength + 1) });
+        var rejectedAtStart = await Post(client, new RunRequest { Agent = agent.Name, Note = new string('x', NoteRules.MaxLength + 1) });
         Assert.Equal(HttpStatusCode.UnprocessableEntity, rejectedAtStart.StatusCode);
     }
 

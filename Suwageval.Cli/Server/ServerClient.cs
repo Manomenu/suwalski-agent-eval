@@ -101,7 +101,20 @@ internal sealed class ServerClient(HttpClient http)
             () =>
                 http.PutAsJsonAsync(
                     new Uri($"runs/{runId}/note", UriKind.Relative),
-                    new RunNoteRequest { Note = note },
+                    new NoteRequest { Note = note },
+                    ContractJson.Options,
+                    cancellationToken
+                ),
+            cancellationToken
+        );
+
+    /// <summary>Sets the note of the agent's run group <paramref name="group"/>; none or blank clears it. 404: no run of the agent is in the group.</summary>
+    public Task SetGroupNoteAsync(string agent, string group, string? note, CancellationToken cancellationToken) =>
+        SendAsync(
+            () =>
+                http.PutAsJsonAsync(
+                    new Uri($"agents/{Uri.EscapeDataString(agent)}/run-groups/{Uri.EscapeDataString(group)}/note", UriKind.Relative),
+                    new NoteRequest { Note = note },
                     ContractJson.Options,
                     cancellationToken
                 ),

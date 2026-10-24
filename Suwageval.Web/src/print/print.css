@@ -299,4 +299,24 @@
     .compare-table th.compare-run-column {
         width: var(--print-column-width) !important;
     }
+
+    /* The note box (note/NoteBox.tsx) keeps the dark scheme's light text on its light blue background: dark text on paper, the box
+       still visible by its light background and thin border. */
+    .note-box {
+        --alert-bg: var(--mantine-color-blue-0);
+        --alert-bd: 1px solid var(--mantine-color-blue-6);
+        --alert-color: var(--mantine-color-black);
+        color: var(--mantine-color-black);
+    }
+
+    .note-box .mantine-Alert-title,
+    .note-box .mantine-Alert-message,
+    .note-box .mantine-Text-root {
+        color: var(--mantine-color-black);
+    }
+
+    .note-box .mantine-Alert-icon,
+    .note-box .mantine-ThemeIcon-root {
+        color: var(--mantine-color-blue-9);
+    }
 }

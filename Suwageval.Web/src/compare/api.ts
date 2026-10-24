@@ -27,3 +27,9 @@ export function fetchComparison(selection: ValidSelection, baseline: string | nu
     if (baseline !== null) query.set("baseline", baseline);
     return request<RunComparison>(`/runs/compare?${query.toString()}`, { signal });
 }
+
+/** Sets the note of the agent's run group (what the experiment is about); null clears it. */
+export function setGroupNote(agent: string, group: string, note: string | null): Promise<void> {
+    const path = `/agents/${encodeURIComponent(agent)}/run-groups/${encodeURIComponent(group)}/note`;
+    return request<undefined>(path, { method: "PUT", body: JSON.stringify({ note }) }).then(() => undefined);
+}

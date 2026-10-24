@@ -20,12 +20,13 @@ import { fetchVersion, fetchVersions, type AgentVersion } from "../agents/api";
 import { useRequest } from "../api/useRequest";
 import { ModelJudgedIcon } from "../checks/ModelJudgedIcon";
 import { HeaderHelp } from "../help/HeaderHelp";
+import { NoteBox } from "../note/NoteBox";
 import { ChecksCount, SamplesCount } from "../runs/RunCounts";
 import { durationSummary, RUN_CHECKS_HELP, RUN_SAMPLES_HELP } from "../runs/results";
 import { filteredLabel, keepsTags, selectedTagRows } from "../tagFilter/tagSelection";
 import { TagFilter } from "../tagFilter/TagFilter";
 import { useTagFilter } from "../tagFilter/useTagFilter";
-import { fetchComparison, type ComparedRun, type RunComparison } from "./api";
+import { fetchComparison, setGroupNote, type ComparedRun, type RunComparison } from "./api";
 import { ColumnHeader, type BaselineInfo } from "./ColumnHeader";
 import { ChangeNote } from "./ChangeNote";
 import {
@@ -193,6 +194,14 @@ function View({
                     ? " A check passes when its pass rate reaches its threshold; the best column of a row is marked. Pick a baseline by a column's header to read the others against it."
                     : " Every run is read against the baseline: a cell better than the baseline's is green, a worse one red. Pick another by its header, or click the baseline again to go back to the plain view. A check passes when its pass rate reaches its threshold."}
             </Text>
+            {selection.kind === "group" && (
+                <NoteBox
+                    key={selection.group}
+                    initial={variants.groupNote}
+                    save={(note) => setGroupNote(variants.agent, selection.group, note)}
+                    placeholder="What is this experiment about?"
+                />
+            )}
             {/* The filters stay applied on paper; the print-only line says which. */}
             <Text className="print-only print-line">
                 {comparePrintLine({

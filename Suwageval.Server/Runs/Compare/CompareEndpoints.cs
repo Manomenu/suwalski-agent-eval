@@ -144,14 +144,15 @@ internal static class CompareEndpoints
                 )
             );
         }
+        var report = RunComparisonReport.Build(
+            agentNames[0],
+            group,
+            columns,
+            await scenarios.ListLifetimesAsync(rows[0].AgentId, cancellationToken),
+            baselineColumn
+        );
         return Results.Ok(
-            RunComparisonReport.Build(
-                agentNames[0],
-                group,
-                columns,
-                await scenarios.ListLifetimesAsync(rows[0].AgentId, cancellationToken),
-                baselineColumn
-            )
+            group is null ? report : report with { GroupNote = await store.GetGroupNoteAsync(rows[0].AgentId, group, cancellationToken) }
         );
     }
 }

@@ -12,6 +12,7 @@ internal static class RunGroupEndpoints
         ArgumentNullException.ThrowIfNull(app);
         app.MapGet("/agents/{agent}/run-groups", ListAsync).Produces<IReadOnlyList<RunGroupSummary>>();
         app.MapPost("/agents/{agent}/run-groups/archive", ArchiveAsync).Produces(StatusCodes.Status204NoContent);
+        app.MapPut("/agents/{agent}/run-groups/{name}/note", SetNoteAsync).Produces(StatusCodes.Status204NoContent);
         app.MapGet("/agents/{agent}/run-groups/{name}/deletion", PreviewDeletionAsync).Produces<RunGroupDeletion>();
         app.MapDelete("/agents/{agent}/run-groups/{name}", DeleteAsync).Produces(StatusCodes.Status204NoContent);
         return app;
@@ -60,6 +61,34 @@ internal static class RunGroupEndpoints
         }
         await groups.ArchiveAsync(found.Id, request.Names, request.Archived, cancellationToken);
         return Results.NoContent();
+    }
+
+    /// <summary>204 once the note of the group is set (none or blank clears it). 404: no such agent or no run of it in the group; 422: a bad group name or note.</summary>
+    private static async Task<IResult> SetNoteAsync(
+        string agent,
+        string name,
+        NoteRequest request,
+        AgentStore agents,
+        RunGroupStore groups,
+        CancellationToken cancellationToken
+    )
+    {
+        if (RunGroupRules.Problem(name) is { } groupProblem)
+        {
+            return ProblemResults.Invalid("name", groupProblem);
+        }
+        if (NoteRules.Problem(request.Note) is { } problem)
+        {
+            return ProblemResults.Invalid("note", problem);
+        }
+        var found = await agents.GetAsync(agent, cancellationToken);
+        if (found is null)
+        {
+            return ProblemResults.NotFound("Agent", agent);
+        }
+        return await groups.SetNoteAsync(found.Id, name, NoteRules.Normalize(request.Note), cancellationToken)
+            ? Results.NoContent()
+            : ProblemResults.NotFound("Run group", name);
     }
 
     private static Task<IResult> PreviewDeletionAsync(

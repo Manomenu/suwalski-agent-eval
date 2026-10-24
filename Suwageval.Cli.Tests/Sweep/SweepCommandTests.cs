@@ -18,6 +18,7 @@ public sealed class SweepCommandTests : IDisposable
 
     private readonly DirectoryInfo folder = Directory.CreateTempSubdirectory("suwageval-sweep-");
     private readonly List<string> commands = [];
+    private readonly List<string> notes = [];
     private string label = "default";
     private string? servedLabel;
     private string typed = "";
@@ -89,10 +90,17 @@ public sealed class SweepCommandTests : IDisposable
                     VersionCreated = false,
                 }
             ),
+            ("PUT", { } path) when path.EndsWith("/note", StringComparison.Ordinal) => RecordNote(path, request),
             ("GET", var path) when path == $"/runs/{RunId}" => Json(summary),
             ("GET", var path) when path == $"/runs/{RunId}/results" => Json(new RunResults { Run = summary, Scenarios = [] }),
             _ => new HttpResponseMessage(HttpStatusCode.NotFound),
         };
+    }
+
+    private HttpResponseMessage RecordNote(string path, HttpRequestMessage request)
+    {
+        notes.Add($"{path} {request.Content?.ReadAsStringAsync().GetAwaiter().GetResult()}");
+        return new HttpResponseMessage(HttpStatusCode.NoContent);
     }
 
     private Task<int> Shell(string commandLine, TextWriter output, CancellationToken cancellationToken)
@@ -135,6 +143,20 @@ public sealed class SweepCommandTests : IDisposable
         Assert.Equal(0, exit);
         Assert.Equal(["reconfigure fast", "reconfigure slow", "restore"], commands);
         Assert.Contains("/compare?group=sweep-test&agent=example-agent", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_note_is_set_once_on_the_group_after_its_first_run_is_created_and_a_too_long_one_is_refused()
+    {
+        var dir = Agent(Section, "fast", "slow");
+
+        var (exit, _, _) = Sweep(dir, "--group", "sweep-test", "--note", " trying two setups ");
+        var refused = Sweep(dir, "--note", new string('x', 501));
+
+        Assert.Equal(0, exit);
+        Assert.Equal(["/agents/example-agent/run-groups/sweep-test/note {\"note\":\"trying two setups\"}"], notes);
+        Assert.NotEqual(0, refused.Exit);
+        Assert.Single(notes);
     }
 
     [Fact]

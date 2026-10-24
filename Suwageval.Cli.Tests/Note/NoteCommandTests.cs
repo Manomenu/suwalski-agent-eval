@@ -96,4 +96,69 @@ public sealed class NoteCommandTests
         Assert.Empty(output);
         Assert.Contains("404", error, StringComparison.Ordinal);
     }
+
+    private static string SampleDir => Path.Combine(AppContext.BaseDirectory, "Sample", "suwageval");
+
+    [Fact]
+    public void A_group_note_goes_to_the_group_of_the_agent_in_agent_yaml_and_the_compare_page_is_printed()
+    {
+        var (exit, output, _, api) = Note(
+            HttpStatusCode.NoContent,
+            "--group",
+            "sweep-1",
+            "three models",
+            "--dir",
+            SampleDir,
+            "--server",
+            "https://eval.example/"
+        );
+
+        Assert.Equal(0, exit);
+        Assert.Equal(
+            $"Set the note of group sweep-1.{Environment.NewLine}https://eval.example/compare?group=sweep-1&agent=example-agent{Environment.NewLine}",
+            output
+        );
+        var request = Assert.Single(api.Requests);
+        Assert.StartsWith("PUT /agents/example-agent/run-groups/sweep-1/note ", request, StringComparison.Ordinal);
+        Assert.EndsWith( /*lang=json,strict*/
+            "{\"note\":\"three models\"}",
+            request,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void Clear_for_a_group_sends_no_note()
+    {
+        var (exit, output, _, api) = Note(HttpStatusCode.NoContent, "--group", "sweep-1", "--clear", "--dir", SampleDir);
+
+        Assert.Equal(0, exit);
+        Assert.StartsWith("Cleared the note of group sweep-1.", output, StringComparison.Ordinal);
+        Assert.EndsWith( /*lang=json,strict*/
+            "{\"note\":null}",
+            Assert.Single(api.Requests),
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void A_group_and_a_run_id_together_or_a_bad_group_name_are_refused_before_any_request()
+    {
+        var withRun = Note(HttpStatusCode.NoContent, "--group", "sweep-1", RunId.ToString(), "text", "--dir", SampleDir);
+        var badName = Note(HttpStatusCode.NoContent, "--group", "Not Kebab", "text", "--dir", SampleDir);
+
+        Assert.NotEqual(0, withRun.Exit);
+        Assert.NotEqual(0, badName.Exit);
+        Assert.Empty(withRun.Api.Requests);
+        Assert.Empty(badName.Api.Requests);
+    }
+
+    [Fact]
+    public void A_group_that_has_no_runs_exits_2()
+    {
+        var (exit, _, error, _) = Note(HttpStatusCode.NotFound, "--group", "sweep-1", "x", "--dir", SampleDir);
+
+        Assert.Equal(2, exit);
+        Assert.Contains("404", error, StringComparison.Ordinal);
+    }
 }

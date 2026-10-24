@@ -30,6 +30,42 @@ internal sealed class RunGroupStore(Pool pool)
         return [.. rows];
     }
 
+    /// <summary>Sets the note of a group of the agent (null deletes it); false when no run of the agent was started in the group.</summary>
+    public async Task<bool> SetNoteAsync(Guid agentId, string name, string? note, CancellationToken cancellationToken = default)
+    {
+        await using var connection = await pool.OpenAsync(cancellationToken);
+        if (
+            !await connection.QuerySingleAsync<bool>(
+                new CommandDefinition(
+                    "SELECT EXISTS (SELECT 1 FROM runs WHERE agent_id = @agentId AND run_group = @name)",
+                    new { agentId, name },
+                    cancellationToken: cancellationToken
+                )
+            )
+        )
+        {
+            return false;
+        }
+        await connection.ExecuteAsync(
+            new CommandDefinition(
+                note is null
+                    ? "DELETE FROM run_group_notes WHERE agent_id = @agentId AND name = @name"
+                    : """
+                    INSERT INTO run_group_notes (agent_id, name, note) VALUES (@agentId, @name, @note)
+                    ON CONFLICT (agent_id, name) DO UPDATE SET note = EXCLUDED.note
+                    """,
+                new
+                {
+                    agentId,
+                    name,
+                    note,
+                },
+                cancellationToken: cancellationToken
+            )
+        );
+        return true;
+    }
+
     /// <summary>The names among <paramref name="names"/> that no run of the agent was started in.</summary>
     public async Task<IReadOnlyList<string>> UnknownAsync(
         Guid agentId,
@@ -144,6 +180,14 @@ internal sealed class RunGroupStore(Pool pool)
         await connection.ExecuteAsync(
             new CommandDefinition(
                 "DELETE FROM archived_run_groups WHERE agent_id = @agentId AND name = @name",
+                new { agentId, name },
+                transaction,
+                cancellationToken: cancellationToken
+            )
+        );
+        await connection.ExecuteAsync(
+            new CommandDefinition(
+                "DELETE FROM run_group_notes WHERE agent_id = @agentId AND name = @name",
                 new { agentId, name },
                 transaction,
                 cancellationToken: cancellationToken

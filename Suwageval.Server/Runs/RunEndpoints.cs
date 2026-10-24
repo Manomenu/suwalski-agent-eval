@@ -83,7 +83,7 @@ internal static class RunEndpoints
             return ProblemResults.Invalid("group", groupProblem);
         }
 
-        if (RunNoteRules.Problem(request.Note) is { } noteProblem)
+        if (NoteRules.Problem(request.Note) is { } noteProblem)
         {
             return ProblemResults.Invalid("note", noteProblem);
         }
@@ -182,7 +182,7 @@ internal static class RunEndpoints
             placement: placement,
             runGroup: request.Group,
             label: contract.Label,
-            note: RunNoteRules.Normalize(request.Note),
+            note: NoteRules.Normalize(request.Note),
             cancellationToken: cancellationToken
         );
         return Results.Accepted(
@@ -464,13 +464,13 @@ internal static class RunEndpoints
     }
 
     /// <summary>204 once the note of run <paramref name="id"/> is set (none or blank clears it), in any status. 404: no such run; 422: a note that is too long.</summary>
-    private static async Task<IResult> SetNoteAsync(Guid id, RunNoteRequest request, RunStore runs, CancellationToken cancellationToken)
+    private static async Task<IResult> SetNoteAsync(Guid id, NoteRequest request, RunStore runs, CancellationToken cancellationToken)
     {
-        if (RunNoteRules.Problem(request.Note) is { } problem)
+        if (NoteRules.Problem(request.Note) is { } problem)
         {
             return ProblemResults.Invalid("note", problem);
         }
-        return await runs.SetNoteAsync(id, RunNoteRules.Normalize(request.Note), cancellationToken)
+        return await runs.SetNoteAsync(id, NoteRules.Normalize(request.Note), cancellationToken)
             ? Results.NoContent()
             : ProblemResults.NotFound("Run", id.ToString());
     }

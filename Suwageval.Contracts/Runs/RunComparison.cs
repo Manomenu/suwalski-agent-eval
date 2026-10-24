@@ -11,6 +11,9 @@ public sealed record RunComparison
     /// <summary>The group the runs were picked by; none when they were named one by one.</summary>
     public string? Group { get; init; }
 
+    /// <summary>The note of the group (what the experiment is about); none when compared by run ids or the group has no note.</summary>
+    public string? GroupNote { get; init; }
+
     /// <summary>The columns: in the order asked for, or by creation time for a group.</summary>
     public required IReadOnlyList<VariantRun> Runs { get; init; }
 

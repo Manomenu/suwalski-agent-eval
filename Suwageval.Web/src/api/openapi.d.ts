@@ -1021,7 +1021,7 @@ export interface paths {
             };
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["RunNoteRequest"];
+                    "application/json": components["schemas"]["NoteRequest"];
                 };
             };
             responses: {
@@ -1151,6 +1151,46 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agents/{agent}/run-groups/{name}/note": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    agent: string;
+                    name: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["NoteRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1971,6 +2011,10 @@ export interface components {
             name: string;
             parameters?: null | components["schemas"]["JsonElement"];
         };
+        /** @description Sets the note of a run or of a run group (NoteRules); none or blank clears it. */
+        NoteRequest: {
+            note?: null | string;
+        };
         /** @description The checks to write for an agent; keys not listed are left alone. */
         PutChecksRequest: {
             checks: components["schemas"]["CheckInput"][];
@@ -2062,7 +2106,7 @@ export interface components {
             endpointUrl?: null | string;
             /** @description The group of the new run (RunGroupRules); none means no group, the repeated run's group is not inherited. */
             group?: null | string;
-            /** @description The note of the new run (RunNoteRules); none means no note, the repeated run's note is not inherited. */
+            /** @description The note of the new run (NoteRules); none means no note, the repeated run's note is not inherited. */
             note?: null | string;
         };
         /** @description The data an agent's retrieval reads, as the agent describes it. */
@@ -2089,6 +2133,8 @@ export interface components {
             agent: string;
             /** @description The group the runs were picked by; none when they were named one by one. */
             group?: null | string;
+            /** @description The note of the group (what the experiment is about); none when compared by run ids or the group has no note. */
+            groupNote?: null | string;
             /** @description The columns: in the order asked for, or by creation time for a group. */
             runs: components["schemas"]["VariantRun"][];
             /** @description The pass rate over every check first, then one row per tag; the rates carry no changes (those are in BaselineComparison? RunComparison.Baseline). */
@@ -2150,10 +2196,6 @@ export interface components {
              * @description How many runs match the filters, over all pages.
              */
             totalCount: number;
-        };
-        /** @description Sets the note of a run (RunNoteRules); none or blank clears it. */
-        RunNoteRequest: {
-            note?: null | string;
         };
         /**
          * @description Where the agent's repository stood when a run was started: the facts the CLI reads from git (or from the CI's environment). The
@@ -2225,7 +2267,7 @@ export interface components {
             endpointUrl?: null | string;
             /** @description The group the run belongs to (RunGroupRules); none means no group. */
             group?: null | string;
-            /** @description Why the run is started (RunNoteRules); none means no note. It can be changed after the run. */
+            /** @description Why the run is started (NoteRules); none means no note. It can be changed after the run. */
             note?: null | string;
             origin?: null | components["schemas"]["RunOrigin"];
         };
