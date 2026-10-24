@@ -1,11 +1,13 @@
 // The agent list shows an agent, its link opens its page, and the page deletes it once its name is typed.
 import { expect, test } from "@playwright/test";
 
+import { openAgentsListAt } from "../../e2e/helpers";
+
 test("an agent is listed, opens its page and is deleted from it after its name is typed", async ({ page, request }) => {
     const name = `e2e-delete-agent-${String(Date.now())}`;
     expect((await request.post("/api/agents", { data: { name, endpointUrl: "http://localhost:9/" } })).ok()).toBe(true);
 
-    await page.goto("/");
+    await openAgentsListAt(page, request, name);
     await page.getByRole("link", { name, exact: true }).click();
     await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();
 

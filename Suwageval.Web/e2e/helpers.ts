@@ -133,3 +133,19 @@ export function visibleOnPaperButNotWanted(page: Page): Promise<string[]> {
             .map((element) => element.outerHTML.slice(0, 100)),
     );
 }
+
+/** The agents list's page size (`DEFAULT_PAGE_SIZE` in `src/pagination/pages.ts`). */
+const AGENTS_PAGE_SIZE = 10;
+
+/**
+ * Opens the agents list on the page that holds `name`: the list is sorted by name and paged, and the other tests' agents share the
+ * database, so the agent's page depends on them.
+ */
+export async function openAgentsListAt(page: Page, request: APIRequestContext, name: string): Promise<void> {
+    const response = await request.get("/api/agents");
+    expect(response.ok()).toBe(true);
+    const names = ((await response.json()) as { name: string }[]).map((agent) => agent.name);
+    const index = names.indexOf(name);
+    expect(index).toBeGreaterThanOrEqual(0);
+    await page.goto(`/?agentsPage=${String(Math.floor(index / AGENTS_PAGE_SIZE) + 1)}`);
+}
