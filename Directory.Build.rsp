@@ -1,0 +1,4 @@
+# Read by MSBuild for every build under this folder (dotnet build, dotnet test, dotnet watch, the editor): no worker
+# processes left running after a build. Parallel builds of several checkouts (agents in worktrees) otherwise pile up
+# dozens of idle MSBuild nodes, a few GB of memory. scripts/.internal/checkout-env.sh does the same for the scripts.
+-nodeReuse:false

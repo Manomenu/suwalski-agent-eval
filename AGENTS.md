@@ -55,7 +55,7 @@ app keeps its tests beside its code, so those folders would only split the .NET 
 | Path | Holds |
 | --- | --- |
 | `Suwageval.slnx` | the .NET solution: the server, the CLI, the contracts and their tests |
-| `global.json`, `Directory.Build.props`, `Directory.Packages.props` | the SDK band; the settings every C# project shares (nullable, analyzers, warnings as errors, lockfiles); every NuGet package and its version, named once |
+| `global.json`, `Directory.Build.props`, `Directory.Build.rsp`, `Directory.Packages.props` | the SDK band; the settings every C# project shares (nullable, analyzers, warnings as errors, lockfiles); MSBuild's switches for every build here (`-nodeReuse:false`: no idle worker processes left behind, which piled up to gigabytes with several checkouts building); every NuGet package and its version, named once |
 | `Suwageval.Server/` | the HTTP API (ASP.NET Core minimal APIs, PostgreSQL through Npgsql, SQL written by hand and mapped by Dapper). One folder — one namespace — per part: `Api/`, `Database/`, then one per feature, a sub-feature as a folder inside it (section 5.1: `Runs/Groups/`, `Runs/Compare/`, `Runs/Trend/`, `Runs/Unstable/`, `Runs/AgentErrors/`, `Checks/Evaluation/`, `Agents/Versions/`). `Runs/` holds the queue's worker (`RunWorker`, a hosted service); the tests share one database, so they run the server without it (`RunTestApp`) and take runs themselves, per agent. `Models/` holds the models Suwageval itself calls (`Models:<name>`): one chat client and one pool of concurrent calls per model. `Judges/` holds the verdict of a `judge` check (a Microsoft Agent Framework agent over a model's client) and the daily `live-check` command (`Program.cs` runs it for the chart's CronJob). `Simulation/` holds the simulated user of a simulated scenario (`Models:simulator` when configured, else the judge's model and so its pool) |
 | `Suwageval.Server/Database/Migrations/up/` | numbered SQL migrations, applied at start-up by grate (`Database/Migrator.cs`) |
 | `Suwageval.Server.Tests/` | the server's tests (xUnit v3), mirroring the server's folders; `ContractsTests.cs` holds the import contracts, `ProjectReferencesTests.cs` the project graph. `EndToEnd/` is the one place where the CLI runs against the server in process (`push`, `run`, `rerun`); only its types may use the CLI (`EndToEndContractsTests.cs`); `EveryEndpointHasACliCommandTests.cs` there lists every route the server maps with the command that covers it (or the reason it has none) |
@@ -456,7 +456,7 @@ Panel.e2e.ts              └ Panel.e2e.ts
 - Name companions `<name>.<role>.ts` — `.test.ts` (vitest), `.e2e.ts` (Playwright),
   `.stories.tsx` etc. — never `test_<name>.ts` or a separate `__tests__/` folder; a
   differently named file falls out of the nesting.
-- Configuration nests under its owner: `Suwageval.slnx` ▸ `global.json`, `Directory.*.props`,
+- Configuration nests under its owner: `Suwageval.slnx` ▸ `global.json`, `Directory.*.props`, `Directory.Build.rsp`,
   `.csharpierrc.json`; a `.csproj` ▸ its `packages.lock.json`; `package.json` ▸ lockfile,
   eslint, prettier, knip, tsconfig, vite; `appsettings.json` ▸ `appsettings.*.json`; `README.md` ▸
   the repo-level files.
