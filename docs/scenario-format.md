@@ -327,6 +327,31 @@ them, retrying while Suwageval cannot be reached; it names the version by the ha
 runs in every deployment; with it, `Suwageval:Agent` and `Suwageval:Environment` are required (the agent does not start without
 them). `Suwageval:AccessClientId` and `Suwageval:AccessClientSecret` are the Access service token, from the deployment's secrets.
 
+### Monitoring checks: `monitoring-checks.yaml`
+
+The checks run on **every** conversation of the deployed agent, once it is closed (and again after a turn reopens it), live beside
+the scenarios in `suwageval/monitoring-checks.yaml`, a mapping with one key, `checks:`. `suwageval push` sends them when monitoring
+is on (a missing file sends none: the server's monitoring checks are then all deleted); `suwageval validate` checks them with the
+scenarios.
+
+```yaml
+checks:
+  - key: no-refund-without-asking        # unique in the file, kebab-case
+    description: Never refunds an order the user did not ask to refund.   # required: what the check makes sure of
+    type: tool-not-called
+    tool: refund_order
+  - key: polite
+    description: Answers politely, even to a rude user.
+    type: judge
+    criteria: The assistant stays polite and on topic.
+```
+
+A check is one of the scenario checks (below, *Checks*) without what only a scenario has: no `samples`, no `passThreshold` (one
+conversation, one verdict), and a `judge` check is judged against the whole conversation, with no expected answer. The checks a
+conversation got are on its page and in `suwageval monitoring conversation <id>`; `suwageval monitoring checks` lists each check
+with its pass rate over the last 7 and 30 days, `suwageval monitoring trend` (the web's charts) day by day. A conversation with a
+failed check is the one to turn into a scenario (`suwageval scenario from-conversation <id>`).
+
 ## A scenario file
 
 | Field | | |

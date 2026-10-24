@@ -12,7 +12,9 @@ internal sealed class ConversationStore(Pool pool)
     private const string ConversationSelect = """
         SELECT c.id, a.name AS AgentName, c.environment, c.conversation_key AS ConversationKey, c.agent_version_id AS AgentVersionId,
                v.label AS VersionLabel, c.version_changed AS VersionChanged, c.data_version AS DataVersion, c.state, c.turns,
-               c.started_at AS StartedAt, c.last_turn_at AS LastTurnAt, c.closed_at AS ClosedAt
+               c.started_at AS StartedAt, c.last_turn_at AS LastTurnAt, c.closed_at AS ClosedAt, c.checked_at AS CheckedAt,
+               (SELECT count(*) FROM monitoring_check_results r WHERE r.conversation_id = c.id AND NOT r.passed AND NOT r.not_judged)::int AS FailedChecks,
+               (SELECT count(*) FROM monitoring_check_results r WHERE r.conversation_id = c.id AND r.not_judged)::int AS NotJudgedChecks
         FROM monitoring_conversations c
         JOIN agents a ON a.id = c.agent_id
         JOIN agent_versions v ON v.id = c.agent_version_id
@@ -23,6 +25,9 @@ internal sealed class ConversationStore(Pool pool)
           AND (@environment::text IS NULL OR c.environment = @environment)
           AND (cardinality(@versionIds::uuid[]) = 0 OR c.agent_version_id = ANY(@versionIds::uuid[]))
           AND (@state::text IS NULL OR c.state = @state)
+          AND (@failedCheck::text IS NULL OR EXISTS (
+                SELECT 1 FROM monitoring_check_results r JOIN monitoring_checks k ON k.id = r.check_id
+                WHERE r.conversation_id = c.id AND k.key = @failedCheck AND NOT r.passed AND NOT r.not_judged))
         """;
 
     /// <summary>
@@ -65,6 +70,7 @@ internal sealed class ConversationStore(Pool pool)
                         data_version = EXCLUDED.data_version,
                         state = 'Open',
                         closed_at = NULL,
+                        checked_at = NULL,
                         turns = monitoring_conversations.turns + 1,
                         started_at = LEAST(monitoring_conversations.started_at, EXCLUDED.started_at),
                         last_turn_at = GREATEST(monitoring_conversations.last_turn_at, EXCLUDED.last_turn_at),
@@ -146,6 +152,7 @@ internal sealed class ConversationStore(Pool pool)
         string? environment,
         IReadOnlyCollection<Guid> versionIds,
         string? state,
+        string? failedCheck = null,
         CancellationToken cancellationToken = default
     )
     {
@@ -159,6 +166,7 @@ internal sealed class ConversationStore(Pool pool)
                     environment,
                     versionIds = versionIds.ToArray(),
                     state,
+                    failedCheck,
                 },
                 cancellationToken: cancellationToken
             )
@@ -167,7 +175,8 @@ internal sealed class ConversationStore(Pool pool)
 
     /// <summary>
     /// A page of the agent's conversations, the newest last turn first, only those of <paramref name="environment"/>, of
-    /// <paramref name="versionIds"/> (the version of their last turn) and in <paramref name="state"/> when given.
+    /// <paramref name="versionIds"/> (the version of their last turn), in <paramref name="state"/> and failing the check <paramref name="failedCheck"/>
+    /// (its key) when given.
     /// </summary>
     public async Task<IReadOnlyList<ConversationRow>> ListAsync(
         Guid agentId,
@@ -176,6 +185,7 @@ internal sealed class ConversationStore(Pool pool)
         string? state,
         int offset,
         int limit,
+        string? failedCheck = null,
         CancellationToken cancellationToken = default
     )
     {
@@ -188,6 +198,7 @@ internal sealed class ConversationStore(Pool pool)
             state,
             offset,
             limit,
+            failedCheck,
         };
         var rows = await connection.QueryAsync<ConversationRow>(
             new CommandDefinition(
@@ -239,6 +250,27 @@ internal sealed class ConversationStore(Pool pool)
                     """
                     SELECT id, at, agent_version_id AS AgentVersionId, data_version AS DataVersion, items::text AS Items
                     FROM monitoring_turns WHERE conversation_id = @conversationId ORDER BY at, received_at, id
+                    """,
+                    new { conversationId },
+                    cancellationToken: cancellationToken
+                )
+            ),
+        ];
+    }
+
+    /// <summary>The verdicts of the agent's monitoring checks on the conversation, by key.</summary>
+    public async Task<IReadOnlyList<ConversationResultRow>> ResultsAsync(Guid conversationId, CancellationToken cancellationToken = default)
+    {
+        await using var connection = await pool.OpenAsync(cancellationToken);
+        return
+        [
+            .. await connection.QueryAsync<ConversationResultRow>(
+                new CommandDefinition(
+                    """
+                    SELECT k.key, r.revision, r.passed, r.not_judged AS NotJudged, r.message, r.evidence::text AS Evidence, r.judge_model AS JudgeModel
+                    FROM monitoring_check_results r JOIN monitoring_checks k ON k.id = r.check_id
+                    WHERE r.conversation_id = @conversationId
+                    ORDER BY k.key
                     """,
                     new { conversationId },
                     cancellationToken: cancellationToken

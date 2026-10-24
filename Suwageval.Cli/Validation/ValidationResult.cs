@@ -21,5 +21,8 @@ internal sealed record ValidationResult(
     /// <summary>The scenario files as read, each with its checks.</summary>
     public IReadOnlyList<LoadedScenario> LoadedScenarios { get; init; } = [];
 
+    /// <summary>The checks of <c>monitoring-checks.yaml</c> as read; null when the folder has no such file.</summary>
+    public IReadOnlyList<Contracts.Checks.CheckInput>? MonitoringChecks { get; init; }
+
     public bool IsValid => Problems.Count == 0;
 }

@@ -9,6 +9,10 @@ export const agentEvaluationHref = (name: string) => `${agentHref(name)}/evaluat
 /** The Monitoring page of an agent: the conversations of its deployed agent and the checks run on them. */
 export const agentMonitoringHref = (name: string) => `${agentHref(name)}/monitoring`;
 
+/** The Monitoring page with its conversations narrowed to those that failed a monitoring check (`failedCheck`, what the table reads). */
+export const failedConversationsHref = (name: string, checkKey: string) =>
+    `${agentMonitoringHref(name)}?${new URLSearchParams({ failedCheck: checkKey }).toString()}#conversations`;
+
 /** The Versions page of an agent: its versions, to archive, restore, delete and compare (what `agentHref` opens too). */
 export const agentVersionsHref = (name: string) => `${agentHref(name)}/versions`;
 

@@ -1441,6 +1441,7 @@ export interface paths {
                     environment?: string;
                     version?: string[];
                     state?: components["schemas"]["ConversationState"];
+                    failedCheck?: string;
                     page?: number;
                     pageSize?: number;
                 };
@@ -1496,6 +1497,108 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["ConversationDetail"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/monitoring/agents/{agent}/checks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    agent: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MonitoringCheck"][];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    agent: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PutChecksRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PutChecksResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/monitoring/agents/{agent}/trend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    days?: number;
+                    environment?: string;
+                };
+                header?: never;
+                path: {
+                    agent: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MonitoringTrend"];
                     };
                 };
             };
@@ -1755,7 +1858,10 @@ export interface components {
             /** @description The retrieval data that run was on; none for an agent without retrieval. */
             dataVersion?: null | string;
         };
-        /** @description A test on what the agent produced for a scenario, told apart by `type`. */
+        /**
+         * @description A test on what the agent produced, told apart by `type`: for a scenario (in a run), or for every monitored conversation of the
+         *     agent (a monitoring check, `suwageval/monitoring-checks.yaml`: no scenario, a description).
+         */
         CheckInput: components["schemas"]["CheckInputToolCalledCheck"] | components["schemas"]["CheckInputToolNotCalledCheck"] | components["schemas"]["CheckInputEventCheck"] | components["schemas"]["CheckInputEventNotEmittedCheck"] | components["schemas"]["CheckInputCitedCheck"] | components["schemas"]["CheckInputTextCheck"] | components["schemas"]["CheckInputJudgeCheck"];
         CheckInputCitedCheck: {
             /** @enum {string} */
@@ -1764,7 +1870,10 @@ export interface components {
             sources: string[];
             /** @description Lowercase kebab-case, unique within the agent. */
             key: string;
-            scenarioKey: string;
+            /** @description The scenario the check belongs to; empty for a monitoring check, which belongs to the agent. */
+            scenarioKey?: string;
+            /** @description What the check makes sure of, in plain words: required of a monitoring check, a note for a scenario's. */
+            description?: null | string;
             where?: null | components["schemas"]["CheckWhere"];
             /**
              * Format: double
@@ -1786,7 +1895,10 @@ export interface components {
             data?: null | components["schemas"]["JsonElement"];
             /** @description Lowercase kebab-case, unique within the agent. */
             key: string;
-            scenarioKey: string;
+            /** @description The scenario the check belongs to; empty for a monitoring check, which belongs to the agent. */
+            scenarioKey?: string;
+            /** @description What the check makes sure of, in plain words: required of a monitoring check, a note for a scenario's. */
+            description?: null | string;
             where?: null | components["schemas"]["CheckWhere"];
             /**
              * Format: double
@@ -1808,7 +1920,10 @@ export interface components {
             data?: null | components["schemas"]["JsonElement"];
             /** @description Lowercase kebab-case, unique within the agent. */
             key: string;
-            scenarioKey: string;
+            /** @description The scenario the check belongs to; empty for a monitoring check, which belongs to the agent. */
+            scenarioKey?: string;
+            /** @description What the check makes sure of, in plain words: required of a monitoring check, a note for a scenario's. */
+            description?: null | string;
             where?: null | components["schemas"]["CheckWhere"];
             /**
              * Format: double
@@ -1830,7 +1945,10 @@ export interface components {
             criteria: string;
             /** @description Lowercase kebab-case, unique within the agent. */
             key: string;
-            scenarioKey: string;
+            /** @description The scenario the check belongs to; empty for a monitoring check, which belongs to the agent. */
+            scenarioKey?: string;
+            /** @description What the check makes sure of, in plain words: required of a monitoring check, a note for a scenario's. */
+            description?: null | string;
             where?: null | components["schemas"]["CheckWhere"];
             /**
              * Format: double
@@ -1854,7 +1972,10 @@ export interface components {
             pattern?: null | string;
             /** @description Lowercase kebab-case, unique within the agent. */
             key: string;
-            scenarioKey: string;
+            /** @description The scenario the check belongs to; empty for a monitoring check, which belongs to the agent. */
+            scenarioKey?: string;
+            /** @description What the check makes sure of, in plain words: required of a monitoring check, a note for a scenario's. */
+            description?: null | string;
             where?: null | components["schemas"]["CheckWhere"];
             /**
              * Format: double
@@ -1878,7 +1999,10 @@ export interface components {
             result?: null | components["schemas"]["JsonElement"];
             /** @description Lowercase kebab-case, unique within the agent. */
             key: string;
-            scenarioKey: string;
+            /** @description The scenario the check belongs to; empty for a monitoring check, which belongs to the agent. */
+            scenarioKey?: string;
+            /** @description What the check makes sure of, in plain words: required of a monitoring check, a note for a scenario's. */
+            description?: null | string;
             where?: null | components["schemas"]["CheckWhere"];
             /**
              * Format: double
@@ -1900,7 +2024,10 @@ export interface components {
             by?: null | string;
             /** @description Lowercase kebab-case, unique within the agent. */
             key: string;
-            scenarioKey: string;
+            /** @description The scenario the check belongs to; empty for a monitoring check, which belongs to the agent. */
+            scenarioKey?: string;
+            /** @description What the check makes sure of, in plain words: required of a monitoring check, a note for a scenario's. */
+            description?: null | string;
             where?: null | components["schemas"]["CheckWhere"];
             /**
              * Format: double
@@ -1913,6 +2040,13 @@ export interface components {
              *     count over. Not set: the scenario's samples.
              */
             samples?: null | number;
+        };
+        /** @description How a monitoring check did over some conversations: how many it was checked on, how many passed. */
+        CheckRate: {
+            /** Format: int32 */
+            passed: number;
+            /** Format: int32 */
+            checked: number;
         };
         /** @description A check's verdict in a run against its history. */
         CheckRegression: {
@@ -1934,6 +2068,10 @@ export interface components {
             dataChanged?: boolean;
             /** @description The verdicts the state was computed from, oldest first: the newest reference runs of the check's history. */
             history?: components["schemas"]["CheckHistoryPoint"][];
+        };
+        CheckResult: {
+            key: string;
+            outcome: components["schemas"]["UpsertOutcome"];
         };
         /** @description One check over the samples of its scenario: the pass rate against the threshold. */
         CheckRunResult: {
@@ -2106,10 +2244,25 @@ export interface components {
              */
             simulatedUser?: null | string;
         };
+        /** @description The verdict of one monitoring check on one conversation, with the items that decided it. */
+        ConversationCheckResult: {
+            key: string;
+            /** Format: int32 */
+            revision: number;
+            passed: boolean;
+            /** @description The check needed the judge's model and none could answer: it failed without a verdict on the agent. */
+            notJudged?: boolean;
+            message: string;
+            evidence?: components["schemas"]["ConversationItem"][];
+            /** @description The model that gave the verdict, for a check judged by one. */
+            judgeModel?: null | string;
+        };
         /** @description A monitored conversation with its turns, oldest first. */
         ConversationDetail: {
             conversation: components["schemas"]["ConversationSummary"];
             turns: components["schemas"]["ConversationTurn"][];
+            /** @description The verdicts of the agent's monitoring checks on it, by key; empty until it is checked. */
+            checks?: components["schemas"]["ConversationCheckResult"][];
         };
         /** @description One entry of the conversation log, told apart by `kind`. */
         ConversationItem: components["schemas"]["ConversationItemUserMessage"] | components["schemas"]["ConversationItemAssistantMessage"] | components["schemas"]["ConversationItemToolCall"] | components["schemas"]["ConversationItemToolResult"] | components["schemas"]["ConversationItemRetrieval"] | components["schemas"]["ConversationItemEvent"];
@@ -2215,6 +2368,21 @@ export interface components {
             lastTurnAt: string;
             /** Format: date-time */
             closedAt?: null | string;
+            /**
+             * Format: date-time
+             * @description When the agent's monitoring checks ran on it (after it closed); none while it was not checked.
+             */
+            checkedAt?: null | string;
+            /**
+             * Format: int32
+             * @description How many of its checks failed, once checked; a check not judged (the judge's model did not answer) is not counted.
+             */
+            failedChecks?: number;
+            /**
+             * Format: int32
+             * @description How many of its checks the judge's model did not judge (none configured, no answer), once checked.
+             */
+            notJudgedChecks?: number;
         };
         /** @description One turn of a monitored conversation as the agent recorded it. */
         ConversationTurn: {
@@ -2229,6 +2397,12 @@ export interface components {
             agentVersionId: string;
             dataVersion?: null | string;
             items: components["schemas"]["ConversationItem"][];
+        };
+        /** @description When a data version was first seen on a monitored turn in a period. */
+        DataChange: {
+            /** Format: date-time */
+            at: string;
+            dataVersion: string;
         };
         /** @description A stretch of a line diff: lines to show, or unchanged lines folded away until the reader opens them. */
         DiffBlock: {
@@ -2302,6 +2476,36 @@ export interface components {
              */
             dataVersion?: null | string;
         };
+        /** @description A monitoring check of the agent with its latest revision and how it did on the conversations of the last 7 and 30 days. */
+        MonitoringCheck: {
+            /** Format: int32 */
+            revision: number;
+            /** Format: date-time */
+            createdAt: string;
+            check: components["schemas"]["CheckInput"];
+            /** @description Over the conversations whose last turn came in the last 7 days (any revision of the check). */
+            last7Days: components["schemas"]["CheckRate"];
+            last30Days: components["schemas"]["CheckRate"];
+        };
+        /** @description One day (UTC, `yyyy-MM-dd`, the day of the conversations' last turn): how many conversations, how many of them checked. */
+        MonitoringDay: {
+            date: string;
+            /** Format: int32 */
+            conversations: number;
+            /** Format: int32 */
+            checked: number;
+        };
+        /** @description One check on one day over the conversations one version answered: how many it was checked on, how many passed. */
+        MonitoringPoint: {
+            date: string;
+            checkKey: string;
+            /** Format: uuid */
+            agentVersionId: string;
+            /** Format: int32 */
+            passed: number;
+            /** Format: int32 */
+            checked: number;
+        };
         /** @description How the conversations of a monitored agent are taken (`features.monitoring` in `agent.yaml`), every part optional. */
         MonitoringSettings: {
             /**
@@ -2315,6 +2519,18 @@ export interface components {
              */
             environments?: null | string[];
         };
+        /**
+         * @description What the Monitoring page draws for an agent, day by day (UTC) over the last days: the conversations and how many were checked, each
+         *     check's verdicts per version that answered, and the days a version or the retrieval data changed.
+         */
+        MonitoringTrend: {
+            days: components["schemas"]["MonitoringDay"][];
+            points: components["schemas"]["MonitoringPoint"][];
+            /** @description When a version first answered in the period, oldest first: the deploys. */
+            versions: components["schemas"]["VersionChange"][];
+            /** @description When a data version was first seen in the period, oldest first (only for an agent that sends it). */
+            dataVersions: components["schemas"]["DataChange"][];
+        };
         /** @description Sets the note of a run or of a run group (NoteRules); none or blank clears it. */
         NoteRequest: {
             note?: null | string;
@@ -2322,6 +2538,10 @@ export interface components {
         /** @description The checks to write for an agent; keys not listed are left alone. */
         PutChecksRequest: {
             checks: components["schemas"]["CheckInput"][];
+        };
+        /** @description What happened to each check of the request, in its order. */
+        PutChecksResponse: {
+            results: components["schemas"]["CheckResult"][];
         };
         /** @description The scenarios to write for an agent; keys not listed are left alone. */
         PutScenariosRequest: {
@@ -2897,6 +3117,12 @@ export interface components {
              */
             newestFailedRunId: string;
         };
+        /**
+         * @description What a push did to one scenario or check, serialized by name: `created`, `updated`, `unchanged`; `deleted` for a
+         *     monitoring check the file no longer has.
+         * @enum {unknown}
+         */
+        UpsertOutcome: "created" | "updated" | "unchanged" | "deleted";
         /** @description One run's result for one scenario: its checks, each passed by the share of its samples against its pass threshold. */
         VariantCell: {
             /** Format: int32 */
@@ -2977,6 +3203,14 @@ export interface components {
             tags: string[];
             /** @description One per run, in the order of IReadOnlyList&lt;VariantRun&gt; RunComparison.Runs; null for a run that did not run the scenario. */
             cells: components["schemas"]["VariantCell"][];
+        };
+        /** @description When a version first answered a monitored conversation in a period: a deploy. */
+        VersionChange: {
+            /** Format: date-time */
+            at: string;
+            /** Format: uuid */
+            agentVersionId: string;
+            label?: null | string;
         };
         /**
          * @description What deleting an archived version removes with it: the runs (re-checks of them included), their samples and the verdicts on those, and

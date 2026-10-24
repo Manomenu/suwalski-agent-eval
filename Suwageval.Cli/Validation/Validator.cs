@@ -3,6 +3,7 @@ using Suwageval.AgentSdk.Conversations;
 using Suwageval.Cli.Files;
 using Suwageval.Contracts;
 using Suwageval.Contracts.Checks;
+using Suwageval.Contracts.Monitoring;
 using Suwageval.Contracts.Samples;
 using Suwageval.Contracts.Scenarios;
 
@@ -14,8 +15,27 @@ namespace Suwageval.Cli.Validation;
 /// </summary>
 internal static class Validator
 {
-    public static ValidationResult Validate(AgentFolder folder, AgentContract? contract = null) =>
-        Validate(folder.AgentFile, folder.AgentText, folder.Scenarios, contract);
+    public static ValidationResult Validate(AgentFolder folder, AgentContract? contract = null)
+    {
+        ArgumentNullException.ThrowIfNull(folder);
+        var result = Validate(folder.AgentFile, folder.AgentText, folder.Scenarios, contract);
+        if (folder.MonitoringChecks is not { } file)
+        {
+            return result;
+        }
+        var problems = new List<Problem>();
+        var read = MonitoringChecksFileReader.Read(file.File, file.Text, problems);
+        if (read is { } monitoring)
+        {
+            var (source, checks) = monitoring;
+            problems.AddRange(MonitoringCheckRules.Problems(checks).Select(problem => source.Problem(problem.Path, problem.Message)));
+            for (var i = 0; i < checks.Count; i++)
+            {
+                CheckNames(source, checks[i], $"checks[{i}]", contract, problems);
+            }
+        }
+        return result with { Problems = [.. result.Problems, .. problems], MonitoringChecks = read?.Checks ?? [] };
+    }
 
     /// <param name="agentFile">Name of the agent file, for the problem when <paramref name="agent"/> is missing.</param>
     /// <param name="agent">The agent file, or null when it does not exist.</param>
@@ -149,6 +169,12 @@ internal static class Validator
     {
         problems.AddRange(CheckRules.Problems(check, path).Select(problem => source.Problem(problem.Path, problem.Message)));
         CheckUnique(source, $"{path}.key", check.Key, checkKeys, "check", problems);
+        CheckNames(source, check, path, contract, problems);
+    }
+
+    /// <summary>With the agent's contract at hand: the tools, events and anchors the check names are the agent's.</summary>
+    private static void CheckNames(YamlSource source, CheckInput check, string path, AgentContract? contract, List<Problem> problems)
+    {
         if (contract is not null)
         {
             if (CheckRules.NamedTool(check) is { } named)

@@ -4,6 +4,7 @@ import {
     agentEvaluationHref,
     agentHref,
     agentVersionsHref,
+    failedConversationsHref,
     compareGroupHref,
     compareHref,
     runHref,
@@ -45,5 +46,11 @@ describe("links", () => {
 
     it("links the comparison of a group of an agent", () => {
         expect(compareGroupHref("sweep-1", "my bot")).toBe("/compare?group=sweep-1&agent=my+bot");
+    });
+});
+
+describe("failedConversationsHref", () => {
+    it("opens the Monitoring page's conversations narrowed to a check's failures", () => {
+        expect(failedConversationsHref("my bot", "no refund")).toBe("/agents/my%20bot/monitoring?failedCheck=no+refund#conversations");
     });
 });

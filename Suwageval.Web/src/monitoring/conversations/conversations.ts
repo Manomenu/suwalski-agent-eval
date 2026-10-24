@@ -6,10 +6,43 @@ export const CONVERSATIONS_PAGE_SIZE = 20;
 /** A conversation's state, as the server says it. */
 export type ConversationState = "Open" | "Closed";
 
-/** What the table is narrowed to: one environment, one state; null: all. */
+/** What the table is narrowed to: one environment, one state, the failures of one monitoring check (its key); null: all. */
 export interface ConversationFilter {
     environment: string | null;
     state: ConversationState | null;
+    failedCheck: string | null;
+}
+
+/** The query parameter a link to the failing conversations of a check sets (`failedConversationsHref`). */
+export const FAILED_CHECK_PARAM = "failedCheck";
+
+/** The filter a page opens with: the failed check from the address, nothing else. */
+export function initialFilter(search: string): ConversationFilter {
+    const failedCheck = new URLSearchParams(search).get(FAILED_CHECK_PARAM);
+    return { environment: null, state: null, failedCheck: failedCheck?.trim() ? failedCheck : null };
+}
+
+/** A conversation's checks as the Checks column reads them. */
+interface Checked {
+    checkedAt?: string | null;
+    failedChecks?: number;
+    notJudgedChecks?: number;
+}
+
+/** What the Checks column says of a conversation: not checked yet, passed, or how many checks failed and were not judged. */
+export function checksText(conversation: Checked): string {
+    if (conversation.checkedAt == null) return "Not checked";
+    const failed = conversation.failedChecks ?? 0;
+    const notJudged = conversation.notJudgedChecks ?? 0;
+    const parts = [failed > 0 ? `${String(failed)} failed` : null, notJudged > 0 ? `${String(notJudged)} not judged` : null];
+    return parts.filter((part) => part !== null).join(", ") || "Passed";
+}
+
+/** The colour of the Checks column: red for a failure, yellow for checks not judged, green when all passed, grey when not checked. */
+export function checksColor(conversation: Checked): "red" | "yellow" | "green" | "gray" {
+    if (conversation.checkedAt == null) return "gray";
+    if ((conversation.failedChecks ?? 0) > 0) return "red";
+    return (conversation.notJudgedChecks ?? 0) > 0 ? "yellow" : "green";
 }
 
 /** The path of one page of the agent's conversations, the newest last turn first, narrowed by the filter. */
@@ -17,6 +50,7 @@ export function conversationsPath(agent: string, filter: ConversationFilter, pag
     const query = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
     if (filter.environment !== null) query.set("environment", filter.environment);
     if (filter.state !== null) query.set("state", filter.state);
+    if (filter.failedCheck !== null) query.set("failedCheck", filter.failedCheck);
     return `/monitoring/agents/${encodeURIComponent(agent)}/conversations?${query.toString()}`;
 }
 

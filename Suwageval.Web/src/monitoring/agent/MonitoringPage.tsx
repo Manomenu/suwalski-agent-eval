@@ -4,6 +4,7 @@ import { fetchAgent } from "../../agents/api";
 import { AreaOff } from "../../agents/AreaOff";
 import { Page } from "../../agents/Page";
 import { useRequest } from "../../api/useRequest";
+import { ChecksSection } from "../checks/ChecksSection";
 import { ConversationsSection } from "../conversations/ConversationsSection";
 import { monitoringSettingsText } from "./settings";
 
@@ -24,6 +25,7 @@ export function MonitoringPage({ name }: { name: string }) {
                                 <Text c="dimmed">{monitoringSettingsText(agent.features.monitoring)}</Text>
                             </Stack>
                         </Paper>
+                        <ChecksSection agent={agent.name} />
                         <ConversationsSection agent={agent.name} />
                     </Stack>
                 )

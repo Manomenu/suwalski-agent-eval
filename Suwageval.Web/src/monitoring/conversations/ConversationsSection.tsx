@@ -1,4 +1,4 @@
-import { Anchor, Badge, Group, Select, Stack, Table, Text, Title } from "@mantine/core";
+import { Anchor, Badge, CloseButton, Group, Select, Stack, Table, Text, Title } from "@mantine/core";
 import { useState } from "react";
 
 import { useRequest } from "../../api/useRequest";
@@ -9,7 +9,11 @@ import { usePageParam } from "../../pagination/usePageParam";
 import { conversationHref, versionHref } from "../../routes/links";
 import { fetchConversations } from "./api";
 import {
+    checksColor,
+    checksText,
     CONVERSATIONS_HELP,
+    FAILED_CHECK_PARAM,
+    initialFilter,
     CONVERSATIONS_PAGE_SIZE,
     stateOf,
     VERSION_COLUMN_HELP,
@@ -19,7 +23,7 @@ import {
 
 /** The agent's monitored conversations: a table, newest turn first, narrowed by environment and state, a page at a time. */
 export function ConversationsSection({ agent }: { agent: string }) {
-    const [filter, setFilter] = useState<ConversationFilter>({ environment: null, state: null });
+    const [filter, setFilter] = useState<ConversationFilter>(() => initialFilter(window.location.search));
     const [page, setPage] = usePageParam("conversationsPage");
     const loaded = useRequest(JSON.stringify([agent, filter, page]), (signal) =>
         fetchConversations(agent, filter, page, CONVERSATIONS_PAGE_SIZE, signal),
@@ -29,9 +33,15 @@ export function ConversationsSection({ agent }: { agent: string }) {
         setFilter({ ...filter, ...change });
         setPage(1);
     };
+    const showAllChecks = () => {
+        narrow({ failedCheck: null });
+        const url = new URL(window.location.href);
+        url.searchParams.delete(FAILED_CHECK_PARAM);
+        window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+    };
     return (
         <Stack gap="sm">
-            <Title order={3}>
+            <Title order={3} id="conversations">
                 <HeaderHelp label="Conversations" help={CONVERSATIONS_HELP} />
             </Title>
             <Group align="flex-end">
@@ -55,6 +65,16 @@ export function ConversationsSection({ agent }: { agent: string }) {
                     }}
                     clearable
                 />
+                {filter.failedCheck !== null && (
+                    <Badge
+                        size="lg"
+                        variant="light"
+                        color="red"
+                        rightSection={<CloseButton size="xs" aria-label="Show all checks" onClick={showAllChecks} />}
+                    >
+                        Failed {filter.failedCheck}
+                    </Badge>
+                )}
             </Group>
             {loaded.kind === "error" && <Text c="red">{loaded.error.message}</Text>}
             {list !== null && list.totalCount === 0 && (
@@ -76,6 +96,7 @@ export function ConversationsSection({ agent }: { agent: string }) {
                                         <HeaderHelp label="Version" help={VERSION_COLUMN_HELP} />
                                     </Table.Th>
                                     <Table.Th>Last turn</Table.Th>
+                                    <Table.Th>Checks</Table.Th>
                                 </Table.Tr>
                             </Table.Thead>
                             <Table.Tbody>
@@ -97,6 +118,11 @@ export function ConversationsSection({ agent }: { agent: string }) {
                                             </Anchor>
                                         </Table.Td>
                                         <Table.Td>{formatTime(conversation.lastTurnAt)}</Table.Td>
+                                        <Table.Td>
+                                            <Badge variant="light" color={checksColor(conversation)}>
+                                                {checksText(conversation)}
+                                            </Badge>
+                                        </Table.Td>
                                     </Table.Tr>
                                 ))}
                             </Table.Tbody>

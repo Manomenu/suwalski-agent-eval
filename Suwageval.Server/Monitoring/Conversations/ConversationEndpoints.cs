@@ -125,7 +125,7 @@ internal static class ConversationEndpoints
 
     /// <summary>
     /// A page of the agent's monitored conversations, the newest last turn first. <c>environment</c>, <c>version</c> (repeatable: the
-    /// version of the last turn) and <c>state</c> filter them; <c>page</c> (1-based) and <c>pageSize</c> (1 to 100, default 20) as for runs.
+    /// version of the last turn), <c>state</c> and <c>failedCheck</c> (the key of a monitoring check they failed) filter them; <c>page</c> (1-based) and <c>pageSize</c> (1 to 100, default 20) as for runs.
     /// 404: no such agent; 422: a bad page or page size.
     /// </summary>
     private static async Task<IResult> ListAsync(
@@ -133,6 +133,7 @@ internal static class ConversationEndpoints
         [FromQuery] string? environment,
         [FromQuery] Guid[]? version,
         [FromQuery] ConversationState? state,
+        [FromQuery] string? failedCheck,
         [FromQuery] int? page,
         [FromQuery] int? pageSize,
         AgentStore agents,
@@ -159,7 +160,8 @@ internal static class ConversationEndpoints
             Versions: version ?? [],
             State: state?.ToString()
         );
-        var total = await conversations.CountAsync(found.Id, filter.Environment, filter.Versions, filter.State, cancellationToken);
+        var failing = string.IsNullOrEmpty(failedCheck) ? null : failedCheck;
+        var total = await conversations.CountAsync(found.Id, filter.Environment, filter.Versions, filter.State, failing, cancellationToken);
         var shownPage = Math.Min(page ?? 1, Math.Max(1, (total + size - 1) / size));
         var rows = await conversations.ListAsync(
             found.Id,
@@ -168,6 +170,7 @@ internal static class ConversationEndpoints
             filter.State,
             (shownPage - 1) * size,
             size,
+            failing,
             cancellationToken
         );
         return Results.Ok(
@@ -189,6 +192,7 @@ internal static class ConversationEndpoints
             return ProblemResults.NotFound("Conversation", id.ToString());
         }
         var turns = await conversations.TurnsAsync(id, cancellationToken);
+        var results = await conversations.ResultsAsync(id, cancellationToken);
         return Results.Ok(
             new ConversationDetail
             {
@@ -202,6 +206,19 @@ internal static class ConversationEndpoints
                         AgentVersionId = turn.AgentVersionId,
                         DataVersion = turn.DataVersion,
                         Items = JsonSerializer.Deserialize<ConversationItem[]>(turn.Items, ContractContent.Lenient) ?? [],
+                    }),
+                ],
+                Checks =
+                [
+                    .. results.Select(result => new ConversationCheckResult
+                    {
+                        Key = result.Key,
+                        Revision = result.Revision,
+                        Passed = result.Passed,
+                        NotJudged = result.NotJudged,
+                        Message = result.Message,
+                        Evidence = JsonSerializer.Deserialize<ConversationItem[]>(result.Evidence, ContractContent.Lenient) ?? [],
+                        JudgeModel = result.JudgeModel,
                     }),
                 ],
             }
@@ -224,5 +241,8 @@ internal static class ConversationEndpoints
             StartedAt = row.StartedAt,
             LastTurnAt = row.LastTurnAt,
             ClosedAt = row.ClosedAt,
+            CheckedAt = row.CheckedAt,
+            FailedChecks = row.FailedChecks,
+            NotJudgedChecks = row.NotJudgedChecks,
         };
 }

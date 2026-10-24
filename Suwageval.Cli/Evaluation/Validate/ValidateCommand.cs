@@ -84,6 +84,7 @@ internal static class ValidateCommand
         string agentFile;
         string? agentText;
         IReadOnlyList<SourceText> scenarios;
+        AgentFolder? folder = null;
         if (path == "-" || File.Exists(path))
         {
             agentFile = AgentFile(dir);
@@ -97,7 +98,8 @@ internal static class ValidateCommand
         }
         else if (Directory.Exists(path))
         {
-            var folder = AgentFolder.Read(path);
+            // The whole folder: its monitoring checks too.
+            folder = AgentFolder.Read(path);
             (agentFile, agentText, scenarios) = (folder.AgentFile, folder.AgentText, folder.Scenarios);
         }
         else
@@ -105,7 +107,8 @@ internal static class ValidateCommand
             return new ValidationResult([new Problem(path, "", "No such file or folder.", null, null)], 0, 0);
         }
 
-        var structure = Validator.Validate(agentFile, agentText, scenarios);
+        folder ??= new AgentFolder(agentFile, agentText, scenarios);
+        var structure = Validator.Validate(folder);
         if (!structure.IsValid)
         {
             return structure;
@@ -126,7 +129,7 @@ internal static class ValidateCommand
         {
             return structure with { Notice = $"names not checked: {failure}" };
         }
-        return Validator.Validate(agentFile, agentText, scenarios, contract) with { NamesChecked = true };
+        return Validator.Validate(folder, contract) with { NamesChecked = true };
     }
 
     private static string AgentFile(string dir) => Path.Combine(dir, "agent.yaml");

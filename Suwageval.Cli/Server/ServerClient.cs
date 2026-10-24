@@ -243,7 +243,8 @@ internal sealed class ServerClient(HttpClient http)
         string? environment,
         IReadOnlyList<Guid> versions,
         ConversationState? state,
-        CancellationToken cancellationToken
+        CancellationToken cancellationToken,
+        string? failedCheck = null
     )
     {
         var url = $"monitoring/agents/{Uri.EscapeDataString(agent)}/conversations?pageSize={Math.Min(limit, MaxPageSize)}";
@@ -259,8 +260,50 @@ internal sealed class ServerClient(HttpClient http)
         {
             url += $"&state={state}";
         }
+        if (failedCheck is not null)
+        {
+            url += $"&failedCheck={Uri.EscapeDataString(failedCheck)}";
+        }
         return await SendAsync<ConversationList>(() => http.GetAsync(new Uri(url, UriKind.Relative), cancellationToken), cancellationToken);
     }
+
+    /// <summary>Makes the agent's monitoring checks the given ones (a check not among them is deleted).</summary>
+    public Task<PutChecksResponse> PutMonitoringChecksAsync(
+        string agent,
+        IReadOnlyList<CheckInput> checks,
+        CancellationToken cancellationToken
+    ) =>
+        SendAsync<PutChecksResponse>(
+            () =>
+                http.PutAsJsonAsync(
+                    new Uri($"monitoring/agents/{Uri.EscapeDataString(agent)}/checks", UriKind.Relative),
+                    new PutChecksRequest(checks),
+                    ContractJson.Options,
+                    cancellationToken
+                ),
+            cancellationToken
+        );
+
+    /// <summary>The agent's monitoring checks with how they did in the last 7 and 30 days.</summary>
+    public Task<IReadOnlyList<MonitoringCheck>> MonitoringChecksAsync(string agent, CancellationToken cancellationToken) =>
+        SendAsync<IReadOnlyList<MonitoringCheck>>(
+            () => http.GetAsync(new Uri($"monitoring/agents/{Uri.EscapeDataString(agent)}/checks", UriKind.Relative), cancellationToken),
+            cancellationToken
+        );
+
+    /// <summary>The agent's monitored conversations and verdicts day by day over the last <paramref name="days"/>.</summary>
+    public Task<MonitoringTrend> MonitoringTrendAsync(string agent, int days, string? environment, CancellationToken cancellationToken) =>
+        SendAsync<MonitoringTrend>(
+            () =>
+                http.GetAsync(
+                    new Uri(
+                        $"monitoring/agents/{Uri.EscapeDataString(agent)}/trend?days={days}{(environment is null ? "" : $"&environment={Uri.EscapeDataString(environment)}")}",
+                        UriKind.Relative
+                    ),
+                    cancellationToken
+                ),
+            cancellationToken
+        );
 
     /// <summary>A monitored conversation drafted as a scenario file (its key, path and YAML).</summary>
     public Task<ScenarioDraft> ScenarioDraftAsync(Guid conversationId, CancellationToken cancellationToken) =>

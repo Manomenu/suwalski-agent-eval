@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Suwageval.Server.Evaluation.Runs;
+using Suwageval.Server.Monitoring.Checking;
 using Suwageval.Server.Monitoring.Conversations;
 
 namespace Suwageval.Server.Tests.Evaluation.Runs;
@@ -27,6 +28,7 @@ internal static class RunTestApp
                         .Where(descriptor =>
                             descriptor.ImplementationType == typeof(RunWorker)
                             || descriptor.ImplementationType == typeof(ConversationCloser)
+                            || descriptor.ImplementationType == typeof(MonitoringWorker)
                         )
                         .ToList()
                 )

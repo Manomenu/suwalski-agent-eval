@@ -41,6 +41,10 @@ internal static class ConversationsCommand
             DefaultValueFactory = _ => [],
         };
         var state = new Option<ConversationState?>("--state") { Description = "Only Open or only Closed conversations." };
+        var failedCheck = new Option<string?>("--failed-check")
+        {
+            Description = "Only the conversations that failed this monitoring check (its key).",
+        };
         var json = CommandOptions.Json("Print the page of conversations as JSON.");
         var server = CommandOptions.Server();
         var dir = CommandOptions.Dir();
@@ -50,6 +54,7 @@ internal static class ConversationsCommand
             environment,
             version,
             state,
+            failedCheck,
             json,
             server,
             dir,
@@ -69,7 +74,8 @@ internal static class ConversationsCommand
                             parsed.GetValue(environment),
                             parsed.GetValue(version) ?? [],
                             parsed.GetValue(state),
-                            cancellationToken
+                            cancellationToken,
+                            parsed.GetValue(failedCheck)
                         );
                         var output = parsed.InvocationConfiguration.Output;
                         if (parsed.GetValue(json))
@@ -120,12 +126,35 @@ internal static class ConversationsCommand
     internal static string Line(ConversationSummary conversation) =>
         string.Create(
             CultureInfo.InvariantCulture,
-            $"{conversation.Id}  {conversation.Environment}  {conversation.State}  {conversation.Turns} turns  version {conversation.AgentVersionId}{RunLabelText.Suffix(conversation.VersionLabel)}{(conversation.VersionChanged ? " (changed during it)" : "")}  last {conversation.LastTurnAt.UtcDateTime:yyyy-MM-dd HH:mm}Z  conversation {conversation.ConversationId}"
+            $"{conversation.Id}  {conversation.Environment}  {conversation.State}  {conversation.Turns} turns  version {conversation.AgentVersionId}{RunLabelText.Suffix(conversation.VersionLabel)}{(conversation.VersionChanged ? " (changed during it)" : "")}  last {conversation.LastTurnAt.UtcDateTime:yyyy-MM-dd HH:mm}Z  {Checks(conversation)}  conversation {conversation.ConversationId}"
         );
+
+    /// <summary>"2 checks failed", "checks passed", "1 check not judged" (the judge's model did not answer), or "not checked" while it was not.</summary>
+    private static string Checks(ConversationSummary conversation)
+    {
+        if (conversation.CheckedAt is null)
+        {
+            return "not checked";
+        }
+        var parts = new List<string>();
+        if (conversation.FailedChecks > 0)
+        {
+            parts.Add($"{conversation.FailedChecks} check{(conversation.FailedChecks == 1 ? "" : "s")} failed");
+        }
+        if (conversation.NotJudgedChecks > 0)
+        {
+            parts.Add($"{conversation.NotJudgedChecks} check{(conversation.NotJudgedChecks == 1 ? "" : "s")} not judged");
+        }
+        return parts.Count == 0 ? "checks passed" : string.Join(", ", parts);
+    }
 
     internal static string Describe(ConversationDetail detail)
     {
         var lines = new List<string> { Line(detail.Conversation) };
+        foreach (var check in detail.Checks)
+        {
+            lines.Add($"{(check.Passed ? "✓" : check.NotJudged ? "?" : "✗")} {check.Key}: {check.Message}");
+        }
         for (var i = 0; i < detail.Turns.Count; i++)
         {
             var turn = detail.Turns[i];

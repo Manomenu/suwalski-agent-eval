@@ -95,13 +95,22 @@ internal static class PushCommand
                         )
                     ).Results
                     : [];
+                // With monitoring on, the file is the whole set of the agent's monitoring checks (none without one).
+                var monitoring = agent.Definition.Features?.Monitoring is not null;
+                var monitoringResults = monitoring
+                    ? (await client.PutMonitoringChecksAsync(savedAgent.Name, validation.MonitoringChecks ?? [], cancellationToken)).Results
+                    : [];
                 var result = new PushResult(
                     savedAgent,
                     agentCreated,
                     scenarioResults,
                     checkResults,
                     evaluation ? 0 : validation.LoadedScenarios.Count
-                );
+                )
+                {
+                    MonitoringChecks = monitoringResults,
+                    MonitoringChecksNotSent = monitoring ? 0 : validation.MonitoringChecks?.Count ?? 0,
+                };
                 await console.Output.WriteAsync(json ? OutputJson.Of(result) + Environment.NewLine : Text(result));
                 return 0;
             },
@@ -125,6 +134,16 @@ internal static class PushCommand
         foreach (var check in result.Checks)
         {
             writer.WriteLine($"check {check.Key}: {Name(check.Outcome)}");
+        }
+        foreach (var check in result.MonitoringChecks)
+        {
+            writer.WriteLine($"monitoring check {check.Key}: {Name(check.Outcome)}");
+        }
+        if (result.MonitoringChecksNotSent > 0)
+        {
+            writer.WriteLine(
+                $"{result.MonitoringChecksNotSent} monitoring checks not pushed: monitoring is off (features.monitoring in agent.yaml)"
+            );
         }
         return writer.ToString();
     }

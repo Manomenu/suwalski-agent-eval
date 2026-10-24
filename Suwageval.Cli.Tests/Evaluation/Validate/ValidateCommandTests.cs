@@ -50,6 +50,21 @@ public sealed class ValidateCommandTests : IDisposable
     }
 
     [Fact]
+    public void A_folders_monitoring_checks_are_validated_with_its_scenarios()
+    {
+        var dir = Folder(TestAgent.Yaml, ("s.yaml", TestAgent.Scenario));
+        File.WriteAllText(
+            Path.Combine(dir, "monitoring-checks.yaml"),
+            "checks:\n  - key: no-wire\n    type: tool-not-called\n    tool: wire_money\n    description: Never wires money.\n"
+        );
+
+        var (exit, output, error) = Run("", "validate", dir);
+
+        Assert.Equal(1, exit);
+        Assert.Contains("wire_money", output + error, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Without_a_path_the_suwageval_folder_of_the_working_directory_is_used()
     {
         var previous = Environment.CurrentDirectory;

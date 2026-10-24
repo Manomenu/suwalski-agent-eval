@@ -35,7 +35,7 @@ public sealed class ContractsTests
         [
             "Validate | Push | Run | Rerun | Recheck | Cancel | Results | Compare | Sweep | Runs | Groups | Note | Scenarios | Trend | Unstable | AgentErrors",
         ],
-        ["Monitoring"] = ["Conversations"],
+        ["Monitoring"] = ["Conversations | Checks"],
     };
 
     private static readonly Architecture Cli = new ArchLoader().LoadAssemblies(typeof(CliApp).Assembly).Build();

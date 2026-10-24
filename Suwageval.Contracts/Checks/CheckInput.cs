@@ -2,7 +2,10 @@ using System.Text.Json.Serialization;
 
 namespace Suwageval.Contracts.Checks;
 
-/// <summary>A test on what the agent produced for a scenario, told apart by <c>type</c>.</summary>
+/// <summary>
+/// A test on what the agent produced, told apart by <c>type</c>: for a scenario (in a run), or for every monitored conversation of the
+/// agent (a monitoring check, <c>suwageval/monitoring-checks.yaml</c>: no scenario, a description).
+/// </summary>
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
 [JsonDerivedType(typeof(ToolCalledCheck), "tool-called")]
 [JsonDerivedType(typeof(ToolNotCalledCheck), "tool-not-called")]
@@ -16,7 +19,12 @@ public abstract record CheckInput
     /// <summary>Lowercase kebab-case, unique within the agent.</summary>
     public required string Key { get; init; }
 
-    public required string ScenarioKey { get; init; }
+    /// <summary>The scenario the check belongs to; empty for a monitoring check, which belongs to the agent.</summary>
+    public string ScenarioKey { get; init; } = "";
+
+    /// <summary>What the check makes sure of, in plain words: required of a monitoring check, a note for a scenario's.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Description { get; init; }
 
     public CheckWhere? Where { get; init; }
 

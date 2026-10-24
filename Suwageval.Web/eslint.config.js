@@ -144,6 +144,8 @@ export default defineConfig(
                             ["unstable", "checks"],
                             // Monitoring: the agent's Monitoring page lists its conversations through conversations/.
                             ["agent", "conversations"],
+                            // ... and shows its monitoring checks with their charts through checks/.
+                            ["agent", "checks"],
                         ].map(([from, to]) => ({
                             from: { element: { type: "areaFeature", captured: { name: from } } },
                             allow: {

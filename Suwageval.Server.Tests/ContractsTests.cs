@@ -49,7 +49,7 @@ public sealed class ContractsTests
     private static readonly Dictionary<string, string[]> Areas = new()
     {
         ["Evaluation"] = ["Runs", "Simulation", "Checks | Invocation", "Scenarios"],
-        ["Monitoring"] = ["Conversations"],
+        ["Monitoring"] = ["Checking", "Checks | Conversations"],
     };
 
     private static readonly Architecture Server = new ArchLoader().LoadAssemblies(typeof(ServerApp).Assembly).Build();

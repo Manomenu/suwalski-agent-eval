@@ -35,4 +35,13 @@ public sealed record ConversationSummary
     public required DateTimeOffset LastTurnAt { get; init; }
 
     public DateTimeOffset? ClosedAt { get; init; }
+
+    /// <summary>When the agent's monitoring checks ran on it (after it closed); none while it was not checked.</summary>
+    public DateTimeOffset? CheckedAt { get; init; }
+
+    /// <summary>How many of its checks failed, once checked; a check not judged (the judge's model did not answer) is not counted.</summary>
+    public int FailedChecks { get; init; }
+
+    /// <summary>How many of its checks the judge's model did not judge (none configured, no answer), once checked.</summary>
+    public int NotJudgedChecks { get; init; }
 }

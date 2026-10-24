@@ -6,13 +6,17 @@ import { useRequest } from "../../api/useRequest";
 import { fetchScenarioDraft } from "./api";
 import { SCENARIO_DRAFT_HELP } from "./conversations";
 
-/** "Scenario YAML": the conversation as a scenario file to copy into the agent's repository, with the file's path. */
-export function ScenarioDraftButton({ conversationId }: { conversationId: string }) {
+/**
+ * "Scenario YAML": the conversation as a scenario file to copy into the agent's repository, with the file's path. Filled red when a
+ * monitoring check failed on the conversation: a failure is what is most worth keeping as a scenario.
+ */
+export function ScenarioDraftButton({ conversationId, failed }: { conversationId: string; failed: boolean }) {
     const [opened, setOpened] = useState(false);
     return (
         <>
             <Button
-                variant="light"
+                variant={failed ? "filled" : "light"}
+                color={failed ? "red" : "mauve"}
                 onClick={() => {
                     setOpened(true);
                 }}

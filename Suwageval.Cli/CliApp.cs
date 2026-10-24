@@ -19,6 +19,7 @@ using Suwageval.Cli.Evaluation.Unstable;
 using Suwageval.Cli.Evaluation.Validate;
 using Suwageval.Cli.Files;
 using Suwageval.Cli.Init;
+using Suwageval.Cli.Monitoring.Checks;
 using Suwageval.Cli.Monitoring.Conversations;
 using Suwageval.Cli.Output;
 using Suwageval.Cli.Versions;
@@ -104,6 +105,8 @@ internal static class CliApp
             {
                 ConversationsCommand.List(http),
                 ConversationsCommand.Show(http),
+                MonitoringChecksCommand.List(http),
+                MonitoringChecksCommand.Trend(http),
             },
         };
         HelpSections.Apply(root);

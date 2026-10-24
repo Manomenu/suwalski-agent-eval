@@ -29,7 +29,7 @@ internal static class ValidationReport
         }
         writer.WriteLine(
             result.IsValid
-                ? $"valid ({result.Scenarios} scenarios, {result.Checks} checks)"
+                ? $"valid ({result.Scenarios} scenarios, {result.Checks} checks{(result.MonitoringChecks is { } monitoring ? $", {monitoring.Count} monitoring checks" : "")})"
                 : $"{result.Problems.Count} problem{(result.Problems.Count == 1 ? "" : "s")}"
         );
         return writer.ToString();

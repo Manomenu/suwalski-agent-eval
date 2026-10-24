@@ -76,6 +76,9 @@ public sealed class EveryEndpointHasACliCommandTests(TestDatabase database) : IA
         ["GET /monitoring/agents/{agent}/conversations"] = Cli("monitoring conversations"),
         ["GET /monitoring/conversations/{id}"] = Cli("monitoring conversation"),
         ["GET /monitoring/conversations/{id}/scenario"] = Cli("scenario from-conversation"),
+        ["PUT /monitoring/agents/{agent}/checks"] = Cli("push"),
+        ["GET /monitoring/agents/{agent}/checks"] = Cli("monitoring checks"),
+        ["GET /monitoring/agents/{agent}/trend"] = Cli("monitoring trend"),
     };
 
     public ValueTask DisposeAsync() => app.DisposeAsync();

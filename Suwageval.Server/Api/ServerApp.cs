@@ -13,6 +13,8 @@ using Suwageval.Server.Evaluation.Runs.Groups;
 using Suwageval.Server.Evaluation.Runs.Trend;
 using Suwageval.Server.Evaluation.Runs.Unstable;
 using Suwageval.Server.Evaluation.Scenarios;
+using Suwageval.Server.Monitoring.Checking;
+using Suwageval.Server.Monitoring.Checks;
 using Suwageval.Server.Monitoring.Conversations;
 using Suwageval.Server.ScenarioDrafts;
 
@@ -53,6 +55,8 @@ internal static class ServerApp
         builder.Services.AddProblemDetails();
         builder.Services.AddRuns(builder.Configuration, startWorker: !WritingOpenApiDocument);
         builder.Services.AddConversations(startCloser: !WritingOpenApiDocument);
+        builder.Services.AddSingleton<MonitoringCheckStore>();
+        builder.Services.AddChecking(startWorker: !WritingOpenApiDocument);
         builder.Services.AddOpenApi();
 
         var app = builder.Build();
@@ -80,6 +84,8 @@ internal static class ServerApp
         MapEvaluation(app.MapGroup("").ExcludeFromDescription());
         var monitoring = app.MapGroup("/monitoring");
         monitoring.MapConversations();
+        monitoring.MapMonitoringChecks();
+        monitoring.MapChecking();
         monitoring.MapScenarioDrafts();
         return app;
     }

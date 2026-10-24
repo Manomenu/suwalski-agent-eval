@@ -36,13 +36,42 @@ function View({ detail }: { detail: ConversationDetail }) {
                 <Badge size="lg" variant="light" color={conversation.state === "Open" ? "blue" : "gray"}>
                     {conversation.state}
                 </Badge>
-                <ScenarioDraftButton conversationId={conversation.id} />
+                <ScenarioDraftButton
+                    conversationId={conversation.id}
+                    failed={detail.checks?.some((check) => !check.passed && check.notJudged !== true) ?? false}
+                />
             </Group>
             <Text c="dimmed">
                 {conversation.environment} · {conversation.turns} turns · version{" "}
                 <Anchor href={versionHref(conversation.agent, conversation.agentVersionId)}>{versionText(conversation)}</Anchor> · from{" "}
                 {formatTime(conversation.startedAt)} to {formatTime(conversation.lastTurnAt)}
             </Text>
+            {detail.checks != null && detail.checks.length > 0 && (
+                <Paper withBorder p="md">
+                    <Stack gap="xs">
+                        <Title order={4}>Monitoring checks</Title>
+                        {detail.checks.map((check) => (
+                            <Stack key={check.key} gap={4}>
+                                <Group gap="xs">
+                                    <Badge variant="light" color={check.passed ? "green" : check.notJudged === true ? "yellow" : "red"}>
+                                        {check.passed ? "Passed" : check.notJudged === true ? "Not judged" : "Failed"}
+                                    </Badge>
+                                    <Text fw={500} className="wrap-key">
+                                        {check.key}
+                                    </Text>
+                                    {check.judgeModel != null && check.notJudged !== true && (
+                                        <Text size="xs" c="dimmed">
+                                            judged by {check.judgeModel}
+                                        </Text>
+                                    )}
+                                </Group>
+                                <Text size="sm">{check.message}</Text>
+                                {check.evidence != null && check.evidence.length > 0 && <ConversationItems items={check.evidence} />}
+                            </Stack>
+                        ))}
+                    </Stack>
+                </Paper>
+            )}
             {turns.map((turn, index) => (
                 <Paper key={turn.id} withBorder p="md">
                     <Stack gap="xs">

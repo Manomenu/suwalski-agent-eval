@@ -72,7 +72,7 @@ public sealed class ConversationsCommandTests
         Assert.Empty(error);
         Assert.Equal(["/monitoring/agents/example-agent/conversations?pageSize=20"], paths);
         Assert.Equal(
-            $"{Chat.Id}  production  Closed  2 turns  version {Version}  label v7 (changed during it)  last 2026-10-24 12:05Z  conversation chat-81",
+            $"{Chat.Id}  production  Closed  2 turns  version {Version}  label v7 (changed during it)  last 2026-10-24 12:05Z  not checked  conversation chat-81",
             output.Trim()
         );
     }
@@ -101,6 +101,18 @@ public sealed class ConversationsCommandTests
             paths
         );
         Assert.Equal("No conversations.", output.Trim());
+    }
+
+    [Fact]
+    public void Failed_check_filters_and_the_line_counts_the_failed_checks()
+    {
+        var failed = Chat with { CheckedAt = Chat.LastTurnAt, FailedChecks = 2, NotJudgedChecks = 1 };
+
+        var (exit, output, _, paths) = Run(Page(failed), "conversations", "--dir", Sample, "--failed-check", "no-refund");
+
+        Assert.Equal(0, exit);
+        Assert.Equal(["/monitoring/agents/example-agent/conversations?pageSize=20&failedCheck=no-refund"], paths);
+        Assert.Contains("  2 checks failed, 1 check not judged  ", output, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -137,6 +149,16 @@ public sealed class ConversationsCommandTests
                     Items = [new UserMessage { Text = "Thanks" }, new AssistantMessage { Text = "You're welcome." }],
                 },
             ],
+            Checks =
+            [
+                new ConversationCheckResult
+                {
+                    Key = "no-refund",
+                    Revision = 1,
+                    Passed = false,
+                    Message = "refund was called",
+                },
+            ],
         };
 
         var (exit, output, _, paths) = Run(detail, "conversation", Chat.Id.ToString());
@@ -144,6 +166,8 @@ public sealed class ConversationsCommandTests
         Assert.Equal(0, exit);
         Assert.Equal([$"/monitoring/conversations/{Chat.Id}"], paths);
         var lines = output.ReplaceLineEndings("\n").Split('\n');
+        Assert.Equal("✗ no-refund: refund was called", lines[1]);
+        lines = [.. lines.Where((_, index) => index != 1)];
         Assert.Equal("turn 1  2026-10-24 12:00:00Z  version bbbbbbbb-0000-0000-0000-000000000002", lines[2]);
         Assert.Equal("  user: Where is A-17?", lines[3]);
         Assert.Equal("  assistant: On its way.", lines[4]);

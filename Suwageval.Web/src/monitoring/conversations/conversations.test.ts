@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { conversationsPath, stateOf, versionText } from "./conversations";
+import { checksColor, checksText, conversationsPath, initialFilter, stateOf, versionText } from "./conversations";
 
 describe("conversationsPath", () => {
     it("asks for one page, narrowed by the filter", () => {
-        expect(conversationsPath("my bot", { environment: null, state: null }, 1, 20)).toBe(
+        expect(conversationsPath("my bot", { environment: null, state: null, failedCheck: null }, 1, 20)).toBe(
             "/monitoring/agents/my%20bot/conversations?page=1&pageSize=20",
         );
-        expect(conversationsPath("a", { environment: "production", state: "Closed" }, 3, 20)).toBe(
-            "/monitoring/agents/a/conversations?page=3&pageSize=20&environment=production&state=Closed",
+        expect(conversationsPath("a", { environment: "production", state: "Closed", failedCheck: "no-refund" }, 3, 20)).toBe(
+            "/monitoring/agents/a/conversations?page=3&pageSize=20&environment=production&state=Closed&failedCheck=no-refund",
         );
     });
 });
@@ -28,5 +28,31 @@ describe("versionText", () => {
         expect(versionText({ agentVersionId: "12345678-aaaa", versionLabel: null, versionChanged: true })).toBe(
             "12345678 (changed during it)",
         );
+    });
+});
+
+describe("initialFilter", () => {
+    it("takes the failed check from the address, nothing else", () => {
+        expect(initialFilter("?failedCheck=no-refund&state=Open")).toEqual({ environment: null, state: null, failedCheck: "no-refund" });
+        expect(initialFilter("?failedCheck=%20")).toEqual({ environment: null, state: null, failedCheck: null });
+    });
+});
+
+describe("checksText", () => {
+    it("says not checked, passed, or how many failed", () => {
+        expect(checksText({ checkedAt: null })).toBe("Not checked");
+        expect(checksText({ checkedAt: "2026-10-24T12:00:00Z", failedChecks: 0 })).toBe("Passed");
+        expect(checksText({ checkedAt: "2026-10-24T12:00:00Z", failedChecks: 2 })).toBe("2 failed");
+        expect(checksText({ checkedAt: "2026-10-24T12:00:00Z", failedChecks: 0, notJudgedChecks: 1 })).toBe("1 not judged");
+        expect(checksText({ checkedAt: "2026-10-24T12:00:00Z", failedChecks: 2, notJudgedChecks: 1 })).toBe("2 failed, 1 not judged");
+    });
+});
+
+describe("checksColor", () => {
+    it("is red on a failure, yellow on checks not judged, green when all passed", () => {
+        expect(checksColor({ checkedAt: null })).toBe("gray");
+        expect(checksColor({ checkedAt: "x", failedChecks: 1, notJudgedChecks: 1 })).toBe("red");
+        expect(checksColor({ checkedAt: "x", notJudgedChecks: 1 })).toBe("yellow");
+        expect(checksColor({ checkedAt: "x" })).toBe("green");
     });
 });

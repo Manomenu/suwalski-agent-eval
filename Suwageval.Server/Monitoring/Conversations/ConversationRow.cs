@@ -14,5 +14,8 @@ internal sealed record ConversationRow(
     int Turns,
     DateTime StartedAt,
     DateTime LastTurnAt,
-    DateTime? ClosedAt
+    DateTime? ClosedAt,
+    DateTime? CheckedAt = null,
+    int FailedChecks = 0,
+    int NotJudgedChecks = 0
 );
