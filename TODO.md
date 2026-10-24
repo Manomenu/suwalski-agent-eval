@@ -43,6 +43,16 @@ To do in that change:
   machine than the repo: the page gives the scenario as ready YAML with a "Copy YAML" button and the file's path
   (`suwageval/scenarios/<key>.yaml`) with its own copy button — and/or a CLI command run in the agent's repo that writes
   the file there (`validate`, then `push`).
+  - **What the YAML holds:** the conversation's user turns as the scenario's script (or, for a long or wandering one, a
+    `simulated` scenario with the user's goal drafted from it, for the person to edit), the tags of the conversation, and
+    draft checks taken from what the agent did — the tool calls with their arguments, the events, the retrieved sources — as
+    a starting point the person trims, never as the expected answer written blindly (the agent may have been wrong; that is
+    often why the conversation is picked). The key is proposed from the conversation, the person renames it.
+  - **Where the button is:** on every stored conversation, and above all on a live conversation that failed an agent-scoped
+    check (the item below): a failure in production becomes a regression test in two clicks. The scenario remembers where it
+    came from (the conversation's id, a link back), so its page can show the original.
+  - **Personal data:** the copied YAML is what goes into the agent's repository, so it is shown for review before copying;
+    stripping what the agent marks as personal happens when the conversation is stored, not at copy time.
 
 - **Checks on live traffic: agent-scoped conversation checks** (what Langfuse calls online evaluation). Today every check
   belongs to a scenario and runs only offline, in a run. A hosted agent would also declare checks of its own, scoped to the
@@ -61,6 +71,34 @@ To do in that change:
     and explains itself (the picked tags are stored with the result); (a) scales to many checks without curating tags.
   - Open questions: sampling (not every conversation), a cost cap, which kinds of check make sense with no expected answer
     (mostly `judge` and the negative `toolCall` / `event` checks), the CLI parity.
+
+- **Check types defined by the agent** (Langfuse's code evaluators, the black-box way). Besides the built-in check types, the
+  agent declares its own in its served contract: a name (`mentioned-xd-twice`), a `description`, the JSON Schema of its
+  arguments and the path of an endpoint. A scenario uses it like any other type (`mentioned-xd-twice: { word: xd }`);
+  `validate` checks the name and the arguments against the served contract (it reads it already). Suwageval calls the
+  endpoint with the conversation's log and the arguments, and gets a verdict of the usual shape (passed, message, evidence).
+  The SDK gives the interface to implement and `MapSuwagevalAgent` maps the endpoint, as it does the turn; the web shows the
+  check as YAML like the others, marked as the agent's own type. Why this and not code written in Suwageval's UI: the logic
+  lives in the agent's language and can read the application's own data (did the order really get created) — a sandboxed
+  evaluator only sees the trace — and Suwageval gets no sandbox, no new component. The same types serve the live checks
+  above.
+  - **Repeatability:** the check's code can change without the contract changing, so results of "the same version" would
+    stop being comparable. Each type carries a `version` in the contract, and it goes into the version's hash.
+  - **`recheck` is no longer offline** for these checks: it needs the agent reachable; without it they are skipped and the
+    output says so, not failed.
+  - **The agent judges itself:** the check runs in the agent's process, so a bug there can break the check too. A known
+    trade-off, said in the docs; the endpoint may live in a separate service, the contract only names its address.
+  - Open questions: a timeout and what a failed call means (an error of the check, like an agent error, never a fail), the
+    concurrency limit (the run's own), CLI parity (`scenario` and `agent` print the type's definition).
+
+- **Scored checks, not only pass/fail** (Langfuse's numeric, categorical, boolean and text scores). A check could return a
+  value — a number (a judge's 1–5, a similarity), a category (`polite` / `neutral` / `rude`) — with a threshold or a list of
+  accepted values that turns it into passed or failed. Everything built on the verdict stays binary and unchanged: samples
+  and `passThreshold`, regressions, unstable checks; the value adds averages and a trend per check, and the comparison can show
+  how far a value moved, not only that it flipped. Fits a `judge` check (its criteria ask for a score) and the agent's own
+  check types above. Open questions: the shape in contract v1 and in the scenario YAML (`score: { min: 4 }`,
+  `accept: [polite, neutral]`), how samples aggregate a value (mean, or the share of passing samples as today), where the
+  values are shown on the run page.
 
 - **Runs from an agent's CI** (needs Suwageval on the cluster first, and the CLI speaking Cloudflare Access with a
   service token). Not a run on every PR: a series of small PRs, or one big MR split into many, would start the whole
