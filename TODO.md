@@ -44,6 +44,22 @@ To do in that change:
   (`suwageval/scenarios/<key>.yaml`) with its own copy button — and/or a CLI command run in the agent's repo that writes
   the file there (`validate`, then `push`).
 
+- **Checks on live traffic: agent-scoped conversation checks** (what Langfuse calls online evaluation). Today every check
+  belongs to a scenario and runs only offline, in a run. A hosted agent would also declare checks of its own, scoped to the
+  agent and not to a scenario (in its `suwageval/` folder, pushed like the scenarios): rules any finished conversation must
+  keep ("never promises a refund without an order id", "answers in the user's language"), each with a `description`. A
+  finished conversation of the agent (the integration of the item above) goes into a queue, and a worker runs the agent's
+  conversation checks on it. The results are analytics per agent version — pass rate per check over time, the conversations
+  that failed it, a link to the trace — not a run's verdict, and no regression state. A failed live conversation is the
+  natural candidate for a new scenario (the item above).
+  - **Which checks a conversation gets — later, only when running all of them becomes a problem** (cost, too many checks):
+    (a) retrieval: the checks' descriptions in a vector store, only the closest to the conversation run (a new component:
+    say why); or (b) triage by tags: the agent's checks carry tags, the tags are agent-scoped with a description each, a
+    model reads the conversation and picks the relevant tags, and only checks with those tags run. (b) needs no vector store
+    and explains itself (the picked tags are stored with the result); (a) scales to many checks without curating tags.
+  - Open questions: sampling (not every conversation), a cost cap, which kinds of check make sense with no expected answer
+    (mostly `judge` and the negative `toolCall` / `event` checks), the CLI parity.
+
 - **Runs from an agent's CI** (needs Suwageval on the cluster first, and the CLI speaking Cloudflare Access with a
   service token). Not a run on every PR: a series of small PRs, or one big MR split into many, would start the whole
   evaluation again and again, each time calling the agent's model and the judge, while most PRs (refactors, tests, CI, docs)
@@ -141,3 +157,9 @@ To do in that change:
   config line, model, data version) and pushes the results down. Its header becomes a toggle (an accessible button with
   `aria-expanded`, like a scenario row) saying how many rows it holds ("What differs · 7"); collapsed on first view, the
   choice kept in the address or the browser's storage (a convenience only, AGENTS.md 5.2). A print/report shows it expanded.
+- **Low priority, unsure it is worth it: tags matched by the system, not written in the scenario.** A tag would be defined
+  once per agent with a description (`refunds: anything about returning money`), and a model assigns the most relevant tags
+  to each scenario (on `push`, stored, shown as assigned, a tag written in the YAML still wins). Either another behaviour of
+  the existing tags or a parallel mechanism beside them (e.g. `topics`). The same agent-scoped tag list would serve the triage
+  of live checks above. The doubt: written tags are free, repeatable and reviewed in the repo; matched ones can change between
+  pushes and make the filters and the trend lie. Build only if writing tags proves a burden.
