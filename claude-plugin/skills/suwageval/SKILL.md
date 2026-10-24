@@ -35,6 +35,16 @@ The agent's own address (`validate`, `run`, `rerun`) is `--endpoint` on the comm
 `validate` and `init` need no server.
 `push` and `run` need the server, and `run` needs the agent itself running too.
 
+**Older than the server.** A newer server may add fields to its answers; the CLI skips the ones it does not know. When a
+command still fails with "The server's answer could not be read" followed by "This suwageval (…) is probably older than the
+server (…)", the installed CLI is behind the server: do not retry and do not work around it. The CLI is installed from the
+user's clone of the suwageval repository, wherever they keep it: if its folder is not known from this conversation, ask for it
+(never assume a path). Then give the user the update line with that folder, and run the command again once they have run it:
+
+```
+! cd <the suwageval clone> && git pull && just cli-install
+```
+
 ## The workflow
 
 - **Scenario files are code in the agent's repository**, in `suwageval/`: `agent.yaml` and

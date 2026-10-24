@@ -4,6 +4,7 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using Suwageval.AgentSdk;
+using Suwageval.Contracts;
 using Suwageval.Contracts.Agents;
 using Suwageval.Contracts.Checks;
 using Suwageval.Contracts.Runs;
@@ -450,7 +451,7 @@ internal sealed class ServerClient(HttpClient http)
         await ReadAsync(send, response => ReadBodyAsync<T>(response, cancellationToken), cancellationToken);
 
     private static async Task<T> ReadBodyAsync<T>(HttpResponseMessage response, CancellationToken cancellationToken) =>
-        await response.Content.ReadFromJsonAsync<T>(ContractJson.Options, cancellationToken)
+        await response.Content.ReadFromJsonAsync<T>(ServerAnswers.Options, cancellationToken)
         ?? throw new ServerClientException("The server's answer was empty.");
 
     /// <summary>For an answer with no body.</summary>
@@ -463,9 +464,11 @@ internal sealed class ServerClient(HttpClient http)
         CancellationToken cancellationToken
     )
     {
+        string? serverVersion = null;
         try
         {
             using var response = await send();
+            serverVersion = response.Headers.TryGetValues(ServerVersion.Header, out var versions) ? versions.FirstOrDefault() : null;
             if (!response.IsSuccessStatusCode)
             {
                 throw new ServerClientException(Describe(response.StatusCode, await response.Content.ReadAsStringAsync(cancellationToken)));
@@ -478,7 +481,7 @@ internal sealed class ServerClient(HttpClient http)
         }
         catch (JsonException error)
         {
-            throw new ServerClientException($"The server's answer could not be read: {error.Message}");
+            throw new ServerClientException(ServerAnswers.Unreadable(error.Message, serverVersion));
         }
     }
 

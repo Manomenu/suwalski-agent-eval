@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Suwageval.Contracts;
 using Suwageval.Server.Api;
 using Suwageval.Server.Tests.Runs;
 
@@ -16,6 +17,15 @@ public sealed class ServerAppTests(TestDatabase database) : IAsyncDisposable
         // Skips (or fails in CI) without a database: the app does not start without one.
         _ = database.Pool;
         return app.CreateClient();
+    }
+
+    [Fact]
+    public async Task Every_answer_names_the_servers_build()
+    {
+        var response = await Client().GetAsync(new Uri("/health", UriKind.Relative), TestContext.Current.CancellationToken);
+
+        Assert.True(response.Headers.TryGetValues(ServerVersion.Header, out var values));
+        Assert.Equal(ServerVersion.Of(typeof(ServerApp).Assembly), Assert.Single(values));
     }
 
     [Fact]
