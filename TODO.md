@@ -209,16 +209,6 @@ To do in that change:
 - **Later, only if this proves useful:** Suwageval sending its verdicts to Langfuse as scores per trace (an outside service, so a
   live test, the daily check and a secret, AGENTS.md section 3); Suwageval reading traces back; a `traceparent` header so the
   agent's spans join a trace Suwageval starts.
-- **The CLI says when it is older than the server.** After a change to the API an installed `suwageval` can fail on an answer it
-  does not know (a new field: the JSON is read strictly), with a parse error that says nothing about the cause; today the fix is
-  `just cli-install` in this repository, and the person has to guess it. Two parts, both small:
-  - **A version handshake:** the server sends its build (the commit, or the API's version) in a response header, the CLI knows its
-    own; when they differ and a request fails to parse, the CLI prints what to do instead of the parse error: "your suwageval is
-    older than the server (CLI <a>, server <b>): update it — `just cli-install` in the suwageval repository, or `dotnet tool update
-    --global Suwageval.Cli` once it is published". The plugin's skill repeats the hint when a command fails that way.
-  - **Tolerant reading of answers:** the CLI ignores fields it does not know in what the server sends (it still refuses unknown
-    fields in the YAML a person writes, where a typo must not pass), so most server changes need no update at all. Open: whether
-    the shared `ContractJson` options get a reading mode for answers, or the CLI keeps its own.
 - **`MSBUILDDISABLENODEREUSE=1` in the owner's environment — unsure, probably not needed.** `Directory.Build.rsp` (`-nodeReuse:false`)
   already stops the idle MSBuild nodes of every command-line build in this repository (the agents' builds, `dotnet watch`, the
   gate), which is what piled up to gigabytes. What it does not reach: VS Code's C# Dev Kit, which builds through the MSBuild API
