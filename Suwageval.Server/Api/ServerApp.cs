@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Text.Json.Serialization;
 using Suwageval.AgentSdk;
+using Suwageval.Contracts;
 using Suwageval.Server.Agents;
 using Suwageval.Server.Agents.Versions;
 using Suwageval.Server.Checks;
@@ -52,6 +53,15 @@ internal static class ServerApp
         builder.Services.AddOpenApi();
 
         var app = builder.Build();
+        // Every answer says which build sent it: the CLI names it when it cannot read an answer (ServerVersion).
+        var build = ServerVersion.Of(typeof(ServerApp).Assembly);
+        app.Use(
+            (context, next) =>
+            {
+                context.Response.Headers[ServerVersion.Header] = build;
+                return next(context);
+            }
+        );
         app.UseStatusCodePages();
         app.MapOpenApi();
 
