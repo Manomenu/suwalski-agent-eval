@@ -35,9 +35,9 @@ To do in that change:
 
 ## Later, after the MVP
 
-- **Live traffic — the plan:** [Suwageval: rozmowy z produkcji i checks na żywym ruchu — plan](https://claude.ai/artifact/Y7FDEQtqn36YaaCUwA4p2e)
+- **Monitoring (live traffic) — the plan:** [Suwageval: rozmowy z produkcji i checks na żywym ruchu — plan](https://claude.ai/artifact/Y7FDEQtqn36YaaCUwA4p2e)
   (how conversations arrive, the agent's tabs, `features` in `agent.yaml`, the evaluation API moved under `/api/eval/…` beside
-  `/api/live/…`, `dataVersion` out of the version, the stages, the open questions). The items below are its parts. Keep this link
+  `/api/monitoring/…`, `dataVersion` out of the version, the stages, the open questions). The items below are its parts. Keep this link
   until live traffic is built.
 
 - **Scenarios from real conversations of a connected agent** (the owner's idea). The agents send their conversations
@@ -86,8 +86,8 @@ To do in that change:
     model reads the conversation and picks the relevant tags, and only checks with those tags run. (b) needs no vector store
     and explains itself (the picked tags are stored with the result); (a) scales to many checks without curating tags.
   - **The end of a conversation** is automatic: no turn for a while closes it and its checks run. How long is set per agent in
-    `agent.yaml` (`features.live.closeAfter`), default 30 minutes.
-  - **Further improvements, not in the first version, both in `agent.yaml` under `features.live`:** `sample` — the share of
+    `agent.yaml` (`features.monitoring.closeAfter`), default 30 minutes.
+  - **Further improvements, not in the first version, both in `agent.yaml` under `features.monitoring`:** `sample` — the share of
     conversations the SDK sends, drawn by `conversationId` so a conversation is whole or absent (default 1.0: every conversation,
     once live is on); `keepDays` — after how many days a conversation's content is deleted while its check results stay for the
     charts (default 30). Until `keepDays` is built, conversations are kept.
