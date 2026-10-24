@@ -43,9 +43,16 @@ To do in that change:
   machine than the repo: the page gives the scenario as ready YAML with a "Copy YAML" button and the file's path
   (`suwageval/scenarios/<key>.yaml`) with its own copy button — and/or a CLI command run in the agent's repo that writes
   the file there (`validate`, then `push`).
-  - **What the YAML holds:** the conversation's user turns as the scenario's script (or, for a long or wandering one, a
-    `simulated` scenario with the user's goal drafted from it, for the person to edit), the tags of the conversation, and
-    draft checks taken from what the agent did — the tool calls with their arguments, the events, the retrieved sources — as
+  - **Two ways to copy a conversation:**
+    1. **As it is:** the whole conversation becomes the scenario's `conversation`, and the agent answers its last user
+       message (one turn).
+    2. **Up to a chosen turn, then simulated:** the person picks a turn; the conversation up to it becomes the scenario's
+       `conversation` (the history the agent gets), and what came after it is put into words as `continuation.simulatedUser`,
+       with `continuation.turns` as many as the rest had. A model on Suwageval's side (the judge's pool, `Models:`) drafts that
+       description from the rest of the conversation — who the user is, what they want, how they write, what they push back
+       on — for the person to edit before copying. The agent's real answers then decide where the conversation goes, so the
+       scenario still tests the part after the chosen turn when the agent changes.
+  - **What else the YAML holds:** the tags of the conversation, and draft checks taken from what the agent did — the tool calls with their arguments, the events, the retrieved sources — as
     a starting point the person trims, never as the expected answer written blindly (the agent may have been wrong; that is
     often why the conversation is picked). The key is proposed from the conversation, the person renames it.
   - **Where the button is:** on every stored conversation, and above all on a live conversation that failed an agent-scoped
