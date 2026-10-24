@@ -14,6 +14,7 @@ using Suwageval.Server.Evaluation.Runs.Trend;
 using Suwageval.Server.Evaluation.Runs.Unstable;
 using Suwageval.Server.Evaluation.Scenarios;
 using Suwageval.Server.Monitoring.Conversations;
+using Suwageval.Server.ScenarioDrafts;
 
 namespace Suwageval.Server.Api;
 
@@ -77,7 +78,9 @@ internal static class ServerApp
         // The evaluation's addresses before /eval, for a CLI installed before it: out of the OpenAPI document, so nothing
         // new is built on them, and removed on epic/monitoring-tab with its other breaking changes.
         MapEvaluation(app.MapGroup("").ExcludeFromDescription());
-        app.MapGroup("/monitoring").MapConversations();
+        var monitoring = app.MapGroup("/monitoring");
+        monitoring.MapConversations();
+        monitoring.MapScenarioDrafts();
         return app;
     }
 

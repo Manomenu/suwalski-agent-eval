@@ -37,6 +37,10 @@ internal static class ScenarioYaml
         {
             file["fixtures"] = fixtures.DeepClone();
         }
+        if (source["origin"] is { } origin)
+        {
+            file["origin"] = origin.DeepClone();
+        }
         return ContractYaml.Of(file);
     }
 

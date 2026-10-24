@@ -36,7 +36,8 @@ public sealed class ContractsTests
     /// <summary>Top to bottom. An area is one entry here; its features are ordered in <see cref="Areas"/>.</summary>
     private static readonly string[] Layers =
     [
-        "Api | LiveCheck",
+        "Api",
+        "LiveCheck | ScenarioDrafts",
         "Evaluation | Monitoring",
         "Judges",
         "Verdicts | LanguageModels",

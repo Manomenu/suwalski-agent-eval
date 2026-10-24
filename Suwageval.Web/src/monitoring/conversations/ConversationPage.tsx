@@ -9,6 +9,7 @@ import { agentMonitoringHref, versionHref } from "../../routes/links";
 import { useReportAgent } from "../../shell/reportAgent";
 import { fetchConversation, type ConversationDetail } from "./api";
 import { versionText } from "./conversations";
+import { ScenarioDraftButton } from "./ScenarioDraftButton";
 
 /** `/conversations/<id>`: one monitored conversation, its turns one under another with what the agent did in each. */
 export function ConversationPage({ conversationId }: { conversationId: string }) {
@@ -35,6 +36,7 @@ function View({ detail }: { detail: ConversationDetail }) {
                 <Badge size="lg" variant="light" color={conversation.state === "Open" ? "blue" : "gray"}>
                     {conversation.state}
                 </Badge>
+                <ScenarioDraftButton conversationId={conversation.id} />
             </Group>
             <Text c="dimmed">
                 {conversation.environment} · {conversation.turns} turns · version{" "}

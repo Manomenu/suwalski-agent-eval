@@ -31,5 +31,26 @@ public sealed class ScenarioYamlRoundTripTests
         Assert.Contains("\n- kind: AssistantMessage", yaml, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void A_scenario_drafted_from_a_conversation_is_a_valid_scenario_file_that_remembers_its_conversation()
+    {
+        var id = Guid.NewGuid();
+        var draft = Suwageval.Server.ScenarioDrafts.ScenarioDraftWriter.Draft(
+            "chat-81",
+            id,
+            Suwageval.Server.Tests.ScenarioDrafts.ScenarioDraftWriterTests.Turns()
+        );
+        var problems = new List<Cli::Suwageval.Cli.Files.Problem>();
+
+        var read = ScenarioFileReader.Read(draft.Path, draft.Yaml, problems);
+
+        Assert.Empty(problems);
+        Assert.NotNull(read);
+        Assert.Equal("conversation-chat-81", read.Scenario.Key);
+        Assert.Equal(id, read.Scenario.Origin?.MonitoringConversation);
+        Assert.IsType<Suwageval.AgentSdk.Conversations.UserMessage>(read.Scenario.Conversation[^1]);
+        Assert.Empty(read.Checks);
+    }
+
     private static string Json<T>(T value) => JsonSerializer.Serialize(value, ContractJson.Options);
 }

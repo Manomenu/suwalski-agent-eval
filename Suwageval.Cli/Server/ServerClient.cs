@@ -262,6 +262,13 @@ internal sealed class ServerClient(HttpClient http)
         return await SendAsync<ConversationList>(() => http.GetAsync(new Uri(url, UriKind.Relative), cancellationToken), cancellationToken);
     }
 
+    /// <summary>A monitored conversation drafted as a scenario file (its key, path and YAML).</summary>
+    public Task<ScenarioDraft> ScenarioDraftAsync(Guid conversationId, CancellationToken cancellationToken) =>
+        SendAsync<ScenarioDraft>(
+            () => http.GetAsync(new Uri($"monitoring/conversations/{conversationId}/scenario", UriKind.Relative), cancellationToken),
+            cancellationToken
+        );
+
     /// <summary>A monitored conversation with its turns.</summary>
     public Task<ConversationDetail> ConversationAsync(Guid id, CancellationToken cancellationToken) =>
         SendAsync<ConversationDetail>(

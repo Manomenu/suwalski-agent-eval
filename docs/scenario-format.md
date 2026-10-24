@@ -339,6 +339,15 @@ them). `Suwageval:AccessClientId` and `Suwageval:AccessClientSecret` are the Acc
 | `samples` | | how many times the conversation is repeated: 1 to 20; not set means the agent's `samples`, else `3` (see "Samples" below) |
 | `fixtures` | | free mapping, sent verbatim with every turn of the scenario (e.g. which documents are pinned for the conversation); shaped by the agent's `context.fixturesSchema`, which the agent must declare. Part of the scenario's content: changing it is a new revision |
 | `checks` | | a list of checks, below |
+| `origin` | | where the scenario came from: `monitoringConversation: <id>`, the monitored conversation it was drafted from (below). It changes nothing in a run |
+
+**A scenario from a monitored conversation.** `suwageval scenario from-conversation <id>` (or "Scenario YAML" on the conversation's page)
+drafts a scenario file from a conversation the deployed agent had, taken as it is: every turn before the last is the `conversation`'s
+history, and the agent answers the last user message. The key is proposed from the conversation's id (`conversation-<id>`), `origin`
+names the conversation, and what the agent did in that last turn (its tool calls, events, cited sources) is drafted as checks in
+comments: a starting point to keep what the agent must do and delete the rest, never the expected answer written blindly — the agent
+may have been wrong, which is often why the conversation was picked. The conversation ran on real data Suwageval does not keep: add the
+`fixtures` the agent needs. A failure in production becomes a regression test this way.
 
 ### Samples
 

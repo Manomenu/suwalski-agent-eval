@@ -1508,6 +1508,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/monitoring/conversations/{id}/scenario": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ScenarioDraft"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2688,6 +2725,16 @@ export interface components {
          * @enum {unknown}
          */
         SampleStatus: "Done" | "Failed" | "NotSimulated";
+        /**
+         * @description A scenario file drafted from a monitored conversation, for a person to review and put in the agent's repository: its proposed
+         *     string ScenarioDraft.Key, the file's string ScenarioDraft.Path in the repository and its string ScenarioDraft.Yaml (with draft checks as comments).
+         */
+        ScenarioDraft: {
+            key: string;
+            /** @description Where the file goes, relative to the repository's root: `suwageval/scenarios/&lt;key&gt;.yaml`. */
+            path: string;
+            yaml: string;
+        };
         /** @description A frozen moment of a conversation; the agent answers its last message. */
         ScenarioInput: {
             /** @description Lowercase kebab-case, unique within the agent. */
@@ -2703,6 +2750,12 @@ export interface components {
              *     Not set: the agent's `samples`, else 3.
              */
             samples?: null | number;
+            origin?: null | components["schemas"]["ScenarioOrigin"];
+        };
+        /** @description Where a scenario came from, when it was made from something real: a monitored conversation (its id in Suwageval). */
+        ScenarioOrigin: {
+            /** Format: uuid */
+            monitoringConversation?: null | string;
         };
         /** @description One scenario in a run: its samples and, per check, how many of them passed. */
         ScenarioRunResult: {

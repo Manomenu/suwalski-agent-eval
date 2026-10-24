@@ -19,7 +19,14 @@ internal static class ScenarioCommand
         var server = CommandOptions.Server();
         var dir = CommandOptions.Dir();
 
-        var command = new Command("scenario", "Show one scenario: conversation, checks, revisions, tags.") { key, json, server, dir };
+        var command = new Command("scenario", "Show one scenario: conversation, checks, revisions, tags.")
+        {
+            key,
+            json,
+            server,
+            dir,
+            FromConversationCommand.Create(http),
+        };
         command.SetAction(
             (parsed, cancellationToken) =>
                 ServerCall.ForAgentAsync(

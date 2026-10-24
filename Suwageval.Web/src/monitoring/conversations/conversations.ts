@@ -31,6 +31,9 @@ export function versionText(conversation: { agentVersionId: string; versionLabel
     return conversation.versionChanged === true ? `${name} (changed during it)` : name;
 }
 
+export const SCENARIO_DRAFT_HELP =
+    "Taken as it is: every turn before the last is the history, and the agent answers the last user message. The checks at the end are drafts, as comments, from what the agent did: keep what it must do, delete the rest. Add the fixtures the agent needs (the conversation ran on real data). Save the file in the agent's repository, then suwageval validate and push.";
+
 export const CONVERSATIONS_HELP =
     "Conversations the deployed agent sent, the one with the newest turn first. A conversation is Open while turns come and Closed after the agent's closeAfter without one; a turn after that opens it again.";
 export const VERSION_COLUMN_HELP =
