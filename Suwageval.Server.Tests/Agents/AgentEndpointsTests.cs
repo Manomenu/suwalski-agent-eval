@@ -54,6 +54,8 @@ public sealed class AgentEndpointsTests(TestDatabase database) : IAsyncDisposabl
         )
         {
             GroupRunsOnly = false,
+            Runs = 0,
+            GroupRuns = 0,
         };
     }
 

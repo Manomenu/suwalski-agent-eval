@@ -79,13 +79,19 @@ public sealed class VersionStoreTests(TestDatabase database)
     }
 
     [Fact]
-    public async Task A_version_is_group_runs_only_when_it_has_runs_and_every_one_is_in_a_group_a_recheck_counting_as_its_original()
+    public async Task Runs_are_counted_per_version_outside_groups_and_in_them_a_recheck_counting_as_its_original()
     {
         var (_, seeded) = await SeedGroupRunsAsync(database);
 
-        var groupRunsOnly = await new VersionStore(database.Pool).GroupRunsOnlyAsync(seeded.AgentId, Cancellation);
+        var counts = await new VersionStore(database.Pool).RunCountsAsync(seeded.AgentId, Cancellation);
 
-        Assert.Equal(new[] { seeded.GroupOnly, seeded.RecheckOfGroup }.Order(), groupRunsOnly.Order());
+        Assert.Equal(new VersionRunCounts(0, 1), counts[seeded.GroupOnly]);
+        Assert.Equal(new VersionRunCounts(1, 1), counts[seeded.Mixed]);
+        Assert.Equal(new VersionRunCounts(0, 2), counts[seeded.RecheckOfGroup]);
+        Assert.False(counts.ContainsKey(seeded.NoRuns));
+        Assert.True(counts[seeded.GroupOnly].GroupRunsOnly);
+        Assert.False(counts[seeded.Mixed].GroupRunsOnly);
+        Assert.False(VersionRunCounts.None.GroupRunsOnly);
     }
 
     [Fact]
@@ -100,8 +106,9 @@ public sealed class VersionStoreTests(TestDatabase database)
             cancellationToken: Cancellation
         );
 
-        var groupRunsOnly = await new VersionStore(database.Pool).GroupRunsOnlyAsync(seeded.AgentId, Cancellation);
+        var counts = await new VersionStore(database.Pool).RunCountsAsync(seeded.AgentId, Cancellation);
 
-        Assert.Equal([seeded.RecheckOfGroup], groupRunsOnly);
+        Assert.Equal(new VersionRunCounts(1, 1), counts[seeded.GroupOnly]);
+        Assert.False(counts[seeded.GroupOnly].GroupRunsOnly);
     }
 }

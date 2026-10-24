@@ -14,6 +14,9 @@ public sealed class VersionsCommandTests
 
     private static readonly Guid Active = Guid.Parse("aaaaaaaa-0000-0000-0000-000000000001");
     private static readonly Guid Archived = Guid.Parse("bbbbbbbb-0000-0000-0000-000000000002");
+    private static readonly Guid Ordinary = Guid.Parse("cccccccc-0000-0000-0000-000000000003");
+    private static readonly Guid Mixed = Guid.Parse("dddddddd-0000-0000-0000-000000000004");
+    private static readonly Guid Unused = Guid.Parse("eeeeeeee-0000-0000-0000-000000000005");
 
     private sealed record Call(HttpMethod Method, string Path, string Body, string Query = "");
 
@@ -29,6 +32,38 @@ public sealed class VersionsCommandTests
         }
     }
 
+    /// <summary>One version of each usage: in evaluation, in both, only in groups (<see cref="Active"/>), unused and archived (with runs).</summary>
+    private static HttpResponseMessage UsageVersions()
+    {
+        static AgentVersion Version(Guid id, int runs, int groupRuns, DateTimeOffset? archivedAt = null)
+        {
+            return new(id, Guid.NewGuid(), "hash", DateTimeOffset.Parse("2026-10-02T10:00:00Z"), ["m"], null, archivedAt)
+            {
+                GroupRunsOnly = runs == 0 && groupRuns > 0,
+                Runs = runs,
+                GroupRuns = groupRuns,
+            };
+        }
+        return new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(
+                JsonSerializer.Serialize(
+                    new[]
+                    {
+                        Version(Ordinary, 2, 0),
+                        Version(Mixed, 1, 1),
+                        Version(Active, 0, 1),
+                        Version(Unused, 0, 0),
+                        Version(Archived, 3, 0, DateTimeOffset.Parse("2026-10-03T10:00:00Z")),
+                    },
+                    ContractJson.Options
+                ),
+                Encoding.UTF8,
+                "application/json"
+            ),
+        };
+    }
+
     private static HttpResponseMessage Versions() =>
         new(HttpStatusCode.OK)
         {
@@ -39,6 +74,8 @@ public sealed class VersionsCommandTests
                         new AgentVersion(Active, Guid.NewGuid(), "hash2", DateTimeOffset.Parse("2026-10-02T10:00:00Z"), ["m"], "v2")
                         {
                             GroupRunsOnly = true,
+                            Runs = 0,
+                            GroupRuns = 1,
                         },
                         new AgentVersion(
                             Archived,
@@ -53,6 +90,8 @@ public sealed class VersionsCommandTests
                         )
                         {
                             GroupRunsOnly = false,
+                            Runs = 1,
+                            GroupRuns = 0,
                         },
                     },
                     ContractJson.Options
@@ -76,20 +115,111 @@ public sealed class VersionsCommandTests
     }
 
     [Fact]
-    public void It_lists_the_active_versions_of_the_agent_in_agent_yaml()
+    public void It_lists_the_versions_in_evaluation_and_the_unused_ones_of_the_agent_in_agent_yaml()
     {
-        var (exit, output, error, api) = Versions(_ => Versions());
+        var (exit, output, error, api) = Versions(_ => UsageVersions());
 
         Assert.Equal(0, exit);
         Assert.Empty(error);
         Assert.Equal("/agents/example-agent/versions", api.Calls.Single().Path);
-        Assert.Contains(Active.ToString(), output, StringComparison.Ordinal);
-        Assert.Contains("v2", output, StringComparison.Ordinal);
-        Assert.DoesNotContain(Archived.ToString(), output, StringComparison.Ordinal);
+        Assert.Equal(
+            [Ordinary.ToString(), Mixed.ToString(), Unused.ToString()],
+            output.Split('\n', StringSplitOptions.RemoveEmptyEntries).Select(line => line.Split("  ")[0])
+        );
+        Assert.Contains("runs 2  group runs 0", output, StringComparison.Ordinal);
     }
 
     [Theory]
-    [InlineData("", "?grouping=None")]
+    [InlineData("evaluation", "Ordinary,Mixed")]
+    [InlineData("groups", "Mixed,GroupOnly")]
+    [InlineData("unused", "Unused")]
+    [InlineData("archived", "Archived")]
+    [InlineData("evaluation,groups", "Ordinary,Mixed,GroupOnly")]
+    [InlineData("unused,archived", "Unused,Archived")]
+    [InlineData("Groups,UNUSED", "Mixed,GroupOnly,Unused")]
+    public void A_version_is_listed_when_it_has_any_of_the_usages_and_an_archived_one_only_when_archived_is_chosen(
+        string usage,
+        string expected
+    )
+    {
+        ArgumentNullException.ThrowIfNull(expected);
+        var (exit, output, _, api) = Versions(_ => UsageVersions(), "--usage", usage);
+
+        Assert.Equal(0, exit);
+        Assert.Equal("", api.Calls.Single().Query);
+        Assert.Equal(expected.Split(',').Order(), Listed(output).Select(NameOf).Order());
+    }
+
+    [Fact]
+    public void Usage_can_be_repeated()
+    {
+        var (_, output, _, _) = Versions(_ => UsageVersions(), "--usage", "unused", "--usage", "archived");
+
+        Assert.Equal(["Archived", "Unused"], Listed(output).Select(NameOf).Order());
+    }
+
+    [Fact]
+    public void Version_narrows_the_list_within_the_usage_and_can_be_repeated()
+    {
+        var (_, output, _, _) = Versions(
+            _ => UsageVersions(),
+            "--usage",
+            "evaluation,groups",
+            "--version",
+            Mixed.ToString(),
+            "--version",
+            Unused.ToString()
+        );
+
+        Assert.Equal(["Mixed"], Listed(output).Select(NameOf));
+    }
+
+    [Theory]
+    [InlineData("--archived")]
+    [InlineData("--any-group")]
+    [InlineData("--all-versions")]
+    public void Usage_cannot_be_used_with_the_older_options(string older)
+    {
+        var (exit, _, error, api) = Versions(_ => UsageVersions(), "--usage", "evaluation", older);
+
+        Assert.NotEqual(0, exit);
+        Assert.Contains("--usage cannot be used with", error, StringComparison.Ordinal);
+        Assert.Empty(api.Calls);
+    }
+
+    [Fact]
+    public void An_unknown_usage_is_refused_naming_the_four()
+    {
+        var (exit, _, error, api) = Versions(_ => UsageVersions(), "--usage", "forever");
+
+        Assert.NotEqual(0, exit);
+        Assert.Contains("'forever' is not a usage: use evaluation, groups, unused or archived.", error, StringComparison.Ordinal);
+        Assert.Empty(api.Calls);
+    }
+
+    [Fact]
+    public void The_text_shows_the_runs_and_the_group_runs()
+    {
+        var (_, output, _, _) = Versions(_ => UsageVersions(), "--usage", "groups");
+
+        var mixed = Listed(output).Single(line => line.StartsWith(Mixed.ToString(), StringComparison.Ordinal));
+        Assert.EndsWith("active  runs 1  group runs 1", mixed.TrimEnd(), StringComparison.Ordinal);
+    }
+
+    private static string[] Listed(string output) => output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+
+    private static string NameOf(string line) =>
+        Guid.Parse(line.Split("  ")[0]) switch
+        {
+            var id when id == Ordinary => "Ordinary",
+            var id when id == Mixed => "Mixed",
+            var id when id == Active => "GroupOnly",
+            var id when id == Unused => "Unused",
+            _ => "Archived",
+        };
+
+    [Theory]
+    [InlineData("--archived", "?grouping=None")]
     [InlineData("--any-group", "?grouping=Any")]
     [InlineData("--all-versions", "")]
     public void The_grouping_asked_of_the_server_follows_any_group_and_all_versions(string option, string query)
@@ -117,7 +247,7 @@ public sealed class VersionsCommandTests
 
         var lines = output.Split('\n');
         var marked = lines.Single(line => line.Contains(Active.ToString(), StringComparison.Ordinal));
-        Assert.EndsWith("active  group runs only", marked.TrimEnd(), StringComparison.Ordinal);
+        Assert.EndsWith("active  runs 0  group runs 1  group runs only", marked.TrimEnd(), StringComparison.Ordinal);
         Assert.DoesNotContain(
             "group runs only",
             lines.Single(line => line.Contains(Archived.ToString(), StringComparison.Ordinal)),
@@ -130,7 +260,10 @@ public sealed class VersionsCommandTests
     {
         var (_, output, _, _) = Versions(_ => Versions(), "--json", "--archived");
 
-        Assert.Equal([true, false], JsonSerializer.Deserialize<AgentVersion[]>(output, ContractJson.Options)?.Select(v => v.GroupRunsOnly));
+        var printed = JsonSerializer.Deserialize<AgentVersion[]>(output, ContractJson.Options);
+        Assert.Equal([true, false], printed?.Select(v => v.GroupRunsOnly));
+        Assert.Equal([0, 1], printed?.Select(v => v.Runs));
+        Assert.Equal([1, 0], printed?.Select(v => v.GroupRuns));
     }
 
     [Fact]
@@ -139,7 +272,7 @@ public sealed class VersionsCommandTests
         var (_, output, _, _) = Versions(_ => Versions(), "--archived");
 
         var archived = output.Split('\n').Single(line => line.Contains(Archived.ToString(), StringComparison.Ordinal));
-        Assert.EndsWith("archived", archived.TrimEnd(), StringComparison.Ordinal);
+        Assert.EndsWith("archived  runs 1  group runs 0", archived.TrimEnd(), StringComparison.Ordinal);
         Assert.Contains("active", output, StringComparison.Ordinal);
     }
 
@@ -351,7 +484,12 @@ public sealed class VersionsCommandTests
     {
         static AgentVersion Version(Guid id, string? label)
         {
-            return new(id, Guid.NewGuid(), "hash", DateTimeOffset.Parse("2026-10-01T10:00:00Z"), [], label) { GroupRunsOnly = false };
+            return new(id, Guid.NewGuid(), "hash", DateTimeOffset.Parse("2026-10-01T10:00:00Z"), [], label)
+            {
+                GroupRunsOnly = false,
+                Runs = 0,
+                GroupRuns = 0,
+            };
         }
         return new VersionDiff
         {

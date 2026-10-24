@@ -62,6 +62,20 @@ public sealed class VersionEndpointsTests(TestDatabase database) : IAsyncDisposa
             listed,
             version => Assert.Equal(version.Id == seeded.GroupOnly || version.Id == seeded.RecheckOfGroup, version.GroupRunsOnly)
         );
+        Assert.All(
+            listed,
+            version =>
+                Assert.Equal(
+                    version.Id switch
+                    {
+                        var id when id == seeded.GroupOnly => (0, 1),
+                        var id when id == seeded.Mixed => (1, 1),
+                        var id when id == seeded.RecheckOfGroup => (0, 2),
+                        _ => (0, 0),
+                    },
+                    (version.Runs, version.GroupRuns)
+                )
+        );
     }
 
     [Fact]

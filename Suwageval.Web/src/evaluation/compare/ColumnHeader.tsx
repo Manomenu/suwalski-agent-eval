@@ -5,7 +5,7 @@ import type { AgentVersion } from "../../agents/api";
 import { statusColor, statusLabel } from "../runs/results";
 import type { VariantRun } from "./api";
 import { columnTitle, runTagsText } from "./variants";
-import { versionHref, compareGroupHref, runHref } from "../../routes/links";
+import { versionInUseHref, compareGroupHref, runHref } from "../../routes/links";
 import { formatTime } from "../../format/time";
 import { shortId } from "../../format/names";
 
@@ -41,7 +41,7 @@ export function ColumnHeader({
                 {columnTitle(variant)}
             </Text>
             <Text size="xs" fw="normal">
-                <Anchor href={versionHref(agent, run.agentVersionId)}>Version {shortId(run.agentVersionId)}</Anchor>
+                <Anchor href={versionInUseHref(agent, run.agentVersionId, run.group != null)}>Version {shortId(run.agentVersionId)}</Anchor>
             </Text>
             <Text size="xs" fw="normal">
                 <Anchor href={runHref(run.id)}>Run {shortId(run.id)}</Anchor>

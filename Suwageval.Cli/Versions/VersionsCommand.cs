@@ -27,6 +27,31 @@ internal static class VersionsCommand
         {
             Description = "The versions whose every run is in a group and the others (the default is the others).",
         };
+        var usage = new Option<VersionUsage[]>("--usage")
+        {
+            Description =
+                "Where the versions are used: evaluation (runs outside a group; the default), groups, unused, archived. Repeatable and/or comma-separated; a version is listed when it has any of them. Not with --archived, --any-group or --all-versions.",
+            CustomParser = result =>
+            {
+                var chosen = new List<VersionUsage>();
+                foreach (var word in result.Tokens.SelectMany(token => token.Value.Split(',', StringSplitOptions.TrimEntries)))
+                {
+                    if (Enum.TryParse<VersionUsage>(word, ignoreCase: true, out var one) && Enum.IsDefined(one))
+                    {
+                        chosen.Add(one);
+                    }
+                    else
+                    {
+                        result.AddError($"'{word}' is not a usage: use evaluation, groups, unused or archived.");
+                    }
+                }
+                return [.. chosen];
+            },
+        };
+        var only = new Option<Guid[]>("--version")
+        {
+            Description = "List only this version (an id, as `versions` lists it); repeatable. Still within the usage.",
+        };
         var json = CommandOptions.Json("Print the versions as JSON.");
         var server = CommandOptions.Server();
         var dir = CommandOptions.Dir();
@@ -39,6 +64,8 @@ internal static class VersionsCommand
             archived,
             anyGroup,
             allVersions,
+            usage,
+            only,
             json,
             server,
             dir,
@@ -54,6 +81,15 @@ internal static class VersionsCommand
             {
                 result.AddError("--any-group and --all-versions cannot be used together.");
             }
+            if (
+                result.GetResult(usage) is not null
+                && (result.GetValue(archived) || result.GetValue(anyGroup) || result.GetValue(allVersions))
+            )
+            {
+                result.AddError(
+                    "--usage cannot be used with --archived, --any-group or --all-versions: name the usages instead (archived, groups)."
+                );
+            }
         });
         command.SetAction(
             (parsed, cancellationToken) =>
@@ -64,13 +100,24 @@ internal static class VersionsCommand
                     parsed.InvocationConfiguration.Error,
                     async (client, agent, _) =>
                     {
-                        var grouping =
-                            parsed.GetValue(anyGroup) ? RunGrouping.Any
-                            : parsed.GetValue(allVersions) ? RunGrouping.All
-                            : RunGrouping.None;
-                        var versions = (await client.VersionsAsync(agent, cancellationToken, grouping))
-                            .Where(version => parsed.GetValue(archived) || version.ArchivedAt is null)
-                            .ToList();
+                        // The older options keep their meaning (the server's grouping); --usage, --version or none at all is the usage filter.
+                        var legacy = parsed.GetValue(archived) || parsed.GetValue(anyGroup) || parsed.GetValue(allVersions);
+                        var chosen = parsed.GetValue(usage) is { Length: > 0 } named ? named.ToHashSet() : [.. VersionUsages.Default];
+                        var chosenIds = parsed.GetValue(only) ?? [];
+                        var listed = legacy
+                            ? (
+                                await client.VersionsAsync(
+                                    agent,
+                                    cancellationToken,
+                                    parsed.GetValue(anyGroup) ? RunGrouping.Any
+                                        : parsed.GetValue(allVersions) ? RunGrouping.All
+                                        : RunGrouping.None
+                                )
+                            ).Where(version => parsed.GetValue(archived) || version.ArchivedAt is null)
+                            : (await client.VersionsAsync(agent, cancellationToken)).Where(version =>
+                                VersionUsages.Matches(version, chosen)
+                            );
+                        var versions = listed.Where(version => chosenIds.Length == 0 || chosenIds.Contains(version.Id)).ToList();
                         var output = parsed.InvocationConfiguration.Output;
                         if (parsed.GetValue(json))
                         {

@@ -9,6 +9,29 @@ export const agentEvaluationHref = (name: string) => `${agentHref(name)}/evaluat
 /** The Versions page of an agent: its versions, to archive, restore, delete and compare (what `agentHref` opens too). */
 export const agentVersionsHref = (name: string) => `${agentHref(name)}/versions`;
 
+/** Where a version is used: the kinds of usage the Versions page filters by (the closed set; a later area adds its own). */
+export type VersionUsage = "evaluation" | "groups" | "unused" | "archived";
+
+/**
+ * The Versions page of an agent filtered by usage, and by version when ids are given (`?usage=evaluation,groups&version=<id>,<id>`). The
+ * page reads them back (`versions/versionUsage.ts`); an address without them is its default.
+ */
+export function agentVersionsFilteredHref(name: string, usage: readonly VersionUsage[], versionIds: readonly string[] = []): string {
+    const query = new URLSearchParams({ usage: usage.join(",") });
+    if (versionIds.length > 0) query.set("version", versionIds.join(","));
+    return `${agentVersionsHref(name)}?${query.toString().replaceAll("%2C", ",")}`;
+}
+
+/** The versions in evaluation: the Evaluation page's "Versions in evaluation" link. */
+export const versionsInEvaluationHref = (name: string) => agentVersionsFilteredHref(name, ["evaluation"]);
+
+/**
+ * The Versions list narrowed to one version a run of the Evaluation area points at: with the evaluation usage, and the groups' too when the
+ * run is in a group (a version with only group runs would not show otherwise).
+ */
+export const versionInUseHref = (name: string, versionId: string, inGroup: boolean) =>
+    agentVersionsFilteredHref(name, inGroup ? ["evaluation", "groups"] : ["evaluation"], [versionId]);
+
 /** The page of one version of an agent. */
 export const versionHref = (name: string, versionId: string) => `${agentHref(name)}/versions/${versionId}`;
 

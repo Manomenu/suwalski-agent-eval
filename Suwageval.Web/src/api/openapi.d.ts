@@ -1492,6 +1492,8 @@ export interface components {
          *     `ArchivedAt` is set while the version is archived. `GroupRunsOnly` is true when the version has runs and every one is in a
          *     group (run --group; a re-check counts as in the group of the run it was made from): an experiment's version, like a sweep's
          *     variant, hidden by default as the runs in groups are. A version with no runs, or one run outside a group, is not.
+         *     `Runs` counts the version's runs in no group and `GroupRuns` those in a group (a re-check counts as in the group of its original):
+         *     where the version is used. Both zero: unused.
          */
         AgentVersion: {
             /** Format: uuid */
@@ -1508,6 +1510,10 @@ export interface components {
             dataVersion?: null | string;
             dataDescription?: null | string;
             groupRunsOnly: boolean;
+            /** Format: int32 */
+            runs: number;
+            /** Format: int32 */
+            groupRuns: number;
         };
         /** @description A registered version of an agent with its content (`Content.Label` is the version's label). */
         AgentVersionDetail: {

@@ -32,4 +32,7 @@ export const VERSIONS_SECTION_HELP =
 export const VERSION_LABEL_HELP =
     "The name the contract gave this version (its label), if any; the version keeps the first one it was seen with.";
 export const VERSION_CREATED_HELP = "When a run first met this contract, which is when the version was made.";
+export const VERSION_RUNS_HELP = "How many runs of this version are in no group: the runs the Evaluation page lists.";
+export const VERSION_GROUP_RUNS_HELP =
+    "How many runs of this version are in a group (run --group); a re-check counts in its original's group.";
 export const VERSION_ID_HELP = "The version's id; open it to see the contract.";

@@ -8,15 +8,14 @@ import { formatTime } from "../format/time";
 import { Page } from "../agents/Page";
 import { useRequest } from "../api/useRequest";
 import { VersionsSection } from "./VersionsSection";
-import { useVersionGrouping } from "./useVersionGrouping";
+import { useVersionFilter } from "./useVersionFilter";
 
 /** `/agents/<name>/versions`: the agent's versions, to archive, restore, delete and compare. */
 export function VersionsPage({ name }: { name: string }) {
     // Bumped after versions are archived or restored: the list is loaded again (the page stays until the new one arrives).
     const [reload, setReload] = useState(0);
-    const [showArchived, setShowArchived] = useState(false);
     const [deleting, setDeleting] = useState(false);
-    const [grouping, setGrouping] = useVersionGrouping();
+    const filter = useVersionFilter();
     const state = useRequest(`${name}/${String(reload)}`, async (signal) => {
         const [agent, versions] = await Promise.all([fetchAgent(name, signal), fetchVersions(name, signal)]);
         return { agent, versions };
@@ -71,10 +70,10 @@ export function VersionsPage({ name }: { name: string }) {
                     <VersionsSection
                         agentName={agent.name}
                         versions={versions}
-                        showArchived={showArchived}
-                        onShowArchivedChange={setShowArchived}
-                        grouping={grouping}
-                        onGroupingChange={setGrouping}
+                        usage={filter.usage}
+                        onUsageChange={filter.setUsage}
+                        versionIds={filter.versionIds}
+                        onVersionRemoved={filter.removeVersion}
                         onChanged={() => {
                             setReload(reload + 1);
                         }}

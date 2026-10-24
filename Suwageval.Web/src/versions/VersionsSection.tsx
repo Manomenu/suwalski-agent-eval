@@ -1,4 +1,4 @@
-import { Anchor, Badge, Button, Checkbox, Paper, Select, Stack, Table, Text, Title } from "@mantine/core";
+import { Anchor, Badge, Button, Checkbox, Chip, Group, Paper, Pill, Stack, Table, Text, Title } from "@mantine/core";
 
 import { type AgentVersion } from "../agents/api";
 import { DeleteModal } from "../agents/DeleteModal";
@@ -12,17 +12,19 @@ import {
     versionsToCompare,
     VERSION_CREATED_HELP,
     VERSION_ID_HELP,
+    VERSION_GROUP_RUNS_HELP,
     VERSION_LABEL_HELP,
+    VERSION_RUNS_HELP,
     VERSIONS_SECTION_HELP,
 } from "./view";
 import { deletionSummary } from "../agents/deletion";
-import { archiveSelection, visibleItems } from "../agents/archive";
+import { archiveSelection } from "../agents/archive";
 import { ArchiveControls, type ArchiveLabels } from "../agents/ArchiveControls";
 import { useArchiveList } from "../agents/useArchiveList";
-import { inVersionGrouping, VERSION_GROUPING_OPTIONS, versionGroupingOfValue, type VersionGrouping } from "./versionGrouping";
-import { versionCompareHref, versionHref } from "../routes/links";
+import { listedVersions, usagesOfValues, VERSION_USAGE_OPTIONS } from "./versionUsage";
+import { versionCompareHref, versionHref, type VersionUsage } from "../routes/links";
 import { formatTime } from "../format/time";
-import { versionTitle } from "../format/names";
+import { shortId, versionTitle } from "../format/names";
 import { archiveVersions, deleteVersion, fetchVersionDeletion } from "./api";
 
 const LABELS: ArchiveLabels = {
@@ -34,27 +36,27 @@ const LABELS: ArchiveLabels = {
     errorTitle: "Could not change the versions",
 };
 
-const VERSION_GROUP_HELP =
-    "Which versions to list by their runs (run --group): those with a run outside a group or with none (the default), those whose every run is in a group (experiments, such as a sweep's variants), or all. Archiving is separate.";
-const GROUP_SELECT_MAX_WIDTH = 260;
+const VERSION_USAGE_HELP =
+    "Where the versions are used; a version is listed when it has any of the chosen usages. Evaluation: it has runs outside a group (the default). Groups: it has runs in a group (run --group), such as a sweep's variants. Unused: it has no run. Archived: the archived versions, which are listed only then.";
 
 /** The agent's versions: select some to archive them (hidden), switch "Show archived" to see, restore or delete them (an archived version, with its runs). */
 export function VersionsSection({
     agentName,
     versions,
-    showArchived,
-    onShowArchivedChange,
-    grouping,
-    onGroupingChange,
+    usage,
+    onUsageChange,
+    versionIds,
+    onVersionRemoved,
     onChanged,
 }: {
     agentName: string;
     versions: AgentVersion[];
-    showArchived: boolean;
-    onShowArchivedChange: (show: boolean) => void;
-    /** Which versions are listed by whether their runs are in groups: those in no group are the default. */
-    grouping: VersionGrouping;
-    onGroupingChange: (grouping: VersionGrouping) => void;
+    /** Where the listed versions are used: a version is listed when it has any of these (the archived ones only with `archived`). */
+    usage: VersionUsage[];
+    onUsageChange: (usage: VersionUsage[]) => void;
+    /** The versions the list is narrowed to (none: no narrowing); each is shown as a chip that removes it. */
+    versionIds: string[];
+    onVersionRemoved: (id: string) => void;
     /** Called after the server archived or restored versions, so the page loads the list again. */
     onChanged: () => void;
 }) {
@@ -62,7 +64,8 @@ export function VersionsSection({
     const list = useArchiveList((ids, archived) => archiveVersions(agentName, ids, archived), onChanged);
     const { selected } = list;
 
-    const shown = visibleItems(versions, showArchived).filter((version) => inVersionGrouping(version, grouping));
+    const showArchived = usage.includes("archived");
+    const shown = listedVersions(versions, usage, versionIds);
     const { items: listed, page } = pageOfItems(shown, requestedPage);
     const { toArchive, toRestore, toDelete } = archiveSelection(listed, selected, (version) => version.id);
     const toCompare = versionsToCompare(listed, selected);
@@ -77,18 +80,44 @@ export function VersionsSection({
             ) : (
                 <Paper withBorder p="md">
                     <Stack gap="sm">
-                        <Select
-                            label={<HeaderHelp label="Version group" help={VERSION_GROUP_HELP} />}
-                            data={VERSION_GROUPING_OPTIONS}
-                            value={grouping}
-                            onChange={(value) => {
-                                setRequestedPage(1);
-                                list.clear();
-                                onGroupingChange(versionGroupingOfValue(value));
-                            }}
-                            allowDeselect={false}
-                            maw={GROUP_SELECT_MAX_WIDTH}
-                        />
+                        <Stack gap={4}>
+                            <HeaderHelp label="Usage" help={VERSION_USAGE_HELP} />
+                            <Chip.Group
+                                multiple
+                                value={usage}
+                                onChange={(values) => {
+                                    setRequestedPage(1);
+                                    list.clear();
+                                    onUsageChange(usagesOfValues(values));
+                                }}
+                            >
+                                <Group gap="xs">
+                                    {VERSION_USAGE_OPTIONS.map((option) => (
+                                        <Chip key={option.value} value={option.value}>
+                                            {option.label}
+                                        </Chip>
+                                    ))}
+                                </Group>
+                            </Chip.Group>
+                        </Stack>
+                        {versionIds.length > 0 && (
+                            <Pill.Group>
+                                {versionIds.map((id) => (
+                                    <Pill
+                                        key={id}
+                                        withRemoveButton
+                                        removeButtonProps={{ "aria-label": `Remove version ${shortId(id)}`, "aria-hidden": false }}
+                                        onRemove={() => {
+                                            setRequestedPage(1);
+                                            list.clear();
+                                            onVersionRemoved(id);
+                                        }}
+                                    >
+                                        version {shortId(id)}
+                                    </Pill>
+                                ))}
+                            </Pill.Group>
+                        )}
                         <ArchiveControls
                             labels={LABELS}
                             toArchive={toArchive}
@@ -120,7 +149,7 @@ export function VersionsSection({
                             onShowArchivedChange={(show) => {
                                 setRequestedPage(1);
                                 list.clear();
-                                onShowArchivedChange(show);
+                                onUsageChange(usagesOfValues(show ? [...usage, "archived"] : usage.filter((one) => one !== "archived")));
                             }}
                         />
                         <Table.ScrollContainer minWidth={500}>
@@ -133,6 +162,12 @@ export function VersionsSection({
                                         </Table.Th>
                                         <Table.Th>
                                             <HeaderHelp label="Created" help={VERSION_CREATED_HELP} />
+                                        </Table.Th>
+                                        <Table.Th>
+                                            <HeaderHelp label="Runs" help={VERSION_RUNS_HELP} />
+                                        </Table.Th>
+                                        <Table.Th>
+                                            <HeaderHelp label="Group runs" help={VERSION_GROUP_RUNS_HELP} />
                                         </Table.Th>
                                         <Table.Th>
                                             <HeaderHelp label="Id" help={VERSION_ID_HELP} />
@@ -167,6 +202,8 @@ export function VersionsSection({
                                                 </Stack>
                                             </Table.Td>
                                             <Table.Td>{formatTime(version.createdAt)}</Table.Td>
+                                            <Table.Td>{version.runs}</Table.Td>
+                                            <Table.Td>{version.groupRuns}</Table.Td>
                                             <Table.Td>
                                                 <Anchor href={versionHref(agentName, version.id)}>{version.id}</Anchor>
                                             </Table.Td>
@@ -185,8 +222,8 @@ export function VersionsSection({
                         />
                         {listed.length === 0 && (
                             <Text c="dimmed">
-                                No version to list — archived versions are hidden unless Show archived is on, and versions with group runs
-                                only unless the group is Any group or All versions.
+                                No version to list — a version is listed when it has any of the chosen usages; archived versions only with
+                                Archived, and with a version chip only that version.
                             </Text>
                         )}
                     </Stack>
