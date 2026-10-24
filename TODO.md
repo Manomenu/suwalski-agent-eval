@@ -194,6 +194,31 @@ To do in that change:
 - **Later, only if this proves useful:** Suwageval sending its verdicts to Langfuse as scores per trace (an outside service, so a
   live test, the daily check and a secret, AGENTS.md section 3); Suwageval reading traces back; a `traceparent` header so the
   agent's spans join a trace Suwageval starts.
+- **The CLI says when it is older than the server.** After a change to the API an installed `suwageval` can fail on an answer it
+  does not know (a new field: the JSON is read strictly), with a parse error that says nothing about the cause; today the fix is
+  `just cli-install` in this repository, and the person has to guess it. Two parts, both small:
+  - **A version handshake:** the server sends its build (the commit, or the API's version) in a response header, the CLI knows its
+    own; when they differ and a request fails to parse, the CLI prints what to do instead of the parse error: "your suwageval is
+    older than the server (CLI <a>, server <b>): update it — `just cli-install` in the suwageval repository, or `dotnet tool update
+    --global Suwageval.Cli` once it is published". The plugin's skill repeats the hint when a command fails that way.
+  - **Tolerant reading of answers:** the CLI ignores fields it does not know in what the server sends (it still refuses unknown
+    fields in the YAML a person writes, where a typo must not pass), so most server changes need no update at all. Open: whether
+    the shared `ContractJson` options get a reading mode for answers, or the CLI keeps its own.
+- **`MSBUILDDISABLENODEREUSE=1` in the owner's environment — unsure, probably not needed.** `Directory.Build.rsp` (`-nodeReuse:false`)
+  already stops the idle MSBuild nodes of every command-line build in this repository (the agents' builds, `dotnet watch`, the
+  gate), which is what piled up to gigabytes. What it does not reach: VS Code's C# Dev Kit, which builds through the MSBuild API
+  (design-time builds after a branch switch or a project change) and keeps its own nodes — a handful, a few hundred MB, seen on
+  2026-10-24. Only the environment variable reaches those, set for the whole desktop session (`~/.config/environment.d/`, then
+  log in again). Its costs:
+  - **Every .NET project of the owner**, not only this one: each build starts its worker processes again instead of reusing warm
+    ones — a second or two per build on the command line, more where builds are many and small, which is what the editor's
+    design-time builds are: the project load after a branch switch and IntelliSense refreshes can feel slower.
+  - **Hidden and global:** a setting outside every repository that changes how builds behave; forgotten, it is hard to trace, and
+    it must be set again on a new machine.
+  - **It treats a symptom that is small now:** idle reused nodes end by themselves after a while; the large pile came from many
+    parallel command-line builds, which the `.rsp` already prevents.
+  Take it only if the editor's nodes are seen piling up again; until then `dotnet build-server shutdown` and closing the idle
+  nodes by hand is enough.
 - **Low priority, unsure it is worth it: tags matched by the system, not written in the scenario.** A tag would be defined
   once per agent with a description (`refunds: anything about returning money`), and a model assigns the most relevant tags
   to each scenario (on `push`, stored, shown as assigned, a tag written in the YAML still wins). Either another behaviour of
