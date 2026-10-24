@@ -80,7 +80,13 @@ To do in that change:
     say why); or (b) triage by tags: the agent's checks carry tags, the tags are agent-scoped with a description each, a
     model reads the conversation and picks the relevant tags, and only checks with those tags run. (b) needs no vector store
     and explains itself (the picked tags are stored with the result); (a) scales to many checks without curating tags.
-  - Open questions: sampling (not every conversation), a cost cap, which kinds of check make sense with no expected answer
+  - **The end of a conversation** is automatic: no turn for a while closes it and its checks run. How long is set per agent in
+    `agent.yaml` (`features.live.closeAfter`), default 30 minutes.
+  - **Further improvements, not in the first version, both in `agent.yaml` under `features.live`:** `sample` — the share of
+    conversations the SDK sends, drawn by `conversationId` so a conversation is whole or absent (default 1.0: every conversation,
+    once live is on); `keepDays` — after how many days a conversation's content is deleted while its check results stay for the
+    charts (default 30). Until `keepDays` is built, conversations are kept.
+  - Open questions: a cost cap, which kinds of check make sense with no expected answer
     (mostly `judge` and the negative `toolCall` / `event` checks), the CLI parity.
 
 - **Check types defined by the agent** (Langfuse's code evaluators, the black-box way). Besides the built-in check types, the
