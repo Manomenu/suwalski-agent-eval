@@ -2,7 +2,7 @@ extern alias Cli;
 
 using System.Text.Json;
 using Suwageval.AgentSdk;
-using Suwageval.Server.Scenarios;
+using Suwageval.Server.Evaluation.Scenarios;
 using ScenarioFileReader = Cli::Suwageval.Cli.Files.ScenarioFileReader;
 
 namespace Suwageval.Server.Tests.EndToEnd;

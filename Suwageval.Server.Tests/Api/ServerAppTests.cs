@@ -3,7 +3,7 @@ using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Suwageval.Contracts;
 using Suwageval.Server.Api;
-using Suwageval.Server.Tests.Runs;
+using Suwageval.Server.Tests.Evaluation.Runs;
 
 namespace Suwageval.Server.Tests.Api;
 

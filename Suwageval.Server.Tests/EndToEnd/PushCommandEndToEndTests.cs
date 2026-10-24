@@ -2,7 +2,7 @@ extern alias Cli;
 
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Suwageval.Server.Tests.Runs;
+using Suwageval.Server.Tests.Evaluation.Runs;
 using CliApp = Cli::Suwageval.Cli.CliApp;
 
 namespace Suwageval.Server.Tests.EndToEnd;

@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Suwageval.AgentSdk;
 using Suwageval.Contracts.Agents;
 using Suwageval.Server.Tests.Agents;
-using Suwageval.Server.Tests.Runs;
+using Suwageval.Server.Tests.Evaluation.Runs;
 
 namespace Suwageval.Server.Tests.Api;
 

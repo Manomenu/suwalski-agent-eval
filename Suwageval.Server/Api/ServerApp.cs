@@ -4,15 +4,15 @@ using Suwageval.AgentSdk;
 using Suwageval.Contracts;
 using Suwageval.Server.Agents;
 using Suwageval.Server.Agents.Versions;
-using Suwageval.Server.Checks;
 using Suwageval.Server.Database;
-using Suwageval.Server.Runs;
-using Suwageval.Server.Runs.AgentErrors;
-using Suwageval.Server.Runs.Compare;
-using Suwageval.Server.Runs.Groups;
-using Suwageval.Server.Runs.Trend;
-using Suwageval.Server.Runs.Unstable;
-using Suwageval.Server.Scenarios;
+using Suwageval.Server.Evaluation.Checks;
+using Suwageval.Server.Evaluation.Runs;
+using Suwageval.Server.Evaluation.Runs.AgentErrors;
+using Suwageval.Server.Evaluation.Runs.Compare;
+using Suwageval.Server.Evaluation.Runs.Groups;
+using Suwageval.Server.Evaluation.Runs.Trend;
+using Suwageval.Server.Evaluation.Runs.Unstable;
+using Suwageval.Server.Evaluation.Scenarios;
 
 namespace Suwageval.Server.Api;
 

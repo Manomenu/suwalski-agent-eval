@@ -1,7 +1,7 @@
 {{- /* Everything renders only while the release is enabled (values.yaml, enabled). */ -}}
 {{- if .Values.enabled }}
 {{- /*
-The daily check of the judge's model, from the cluster's own network (Suwageval.Server/Judges/JudgeLiveCheck.cs): one
+The daily check of the judge's model, from the cluster's own network (Suwageval.Server/LiveCheck/JudgeLiveCheck.cs): one
 judge call with a fixed tiny case, through the production code and the production model settings. The model is not ours and
 can change its answer without a commit here; asking from here, not from GitHub, because a service may block GitHub's runners
 while it still answers production. It writes nothing, so there is nothing to roll back. A problem fails the Job and, when a

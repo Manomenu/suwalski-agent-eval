@@ -324,7 +324,7 @@ An unknown `type` is an error.
 | `after` | a tool name or event type: only what came after it counts |
 | `before` | a tool name or event type: only what came before it counts |
 
-How a check is evaluated (the server's `Checks/`; no model involved, except for `judge`, below):
+How a check is evaluated (the server's `Verdicts/`; no model involved, except for `judge`, below):
 
 - **A turn** is the items one `POST {endpointUrl}/suwageval/turn` returned, in the order the agent produced them; turns
   are numbered from 1. A scenario has one turn, a simulation up to `continuation.turns`; in a simulation a turn opens with the

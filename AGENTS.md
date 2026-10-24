@@ -56,7 +56,7 @@ app keeps its tests beside its code, so those folders would only split the .NET 
 | --- | --- |
 | `Suwageval.slnx` | the .NET solution: the server, the CLI, the contracts and their tests |
 | `global.json`, `Directory.Build.props`, `Directory.Build.rsp`, `Directory.Packages.props` | the SDK band; the settings every C# project shares (nullable, analyzers, warnings as errors, lockfiles); MSBuild's switches for every build here (`-nodeReuse:false`: no idle worker processes left behind, which piled up to gigabytes with several checkouts building); every NuGet package and its version, named once |
-| `Suwageval.Server/` | the HTTP API (ASP.NET Core minimal APIs, PostgreSQL through Npgsql, SQL written by hand and mapped by Dapper). One folder — one namespace — per part: `Api/`, `Database/`, then one per feature, a sub-feature as a folder inside it (section 5.1: `Runs/Groups/`, `Runs/Compare/`, `Runs/Trend/`, `Runs/Unstable/`, `Runs/AgentErrors/`, `Checks/Evaluation/`, `Agents/Versions/`). `Runs/` holds the queue's worker (`RunWorker`, a hosted service); the tests share one database, so they run the server without it (`RunTestApp`) and take runs themselves, per agent. `Models/` holds the models Suwageval itself calls (`Models:<name>`): one chat client and one pool of concurrent calls per model. `Judges/` holds the verdict of a `judge` check (a Microsoft Agent Framework agent over a model's client) and the daily `live-check` command (`Program.cs` runs it for the chart's CronJob). `Simulation/` holds the simulated user of a simulated scenario (`Models:simulator` when configured, else the judge's model and so its pool) |
+| `Suwageval.Server/` | the HTTP API (ASP.NET Core minimal APIs, PostgreSQL through Npgsql, SQL written by hand and mapped by Dapper). One folder — one namespace — per part, in three kinds. **Top:** `Api/` (the routes' wiring) and `LiveCheck/` (the daily `live-check` command, `Program.cs` runs it for the chart's CronJob: it composes `Judges/` and `Simulation/`, so it sits above both). **An area** groups the features of one product area (section 4): `Evaluation/` holds `Runs/` (with its sub-features `Groups`, `Compare`, `Trend`, `Unstable`, `AgentErrors`: section 5.1; it also holds the queue's worker, `RunWorker`, a hosted service — the tests share one database, so they run the server without it (`RunTestApp`) and take runs themselves, per agent), `Simulation/` (the simulated user of a simulated scenario: `Models:simulator` when configured, else the judge's model and so its pool), `Invocation/`, `Checks/` (the stored checks of scenarios: endpoints, store, validation) and `Scenarios/`; a Monitoring area will stand beside it. **Shared** by the areas, never using one: `Judges/` (the verdict of a `judge` check: a Microsoft Agent Framework agent over a model's client), `Verdicts/` (the evaluation of one check on a conversation log: `CheckEvaluator`, `CheckVerdict`, …), `LanguageModels/` (the models Suwageval itself calls, configured as `Models:<name>`: one chat client and one pool of concurrent calls per model), `Agents/` (with `Versions/`), `Problems/` and `Database/` |
 | `Suwageval.Server/Database/Migrations/up/` | numbered SQL migrations, applied at start-up by grate (`Database/Migrator.cs`) |
 | `Suwageval.Server.Tests/` | the server's tests (xUnit v3), mirroring the server's folders; `ContractsTests.cs` holds the import contracts, `ProjectReferencesTests.cs` the project graph. `EndToEnd/` is the one place where the CLI runs against the server in process (`push`, `run`, `rerun`); only its types may use the CLI (`EndToEndContractsTests.cs`); `EveryEndpointHasACliCommandTests.cs` there lists every route the server maps with the command that covers it (or the reason it has none) |
 | `Suwageval.AgentSdk/` | the SDK of an agent under test, packed as a NuGet package for .NET agents (`net9.0;net10.0`, with the ASP.NET Core shared framework): `Agents/` the `AgentContract` with its parts and `AgentContractRules` (shared with the server), `Conversations/` the log items, `Invocation/` `TurnRequest`, `TurnResponse`, the two interfaces an agent implements and `MapSuwagevalAgent`, and `ContractJson` at the root. Namespace = folder path under `Suwageval.AgentSdk`; `Suwageval.Contracts` references it |
@@ -233,10 +233,17 @@ not by reviewers; a dependency against it fails with the types involved.
 | | Server | Web |
 | --- | --- | --- |
 | Where | `Layers` in `Suwageval.Server.Tests/ContractsTests.cs` (ArchUnitNET, on the compiled assembly) | `boundaries/*` in `Suwageval.Web/eslint.config.js` |
-| Today | `Api` → `Runs` → `Judges` → `Simulation` → `Checks` \| `Invocation` \| `Models` → `Scenarios` → `Agents` → `Database` | `main`/`App` → features → `api` \| `routes` \| `format` \| `help` (shared: plumbing, page addresses, formatting, the help header) |
-| A new feature | **must** get a layer — `Every_server_namespace_has_a_layer` fails otherwise | is a folder `src/<feature>/`, independent of other features by default |
+| Today | `Api` \| `LiveCheck` → the areas (`Evaluation`; areas never use each other) → `Judges` → `Verdicts` \| `LanguageModels` → `Agents` → `Database` \| `Problems`; inside `Evaluation`: `Runs` → `Simulation` → `Checks` \| `Invocation` → `Scenarios` | `main`/`App` → features → `api` \| `routes` \| `format` \| `help` (shared: plumbing, page addresses, formatting, the help header) |
+| A new feature | **must** get a layer (a feature of an area: its place in the area's order, `Areas` in the same file) — `Every_server_namespace_has_a_layer` fails otherwise | is a folder `src/<feature>/`, independent of other features by default |
 | Inside a feature | a sub-feature (a folder inside it, section 5.1) is used by neither its feature nor its siblings — checked for every one; a feature with several concerns declares its own order (e.g. endpoints → store → model) as a test beside the first | free |
 | Feature uses feature | only downwards, by its position in the layer list | only through an explicit policy in `eslint.config.js`, with a comment saying why |
+
+**Areas (server).** An area (`Evaluation/`, later `Monitoring/` beside it) groups the features of one
+product area; it is one entry in the top order and has an order of its own inside (`Areas` in
+`ContractsTests.cs`). Areas stand on one level, so **an area never uses another area**; the features
+every area needs (`Judges`, `Verdicts`, `LanguageModels`, `Agents`, `Database`, `Problems`) stand
+**below** the areas and **never use one**. What a second area needs from the first moves down into a
+shared feature. Top-level parts above the areas (`Api`, `LiveCheck`) compose them.
 
 **The CLI** is layered the same way, by `Layers` in `Suwageval.Cli.Tests/ContractsTests.cs`:
 root (`Program`, `CliApp`) → the commands `Init` \| `Validate` \| `Push` \| `Run` \| `Rerun` \| `Recheck` \| `Cancel` \| `Note` \| `Runs` \| `Groups` \| `Unstable` \| `AgentDelete` \| `Results` \| `Compare` \| `Sweep` \| `Versions` \| `Agents` \| `Scenarios` \| `Trend` (siblings: none uses another) →
@@ -324,19 +331,21 @@ a store, and forty records in a contracts folder are fine. The signs are about c
 
 Then split, choosing by which way the code depends:
 
-- **A sub-feature — a folder inside the feature** (`Runs/Groups/`, namespace
-  `Suwageval.Server.Runs.Groups`) when the part is built on its feature: it uses the feature's
+- **A sub-feature — a folder inside the feature** (`Evaluation/Runs/Groups/`, namespace
+  `Suwageval.Server.Evaluation.Runs.Groups`) when the part is built on its feature: it uses the feature's
   types and means nothing without it. It may use its feature and everything below; **its
   feature and its sibling sub-features never use it** — what they need moves up into the
   feature itself. Its routes are mapped by `Api/` next to the feature's. It shares its feature's
   layer, so it needs no entry in `Layers`; the gate checks the direction
   (`Sub_features_are_used_by_neither_their_feature_nor_their_siblings`). One level deep: a
-  sub-feature that needs sub-features of its own is a feature.
+  sub-feature that needs sub-features of its own is a feature. With areas (section 4) the depth is
+  area → feature → sub-feature, at most three levels; a feature that stands in no area (`Agents/Versions/`)
+  has two.
 - **A sibling feature — a folder on the same level** when the part stands on its own: it reads
   or writes its own data, or another feature would use it too. It gets its own layer in
   `Layers` like any feature.
 
-The tests follow the same tree (`Suwageval.Server.Tests/Runs/Groups/`). Split in a change of
+The tests follow the same tree (`Suwageval.Server.Tests/Evaluation/Runs/Groups/`). Split in a change of
 its own, not mixed into a feature: moves only, so the diff is easy to review.
 
 A change to one feature should touch one place on each side.

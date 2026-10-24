@@ -1,9 +1,9 @@
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Options;
+using Suwageval.Server.Evaluation.Simulation;
 using Suwageval.Server.Judges;
-using Suwageval.Server.Models;
-using Suwageval.Server.Simulation;
+using Suwageval.Server.LanguageModels;
 
 namespace Suwageval.Server.Tests.Judges;
 
