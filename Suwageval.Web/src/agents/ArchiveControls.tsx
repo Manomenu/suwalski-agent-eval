@@ -13,7 +13,7 @@ export interface ArchiveLabels {
 }
 
 /**
- * The toolbar above an archivable list: archive and restore the ticked rows, delete one archived row, "Show archived", and the notice
+ * The toolbar above an archivable list: archive and restore the ticked rows, delete one archived row, "Show archived" (unless the list has its own control for it), and the notice
  * or error of the last change. `extra` is a button of the list itself, placed after "Archive".
  */
 export function ArchiveControls({
@@ -41,7 +41,8 @@ export function ArchiveControls({
     extra?: ReactNode;
     onChange: (keys: string[], archived: boolean) => void;
     onDelete: () => void;
-    onShowArchivedChange: (show: boolean) => void;
+    /** Absent when the list has its own way to show archived rows (the Versions page's Archived usage chip): no switch then. */
+    onShowArchivedChange?: (show: boolean) => void;
 }) {
     return (
         <>
@@ -80,13 +81,15 @@ export function ArchiveControls({
                         </Button>
                     )}
                 </Group>
-                <Switch
-                    label={labels.showArchived}
-                    checked={showArchived}
-                    onChange={(event) => {
-                        onShowArchivedChange(event.currentTarget.checked);
-                    }}
-                />
+                {onShowArchivedChange && (
+                    <Switch
+                        label={labels.showArchived}
+                        checked={showArchived}
+                        onChange={(event) => {
+                            onShowArchivedChange(event.currentTarget.checked);
+                        }}
+                    />
+                )}
             </Group>
             {notice !== null && <Alert color="green">{notice}</Alert>}
             {error !== null && (

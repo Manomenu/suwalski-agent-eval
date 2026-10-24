@@ -1,4 +1,4 @@
-import { Anchor, Badge, Button, Checkbox, Chip, Group, Paper, Pill, Stack, Table, Text, Title } from "@mantine/core";
+import { Anchor, Badge, Button, Checkbox, Chip, Group, Paper, Pill, Stack, Table, Text, Title, Tooltip } from "@mantine/core";
 
 import { type AgentVersion } from "../agents/api";
 import { DeleteModal } from "../agents/DeleteModal";
@@ -27,6 +27,9 @@ import { formatTime } from "../format/time";
 import { shortId, versionTitle } from "../format/names";
 import { archiveVersions, deleteVersion, fetchVersionDeletion } from "./api";
 
+/** How wide a usage chip's tooltip is. */
+const USAGE_HELP_WIDTH = 280;
+
 const LABELS: ArchiveLabels = {
     archive: "Archive selected",
     unarchive: "Unarchive selected",
@@ -39,7 +42,7 @@ const LABELS: ArchiveLabels = {
 const VERSION_USAGE_HELP =
     "Where the versions are used; a version is listed when it has any of the chosen usages. Evaluation: it has runs outside a group (the default). Groups: it has runs in a group (run --group), such as a sweep's variants. Unused: it has no run. Archived: the archived versions, which are listed only then.";
 
-/** The agent's versions: select some to archive them (hidden), switch "Show archived" to see, restore or delete them (an archived version, with its runs). */
+/** The agent's versions: select some to archive them (hidden), turn on the Archived usage chip to see, restore or delete them (an archived version, with its runs). */
 export function VersionsSection({
     agentName,
     versions,
@@ -93,9 +96,11 @@ export function VersionsSection({
                             >
                                 <Group gap="xs">
                                     {VERSION_USAGE_OPTIONS.map((option) => (
-                                        <Chip key={option.value} value={option.value}>
-                                            {option.label}
-                                        </Chip>
+                                        <Tooltip key={option.value} label={option.help} multiline w={USAGE_HELP_WIDTH}>
+                                            <span>
+                                                <Chip value={option.value}>{option.label}</Chip>
+                                            </span>
+                                        </Tooltip>
                                     ))}
                                 </Group>
                             </Chip.Group>
@@ -145,11 +150,6 @@ export function VersionsSection({
                             }}
                             onDelete={() => {
                                 list.setDeleting(true);
-                            }}
-                            onShowArchivedChange={(show) => {
-                                setRequestedPage(1);
-                                list.clear();
-                                onUsageChange(usagesOfValues(show ? [...usage, "archived"] : usage.filter((one) => one !== "archived")));
                             }}
                         />
                         <Table.ScrollContainer minWidth={500}>

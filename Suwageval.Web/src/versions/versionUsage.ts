@@ -7,12 +7,24 @@ const USAGE_PARAM = "usage";
 const VERSION_PARAM = "version";
 const LEGACY_PARAM = "versions";
 
-/** The usages in the order the chips show them. */
-export const VERSION_USAGE_OPTIONS: { value: VersionUsage; label: string }[] = [
-    { value: "evaluation", label: "Evaluation" },
-    { value: "groups", label: "Groups" },
-    { value: "unused", label: "Unused" },
-    { value: "archived", label: "Archived" },
+/** The usages in the order the chips show them, with what each means (the chip's tooltip). */
+export const VERSION_USAGE_OPTIONS: { value: VersionUsage; label: string; help: string }[] = [
+    {
+        value: "evaluation",
+        label: "Evaluation",
+        help: "Versions with runs in no group: the agent's ordinary runs, its history and regressions.",
+    },
+    {
+        value: "groups",
+        label: "Groups",
+        help: "Versions with runs in a group (a sweep or an experiment). A version used only there shows only with this on.",
+    },
+    { value: "unused", label: "Unused", help: "Versions with no run yet, e.g. one just pushed." },
+    {
+        value: "archived",
+        label: "Archived",
+        help: "Archived versions: they show only with this on, and then they can be restored or deleted (with their runs).",
+    },
 ];
 
 /** What the page lists when the address says nothing: versions with runs outside a group and versions with no runs yet (a fresh push), as before the filter. */

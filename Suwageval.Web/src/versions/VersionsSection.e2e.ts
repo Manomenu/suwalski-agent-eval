@@ -1,4 +1,4 @@
-// Archiving versions: select one, archive it (it disappears, and so do its runs), see it again with "Show archived", restore it.
+// Archiving versions: select one, archive it (it disappears, and so do its runs), see it again with the Archived usage chip, restore it.
 // Deleting: an archived version goes with its runs, after its id is typed in the confirmation.
 // A version only comes from a run, and a run reads the contract the agent serves, so the test is that agent: a tiny HTTP server.
 import { expect, test } from "@playwright/test";
@@ -43,20 +43,20 @@ test("versions are archived, shown again on request, restored and deleted with t
         await expect(runRows).toHaveCount(2);
 
         await page.goto(`/agents/${name}`);
-        await page.getByRole("switch", { name: "Show archived", exact: true }).check();
+        await page.locator("label", { hasText: /^Archived$/ }).click();
         await expect(garbageVersion).toBeVisible();
         await expect(page.getByRole("cell").getByText("Archived", { exact: true })).toBeVisible();
 
         await garbageVersion.check();
         await page.getByRole("button", { name: "Unarchive selected", exact: true }).click();
         await expect(page.getByRole("cell").getByText("Archived", { exact: true })).toHaveCount(0);
-        await page.getByRole("switch", { name: "Show archived", exact: true }).uncheck();
+        await page.locator("label", { hasText: /^Archived$/ }).click();
         await expect(garbageVersion).toBeVisible();
 
         await garbageVersion.check();
         await archive.click();
         await expect(garbageVersion).toHaveCount(0);
-        await page.getByRole("switch", { name: "Show archived", exact: true }).check();
+        await page.locator("label", { hasText: /^Archived$/ }).click();
         const open = page.getByRole("button", { name: "Delete", exact: true });
         await expect(open).toBeDisabled();
         await garbageVersion.check();
