@@ -47,7 +47,7 @@ export default defineConfig(
                 // Order matters: the first matching pattern wins.
                 { type: "api", pattern: "src/api" },
                 // The folders no area owns, used by every area the way api/ is: routes/ (the addresses of the pages), format/, help/,
-                // tagSelect/, tagFilter/, dataVersion/, diff/, note/, pagination/, print/, shell/ (the sidebar), health/, and the two
+                // tagSelect/, tagFilter/, dataVersion/, conversation/ (the items of a conversation log, shown by a run and by a monitored conversation), diff/, note/, pagination/, print/, shell/ (the sidebar), health/, and the two
                 // pieces of an agent that more than one area shows: agents/ (the list, the delete plumbing) and versions/, and archive/ (the "Archived" chip and the archive plumbing both lists share).
                 {
                     type: "shared",
@@ -58,6 +58,7 @@ export default defineConfig(
                         "src/tagSelect",
                         "src/tagFilter",
                         "src/dataVersion",
+                        "src/conversation",
                         "src/diff",
                         "src/note",
                         "src/pagination",
@@ -141,6 +142,8 @@ export default defineConfig(
                             // each check with the list, and the card sits under the icon of an unstable check (checks/ owns it).
                             ["runs", "unstable"],
                             ["unstable", "checks"],
+                            // Monitoring: the agent's Monitoring page lists its conversations through conversations/.
+                            ["agent", "conversations"],
                         ].map(([from, to]) => ({
                             from: { element: { type: "areaFeature", captured: { name: from } } },
                             allow: {

@@ -16,6 +16,12 @@ describe("deletionSummary", () => {
     it("counts what goes", () => {
         expect(deletionSummary({ runs: 3, samples: 12, verdicts: 36 })).toBe("3 runs, 12 samples and 36 verdicts will be deleted");
         expect(deletionSummary({ runs: 1, samples: 1, verdicts: 1 })).toBe("1 run, 1 sample and 1 verdict will be deleted");
+        expect(deletionSummary({ runs: 1, samples: 1, verdicts: 1, conversations: 0 })).toBe(
+            "1 run, 1 sample and 1 verdict will be deleted",
+        );
+        expect(deletionSummary({ runs: 0, samples: 0, verdicts: 0, conversations: 2 })).toBe(
+            "0 runs, 0 samples, 0 verdicts and 2 monitored conversations will be deleted",
+        );
     });
 });
 

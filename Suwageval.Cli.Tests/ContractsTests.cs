@@ -22,7 +22,7 @@ public sealed class ContractsTests
     private static readonly string[] Layers =
     [
         ".",
-        "Evaluation | Init | Agents | Versions | AgentDelete",
+        "Evaluation | Monitoring | Init | Agents | Versions | AgentDelete",
         "Output",
         "Validation | Server",
         "Files",
@@ -35,6 +35,7 @@ public sealed class ContractsTests
         [
             "Validate | Push | Run | Rerun | Recheck | Cancel | Results | Compare | Sweep | Runs | Groups | Note | Scenarios | Trend | Unstable | AgentErrors",
         ],
+        ["Monitoring"] = ["Conversations"],
     };
 
     private static readonly Architecture Cli = new ArchLoader().LoadAssemblies(typeof(CliApp).Assembly).Build();

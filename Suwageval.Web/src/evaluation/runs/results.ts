@@ -1,7 +1,8 @@
 // What the run page shows, as plain functions: labels, numbers and which items to highlight.
 import { formatSeconds, percent } from "../../format/numbers";
 import { versionTitle } from "../../format/names";
-import type { CheckRunResult, ConversationItem, RunResults, RunSummary, ScenarioRunResult } from "./api";
+import { itemKey } from "../../conversation/items";
+import type { CheckRunResult, RunResults, RunSummary, ScenarioRunResult } from "./api";
 
 export const POLL_INTERVAL_MS = 2000;
 
@@ -149,10 +150,6 @@ export function scenariosSamplesCounts(
     };
 }
 
-export function itemKey(item: ConversationItem): string {
-    return JSON.stringify(item);
-}
-
 /** The items failed checks point at for one sample — to highlight them in the agent's output. */
 export function failedEvidenceKeys(scenario: ScenarioRunResult, sample: number): Set<string> {
     const keys = new Set<string>();
@@ -179,48 +176,6 @@ export function sampleVerdict(scenario: ScenarioRunResult, sample: number): Samp
     if (verdicts.some((verdict) => verdict.notJudged)) return { kind: "not judged", failedChecks };
     if (scenario.samples.find((candidate) => candidate.sample === sample)?.status === "Failed") return { kind: "no output", failedChecks };
     return { kind: verdicts.length > 0 ? "passed" : "unchecked", failedChecks };
-}
-
-export function itemTitle(item: ConversationItem): string {
-    switch (item.kind) {
-        case "UserMessage":
-            return "user";
-        case "AssistantMessage":
-            return item.interrupted === true ? "agent (interrupted)" : "agent";
-        case "ToolCall":
-            return `call: ${item.name}`;
-        case "ToolResult":
-            return item.isError === true ? "tool result (error)" : "tool result";
-        case "Retrieval":
-            return `retrieval: ${item.query}`;
-        case "Event":
-            return `event: ${item.type}`;
-        case undefined:
-            break;
-    }
-    return "?";
-}
-
-/** The body of an item as text: message text, pretty arguments, a result, retrieved chunks. */
-export function itemBody(item: ConversationItem): string {
-    switch (item.kind) {
-        case "UserMessage":
-        case "AssistantMessage":
-            return item.text;
-        case "ToolCall":
-            return JSON.stringify(item.arguments, null, 2);
-        case "ToolResult":
-            return item.content;
-        case "Retrieval":
-            return item.chunks
-                .map((chunk) => `[${chunk.source}${chunk.score == null ? "" : `, ${chunk.score.toFixed(2)}`}] ${chunk.text}`)
-                .join("\n\n");
-        case "Event":
-            return JSON.stringify(item.data, null, 2);
-        case undefined:
-            break;
-    }
-    return "";
 }
 
 /** "Turn time: median 9.8 s · p95 109.1 s" over all samples of the run that made a call; null when none did. `label` replaces "Turn time". */

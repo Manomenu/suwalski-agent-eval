@@ -64,7 +64,7 @@ user's clone of the suwageval repository, wherever they keep it: if its folder i
 
 ## Commands
 
-`suwageval --help` groups the commands by area (Evaluation, Agent; Monitoring later); the names are flat.
+`suwageval --help` groups the commands by area (Evaluation, Monitoring, Agent); the names are flat, except the Monitoring area's, under `suwageval monitoring`.
 
 | want | command |
 | --- | --- |
@@ -93,6 +93,8 @@ user's clone of the suwageval repository, wherever they keep it: if its folder i
 | read the others against one of those runs | add `--baseline <runId>` (one of the runs; with `--group`, any run of the group): also prints, against that run, each run's judge model, pass rate and turn time changes, the pass rate changes per tag and the checks that differ with the trend (▲ better, ▼ worse), with a `judge differs from baseline` warning when the judge model changed |
 | archive, restore or delete a run group | `suwageval groups archive <name>...` / `unarchive <name>...` (hidden from the web's Groups section, kept); `suwageval groups delete <name>` deletes an archived group with its runs (`--dry-run`, `--yes`; ask the user first: it cannot be undone) |
 | open that comparison on the web, only when the user wants the page | `suwageval compare <runId>... --open` (or `--group <name>`; with `--baseline` when meant); `--print` makes the page open the browser's print dialog, at most 7 runs fit a printed page (more: exit 2, compare fewer): only when the user asks to print, never on your own |
+| list the conversations the deployed agent sent (monitoring on: `features.monitoring` in `agent.yaml`) | `suwageval monitoring conversations` (`--limit N` up to 100, `--environment <name>`, `--version <id>` repeatable, `--state Open|Closed`, `--json`): per conversation id, environment, state, turns, the version of its last turn (marked when it changed during it), the last turn, the agent's own id of it; "No conversations." when none |
+| read one monitored conversation | `suwageval monitoring conversation <id>` (`--json`): its line, then each turn with its items (the user's message, tool calls and results, retrievals, events, the answer) |
 | show what the server stores for the repository's agent | `suwageval agent` (`--json`): endpoint, number of versions, scenarios and checks, samples, regression settings |
 | list the agent's versions | `suwageval versions` (`--usage evaluation|groups|unused|archived`, repeatable or comma-separated, lists the versions with any of those usages: runs outside a group, runs in a group, no run, archived; the default is `evaluation,unused` (a fresh version with no runs shows too); `--version <id>` repeatable narrows to those versions; the text line and `--json` carry `runs` and `groupRuns`. The older flags still work, but not with `--usage`: `--archived` to include archived ones, `--json`; a version whose every run is in a group, e.g. a sweep's variant, is left out like group runs are: `--any-group` lists only those, `--all-versions` both; `--json` carries `groupRunsOnly`, and a text line marks it `group runs only`) |
 | archive or restore versions | `suwageval versions archive <versionId>...`, `suwageval versions unarchive <versionId>...` |

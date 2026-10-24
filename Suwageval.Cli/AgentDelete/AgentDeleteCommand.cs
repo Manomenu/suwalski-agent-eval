@@ -75,6 +75,6 @@ internal static class AgentDeleteCommand
     private static string Preview(AgentDeletion contents) =>
         string.Create(
             CultureInfo.InvariantCulture,
-            $"agent {contents.Name}\nwould delete: {contents.Versions} version(s), {contents.Scenarios} scenario(s), {contents.Checks} check(s), {contents.Runs} run(s), {contents.Samples} sample(s), {contents.Verdicts} verdict(s)"
+            $"agent {contents.Name}\nwould delete: {contents.Versions} version(s), {contents.Scenarios} scenario(s), {contents.Checks} check(s), {contents.Runs} run(s), {contents.Samples} sample(s), {contents.Verdicts} verdict(s){(contents.Conversations > 0 ? $", {contents.Conversations} monitored conversation(s)" : "")}"
         );
 }

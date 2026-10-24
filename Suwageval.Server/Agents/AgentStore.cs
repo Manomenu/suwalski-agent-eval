@@ -231,7 +231,8 @@ internal sealed class AgentStore(Pool pool)
                        (SELECT count(*) FROM scenario_results s JOIN runs r ON r.id = s.run_id WHERE r.agent_id = @agentId)::int AS Samples,
                        (SELECT count(*) FROM check_results c
                         JOIN scenario_results s ON s.id = c.scenario_result_id
-                        JOIN runs r ON r.id = s.run_id WHERE r.agent_id = @agentId)::int AS Verdicts
+                        JOIN runs r ON r.id = s.run_id WHERE r.agent_id = @agentId)::int AS Verdicts,
+                       (SELECT count(*) FROM monitoring_conversations WHERE agent_id = @agentId)::int AS Conversations
                 """,
                 new { agentId },
                 transaction,
@@ -246,7 +247,8 @@ internal sealed class AgentStore(Pool pool)
             counts.Checks,
             counts.Runs,
             counts.Samples,
-            counts.Verdicts
+            counts.Verdicts,
+            counts.Conversations
         );
         if (counts.Active > 0)
         {
@@ -268,7 +270,16 @@ internal sealed class AgentStore(Pool pool)
         return new DeletionResult<AgentDeletion>(DeletionOutcome.Deleted, contents);
     }
 
-    private sealed record AgentDeletionCounts(int Versions, int Scenarios, int Checks, int Runs, int Active, int Samples, int Verdicts);
+    private sealed record AgentDeletionCounts(
+        int Versions,
+        int Scenarios,
+        int Checks,
+        int Runs,
+        int Active,
+        int Samples,
+        int Verdicts,
+        int Conversations
+    );
 
     public async Task<AgentVersionRow?> GetVersionAsync(Guid versionId, CancellationToken cancellationToken = default)
     {
@@ -277,6 +288,19 @@ internal sealed class AgentStore(Pool pool)
             new CommandDefinition(
                 $"SELECT {VersionColumns} FROM agent_versions WHERE id = @versionId",
                 new { versionId },
+                cancellationToken: cancellationToken
+            )
+        );
+    }
+
+    /// <summary>The agent's version with this content hash (<see cref="Suwageval.AgentSdk.Agents.AgentContractHash"/>), or null.</summary>
+    public async Task<AgentVersionRow?> FindVersionAsync(Guid agentId, string contentHash, CancellationToken cancellationToken = default)
+    {
+        await using var connection = await pool.OpenAsync(cancellationToken);
+        return await connection.QuerySingleOrDefaultAsync<AgentVersionRow>(
+            new CommandDefinition(
+                $"SELECT {VersionColumns} FROM agent_versions WHERE agent_id = @agentId AND content_hash = @contentHash",
+                new { agentId, contentHash },
                 cancellationToken: cancellationToken
             )
         );

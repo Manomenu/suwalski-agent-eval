@@ -18,6 +18,9 @@ app.MapSuwagevalAgent();   // GET /suwageval/contract, POST /suwageval/turn
 - `request.FixturesAs<T>()`: the scenario's fixtures as your type, strict about members it does not declare; null when there are none.
 - `ContractSchema.ObjectSchema(properties, required)` and `EnumSchema<TEnum>()`: the JSON schemas of event data and fixtures in your contract.
 - `TurnRejectedException(reason)`: thrown by your handler for a conversation it cannot answer; the turn is answered 400 with the reason.
+- Monitoring of a deployed agent: `builder.Services.AddSuwagevalMonitoring(builder.Configuration)` (the section `Suwageval`: `Url`,
+  `Agent`, `Environment`, optionally `AccessClientId`/`AccessClientSecret`), then `IConversationRecorder.Record(conversationId, items)`
+  after each real turn; the turns go to Suwageval in the background. Without `Suwageval:Url` the recorder does nothing.
 
 The HTTP contract stays the source of truth; this package saves a .NET agent from re-declaring it.
 

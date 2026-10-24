@@ -27,9 +27,10 @@ test("the runs table hides group runs by default, and a group is archived, shown
         expect(await status.evaluate((cell) => cell.scrollWidth <= cell.clientWidth)).toBe(true);
 
         await page.setViewportSize({ width: 500, height: 800 });
-        expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(
-            0,
-        );
+        // Polled: right after the resize the shell is still moving to its phone layout, and a frame may overflow for a moment.
+        await expect
+            .poll(() => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth))
+            .toBeLessThanOrEqual(0);
         await page.setViewportSize({ width: 1280, height: 800 });
 
         // Any group, All runs and one group by name; the choice is in the address, so a link keeps it.

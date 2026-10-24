@@ -1389,6 +1389,125 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/monitoring/turns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["TurnBatch"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TurnBatchAnswer"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/monitoring/agents/{agent}/conversations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    environment?: string;
+                    version?: string[];
+                    state?: components["schemas"]["ConversationState"];
+                    page?: number;
+                    pageSize?: number;
+                };
+                header?: never;
+                path: {
+                    agent: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConversationList"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/monitoring/conversations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConversationDetail"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1423,7 +1542,10 @@ export interface components {
             regression?: null | components["schemas"]["RegressionSettings"];
             features?: null | components["schemas"]["AgentFeatures"];
         };
-        /** @description What deleting an agent removes with it: its versions, scenarios and checks, and every run with its samples and the verdicts on those. */
+        /**
+         * @description What deleting an agent removes with it: its versions, scenarios and checks, every run with its samples and the verdicts on those, and
+         *     its monitored conversations.
+         */
         AgentDeletion: {
             /** Format: uuid */
             agentId: string;
@@ -1440,6 +1562,11 @@ export interface components {
             samples: number;
             /** Format: int32 */
             verdicts: number;
+            /**
+             * Format: int32
+             * @default 0
+             */
+            conversations: number;
         };
         /** @description An agent with what is stored for it: counts of active (not archived) versions, live scenarios and live checks. */
         AgentDetail: {
@@ -1942,6 +2069,11 @@ export interface components {
              */
             simulatedUser?: null | string;
         };
+        /** @description A monitored conversation with its turns, oldest first. */
+        ConversationDetail: {
+            conversation: components["schemas"]["ConversationSummary"];
+            turns: components["schemas"]["ConversationTurn"][];
+        };
         /** @description One entry of the conversation log, told apart by `kind`. */
         ConversationItem: components["schemas"]["ConversationItemUserMessage"] | components["schemas"]["ConversationItemAssistantMessage"] | components["schemas"]["ConversationItemToolCall"] | components["schemas"]["ConversationItemToolResult"] | components["schemas"]["ConversationItemRetrieval"] | components["schemas"]["ConversationItemEvent"];
         ConversationItemAssistantMessage: {
@@ -1990,6 +2122,77 @@ export interface components {
             kind?: "UserMessage";
             text: string;
         };
+        /** @description One page of an agent's monitored conversations, the one with the newest turn first. */
+        ConversationList: {
+            conversations: components["schemas"]["ConversationSummary"][];
+            /**
+             * Format: int32
+             * @description The page these are (1-based): the one asked for, or the last one when that is past the end.
+             */
+            page: number;
+            /**
+             * Format: int32
+             * @description How many conversations match the filters, over all pages.
+             */
+            totalCount: number;
+            /** @description The environments the agent's conversations came from, sorted: what the environment filter offers. */
+            environments: string[];
+        };
+        /**
+         * @description Where a monitored conversation stands: `Open` while its turns come, `Closed` once none came for the agent's
+         *     `features.monitoring.closeAfter` (a turn after that opens it again).
+         * @enum {unknown}
+         */
+        ConversationState: "Open" | "Closed";
+        /** @description A conversation of a monitored agent, without its turns. */
+        ConversationSummary: {
+            /**
+             * Format: uuid
+             * @description Suwageval's id of the conversation.
+             */
+            id: string;
+            agent: string;
+            environment: string;
+            /** @description The agent's own id of the conversation, as it sent it. */
+            conversationId: string;
+            /**
+             * Format: uuid
+             * @description The version that answered its last turn.
+             */
+            agentVersionId: string;
+            /** @description The label of that version's contract, if any. */
+            versionLabel?: null | string;
+            /** @description True when an earlier turn was answered by another version (the agent was redeployed during the conversation). */
+            versionChanged?: boolean;
+            /** @description The retrieval data of its last turn, when the agent sends it. */
+            dataVersion?: null | string;
+            state: components["schemas"]["ConversationState"];
+            /** Format: int32 */
+            turns: number;
+            /**
+             * Format: date-time
+             * @description When its first and its last turn ended, by the agent's clock.
+             */
+            startedAt: string;
+            /** Format: date-time */
+            lastTurnAt: string;
+            /** Format: date-time */
+            closedAt?: null | string;
+        };
+        /** @description One turn of a monitored conversation as the agent recorded it. */
+        ConversationTurn: {
+            /** Format: uuid */
+            id: string;
+            /**
+             * Format: date-time
+             * @description When the turn ended, by the agent's clock.
+             */
+            at: string;
+            /** Format: uuid */
+            agentVersionId: string;
+            dataVersion?: null | string;
+            items: components["schemas"]["ConversationItem"][];
+        };
         /** @description A stretch of a line diff: lines to show, or unchanged lines folded away until the reader opens them. */
         DiffBlock: {
             folded: boolean;
@@ -2037,6 +2240,30 @@ export interface components {
         ModelDefinition: {
             name: string;
             parameters?: null | components["schemas"]["JsonElement"];
+        };
+        /**
+         * @description One turn of a conversation in a monitored environment: what the user said and everything the agent did and answered, in order
+         *     (the same items as a turn of an evaluation, IReadOnlyList&lt;ConversationItem&gt; TurnResponse.Items, with the user's message first).
+         */
+        MonitoredTurn: {
+            /**
+             * Format: uuid
+             * @description The turn's own id, made by the sender: a turn sent twice (a retry) is stored once.
+             */
+            id: string;
+            /** @description The agent's id of the conversation; its turns are one conversation in Suwageval (per environment). */
+            conversationId: string;
+            /**
+             * Format: date-time
+             * @description When the turn ended, by the agent's clock.
+             */
+            at: string;
+            items: components["schemas"]["ConversationItem"][];
+            /**
+             * @description The retrieval data the turn was answered from (`context.retrieval.dataVersion`), when the agent can say it cheaply; none
+             *     otherwise. Not part of the version: Suwageval only marks where it changed.
+             */
+            dataVersion?: null | string;
         };
         /** @description How the conversations of a monitored agent are taken (`features.monitoring` in `agent.yaml`), every part optional. */
         MonitoringSettings: {
@@ -2560,6 +2787,31 @@ export interface components {
          * @enum {unknown}
          */
         Trend: "Same" | "Better" | "Worse";
+        /**
+         * @description What a monitored agent sends to `POST /api/monitoring/turns`: turns of its conversations, with the version that answered them
+         *     named by its contract hash (string AgentContractHash.Of(AgentContract contract)). When the server does not know the hash it answers
+         *     bool TurnBatchAnswer.SendContract and stores nothing; the same turns come again with AgentContract? TurnBatch.Contract, from which
+         *     the server registers the version, as a run does.
+         */
+        TurnBatch: {
+            /** @description The agent's name in Suwageval (`name` in its `agent.yaml`). */
+            agent: string;
+            /** @description The environment the agent runs in (`Suwageval:Environment`), one its `features.monitoring.environments` takes. */
+            environment: string;
+            contractHash: string;
+            contract?: null | components["schemas"]["AgentContract"];
+            turns: components["schemas"]["MonitoredTurn"][];
+        };
+        /** @description The server's answer to a TurnBatch. */
+        TurnBatchAnswer: {
+            /**
+             * Format: int32
+             * @description How many of the turns were new (a turn sent before is not stored twice).
+             */
+            stored: number;
+            /** @description The server does not know the contract hash: nothing was stored, send the same turns again with the contract. */
+            sendContract?: boolean;
+        };
         /** @description Which turn a check looks at: a number (from 1), `"last"` or `"any"`. The default value is "any". */
         TurnSelector: unknown;
         /**
@@ -2673,7 +2925,10 @@ export interface components {
             /** @description One per run, in the order of IReadOnlyList&lt;VariantRun&gt; RunComparison.Runs; null for a run that did not run the scenario. */
             cells: components["schemas"]["VariantCell"][];
         };
-        /** @description What deleting an archived version removes with it: the runs (re-checks of them included), their samples and the verdicts on those. */
+        /**
+         * @description What deleting an archived version removes with it: the runs (re-checks of them included), their samples and the verdicts on those, and
+         *     the monitored conversations it answered a turn of (a conversation goes whole, not with a gap).
+         */
         VersionDeletion: {
             /** Format: uuid */
             versionId: string;
@@ -2684,6 +2939,11 @@ export interface components {
             /** Format: int32 */
             verdicts: number;
             label?: null | string;
+            /**
+             * Format: int32
+             * @default 0
+             */
+            conversations: number;
         };
         /**
          * @description What changed between two versions of an agent: both contracts written as YAML and compared line by line. AgentVersion VersionDiff.From is the

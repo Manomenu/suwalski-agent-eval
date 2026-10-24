@@ -4,6 +4,7 @@ import { fetchAgent } from "../../agents/api";
 import { AreaOff } from "../../agents/AreaOff";
 import { Page } from "../../agents/Page";
 import { useRequest } from "../../api/useRequest";
+import { ConversationsSection } from "../conversations/ConversationsSection";
 import { monitoringSettingsText } from "./settings";
 
 /** `/agents/<name>/monitoring`: the conversations of the deployed agent and the checks run on them, when its monitoring is on. */
@@ -23,6 +24,7 @@ export function MonitoringPage({ name }: { name: string }) {
                                 <Text c="dimmed">{monitoringSettingsText(agent.features.monitoring)}</Text>
                             </Stack>
                         </Paper>
+                        <ConversationsSection agent={agent.name} />
                     </Stack>
                 )
             }

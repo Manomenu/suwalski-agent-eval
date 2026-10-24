@@ -70,6 +70,11 @@ public sealed class EveryEndpointHasACliCommandTests(TestDatabase database) : IA
         ["GET /eval/agents/{agent}/pass-rates"] = Cli("trend"),
         ["GET /eval/agents/{agent}/unstable-checks"] = Cli("unstable"),
         ["GET /eval/agents/{agent}/agent-errors"] = Cli("agent-errors"),
+        ["POST /monitoring/turns"] = NotForCli(
+            "Sent by a monitored agent (the SDK, or an agent speaking its protocol), never by a person."
+        ),
+        ["GET /monitoring/agents/{agent}/conversations"] = Cli("monitoring conversations"),
+        ["GET /monitoring/conversations/{id}"] = Cli("monitoring conversation"),
     };
 
     public ValueTask DisposeAsync() => app.DisposeAsync();

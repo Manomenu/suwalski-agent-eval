@@ -110,7 +110,8 @@ internal sealed class VersionStore(Pool pool)
     }
 
     /// <summary>
-    /// Deletes an archived version of the agent, with its runs, samples and verdicts (the foreign keys cascade), unless one of those runs is
+    /// Deletes an archived version of the agent, with its runs, samples and verdicts (the foreign keys cascade) and the monitored conversations
+    /// it answered a turn of, unless one of those runs is
     /// queued or running; <paramref name="dryRun"/> only decides and counts. The version's row is locked, so no run is queued for it in between.
     /// </summary>
     public async Task<DeletionResult<VersionDeletion>> DeleteVersionAsync(
@@ -147,14 +148,17 @@ internal sealed class VersionStore(Pool pool)
                        (SELECT count(*) FROM doomed WHERE status IN ('Queued', 'Running'))::int AS Active,
                        (SELECT count(*) FROM scenario_results s WHERE s.run_id IN (SELECT id FROM doomed))::int AS Samples,
                        (SELECT count(*) FROM check_results c JOIN scenario_results s ON s.id = c.scenario_result_id
-                        WHERE s.run_id IN (SELECT id FROM doomed))::int AS Verdicts
+                        WHERE s.run_id IN (SELECT id FROM doomed))::int AS Verdicts,
+                       (SELECT count(*) FROM monitoring_conversations c WHERE c.agent_version_id = @versionId
+                            OR EXISTS (SELECT 1 FROM monitoring_turns t WHERE t.conversation_id = c.id AND t.agent_version_id = @versionId))::int
+                           AS Conversations
                 """,
                 new { versionId },
                 transaction,
                 cancellationToken: cancellationToken
             )
         );
-        var contents = new VersionDeletion(versionId, counts.Runs, counts.Samples, counts.Verdicts, version.Label);
+        var contents = new VersionDeletion(versionId, counts.Runs, counts.Samples, counts.Verdicts, version.Label, counts.Conversations);
         if (!version.Archived)
         {
             return new DeletionResult<VersionDeletion>(DeletionOutcome.NotArchived, contents);
@@ -167,6 +171,18 @@ internal sealed class VersionStore(Pool pool)
         {
             return new DeletionResult<VersionDeletion>(DeletionOutcome.Allowed, contents);
         }
+        // A conversation the version answered a turn of goes whole: the cascade alone would leave one with a gap.
+        await connection.ExecuteAsync(
+            new CommandDefinition(
+                """
+                DELETE FROM monitoring_conversations c WHERE c.agent_version_id = @versionId
+                    OR EXISTS (SELECT 1 FROM monitoring_turns t WHERE t.conversation_id = c.id AND t.agent_version_id = @versionId)
+                """,
+                new { versionId },
+                transaction,
+                cancellationToken: cancellationToken
+            )
+        );
         await connection.ExecuteAsync(
             new CommandDefinition(
                 "DELETE FROM agent_versions WHERE id = @versionId",
@@ -181,5 +197,5 @@ internal sealed class VersionStore(Pool pool)
 
     private sealed record VersionToDelete(string? Label, bool Archived);
 
-    private sealed record DeletionCounts(int Runs, int Active, int Samples, int Verdicts);
+    private sealed record DeletionCounts(int Runs, int Active, int Samples, int Verdicts, int Conversations);
 }

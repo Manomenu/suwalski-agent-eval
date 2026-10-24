@@ -2,6 +2,7 @@
 // the pathname once, and links are plain `<a href>` (a full page load, so the back button works).
 const GUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 const RUN_PATH = new RegExp(`^/runs/(${GUID})/?$`, "i");
+const CONVERSATION_PATH = new RegExp(`^/conversations/(${GUID})/?$`, "i");
 const AGENT_PATH = /^\/agents\/([^/]+)(?:\/versions)?\/?$/;
 const AGENT_EVALUATION_PATH = /^\/agents\/([^/]+)\/evaluation\/?$/;
 const AGENT_MONITORING_PATH = /^\/agents\/([^/]+)\/monitoring\/?$/;
@@ -17,6 +18,7 @@ export type Page =
     | { kind: "version"; name: string; versionId: string }
     | { kind: "versionCompare"; name: string; a: string; b: string }
     | { kind: "run"; runId: string }
+    | { kind: "conversation"; conversationId: string }
     | { kind: "compare"; runs: string; group: string; agent: string; baseline: string }
     | { kind: "unknown" };
 
@@ -29,7 +31,7 @@ function decode(segment: string): string | null {
 }
 
 /**
- * The page a path opens: `/`, `/agents/<name>` (the agent's Versions page, also at `/agents/<name>/versions`), `/agents/<name>/evaluation`, `/agents/<name>/monitoring`, `/agents/<name>/versions/<guid>`, `/runs/<guid>` (which `suwageval results` opens)
+ * The page a path opens: `/`, `/agents/<name>` (the agent's Versions page, also at `/agents/<name>/versions`), `/agents/<name>/evaluation`, `/agents/<name>/monitoring`, `/agents/<name>/versions/<guid>`, `/runs/<guid>` (which `suwageval results` opens), `/conversations/<guid>` (a monitored conversation)
  * `/agents/<name>/versions/compare?a=<guid>&b=<guid>` (what changed between two versions; `suwageval versions diff` opens it),
  * or `/compare?runs=<guid>,<guid>,…` / `/compare?group=<name>[&agent=<name>]` (runs side by side; `suwageval compare` and `suwageval sweep`
  * open it), each with an optional `&baseline=<guid>` (one of the runs: the others are read against it). The queries are passed on as
@@ -50,6 +52,9 @@ export function pageOf(pathname: string, search = ""): Page {
 
     const run = RUN_PATH.exec(pathname);
     if (run?.[1]) return { kind: "run", runId: run[1] };
+
+    const conversation = CONVERSATION_PATH.exec(pathname);
+    if (conversation?.[1]) return { kind: "conversation", conversationId: conversation[1] };
 
     const versionCompare = VERSION_COMPARE_PATH.exec(pathname);
     const compareAgent = versionCompare?.[1] === undefined ? null : decode(versionCompare[1]);

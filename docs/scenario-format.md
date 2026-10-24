@@ -262,6 +262,71 @@ A turn whose conversation is empty, or does not end with a user message, is answ
 `TurnRejectedException(reason)` (an item kind or a message length it does not support); the 400 carries the reason. `AgentContractRules.Problems(contract)`
 returns what the server would refuse in the contract (the same code), so an agent can assert it is empty in its own unit test.
 
+## Monitoring: the conversations of a deployed agent
+
+With `features.monitoring` in `agent.yaml` (above), a deployed agent sends the turns of its real conversations to Suwageval. The
+traffic goes one way, agent → Suwageval: Suwageval never calls a monitored agent (only a run of an evaluation does). A turn of an
+evaluation (one answered at `POST /suwageval/turn`, or with `suwageval.run.id` in its baggage) is never sent.
+
+### The protocol (any language)
+
+`POST {suwagevalUrl}/api/monitoring/turns`, JSON (camelCase, the same records as the contract), a batch of turns:
+
+```json
+{
+  "agent": "support-bot",
+  "environment": "production",
+  "contractHash": "27109d34…",
+  "turns": [
+    {
+      "id": "6d0e…",
+      "conversationId": "chat-81",
+      "at": "2026-10-24T12:00:00Z",
+      "dataVersion": "index-build-2026-10-14.3",
+      "items": [
+        { "kind": "UserMessage", "text": "Where is order A-17?" },
+        { "kind": "ToolCall", "id": "c1", "name": "get_order", "arguments": { "order_id": "A-17" }, "agent": "support" },
+        { "kind": "ToolResult", "callId": "c1", "content": "{\"status\":\"shipped\"}" },
+        { "kind": "AssistantMessage", "text": "It is on its way." }
+      ]
+    }
+  ]
+}
+```
+
+| Field | | |
+| --- | --- | --- |
+| `agent` | required | the agent's `name` in its `agent.yaml` |
+| `environment` | required | where this deployment runs: lowercase words of letters and digits joined by hyphens; one the agent's `features.monitoring.environments` takes (any when it names none) |
+| `contractHash` | required | the hash of the contract the agent serves at `/suwageval/contract`: SHA-256, in lowercase hex, of the contract's JSON with `label` and `context.retrieval` (its `dataVersion` and `description`) set to null, serialized compactly with the properties in the contract's order (the SDK's `AgentContractHash.Of`) |
+| `contract` | | the whole contract, sent only when the server asked for it (below) |
+| `turns` | required | 1 to 500 turns. Each: `id` (a UUID the sender makes, so a turn sent twice is stored once), `conversationId` (the agent's own id, up to 200 characters; turns with one id are one conversation per environment), `at` (when the turn ended), `items` (the conversation log's items of the turn: the user's message first, then what the agent did and answered, as in a `TurnResponse`), `dataVersion` (optional: the retrieval data it answered from, when the agent can say it cheaply) |
+
+The answer is `200 { "stored": n }` (`n`: the new turns), or `200 { "stored": 0, "sendContract": true }` when the server does not know
+the hash: nothing was stored, and the same turns are sent again with `contract`, from which the server registers the version as a
+run does (it checks that `contractHash` is that contract's). `404`: no such agent; `409`: its monitoring is off (with `feature:
+"monitoring"`) or the environment is not one it takes; `422`: a malformed environment, turn or contract. A sender retries on a network
+error, a 5xx, 408 and 429, and drops a batch the server refused otherwise (a retry would not change the answer). Behind Cloudflare
+Access, the request carries a service token (`CF-Access-Client-Id`, `CF-Access-Client-Secret`).
+
+A conversation is closed when no turn arrived for `features.monitoring.closeAfter` (default 30 minutes); a turn after that opens it
+again. It belongs to the version that answered its last turn, marked when an earlier turn had another one (a deploy in between).
+
+### A .NET agent: monitoring with the SDK
+
+```csharp
+builder.Services.AddSuwagevalMonitoring(builder.Configuration); // Suwageval:Url, :Agent, :Environment (Suwageval__Environment, …)
+
+// after answering a real conversation's turn:
+recorder.Record(conversationId, [userMessage, .. producedItems], dataVersion: null);  // IConversationRecorder from the services
+```
+
+`Record` never waits and never fails the turn: the turns wait in a queue (the oldest go past 1000) and a background service sends
+them, retrying while Suwageval cannot be reached; it names the version by the hash of the contract the registered
+`IAgentContractSource` serves and sends the contract when asked. Without `Suwageval:Url` the recorder does nothing, so the same code
+runs in every deployment; with it, `Suwageval:Agent` and `Suwageval:Environment` are required (the agent does not start without
+them). `Suwageval:AccessClientId` and `Suwageval:AccessClientSecret` are the Access service token, from the deployment's secrets.
+
 ## A scenario file
 
 | Field | | |

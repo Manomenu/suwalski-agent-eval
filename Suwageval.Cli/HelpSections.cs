@@ -38,6 +38,7 @@ internal static class HelpSections
                 "agent-errors",
             ]
         ),
+        ("Monitoring", ["monitoring"]),
         ("Agent", ["init", "agents", "agent", "versions", "delete-agent"]),
     ];
 

@@ -1,10 +1,14 @@
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Suwageval.Server.Evaluation.Runs;
+using Suwageval.Server.Monitoring.Conversations;
 
 namespace Suwageval.Server.Tests.Evaluation.Runs;
 
-/// <summary>The server in process, on the test database, without its worker: the tests share one database, and a worker would take their queued runs.</summary>
+/// <summary>
+/// The server in process, on the test database, without its workers: the tests share one database, and a worker would take their queued
+/// runs (or close their conversations).
+/// </summary>
 internal static class RunTestApp
 {
     [SuppressMessage(
@@ -18,7 +22,14 @@ internal static class RunTestApp
             host.UseSetting("ConnectionStrings:Default", TestDatabase.ConnectionString);
             host.ConfigureServices(services =>
             {
-                foreach (var worker in services.Where(descriptor => descriptor.ImplementationType == typeof(RunWorker)).ToList())
+                foreach (
+                    var worker in services
+                        .Where(descriptor =>
+                            descriptor.ImplementationType == typeof(RunWorker)
+                            || descriptor.ImplementationType == typeof(ConversationCloser)
+                        )
+                        .ToList()
+                )
                 {
                     services.Remove(worker);
                 }

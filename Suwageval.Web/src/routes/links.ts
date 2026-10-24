@@ -44,6 +44,9 @@ export const versionCompareHref = (name: string, a: string, b: string) => `${age
 /** The page of a run. */
 export const runHref = (runId: string) => `/runs/${runId}`;
 
+/** The page of one monitored conversation, with its turns. */
+export const conversationHref = (id: string) => `/conversations/${id}`;
+
 /** The comparison page takes at least two runs and at most twenty (the server's limit). */
 export const COMPARE_MIN_RUNS = 2;
 export const COMPARE_MAX_RUNS = 20;

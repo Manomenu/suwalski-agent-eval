@@ -15,8 +15,8 @@ public sealed class AgentSdkContractsTests
 {
     private const string Root = "Suwageval.AgentSdk";
 
-    /// <summary>Top to bottom: the endpoints use the contract and the log items, which use only the JSON options.</summary>
-    private static readonly string[] Layers = ["Invocation", "Agents | Conversations", "."];
+    /// <summary>Top to bottom: the monitoring sends what the agent records, named by its contract; the endpoints use the contract and the log items, which use only the JSON options.</summary>
+    private static readonly string[] Layers = ["Monitoring", "Invocation", "Agents | Conversations", "."];
 
     private static readonly Architecture Sdk = new ArchLoader().LoadAssemblies(typeof(ContractJson).Assembly).Build();
 

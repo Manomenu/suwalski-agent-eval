@@ -7,6 +7,7 @@ using Suwageval.AgentSdk;
 using Suwageval.Contracts;
 using Suwageval.Contracts.Agents;
 using Suwageval.Contracts.Checks;
+using Suwageval.Contracts.Monitoring;
 using Suwageval.Contracts.Runs;
 using Suwageval.Contracts.Scenarios;
 
@@ -229,6 +230,42 @@ internal sealed class ServerClient(HttpClient http)
     public Task<AgentDetail> AgentAsync(string agent, CancellationToken cancellationToken) =>
         SendAsync<AgentDetail>(
             () => http.GetAsync(new Uri($"agents/{Uri.EscapeDataString(agent)}", UriKind.Relative), cancellationToken),
+            cancellationToken
+        );
+
+    /// <summary>
+    /// The agent's newest monitored conversations (the newest last turn first), at most <paramref name="limit"/>, only those of
+    /// <paramref name="environment"/>, of <paramref name="versions"/> and in <paramref name="state"/> when given.
+    /// </summary>
+    public async Task<ConversationList> ConversationsAsync(
+        string agent,
+        int limit,
+        string? environment,
+        IReadOnlyList<Guid> versions,
+        ConversationState? state,
+        CancellationToken cancellationToken
+    )
+    {
+        var url = $"monitoring/agents/{Uri.EscapeDataString(agent)}/conversations?pageSize={Math.Min(limit, MaxPageSize)}";
+        if (environment is not null)
+        {
+            url += $"&environment={Uri.EscapeDataString(environment)}";
+        }
+        foreach (var version in versions)
+        {
+            url += $"&version={version}";
+        }
+        if (state is not null)
+        {
+            url += $"&state={state}";
+        }
+        return await SendAsync<ConversationList>(() => http.GetAsync(new Uri(url, UriKind.Relative), cancellationToken), cancellationToken);
+    }
+
+    /// <summary>A monitored conversation with its turns.</summary>
+    public Task<ConversationDetail> ConversationAsync(Guid id, CancellationToken cancellationToken) =>
+        SendAsync<ConversationDetail>(
+            () => http.GetAsync(new Uri($"monitoring/conversations/{id}", UriKind.Relative), cancellationToken),
             cancellationToken
         );
 

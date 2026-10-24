@@ -19,6 +19,7 @@ using Suwageval.Cli.Evaluation.Unstable;
 using Suwageval.Cli.Evaluation.Validate;
 using Suwageval.Cli.Files;
 using Suwageval.Cli.Init;
+using Suwageval.Cli.Monitoring.Conversations;
 using Suwageval.Cli.Output;
 using Suwageval.Cli.Versions;
 
@@ -99,6 +100,11 @@ internal static class CliApp
             VersionsCommand.Create(terminal, http, openBrowser),
             GroupsCommand.Create(terminal, http),
             AgentDeleteCommand.Create(terminal, http),
+            new Command("monitoring", "The conversations of the deployed agent (features.monitoring in agent.yaml).")
+            {
+                ConversationsCommand.List(http),
+                ConversationsCommand.Show(http),
+            },
         };
         HelpSections.Apply(root);
         return root;

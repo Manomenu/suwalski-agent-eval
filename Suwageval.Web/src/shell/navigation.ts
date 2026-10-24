@@ -12,8 +12,8 @@ export interface Navigation {
 }
 
 /**
- * The agent and the lit item for a page. A run page and the comparison belong to Evaluation of their agent, which only the data
- * they load says (`agentOfPage`, reported through `useReportAgent`); a version page and the comparison of versions to Versions.
+ * The agent and the lit item for a page. A run page and the comparison belong to Evaluation of their agent, a conversation's page to its
+ * Monitoring, which only the data they load says (`agentOfPage`, reported through `useReportAgent`); a version page and the comparison of versions to Versions.
  */
 export function navigationOf(page: Page, agentOfPage: string | null): Navigation {
     switch (page.kind) {
@@ -30,6 +30,8 @@ export function navigationOf(page: Page, agentOfPage: string | null): Navigation
         case "run":
         case "compare":
             return { agentName: agentOfPage, active: agentOfPage === null ? null : "evaluation" };
+        case "conversation":
+            return { agentName: agentOfPage, active: agentOfPage === null ? null : "monitoring" };
         case "unknown":
             return { agentName: null, active: null };
     }

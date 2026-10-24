@@ -33,6 +33,7 @@ public static class SuwagevalAgentEndpoints
                 try
                 {
                     var correlated = turn with { Correlation = TurnCorrelation.From(request.Headers) };
+                    using var evaluation = EvaluationTurn.Enter();
                     return Results.Json(await handler.HandleAsync(correlated, cancellationToken), ContractJson.Options);
                 }
                 catch (TurnRejectedException rejection)

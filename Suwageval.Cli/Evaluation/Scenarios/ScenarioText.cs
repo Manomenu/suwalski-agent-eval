@@ -2,7 +2,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using Suwageval.AgentSdk;
-using Suwageval.AgentSdk.Conversations;
+using Suwageval.Cli.Output;
 using Suwageval.Contracts.Checks;
 
 namespace Suwageval.Cli.Evaluation.Scenarios;
@@ -44,7 +44,7 @@ internal static class ScenarioText
         text.AppendLine().AppendLine("conversation:");
         foreach (var item in scenario.Conversation)
         {
-            text.Append(Indent).AppendLine(Item(item));
+            text.Append(Indent).AppendLine(ConversationText.Item(item));
         }
 
         text.AppendLine().AppendLine(string.Create(CultureInfo.InvariantCulture, $"checks ({view.Checks.Count}):"));
@@ -73,19 +73,6 @@ internal static class ScenarioText
         return text.ToString().TrimEnd();
     }
 
-    /// <summary>One conversation item on one line (a text with several lines continues indented).</summary>
-    internal static string Item(ConversationItem item) =>
-        item switch
-        {
-            UserMessage message => $"user: {Multiline(message.Text)}",
-            AssistantMessage message => $"assistant: {Multiline(message.Text)}",
-            ToolCall call => $"tool call {call.Name} {call.Arguments.GetRawText()}",
-            ToolResult result => $"tool result{(result.IsError ? " (error)" : "")}: {Multiline(result.Content)}",
-            Retrieval retrieval => $"retrieval \"{retrieval.Query}\" ({retrieval.Chunks.Count} chunks)",
-            Event @event => $"event {@event.Type} {@event.Data.GetRawText()}",
-            _ => item.GetType().Name,
-        };
-
     /// <summary>The check's definition as YAML-like lines: <c>key: value</c>, a nested object indented, an array as one line of JSON.</summary>
     internal static List<string> Definition(CheckInput check)
     {
@@ -112,8 +99,5 @@ internal static class ScenarioText
     }
 
     private static string Scalar(JsonElement value) =>
-        value.ValueKind == JsonValueKind.String ? Multiline(value.GetString() ?? "") : value.GetRawText();
-
-    private static string Multiline(string text) =>
-        text.ReplaceLineEndings("\n").Replace("\n", "\n" + Indent + Indent, StringComparison.Ordinal);
+        value.ValueKind == JsonValueKind.String ? ConversationText.Multiline(value.GetString() ?? "") : value.GetRawText();
 }

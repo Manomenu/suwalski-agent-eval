@@ -6,6 +6,7 @@ import { AgentsPage } from "./agents/AgentsPage";
 import { EvaluationPage } from "./evaluation/agent/EvaluationPage";
 import { ComparePage } from "./evaluation/compare/ComparePage";
 import { MonitoringPage } from "./monitoring/agent/MonitoringPage";
+import { ConversationPage } from "./monitoring/conversations/ConversationPage";
 import { ServerStatus } from "./health/ServerStatus";
 import { pageOf } from "./routes/pageOf";
 import { RunPage } from "./evaluation/runs/RunPage";
@@ -66,6 +67,7 @@ export function App() {
                             </Suspense>
                         )}
                         {page.kind === "run" && <RunPage runId={page.runId} />}
+                        {page.kind === "conversation" && <ConversationPage conversationId={page.conversationId} />}
                         {page.kind === "compare" && (
                             <ComparePage runs={page.runs} group={page.group} agent={page.agent} baseline={page.baseline} />
                         )}
