@@ -2,7 +2,7 @@ import { Button, Text } from "@mantine/core";
 import { useMemo, useState } from "react";
 
 import type { components } from "../api/openapi";
-import { hangingIndents } from "../checks/definition";
+import { hangingIndents } from "./hangingIndent";
 
 type DiffBlock = components["schemas"]["DiffBlock"];
 type DiffRow = components["schemas"]["DiffRow"];

@@ -15,10 +15,10 @@ namespace Suwageval.Cli.Evaluation.Compare;
 /// </summary>
 internal static class CompareCommand
 {
-    // The same limit as the server's (RunComparisonReport.MaxRuns) and the web page (Suwageval.Web/src/agents/view.ts).
+    // The same limit as the server's (RunComparisonReport.MaxRuns) and the web page (Suwageval.Web/src/routes/links.ts).
     private const int MaxRuns = 20;
 
-    // How many runs a printed comparison holds: the web's PRINT_MAX_RUNS (Suwageval.Web/src/compare/layout.ts, derived there from the
+    // How many runs a printed comparison holds: the web's PRINT_MAX_RUNS (Suwageval.Web/src/evaluation/compare/layout.ts, derived there from the
     // printed column widths and the A4 landscape page). A test of the CLI reads that line and compares.
     internal const int PrintMaxRuns = 7;
 

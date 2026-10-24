@@ -126,7 +126,7 @@ public sealed class CheckTypesTests
     public void The_web_shows_the_type(string typeName)
     {
         var discriminator = Discriminators()[TypeNamed(typeName)];
-        var definition = File.ReadAllText(Path.Combine(RepoRoot, "Suwageval.Web", "src", "checks", "definition.ts"));
+        var definition = File.ReadAllText(Path.Combine(RepoRoot, "Suwageval.Web", "src", "evaluation", "checks", "definition.ts"));
 
         Assert.Contains($"\"{discriminator}\"", definition, StringComparison.Ordinal);
     }

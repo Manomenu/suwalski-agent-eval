@@ -6,7 +6,7 @@ using CompareCommand = Cli::Suwageval.Cli.Evaluation.Compare.CompareCommand;
 namespace Suwageval.Server.Tests.EndToEnd;
 
 /// <summary>
-/// How many runs a printed comparison holds is the web's number (<c>PRINT_MAX_RUNS</c> in <c>Suwageval.Web/src/compare/layout.ts</c>, derived
+/// How many runs a printed comparison holds is the web's number (<c>PRINT_MAX_RUNS</c> in <c>Suwageval.Web/src/evaluation/compare/layout.ts</c>, derived
 /// there from the printed column widths); <c>suwageval compare --open --print</c> refuses more before opening the page, so it keeps the same
 /// number. The two are two literals, and this is what keeps them one.
 /// </summary>
@@ -21,7 +21,7 @@ public sealed partial class PrintMaxRunsTests
             directory = directory.Parent;
         }
         Assert.NotNull(directory);
-        var layout = File.ReadAllText(Path.Combine(directory.FullName, "Suwageval.Web", "src", "compare", "layout.ts"));
+        var layout = File.ReadAllText(Path.Combine(directory.FullName, "Suwageval.Web", "src", "evaluation", "compare", "layout.ts"));
 
         var match = PrintMaxRunsConstant().Match(layout);
 

@@ -69,7 +69,7 @@ app keeps its tests beside its code, so those folders would only split the .NET 
 | `docs/images/` | the screenshots the README shows (PNG, demo data only: never an address of the owner's infrastructure) |
 | `docs/universal-approach.md` | why contract v1 and its checks look the way they do: each element, the need it answers, what was left out on purpose |
 | `.claude-plugin/`, `claude-plugin/` | the Claude Code plugin: `.claude-plugin/marketplace.json` is the marketplace (`suwalski-agent-eval`), `claude-plugin/` the plugin `suwageval` — one skill and the commands (`/suwageval:scenario`, `fix`, `run`) that drive the CLI. Text only, checked by `ClaudePluginTests.cs`; the file format is linked from the skill, not copied |
-| `Suwageval.Web/` | the web app (React, Mantine, Vite). Source in `src/`, one folder per feature; `print/` holds the Print button and `print.css` (the paper rules of the run page and the comparison) |
+| `Suwageval.Web/` | the web app (React, Mantine, Vite). Source in `src/`, cut like the server: `evaluation/` is the area of the evaluation features, one folder each (`agent/` the agent's Evaluation page, `runs/`, `compare/`, `groups/`, `trend/`, `errors/`, `unstable/`, `checks/`); the shared folders stand beside it: `agents/` (the list and the archive/delete plumbing), `versions/` (the agent's landing page, Versions, and the version pages), `shell/` (the sidebar), `print/` (the Print button and `print.css`, the paper rules of the run page and the comparison), `api/`, `routes/` and the rest of section 5. A page of an agent: `/agents/<name>` is Versions (belongs to no area), `/agents/<name>/evaluation` is Evaluation |
 | `deploy/chart/` | the Helm chart the cluster runs: server, web, ingress, `templates/smoke-test.yaml` (the post-deploy smoke test) and `templates/live-check.yaml` (the daily CronJob that asks the judge's model, section 3) |
 | `compose.yaml` | the whole stack on a laptop, from the same Dockerfiles — no cluster needed |
 | `Suwageval.Server/Dockerfile`, `Suwageval.Web/Dockerfile` | the two images; build context is the repo root |
@@ -233,8 +233,8 @@ not by reviewers; a dependency against it fails with the types involved.
 | | Server | Web |
 | --- | --- | --- |
 | Where | `Layers` in `Suwageval.Server.Tests/ContractsTests.cs` (ArchUnitNET, on the compiled assembly) | `boundaries/*` in `Suwageval.Web/eslint.config.js` |
-| Today | `Api` \| `LiveCheck` → the areas (`Evaluation`; areas never use each other) → `Judges` → `Verdicts` \| `LanguageModels` → `Agents` → `Database` \| `Problems`; inside `Evaluation`: `Runs` → `Simulation` → `Checks` \| `Invocation` → `Scenarios` | `main`/`App` → features → `api` \| `routes` \| `format` \| `help` (shared: plumbing, page addresses, formatting, the help header) |
-| A new feature | **must** get a layer (a feature of an area: its place in the area's order, `Areas` in the same file) — `Every_server_namespace_has_a_layer` fails otherwise | is a folder `src/<feature>/`, independent of other features by default |
+| Today | `Api` \| `LiveCheck` → the areas (`Evaluation`; areas never use each other) → `Judges` → `Verdicts` \| `LanguageModels` → `Agents` → `Database` \| `Problems`; inside `Evaluation`: `Runs` → `Simulation` → `Checks` \| `Invocation` → `Scenarios` | `main`/`App` → the areas (`src/evaluation/`; areas never import each other) → the shared folders (`api`, `routes`, `format`, `help`, `agents`, `versions`, `shell`, `diff`, `pagination`, …: they never import an area) |
+| A new feature | **must** get a layer (a feature of an area: its place in the area's order, `Areas` in the same file) — `Every_server_namespace_has_a_layer` fails otherwise | is a folder `src/<area>/<feature>/` (or `src/<feature>/` when it belongs to no area), independent of other features by default |
 | Inside a feature | a sub-feature (a folder inside it, section 5.1) is used by neither its feature nor its siblings — checked for every one; a feature with several concerns declares its own order (e.g. endpoints → store → model) as a test beside the first | free |
 | Feature uses feature | only downwards, by its position in the layer list | only through an explicit policy in `eslint.config.js`, with a comment saying why |
 
@@ -244,6 +244,11 @@ product area; it is one entry in the top order and has an order of its own insid
 every area needs (`Judges`, `Verdicts`, `LanguageModels`, `Agents`, `Database`, `Problems`) stand
 **below** the areas and **never use one**. What a second area needs from the first moves down into a
 shared feature. Top-level parts above the areas (`Api`, `LiveCheck`) compose them.
+
+**Areas (web).** `src/evaluation/` (later `src/monitoring/`, named in the `areaFeature` pattern of `eslint.config.js`) holds a folder per
+feature. A feature of an area may import itself, the shared folders and the features of **its own area** named in an explicit policy; it never
+imports another area (the policy always requires the importer's area), and a shared folder never imports an area. What a second area needs
+from the first moves down into a shared folder. `App.tsx` composes the areas.
 
 **The CLI** is layered the same way, by `Layers` in `Suwageval.Cli.Tests/ContractsTests.cs`, and cut into areas like the server:
 root (`Program`, `CliApp`, `HelpSections`) → the area `Evaluation` \| the shared commands `Init` \| `Agents` \| `Versions` \| `AgentDelete` (siblings: an area and a shared
@@ -386,7 +391,7 @@ A change to one feature should touch one place on each side.
   so a reader can tell whether changing a type changes the API.
 - **Web:** one folder per feature under `src/`, holding its components, hooks, logic and its
   HTTP calls (`<feature>/api.ts`, typed from `api/openapi.d.ts` — no hand-written copies of
-  server models). `api/` is the shared folder for HTTP plumbing; `routes/` (the addresses of the pages, built and read), `format/` (ids, times, shares, durations), `help/` (the header that explains itself) `tagSelect/` (picking tags out of a long list) and `dataVersion/` (a version's retrieval data, shown short) and `note/` (the in-place note box of a run and of a run group, with the note's rules) are shared the same way, each named for what it is.
+  server models). `api/` is the shared folder for HTTP plumbing; `routes/` (the addresses of the pages, built and read), `format/` (ids, times, shares, durations), `help/` (the header that explains itself) `tagSelect/` (picking tags out of a long list) and `dataVersion/` (a version's retrieval data, shown short), `agents/` and `versions/` (what every area of an agent shares), `shell/` (the sidebar and which item is lit) and `note/` (the in-place note box of a run and of a run group, with the note's rules) are shared the same way, each named for what it is.
 - **No catch-all folders** (`Common/`, `Helpers/`, `Utils/`, `Shared/`, `ui/`, `components/`).
   A piece that seems to belong nowhere usually belongs with others that change together: name
   that feature and give it a folder.
