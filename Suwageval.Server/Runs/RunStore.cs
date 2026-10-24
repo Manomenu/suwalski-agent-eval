@@ -253,6 +253,19 @@ internal sealed class RunStore(Pool pool)
         );
     }
 
+    /// <summary>The note of a run group of the agent; null when it has none.</summary>
+    public async Task<string?> GetGroupNoteAsync(Guid agentId, string name, CancellationToken cancellationToken = default)
+    {
+        await using var connection = await pool.OpenAsync(cancellationToken);
+        return await connection.QuerySingleOrDefaultAsync<string>(
+            new CommandDefinition(
+                "SELECT note FROM run_group_notes WHERE agent_id = @agentId AND name = @name",
+                new { agentId, name },
+                cancellationToken: cancellationToken
+            )
+        );
+    }
+
     /// <summary>Sets the note of a run in any status (null clears it); false for an unknown run.</summary>
     public async Task<bool> SetNoteAsync(Guid id, string? note, CancellationToken cancellationToken = default)
     {

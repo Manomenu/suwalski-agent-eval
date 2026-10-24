@@ -1,4 +1,4 @@
-// The note on a run: why it was started. The rules are the server's (`RunNoteRules`): trimmed, at most 500 characters, blank means none.
+// The note on a run: why it was started. The rules are the server's (`NoteRules`): trimmed, at most 500 characters, blank means none.
 
 export const NOTE_MAX_LENGTH = 500;
 

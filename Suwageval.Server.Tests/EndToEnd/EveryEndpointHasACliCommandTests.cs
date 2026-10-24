@@ -56,6 +56,7 @@ public sealed class EveryEndpointHasACliCommandTests(TestDatabase database) : IA
         ["GET /runs"] = Cli("runs"),
         ["GET /agents/{agent}/run-groups"] = Cli("runs"),
         ["POST /agents/{agent}/run-groups/archive"] = Cli("groups archive"),
+        ["PUT /agents/{agent}/run-groups/{name}/note"] = Cli("note"),
         ["GET /agents/{agent}/run-groups/{name}/deletion"] = Cli("groups delete"),
         ["DELETE /agents/{agent}/run-groups/{name}"] = Cli("groups delete"),
         ["GET /runs/compare"] = Cli("compare"),

@@ -15,7 +15,7 @@ public sealed record RunRequest
     /// <summary>The group the run belongs to (<see cref="RunGroupRules"/>); none means no group.</summary>
     public string? Group { get; init; }
 
-    /// <summary>Why the run is started (<see cref="RunNoteRules"/>); none means no note. It can be changed after the run.</summary>
+    /// <summary>Why the run is started (<see cref="NoteRules"/>); none means no note. It can be changed after the run.</summary>
     public string? Note { get; init; }
 
     /// <summary>Where the agent's repository stood; none when the run does not come from a git repository (it is then compared with every run of the agent).</summary>

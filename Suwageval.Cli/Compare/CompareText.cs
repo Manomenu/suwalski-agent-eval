@@ -29,6 +29,10 @@ internal static class CompareText
                 $"comparison of {comparison.Agent}{(comparison.Group is null ? "" : $" (group {comparison.Group})")}, {comparison.Runs.Count} {(comparison.Runs.Count == 1 ? "run" : "runs")}"
             )
         );
+        if (comparison.GroupNote is not null)
+        {
+            text.AppendLine(CultureInfo.InvariantCulture, $"note: {comparison.GroupNote}");
+        }
         for (var column = 0; column < comparison.Runs.Count; column++)
         {
             text.AppendLine(Header(column, comparison.Runs[column], comparison.Baseline?.RunId));

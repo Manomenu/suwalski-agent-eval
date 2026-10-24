@@ -69,6 +69,21 @@ test("on paper: no control, header or navbar, every sample open, the line at the
     expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
 });
 
+test("a note is dark text on a light box on paper", async ({ page, request }) => {
+    const note = "rebuilt the retrieval index";
+    expect((await request.put(`/api/runs/${runId}/note`, { data: { note } })).ok()).toBe(true);
+    await page.setViewportSize(PAPER);
+    await page.goto(`/runs/${runId}`);
+    await page.emulateMedia({ media: "print" });
+
+    for (const text of [page.getByText(note, { exact: true }), page.getByText("Note", { exact: true })]) {
+        await expect(text).toBeVisible();
+        const channels = await text.evaluate((element) => getComputedStyle(element).color.match(/\d+/g)?.slice(0, 3).map(Number) ?? []);
+        expect(channels).toHaveLength(3);
+        expect(Math.max(...channels)).toBeLessThan(100);
+    }
+});
+
 test("the filters stay applied on paper and are named in the line, without the switch and the tag field", async ({ page }) => {
     await page.setViewportSize(PAPER);
     await page.goto(`/runs/${runId}?tag=billing&hide=passed`);

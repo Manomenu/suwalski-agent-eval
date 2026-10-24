@@ -43,11 +43,11 @@ internal static class CommandOptions
         var note = new Option<string?>("--note")
         {
             Description =
-                $"Why the run is started, free text (at most {RunNoteRules.MaxLength} characters). Shown on the run page, in `runs` and in comparisons; change it later with `suwageval note`. It changes no verdict.",
+                $"Why the run is started, free text (at most {NoteRules.MaxLength} characters). Shown on the run page, in `runs` and in comparisons; change it later with `suwageval note`. It changes no verdict.",
         };
         note.Validators.Add(result =>
         {
-            if (RunNoteRules.Problem(result.GetValueOrDefault<string?>()) is { } problem)
+            if (NoteRules.Problem(result.GetValueOrDefault<string?>()) is { } problem)
             {
                 result.AddError(problem);
             }

@@ -63,6 +63,7 @@ The agent's own address (`validate`, `run`, `rerun`) is `--endpoint` on the comm
 | run an earlier run again | `suwageval rerun <runId> --wait --json` (`--endpoint URL`, `--group <name>`, `--strict`): same agent, tags and endpoint, the version the agent serves now |
 | judge a finished run's stored answers again with the current checks (no agent call) | `suwageval recheck <runId> --wait --json` (`--strict`); `--dry-run` first prints what would be evaluated again (exit 0 when no check changed: nothing is started). Use it after fixing a check; `rerun` is for when the agent changed |
 | set or clear the note of a run (why it was started; free text, 500 characters) | `suwageval note <runId> "<text>"`, `suwageval note <runId> --clear`; at the start `suwageval run --note "<text>"` / `rerun --note`. A note changes no verdict, so setting one needs no confirmation |
+| set or clear the note of a run group (what the experiment is about; shown only in the group's comparison) | `suwageval note --group <name> "<text>"`, `suwageval note --group <name> --clear`; at the start of a sweep `suwageval sweep --note "<text>"`. Needs a group that has runs. Needs no confirmation |
 | stop a queued or running run | `suwageval cancel <runId>`: samples in flight finish, no new one starts; a finished run stays as it is. Only for a run the user asked to stop |
 | read a run's results (status, version, tags, branch, regressions, failing checks with reasons, turn times) | `suwageval results <runId>`: text on stdout; waits for a run still going. Prefer it to opening a browser |
 | only what needs attention in a long run | `suwageval results <runId> --failed-only`: failed checks, checks not judged and samples with an agent error, plus how many passed checks and scenarios were left out (`--json` is not narrowed) |
@@ -115,6 +116,11 @@ the groups or the compare page later knows it without opening anything. Do this 
   was shortened", "checks the fix of order-status", "trying qwen3 as the agent's model"). Add it by default to every run you start,
   in the user's language, and say in your summary which note you gave. When the reason is not known, leave the note out rather than
   invent one. When the user says afterwards why a run was made, set it with `suwageval note <runId> "<text>"`.
+- **The group's note**: when you start a sweep or several runs in one group, give the group a note by default: `suwageval sweep
+  --note "<what the experiment tries and why>"`, or `suwageval note --group <name> "<text>"` after the first `run --group <name>`
+  (a group exists once it has a run). One or two sentences in the user's language, taken from the conversation ("trying three
+  models on the refund prompt after the cost complaint"); never invented when the reason is unknown. Say in your summary which
+  note you gave. When the user explains the experiment later, set it then. Only the group's comparison shows it.
 - **The contract's `label`** (when you wire or change the agent): the short git SHA of the agent's code (with `-dirty` when the
   tree has changes), or, for an agent configured by a sweep, the variant's name exactly (the sweep waits for it). It names the
   version on the web and in `compare`, and is not part of the version's content.

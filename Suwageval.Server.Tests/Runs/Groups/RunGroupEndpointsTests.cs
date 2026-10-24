@@ -166,6 +166,61 @@ public sealed class RunGroupEndpointsTests(TestDatabase database) : IAsyncDispos
         Assert.Equal(1, await RunsOfAsync(queued));
     }
 
+    private async Task<string?> GroupNoteAsync(SeededAgent agent, string group) =>
+        (await TestServer.Read<RunComparison>(await server.Get($"/runs/compare?group={group}&agent={agent.Name}"))).GroupNote;
+
+    [Fact]
+    public async Task A_group_note_is_trimmed_shown_by_the_comparison_of_the_group_only_changed_cleared_and_deleted_with_the_group()
+    {
+        var agent = await SeedAsync();
+        var first = await FinishedRunAsync(agent, "sweep-1");
+        await FinishedRunAsync(agent, "sweep-1");
+        await FinishedRunAsync(agent, "sweep-2");
+
+        var set = await server.Put($"/agents/{agent.Name}/run-groups/sweep-1/note", new NoteRequest { Note = "  three models \n" });
+
+        Assert.Equal(HttpStatusCode.NoContent, set.StatusCode);
+        Assert.Equal("three models", await GroupNoteAsync(agent, "sweep-1"));
+        Assert.Null(await GroupNoteAsync(agent, "sweep-2"));
+        var byRuns = await TestServer.Read<RunComparison>(await server.Get($"/runs/compare?runs={first}"));
+        Assert.Null(byRuns.GroupNote);
+
+        await server.Put($"/agents/{agent.Name}/run-groups/sweep-1/note", new NoteRequest { Note = "other" });
+        Assert.Equal("other", await GroupNoteAsync(agent, "sweep-1"));
+
+        await server.Put($"/agents/{agent.Name}/run-groups/sweep-1/note", new NoteRequest { Note = "   " });
+        Assert.Null(await GroupNoteAsync(agent, "sweep-1"));
+
+        await server.Put($"/agents/{agent.Name}/run-groups/sweep-1/note", new NoteRequest { Note = "gone with the group" });
+        await ArchiveAsync(agent, true, "sweep-1");
+        Assert.Equal(HttpStatusCode.NoContent, (await server.Delete($"/agents/{agent.Name}/run-groups/sweep-1")).StatusCode);
+        await using var connection = await database.Pool.OpenAsync(Cancellation);
+        Assert.Equal(
+            0,
+            await connection.QuerySingleAsync<int>("SELECT count(*)::int FROM run_group_notes WHERE agent_id = @id", new { id = agent.Id })
+        );
+    }
+
+    [Fact]
+    public async Task A_group_note_is_refused_for_an_unknown_agent_or_group_a_group_of_another_agent_a_bad_name_or_a_long_note()
+    {
+        var agent = await SeedAsync();
+        var stranger = await SeedAsync();
+        await FinishedRunAsync(agent, "sweep-1");
+        await FinishedRunAsync(stranger, "theirs");
+        var note = new NoteRequest { Note = "x" };
+
+        var noAgent = await server.Put("/agents/no-such-agent/run-groups/sweep-1/note", note);
+        var unknown = await server.Put($"/agents/{agent.Name}/run-groups/no-such/note", note);
+        var foreign = await server.Put($"/agents/{agent.Name}/run-groups/theirs/note", note);
+        var badName = await server.Put($"/agents/{agent.Name}/run-groups/Not_Kebab/note", note);
+        var tooLong = await server.Put($"/agents/{agent.Name}/run-groups/sweep-1/note", new NoteRequest { Note = new string('x', 501) });
+
+        Assert.All([noAgent, unknown, foreign], response => Assert.Equal(HttpStatusCode.NotFound, response.StatusCode));
+        Assert.All([badName, tooLong], response => Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode));
+        Assert.Null(await GroupNoteAsync(stranger, "theirs"));
+    }
+
     [Fact]
     public async Task An_unknown_group_agent_or_a_group_of_another_agent_is_404()
     {

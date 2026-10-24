@@ -264,6 +264,30 @@ public sealed class CompareCommandTests
         Assert.Contains("against the baseline:", output, StringComparison.Ordinal);
     }
 
+    private static HttpResponseMessage WithNote(HttpRequestMessage request)
+    {
+        _ = request;
+        return new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(
+                JsonSerializer.Serialize(Comparison(null) with { GroupNote = "three models on the refund prompt" }, ContractJson.Options),
+                Encoding.UTF8,
+                "application/json"
+            ),
+        };
+    }
+
+    [Fact]
+    public void The_note_of_a_group_is_printed_at_the_top_and_carried_by_json()
+    {
+        var text = Compare(WithNote, null, "--group", "sweep-1");
+        var json = Compare(WithNote, null, "--group", "sweep-1", "--json");
+
+        var lines = text.Output.Split(Environment.NewLine);
+        Assert.Equal("note: three models on the refund prompt", lines[1]);
+        Assert.Equal("three models on the refund prompt", JsonDocument.Parse(json.Output).RootElement.GetProperty("groupNote").GetString());
+    }
+
     [Fact]
     public void Json_prints_the_comparison_record()
     {

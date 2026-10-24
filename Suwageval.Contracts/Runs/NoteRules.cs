@@ -1,7 +1,7 @@
 namespace Suwageval.Contracts.Runs;
 
-/// <summary>What a run's note may be: free text, trimmed, at most <see cref="MaxLength"/> characters; blank means none.</summary>
-public static class RunNoteRules
+/// <summary>What a note may be, a run's or a run group's: free text, trimmed, at most <see cref="MaxLength"/> characters; blank means none.</summary>
+public static class NoteRules
 {
     public const int MaxLength = 500;
 

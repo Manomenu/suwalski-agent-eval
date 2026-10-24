@@ -46,7 +46,7 @@ export default defineConfig(
                 { type: "api", pattern: "src/api" },
                 // routes/ (the addresses of the pages, built and read), format/ (ids, times, shares and durations as the pages write
                 // them) and help/ (a header that explains itself) are used by every feature the way api/ is: no feature owns them.
-                { type: "shared", pattern: ["src/routes", "src/format", "src/help", "src/tagSelect", "src/dataVersion"] },
+                { type: "shared", pattern: ["src/routes", "src/format", "src/help", "src/tagSelect", "src/dataVersion", "src/note"] },
                 { type: "feature", pattern: "src/*", capture: ["name"] },
             ],
             // The entry points at the root of src/ (main.tsx, App.tsx) put the page together.
