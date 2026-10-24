@@ -286,6 +286,12 @@
         font-size: 8pt;
     }
 
+    /* What stays on one line on the screen (a column's date, a cell's counts) may break on paper: with fonts that run wider (CI's)
+       it does not fit the printed column whole. */
+    .compare-table .no-wrap {
+        white-space: normal;
+    }
+
     .compare-table th.compare-label-column {
         width: var(--print-label-width) !important;
     }

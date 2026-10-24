@@ -33,6 +33,10 @@ internal static class ResultsText
                 $"tags {RunTagsText.Of(run.Tags)}  branch {run.Origin?.Branch ?? "-"}  created {run.CreatedAt:yyyy-MM-dd HH:mm}Z"
             )
         );
+        if (!string.IsNullOrWhiteSpace(run.Note))
+        {
+            text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"note {run.Note}"));
+        }
         text.AppendLine()
             .AppendLine(
                 run.Status == RunStatus.Done && results.Regression is not null ? RegressionText.Describe(results) : RunVerdict.Line(results)

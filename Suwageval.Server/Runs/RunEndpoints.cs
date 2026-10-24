@@ -29,6 +29,7 @@ internal static class RunEndpoints
         app.MapGet("/runs/{id:guid}/recheck", RecheckPlanAsync).Produces<RecheckPlan>();
         app.MapPost("/runs/{id:guid}/recheck", RecheckAsync).Produces<RunCreated>(StatusCodes.Status202Accepted);
         app.MapPost("/runs/{id:guid}/cancel", CancelAsync).Produces(StatusCodes.Status202Accepted);
+        app.MapPut("/runs/{id:guid}/note", SetNoteAsync).Produces(StatusCodes.Status204NoContent);
         return app;
     }
 
@@ -80,6 +81,11 @@ internal static class RunEndpoints
         if (RunGroupRules.Problem(request.Group) is { } groupProblem)
         {
             return ProblemResults.Invalid("group", groupProblem);
+        }
+
+        if (RunNoteRules.Problem(request.Note) is { } noteProblem)
+        {
+            return ProblemResults.Invalid("note", noteProblem);
         }
 
         var agent = await agents.GetAsync(request.Agent, cancellationToken);
@@ -176,6 +182,7 @@ internal static class RunEndpoints
             placement: placement,
             runGroup: request.Group,
             label: contract.Label,
+            note: RunNoteRules.Normalize(request.Note),
             cancellationToken: cancellationToken
         );
         return Results.Accepted(
@@ -219,6 +226,7 @@ internal static class RunEndpoints
                 Tags = original.Tags,
                 EndpointUrl = request?.EndpointUrl ?? original.EndpointUrl,
                 Group = request?.Group,
+                Note = request?.Note,
             },
             original.Placement,
             agents,
@@ -453,5 +461,17 @@ internal static class RunEndpoints
         }
         await runs.RequestCancelAsync(id, cancellationToken);
         return Results.Accepted($"/runs/{id}");
+    }
+
+    /// <summary>204 once the note of run <paramref name="id"/> is set (none or blank clears it), in any status. 404: no such run; 422: a note that is too long.</summary>
+    private static async Task<IResult> SetNoteAsync(Guid id, RunNoteRequest request, RunStore runs, CancellationToken cancellationToken)
+    {
+        if (RunNoteRules.Problem(request.Note) is { } problem)
+        {
+            return ProblemResults.Invalid("note", problem);
+        }
+        return await runs.SetNoteAsync(id, RunNoteRules.Normalize(request.Note), cancellationToken)
+            ? Results.NoContent()
+            : ProblemResults.NotFound("Run", id.ToString());
     }
 }

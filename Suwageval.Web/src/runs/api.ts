@@ -45,6 +45,11 @@ export function cancelRun(runId: string): Promise<void> {
     return request<undefined>(`/runs/${runId}/cancel`, { method: "POST" }).then(() => undefined);
 }
 
+/** Sets the note of the run (why it was started); none or blank clears it. Any status. */
+export function setRunNote(runId: string, note: string | null): Promise<void> {
+    return request<undefined>(`/runs/${runId}/note`, { method: "PUT", body: JSON.stringify({ note }) }).then(() => undefined);
+}
+
 /** A new run with the agent, tag and endpoint of this one, against the version the agent serves now. */
 export function rerun(runId: string): Promise<RunCreated> {
     return request<RunCreated>(`/runs/${runId}/rerun`, { method: "POST" });

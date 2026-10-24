@@ -182,12 +182,6 @@ To do in that change:
   and the judge's calls are Suwageval's own; show tokens and an estimated cost per run, per scenario and in the trends — samples
   default to 3, so the calls tripled and the cost should be visible. Open questions: the field in contract v1 (an optional
   `usage` on the turn answer), a price table per model (config), the judge's cost shown separately.
-- **A note on a run, editable after it finished.** The only thing worth labelling after it is stored: a version's label comes
-  from the running agent (its contract) and scenario tags from the YAML, so editing them in Suwageval would contradict their
-  source; a run is a record of what happened, and a free-text note says why it was started ("rebuilt the retrieval index",
-  "trying model X"). Shown on the run page, in the runs list and in the comparison; set on the web and with the CLI
-  (`suwageval run --note …`, and a command to change it later). It changes no verdict and no regression state — it is not a
-  baseline mark (that is the manual mode above). Build it when comparing runs shows the missing "why".
 - **Reports: a PDF without a person.** The print of the run page and of the comparison is built (the "Print" button and
   `results`/`compare --open --print`, `docs/front-doors.md`): the browser's dialog is the preview and gives "Save as PDF". What is left is
   a file made with nobody at the screen (a report in CI): the server prints the same web view to PDF with a headless Chromium, as the
@@ -200,10 +194,6 @@ To do in that change:
 - **Later, only if this proves useful:** Suwageval sending its verdicts to Langfuse as scores per trace (an outside service, so a
   live test, the daily check and a secret, AGENTS.md section 3); Suwageval reading traces back; a `traceparent` header so the
   agent's spans join a trace Suwageval starts.
-- **Compare: "What differs" collapsible, collapsed by default.** The section can grow long (a row per changed prompt line,
-  config line, model, data version) and pushes the results down. Its header becomes a toggle (an accessible button with
-  `aria-expanded`, like a scenario row) saying how many rows it holds ("What differs · 7"); collapsed on first view, the
-  choice kept in the address or the browser's storage (a convenience only, AGENTS.md 5.2). A print/report shows it expanded.
 - **Low priority, unsure it is worth it: tags matched by the system, not written in the scenario.** A tag would be defined
   once per agent with a description (`refunds: anything about returning money`), and a model assigns the most relevant tags
   to each scenario (on `push`, stored, shown as assigned, a tag written in the YAML still wins). Either another behaviour of

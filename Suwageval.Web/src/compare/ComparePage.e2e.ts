@@ -188,7 +188,15 @@ test("a prompt's diff reads from the baseline's version, whichever column the ba
         const third = await runToEnd(request, { agent: name });
 
         await page.goto(`/compare?runs=${first},${second},${third}&baseline=${third}`);
-        await page.getByRole("button", { name: "Prompt changed in p1: show the diff", exact: true }).click();
+        // "What differs" is folded on the first view, says how many rows it holds, and stays as the person left it.
+        const section = page.getByRole("button", { name: /^What differs · \d+$/ });
+        const promptButton = page.getByRole("button", { name: "Prompt changed in p1: show the diff", exact: true });
+        await expect(section).toHaveAttribute("aria-expanded", "false");
+        await expect(promptButton).toBeHidden();
+        await section.click();
+        await page.reload();
+        await expect(section).toHaveAttribute("aria-expanded", "true");
+        await promptButton.click();
 
         // The diff of p1's column only (p2's is in the page too, folded until it is opened or printed).
         const diff = page.getByRole("row").filter({ hasText: "Contract diff: p3 → p1" });

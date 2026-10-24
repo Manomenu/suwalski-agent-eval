@@ -20,6 +20,9 @@ public sealed record RunSummary
     /// <summary>The group the run was started in (run --group); none for a run without one.</summary>
     public string? Group { get; init; }
 
+    /// <summary>Why the run was started, free text the user wrote (and may change at any time); none for a run without one. It changes no verdict.</summary>
+    public string? Note { get; init; }
+
     public required RunStatus Status { get; init; }
 
     /// <summary>Why a <see cref="RunStatus.Failed"/> run failed.</summary>

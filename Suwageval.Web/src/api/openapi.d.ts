@@ -1002,6 +1002,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/runs/{id}/note": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["RunNoteRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/runs/compare": {
         parameters: {
             query?: never;
@@ -2023,6 +2062,8 @@ export interface components {
             endpointUrl?: null | string;
             /** @description The group of the new run (RunGroupRules); none means no group, the repeated run's group is not inherited. */
             group?: null | string;
+            /** @description The note of the new run (RunNoteRules); none means no note, the repeated run's note is not inherited. */
+            note?: null | string;
         };
         /** @description The data an agent's retrieval reads, as the agent describes it. */
         RetrievalDefinition: {
@@ -2110,6 +2151,10 @@ export interface components {
              */
             totalCount: number;
         };
+        /** @description Sets the note of a run (RunNoteRules); none or blank clears it. */
+        RunNoteRequest: {
+            note?: null | string;
+        };
         /**
          * @description Where the agent's repository stood when a run was started: the facts the CLI reads from git (or from the CI's environment). The
          *     server decides from them whether the run is a reference run and which branch's history it is compared with.
@@ -2180,6 +2225,8 @@ export interface components {
             endpointUrl?: null | string;
             /** @description The group the run belongs to (RunGroupRules); none means no group. */
             group?: null | string;
+            /** @description Why the run is started (RunNoteRules); none means no note. It can be changed after the run. */
+            note?: null | string;
             origin?: null | components["schemas"]["RunOrigin"];
         };
         /** @description A run with what every scenario produced and how every check judged it. */
@@ -2219,6 +2266,8 @@ export interface components {
             endpointUrl: string;
             /** @description The group the run was started in (run --group); none for a run without one. */
             group?: null | string;
+            /** @description Why the run was started, free text the user wrote (and may change at any time); none for a run without one. It changes no verdict. */
+            note?: null | string;
             status: components["schemas"]["RunStatus"];
             /** @description Why a RunStatus.Failed run failed. */
             error?: null | string;

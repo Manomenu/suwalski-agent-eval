@@ -36,6 +36,7 @@ internal static class RunCommand
             Description = "Compare with the reference runs of this branch, instead of the one the run picks from the repository.",
         };
         var group = CommandOptions.RunGroup();
+        var note = CommandOptions.RunNote();
         var wait = CommandOptions.Wait("run");
         var json = CommandOptions.Json("Print JSON: the results with --wait, otherwise { runId }.");
         var strict = CommandOptions.Strict();
@@ -51,6 +52,7 @@ internal static class RunCommand
             endpoint,
             reference,
             group,
+            note,
             wait,
             json,
             strict,
@@ -82,6 +84,7 @@ internal static class RunCommand
                                         Agent = agent,
                                         Tags = parsed.GetValue(tag) ?? [],
                                         Group = parsed.GetValue(group),
+                                        Note = parsed.GetValue(note),
                                         EndpointUrl = AgentEndpoint.Override(parsed.GetValue(endpoint)),
                                         Origin = (origins ?? RunOriginReader.System).Read(agentDir, parsed.GetValue(reference)),
                                     },

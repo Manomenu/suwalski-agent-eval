@@ -4,6 +4,7 @@ import { isNotFound } from "../api/client";
 import { CancelButton } from "./CancelButton";
 import { HeaderHelp } from "../help/HeaderHelp";
 import { ChecksCount, SamplesCount } from "./RunCounts";
+import { RunNote } from "./RunNote";
 import { RecheckButton } from "./RecheckButton";
 import { RegressionSection } from "./RegressionSection";
 import { RerunButton } from "./RerunButton";
@@ -85,6 +86,7 @@ export function RunPage({ runId }: { runId: string }) {
                     {" · "}
                     {run.endpointUrl}
                 </Text>
+                <RunNote key={run.id} runId={run.id} initial={run.note} />
                 {run.group != null && (
                     <Text c="dimmed" size="sm">
                         A run in a group is an experiment: it has no regression states, is never a reference run and is not in the agent's

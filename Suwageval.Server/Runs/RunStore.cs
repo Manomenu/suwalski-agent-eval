@@ -22,7 +22,7 @@ internal sealed class RunStore(Pool pool)
                           JOIN scenario_results s ON s.id = c.scenario_result_id
                           WHERE s.run_id = r.id AND c.judge_model IS NOT NULL), '[]') AS JudgeModels,
                (SELECT count(*)::int FROM scenario_results s WHERE s.run_id = r.id AND s.status = 'Failed') AS SamplesFailed,
-               r.run_group AS RunGroup, r.label AS Label
+               r.run_group AS RunGroup, r.label AS Label, r.note AS Note
         FROM runs r
         JOIN agents a ON a.id = r.agent_id
         CROSS JOIN LATERAL (
@@ -50,6 +50,7 @@ internal sealed class RunStore(Pool pool)
         RunPlacement? placement = null,
         string? runGroup = null,
         string? label = null,
+        string? note = null,
         CancellationToken cancellationToken = default
     )
     {
@@ -67,8 +68,8 @@ internal sealed class RunStore(Pool pool)
         var id = await connection.QuerySingleAsync<Guid>(
             new CommandDefinition(
                 """
-                INSERT INTO runs (agent_id, agent_version_id, tags, endpoint_url, recheck_of, verdicts_from, origin, reference, compared_with, run_group, label)
-                VALUES (@agentId, @agentVersionId, @tags, @endpointUrl, @recheckOf, @verdictsFrom, @origin::jsonb, @reference, @comparedWith, @runGroup, @label)
+                INSERT INTO runs (agent_id, agent_version_id, tags, endpoint_url, recheck_of, verdicts_from, origin, reference, compared_with, run_group, label, note)
+                VALUES (@agentId, @agentVersionId, @tags, @endpointUrl, @recheckOf, @verdictsFrom, @origin::jsonb, @reference, @comparedWith, @runGroup, @label, @note)
                 RETURNING id
                 """,
                 new
@@ -84,6 +85,7 @@ internal sealed class RunStore(Pool pool)
                     comparedWith = placement?.ComparedWith,
                     runGroup,
                     label,
+                    note,
                 },
                 transaction,
                 cancellationToken: cancellationToken
@@ -249,6 +251,15 @@ internal sealed class RunStore(Pool pool)
                 cancellationToken: cancellationToken
             )
         );
+    }
+
+    /// <summary>Sets the note of a run in any status (null clears it); false for an unknown run.</summary>
+    public async Task<bool> SetNoteAsync(Guid id, string? note, CancellationToken cancellationToken = default)
+    {
+        await using var connection = await pool.OpenAsync(cancellationToken);
+        return await connection.ExecuteAsync(
+                new CommandDefinition("UPDATE runs SET note = @note WHERE id = @id", new { id, note }, cancellationToken: cancellationToken)
+            ) > 0;
     }
 
     /// <summary>

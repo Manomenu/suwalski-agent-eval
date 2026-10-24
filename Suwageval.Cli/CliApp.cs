@@ -7,6 +7,7 @@ using Suwageval.Cli.Compare;
 using Suwageval.Cli.Files;
 using Suwageval.Cli.Groups;
 using Suwageval.Cli.Init;
+using Suwageval.Cli.Note;
 using Suwageval.Cli.Output;
 using Suwageval.Cli.Push;
 using Suwageval.Cli.Recheck;
@@ -56,6 +57,7 @@ internal static class CliApp
             RerunCommand.Create(terminal, http),
             RecheckCommand.Create(terminal, http),
             CancelCommand.Create(http),
+            NoteCommand.Create(http),
             ResultsCommand.Create(http, openBrowser),
             CompareCommand.Create(http, openBrowser),
             SweepCommand.Create(terminal, http, origins, shell, labelPollInterval),

@@ -59,13 +59,18 @@ internal sealed class ServerClient(HttpClient http)
             cancellationToken
         );
 
-    /// <summary>A new run with the agent, tags and endpoint of run <paramref name="runId"/> (the endpoint unless another is given), in <paramref name="group"/> if any.</summary>
-    public Task<RunCreated> RerunAsync(Guid runId, string? endpointUrl, string? group, CancellationToken cancellationToken) =>
+    /// <summary>A new run with the agent, tags and endpoint of run <paramref name="runId"/> (the endpoint unless another is given), in <paramref name="group"/> if any, with <paramref name="note"/> if any.</summary>
+    public Task<RunCreated> RerunAsync(Guid runId, string? endpointUrl, string? group, string? note, CancellationToken cancellationToken) =>
         SendAsync<RunCreated>(
             () =>
                 http.PostAsJsonAsync(
                     new Uri($"runs/{runId}/rerun", UriKind.Relative),
-                    new RerunRequest { EndpointUrl = endpointUrl, Group = group },
+                    new RerunRequest
+                    {
+                        EndpointUrl = endpointUrl,
+                        Group = group,
+                        Note = note,
+                    },
                     ContractJson.Options,
                     cancellationToken
                 ),
@@ -89,6 +94,19 @@ internal sealed class ServerClient(HttpClient http)
     /// <summary>Asks the server to stop run <paramref name="runId"/>: it answers 202 for any known run, a finished one stays as it is.</summary>
     public Task CancelAsync(Guid runId, CancellationToken cancellationToken) =>
         SendAsync(() => http.PostAsync(new Uri($"runs/{runId}/cancel", UriKind.Relative), null, cancellationToken), cancellationToken);
+
+    /// <summary>Sets the note of run <paramref name="runId"/>; none or blank clears it.</summary>
+    public Task SetNoteAsync(Guid runId, string? note, CancellationToken cancellationToken) =>
+        SendAsync(
+            () =>
+                http.PutAsJsonAsync(
+                    new Uri($"runs/{runId}/note", UriKind.Relative),
+                    new RunNoteRequest { Note = note },
+                    ContractJson.Options,
+                    cancellationToken
+                ),
+            cancellationToken
+        );
 
     public Task<RunSummary> GetAsync(Guid runId, CancellationToken cancellationToken) =>
         SendAsync<RunSummary>(() => http.GetAsync(new Uri($"runs/{runId}", UriKind.Relative), cancellationToken), cancellationToken);

@@ -30,6 +30,7 @@ internal static class RunReport
             EndpointUrl = run.EndpointUrl,
             Group = run.RunGroup,
             Label = run.Label,
+            Note = run.Note,
             Status = run.State,
             Error = run.Error,
             SamplesTotal = run.SamplesTotal,
