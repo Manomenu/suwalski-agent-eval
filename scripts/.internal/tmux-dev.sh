@@ -45,14 +45,15 @@ attach() {
   fi
 }
 
-# Kills the session and everything running in it; the agent's container (image mode) is removed too, so nothing keeps its port.
+inside_session() {
+  [[ -n "${TMUX:-}" && "$(tmux display-message -p '#S')" == "$SESSION" ]]
+}
+
+# Kills the session and everything running in it; the agent's container (image mode) is removed first, so nothing keeps its port
+# (run from inside the session, killing it ends this shell too, so nothing after it would run).
 kill_session() {
-  if [[ -n "${TMUX:-}" && "$(tmux display-message -p '#S')" == "$SESSION" ]]; then
-    echo "Run this from outside the $SESSION session: killing it would kill this shell too." >&2
-    exit 1
-  fi
-  tmux kill-session -t "=$SESSION"
   docker rm -f suwexag >/dev/null 2>&1 || true
+  tmux kill-session -t "=$SESSION"
 }
 
 if ((stop)); then
@@ -60,12 +61,16 @@ if ((stop)); then
     echo "No $SESSION session is running."
     exit 0
   fi
+  inside_session || echo "Stopping the $SESSION session."
   kill_session
-  echo "Stopped the $SESSION session."
   exit 0
 fi
 
 if ((restart)) && tmux has-session -t "=$SESSION" 2>/dev/null; then
+  if inside_session; then
+    echo "Run --restart from outside the $SESSION session: killing it would end this shell before the new one starts." >&2
+    exit 1
+  fi
   kill_session
 fi
 
