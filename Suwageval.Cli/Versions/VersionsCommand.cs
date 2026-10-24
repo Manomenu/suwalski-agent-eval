@@ -30,7 +30,7 @@ internal static class VersionsCommand
         var usage = new Option<VersionUsage[]>("--usage")
         {
             Description =
-                "Where the versions are used: evaluation (runs outside a group; the default), groups, unused, archived. Repeatable and/or comma-separated; a version is listed when it has any of them. Not with --archived, --any-group or --all-versions.",
+                "Where the versions are used: evaluation (runs outside a group), groups (runs in a group), unused (no run yet), archived; the default is evaluation and unused. Repeatable and/or comma-separated; a version is listed when it has any of them. Not with --archived, --any-group or --all-versions.",
             CustomParser = result =>
             {
                 var chosen = new List<VersionUsage>();
