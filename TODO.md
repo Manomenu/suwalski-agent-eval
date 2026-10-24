@@ -39,6 +39,10 @@ To do in that change:
   (how conversations arrive, the agent's tabs, `features` in `agent.yaml`, the evaluation API moved under `/api/eval/…` beside
   `/api/monitoring/…`, `dataVersion` out of the version, the stages, the open questions). The items below are its parts. Keep this link
   until live traffic is built.
+  - **On `epic/monitoring-tab`, the old version filters go:** `suwageval versions --any-group` and `--all-versions`, the API's
+    `grouping` parameter of `GET /agents/{agent}/versions` and the `GroupRunsOnly` field of a version — replaced by `--usage` /
+    `?usage=` (built before the epic). A breaking change for an installed CLI, so it goes with the epic's other breaking changes and
+    is announced; `--archived` may stay as a shorthand for `--usage archived`.
 
 - **Scenarios from real conversations of a connected agent** (the owner's idea). The agents send their conversations
   (the context they had, the turns, tool calls and results) to Suwageval, kept per agent version; on the web a person picks a
