@@ -464,6 +464,58 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         Assert.Empty((await GetAsync<RunList>(client, $"/runs?agent={agent.Name}")).Runs);
     }
 
+    private static Task<HttpResponseMessage> PutNote(HttpClient client, Guid runId, string? note) =>
+        client.PutAsJsonAsync(new Uri($"/runs/{runId}/note", UriKind.Relative), new RunNoteRequest { Note = note }, Cancellation);
+
+    [Fact]
+    public async Task A_note_set_at_start_is_trimmed_listed_and_not_inherited_by_a_rerun_and_can_be_changed_and_cleared_later()
+    {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
+        var client = Client();
+        var agent = await NewAgentAsync(fake.Url.AbsoluteUri);
+        var original = await StartAsync(client, new RunRequest { Agent = agent.Name, Note = "  rebuilt the index \n" });
+
+        var rerun = await RerunOkAsync(client, original.RunId, new RerunRequest { Note = "trying model X" });
+        var plain = await RerunOkAsync(client, original.RunId);
+
+        Assert.Equal("rebuilt the index", (await GetAsync<RunSummary>(client, $"/runs/{original.RunId}")).Note);
+        Assert.Equal("trying model X", (await GetAsync<RunSummary>(client, $"/runs/{rerun.RunId}")).Note);
+        Assert.Null((await GetAsync<RunSummary>(client, $"/runs/{plain.RunId}")).Note);
+
+        Assert.Equal(HttpStatusCode.NoContent, (await PutNote(client, original.RunId, " new reason ")).StatusCode);
+        var listed = await GetAsync<RunList>(client, $"/runs?agent={agent.Name}");
+        Assert.Equal("new reason", listed.Runs.Single(run => run.Id == original.RunId).Note);
+
+        Assert.Equal(HttpStatusCode.NoContent, (await PutNote(client, original.RunId, "   ")).StatusCode);
+        Assert.Null((await GetAsync<RunSummary>(client, $"/runs/{original.RunId}")).Note);
+    }
+
+    [Fact]
+    public async Task A_note_can_be_set_on_a_finished_run_and_an_unknown_run_is_404_and_a_long_note_is_422()
+    {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
+        var client = Client();
+        var agent = await NewAgentAsync(fake.Url.AbsoluteUri);
+        var created = await StartAsync(client, new RunRequest { Agent = agent.Name });
+        var run = await app.Services.GetRequiredService<RunStore>().ClaimNextAsync(agent.Id, Cancellation);
+        await app
+            .Services.GetRequiredService<RunExecutor>()
+            .ExecuteAsync(run ?? throw new InvalidOperationException("not queued"), Cancellation);
+
+        Assert.Equal(HttpStatusCode.NoContent, (await PutNote(client, created.RunId, "after it finished")).StatusCode);
+        Assert.Equal("after it finished", (await GetAsync<RunSummary>(client, $"/runs/{created.RunId}")).Note);
+        Assert.Equal(HttpStatusCode.NotFound, (await PutNote(client, Guid.NewGuid(), "x")).StatusCode);
+
+        var tooLong = await PutNote(client, created.RunId, new string('x', RunNoteRules.MaxLength + 1));
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, tooLong.StatusCode);
+        using var problem = JsonDocument.Parse(await tooLong.Content.ReadAsStringAsync(Cancellation));
+        Assert.True(problem.RootElement.GetProperty("errors").TryGetProperty("note", out _));
+        Assert.Equal("after it finished", (await GetAsync<RunSummary>(client, $"/runs/{created.RunId}")).Note);
+
+        var rejectedAtStart = await Post(client, new RunRequest { Agent = agent.Name, Note = new string('x', RunNoteRules.MaxLength + 1) });
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, rejectedAtStart.StatusCode);
+    }
+
     [Fact]
     public async Task The_run_list_is_paged_by_page_and_page_size_with_the_total_and_a_page_past_the_end_is_the_last()
     {

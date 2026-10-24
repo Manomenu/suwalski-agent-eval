@@ -32,7 +32,8 @@ internal sealed record RunRow(
     string JudgeModels = "[]",
     int SamplesFailed = 0,
     string? RunGroup = null,
-    string? Label = null
+    string? Label = null,
+    string? Note = null
 )
 {
     /// <summary>What a rerun or a re-check of this run inherits.</summary>

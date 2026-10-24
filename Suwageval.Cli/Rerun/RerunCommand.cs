@@ -20,6 +20,7 @@ internal static class RerunCommand
             Description = AgentEndpoint.OptionDescription("the endpoint of that run (its contract is read from there too)."),
         };
         var group = CommandOptions.RunGroup();
+        var note = CommandOptions.RunNote();
         var wait = CommandOptions.Wait("run");
         var json = CommandOptions.Json("Print JSON: the results with --wait, otherwise { runId }.");
         var strict = CommandOptions.Strict();
@@ -33,6 +34,7 @@ internal static class RerunCommand
             runId,
             endpoint,
             group,
+            note,
             wait,
             json,
             strict,
@@ -54,6 +56,7 @@ internal static class RerunCommand
                                     parsed.GetRequiredValue(runId),
                                     AgentEndpoint.Override(parsed.GetValue(endpoint)),
                                     parsed.GetValue(group),
+                                    parsed.GetValue(note),
                                     cancellationToken
                                 );
                                 return await RunOutput.ReportAsync(

@@ -137,7 +137,7 @@ internal static class RunsCommand
                             await output.WriteLineAsync(
                                 string.Create(
                                     CultureInfo.InvariantCulture,
-                                    $"{run.Id}  {run.Status}  {RunTagsText.Of(run.Tags)}  version {run.AgentVersionId}{RunLabelText.Suffix(run.Label)}  {run.ChecksPassed}/{run.ChecksPassed + run.ChecksFailed} checks passed  {run.CreatedAt:yyyy-MM-dd HH:mm}Z  branch {run.Origin?.Branch ?? "-"}{(run.Reference ? "  reference" : "")}{(run.Group is null ? "" : $"  group {run.Group}")}{(run.JudgeModels.Count > 0 ? $"  judge {string.Join(", ", run.JudgeModels)}" : "")}"
+                                    $"{run.Id}  {run.Status}  {RunTagsText.Of(run.Tags)}  version {run.AgentVersionId}{RunLabelText.Suffix(run.Label)}  {run.ChecksPassed}/{run.ChecksPassed + run.ChecksFailed} checks passed  {run.CreatedAt:yyyy-MM-dd HH:mm}Z  branch {run.Origin?.Branch ?? "-"}{(run.Reference ? "  reference" : "")}{(run.Group is null ? "" : $"  group {run.Group}")}{(run.JudgeModels.Count > 0 ? $"  judge {string.Join(", ", run.JudgeModels)}" : "")}{RunNoteText.Suffix(run.Note)}"
                                 )
                             );
                         }

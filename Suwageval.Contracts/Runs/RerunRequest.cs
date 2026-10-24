@@ -8,4 +8,7 @@ public sealed record RerunRequest
 
     /// <summary>The group of the new run (<see cref="RunGroupRules"/>); none means no group, the repeated run's group is not inherited.</summary>
     public string? Group { get; init; }
+
+    /// <summary>The note of the new run (<see cref="RunNoteRules"/>); none means no note, the repeated run's note is not inherited.</summary>
+    public string? Note { get; init; }
 }

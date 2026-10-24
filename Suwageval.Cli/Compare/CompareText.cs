@@ -101,7 +101,7 @@ internal static class CompareText
         var models = variant.ModelNames.Count == 0 ? "-" : string.Join(", ", variant.ModelNames);
         return string.Create(
             CultureInfo.InvariantCulture,
-            $"{Letter(column)}{(run.Id == baseline ? " baseline" : "")}  {name}  models {models}  run {run.Id.ToString()[..8]}  checks {run.ChecksPassed}/{run.ChecksPassed + run.ChecksFailed} passed, {run.ChecksFailed} failed  samples {run.SamplesDone - run.SamplesFailed}/{run.SamplesTotal} answered  median {TurnTime.Format(variant.MedianMs)}  p95 {TurnTime.Format(variant.P95Ms)}{(variant.JudgeModel is null ? "" : $"  judge {variant.JudgeModel}")}"
+            $"{Letter(column)}{(run.Id == baseline ? " baseline" : "")}  {name}  models {models}  run {run.Id.ToString()[..8]}  checks {run.ChecksPassed}/{run.ChecksPassed + run.ChecksFailed} passed, {run.ChecksFailed} failed  samples {run.SamplesDone - run.SamplesFailed}/{run.SamplesTotal} answered  median {TurnTime.Format(variant.MedianMs)}  p95 {TurnTime.Format(variant.P95Ms)}{(variant.JudgeModel is null ? "" : $"  judge {variant.JudgeModel}")}{RunNoteText.Suffix(run.Note)}"
         );
     }
 

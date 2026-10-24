@@ -8,6 +8,10 @@ import { columnTitle, runTagsText } from "./variants";
 import { versionHref, compareGroupHref, runHref } from "../routes/links";
 import { formatTime } from "../format/time";
 import { shortId } from "../format/names";
+import { shortNote } from "../runs/note";
+
+/** How much of a long note the column shows; the full text is its tooltip. */
+const NOTE_COLUMN_LENGTH = 120;
 
 /**
  * The button that makes a column the baseline (or, on the baseline itself, takes it back). The changes against the baseline are in the
@@ -56,6 +60,11 @@ export function ColumnHeader({
             {run.group != null && (
                 <Text size="xs" fw="normal" className="wrap-key">
                     <Anchor href={compareGroupHref(run.group, agent)}>Group {run.group}</Anchor>
+                </Text>
+            )}
+            {run.note?.trim() && (
+                <Text size="xs" fw="normal" className="wrap-key" title={run.note}>
+                    Note: {shortNote(run.note, NOTE_COLUMN_LENGTH)}
                 </Text>
             )}
             <Text size="xs" c="dimmed" fw="normal" className="no-wrap">

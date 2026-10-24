@@ -1,6 +1,7 @@
 using System.CommandLine;
 using System.CommandLine.Parsing;
 using Suwageval.Cli.Files;
+using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Cli.Server;
 
@@ -35,6 +36,24 @@ internal static class CommandOptions
             Description =
                 "Put the run in this group (lowercase kebab-case, e.g. sweep-2026-10-21): the runs of one sweep, listed with `runs --group` and compared side by side. A group run is an experiment: no regression states, never a reference run, not in the trend; with --wait it exits 1 when any check fails its threshold (as --strict).",
         };
+
+    /// <summary>The words of <c>--note</c> on <c>run</c> and <c>rerun</c>; a note the rules refuse is an error before any request.</summary>
+    public static Option<string?> RunNote()
+    {
+        var note = new Option<string?>("--note")
+        {
+            Description =
+                $"Why the run is started, free text (at most {RunNoteRules.MaxLength} characters). Shown on the run page, in `runs` and in comparisons; change it later with `suwageval note`. It changes no verdict.",
+        };
+        note.Validators.Add(result =>
+        {
+            if (RunNoteRules.Problem(result.GetValueOrDefault<string?>()) is { } problem)
+            {
+                result.AddError(problem);
+            }
+        });
+        return note;
+    }
 
     public static Option<string?> Group(string description) => new("--group") { Description = description };
 
