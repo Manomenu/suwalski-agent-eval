@@ -18,9 +18,9 @@ import {
     VERSIONS_SECTION_HELP,
 } from "./view";
 import { deletionSummary } from "../agents/deletion";
-import { archiveSelection } from "../agents/archive";
-import { ArchiveControls, type ArchiveLabels } from "../agents/ArchiveControls";
-import { useArchiveList } from "../agents/useArchiveList";
+import { archiveSelection } from "../archive/archive";
+import { ArchiveControls, type ArchiveLabels } from "../archive/ArchiveControls";
+import { useArchiveList } from "../archive/useArchiveList";
 import { listedVersions, usagesOfValues, VERSION_USAGE_OPTIONS } from "./versionUsage";
 import { versionCompareHref, versionHref, type VersionUsage } from "../routes/links";
 import { formatTime } from "../format/time";
@@ -35,7 +35,6 @@ const LABELS: ArchiveLabels = {
     unarchive: "Unarchive selected",
     remove: "Delete",
     removeHint: "Select one archived version to delete it.",
-    showArchived: "Show archived",
     errorTitle: "Could not change the versions",
 };
 
