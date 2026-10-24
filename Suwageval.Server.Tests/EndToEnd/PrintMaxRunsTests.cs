@@ -1,7 +1,7 @@
 extern alias Cli;
 
 using System.Text.RegularExpressions;
-using CompareCommand = Cli::Suwageval.Cli.Compare.CompareCommand;
+using CompareCommand = Cli::Suwageval.Cli.Evaluation.Compare.CompareCommand;
 
 namespace Suwageval.Server.Tests.EndToEnd;
 

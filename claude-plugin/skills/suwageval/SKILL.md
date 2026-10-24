@@ -64,6 +64,8 @@ user's clone of the suwageval repository, wherever they keep it: if its folder i
 
 ## Commands
 
+`suwageval --help` groups the commands by area (Evaluation, Agent; Monitoring later); the names are flat.
+
 | want | command |
 | --- | --- |
 | set a repository up (no `suwageval/agent.yaml` yet, or a field to change) | `suwageval init [path] --name N --endpoint-url URL [--suwageval-url URL]`: give every value as an option, since there is no terminal to ask on; an existing file keeps its comments and other fields, and a repeat changes nothing |

@@ -1,25 +1,25 @@
 using System.CommandLine;
 using Suwageval.Cli.AgentDelete;
-using Suwageval.Cli.AgentErrors;
 using Suwageval.Cli.Agents;
-using Suwageval.Cli.Cancel;
-using Suwageval.Cli.Compare;
+using Suwageval.Cli.Evaluation.AgentErrors;
+using Suwageval.Cli.Evaluation.Cancel;
+using Suwageval.Cli.Evaluation.Compare;
+using Suwageval.Cli.Evaluation.Groups;
+using Suwageval.Cli.Evaluation.Note;
+using Suwageval.Cli.Evaluation.Push;
+using Suwageval.Cli.Evaluation.Recheck;
+using Suwageval.Cli.Evaluation.Rerun;
+using Suwageval.Cli.Evaluation.Results;
+using Suwageval.Cli.Evaluation.Run;
+using Suwageval.Cli.Evaluation.Runs;
+using Suwageval.Cli.Evaluation.Scenarios;
+using Suwageval.Cli.Evaluation.Sweep;
+using Suwageval.Cli.Evaluation.Trend;
+using Suwageval.Cli.Evaluation.Unstable;
+using Suwageval.Cli.Evaluation.Validate;
 using Suwageval.Cli.Files;
-using Suwageval.Cli.Groups;
 using Suwageval.Cli.Init;
-using Suwageval.Cli.Note;
 using Suwageval.Cli.Output;
-using Suwageval.Cli.Push;
-using Suwageval.Cli.Recheck;
-using Suwageval.Cli.Rerun;
-using Suwageval.Cli.Results;
-using Suwageval.Cli.Run;
-using Suwageval.Cli.Runs;
-using Suwageval.Cli.Scenarios;
-using Suwageval.Cli.Sweep;
-using Suwageval.Cli.Trend;
-using Suwageval.Cli.Unstable;
-using Suwageval.Cli.Validate;
 using Suwageval.Cli.Versions;
 
 namespace Suwageval.Cli;
@@ -47,7 +47,34 @@ internal static class CliApp
         CancellationToken interrupt = default
     )
     {
-        var terminal = new Terminal(input, interactive);
+        var root = Create(new Terminal(input, interactive), input, http, openBrowser, origins, shell, labelPollInterval);
+        // No termination timeout: System.CommandLine would otherwise handle Ctrl+C itself and end the process two seconds later,
+        // in the middle of the question run --wait asks. Ctrl+C reaches the commands through interrupt instead.
+        return root.Parse(args)
+            .InvokeAsync(
+                new InvocationConfiguration
+                {
+                    Output = output,
+                    Error = error,
+                    ProcessTerminationTimeout = null,
+                },
+                interrupt
+            )
+            .GetAwaiter()
+            .GetResult();
+    }
+
+    /// <summary>The command tree, its help listed by section; <see cref="Run"/> parses and invokes it.</summary>
+    public static RootCommand Create(
+        Terminal terminal,
+        TextReader input,
+        HttpClient? http,
+        Action<Uri>? openBrowser,
+        RunOriginReader? origins,
+        ShellCommand? shell,
+        TimeSpan? labelPollInterval
+    )
+    {
         var root = new RootCommand("Suwageval: the evaluation files of an agent's repository.")
         {
             InitCommand.Create(terminal),
@@ -73,19 +100,7 @@ internal static class CliApp
             GroupsCommand.Create(terminal, http),
             AgentDeleteCommand.Create(terminal, http),
         };
-        // No termination timeout: System.CommandLine would otherwise handle Ctrl+C itself and end the process two seconds later,
-        // in the middle of the question run --wait asks. Ctrl+C reaches the commands through interrupt instead.
-        return root.Parse(args)
-            .InvokeAsync(
-                new InvocationConfiguration
-                {
-                    Output = output,
-                    Error = error,
-                    ProcessTerminationTimeout = null,
-                },
-                interrupt
-            )
-            .GetAwaiter()
-            .GetResult();
+        HelpSections.Apply(root);
+        return root;
     }
 }
