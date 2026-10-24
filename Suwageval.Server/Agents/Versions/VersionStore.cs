@@ -8,25 +8,30 @@ namespace Suwageval.Server.Agents.Versions;
 internal sealed class VersionStore(Pool pool)
 {
     /// <summary>
-    /// The ids of the agent's versions that have at least one run and whose every run is in a group (a re-check counts as in the group of the run it
-    /// was made from, as in the runs list). A version with no run is not among them, and neither is one with a run outside a group.
+    /// How many runs each of the agent's versions has, outside a group and in one (a re-check counts as in the group of the run it was made from,
+    /// as in the runs list); one query for all versions. A version with no run is not among the keys.
     /// </summary>
-    public async Task<IReadOnlySet<Guid>> GroupRunsOnlyAsync(Guid agentId, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyDictionary<Guid, VersionRunCounts>> RunCountsAsync(
+        Guid agentId,
+        CancellationToken cancellationToken = default
+    )
     {
         await using var connection = await pool.OpenAsync(cancellationToken);
-        var ids = await connection.QueryAsync<Guid>(
+        var rows = await connection.QueryAsync<(Guid VersionId, int Runs, int GroupRuns)>(
             new CommandDefinition(
                 $"""
-                SELECT v.id FROM agent_versions v
-                WHERE v.agent_id = @agentId
-                  AND EXISTS (SELECT 1 FROM runs r WHERE r.agent_version_id = v.id)
-                  AND NOT EXISTS (SELECT 1 FROM runs r WHERE r.agent_version_id = v.id AND {RunGroupSql.EffectiveGroup} IS NULL)
+                SELECT r.agent_version_id AS VersionId,
+                       (COUNT(*) FILTER (WHERE {RunGroupSql.EffectiveGroup} IS NULL))::int AS Runs,
+                       (COUNT(*) FILTER (WHERE {RunGroupSql.EffectiveGroup} IS NOT NULL))::int AS GroupRuns
+                FROM runs r
+                WHERE r.agent_id = @agentId
+                GROUP BY r.agent_version_id
                 """,
                 new { agentId },
                 cancellationToken: cancellationToken
             )
         );
-        return ids.ToHashSet();
+        return rows.ToDictionary(row => row.VersionId, row => new VersionRunCounts(row.Runs, row.GroupRuns));
     }
 
     /// <summary>The ids among <paramref name="versionIds"/> that are not versions of the agent.</summary>

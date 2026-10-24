@@ -38,18 +38,18 @@ internal static class VersionEndpoints
         {
             return ProblemResults.NotFound("Agent", agent);
         }
-        var groupRunsOnly = await versions.GroupRunsOnlyAsync(row.Id, cancellationToken);
+        var counts = await versions.RunCountsAsync(row.Id, cancellationToken);
         return Results.Ok(
             (await store.ListVersionsAsync(row.Id, cancellationToken))
                 .Where(version =>
                     (grouping ?? RunGrouping.All) switch
                     {
-                        RunGrouping.None => !groupRunsOnly.Contains(version.Id),
-                        RunGrouping.Any => groupRunsOnly.Contains(version.Id),
+                        RunGrouping.None => !CountsOf(counts, version.Id).GroupRunsOnly,
+                        RunGrouping.Any => CountsOf(counts, version.Id).GroupRunsOnly,
                         RunGrouping.All or _ => true,
                     }
                 )
-                .Select(version => ToVersion(version, groupRunsOnly.Contains(version.Id)))
+                .Select(version => ToVersion(version, CountsOf(counts, version.Id)))
         );
     }
 
@@ -160,13 +160,13 @@ internal static class VersionEndpoints
         }
         // The older one is the base; versions made at the same time stay in the order asked for.
         var (older, newer) = second.CreatedAt < first.CreatedAt ? (second, first) : (first, second);
-        var groupRunsOnly = await versions.GroupRunsOnlyAsync(row.Id, cancellationToken);
+        var counts = await versions.RunCountsAsync(row.Id, cancellationToken);
         var rows = LineDiff.Rows(ContractYaml.Of(ContentOf(older)), ContractYaml.Of(ContentOf(newer)));
         return Results.Ok(
             new VersionDiff
             {
-                From = ToVersion(older, groupRunsOnly.Contains(older.Id)),
-                To = ToVersion(newer, groupRunsOnly.Contains(newer.Id)),
+                From = ToVersion(older, CountsOf(counts, older.Id)),
+                To = ToVersion(newer, CountsOf(counts, newer.Id)),
                 Added = rows.Count(line => line.Kind == DiffKind.Added),
                 Removed = rows.Count(line => line.Kind == DiffKind.Removed),
                 Blocks = LineDiff.Blocks(rows),
@@ -217,7 +217,10 @@ internal static class VersionEndpoints
         );
     }
 
-    private static AgentVersion ToVersion(AgentVersionRow row, bool groupRunsOnly)
+    private static VersionRunCounts CountsOf(IReadOnlyDictionary<Guid, VersionRunCounts> counts, Guid versionId) =>
+        counts.GetValueOrDefault(versionId, VersionRunCounts.None);
+
+    private static AgentVersion ToVersion(AgentVersionRow row, VersionRunCounts counts)
     {
         var contract = ContractContent.Read(row.Content);
         return new AgentVersion(
@@ -232,7 +235,9 @@ internal static class VersionEndpoints
             row.DataDescription
         )
         {
-            GroupRunsOnly = groupRunsOnly,
+            GroupRunsOnly = counts.GroupRunsOnly,
+            Runs = counts.Runs,
+            GroupRuns = counts.GroupRuns,
         };
     }
 }

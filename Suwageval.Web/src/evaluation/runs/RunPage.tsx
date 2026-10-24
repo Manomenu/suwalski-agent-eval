@@ -27,7 +27,7 @@ import { useHidePassed } from "./useHidePassed";
 import { useRunResults } from "./useRunResults";
 import { useScrollToHash } from "./useScrollToHash";
 import { useUnstableChecks } from "../unstable/useUnstableChecks";
-import { agentEvaluationHref, runHref, compareGroupHref } from "../../routes/links";
+import { agentEvaluationHref, runHref, compareGroupHref, versionInUseHref } from "../../routes/links";
 import { formatTime } from "../../format/time";
 import { PrintButton } from "../../print/PrintButton";
 import { usePrintOnLoad } from "../../print/usePrintOnLoad";
@@ -76,7 +76,8 @@ export function RunPage({ runId }: { runId: string }) {
                     {isActive(run.status) && <Loader size="sm" aria-label="Run in progress" />}
                 </Group>
                 <Text c="dimmed">
-                    id {run.id} · version {run.agentVersionId}
+                    id {run.id} · version{" "}
+                    <Anchor href={versionInUseHref(run.agent, run.agentVersionId, run.group != null)}>{run.agentVersionId}</Anchor>
                     {run.label?.trim() ? ` · label ${run.label}` : ""}
                     {run.tags?.length ? ` · tags ${run.tags.join(", ")}` : ""}
                     {run.group != null && (

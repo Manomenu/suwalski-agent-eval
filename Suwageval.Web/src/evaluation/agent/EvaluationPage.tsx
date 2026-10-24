@@ -53,7 +53,15 @@ import {
 } from "./view";
 import { VERSION_HELP } from "../../versions/view";
 import { UnstableChecksCard } from "../unstable/UnstableChecksCard";
-import { runHref, compareGroupHref, compareHref, versionHref, COMPARE_MAX_RUNS, COMPARE_MIN_RUNS } from "../../routes/links";
+import {
+    runHref,
+    compareGroupHref,
+    compareHref,
+    versionInUseHref,
+    versionsInEvaluationHref,
+    COMPARE_MAX_RUNS,
+    COMPARE_MIN_RUNS,
+} from "../../routes/links";
 import { formatTime } from "../../format/time";
 import { shortId } from "../../format/names";
 import { fetchPassRates } from "../trend/api";
@@ -180,6 +188,7 @@ function AgentView({
                         <Stack gap={4}>
                             <Group justify="space-between">
                                 <Title order={2}>{agent.name}</Title>
+                                <Anchor href={versionsInEvaluationHref(agent.name)}>Versions in evaluation</Anchor>
                             </Group>
                             <Text c="dimmed">
                                 {agent.endpointUrl} · created {formatTime(agent.createdAt)}
@@ -372,7 +381,7 @@ function AgentView({
                                                     )}
                                                 </Table.Td>
                                                 <Table.Td>
-                                                    <Anchor href={versionHref(agent.name, run.agentVersionId)}>
+                                                    <Anchor href={versionInUseHref(agent.name, run.agentVersionId, run.group != null)}>
                                                         {runLabel(
                                                             run,
                                                             versions.find((version) => version.id === run.agentVersionId)?.label,
