@@ -158,7 +158,7 @@ To do in that change:
   `validate` command is the check.
 - **Parallel runs, the first level** (`Runs:MaxParallelScenarios`, built) **and the second:** the
   per-model pool (`Models:<name>:MaxConcurrency`, built with the judge: one `LimitedChatClient`
-  per model in `Models/ModelClients.cs`) is what the judge and the user simulator use. Still open: more than one run at a time (`RunWorker` takes one);
+  per model in `LanguageModels/ModelClients.cs`) is what the judge and the user simulator use. Still open: more than one run at a time (`RunWorker` takes one);
   the agent under test calls its own model, possibly the same server, which Suwageval cannot
   count — the per-run limit is what protects it.
 - **Judge: later.** A per-model API key (the TODO "Secrets" checklist, when a model asks for one);

@@ -3,11 +3,11 @@ using Dapper;
 using Suwageval.Contracts.Agents;
 using Suwageval.Contracts.Runs;
 using Suwageval.Server.Agents;
-using Suwageval.Server.Checks;
-using Suwageval.Server.Runs;
-using Suwageval.Server.Scenarios;
+using Suwageval.Server.Evaluation.Checks;
+using Suwageval.Server.Evaluation.Runs;
+using Suwageval.Server.Evaluation.Scenarios;
 using Suwageval.Server.Tests.Api;
-using Suwageval.Server.Tests.Runs;
+using Suwageval.Server.Tests.Evaluation.Runs;
 
 namespace Suwageval.Server.Tests.Agents;
 

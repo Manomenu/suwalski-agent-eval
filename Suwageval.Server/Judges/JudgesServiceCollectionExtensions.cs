@@ -1,4 +1,4 @@
-using Suwageval.Server.Models;
+using Suwageval.Server.LanguageModels;
 
 namespace Suwageval.Server.Judges;
 

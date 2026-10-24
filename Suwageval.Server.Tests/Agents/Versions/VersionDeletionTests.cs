@@ -1,9 +1,9 @@
 using System.Net;
 using Dapper;
 using Suwageval.Contracts.Agents;
-using Suwageval.Server.Runs;
+using Suwageval.Server.Evaluation.Runs;
 using Suwageval.Server.Tests.Api;
-using Suwageval.Server.Tests.Runs;
+using Suwageval.Server.Tests.Evaluation.Runs;
 
 namespace Suwageval.Server.Tests.Agents.Versions;
 

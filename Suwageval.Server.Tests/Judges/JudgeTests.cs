@@ -3,9 +3,9 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Options;
 using Suwageval.AgentSdk.Conversations;
 using Suwageval.Contracts.Checks;
-using Suwageval.Server.Checks.Evaluation;
 using Suwageval.Server.Judges;
-using static Suwageval.Server.Tests.Checks.Items;
+using Suwageval.Server.Verdicts;
+using static Suwageval.Server.Tests.Evaluation.Checks.Items;
 
 namespace Suwageval.Server.Tests.Judges;
 
