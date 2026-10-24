@@ -60,6 +60,10 @@ To do in that change:
     came from (the conversation's id, a link back), so its page can show the original.
   - **Personal data:** the copied YAML is what goes into the agent's repository, so it is shown for review before copying;
     stripping what the agent marks as personal happens when the conversation is stored, not at copy time.
+  - **Later, not in the first version of live traffic: a `Redact(turn)` hook in the SDK**, so an agent strips personal data from a
+    turn before it leaves its process. The first version sends the turns as they are, for agents whose conversations carry nothing
+    that must not be stored (the example agent, internal tools); the hook comes with the first agent that handles personal data,
+    together with what the server keeps and for how long.
 
 - **Checks on live traffic: agent-scoped conversation checks** (what Langfuse calls online evaluation). Today every check
   belongs to a scenario and runs only offline, in a run. A hosted agent would also declare checks of its own, scoped to the
