@@ -46,34 +46,40 @@ describe("visibleRuns with models", () => {
 });
 
 describe("data versions", () => {
-    const runs = [{ agentVersionId: "v-a" }, { agentVersionId: "v-b" }, { agentVersionId: "v-none" }];
+    // The data is the run's: one version ran on two data versions.
+    const runs = [
+        { agentVersionId: "v-a", dataVersion: "build-1" },
+        { agentVersionId: "v-a", dataVersion: "build-2" },
+        { agentVersionId: "v-b", dataVersion: "build-2" },
+        { agentVersionId: "v-none", dataVersion: null },
+    ];
     const versions = [
-        { id: "v-a", archivedAt: null, modelNames: ["large"], dataVersion: "build-1" },
-        { id: "v-b", archivedAt: null, modelNames: ["small"], dataVersion: "build-2" },
-        { id: "v-none", archivedAt: null, modelNames: ["large"], dataVersion: null },
+        { id: "v-a", archivedAt: null, modelNames: ["large"], data: [{ version: "build-1" }, { version: "build-2" }] },
+        { id: "v-b", archivedAt: null, modelNames: ["small"], data: [{ version: "build-2" }] },
+        { id: "v-none", archivedAt: null, modelNames: ["large"], data: [] },
     ];
 
-    it("lists each data version once, sorted, leaving out versions without retrieval", () => {
-        expect(dataVersionOptions([...versions, { dataVersion: "build-1" }]).map((option) => option.value)).toEqual(["build-1", "build-2"]);
+    it("lists each data version the runs were on once, sorted, leaving out versions without retrieval", () => {
+        expect(dataVersionOptions(versions).map((option) => option.value)).toEqual(["build-1", "build-2"]);
         expect(dataVersionOptions([])).toEqual([]);
         const hash = "93a4af9723bf03c6f0d0d6825d1e7786b5015441813b5273fe381e0d2f7351eb";
         expect(
             dataVersionOptions([
-                { dataVersion: hash, dataDescription: "" },
-                { dataVersion: hash, dataDescription: "12 knowledge base resources, searched by their RAG descriptions" },
+                { data: [{ version: hash, description: "" }] },
+                { data: [{ version: hash, description: "12 knowledge base resources, searched by their RAG descriptions" }] },
             ]),
         ).toEqual([{ value: hash, label: "93a4af97… · 12 knowledge base resources, searched by…" }]);
     });
 
-    it("keeps the runs of the chosen data versions; none chosen means all", () => {
-        expect(visibleRuns(runs, versions, false, [], ["build-2"])).toEqual([runs[1]]);
-        expect(visibleRuns(runs, versions, false, [], ["build-1", "build-2"])).toEqual([runs[0], runs[1]]);
+    it("keeps the runs on the chosen data versions, whatever their version; none chosen means all", () => {
+        expect(visibleRuns(runs, versions, false, [], ["build-2"])).toEqual([runs[1], runs[2]]);
+        expect(visibleRuns(runs, versions, false, [], ["build-1", "build-2"])).toEqual([runs[0], runs[1], runs[2]]);
         expect(visibleRuns(runs, versions, false, [], [])).toEqual(runs);
     });
 
     it("combines with the model filter", () => {
-        expect(visibleRuns(runs, versions, false, ["large"], ["build-2"])).toEqual([]);
-        expect(visibleRuns(runs, versions, false, ["large"], ["build-1"])).toEqual([runs[0]]);
+        expect(visibleRuns(runs, versions, false, ["small"], ["build-1"])).toEqual([]);
+        expect(visibleRuns(runs, versions, false, ["large"], ["build-2"])).toEqual([runs[1]]);
     });
 });
 
@@ -97,7 +103,7 @@ describe("comparing", () => {
 });
 
 describe("allowedVersionIds", () => {
-    const withData = { id: "v-data", archivedAt: null, modelNames: ["large"], dataVersion: "build-7" };
+    const withData = { id: "v-data", archivedAt: null, modelNames: ["large"], data: [{ version: "build-7" }] };
     const versions = [old, current, withData];
 
     it("is null when the filters let every version through", () => {
@@ -106,7 +112,7 @@ describe("allowedVersionIds", () => {
         expect(allowedVersionIds([], false, [], [])).toBeNull();
     });
 
-    it("lists the versions left after hiding archived ones, models and data versions", () => {
+    it("lists the versions left after hiding archived ones, models and data versions none of their runs were on", () => {
         expect(allowedVersionIds(versions, false, [], [])).toEqual(["v-new", "v-data"]);
         expect(allowedVersionIds(versions, true, ["small"], [])).toEqual(["v-old"]);
         expect(allowedVersionIds(versions, true, ["large"], ["build-7"])).toEqual(["v-data"]);

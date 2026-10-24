@@ -183,3 +183,12 @@ export function groupChecks(checks: readonly StatedCheck[]): {
         known: checks.filter((c) => c.state === "KnownFailure"),
     };
 }
+
+/** What the "data changed" mark says on hover. */
+export const DATA_CHANGED_HELP =
+    "This run was on other retrieval data (dataVersion) than the last run the check passed in: the failure may come from the data, not from the agent.";
+
+/** Whether a check's failure is marked "data changed": it failed, and the last run it passed in was on other retrieval data. */
+export function failedOnOtherData(check: Pick<CheckRunResult, "passed" | "regression">): boolean {
+    return !check.passed && check.regression?.dataChanged === true;
+}

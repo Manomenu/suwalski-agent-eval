@@ -76,7 +76,7 @@ import { useAgentErrors } from "../errors/useAgentErrors";
 const MODEL_HELP =
     "Show only runs of agent versions that use these models (any of the system's LLM agents). The chart, the unstable checks and the agent errors follow the filter.";
 const DATA_VERSION_HELP =
-    "Show only runs of agent versions whose retrieval data is one of these: the dataVersion the agent declares, a fingerprint of what its retrieval can return (content and indexing). New data is a new agent version. Agents without retrieval have none. The chart, the unstable checks and the agent errors follow the filter.";
+    "Show only runs on one of these retrieval data versions: the dataVersion the agent declared when the run started, a fingerprint of what its retrieval can return (content and indexing). New data is not a new agent version: each run keeps the data it ran on. Agents without retrieval have none. The chart, the unstable checks and the agent errors follow the filter.";
 const VERSIONS_FILTER_HELP =
     "Show only runs of these agent versions (newest first; empty means all). The chart, the unstable checks and the agent errors follow the filter.";
 const GROUP_HELP =
@@ -153,7 +153,7 @@ function AgentView({
     const [groupFilter, setGroupFilter] = useGroupFilter();
     const [tagFilter, setTagFilter] = useTagFilter();
     const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
-    // The server pages the runs, so the filters reach it as the versions they allow (none sent: every version).
+    // The server pages the runs, so the filters reach it as the versions they allow (none sent: every version) and the data versions chosen.
     const versionIds = allowedVersionIds(versions, showArchived, models, dataVersions, versionFilter);
     const [requestedPage, setRequestedPage] = usePageParam("runsPage");
     const { runs, totalCount, page, loading, error } = useRuns(
@@ -164,6 +164,7 @@ function AgentView({
         requestedPage,
         RUNS_PAGE_SIZE,
         tagFilter,
+        dataVersions,
     );
     // A filter changes which runs there are, so the list starts again from its first page.
     const filtered = <Value,>(change: (value: Value) => void) => {
@@ -179,8 +180,8 @@ function AgentView({
     // The problem cards decide over the versions the filters show: a newer version the filters hide closes nothing. With none shown, nothing is asked.
     const considered = consideredVersionIds(versions, showArchived, models, dataVersions, versionFilter);
     const problemsAgent = considered.length === 0 ? null : agent.name;
-    const unstable = useUnstableChecks(problemsAgent, considered);
-    const errors = useAgentErrors(problemsAgent, considered);
+    const unstable = useUnstableChecks(problemsAgent, considered, false, dataVersions);
+    const errors = useAgentErrors(problemsAgent, considered, dataVersions);
     const trendPoints = visibleRuns(passRates, versions, showArchived, models, dataVersions, versionFilter);
     return (
         <Stack gap="lg">

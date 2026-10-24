@@ -11,7 +11,7 @@ internal sealed class AgentStore(Pool pool)
         "id, name, endpoint_url AS EndpointUrl, created_at AS CreatedAt, to_json(regression_branches)::text AS RegressionBranches, regression_history AS RegressionHistory, samples";
 
     private const string VersionColumns =
-        "id, agent_id AS AgentId, content::text AS Content, content_hash AS ContentHash, label, data_description AS DataDescription, created_at AS CreatedAt, archived_at AS ArchivedAt";
+        "id, agent_id AS AgentId, content::text AS Content, content_hash AS ContentHash, label, created_at AS CreatedAt, archived_at AS ArchivedAt";
 
     public async Task<AgentCreation> CreateAsync(string name, string endpointUrl, CancellationToken cancellationToken = default)
     {
@@ -111,22 +111,40 @@ internal sealed class AgentStore(Pool pool)
         return [.. rows];
     }
 
-    /// <summary>Registers a version; content seen before (same hash) gives the existing version back.</summary>
+    /// <summary>
+    /// Registers a version; content seen before (same hash) gives the existing version back. A version whose hash a migration could
+    /// not compute (<c>pending:</c>, 0026) is found by its content and takes the hash now.
+    /// </summary>
     public async Task<AgentVersionRegistration> RegisterVersionAsync(
         Guid agentId,
         string contentJson,
         string? label,
-        string? dataDescription = null,
         CancellationToken cancellationToken = default
     )
     {
         var hash = ContentHash.Of(contentJson);
         await using var connection = await pool.OpenAsync(cancellationToken);
+        await connection.ExecuteAsync(
+            new CommandDefinition(
+                """
+                UPDATE agent_versions SET content_hash = @hash
+                WHERE agent_id = @agentId AND content_hash LIKE 'pending:%' AND content = @contentJson::jsonb
+                    AND NOT EXISTS (SELECT 1 FROM agent_versions AS known WHERE known.agent_id = @agentId AND known.content_hash = @hash)
+                """,
+                new
+                {
+                    agentId,
+                    contentJson,
+                    hash,
+                },
+                cancellationToken: cancellationToken
+            )
+        );
         var created = await connection.QuerySingleOrDefaultAsync<AgentVersionRow>(
             new CommandDefinition(
                 $"""
-                INSERT INTO agent_versions (agent_id, content, content_hash, label, data_description)
-                VALUES (@agentId, @contentJson::jsonb, @hash, @label, @dataDescription)
+                INSERT INTO agent_versions (agent_id, content, content_hash, label)
+                VALUES (@agentId, @contentJson::jsonb, @hash, @label)
                 ON CONFLICT (agent_id, content_hash) DO NOTHING
                 RETURNING {VersionColumns}
                 """,
@@ -136,7 +154,6 @@ internal sealed class AgentStore(Pool pool)
                     contentJson,
                     hash,
                     label,
-                    dataDescription,
                 },
                 cancellationToken: cancellationToken
             )

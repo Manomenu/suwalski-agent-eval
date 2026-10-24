@@ -291,6 +291,30 @@ public sealed class RunCommandTests
     }
 
     [Fact]
+    public void A_regression_on_other_data_than_the_last_passing_run_says_the_data_changed()
+    {
+        var check = WithState(
+            Check("refund-tool-called", false, "tool 'issue_refund' was not called"),
+            RegressionState.Regression,
+            history: [true, true, true, true, true]
+        );
+        var results = WithSummary(
+            Results(RunStatus.Done, check with { Regression = check.Regression! with { DataChanged = true } }),
+            "master",
+            regressions: 1
+        );
+
+        var (exit, output, _, _) = Run((request, _) => Server(request, Summary(RunStatus.Done), results), "--wait");
+
+        Assert.Equal(1, exit);
+        Assert.Contains(
+            "\u2192 \u2717  data changed: tool 'issue_refund' was not called\n",
+            output.ReplaceLineEndings("\n"),
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
     public void A_regression_exits_1_and_is_printed_first()
     {
         var broken = Guid.Parse("8d2e1c3a-0000-0000-0000-000000000000");

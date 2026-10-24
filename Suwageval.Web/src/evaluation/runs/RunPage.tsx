@@ -1,3 +1,4 @@
+import { DataVersion } from "../../dataVersion/DataVersion";
 import { Alert, Anchor, Badge, Box, Group, List, Loader, Paper, Stack, Switch, Text, Title } from "@mantine/core";
 
 import { isNotFound } from "../../api/client";
@@ -89,6 +90,7 @@ export function RunPage({ runId }: { runId: string }) {
                     {" · "}
                     {run.endpointUrl}
                 </Text>
+                {run.dataVersion != null && <DataVersion size="sm" dataVersion={run.dataVersion} description={run.dataDescription} />}
                 <RunNote key={run.id} runId={run.id} initial={run.note} />
                 {run.group != null && (
                     <Text c="dimmed" size="sm">

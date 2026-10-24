@@ -8,4 +8,7 @@ public sealed record CheckHistoryPoint
     public required DateTime CreatedAt { get; init; }
 
     public required bool Passed { get; init; }
+
+    /// <summary>The retrieval data that run was on; none for an agent without retrieval.</summary>
+    public string? DataVersion { get; init; }
 }

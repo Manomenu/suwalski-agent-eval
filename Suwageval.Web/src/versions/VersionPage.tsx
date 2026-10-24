@@ -1,4 +1,3 @@
-import { DataVersion } from "../dataVersion/DataVersion";
 import { Anchor, Badge, Code, Paper, Stack, Text, Title } from "@mantine/core";
 
 import { fetchVersion } from "../agents/api";
@@ -68,13 +67,6 @@ export function VersionPage({ name, versionId }: { name: string; versionId: stri
                                 <Badge variant="light" w="fit-content">
                                     {content.context?.usesRetrieval === true ? "uses retrieval" : "no retrieval"}
                                 </Badge>
-                                {content.context?.retrieval != null && (
-                                    <DataVersion
-                                        size="sm"
-                                        dataVersion={content.context.retrieval.dataVersion}
-                                        description={content.context.retrieval.description}
-                                    />
-                                )}
                                 {events.length === 0 && <Text c="dimmed">No events.</Text>}
                                 {events.map((event) => (
                                     <Stack key={event.type} gap="xs">

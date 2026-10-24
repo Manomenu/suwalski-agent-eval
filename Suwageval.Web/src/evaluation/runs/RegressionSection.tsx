@@ -2,7 +2,17 @@ import { Anchor, Group, Paper, Stack, Text, Title } from "@mantine/core";
 import { Fragment, useState } from "react";
 
 import type { RunResults } from "./api";
-import { comparedWithHeading, groupChecks, historyText, compareLink, stateLabel, statedChecks, type StatedCheck } from "./regression";
+import {
+    comparedWithHeading,
+    failedOnOtherData,
+    groupChecks,
+    historyText,
+    compareLink,
+    stateLabel,
+    statedChecks,
+    type StatedCheck,
+} from "./regression";
+import { DataChangedBadge } from "./DataChangedBadge";
 import { CheckHistory } from "./CheckHistory";
 import { checkAnchor } from "./results";
 import { StateBadge } from "./StateBadge";
@@ -23,6 +33,7 @@ function CheckLine({ item, runId }: { item: StatedCheck; runId: string }) {
                 <CheckHistory check={item.check} />
             </div>
             <Group gap="xs">
+                {failedOnOtherData(item.check) && <DataChangedBadge />}
                 {failingSince != null && (
                     <Text span c="dimmed">
                         failing since <Anchor href={runHref(failingSince)}>run {shortId(failingSince)}</Anchor>

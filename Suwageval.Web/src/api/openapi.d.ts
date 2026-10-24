@@ -745,6 +745,7 @@ export interface paths {
                     group?: string;
                     grouping?: components["schemas"]["RunGrouping"];
                     tag?: string[];
+                    dataVersion?: string[];
                 };
                 header?: never;
                 path?: never;
@@ -1319,6 +1320,7 @@ export interface paths {
             parameters: {
                 query?: {
                     version?: string[];
+                    dataVersion?: string[];
                 };
                 header?: never;
                 path: {
@@ -1358,6 +1360,7 @@ export interface paths {
             parameters: {
                 query?: {
                     version?: string[];
+                    dataVersion?: string[];
                 };
                 header?: never;
                 path: {
@@ -1488,7 +1491,7 @@ export interface components {
         };
         /**
          * @description A registered version of an agent, without its content (but with the names of the models its LLM agents use, so runs can be
-         *     filtered by model, the version of its retrieval data and its description, if it has any);
+         *     filtered by model); `Data` is the retrieval data its runs ran on, each once (empty for an agent without retrieval), newest first;
          *     `ArchivedAt` is set while the version is archived. `GroupRunsOnly` is true when the version has runs and every one is in a
          *     group (run --group; a re-check counts as in the group of the run it was made from): an experiment's version, like a sweep's
          *     variant, hidden by default as the runs in groups are. A version with no runs, or one run outside a group, is not.
@@ -1507,8 +1510,7 @@ export interface components {
             label?: null | string;
             /** Format: date-time */
             archivedAt?: null | string;
-            dataVersion?: null | string;
-            dataDescription?: null | string;
+            data?: components["schemas"]["RetrievalData"][];
             groupRunsOnly: boolean;
             /** Format: int32 */
             runs: number;
@@ -1574,6 +1576,8 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
             passed: boolean;
+            /** @description The retrieval data that run was on; none for an agent without retrieval. */
+            dataVersion?: null | string;
         };
         /** @description A test on what the agent produced for a scenario, told apart by `type`. */
         CheckInput: components["schemas"]["CheckInputToolCalledCheck"] | components["schemas"]["CheckInputToolNotCalledCheck"] | components["schemas"]["CheckInputEventCheck"] | components["schemas"]["CheckInputEventNotEmittedCheck"] | components["schemas"]["CheckInputCitedCheck"] | components["schemas"]["CheckInputTextCheck"] | components["schemas"]["CheckInputJudgeCheck"];
@@ -1747,6 +1751,11 @@ export interface components {
              * @description The newest run of the history in which the check passed, to compare with; none when it never passed there.
              */
             lastPassedRun?: null | string;
+            /**
+             * @description True when this run was on other retrieval data than Guid? CheckRegression.LastPassedRun (their `dataVersion`s differ): a failure may come
+             *     from the data, not the agent. False without a run that passed.
+             */
+            dataChanged?: boolean;
             /** @description The verdicts the state was computed from, oldest first: the newest reference runs of the check's history. */
             history?: components["schemas"]["CheckHistoryPoint"][];
         };
@@ -2115,13 +2124,19 @@ export interface components {
             /** @description The note of the new run (NoteRules); none means no note, the repeated run's note is not inherited. */
             note?: null | string;
         };
+        /** @description Retrieval data a version's runs ran on: its `dataVersion` and what the agent said it is (the newest description given). */
+        RetrievalData: {
+            version: string;
+            description?: null | string;
+        };
         /** @description The data an agent's retrieval reads, as the agent describes it. */
         RetrievalDefinition: {
             /**
-             * @description An opaque fingerprint of what retrieval can return (the content and how it was indexed). Part of the content hash:
-             *     new data is a new agent version.
+             * @description An opaque fingerprint of what retrieval can return (the content and how it was indexed); required of an agent that uses
+             *     retrieval (AgentContractRules). Outside the content hash: the server keeps it on the run, so new data is not a
+             *     new agent version.
              */
-            dataVersion: string;
+            dataVersion?: null | string;
             /** @description For people (what the data is, how much of it). Outside the content hash, like the label. */
             description?: null | string;
         };
@@ -2243,6 +2258,8 @@ export interface components {
             limitedToTags?: string[];
             /** @description The label the version's contract carries, if any. */
             versionLabel?: null | string;
+            /** @description The retrieval data the run was on (string? RunSummary.DataVersion); none for an agent without retrieval. */
+            dataVersion?: null | string;
             /** @description The models the version's LLM agents use. */
             modelNames: string[];
             /**
@@ -2311,6 +2328,13 @@ export interface components {
             tags?: string[];
             /** @description The label the agent's contract carried when the run started: the name of the variant it ran. None when the contract had none. */
             label?: null | string;
+            /**
+             * @description The version of the retrieval data the agent's contract declared when the run started (`context.retrieval.dataVersion`), and
+             *     what the agent says that data is: what the run's answers were found in. None for an agent without retrieval. Not part of the
+             *     agent's version: runs of one version on other data are runs of the same version.
+             */
+            dataVersion?: null | string;
+            dataDescription?: null | string;
             endpointUrl: string;
             /** @description The group the run was started in (run --group); none for a run without one. */
             group?: null | string;

@@ -19,6 +19,7 @@ internal static class UnstableCommand
     {
         var json = CommandOptions.Json("Print the unstable checks as JSON.");
         var versions = CommandOptions.Versions();
+        var dataVersions = CommandOptions.DataVersions();
         var server = CommandOptions.Server();
         var dir = CommandOptions.Dir();
 
@@ -29,6 +30,7 @@ internal static class UnstableCommand
         {
             json,
             versions,
+            dataVersions,
             server,
             dir,
         };
@@ -41,7 +43,12 @@ internal static class UnstableCommand
                     parsed.InvocationConfiguration.Error,
                     async (client, agent, _) =>
                     {
-                        var unstable = await client.UnstableChecksAsync(agent, parsed.GetValue(versions) ?? [], cancellationToken);
+                        var unstable = await client.UnstableChecksAsync(
+                            agent,
+                            parsed.GetValue(versions) ?? [],
+                            parsed.GetValue(dataVersions) ?? [],
+                            cancellationToken
+                        );
                         var output = parsed.InvocationConfiguration.Output;
                         if (parsed.GetValue(json))
                         {

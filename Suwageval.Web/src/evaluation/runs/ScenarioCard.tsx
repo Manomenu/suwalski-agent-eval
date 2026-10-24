@@ -9,7 +9,8 @@ import type { SampleResult, ScenarioRunResult } from "./api";
 import { ConversationView } from "./ConversationView";
 import { ScenarioDefinitionButton } from "./ScenarioDefinitionButton";
 import { CheckHistory } from "./CheckHistory";
-import { stateLabel } from "./regression";
+import { failedOnOtherData, stateLabel } from "./regression";
+import { DataChangedBadge } from "./DataChangedBadge";
 import { StateBadge } from "./StateBadge";
 import { findUnstable, unstableTooltip } from "../unstable/stability";
 import { checkAnchor, checkSummary, failedEvidenceKeys, notJudgedCount, sampleVerdict, samplesToOpen } from "./results";
@@ -106,6 +107,7 @@ export function ScenarioCard({
                                             {stateLabel(check.regression.state)}
                                         </StateBadge>
                                     )}
+                                    {failedOnOtherData(check) && <DataChangedBadge />}
                                     <CheckHistory check={check} />
                                     {notJudgedCount(check) > 0 && (
                                         <Badge color="yellow" variant="light">

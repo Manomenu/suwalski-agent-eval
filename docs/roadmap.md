@@ -7,8 +7,8 @@ in [TODO.md](../TODO.md).
 
 ## Open questions
 
-- **Live traffic** (the next big step, below): whether an agent's version keeps its retrieval data (`dataVersion`) in its hash,
-  how production conversations reach the server through Cloudflare Access, their retention and personal data.
+- **Live traffic** (the next big step, below): how production conversations reach the server through Cloudflare Access, their
+  retention and personal data. Decided: the retrieval data (`dataVersion`) is no part of a version's hash; each run keeps its own.
 - **Cost limits of a run:** tokens and an estimated cost per run are not recorded yet (TODO.md, "Cost and tokens per run").
 
 Decided along the way: the scenario format is our own YAML, contract v1 ([scenario-format.md](scenario-format.md), why it looks

@@ -33,7 +33,9 @@ internal sealed record RunRow(
     int SamplesFailed = 0,
     string? RunGroup = null,
     string? Label = null,
-    string? Note = null
+    string? Note = null,
+    string? DataVersion = null,
+    string? DataDescription = null
 )
 {
     /// <summary>What a rerun or a re-check of this run inherits.</summary>

@@ -1,14 +1,16 @@
-// "What differs" of the comparison: which fields of the contract are not the same in the versions the columns ran. A plain function over
-// the contracts the server stored; the line diff of the whole contract is the server's (`GET /agents/<name>/versions/diff`).
+// "What differs" of the comparison: which fields of the contract are not the same in the versions the columns ran, and the retrieval
+// data their runs were on. A plain function over the contracts the server stored; the line diff of the whole contract is the server's
+// (`GET /agents/<name>/versions/diff`).
 import { shortDataVersion } from "../../dataVersion/shortDataVersion";
 import type { AgentVersionDetail } from "../../agents/api";
 
 type Contract = AgentVersionDetail["content"];
 
-/** A column's contract with the version it came from and its title (what the row shows for the column). */
+/** A column's contract with the version it came from, and the retrieval data its run was on (not part of the version). */
 export interface ColumnContract {
     versionId: string;
     contract: Contract;
+    dataVersion?: string | null;
 }
 
 /** One cell of a difference row: the value, or null where the column has nothing (no such agent, no retrieval). `changed`: it differs from the first column's. */
@@ -90,7 +92,7 @@ const unique = (names: string[]) => [...new Set(names)];
  * The contract fields that differ between the columns, each read against the `reference` column (the baseline when one is picked,
  * else the first column): per LLM agent its
  * model, each model parameter, its tools (added, removed, changed) and its prompt (just "changed"); the lines of `otherConfig` that
- * not every column has; the retrieval data version. Nothing for columns of one version.
+ * not every column has; the retrieval data version of the runs. Nothing for runs of one version on the same data.
  */
 export function contractDifferences(columns: readonly ColumnContract[], reference = 0): Difference[] {
     const contracts = columns.map((column) => column.contract);
@@ -172,7 +174,7 @@ export function contractDifferences(columns: readonly ColumnContract[], referenc
         ...valueRow(
             reference,
             "Retrieval data version",
-            contracts.map((contract) => contract.context?.retrieval?.dataVersion ?? null),
+            columns.map((column) => column.dataVersion ?? null),
             shortDataVersion,
         ),
     );

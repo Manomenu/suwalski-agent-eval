@@ -113,6 +113,15 @@ public sealed class RunsCommandTests
     }
 
     [Fact]
+    public void Data_version_is_passed_on_to_the_server_and_can_be_repeated()
+    {
+        var (exit, _, _, paths) = Runs("--data-version", "index-7", "--data-version", "index-8");
+
+        Assert.Equal(0, exit);
+        Assert.Equal(["/eval/runs?agent=example-agent&page=1&pageSize=10&grouping=None&dataVersion=index-7&dataVersion=index-8"], paths);
+    }
+
+    [Fact]
     public void Tag_is_passed_on_to_the_server_can_be_repeated_and_goes_with_the_other_options()
     {
         var (exit, _, _, paths) = Runs("--tag", "smoke", "--tag", "billing", "--group", "sweep-1");

@@ -40,6 +40,7 @@ internal static class RunsCommand
                 "Only the runs that ran the scenarios of this tag: limited to tags including it, or not limited at all (repeat it for several: any of them).",
             AllowMultipleArgumentsPerToken = false,
         };
+        var dataVersions = CommandOptions.DataVersions();
         var group = CommandOptions.Group("Only the runs started in this group (run --group).");
         var anyGroup = new Option<bool>("--any-group") { Description = "Only the runs started in some group." };
         var allRuns = new Option<bool>("--all-runs")
@@ -64,6 +65,7 @@ internal static class RunsCommand
             version,
             reference,
             tag,
+            dataVersions,
             group,
             anyGroup,
             allRuns,
@@ -124,7 +126,8 @@ internal static class RunsCommand
                             parsed.GetValue(anyGroup) ? RunGrouping.Any
                                 : parsed.GetValue(allRuns) || parsed.GetValue(group) is not null ? RunGrouping.All
                                 : RunGrouping.None,
-                            parsed.GetValue(tag)
+                            parsed.GetValue(tag),
+                            parsed.GetValue(dataVersions)
                         );
                         var output = parsed.InvocationConfiguration.Output;
                         if (parsed.GetValue(json))
@@ -137,7 +140,7 @@ internal static class RunsCommand
                             await output.WriteLineAsync(
                                 string.Create(
                                     CultureInfo.InvariantCulture,
-                                    $"{run.Id}  {run.Status}  {RunTagsText.Of(run.Tags)}  version {run.AgentVersionId}{RunLabelText.Suffix(run.Label)}  {run.ChecksPassed}/{run.ChecksPassed + run.ChecksFailed} checks passed  {run.CreatedAt:yyyy-MM-dd HH:mm}Z  branch {run.Origin?.Branch ?? "-"}{(run.Reference ? "  reference" : "")}{(run.Group is null ? "" : $"  group {run.Group}")}{(run.JudgeModels.Count > 0 ? $"  judge {string.Join(", ", run.JudgeModels)}" : "")}{RunNoteText.Suffix(run.Note)}"
+                                    $"{run.Id}  {run.Status}  {RunTagsText.Of(run.Tags)}  version {run.AgentVersionId}{RunLabelText.Suffix(run.Label)}{(run.DataVersion is null ? "" : $"  data {run.DataVersion}")}  {run.ChecksPassed}/{run.ChecksPassed + run.ChecksFailed} checks passed  {run.CreatedAt:yyyy-MM-dd HH:mm}Z  branch {run.Origin?.Branch ?? "-"}{(run.Reference ? "  reference" : "")}{(run.Group is null ? "" : $"  group {run.Group}")}{(run.JudgeModels.Count > 0 ? $"  judge {string.Join(", ", run.JudgeModels)}" : "")}{RunNoteText.Suffix(run.Note)}"
                                 )
                             );
                         }

@@ -18,13 +18,7 @@ internal static class RunHistory
     {
         var registration = await services
             .GetRequiredService<AgentStore>()
-            .RegisterVersionAsync(
-                agent.Id,
-                AgentContractHash.Content(SeededAgent.ExampleVersionConfigured(prompt)),
-                null,
-                null,
-                Cancellation
-            );
+            .RegisterVersionAsync(agent.Id, AgentContractHash.Content(SeededAgent.ExampleVersionConfigured(prompt)), null, Cancellation);
         return registration.Version.Id;
     }
 

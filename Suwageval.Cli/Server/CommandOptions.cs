@@ -29,6 +29,16 @@ internal static class CommandOptions
             DefaultValueFactory = _ => [],
         };
 
+    /// <summary>The retrieval data a question is limited to: runs on one of these <c>dataVersion</c>s; repeatable, none given: any data.</summary>
+    public static Option<string[]> DataVersions() =>
+        new("--data-version")
+        {
+            Description =
+                "Only the runs on this retrieval data version, the dataVersion the agent declared when the run started (repeatable).",
+            DefaultValueFactory = _ => [],
+            AllowMultipleArgumentsPerToken = false,
+        };
+
     /// <summary>The words of <c>--group</c> on <c>run</c> and <c>rerun</c>.</summary>
     public static Option<string?> RunGroup() =>
         new("--group")

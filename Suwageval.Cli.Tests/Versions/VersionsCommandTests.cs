@@ -84,11 +84,10 @@ public sealed class VersionsCommandTests
                             DateTimeOffset.Parse("2026-10-01T10:00:00Z"),
                             ["m"],
                             null,
-                            DateTimeOffset.Parse("2026-10-03T10:00:00Z"),
-                            "2026-10-01",
-                            "1832 articles"
+                            DateTimeOffset.Parse("2026-10-03T10:00:00Z")
                         )
                         {
+                            Data = [new RetrievalData("2026-10-01", "1832 articles")],
                             GroupRunsOnly = false,
                             Runs = 1,
                             GroupRuns = 0,

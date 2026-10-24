@@ -111,9 +111,9 @@ public sealed class VersionEndpointsTests(TestDatabase database) : IAsyncDisposa
 
         Assert.Equal(version.Id, Assert.Single(listed).Id);
         Assert.Equal(["some-model"], listed[0].ModelNames);
-        Assert.Equal("build-7", listed[0].DataVersion);
-        Assert.Equal("1832 articles", listed[0].DataDescription);
-        Assert.Equal("1832 articles", detail.Content.Context.Retrieval?.Description);
+        Assert.Empty(listed[0].Data);
+        Assert.Null(detail.Content.Context.Retrieval?.DataVersion);
+        Assert.Null(detail.Content.Context.Retrieval?.Description);
         Assert.Equal(version.Id, detail.Id);
         Assert.Equal("Be helpful.", detail.Content.Agents[0].Config);
         Assert.Equal("v1", detail.Content.Label);

@@ -66,6 +66,45 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         Assert.Equal("relabelled", secondRun.Label);
     }
 
+    private static AgentContract OnData(string dataVersion, string description) =>
+        SeededAgent.ExampleVersion with
+        {
+            Context = SeededAgent.ExampleVersion.Context with
+            {
+                UsesRetrieval = true,
+                Retrieval = new RetrievalDefinition { DataVersion = dataVersion, Description = description },
+            },
+        };
+
+    [Fact]
+    public async Task New_data_is_the_same_version_and_each_run_keeps_the_data_it_ran_on()
+    {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
+        fake.ServeContract(OnData("index-1", "1832 articles"));
+        var client = Client();
+        var agent = await NewAgentAsync(fake.Url.AbsoluteUri);
+        var first = await StartAsync(client, new RunRequest { Agent = agent.Name });
+        fake.ServeContract(OnData("index-2", "1900 articles"));
+
+        var second = await StartAsync(client, new RunRequest { Agent = agent.Name });
+
+        Assert.Equal((first.AgentVersionId, false), (second.AgentVersionId, second.VersionCreated));
+        var firstRun = await GetAsync<RunSummary>(client, $"/eval/runs/{first.RunId}");
+        var secondRun = await GetAsync<RunSummary>(client, $"/eval/runs/{second.RunId}");
+        Assert.Equal(("index-1", "1832 articles"), (firstRun.DataVersion, firstRun.DataDescription));
+        Assert.Equal(("index-2", "1900 articles"), (secondRun.DataVersion, secondRun.DataDescription));
+        var onSecond = await GetAsync<RunList>(client, $"/eval/runs?agent={agent.Name}&dataVersion=index-2");
+        Assert.Equal([second.RunId], onSecond.Runs.Select(run => run.Id));
+        var version = Assert.Single(
+            await GetAsync<AgentVersion[]>(client, $"/agents/{agent.Name}/versions"),
+            listed => listed.Id == first.AgentVersionId
+        );
+        Assert.Equal(
+            [new RetrievalData("index-1", "1832 articles"), new RetrievalData("index-2", "1900 articles")],
+            version.Data.OrderBy(data => data.Version, StringComparer.Ordinal)
+        );
+    }
+
     [Fact]
     public async Task Starting_a_run_registers_the_contract_the_agent_serves_and_queues_the_run_with_it()
     {

@@ -12,15 +12,16 @@ namespace Suwageval.AgentSdk.Agents;
 public static class AgentContractHash
 {
     /// <summary>
-    /// The contract as the version's content. The label and the description of the retrieval data name and explain a version
-    /// for people and are no part of it, so changing only those is not a new version.
+    /// The contract as the version's content: what the agent does. The label names a version for people, and the retrieval data
+    /// (its version and description) is what the agent reads, kept on each run: neither is part of it, so changing only those is
+    /// not a new version.
     /// </summary>
     public static string Content(AgentContract contract)
     {
         ArgumentNullException.ThrowIfNull(contract);
         var context = contract.Context with
         {
-            Retrieval = contract.Context.Retrieval is { } retrieval ? retrieval with { Description = null } : null,
+            Retrieval = contract.Context.Retrieval is { } retrieval ? retrieval with { DataVersion = null, Description = null } : null,
         };
         return JsonSerializer.Serialize(contract with { Label = null, Context = context }, ContractJson.Options);
     }

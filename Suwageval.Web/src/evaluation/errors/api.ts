@@ -6,6 +6,11 @@ import { agentErrorsPath } from "./agentErrors";
 export type AgentError = components["schemas"]["AgentError"];
 
 /** The open scenarios where the agent gave no answer, per version, worst first (see `agentErrors.ts`), decided over the given versions. */
-export function fetchAgentErrors(name: string, versionIds: readonly string[], signal: AbortSignal): Promise<AgentError[]> {
-    return request<AgentError[]>(agentErrorsPath(name, versionIds), { signal });
+export function fetchAgentErrors(
+    name: string,
+    versionIds: readonly string[],
+    dataVersions: readonly string[],
+    signal: AbortSignal,
+): Promise<AgentError[]> {
+    return request<AgentError[]>(agentErrorsPath(name, versionIds, dataVersions), { signal });
 }

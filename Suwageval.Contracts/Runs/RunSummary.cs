@@ -15,6 +15,15 @@ public sealed record RunSummary
     /// <summary>The label the agent's contract carried when the run started: the name of the variant it ran. None when the contract had none.</summary>
     public string? Label { get; init; }
 
+    /// <summary>
+    /// The version of the retrieval data the agent's contract declared when the run started (<c>context.retrieval.dataVersion</c>), and
+    /// what the agent says that data is: what the run's answers were found in. None for an agent without retrieval. Not part of the
+    /// agent's version: runs of one version on other data are runs of the same version.
+    /// </summary>
+    public string? DataVersion { get; init; }
+
+    public string? DataDescription { get; init; }
+
     public required string EndpointUrl { get; init; }
 
     /// <summary>The group the run was started in (run --group); none for a run without one.</summary>

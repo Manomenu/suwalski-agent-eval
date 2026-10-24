@@ -132,13 +132,15 @@ turn (the conversation in, the items it produced out). `GET /suwageval/contract`
 | `otherConfig` | | free text for what belongs to the system, not to one agent (e.g. "retries on every LLM agent: 2") |
 | `context.usesRetrieval` | | `true` if the agent retrieves chunks (RAG); default `false` |
 | `context.retrieval` | with `usesRetrieval: true` | the data retrieval reads. Required exactly when `usesRetrieval` is `true`, and an error when it is `false` |
-| `context.retrieval.dataVersion` | required | a non-empty, opaque string: a fingerprint of what retrieval can return, the content AND how it was indexed. Part of the content hash: new data is a new version, which can be filtered and compared like a model |
-| `context.retrieval.description` | | for people (e.g. `1832 articles, help center + returns policy`), shown on the web and in the comparison header; no part of the content, like `label` |
+| `context.retrieval.dataVersion` | required | a non-empty, opaque string: a fingerprint of what retrieval can return, the content AND how it was indexed. Not part of the content hash: each run keeps the data version it started with, so runs can be filtered and compared by their data, and new data is not a new version |
+| `context.retrieval.description` | | for people (e.g. `1832 articles, help center + returns policy`), kept on the run beside its data version, shown on the web and in the comparison header; no part of the content, like `label` |
 | `context.events` | | the events the agent emits: `type` and `dataSchema` (a JSON Schema for `data`) |
 | `context.fixturesSchema` | | a JSON Schema: present means the agent accepts scenario fixtures (below). Declared only: the fixtures are not validated against it yet |
 
-Everything but `label` and `context.retrieval.description` is part of the content hash, so any change of a `config`, of `otherConfig` or of
-`context.retrieval.dataVersion` is a new version.
+Everything but `label` and `context.retrieval` (its `dataVersion` and `description`) is part of the content hash, so any change of a
+`config` or of `otherConfig` is a new version. A version is what the agent does; the data it reads is an attribute of each run (and,
+with live traffic, of a monitored conversation when the agent sends it), so the trend and the regressions of one version go on across
+new data, and the comparison says where the data differs.
 
 How the agent computes `dataVersion` is its business, but it must change whenever what retrieval can return changes. Recommended: the id
 of the index build (every rebuild gets a new one), or a hash over (document id, content hash) of every document plus the pipeline

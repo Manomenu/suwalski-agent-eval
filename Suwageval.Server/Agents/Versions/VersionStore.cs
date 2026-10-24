@@ -34,6 +34,36 @@ internal sealed class VersionStore(Pool pool)
         return rows.ToDictionary(row => row.VersionId, row => new VersionRunCounts(row.Runs, row.GroupRuns));
     }
 
+    /// <summary>
+    /// The retrieval data each of the agent's versions ran on (runs keep the data version they started with), newest first; a version whose
+    /// runs carried none is not among the keys.
+    /// </summary>
+    public async Task<IReadOnlyDictionary<Guid, IReadOnlyList<RetrievalData>>> DataAsync(
+        Guid agentId,
+        CancellationToken cancellationToken = default
+    )
+    {
+        await using var connection = await pool.OpenAsync(cancellationToken);
+        var rows = await connection.QueryAsync<(Guid VersionId, string DataVersion, string? Description)>(
+            new CommandDefinition(
+                """
+                SELECT DISTINCT ON (r.agent_version_id, r.data_version)
+                       r.agent_version_id AS VersionId, r.data_version AS DataVersion, r.data_description AS Description
+                FROM runs r
+                WHERE r.agent_id = @agentId AND r.data_version IS NOT NULL
+                ORDER BY r.agent_version_id, r.data_version, (r.data_description IS NULL), r.created_at DESC
+                """,
+                new { agentId },
+                cancellationToken: cancellationToken
+            )
+        );
+        return rows.GroupBy(row => row.VersionId)
+            .ToDictionary(
+                group => group.Key,
+                group => (IReadOnlyList<RetrievalData>)[.. group.Select(row => new RetrievalData(row.DataVersion, row.Description))]
+            );
+    }
+
     /// <summary>The ids among <paramref name="versionIds"/> that are not versions of the agent.</summary>
     public async Task<IReadOnlyList<Guid>> UnknownVersionsAsync(
         Guid agentId,

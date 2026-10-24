@@ -105,4 +105,19 @@ public sealed class RegressionStatesTests
         Assert.Equal(RegressionState.AgentError, RegressionStates.Of(Runs(F, F), 2, passed: false, onlyAgentErrors: true).State);
         Assert.Equal(RegressionState.Passed, RegressionStates.Of(Runs(P, P, P, P, P), 5, passed: true, onlyAgentErrors: true).State);
     }
+
+    [Fact]
+    public void A_run_on_other_data_than_the_last_run_that_passed_says_the_data_changed()
+    {
+        var history = Runs(P, P, P, P, P).Select(point => point with { DataVersion = "index-1" }).ToList();
+
+        var sameData = RegressionStates.Of(history, 5, passed: false, onlyAgentErrors: false, dataVersion: "index-1");
+        var newData = RegressionStates.Of(history, 5, passed: false, onlyAgentErrors: false, dataVersion: "index-2");
+        var neverPassed = RegressionStates.Of(Runs(F, F), 2, passed: false, onlyAgentErrors: false, dataVersion: "index-2");
+
+        Assert.False(sameData.DataChanged);
+        Assert.Equal(RegressionState.Regression, newData.State);
+        Assert.True(newData.DataChanged);
+        Assert.False(neverPassed.DataChanged);
+    }
 }

@@ -42,14 +42,15 @@ public sealed class AgentContractHashTests
         };
 
     [Fact]
-    public void The_description_of_the_retrieval_data_is_no_part_of_the_content_but_its_version_is()
+    public void The_retrieval_data_is_no_part_of_the_content_so_new_data_is_the_same_version()
     {
         Assert.Equal(
             AgentContractHash.Of(WithRetrieval("v1", "1832 articles")),
             AgentContractHash.Of(WithRetrieval("v1", "1900 articles"))
         );
         Assert.DoesNotContain("1832", AgentContractHash.Content(WithRetrieval("v1", "1832 articles")), StringComparison.Ordinal);
-        Assert.NotEqual(AgentContractHash.Of(WithRetrieval("v1")), AgentContractHash.Of(WithRetrieval("v2")));
+        Assert.Equal(AgentContractHash.Of(WithRetrieval("v1")), AgentContractHash.Of(WithRetrieval("v2")));
+        Assert.DoesNotContain("\"v1\"", AgentContractHash.Content(WithRetrieval("v1")), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -63,7 +64,7 @@ public sealed class AgentContractHashTests
     [Fact]
     public void The_hash_of_a_known_contract_does_not_change() =>
         Assert.Equal(
-            "b2094ee4cb33332f6954d5d4c0a1116f89e9b166dd8e2a1f338fde914e7bab11",
+            "27109d34e75c78ccd2de5ec90629f05c239578d975419107d6a65df2e4e16e26",
             AgentContractHash.Of(WithRetrieval("v1", "1832 articles"))
         );
 }

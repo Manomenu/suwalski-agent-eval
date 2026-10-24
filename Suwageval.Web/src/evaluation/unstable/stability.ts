@@ -10,10 +10,11 @@ export const UNSTABLE_CARD_PAGE_SIZE = 8;
 export const UNSTABLE_CARD_RULE =
     "Listed: checks unstable in the newest version (among the ones the filters show) that ran them at least twice. A row disappears once a newer version runs the check without the problem; archive a version to hide its rows.";
 
-/** The path of the unstable checks of an agent, limited to the given versions (none: every version not archived). */
-export function unstableChecksPath(agent: string, versionIds: readonly string[]): string {
+/** The path of the unstable checks of an agent, limited to the given versions (none: every version not archived) and to the runs on the given data versions (none: any). */
+export function unstableChecksPath(agent: string, versionIds: readonly string[], dataVersions: readonly string[] = []): string {
     const query = new URLSearchParams();
     for (const id of versionIds) query.append("version", id);
+    for (const data of dataVersions) query.append("dataVersion", data);
     const text = query.toString();
     return `/eval/agents/${encodeURIComponent(agent)}/unstable-checks${text === "" ? "" : `?${text}`}`;
 }

@@ -16,7 +16,7 @@ import {
 } from "@mantine/core";
 import { useState } from "react";
 
-import { fetchVersion, fetchVersions, type AgentVersion } from "../../agents/api";
+import { fetchVersion } from "../../agents/api";
 import { useRequest } from "../../api/useRequest";
 import { ModelJudgedIcon } from "../checks/ModelJudgedIcon";
 import { HeaderHelp } from "../../help/HeaderHelp";
@@ -120,42 +120,37 @@ function Loaded({
     const agent = comparison.agent;
     useReportAgent(agent);
     const versionIds = [...new Set(comparison.runs.map((column) => column.run.agentVersionId))];
-    const base = useRequest(`${agent}/${versionIds.join(",")}`, async (signal) => {
-        const [versions, details] = await Promise.all([
-            fetchVersions(agent, signal),
-            Promise.all(versionIds.map((id) => fetchVersion(agent, id, signal))),
-        ]);
-        return { versions, details };
-    });
+    const base = useRequest(`${agent}/${versionIds.join(",")}`, (signal) =>
+        Promise.all(versionIds.map((id) => fetchVersion(agent, id, signal))),
+    );
 
     if (base.kind === "loading") return <Loader aria-label="Loading the comparison" />;
     if (base.kind === "error") return <Problem message={base.error.message} />;
-    const { versions, details } = base.value;
+    const details = base.value;
     const differences =
-        versionIds.length > 1
+        comparison.runs.length > 1
             ? contractDifferences(
                   comparison.runs.map((column) => ({
                       versionId: column.run.agentVersionId,
                       contract: (details.find((detail) => detail.id === column.run.agentVersionId) ?? details[0])?.content ?? {
                           agents: [],
                       },
+                      dataVersion: column.run.dataVersion ?? null,
                   })),
                   referenceColumn(comparison),
               )
             : [];
-    return <View selection={selection} variants={comparison} versions={versions} differences={differences} onBaseline={onBaseline} />;
+    return <View selection={selection} variants={comparison} differences={differences} onBaseline={onBaseline} />;
 }
 
 function View({
     selection,
     variants,
-    versions,
     differences,
     onBaseline,
 }: {
     selection: ValidSelection;
     variants: RunComparison;
-    versions: readonly AgentVersion[];
     differences: Difference[];
     onBaseline: (runId: string) => void;
 }) {
@@ -255,12 +250,7 @@ function View({
                                             className="compare-run-column"
                                             style={{ verticalAlign: "top" }}
                                         >
-                                            <ColumnHeader
-                                                agent={variants.agent}
-                                                variant={variant}
-                                                version={versions.find((candidate) => candidate.id === variant.run.agentVersionId)}
-                                                baseline={baselineInfo}
-                                            />
+                                            <ColumnHeader agent={variants.agent} variant={variant} baseline={baselineInfo} />
                                         </Table.Th>
                                     );
                                 })}

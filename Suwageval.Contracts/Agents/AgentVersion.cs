@@ -2,7 +2,7 @@ namespace Suwageval.Contracts.Agents;
 
 /// <summary>
 /// A registered version of an agent, without its content (but with the names of the models its LLM agents use, so runs can be
-/// filtered by model, the version of its retrieval data and its description, if it has any);
+/// filtered by model); <c>Data</c> is the retrieval data its runs ran on, each once (empty for an agent without retrieval), newest first;
 /// <c>ArchivedAt</c> is set while the version is archived. <c>GroupRunsOnly</c> is true when the version has runs and every one is in a
 /// group (run --group; a re-check counts as in the group of the run it was made from): an experiment's version, like a sweep's
 /// variant, hidden by default as the runs in groups are. A version with no runs, or one run outside a group, is not.
@@ -16,11 +16,11 @@ public sealed record AgentVersion(
     DateTimeOffset CreatedAt,
     IReadOnlyList<string> ModelNames,
     string? Label = null,
-    DateTimeOffset? ArchivedAt = null,
-    string? DataVersion = null,
-    string? DataDescription = null
+    DateTimeOffset? ArchivedAt = null
 )
 {
+    public IReadOnlyList<RetrievalData> Data { get; init; } = [];
+
     public required bool GroupRunsOnly { get; init; }
 
     public required int Runs { get; init; }

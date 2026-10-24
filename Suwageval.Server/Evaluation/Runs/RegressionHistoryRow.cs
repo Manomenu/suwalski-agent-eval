@@ -8,5 +8,6 @@ internal sealed record RegressionHistoryRow(
     DateTime CreatedAt,
     int Samples,
     int SamplesPassed,
-    double PassThreshold
+    double PassThreshold,
+    string? DataVersion = null
 );

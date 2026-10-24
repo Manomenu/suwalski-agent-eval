@@ -64,9 +64,19 @@ internal static class RegressionReport
                                 RunId = row.RunId,
                                 CreatedAt = row.CreatedAt,
                                 Passed = RunReport.Reaches(row.SamplesPassed, row.Samples, row.PassThreshold),
+                                DataVersion = row.DataVersion,
                             })
                             .ToList();
-                        return check with { Regression = RegressionStates.Of(points, n, check.Passed, OnlyAgentErrors(check, errored)) };
+                        return check with
+                        {
+                            Regression = RegressionStates.Of(
+                                points,
+                                n,
+                                check.Passed,
+                                OnlyAgentErrors(check, errored),
+                                results.Run.DataVersion
+                            ),
+                        };
                     })
                     .ToList();
                 return scenario with { Checks = checks };

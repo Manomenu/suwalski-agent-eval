@@ -39,6 +39,7 @@ internal static class VersionEndpoints
             return ProblemResults.NotFound("Agent", agent);
         }
         var counts = await versions.RunCountsAsync(row.Id, cancellationToken);
+        var data = await versions.DataAsync(row.Id, cancellationToken);
         return Results.Ok(
             (await store.ListVersionsAsync(row.Id, cancellationToken))
                 .Where(version =>
@@ -49,7 +50,7 @@ internal static class VersionEndpoints
                         RunGrouping.All or _ => true,
                     }
                 )
-                .Select(version => ToVersion(version, CountsOf(counts, version.Id)))
+                .Select(version => ToVersion(version, CountsOf(counts, version.Id), data.GetValueOrDefault(version.Id, [])))
         );
     }
 
@@ -100,19 +101,8 @@ internal static class VersionEndpoints
         );
     }
 
-    /// <summary>The contract of a version with its label and the description of its retrieval data, which are kept beside the content.</summary>
-    private static AgentContract ContentOf(AgentVersionRow version)
-    {
-        var content = ContractContent.Read(version.Content);
-        return content with
-        {
-            Label = version.Label,
-            Context = content.Context with
-            {
-                Retrieval = content.Context.Retrieval is { } retrieval ? retrieval with { Description = version.DataDescription } : null,
-            },
-        };
-    }
+    /// <summary>The contract of a version with its label, which is kept beside the content.</summary>
+    private static AgentContract ContentOf(AgentVersionRow version) => ContractContent.Read(version.Content) with { Label = version.Label };
 
     /// <summary>
     /// What changed between two versions of an agent (<c>from</c> and <c>to</c>, version ids): both contracts as YAML, compared by
@@ -161,12 +151,13 @@ internal static class VersionEndpoints
         // The older one is the base; versions made at the same time stay in the order asked for.
         var (older, newer) = second.CreatedAt < first.CreatedAt ? (second, first) : (first, second);
         var counts = await versions.RunCountsAsync(row.Id, cancellationToken);
+        var data = await versions.DataAsync(row.Id, cancellationToken);
         var rows = LineDiff.Rows(ContractYaml.Of(ContentOf(older)), ContractYaml.Of(ContentOf(newer)));
         return Results.Ok(
             new VersionDiff
             {
-                From = ToVersion(older, CountsOf(counts, older.Id)),
-                To = ToVersion(newer, CountsOf(counts, newer.Id)),
+                From = ToVersion(older, CountsOf(counts, older.Id), data.GetValueOrDefault(older.Id, [])),
+                To = ToVersion(newer, CountsOf(counts, newer.Id), data.GetValueOrDefault(newer.Id, [])),
                 Added = rows.Count(line => line.Kind == DiffKind.Added),
                 Removed = rows.Count(line => line.Kind == DiffKind.Removed),
                 Blocks = LineDiff.Blocks(rows),
@@ -220,7 +211,7 @@ internal static class VersionEndpoints
     private static VersionRunCounts CountsOf(IReadOnlyDictionary<Guid, VersionRunCounts> counts, Guid versionId) =>
         counts.GetValueOrDefault(versionId, VersionRunCounts.None);
 
-    private static AgentVersion ToVersion(AgentVersionRow row, VersionRunCounts counts)
+    private static AgentVersion ToVersion(AgentVersionRow row, VersionRunCounts counts, IReadOnlyList<RetrievalData> data)
     {
         var contract = ContractContent.Read(row.Content);
         return new AgentVersion(
@@ -230,11 +221,10 @@ internal static class VersionEndpoints
             row.CreatedAt,
             ContractContent.ModelNames(contract),
             row.Label,
-            row.ArchivedAt,
-            contract.Context.Retrieval?.DataVersion,
-            row.DataDescription
+            row.ArchivedAt
         )
         {
+            Data = data,
             GroupRunsOnly = counts.GroupRunsOnly,
             Runs = counts.Runs,
             GroupRuns = counts.GroupRuns,

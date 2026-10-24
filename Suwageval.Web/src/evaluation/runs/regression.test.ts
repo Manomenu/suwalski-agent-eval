@@ -13,6 +13,7 @@ import {
     stateExplanation,
     stateLabel,
     statedChecks,
+    failedOnOtherData,
 } from "./regression";
 
 const summary: RegressionSummary = {
@@ -121,6 +122,16 @@ describe("grouping", () => {
 });
 
 const point = (runId: string, passed: boolean, createdAt = "2026-10-17T00:03:00Z") => ({ runId, passed, createdAt });
+
+describe("failedOnOtherData", () => {
+    it("marks a failed check whose last passing run was on other data, never a passed one", () => {
+        const regression = { state: "Regression" as const, dataChanged: true, history: [] };
+        expect(failedOnOtherData({ passed: false, regression })).toBe(true);
+        expect(failedOnOtherData({ passed: true, regression })).toBe(false);
+        expect(failedOnOtherData({ passed: false, regression: { ...regression, dataChanged: false } })).toBe(false);
+        expect(failedOnOtherData({ passed: false, regression: null })).toBe(false);
+    });
+});
 
 describe("compareLink", () => {
     const history = [point("aaaa", true), point("bbbb", false), point("cccc", true), point("dddd", false), point("eeee", true)];

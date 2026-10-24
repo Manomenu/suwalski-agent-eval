@@ -8,22 +8,25 @@ export function modelsOf(versions: { modelNames: string[] }[]): string[] {
     return [...new Set(versions.flatMap((version) => version.modelNames))].sort((a, b) => a.localeCompare(b));
 }
 
-/** How long a data description may be in the data version filter before it is cut (the field is narrow; the version page has it whole). */
+/** How long a data description may be in the data version filter before it is cut (the field is narrow; the run page has it whole). */
 const DATA_OPTION_DESCRIPTION_MAX = 40;
 
+/** The retrieval data a version's runs ran on, as the versions list gives it. */
+interface VersionData {
+    version: string;
+    description?: string | null;
+}
+
 /**
- * What the data version filter offers: each data version once, sorted, by its start and its description (cut), so a long hash and a
- * long description never widen the field; the value stays the whole data version.
+ * What the data version filter offers: each data version the versions' runs ran on once, sorted, by its start and its description (cut),
+ * so a long hash and a long description never widen the field; the value stays the whole data version.
  */
-export function dataVersionOptions(
-    versions: { dataVersion?: string | null; dataDescription?: string | null }[],
-): { value: string; label: string }[] {
+export function dataVersionOptions(versions: { data?: readonly VersionData[] }[]): { value: string; label: string }[] {
     const described = new Map<string, string>();
-    for (const version of versions) {
-        if (version.dataVersion == null) continue;
-        const description = version.dataDescription?.trim() ?? "";
-        if (!described.has(version.dataVersion) || (described.get(version.dataVersion) === "" && description !== ""))
-            described.set(version.dataVersion, description);
+    for (const data of versions.flatMap((version) => version.data ?? [])) {
+        const description = data.description?.trim() ?? "";
+        if (!described.has(data.version) || (described.get(data.version) === "" && description !== ""))
+            described.set(data.version, description);
     }
     return [...described.entries()]
         .sort(([a], [b]) => a.localeCompare(b))
@@ -43,54 +46,75 @@ export function versionOptions(versions: { id: string; label?: string | null; cr
         .map((version) => ({ value: version.id, label: versionTitle(version.id, version.label) }));
 }
 
+interface FilteredVersion {
+    id: string;
+    archivedAt?: string | null;
+    modelNames: string[];
+    data?: readonly VersionData[];
+}
+
+/** Whether the version passes the filters other than the data version, which belongs to each run. */
+function versionShown(
+    version: FilteredVersion | undefined,
+    versionId: string,
+    showArchived: boolean,
+    models: ReadonlySet<string>,
+    versionIds: ReadonlySet<string>,
+): boolean {
+    if (!showArchived && version?.archivedAt != null) return false;
+    if (versionIds.size > 0 && !versionIds.has(versionId)) return false;
+    if (models.size > 0 && version?.modelNames.some((model) => models.has(model)) !== true) return false;
+    return true;
+}
+
 /**
- * The runs to list. Without "Show archived", those of an archived version are hidden (a run of an unknown version stays).
- * With models chosen, only the runs of a version using at least one of those models stay (an unknown version has no model, so it goes);
- * no model chosen means all of them. The same goes for data versions and for versions (by id), and the filters combine (a version must
- * satisfy each one chosen).
+ * The runs to list (or the trend's points). Without "Show archived", those of an archived version are hidden (a run of an unknown
+ * version stays). With models chosen, only the runs of a version using at least one of those models stay (an unknown version has no
+ * model, so it goes); no model chosen means all of them. With data versions chosen, only the runs on one of them stay (the data is the
+ * run's own: runs of one version may be on other data). The same goes for versions (by id), and the filters combine.
  */
-export function visibleRuns<T extends { agentVersionId: string }>(
+export function visibleRuns<T extends { agentVersionId: string; dataVersion?: string | null }>(
     runs: T[],
-    versions: { id: string; archivedAt?: string | null; modelNames: string[]; dataVersion?: string | null }[],
+    versions: FilteredVersion[],
     showArchived: boolean,
     models: readonly string[] = [],
     dataVersions: readonly string[] = [],
     versionIds: readonly string[] = [],
 ): T[] {
-    const archived = new Set(versions.filter((version) => version.archivedAt != null).map((version) => version.id));
     const chosen = new Set(models);
     const chosenData = new Set(dataVersions);
     const chosenIds = new Set(versionIds);
     const byId = new Map(versions.map((version) => [version.id, version]));
     return runs.filter((run) => {
-        if (!showArchived && archived.has(run.agentVersionId)) return false;
-        if (chosenIds.size > 0 && !chosenIds.has(run.agentVersionId)) return false;
-        const version = byId.get(run.agentVersionId);
-        if (chosen.size > 0 && version?.modelNames.some((model) => chosen.has(model)) !== true) return false;
-        if (chosenData.size > 0 && (version?.dataVersion == null || !chosenData.has(version.dataVersion))) return false;
+        if (!versionShown(byId.get(run.agentVersionId), run.agentVersionId, showArchived, chosen, chosenIds)) return false;
+        if (chosenData.size > 0 && (run.dataVersion == null || !chosenData.has(run.dataVersion))) return false;
         return true;
     });
 }
 
 /**
- * The ids of the versions whose runs the filters let through, or null when they let through every version (then no
- * version needs to be asked for). An empty list means no version qualifies.
+ * The ids of the versions whose runs the filters let through, or null when they let through every version (then no version needs to
+ * be asked for). An empty list means no version qualifies. With data versions chosen, a version qualifies when some of its runs were on
+ * one of them; which of its runs were is the server's to sort out (the runs, unstable checks and agent errors are asked with the data
+ * versions too).
  */
 export function allowedVersionIds(
-    versions: { id: string; archivedAt?: string | null; modelNames: string[]; dataVersion?: string | null }[],
+    versions: FilteredVersion[],
     showArchived: boolean,
     models: readonly string[],
     dataVersions: readonly string[],
     versionIds: readonly string[] = [],
 ): string[] | null {
-    const allowed = visibleRuns(
-        versions.map((version) => ({ agentVersionId: version.id })),
-        versions,
-        showArchived,
-        models,
-        dataVersions,
-        versionIds,
-    ).map((run) => run.agentVersionId);
+    const chosen = new Set(models);
+    const chosenData = new Set(dataVersions);
+    const chosenIds = new Set(versionIds);
+    const allowed = versions
+        .filter(
+            (version) =>
+                versionShown(version, version.id, showArchived, chosen, chosenIds) &&
+                (chosenData.size === 0 || (version.data ?? []).some((data) => chosenData.has(data.version))),
+        )
+        .map((version) => version.id);
     return allowed.length === versions.length ? null : allowed;
 }
 
@@ -99,7 +123,7 @@ export function allowedVersionIds(
  * is every version not archived, which is not what "archived shown" means). Empty when the filters show none.
  */
 export function consideredVersionIds(
-    versions: { id: string; archivedAt?: string | null; modelNames: string[]; dataVersion?: string | null }[],
+    versions: FilteredVersion[],
     showArchived: boolean,
     models: readonly string[],
     dataVersions: readonly string[],

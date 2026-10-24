@@ -1,7 +1,6 @@
 import { Anchor, Badge, Box, Button, Stack, Text, Tooltip } from "@mantine/core";
 
 import { DataVersion } from "../../dataVersion/DataVersion";
-import type { AgentVersion } from "../../agents/api";
 import { statusColor, statusLabel } from "../runs/results";
 import type { VariantRun } from "./api";
 import { columnTitle, runTagsText } from "./variants";
@@ -22,17 +21,7 @@ export interface BaselineInfo {
  * The header of one run's column. Every line says what it is — label, version, run, models, tags, group, date — and a link's text says
  * where it leads: the version's page, the run's page, the group's page.
  */
-export function ColumnHeader({
-    agent,
-    variant,
-    version,
-    baseline,
-}: {
-    agent: string;
-    variant: VariantRun;
-    version: AgentVersion | undefined;
-    baseline: BaselineInfo | null;
-}) {
+export function ColumnHeader({ agent, variant, baseline }: { agent: string; variant: VariantRun; baseline: BaselineInfo | null }) {
     const { run } = variant;
     const labelled = run.label?.trim() ? true : false;
     return (
@@ -49,7 +38,7 @@ export function ColumnHeader({
             <Text size="xs" fw="normal" className="wrap-key">
                 Models: {variant.modelNames.length === 0 ? "unknown" : variant.modelNames.join(", ")}
             </Text>
-            {version?.dataVersion != null && <DataVersion dataVersion={version.dataVersion} description={version.dataDescription} />}
+            {run.dataVersion != null && <DataVersion dataVersion={run.dataVersion} description={run.dataDescription} />}
             <Text size="xs" fw="normal" className="wrap-key">
                 Tags: {runTagsText(run.tags)}
             </Text>

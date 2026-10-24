@@ -49,13 +49,19 @@ contract therefore requires `context.retrieval`.
 
 - **Why structured, not in `otherConfig`.** A version's data has to be filtered ("only runs over
   this data") and compared like a model. That needs one agreed field, not a sentence to read.
-- **`dataVersion` is part of the hash.** New data is a new agent version. It is an opaque string:
-  how the agent computes it is its business, but it must change whenever what retrieval can return
-  changes: the content AND how it was indexed. Recommended is the id of the index build, or a hash
+- **`dataVersion` is outside the hash, kept on each run.** A version is the agent's behaviour
+  (prompts, models, tools, configuration); new data is not a new version. Earlier contract versions
+  hashed it, which works for evaluation (a frozen snapshot) but not for live traffic, where the
+  knowledge base changes all the time: every index update would split the charts into versions of a
+  few conversations each. Two definitions of a version (with data in evaluation, without it in
+  monitoring) were rejected: "v7" would mean another thing in each area. So each run keeps the data
+  version it started with: runs are filtered by it, the comparison shows it among what differs.
+  It is an opaque string: how the agent computes it is its business, but it must change whenever
+  what retrieval can return changes: the content AND how it was indexed. Recommended is the id of the index build, or a hash
   over (document id, content hash) of every document plus the pipeline settings (chunking,
   embedding model, index parameters).
-- **`description` is outside the hash**, like `label`. It is for people (how many documents, what
-  kind). A reworded description is not new data and must not split the results into two versions.
+- **`description` is outside the hash**, like `label`, and kept on the run beside the data version.
+  It is for people (how many documents, what kind).
 - **"Last updated" is not a valid fingerprint.** A deleted document or a re-index with other
   chunking or embeddings does not move it, yet changes what retrieval returns.
 - **A frozen snapshot for evaluation.** For repeatable runs the agent serves a snapshot of its data

@@ -4,7 +4,7 @@ import { offeredVersions, versionGroupingFor } from "./offeredVersions";
 
 describe("offeredVersions", () => {
     const ordinary = { id: "a", groupRunsOnly: false, modelNames: ["large"] };
-    const experiment = { id: "b", groupRunsOnly: true, modelNames: ["small"], dataVersion: "d1" };
+    const experiment = { id: "b", groupRunsOnly: true, modelNames: ["small"], data: [{ version: "d1" }] };
     const other = { id: "c", groupRunsOnly: true, modelNames: ["tiny"] };
     const ids = (versions: { id: string }[]) => versions.map((version) => version.id);
 

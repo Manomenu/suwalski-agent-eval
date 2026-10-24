@@ -22,18 +22,27 @@ internal static class RegressionStates
     /// history of <paramref name="n"/> runs: a steady pass that fails now is a <see cref="RegressionState.Regression"/>; a failure in a row
     /// for N runs is known, a shorter one after N passes is already broken; a mixed past is unstable; with too little history a failure is new.
     /// A failure that <paramref name="onlyAgentErrors"/> caused (the samples with an answer alone would pass) is an
-    /// <see cref="RegressionState.AgentError"/>, whatever the history.
+    /// <see cref="RegressionState.AgentError"/>, whatever the history. The run was on <paramref name="dataVersion"/>: when the last run that
+    /// passed was on other data, <see cref="CheckRegression.DataChanged"/> says so.
     /// </summary>
-    public static CheckRegression Of(IReadOnlyList<CheckHistoryPoint> history, int n, bool passed, bool onlyAgentErrors)
+    public static CheckRegression Of(
+        IReadOnlyList<CheckHistoryPoint> history,
+        int n,
+        bool passed,
+        bool onlyAgentErrors,
+        string? dataVersion = null
+    )
     {
         var outcomes = history.Select(point => point.Passed).ToList();
         var state = onlyAgentErrors && !passed ? RegressionState.AgentError : State(outcomes, n, passed);
         var trailing = TrailingFailures(outcomes);
+        var lastPassed = history.LastOrDefault(point => point.Passed);
         return new CheckRegression
         {
             State = state,
             FailingSince = state == RegressionState.AlreadyBroken ? history[^trailing].RunId : null,
-            LastPassedRun = history.Any(point => point.Passed) ? history.Last(point => point.Passed).RunId : null,
+            LastPassedRun = lastPassed?.RunId,
+            DataChanged = lastPassed is not null && lastPassed.DataVersion != dataVersion,
             History = history,
         };
     }

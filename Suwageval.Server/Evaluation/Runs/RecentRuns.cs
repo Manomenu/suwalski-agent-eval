@@ -19,14 +19,19 @@ internal static class RecentRuns
                 .Select(row => row.Id),
         ];
 
+    /// <summary>The runs of the considered versions; with <paramref name="dataVersions"/>, only those on one of these retrieval data versions.</summary>
     public static async Task<IReadOnlyList<EffectiveRuns.Point>> PickAsync(
         Guid agentId,
         IReadOnlyCollection<Guid> considered,
+        IReadOnlyCollection<string> dataVersions,
         RunStore runs,
         CancellationToken cancellationToken
     )
     {
-        var newestFirst = (await runs.ListAsync(agentId, cancellationToken)).Where(run => considered.Contains(run.AgentVersionId));
+        var newestFirst = (await runs.ListAsync(agentId, cancellationToken)).Where(run =>
+            considered.Contains(run.AgentVersionId)
+            && (dataVersions.Count == 0 || (run.DataVersion is { } data && dataVersions.Contains(data)))
+        );
         return EffectiveRuns.Pick([.. newestFirst], MaxRuns);
     }
 }

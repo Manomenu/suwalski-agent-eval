@@ -7,7 +7,6 @@ internal sealed record AgentVersionRow(
     string Content,
     string ContentHash,
     string? Label,
-    string? DataDescription,
     DateTime CreatedAt,
     DateTime? ArchivedAt
 );

@@ -125,7 +125,6 @@ internal static class RunEndpoints
             agent.Id,
             AgentContractHash.Content(contract),
             contract.Label,
-            contract.Context.Retrieval?.Description,
             cancellationToken
         );
         var version = registration.Version;
@@ -183,6 +182,8 @@ internal static class RunEndpoints
             runGroup: request.Group,
             label: contract.Label,
             note: NoteRules.Normalize(request.Note),
+            dataVersion: contract.Context.Retrieval?.DataVersion,
+            dataDescription: contract.Context.Retrieval?.Description,
             cancellationToken: cancellationToken
         );
         return Results.Accepted(
@@ -297,6 +298,8 @@ internal static class RunEndpoints
             planned.Shown.Id,
             source.Placement,
             label: source.Label,
+            dataVersion: source.DataVersion,
+            dataDescription: source.DataDescription,
             cancellationToken: cancellationToken
         );
         return Results.Accepted(
@@ -348,7 +351,7 @@ internal static class RunEndpoints
     /// <c>pageSize</c> (default 20, 1 to 100), <c>version</c> (repeatable agent version ids: only their runs), <c>group</c> (only the runs started in that group), <c>grouping</c> (<c>None</c>: only runs in no group,
     /// <c>Any</c>: only runs in some group; a re-check counts as in the group of the run it was made from; default <c>All</c>). 404: no such agent; 422: a bad page or page size,
     /// or both a group and a grouping other than <c>All</c>. <c>tag</c> (repeatable): only the runs that ran the scenarios of any of these tags, i.e. limited
-    /// to tags including one of them, or not limited at all.
+    /// to tags including one of them, or not limited at all. <c>dataVersion</c> (repeatable): only the runs on one of these retrieval data versions.
     /// </summary>
     private static async Task<IResult> ListAsync(
         [FromQuery] string? agent,
@@ -358,6 +361,7 @@ internal static class RunEndpoints
         [FromQuery] string? group,
         [FromQuery] RunGrouping? grouping,
         [FromQuery] string[]? tag,
+        [FromQuery] string[]? dataVersion,
         AgentStore agents,
         RunStore runs,
         CancellationToken cancellationToken
@@ -388,7 +392,15 @@ internal static class RunEndpoints
         }
         var runGroup = string.IsNullOrEmpty(group) ? null : group;
         var runGrouping = grouping ?? RunGrouping.All;
-        var totalCount = await runs.CountAsync(agentId, version ?? [], runGroup, runGrouping, tag ?? [], cancellationToken);
+        var totalCount = await runs.CountAsync(
+            agentId,
+            version ?? [],
+            runGroup,
+            runGrouping,
+            tag ?? [],
+            dataVersion ?? [],
+            cancellationToken
+        );
         var shownPage = Math.Min(page ?? 1, Math.Max(1, (totalCount + size - 1) / size));
         var rows = await runs.ListPageAsync(
             agentId,
@@ -398,6 +410,7 @@ internal static class RunEndpoints
             runGroup,
             runGrouping,
             tag ?? [],
+            dataVersion ?? [],
             cancellationToken
         );
         return Results.Ok(

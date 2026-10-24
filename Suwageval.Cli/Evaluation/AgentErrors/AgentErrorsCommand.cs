@@ -20,6 +20,7 @@ internal static class AgentErrorsCommand
     {
         var json = CommandOptions.Json("Print the agent errors as JSON.");
         var versions = CommandOptions.Versions();
+        var dataVersions = CommandOptions.DataVersions();
         var server = CommandOptions.Server();
         var dir = CommandOptions.Dir();
 
@@ -30,6 +31,7 @@ internal static class AgentErrorsCommand
         {
             json,
             versions,
+            dataVersions,
             server,
             dir,
         };
@@ -42,7 +44,12 @@ internal static class AgentErrorsCommand
                     parsed.InvocationConfiguration.Error,
                     async (client, agent, _) =>
                     {
-                        var errors = await client.AgentErrorsAsync(agent, parsed.GetValue(versions) ?? [], cancellationToken);
+                        var errors = await client.AgentErrorsAsync(
+                            agent,
+                            parsed.GetValue(versions) ?? [],
+                            parsed.GetValue(dataVersions) ?? [],
+                            cancellationToken
+                        );
                         var output = parsed.InvocationConfiguration.Output;
                         if (parsed.GetValue(json))
                         {

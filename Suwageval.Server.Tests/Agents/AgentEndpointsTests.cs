@@ -37,7 +37,6 @@ public sealed class AgentEndpointsTests(TestDatabase database) : IAsyncDisposabl
                 agent.Id,
                 AgentContractHash.Content(contract),
                 contract.Label,
-                contract.Context.Retrieval?.Description,
                 TestContext.Current.CancellationToken
             )
         ).Version;
@@ -48,9 +47,7 @@ public sealed class AgentEndpointsTests(TestDatabase database) : IAsyncDisposabl
             row.CreatedAt,
             ContractContent.ModelNames(contract),
             row.Label,
-            row.ArchivedAt,
-            contract.Context.Retrieval?.DataVersion,
-            contract.Context.Retrieval?.Description
+            row.ArchivedAt
         )
         {
             GroupRunsOnly = false,

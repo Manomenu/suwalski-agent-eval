@@ -12,9 +12,10 @@ const agent = (overrides: Partial<Contract["agents"][number]> = {}): Contract["a
     ...overrides,
 });
 
-const column = (versionId: string, contract: Partial<Contract> = {}): ColumnContract => ({
+const column = (versionId: string, contract: Partial<Contract> = {}, dataVersion: string | null = null): ColumnContract => ({
     versionId,
     contract: { agents: [agent()], ...contract },
+    dataVersion,
 });
 
 const summary = (columns: ColumnContract[]) =>
@@ -70,14 +71,18 @@ describe("contractDifferences", () => {
         ]);
     });
 
-    it("lists the otherConfig lines not every column has, and the retrieval data version", () => {
-        const first = column("a", { otherConfig: "Keep it short.\nUse metric units.", context: { retrieval: { dataVersion: "d1" } } });
-        const second = column("b", { otherConfig: "Use metric units.", context: { retrieval: { dataVersion: "d2" } } });
+    it("lists the otherConfig lines not every column has, and the retrieval data version of the runs", () => {
+        const first = column("a", { otherConfig: "Keep it short.\nUse metric units." }, "d1");
+        const second = column("b", { otherConfig: "Use metric units." }, "d2");
 
         expect(summary([first, second])).toEqual([
             ["Other config: Keep it short.", ["present", "absent"]],
             ["Retrieval data version", ["d1", "d2"]],
         ]);
+    });
+
+    it("shows runs of one version on other data", () => {
+        expect(summary([column("a", {}, "d1"), column("a", {}, "d2")])).toEqual([["Retrieval data version", ["d1", "d2"]]]);
     });
 
     it("shows an agent one column does not have as absent", () => {

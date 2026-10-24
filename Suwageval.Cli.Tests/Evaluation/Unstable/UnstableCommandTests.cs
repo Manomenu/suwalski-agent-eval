@@ -76,6 +76,15 @@ public sealed class UnstableCommandTests
     }
 
     [Fact]
+    public void Data_version_passes_the_data_versions_to_the_server()
+    {
+        var (exit, _, _, paths) = Unstable(Found, "--data-version", "index 7", "--data-version", "index-8");
+
+        Assert.Equal(0, exit);
+        Assert.Equal(["/eval/agents/example-agent/unstable-checks?dataVersion=index%207&dataVersion=index-8"], paths);
+    }
+
+    [Fact]
     public void It_says_so_when_every_check_is_stable()
     {
         var (exit, output, _, _) = Unstable([]);

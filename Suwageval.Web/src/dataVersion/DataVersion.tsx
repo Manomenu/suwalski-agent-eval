@@ -7,7 +7,7 @@ import { shortDataVersion } from "./shortDataVersion";
 const DESCRIPTION_LINES = 2;
 
 /**
- * A version's retrieval data: its data version by its start (the whole value on hover, and a button that copies it — to look it up
+ * A run's retrieval data: its data version by its start (the whole value on hover, and a button that copies it — to look it up
  * in the agent's index) and its description cut to a couple of lines. Its size never depends on how long either is, so a header of
  * many columns keeps one height.
  */

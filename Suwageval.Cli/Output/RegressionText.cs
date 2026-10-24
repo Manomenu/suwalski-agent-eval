@@ -7,6 +7,7 @@ namespace Suwageval.Cli.Output;
 /// <summary>
 /// What <c>run --wait</c> prints about a run that has a regression summary: what it was compared with, then the checks that need attention
 /// (regressions, new failures and agent errors first, then already broken, fixed and unstable ones), known failures only as a count, and the totals.
+/// A failed check whose last passing run was on other retrieval data says "data changed": the failure may come from the data.
 /// </summary>
 internal static class RegressionText
 {
@@ -101,7 +102,9 @@ internal static class RegressionText
         // A section of one check with nothing to explain is one line: easier to read than a heading with a list under it.
         if (items.Count == 1 && !withMessage && detail is null)
         {
-            text.AppendLine($"{heading.PadRight(HeadingWidth)}{items[0].Label}{Strip(items[0].Check, "  ")}");
+            text.AppendLine(
+                $"{heading.PadRight(HeadingWidth)}{items[0].Label}{Strip(items[0].Check, "  ")}{(DataChanged(items[0].Check) ? $"  {DataChangedText}" : "")}"
+            );
             return;
         }
         text.AppendLine(note is null ? heading : heading.PadRight(HeadingWidth) + note);
@@ -109,6 +112,10 @@ internal static class RegressionText
         foreach (var item in items)
         {
             var why = withMessage ? FirstFailure(item.Check) : detail?.Invoke(item);
+            if (DataChanged(item.Check))
+            {
+                why = why is null ? DataChangedText : $"{DataChangedText}: {why}";
+            }
             text.AppendLine(Line(item.Label, width, Strip(item.Check, "  "), why));
         }
     }
@@ -134,6 +141,10 @@ internal static class RegressionText
         var past = string.Concat(history.Select(point => point.Passed ? "✓" : "✗"));
         return $"{prefix}{past} → {(check.Regression?.State == RegressionState.AgentError ? "–" : check.Passed ? "✓" : "✗")}";
     }
+
+    private const string DataChangedText = "data changed";
+
+    private static bool DataChanged(CheckRunResult check) => !check.Passed && check.Regression?.DataChanged == true;
 
     private static string? FirstFailure(CheckRunResult check) => check.Samples.FirstOrDefault(sample => !sample.Passed)?.Message;
 

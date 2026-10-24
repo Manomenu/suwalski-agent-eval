@@ -22,7 +22,8 @@ internal sealed class RunStore(Pool pool)
                           JOIN scenario_results s ON s.id = c.scenario_result_id
                           WHERE s.run_id = r.id AND c.judge_model IS NOT NULL), '[]') AS JudgeModels,
                (SELECT count(*)::int FROM scenario_results s WHERE s.run_id = r.id AND s.status = 'Failed') AS SamplesFailed,
-               r.run_group AS RunGroup, r.label AS Label, r.note AS Note
+               r.run_group AS RunGroup, r.label AS Label, r.note AS Note,
+               r.data_version AS DataVersion, r.data_description AS DataDescription
         FROM runs r
         JOIN agents a ON a.id = r.agent_id
         CROSS JOIN LATERAL (
@@ -51,6 +52,8 @@ internal sealed class RunStore(Pool pool)
         string? runGroup = null,
         string? label = null,
         string? note = null,
+        string? dataVersion = null,
+        string? dataDescription = null,
         CancellationToken cancellationToken = default
     )
     {
@@ -68,8 +71,10 @@ internal sealed class RunStore(Pool pool)
         var id = await connection.QuerySingleAsync<Guid>(
             new CommandDefinition(
                 """
-                INSERT INTO runs (agent_id, agent_version_id, tags, endpoint_url, recheck_of, verdicts_from, origin, reference, compared_with, run_group, label, note)
-                VALUES (@agentId, @agentVersionId, @tags, @endpointUrl, @recheckOf, @verdictsFrom, @origin::jsonb, @reference, @comparedWith, @runGroup, @label, @note)
+                INSERT INTO runs (agent_id, agent_version_id, tags, endpoint_url, recheck_of, verdicts_from, origin, reference, compared_with, run_group, label, note,
+                                  data_version, data_description)
+                VALUES (@agentId, @agentVersionId, @tags, @endpointUrl, @recheckOf, @verdictsFrom, @origin::jsonb, @reference, @comparedWith, @runGroup, @label, @note,
+                        @dataVersion, @dataDescription)
                 RETURNING id
                 """,
                 new
@@ -86,6 +91,8 @@ internal sealed class RunStore(Pool pool)
                     runGroup,
                     label,
                     note,
+                    dataVersion,
+                    dataDescription,
                 },
                 transaction,
                 cancellationToken: cancellationToken
@@ -123,6 +130,7 @@ internal sealed class RunStore(Pool pool)
           AND (@grouping = 'All'
                OR (@grouping = 'None') = ({RunGroupSql.EffectiveGroup} IS NULL))
           AND (cardinality(@versionIds::uuid[]) = 0 OR r.agent_version_id = ANY(@versionIds::uuid[]))
+          AND (cardinality(@dataVersions::text[]) = 0 OR r.data_version = ANY(@dataVersions::text[]))
           AND (cardinality(@tags::text[]) = 0 OR cardinality(r.tags) = 0 OR r.tags && @tags::text[])
         """;
 
@@ -131,7 +139,8 @@ internal sealed class RunStore(Pool pool)
     /// the first <paramref name="offset"/>, only those of the given agent versions when <paramref name="versionIds"/> is not empty,
     /// only those of <paramref name="runGroup"/> when one is given, only those in no group or in some group as <paramref name="grouping"/> says
     /// (a re-check counts as in the group of the run it was made from),
-    /// only those that ran the scenarios of any of <paramref name="tags"/> when some are given: limited to tags including one of them, or not limited at all.
+    /// only those that ran the scenarios of any of <paramref name="tags"/> when some are given: limited to tags including one of them, or not limited at all,
+    /// only those on one of <paramref name="dataVersions"/> (the retrieval data the run started with) when some are given.
     /// </summary>
     public async Task<IReadOnlyList<RunRow>> ListPageAsync(
         Guid? agentId,
@@ -141,6 +150,7 @@ internal sealed class RunStore(Pool pool)
         string? runGroup = null,
         RunGrouping grouping = RunGrouping.All,
         IReadOnlyCollection<string>? tags = null,
+        IReadOnlyCollection<string>? dataVersions = null,
         CancellationToken cancellationToken = default
     )
     {
@@ -162,6 +172,7 @@ internal sealed class RunStore(Pool pool)
                     runGroup,
                     grouping = grouping.ToString(),
                     tags = (tags ?? []).ToArray(),
+                    dataVersions = (dataVersions ?? []).ToArray(),
                 },
                 cancellationToken: cancellationToken
             )
@@ -176,6 +187,7 @@ internal sealed class RunStore(Pool pool)
         string? runGroup = null,
         RunGrouping grouping = RunGrouping.All,
         IReadOnlyCollection<string>? tags = null,
+        IReadOnlyCollection<string>? dataVersions = null,
         CancellationToken cancellationToken = default
     )
     {
@@ -190,6 +202,7 @@ internal sealed class RunStore(Pool pool)
                     runGroup,
                     grouping = grouping.ToString(),
                     tags = (tags ?? []).ToArray(),
+                    dataVersions = (dataVersions ?? []).ToArray(),
                 },
                 cancellationToken: cancellationToken
             )
@@ -472,7 +485,7 @@ internal sealed class RunStore(Pool pool)
                     WHERE sr.run_id = @runId
                 ),
                 candidates AS (
-                    SELECT c.id, c.created_at,
+                    SELECT c.id, c.created_at, c.data_version,
                            COALESCE((SELECT x.id FROM runs x WHERE x.recheck_of = c.id AND x.status = 'Done'
                                      ORDER BY x.created_at DESC, x.id LIMIT 1), c.id) AS shown_id
                     FROM runs c
@@ -482,7 +495,7 @@ internal sealed class RunStore(Pool pool)
                       AND (@comparedWith::text IS NULL OR (c.reference AND c.origin ->> 'branch' = @comparedWith))
                 ),
                 per_run AS (
-                    SELECT c.id AS run_id, c.created_at, sr.scenario_id, cr.check_id,
+                    SELECT c.id AS run_id, c.created_at, c.data_version, sr.scenario_id, cr.check_id,
                            count(*)::int AS samples, (count(*) FILTER (WHERE cr.passed))::int AS samples_passed,
                            COALESCE((rev.content ->> 'passThreshold')::float8, 1.0) AS pass_threshold
                     FROM candidates c
@@ -491,14 +504,14 @@ internal sealed class RunStore(Pool pool)
                     JOIN check_revisions rev ON rev.check_id = cr.check_id AND rev.revision = cr.check_revision
                     JOIN mine m ON m.scenario_id = sr.scenario_id AND m.scenario_revision = sr.scenario_revision
                                AND m.check_id = cr.check_id AND m.check_revision = cr.check_revision
-                    GROUP BY c.id, c.created_at, sr.scenario_id, cr.check_id, rev.content ->> 'passThreshold'
+                    GROUP BY c.id, c.created_at, c.data_version, sr.scenario_id, cr.check_id, rev.content ->> 'passThreshold'
                 ),
                 ranked AS (
                     SELECT p.*, row_number() OVER (PARTITION BY p.scenario_id, p.check_id ORDER BY p.created_at DESC, p.run_id) AS rn
                     FROM per_run p
                 )
                 SELECT scenario_id AS ScenarioId, check_id AS CheckId, run_id AS RunId, created_at AS CreatedAt, samples AS Samples,
-                       samples_passed AS SamplesPassed, pass_threshold AS PassThreshold
+                       samples_passed AS SamplesPassed, pass_threshold AS PassThreshold, data_version AS DataVersion
                 FROM ranked
                 WHERE rn <= @limit
                 ORDER BY scenario_id, check_id, created_at, run_id

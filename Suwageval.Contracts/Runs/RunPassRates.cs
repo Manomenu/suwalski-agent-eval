@@ -24,6 +24,9 @@ public sealed record RunPassRates
     /// <summary>The label the version's contract carries, if any.</summary>
     public string? VersionLabel { get; init; }
 
+    /// <summary>The retrieval data the run was on (<see cref="RunSummary.DataVersion"/>); none for an agent without retrieval.</summary>
+    public string? DataVersion { get; init; }
+
     /// <summary>The models the version's LLM agents use.</summary>
     public required IReadOnlyList<string> ModelNames { get; init; }
 

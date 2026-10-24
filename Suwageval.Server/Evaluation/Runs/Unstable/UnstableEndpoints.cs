@@ -19,11 +19,12 @@ internal static class UnstableEndpoints
     /// The open unstable checks of an agent (<see cref="UnstableChecks"/>: unstable in the newest considered version that ran them at least
     /// twice), over its newest <see cref="RecentRuns.MaxRuns"/> finished runs of the considered versions, each with the verdicts it shows
     /// (<see cref="EffectiveRuns"/>). The considered versions are the <c>version</c> query (repeatable agent version ids), else every
-    /// version not archived. 404: no such agent.
+    /// version not archived; <c>dataVersion</c> (repeatable) keeps only the runs on one of these retrieval data versions. 404: no such agent.
     /// </summary>
     private static async Task<IResult> ListAsync(
         string agent,
         [FromQuery] Guid[]? version,
+        [FromQuery] string[]? dataVersion,
         AgentStore agents,
         RunStore runs,
         UnstableStore unstable,
@@ -38,7 +39,7 @@ internal static class UnstableEndpoints
         var versions = await agents.ListVersionsAsync(found.Id, cancellationToken);
         var considered = RecentRuns.Considered(versions, version);
         var rows = await unstable.ListRunCheckVerdictsAsync(
-            await RecentRuns.PickAsync(found.Id, considered, runs, cancellationToken),
+            await RecentRuns.PickAsync(found.Id, considered, dataVersion ?? [], runs, cancellationToken),
             cancellationToken
         );
         var labels = versions.ToDictionary(row => row.Id, row => row.Label);

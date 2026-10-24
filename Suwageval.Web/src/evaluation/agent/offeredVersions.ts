@@ -7,7 +7,9 @@ import type { GroupFilter } from "./groupFilter";
  * the filters already have chosen (by id, model or data version), so a choice never disappears from under the person when the table's
  * group filter changes.
  */
-export function offeredVersions<T extends { id: string; groupRunsOnly: boolean; modelNames: string[]; dataVersion?: string | null }>(
+export function offeredVersions<
+    T extends { id: string; groupRunsOnly: boolean; modelNames: string[]; data?: readonly { version: string }[] },
+>(
     versions: T[],
     grouping: VersionGrouping,
     models: readonly string[],
@@ -19,7 +21,7 @@ export function offeredVersions<T extends { id: string; groupRunsOnly: boolean; 
             inVersionGrouping(version, grouping) ||
             versionIds.includes(version.id) ||
             version.modelNames.some((model) => models.includes(model)) ||
-            (version.dataVersion != null && dataVersions.includes(version.dataVersion)),
+            (version.data ?? []).some((data) => dataVersions.includes(data.version)),
     );
 }
 

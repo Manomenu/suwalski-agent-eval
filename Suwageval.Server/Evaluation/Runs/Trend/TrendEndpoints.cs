@@ -70,6 +70,7 @@ internal static class TrendEndpoints
                     AgentVersionId = version.Id,
                     LimitedToTags = run.Tags,
                     VersionLabel = version.Label,
+                    DataVersion = run.DataVersion,
                     ModelNames = ContractContent.ModelNames(ContractContent.Read(version.Content)),
                     PassRate = rates.PassRate,
                     MedianMs = rates.MedianMs,
