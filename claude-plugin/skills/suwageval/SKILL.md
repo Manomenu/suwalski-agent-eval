@@ -111,6 +111,10 @@ the groups or the compare page later knows it without opening anything. Do this 
 - **`--group`** of `run`, `rerun` and `sweep`: lowercase kebab-case, what the runs compare and the day, e.g.
   `models-gpt-4o-vs-mini-2026-10-23`, `prompt-concise-2026-10-23`. Never a bare `test`, `exp1` or a timestamp alone; reuse an
   existing group's name only to add runs to that very experiment (`suwageval runs --groups` lists them).
+- **`--note`** of `run` and `rerun`: one sentence on why this run is started, taken from the conversation ("after the refund prompt
+  was shortened", "checks the fix of order-status", "trying qwen3 as the agent's model"). Add it by default to every run you start,
+  in the user's language, and say in your summary which note you gave. When the reason is not known, leave the note out rather than
+  invent one. When the user says afterwards why a run was made, set it with `suwageval note <runId> "<text>"`.
 - **The contract's `label`** (when you wire or change the agent): the short git SHA of the agent's code (with `-dirty` when the
   tree has changes), or, for an agent configured by a sweep, the variant's name exactly (the sweep waits for it). It names the
   version on the web and in `compare`, and is not part of the version's content.

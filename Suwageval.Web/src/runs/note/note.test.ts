@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { NOTE_MAX_LENGTH, normalizeNote, noteProblem, shortNote } from "./note";
+import { NOTE_MAX_LENGTH, normalizeNote, noteProblem } from "./note";
 
 describe("normalizeNote", () => {
     it("trims, and a blank note is none", () => {
@@ -18,16 +18,5 @@ describe("noteProblem", () => {
     });
     it("measures the trimmed note", () => {
         expect(noteProblem(` ${"x".repeat(NOTE_MAX_LENGTH)} `)).toBeNull();
-    });
-});
-
-describe("shortNote", () => {
-    it("keeps a short note on one line", () => {
-        expect(shortNote("rebuilt\nthe  index", 80)).toBe("rebuilt the index");
-    });
-    it("cuts a long note to the limit with an ellipsis", () => {
-        const short = shortNote("a".repeat(30), 10);
-        expect(short).toBe(`${"a".repeat(9)}…`);
-        expect(short).toHaveLength(10);
     });
 });

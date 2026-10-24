@@ -8,10 +8,6 @@ import { columnTitle, runTagsText } from "./variants";
 import { versionHref, compareGroupHref, runHref } from "../routes/links";
 import { formatTime } from "../format/time";
 import { shortId } from "../format/names";
-import { shortNote } from "../runs/note";
-
-/** How much of a long note the column shows; the full text is its tooltip. */
-const NOTE_COLUMN_LENGTH = 120;
 
 /**
  * The button that makes a column the baseline (or, on the baseline itself, takes it back). The changes against the baseline are in the
@@ -63,9 +59,17 @@ export function ColumnHeader({
                 </Text>
             )}
             {run.note?.trim() && (
-                <Text size="xs" fw="normal" className="wrap-key" title={run.note}>
-                    Note: {shortNote(run.note, NOTE_COLUMN_LENGTH)}
-                </Text>
+                <>
+                    {/* One line on the screen, the whole note in its tooltip; on paper the whole note, wrapped. */}
+                    <Tooltip label={run.note} multiline maw={360} style={{ whiteSpace: "pre-wrap" }}>
+                        <Text size="xs" fw="normal" lineClamp={1} className="no-print">
+                            Note: {run.note}
+                        </Text>
+                    </Tooltip>
+                    <Text size="xs" fw="normal" className="print-only wrap-key">
+                        Note: {run.note}
+                    </Text>
+                </>
             )}
             <Text size="xs" c="dimmed" fw="normal" className="no-wrap">
                 {formatTime(run.createdAt)}

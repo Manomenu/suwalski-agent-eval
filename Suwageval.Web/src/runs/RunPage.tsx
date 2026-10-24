@@ -4,7 +4,7 @@ import { isNotFound } from "../api/client";
 import { CancelButton } from "./CancelButton";
 import { HeaderHelp } from "../help/HeaderHelp";
 import { ChecksCount, SamplesCount } from "./RunCounts";
-import { RunNote } from "./RunNote";
+import { RunNote } from "./note/RunNote";
 import { RecheckButton } from "./RecheckButton";
 import { RegressionSection } from "./RegressionSection";
 import { RerunButton } from "./RerunButton";
