@@ -1,4 +1,4 @@
-import { Anchor, Badge, Button, Checkbox, Group, Paper, Select, Stack, Table, Text, Title } from "@mantine/core";
+import { Anchor, Badge, Button, Checkbox, Paper, Select, Stack, Table, Text, Title } from "@mantine/core";
 
 import { type AgentVersion } from "../api";
 import { DeleteModal } from "../DeleteModal";
@@ -152,7 +152,7 @@ export function VersionsSection({
                                                 />
                                             </Table.Td>
                                             <Table.Td>
-                                                <Group gap="xs">
+                                                <Stack gap={4} align="flex-start">
                                                     {versionLabel(version)}
                                                     {version.archivedAt != null && (
                                                         <Badge color="gray" variant="light">
@@ -164,7 +164,7 @@ export function VersionsSection({
                                                             Group runs only
                                                         </Badge>
                                                     )}
-                                                </Group>
+                                                </Stack>
                                             </Table.Td>
                                             <Table.Td>{formatTime(version.createdAt)}</Table.Td>
                                             <Table.Td>

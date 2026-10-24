@@ -1,4 +1,4 @@
-import { Anchor, Badge, Checkbox, Group, Paper, Stack, Table, Text, Title } from "@mantine/core";
+import { Anchor, Badge, Checkbox, Paper, Stack, Table, Text, Title } from "@mantine/core";
 import { useState } from "react";
 
 import { DeleteModal } from "../DeleteModal";
@@ -114,14 +114,14 @@ export function RunGroupsSection({
                                                 />
                                             </Table.Td>
                                             <Table.Td className="wrap-key">
-                                                <Group gap="xs">
+                                                <Stack gap={4} align="flex-start">
                                                     <Anchor href={compareGroupHref(group.name, agentName)}>{group.name}</Anchor>
                                                     {group.archivedAt != null && (
                                                         <Badge color="gray" variant="light">
                                                             Archived
                                                         </Badge>
                                                     )}
-                                                </Group>
+                                                </Stack>
                                             </Table.Td>
                                             <Table.Td>{group.runs}</Table.Td>
                                             <Table.Td>{group.versions}</Table.Td>
