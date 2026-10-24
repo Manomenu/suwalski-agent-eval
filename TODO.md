@@ -35,74 +35,26 @@ To do in that change:
 
 ## Later, after the MVP
 
-- **Monitoring (live traffic) — the plan:** [Suwageval: rozmowy z produkcji i checks na żywym ruchu — plan](https://claude.ai/artifact/Y7FDEQtqn36YaaCUwA4p2e)
-  (how conversations arrive, the agent's tabs, `features` in `agent.yaml`, the evaluation API moved under `/api/eval/…` beside
-  `/api/monitoring/…`, `dataVersion` out of the version, the stages, the open questions). The items below are its parts. Keep this link
-  until live traffic is built.
-  - **Decided 2026-10-24** (details in the plan): built on the branch `epic/monitoring-tab` (created, nothing on it yet);
-    `dataVersion` leaves the version's hash (stage 0: merge versions that differ only in data; it stays on runs, and on a
-    monitored conversation only when the agent sends it); the agent's checks live in `suwageval/monitoring-checks.yaml`; the
-    running agent names its environment (`Suwageval__Environment`), `agent.yaml` lists the accepted ones
-    (`features.monitoring.environments`); about 10 conversations a day, so no `sample`, `keepDays` or judge limit in the first
-    version; an SDK only for .NET for now, the protocol documented in `docs/scenario-format.md` for agents in other languages.
-  - **On `epic/monitoring-tab`, the old version filters go:** `suwageval versions --any-group` and `--all-versions`, the API's
-    `grouping` parameter of `GET /agents/{agent}/versions` and the `GroupRunsOnly` field of a version — replaced by `--usage` /
-    `?usage=` (built before the epic). A breaking change for an installed CLI, so it goes with the epic's other breaking changes and
-    is announced; `--archived` may stay as a shorthand for `--usage archived`.
-
-- **Scenarios from real conversations of a connected agent** (the owner's idea). The agents send their conversations
-  (the context they had, the turns, tool calls and results) to Suwageval, kept per agent version; on the web a person picks a
-  conversation and turns it into a scenario. Two parts to design: the integration — how an agent system sends its
-  conversation logs (an endpoint the agent calls, or an import from its traces, e.g. Langfuse/OpenTelemetry), with what
-  retention and what to strip (personal data); and the way back into the agent's repository, since Suwageval runs on another
-  machine than the repo: the page gives the scenario as ready YAML with a "Copy YAML" button and the file's path
-  (`suwageval/scenarios/<key>.yaml`) with its own copy button — and/or a CLI command run in the agent's repo that writes
-  the file there (`validate`, then `push`).
-  - **Two ways to copy a conversation:**
-    1. **As it is:** the whole conversation becomes the scenario's `conversation`, and the agent answers its last user
-       message (one turn).
-    2. **Up to a chosen turn, then simulated:** the person picks a turn; the conversation up to it becomes the scenario's
-       `conversation` (the history the agent gets), and what came after it is put into words as `continuation.simulatedUser`,
-       with `continuation.turns` as many as the rest had. A model on Suwageval's side (the judge's pool, `Models:`) drafts that
-       description from the rest of the conversation — who the user is, what they want, how they write, what they push back
-       on — for the person to edit before copying. The agent's real answers then decide where the conversation goes, so the
-       scenario still tests the part after the chosen turn when the agent changes.
-  - **What else the YAML holds:** the tags of the conversation, and draft checks taken from what the agent did — the tool calls with their arguments, the events, the retrieved sources — as
-    a starting point the person trims, never as the expected answer written blindly (the agent may have been wrong; that is
-    often why the conversation is picked). The key is proposed from the conversation, the person renames it.
-  - **Where the button is:** on every stored conversation, and above all on a live conversation that failed an agent-scoped
-    check (the item below): a failure in production becomes a regression test in two clicks. The scenario remembers where it
-    came from (the conversation's id, a link back), so its page can show the original.
-  - **Personal data:** the copied YAML is what goes into the agent's repository, so it is shown for review before copying;
-    stripping what the agent marks as personal happens when the conversation is stored, not at copy time.
-  - **Later, not in the first version of live traffic: a `Redact(turn)` hook in the SDK**, so an agent strips personal data from a
-    turn before it leaves its process. The first version sends the turns as they are, for agents whose conversations carry nothing
-    that must not be stored (the example agent, internal tools); the hook comes with the first agent that handles personal data,
-    together with what the server keeps and for how long.
-
-- **Checks on live traffic: agent-scoped conversation checks** (what Langfuse calls online evaluation). Today every check
-  belongs to a scenario and runs only offline, in a run. A hosted agent would also declare checks of its own, scoped to the
-  agent and not to a scenario (in its `suwageval/` folder, pushed like the scenarios): rules any finished conversation must
-  keep ("never promises a refund without an order id", "answers in the user's language"), each with a `description`. A
-  finished conversation of the agent (the integration of the item above) goes into a queue, and a worker runs the agent's
-  conversation checks on it. The results are analytics per agent version — pass rate per check over time, the conversations
-  that failed it, a link to the trace — not a run's verdict, and no regression state. A failed live conversation is the
-  natural candidate for a new scenario (the item above).
-  - **The first, simplest version:** a static list of the agent's checks, every one of them run on every finished live
-    conversation — no picking, no tags. The ways of picking below come only when this one proves too costly or too noisy.
-  - **Which checks a conversation gets — later, only when running all of them becomes a problem** (cost, too many checks):
-    (a) retrieval: the checks' descriptions in a vector store, only the closest to the conversation run (a new component:
-    say why); or (b) triage by tags: the agent's checks carry tags, the tags are agent-scoped with a description each, a
-    model reads the conversation and picks the relevant tags, and only checks with those tags run. (b) needs no vector store
-    and explains itself (the picked tags are stored with the result); (a) scales to many checks without curating tags.
-  - **The end of a conversation** is automatic: no turn for a while closes it and its checks run. How long is set per agent in
-    `agent.yaml` (`features.monitoring.closeAfter`), default 30 minutes.
-  - **Further improvements, not in the first version, both in `agent.yaml` under `features.monitoring`:** `sample` — the share of
-    conversations the SDK sends, drawn by `conversationId` so a conversation is whole or absent (default 1.0: every conversation,
-    once live is on); `keepDays` — after how many days a conversation's content is deleted while its check results stay for the
-    charts (default 30). Until `keepDays` is built, conversations are kept.
-  - Open questions: a cost cap, which kinds of check make sense with no expected answer
-    (mostly `judge` and the negative `toolCall` / `event` checks), the CLI parity.
+- **Monitoring (live traffic) — built on `epic/monitoring-tab`**, following [the plan](https://claude.ai/artifact/Y7FDEQtqn36YaaCUwA4p2e):
+  `features` in `agent.yaml`, `dataVersion` out of the version's hash, the evaluation API under `/api/eval/…` (the old addresses
+  removed), conversations sent by a deployed agent (`POST /api/monitoring/turns`, the .NET SDK's `IConversationRecorder`), the
+  Monitoring page, `suwageval/monitoring-checks.yaml` run on every closed conversation by `MonitoringWorker` with 7/30-day rates and
+  daily charts, Versions' `monitoring` usage (Current, Not evaluated, `?environment=`), a scenario drafted from a conversation as it
+  is or replayed to a turn with a simulated user, and the old version filters gone (`versions --archived`, `--any-group`,
+  `--all-versions`, the API's `grouping` of versions, `GroupRunsOnly`, the web's `?versions=`). The example agent sends its `/chat`
+  conversations. **Before merging:** announce the breaking change (an installed CLI from before the epic calls the old addresses and
+  flags), and update the bots to the new CLI. What is left, not in the first version:
+  - **A version's page with two panels side by side:** Evaluation (runs, pass rate) and Monitoring (conversations, the monitoring
+    checks' pass rate) — the plan's "Strona wersji".
+  - **A daily limit of judge calls** (`Monitoring:MaxJudgeCallsPerDay`; over it a conversation is checked without the judge and
+    marked) and a `validate` warning for a monitoring check that would fail nearly every real conversation.
+  - **`sample` and `keepDays`** under `features.monitoring`: the share of conversations the SDK sends (drawn by `conversationId`),
+    and after how many days a conversation's content goes while its check results stay. Until `keepDays`, conversations are kept.
+  - **A `Redact(turn)` hook in the SDK**, with the first agent that handles personal data, together with what the server keeps and
+    for how long.
+  - **Which checks a conversation gets**, only when running all of them becomes a problem (cost, too many checks): (a) retrieval
+    over the checks' descriptions in a vector store, or (b) triage by tags a model picks; (b) needs no new component.
+  - Alerts on a falling pass rate, scaled scores, the agent's own check types (below).
 
 - **Check types defined by the agent** (Langfuse's code evaluators, the black-box way). Besides the built-in check types, the
   agent declares its own in its served contract: a name (`mentioned-xd-twice`), a `description`, the JSON Schema of its

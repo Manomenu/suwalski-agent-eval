@@ -50,7 +50,6 @@ public sealed class AgentEndpointsTests(TestDatabase database) : IAsyncDisposabl
             row.ArchivedAt
         )
         {
-            GroupRunsOnly = false,
             Runs = 0,
             GroupRuns = 0,
         };

@@ -229,11 +229,6 @@ export function VersionsSection({
                                                                 Archived
                                                             </Badge>
                                                         )}
-                                                        {version.groupRunsOnly && (
-                                                            <Badge color="gray" variant="light">
-                                                                Group runs only
-                                                            </Badge>
-                                                        )}
                                                         {monitoring.currentIn.length > 0 && (
                                                             <Badge color="green" variant="light">
                                                                 {currentText(monitoring.currentIn, environments)}

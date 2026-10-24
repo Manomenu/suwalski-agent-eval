@@ -3,14 +3,13 @@ using System.Globalization;
 using Suwageval.Cli.Output;
 using Suwageval.Cli.Server;
 using Suwageval.Contracts.Agents;
-using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Cli.Versions;
 
 /// <summary>
-/// <c>suwageval versions</c>: lists the versions of the agent named in <c>suwageval/agent.yaml</c> (the active ones; with
-/// <c>--archived</c> the archived ones too). Versions whose every run is in a group are left out, like the runs in groups
-/// (<c>--any-group</c>: only those, <c>--all-versions</c>: both; they are marked "group runs only"). And <c>versions archive|unarchive &lt;versionId&gt;...</c> hides or restores them.
+/// <c>suwageval versions</c>: lists the versions of the agent named in <c>suwageval/agent.yaml</c> by where they are used (<c>--usage</c>,
+/// <see cref="VersionUsages"/>; <c>--version</c> narrows to some, <c>--environment</c> the monitoring to one environment). And
+/// <c>versions archive|unarchive &lt;versionId&gt;...</c> hides or restores them.
 /// <c>versions diff &lt;a&gt; &lt;b&gt;</c> prints what changed between two versions as a unified-style diff (<c>--json</c> the record, <c>--open</c> the page on the web), <c>versions delete &lt;versionId&gt;</c> deletes an archived
 /// version with its runs (after the person types its id, or with <c>--yes</c>). Exits 0, or 2 when the agent file, the server or a version is wrong.
 /// </summary>
@@ -21,16 +20,10 @@ internal static class VersionsCommand
     /// <param name="openBrowser">Opens a page for <c>diff</c>; none means the system's default browser (the tests record the page instead).</param>
     public static Command Create(Terminal terminal, HttpClient? http = null, Action<Uri>? openBrowser = null)
     {
-        var archived = new Option<bool>("--archived") { Description = "Also list the archived versions (marked archived)." };
-        var anyGroup = new Option<bool>("--any-group") { Description = "Only the versions whose every run is in a group." };
-        var allVersions = new Option<bool>("--all-versions")
-        {
-            Description = "The versions whose every run is in a group and the others (the default is the others).",
-        };
         var usage = new Option<VersionUsage[]>("--usage")
         {
             Description =
-                "Where the versions are used: evaluation (runs outside a group), groups (runs in a group), monitoring (answered conversations of the deployed agent), unused (no run and no conversation yet), archived; the default is evaluation, monitoring and unused. Repeatable and/or comma-separated; a version is listed when it has any of them. Not with --archived, --any-group or --all-versions.",
+                "Where the versions are used: evaluation (runs outside a group), groups (runs in a group), monitoring (answered conversations of the deployed agent), unused (no run and no conversation yet), archived; the default is evaluation, monitoring and unused. Repeatable and/or comma-separated; a version is listed when it has any of them.",
             CustomParser = result =>
             {
                 var chosen = new List<VersionUsage>();
@@ -63,12 +56,9 @@ internal static class VersionsCommand
 
         var command = new Command(
             "versions",
-            "List the agent's versions (those with a run outside a group, or with no run, unless --any-group or --all-versions says otherwise); archive or unarchive them; delete an archived one with its runs."
+            "List the agent's versions by where they are used (evaluation, monitoring and unused ones by default); archive or unarchive them; delete an archived one with its runs."
         )
         {
-            archived,
-            anyGroup,
-            allVersions,
             usage,
             only,
             environment,
@@ -81,22 +71,6 @@ internal static class VersionsCommand
             Diff(http, openBrowser),
             Delete(terminal, http),
         };
-        command.Validators.Add(result =>
-        {
-            if (result.GetValue(anyGroup) && result.GetValue(allVersions))
-            {
-                result.AddError("--any-group and --all-versions cannot be used together.");
-            }
-            if (
-                result.GetResult(usage) is not null
-                && (result.GetValue(archived) || result.GetValue(anyGroup) || result.GetValue(allVersions))
-            )
-            {
-                result.AddError(
-                    "--usage cannot be used with --archived, --any-group or --all-versions: name the usages instead (archived, groups)."
-                );
-            }
-        });
         command.SetAction(
             (parsed, cancellationToken) =>
                 ServerCall.ForAgentAsync(
@@ -106,23 +80,11 @@ internal static class VersionsCommand
                     parsed.InvocationConfiguration.Error,
                     async (client, agent, _) =>
                     {
-                        // The older options keep their meaning (the server's grouping); --usage, --version or none at all is the usage filter.
-                        var legacy = parsed.GetValue(archived) || parsed.GetValue(anyGroup) || parsed.GetValue(allVersions);
                         var chosen = parsed.GetValue(usage) is { Length: > 0 } named ? named.ToHashSet() : [.. VersionUsages.Default];
                         var chosenIds = parsed.GetValue(only) ?? [];
-                        var listed = legacy
-                            ? (
-                                await client.VersionsAsync(
-                                    agent,
-                                    cancellationToken,
-                                    parsed.GetValue(anyGroup) ? RunGrouping.Any
-                                        : parsed.GetValue(allVersions) ? RunGrouping.All
-                                        : RunGrouping.None
-                                )
-                            ).Where(version => parsed.GetValue(archived) || version.ArchivedAt is null)
-                            : (await client.VersionsAsync(agent, cancellationToken)).Where(version =>
-                                VersionUsages.Matches(version, chosen, parsed.GetValue(environment))
-                            );
+                        var listed = (await client.VersionsAsync(agent, cancellationToken)).Where(version =>
+                            VersionUsages.Matches(version, chosen, parsed.GetValue(environment))
+                        );
                         var versions = listed.Where(version => chosenIds.Length == 0 || chosenIds.Contains(version.Id)).ToList();
                         var output = parsed.InvocationConfiguration.Output;
                         if (parsed.GetValue(json))

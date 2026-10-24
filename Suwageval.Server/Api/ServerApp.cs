@@ -79,9 +79,6 @@ internal static class ServerApp
         app.MapAgents();
         app.MapVersions();
         MapEvaluation(app.MapGroup("/eval"));
-        // The evaluation's addresses before /eval, for a CLI installed before it: out of the OpenAPI document, so nothing
-        // new is built on them, and removed on epic/monitoring-tab with its other breaking changes.
-        MapEvaluation(app.MapGroup("").ExcludeFromDescription());
         var monitoring = app.MapGroup("/monitoring");
         monitoring.MapConversations();
         monitoring.MapMonitoringChecks();

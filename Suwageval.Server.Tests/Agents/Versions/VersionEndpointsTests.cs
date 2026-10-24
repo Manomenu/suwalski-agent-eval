@@ -35,17 +35,9 @@ public sealed class VersionEndpointsTests(TestDatabase database) : IAsyncDisposa
         Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
     }
 
-    [Theory]
-    [InlineData("", "group-only,mixed,recheck,no-runs")]
-    [InlineData("?grouping=All", "group-only,mixed,recheck,no-runs")]
-    [InlineData("?grouping=None", "mixed,no-runs")]
-    [InlineData("?grouping=Any", "group-only,recheck")]
-    public async Task Versions_are_listed_all_by_default_and_by_grouping_none_or_any_with_the_group_runs_only_mark(
-        string query,
-        string expected
-    )
+    [Fact]
+    public async Task Every_version_is_listed_with_its_runs_and_group_runs()
     {
-        ArgumentNullException.ThrowIfNull(expected);
         var (name, seeded) = await VersionStoreTests.SeedGroupRunsAsync(database);
         var models = new Dictionary<Guid, string>
         {
@@ -55,13 +47,9 @@ public sealed class VersionEndpointsTests(TestDatabase database) : IAsyncDisposa
             [seeded.NoRuns] = "no-runs",
         };
 
-        var listed = await TestServer.Read<AgentVersion[]>(await server.Get($"/agents/{name}/versions{query}"));
+        var listed = await TestServer.Read<AgentVersion[]>(await server.Get($"/agents/{name}/versions"));
 
-        Assert.Equal(expected.Split(',').Order(), listed.Select(version => models[version.Id]).Order());
-        Assert.All(
-            listed,
-            version => Assert.Equal(version.Id == seeded.GroupOnly || version.Id == seeded.RecheckOfGroup, version.GroupRunsOnly)
-        );
+        Assert.Equal(["group-only", "mixed", "no-runs", "recheck"], listed.Select(version => models[version.Id]).Order());
         Assert.All(
             listed,
             version =>
@@ -76,16 +64,6 @@ public sealed class VersionEndpointsTests(TestDatabase database) : IAsyncDisposa
                     (version.Runs, version.GroupRuns)
                 )
         );
-    }
-
-    [Fact]
-    public async Task An_unknown_grouping_is_not_a_versions_list()
-    {
-        var name = await server.NewAgent();
-
-        var response = await server.Get($"/agents/{name}/versions?grouping=Some");
-
-        Assert.False(response.IsSuccessStatusCode);
     }
 
     [Fact]

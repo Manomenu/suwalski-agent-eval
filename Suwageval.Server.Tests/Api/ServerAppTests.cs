@@ -48,7 +48,7 @@ public sealed class ServerAppTests(TestDatabase database) : IAsyncDisposable
     }
 
     [Fact]
-    public async Task The_evaluation_answers_under_eval_and_still_at_its_old_address()
+    public async Task The_evaluation_answers_under_eval_only()
     {
         var client = Client();
         const string path = "/runs/compare";
@@ -56,9 +56,9 @@ public sealed class ServerAppTests(TestDatabase database) : IAsyncDisposable
         var current = await client.GetAsync(new Uri("/eval" + path, UriKind.Relative), TestContext.Current.CancellationToken);
         var old = await client.GetAsync(new Uri(path, UriKind.Relative), TestContext.Current.CancellationToken);
 
-        // Neither names a run, so both refuse it: the route is there, which an unmapped path (404) would not be.
+        // The current address refuses a request naming no run (the route is there); the address before /eval is gone.
         Assert.Equal(HttpStatusCode.UnprocessableEntity, current.StatusCode);
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, old.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, old.StatusCode);
     }
 
     public ValueTask DisposeAsync() => app.DisposeAsync();

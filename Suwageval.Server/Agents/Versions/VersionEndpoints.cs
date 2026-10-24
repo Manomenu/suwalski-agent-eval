@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Suwageval.AgentSdk.Agents;
 using Suwageval.Contracts.Agents;
-using Suwageval.Contracts.Runs;
 using Suwageval.Server.Problems;
 
 namespace Suwageval.Server.Agents.Versions;
@@ -21,13 +20,9 @@ internal static class VersionEndpoints
         return app;
     }
 
-    /// <summary>
-    /// The agent's versions, newest first. <c>grouping</c> (default <c>All</c>): <c>None</c> only the ordinary versions, <c>Any</c> only those whose
-    /// every run is in a group (<c>groupRunsOnly</c>), as the runs list does for runs.
-    /// </summary>
+    /// <summary>The agent's versions, newest first, each with where it is used (runs, group runs, monitoring): the clients filter by usage.</summary>
     private static async Task<IResult> ListVersionsAsync(
         string agent,
-        [FromQuery] RunGrouping? grouping,
         AgentStore store,
         VersionStore versions,
         TimeProvider time,
@@ -43,21 +38,12 @@ internal static class VersionEndpoints
         var data = await versions.DataAsync(row.Id, cancellationToken);
         var monitoring = await versions.MonitoringAsync(row.Id, time.GetUtcNow().AddDays(-30), cancellationToken);
         return Results.Ok(
-            (await store.ListVersionsAsync(row.Id, cancellationToken))
-                .Where(version =>
-                    (grouping ?? RunGrouping.All) switch
-                    {
-                        RunGrouping.None => !CountsOf(counts, version.Id).GroupRunsOnly,
-                        RunGrouping.Any => CountsOf(counts, version.Id).GroupRunsOnly,
-                        RunGrouping.All or _ => true,
-                    }
-                )
-                .Select(version =>
-                    ToVersion(version, CountsOf(counts, version.Id), data.GetValueOrDefault(version.Id, [])) with
-                    {
-                        Monitoring = monitoring.GetValueOrDefault(version.Id, []),
-                    }
-                )
+            (await store.ListVersionsAsync(row.Id, cancellationToken)).Select(version =>
+                ToVersion(version, CountsOf(counts, version.Id), data.GetValueOrDefault(version.Id, [])) with
+                {
+                    Monitoring = monitoring.GetValueOrDefault(version.Id, []),
+                }
+            )
         );
     }
 
@@ -232,7 +218,6 @@ internal static class VersionEndpoints
         )
         {
             Data = data,
-            GroupRunsOnly = counts.GroupRunsOnly,
             Runs = counts.Runs,
             GroupRuns = counts.GroupRuns,
         };

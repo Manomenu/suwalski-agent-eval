@@ -197,9 +197,7 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: {
-                    grouping?: components["schemas"]["RunGrouping"];
-                };
+                query?: never;
                 header?: never;
                 path: {
                     agent: string;
@@ -1773,9 +1771,7 @@ export interface components {
         /**
          * @description A registered version of an agent, without its content (but with the names of the models its LLM agents use, so runs can be
          *     filtered by model); `Data` is the retrieval data its runs ran on, each once (empty for an agent without retrieval), newest first;
-         *     `ArchivedAt` is set while the version is archived. `GroupRunsOnly` is true when the version has runs and every one is in a
-         *     group (run --group; a re-check counts as in the group of the run it was made from): an experiment's version, like a sweep's
-         *     variant, hidden by default as the runs in groups are. A version with no runs, or one run outside a group, is not.
+         *     `ArchivedAt` is set while the version is archived.
          *     `Runs` counts the version's runs in no group and `GroupRuns` those in a group (a re-check counts as in the group of its original):
          *     where the version is used. Both zero: unused.
          */
@@ -1792,7 +1788,6 @@ export interface components {
             /** Format: date-time */
             archivedAt?: null | string;
             data?: components["schemas"]["RetrievalData"][];
-            groupRunsOnly: boolean;
             /** Format: int32 */
             runs: number;
             /** Format: int32 */

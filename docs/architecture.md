@@ -17,8 +17,8 @@ How the parts fit together; the rules for changing them (layers, import contract
 
 - **`Suwageval.Server`** — the one HTTP API (the web app and the CLI both use it; there is no MCP endpoint). The evaluation's
   routes live under `/api/eval/…` (runs, comparisons, run groups, scenarios, checks, trend, unstable checks, agent errors); what
-  every area shares (agents, versions, `/api/health`) has no prefix. The evaluation also still answers at its addresses from
-  before `/eval`, for an installed CLI, until they are removed with the other breaking changes of `epic/monitoring-tab`.
+  every area shares (agents, versions, `/api/health`) has no prefix; the monitoring's live under `/api/monitoring/…` (the turns a
+  deployed agent sends, conversations, monitoring checks, the trend, scenario drafts).
 - **`Suwageval.Contracts`** — the records the API sends and receives, shared by the server and the CLI, so the file format and the API cannot drift apart.
 - **`Suwageval.Cli`** — the `suwageval` command; reads the agent's YAML files and drives the API.
 - **`Suwageval.Web`** — the web app, typed from the server's OpenAPI document.

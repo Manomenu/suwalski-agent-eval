@@ -87,7 +87,7 @@ test("versions are archived, shown again on request, restored and deleted with t
     }
 });
 
-test("a version whose runs are all in a group is hidden by default and listed, marked, with the Groups usage (kept in the address)", async ({
+test("a version whose runs are all in a group is hidden by default and listed with the Groups usage (kept in the address)", async ({
     page,
     request,
 }) => {
@@ -111,13 +111,7 @@ test("a version whose runs are all in a group is hidden by default and listed, m
         await expect(page.getByRole("checkbox", { name: "Groups", exact: true })).toBeChecked();
         await expect(sweepVersion).toBeVisible();
         await expect(mainVersion).toBeVisible();
-        await expect(page.getByText("Group runs only", { exact: true })).toBeVisible();
         expect(page.url()).toContain("usage=evaluation,groups");
-
-        // The older address parameter still reads.
-        await page.goto(`/agents/${name}?versions=any`);
-        await expect(sweepVersion).toBeVisible();
-        await expect(mainVersion).toHaveCount(0);
     } finally {
         agentServer.close();
     }

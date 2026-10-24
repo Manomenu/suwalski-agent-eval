@@ -25,11 +25,8 @@ describe("usageOf", () => {
         expect(usageOf("?usage=archived, unused,bogus")).toEqual(["unused", "archived"]);
     });
 
-    it("still reads the older versions parameter", () => {
-        expect(usageOf("?versions=any")).toEqual(["groups"]);
-        expect(usageOf("?versions=all")).toEqual(["evaluation", "groups", "unused"]);
-        expect(usageOf("?versions=bogus")).toEqual(["evaluation", "monitoring", "unused"]);
-        expect(usageOf("?versions=any&usage=unused")).toEqual(["unused"]);
+    it("no longer reads the older versions parameter", () => {
+        expect(usageOf("?versions=any")).toEqual(["evaluation", "monitoring", "unused"]);
     });
 });
 
@@ -44,7 +41,7 @@ describe("versionIdsOf", () => {
 describe("searchWithFilter", () => {
     it("leaves no parameter for the default and keeps the others", () => {
         expect(searchWithFilter("?usage=groups", ["evaluation", "monitoring", "unused"], [])).toBe("");
-        expect(searchWithFilter("?versions=any&versionsPage=2", ["unused", "monitoring", "evaluation"], [])).toBe("?versionsPage=2");
+        expect(searchWithFilter("?usage=groups&versionsPage=2", ["unused", "monitoring", "evaluation"], [])).toBe("?versionsPage=2");
     });
 
     it("writes the usage in the chips' order, none as an empty parameter, and the ids", () => {

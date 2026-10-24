@@ -1,11 +1,9 @@
 // Where a version is used, and the filter of the Versions page built on it: the rule written once here (the CLI has the same in
 // `VersionUsages.cs`). The filter lives in the address: `?usage=evaluation,groups`, `?version=<id>,<id>` and `?environment=<name>`.
 import type { VersionUsage } from "../routes/links";
-import { versionGroupingOf } from "./versionGrouping";
 
 const USAGE_PARAM = "usage";
 const VERSION_PARAM = "version";
-const LEGACY_PARAM = "versions";
 const ENVIRONMENT_PARAM = "environment";
 
 /** The usages in the order the chips show them, with what each means (the chip's tooltip). */
@@ -99,19 +97,10 @@ function inOrder(words: readonly string[]): VersionUsage[] {
     return VERSION_USAGE_OPTIONS.map((option) => option.value).filter((usage) => words.includes(usage));
 }
 
-/**
- * The usages an address asks for. No parameter is the default; an empty one (`?usage=`) is none chosen; unknown words are dropped. The
- * older `?versions=any|all` still reads: any group is the groups, all versions every kind but archived.
- */
+/** The usages an address asks for. No parameter is the default; an empty one (`?usage=`) is none chosen; unknown words are dropped. */
 export function usageOf(search: string): VersionUsage[] {
-    const query = new URLSearchParams(search);
-    const value = query.get(USAGE_PARAM);
-    if (value === null) {
-        const legacy = versionGroupingOf(search);
-        if (query.has(LEGACY_PARAM) && legacy === "any") return ["groups"];
-        if (query.has(LEGACY_PARAM) && legacy === "all") return ["evaluation", "groups", "unused"];
-        return [...DEFAULT_USAGE];
-    }
+    const value = new URLSearchParams(search).get(USAGE_PARAM);
+    if (value === null) return [...DEFAULT_USAGE];
     return inOrder(value.split(",").map((word) => word.trim()));
 }
 
@@ -126,7 +115,7 @@ export function versionIdsOf(search: string): string[] {
 
 /**
  * The query with the usage, the version ids and the environment replaced (the default usage, no ids and no environment leave no parameter),
- * the older parameter dropped; every other stays.
+ * every other stays.
  */
 export function searchWithFilter(
     search: string,
@@ -135,7 +124,6 @@ export function searchWithFilter(
     environment: string | null = null,
 ): string {
     const query = new URLSearchParams(search);
-    query.delete(LEGACY_PARAM);
     query.delete(USAGE_PARAM);
     query.delete(VERSION_PARAM);
     query.delete(ENVIRONMENT_PARAM);

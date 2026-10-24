@@ -491,21 +491,10 @@ internal sealed class ServerClient(HttpClient http)
             cancellationToken
         );
 
-    /// <summary>The agent's versions, newest first; <paramref name="grouping"/> says whether to leave out (<c>None</c>) or keep only (<c>Any</c>) those whose every run is in a group.</summary>
-    public Task<IReadOnlyList<AgentVersion>> VersionsAsync(
-        string agent,
-        CancellationToken cancellationToken,
-        RunGrouping grouping = RunGrouping.All
-    ) =>
+    /// <summary>The agent's versions, newest first, each with where it is used.</summary>
+    public Task<IReadOnlyList<AgentVersion>> VersionsAsync(string agent, CancellationToken cancellationToken) =>
         SendAsync<IReadOnlyList<AgentVersion>>(
-            () =>
-                http.GetAsync(
-                    new Uri(
-                        $"agents/{Uri.EscapeDataString(agent)}/versions{(grouping == RunGrouping.All ? "" : $"?grouping={grouping}")}",
-                        UriKind.Relative
-                    ),
-                    cancellationToken
-                ),
+            () => http.GetAsync(new Uri($"agents/{Uri.EscapeDataString(agent)}/versions", UriKind.Relative), cancellationToken),
             cancellationToken
         );
 

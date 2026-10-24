@@ -90,13 +90,10 @@ public sealed class VersionStoreTests(TestDatabase database)
         Assert.Equal(new VersionRunCounts(1, 1), counts[seeded.Mixed]);
         Assert.Equal(new VersionRunCounts(0, 2), counts[seeded.RecheckOfGroup]);
         Assert.False(counts.ContainsKey(seeded.NoRuns));
-        Assert.True(counts[seeded.GroupOnly].GroupRunsOnly);
-        Assert.False(counts[seeded.Mixed].GroupRunsOnly);
-        Assert.False(VersionRunCounts.None.GroupRunsOnly);
     }
 
     [Fact]
-    public async Task A_run_outside_a_group_makes_a_group_runs_only_version_ordinary_again()
+    public async Task A_run_outside_a_group_counts_beside_the_group_runs()
     {
         var (_, seeded) = await SeedGroupRunsAsync(database);
         await new RunStore(database.Pool).EnqueueAsync(
@@ -110,6 +107,5 @@ public sealed class VersionStoreTests(TestDatabase database)
         var counts = await new VersionStore(database.Pool).RunCountsAsync(seeded.AgentId, Cancellation);
 
         Assert.Equal(new VersionRunCounts(1, 1), counts[seeded.GroupOnly]);
-        Assert.False(counts[seeded.GroupOnly].GroupRunsOnly);
     }
 }
