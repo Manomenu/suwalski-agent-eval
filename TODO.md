@@ -52,6 +52,8 @@ To do in that change:
   conversation checks on it. The results are analytics per agent version — pass rate per check over time, the conversations
   that failed it, a link to the trace — not a run's verdict, and no regression state. A failed live conversation is the
   natural candidate for a new scenario (the item above).
+  - **The first, simplest version:** a static list of the agent's checks, every one of them run on every finished live
+    conversation — no picking, no tags. The ways of picking below come only when this one proves too costly or too noisy.
   - **Which checks a conversation gets — later, only when running all of them becomes a problem** (cost, too many checks):
     (a) retrieval: the checks' descriptions in a vector store, only the closest to the conversation run (a new component:
     say why); or (b) triage by tags: the agent's checks carry tags, the tags are agent-scoped with a description each, a
