@@ -375,7 +375,7 @@ function AgentView({
                                                     <Anchor href={runHref(run.id)}>{shortId(run.id)}</Anchor>
                                                 </Table.Td>
                                                 <Table.Td className="no-wrap">
-                                                    <Group gap={4} wrap="nowrap">
+                                                    <Stack gap={4} align="flex-start">
                                                         <Badge color={statusColor(run.status)}>{statusLabel(run.status)}</Badge>
                                                         {run.reference === true && (
                                                             <Badge variant="outline" color="teal">
@@ -387,7 +387,7 @@ function AgentView({
                                                                 Re-check
                                                             </Badge>
                                                         )}
-                                                    </Group>
+                                                    </Stack>
                                                 </Table.Td>
                                                 <Table.Td>{run.tags?.length ? run.tags.join(", ") : "—"}</Table.Td>
                                                 <Table.Td className="wrap-key">

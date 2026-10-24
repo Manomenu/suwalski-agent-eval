@@ -427,6 +427,9 @@ the base's only feature and shows the pattern end to end: `api.ts` → `status.t
 - **Accessible names are the test contract.** Interactive things are real buttons, links and
   inputs with a visible label or an `aria-label` (an icon button: `aria-label="Account"`).
   That is what screen readers read and what the e2e tests find them by.
+- **Chips (Mantine `Badge`) in a table cell stand one under another**, in a `Stack` (`gap={4}`, `align="flex-start"`), never
+  side by side: `Done` above `Reference`, a name above its `Archived`. A row of chips in a narrow column wraps unevenly and is
+  hard to scan down a column.
 - **Numbers that shape the layout are named constants** (`NAVBAR_WIDTH`), exported, and tests
   compute expectations from them — a test that hard-codes 220 breaks on a design tweak.
 - **The browser's storage is for conveniences only** (a panel width, the last tab): read it
