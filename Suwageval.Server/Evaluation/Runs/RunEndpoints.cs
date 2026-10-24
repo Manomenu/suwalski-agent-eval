@@ -123,7 +123,7 @@ internal static class RunEndpoints
         }
         var registration = await agents.RegisterVersionAsync(
             agent.Id,
-            ContractContent.Json(contract),
+            AgentContractHash.Content(contract),
             contract.Label,
             contract.Context.Retrieval?.Description,
             cancellationToken
@@ -186,7 +186,7 @@ internal static class RunEndpoints
             cancellationToken: cancellationToken
         );
         return Results.Accepted(
-            $"/runs/{id}",
+            $"/eval/runs/{id}",
             new RunCreated
             {
                 RunId = id,
@@ -300,7 +300,7 @@ internal static class RunEndpoints
             cancellationToken: cancellationToken
         );
         return Results.Accepted(
-            $"/runs/{created}",
+            $"/eval/runs/{created}",
             new RunCreated
             {
                 RunId = created,
@@ -460,7 +460,7 @@ internal static class RunEndpoints
             return ProblemResults.NotFound("Run", id.ToString());
         }
         await runs.RequestCancelAsync(id, cancellationToken);
-        return Results.Accepted($"/runs/{id}");
+        return Results.Accepted($"/eval/runs/{id}");
     }
 
     /// <summary>204 once the note of run <paramref name="id"/> is set (none or blank clears it), in any status. 404: no such run; 422: a note that is too long.</summary>

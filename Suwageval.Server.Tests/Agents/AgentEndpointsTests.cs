@@ -35,7 +35,7 @@ public sealed class AgentEndpointsTests(TestDatabase database) : IAsyncDisposabl
         var row = (
             await store.RegisterVersionAsync(
                 agent.Id,
-                ContractContent.Json(contract),
+                AgentContractHash.Content(contract),
                 contract.Label,
                 contract.Context.Retrieval?.Description,
                 TestContext.Current.CancellationToken

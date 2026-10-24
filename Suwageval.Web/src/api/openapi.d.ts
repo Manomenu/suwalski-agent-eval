@@ -402,7 +402,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/agents/{agent}/scenarios": {
+    "/eval/agents/{agent}/scenarios": {
         parameters: {
             query?: never;
             header?: never;
@@ -464,7 +464,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/agents/{agent}/scenarios/{key}": {
+    "/eval/agents/{agent}/scenarios/{key}": {
         parameters: {
             query?: never;
             header?: never;
@@ -520,7 +520,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/agents/{agent}/scenarios/{key}/revisions": {
+    "/eval/agents/{agent}/scenarios/{key}/revisions": {
         parameters: {
             query?: never;
             header?: never;
@@ -556,7 +556,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/agents/{agent}/scenarios/tags": {
+    "/eval/agents/{agent}/scenarios/tags": {
         parameters: {
             query?: never;
             header?: never;
@@ -595,7 +595,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/agents/{agent}/tags": {
+    "/eval/agents/{agent}/tags": {
         parameters: {
             query?: never;
             header?: never;
@@ -632,7 +632,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/agents/{agent}/checks": {
+    "/eval/agents/{agent}/checks": {
         parameters: {
             query?: never;
             header?: never;
@@ -692,7 +692,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/agents/{agent}/checks/{key}": {
+    "/eval/agents/{agent}/checks/{key}": {
         parameters: {
             query?: never;
             header?: never;
@@ -728,7 +728,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/runs": {
+    "/eval/runs": {
         parameters: {
             query?: never;
             header?: never;
@@ -794,7 +794,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/runs/{id}": {
+    "/eval/runs/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -831,7 +831,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/runs/{id}/results": {
+    "/eval/runs/{id}/results": {
         parameters: {
             query?: never;
             header?: never;
@@ -868,7 +868,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/runs/{id}/rerun": {
+    "/eval/runs/{id}/rerun": {
         parameters: {
             query?: never;
             header?: never;
@@ -909,7 +909,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/runs/{id}/recheck": {
+    "/eval/runs/{id}/recheck": {
         parameters: {
             query?: never;
             header?: never;
@@ -967,7 +967,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/runs/{id}/cancel": {
+    "/eval/runs/{id}/cancel": {
         parameters: {
             query?: never;
             header?: never;
@@ -1002,7 +1002,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/runs/{id}/note": {
+    "/eval/runs/{id}/note": {
         parameters: {
             query?: never;
             header?: never;
@@ -1041,7 +1041,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/runs/compare": {
+    "/eval/runs/compare": {
         parameters: {
             query?: never;
             header?: never;
@@ -1081,7 +1081,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/agents/{agent}/run-groups": {
+    "/eval/agents/{agent}/run-groups": {
         parameters: {
             query?: never;
             header?: never;
@@ -1118,7 +1118,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/agents/{agent}/run-groups/archive": {
+    "/eval/agents/{agent}/run-groups/archive": {
         parameters: {
             query?: never;
             header?: never;
@@ -1157,7 +1157,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/agents/{agent}/run-groups/{name}/note": {
+    "/eval/agents/{agent}/run-groups/{name}/note": {
         parameters: {
             query?: never;
             header?: never;
@@ -1197,7 +1197,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/agents/{agent}/run-groups/{name}/deletion": {
+    "/eval/agents/{agent}/run-groups/{name}/deletion": {
         parameters: {
             query?: never;
             header?: never;
@@ -1235,7 +1235,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/agents/{agent}/run-groups/{name}": {
+    "/eval/agents/{agent}/run-groups/{name}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1271,7 +1271,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/agents/{agent}/pass-rates": {
+    "/eval/agents/{agent}/pass-rates": {
         parameters: {
             query?: never;
             header?: never;
@@ -1308,7 +1308,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/agents/{agent}/unstable-checks": {
+    "/eval/agents/{agent}/unstable-checks": {
         parameters: {
             query?: never;
             header?: never;
@@ -1347,7 +1347,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/agents/{agent}/agent-errors": {
+    "/eval/agents/{agent}/agent-errors": {
         parameters: {
             query?: never;
             header?: never;

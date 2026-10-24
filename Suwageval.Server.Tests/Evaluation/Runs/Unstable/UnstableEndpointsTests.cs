@@ -68,7 +68,7 @@ public sealed class UnstableEndpointsTests(TestDatabase database) : IAsyncDispos
             failedRun = passed ? failedRun : id;
         }
 
-        var unstable = Assert.Single(await GetAsync<List<UnstableCheck>>(client, $"/agents/{agent.Name}/unstable-checks"));
+        var unstable = Assert.Single(await GetAsync<List<UnstableCheck>>(client, $"/eval/agents/{agent.Name}/unstable-checks"));
 
         Assert.Equal(
             ("refund", "refund-called", agent.VersionId, 2, 1, failedRun),
@@ -81,10 +81,10 @@ public sealed class UnstableEndpointsTests(TestDatabase database) : IAsyncDispos
                 unstable.NewestFailedRunId
             )
         );
-        Assert.Empty(await GetAsync<List<UnstableCheck>>(client, $"/agents/{agent.Name}/unstable-checks?version={Guid.NewGuid()}"));
+        Assert.Empty(await GetAsync<List<UnstableCheck>>(client, $"/eval/agents/{agent.Name}/unstable-checks?version={Guid.NewGuid()}"));
         Assert.Equal(
             HttpStatusCode.NotFound,
-            (await client.GetAsync(new Uri("/agents/no-such-agent/unstable-checks", UriKind.Relative), Cancellation)).StatusCode
+            (await client.GetAsync(new Uri("/eval/agents/no-such-agent/unstable-checks", UriKind.Relative), Cancellation)).StatusCode
         );
     }
 
@@ -96,7 +96,7 @@ public sealed class UnstableEndpointsTests(TestDatabase database) : IAsyncDispos
         await RunHistory.AddRunAsync(app.Services, agent, agent.VersionId, true);
         await RunHistory.AddRunAsync(app.Services, agent, agent.VersionId, false);
         var newer = await RunHistory.NewerVersionAsync(app.Services, agent, "newer");
-        var url = $"/agents/{agent.Name}/unstable-checks";
+        var url = $"/eval/agents/{agent.Name}/unstable-checks";
 
         await RunHistory.AddRunAsync(app.Services, agent, newer, true);
         Assert.Equal(agent.VersionId, Assert.Single(await GetAsync<List<UnstableCheck>>(client, url)).AgentVersionId);
@@ -117,7 +117,7 @@ public sealed class UnstableEndpointsTests(TestDatabase database) : IAsyncDispos
         await RunHistory.AddRunAsync(app.Services, agent, agent.VersionId, true);
         await RunHistory.AddRunAsync(app.Services, agent, agent.VersionId, false);
         await app.Services.GetRequiredService<VersionStore>().ArchiveVersionsAsync(agent.Id, [agent.VersionId], true, Cancellation);
-        var url = $"/agents/{agent.Name}/unstable-checks";
+        var url = $"/eval/agents/{agent.Name}/unstable-checks";
 
         Assert.Empty(await GetAsync<List<UnstableCheck>>(client, url));
         Assert.Single(await GetAsync<List<UnstableCheck>>(client, $"{url}?version={agent.VersionId}"));

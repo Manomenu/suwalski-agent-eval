@@ -82,7 +82,7 @@ public sealed class SweepCommandTests : IDisposable
                     ],
                 }
             ),
-            ("POST", "/runs") => Json(
+            ("POST", "/eval/runs") => Json(
                 new RunCreated
                 {
                     RunId = RunId,
@@ -91,8 +91,8 @@ public sealed class SweepCommandTests : IDisposable
                 }
             ),
             ("PUT", { } path) when path.EndsWith("/note", StringComparison.Ordinal) => RecordNote(path, request),
-            ("GET", var path) when path == $"/runs/{RunId}" => Json(summary),
-            ("GET", var path) when path == $"/runs/{RunId}/results" => Json(new RunResults { Run = summary, Scenarios = [] }),
+            ("GET", var path) when path == $"/eval/runs/{RunId}" => Json(summary),
+            ("GET", var path) when path == $"/eval/runs/{RunId}/results" => Json(new RunResults { Run = summary, Scenarios = [] }),
             _ => new HttpResponseMessage(HttpStatusCode.NotFound),
         };
     }
@@ -154,7 +154,7 @@ public sealed class SweepCommandTests : IDisposable
         var refused = Sweep(dir, "--note", new string('x', 501));
 
         Assert.Equal(0, exit);
-        Assert.Equal(["/agents/example-agent/run-groups/sweep-test/note {\"note\":\"trying two setups\"}"], notes);
+        Assert.Equal(["/eval/agents/example-agent/run-groups/sweep-test/note {\"note\":\"trying two setups\"}"], notes);
         Assert.NotEqual(0, refused.Exit);
         Assert.Single(notes);
     }

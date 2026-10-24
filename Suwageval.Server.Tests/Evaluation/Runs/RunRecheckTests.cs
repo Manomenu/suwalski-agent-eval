@@ -124,11 +124,14 @@ public sealed class RunRecheckTests(TestDatabase database) : IAsyncDisposable
     }
 
     private static Task<HttpResponseMessage> Post(HttpClient client, Guid runId) =>
-        client.PostAsync(new Uri($"/runs/{runId}/recheck", UriKind.Relative), null, Cancellation);
+        client.PostAsync(new Uri($"/eval/runs/{runId}/recheck", UriKind.Relative), null, Cancellation);
 
     private static async Task<RecheckPlan> PlanAsync(HttpClient client, Guid runId) =>
-        await client.GetFromJsonAsync<RecheckPlan>(new Uri($"/runs/{runId}/recheck", UriKind.Relative), ContractJson.Options, Cancellation)
-        ?? throw new InvalidOperationException("no body");
+        await client.GetFromJsonAsync<RecheckPlan>(
+            new Uri($"/eval/runs/{runId}/recheck", UriKind.Relative),
+            ContractJson.Options,
+            Cancellation
+        ) ?? throw new InvalidOperationException("no body");
 
     private static async Task<Guid> RecheckAsync(HttpClient client, Guid runId)
     {
@@ -462,7 +465,7 @@ public sealed class RunRecheckTests(TestDatabase database) : IAsyncDisposable
         Assert.Equal(RecheckBlocker.AllSkipped, plan.Blocker);
         Assert.Equal("refund", Assert.Single(plan.SkippedScenarios).Key);
         Assert.Equal(HttpStatusCode.NotFound, (await Post(client, Guid.NewGuid())).StatusCode);
-        var unknown = await client.GetAsync(new Uri($"/runs/{Guid.NewGuid()}/recheck", UriKind.Relative), Cancellation);
+        var unknown = await client.GetAsync(new Uri($"/eval/runs/{Guid.NewGuid()}/recheck", UriKind.Relative), Cancellation);
         Assert.Equal(HttpStatusCode.NotFound, unknown.StatusCode);
     }
 

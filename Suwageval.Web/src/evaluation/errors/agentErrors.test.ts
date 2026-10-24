@@ -21,8 +21,8 @@ describe("errorsOfSamples", () => {
 
 describe("agentErrorsPath", () => {
     it("asks the default versions without a query and the given ones with repeated parameters", () => {
-        expect(agentErrorsPath("my agent", [])).toBe("/agents/my%20agent/agent-errors");
-        expect(agentErrorsPath("a", ["v1", "v2"])).toBe("/agents/a/agent-errors?version=v1&version=v2");
+        expect(agentErrorsPath("my agent", [])).toBe("/eval/agents/my%20agent/agent-errors");
+        expect(agentErrorsPath("a", ["v1", "v2"])).toBe("/eval/agents/a/agent-errors?version=v1&version=v2");
     });
 });
 

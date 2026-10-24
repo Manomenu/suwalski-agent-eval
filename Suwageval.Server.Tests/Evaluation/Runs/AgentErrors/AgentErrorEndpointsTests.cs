@@ -62,16 +62,16 @@ public sealed class AgentErrorEndpointsTests(TestDatabase database) : IAsyncDisp
         var failed = await FinishedRunAsync(SampleStatus.Failed, "HTTP 500");
         await FinishedRunAsync(SampleStatus.Failed, "from a recheck", recheckOf: failed);
 
-        var error = Assert.Single(await GetAsync<List<AgentError>>(client, $"/agents/{agent.Name}/agent-errors"));
+        var error = Assert.Single(await GetAsync<List<AgentError>>(client, $"/eval/agents/{agent.Name}/agent-errors"));
 
         Assert.Equal(
             ("refund", agent.VersionId, 1, 2, failed, "HTTP 500"),
             (error.ScenarioKey, error.AgentVersionId, error.Errors, error.Samples, error.NewestErrorRunId, error.NewestError)
         );
-        Assert.Empty(await GetAsync<List<AgentError>>(client, $"/agents/{agent.Name}/agent-errors?version={Guid.NewGuid()}"));
+        Assert.Empty(await GetAsync<List<AgentError>>(client, $"/eval/agents/{agent.Name}/agent-errors?version={Guid.NewGuid()}"));
         Assert.Equal(
             HttpStatusCode.NotFound,
-            (await client.GetAsync(new Uri("/agents/no-such-agent/agent-errors", UriKind.Relative), Cancellation)).StatusCode
+            (await client.GetAsync(new Uri("/eval/agents/no-such-agent/agent-errors", UriKind.Relative), Cancellation)).StatusCode
         );
     }
 
@@ -81,7 +81,7 @@ public sealed class AgentErrorEndpointsTests(TestDatabase database) : IAsyncDisp
         var client = Client();
         var agent = await NewAgentAsync("http://agent.test");
         await RunHistory.AddRunAsync(app.Services, agent, agent.VersionId, null);
-        var url = $"/agents/{agent.Name}/agent-errors";
+        var url = $"/eval/agents/{agent.Name}/agent-errors";
         Assert.Single(await GetAsync<List<AgentError>>(client, url));
         var newer = await RunHistory.NewerVersionAsync(app.Services, agent, "newer");
 

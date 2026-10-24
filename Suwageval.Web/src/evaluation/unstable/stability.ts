@@ -15,7 +15,7 @@ export function unstableChecksPath(agent: string, versionIds: readonly string[])
     const query = new URLSearchParams();
     for (const id of versionIds) query.append("version", id);
     const text = query.toString();
-    return `/agents/${encodeURIComponent(agent)}/unstable-checks${text === "" ? "" : `?${text}`}`;
+    return `/eval/agents/${encodeURIComponent(agent)}/unstable-checks${text === "" ? "" : `?${text}`}`;
 }
 
 /** The unstable check of this version, scenario, check key and check revision, if there is one. */

@@ -65,11 +65,11 @@ public sealed class RunGroupEndpointsTests(TestDatabase database) : IAsyncDispos
     }
 
     private async Task<List<RunGroupSummary>> GroupsAsync(SeededAgent agent) =>
-        await TestServer.Read<List<RunGroupSummary>>(await server.Get($"/agents/{agent.Name}/run-groups"));
+        await TestServer.Read<List<RunGroupSummary>>(await server.Get($"/eval/agents/{agent.Name}/run-groups"));
 
     private async Task ArchiveAsync(SeededAgent agent, bool archived, params string[] names) =>
         (
-            await server.Post($"/agents/{agent.Name}/run-groups/archive", new ArchiveRunGroupsRequest(names, archived))
+            await server.Post($"/eval/agents/{agent.Name}/run-groups/archive", new ArchiveRunGroupsRequest(names, archived))
         ).EnsureSuccessStatusCode();
 
     private async Task<int> RunsOfAsync(params Guid[] runs)
@@ -102,10 +102,10 @@ public sealed class RunGroupEndpointsTests(TestDatabase database) : IAsyncDispos
         await FinishedRunAsync(agent, "sweep-1");
 
         var unknown = await server.Post(
-            $"/agents/{agent.Name}/run-groups/archive",
+            $"/eval/agents/{agent.Name}/run-groups/archive",
             new ArchiveRunGroupsRequest(["sweep-1", "no-such"], true)
         );
-        var noAgent = await server.Post("/agents/no-such-agent/run-groups/archive", new ArchiveRunGroupsRequest(["sweep-1"], true));
+        var noAgent = await server.Post("/eval/agents/no-such-agent/run-groups/archive", new ArchiveRunGroupsRequest(["sweep-1"], true));
 
         Assert.All([unknown, noAgent], response => Assert.Equal(HttpStatusCode.NotFound, response.StatusCode));
         Assert.All(await GroupsAsync(agent), group => Assert.Null(group.ArchivedAt));
@@ -121,8 +121,8 @@ public sealed class RunGroupEndpointsTests(TestDatabase database) : IAsyncDispos
         var plain = await FinishedRunAsync(agent, null);
         await ArchiveAsync(agent, true, "sweep-1");
 
-        var preview = await server.Get($"/agents/{agent.Name}/run-groups/sweep-1/deletion");
-        var deleted = await server.Delete($"/agents/{agent.Name}/run-groups/sweep-1");
+        var preview = await server.Get($"/eval/agents/{agent.Name}/run-groups/sweep-1/deletion");
+        var deleted = await server.Delete($"/eval/agents/{agent.Name}/run-groups/sweep-1");
 
         Assert.Equal(new RunGroupDeletion("sweep-1", 2, 3, 3), await TestServer.Read<RunGroupDeletion>(preview));
         Assert.Equal(HttpStatusCode.NoContent, deleted.StatusCode);
@@ -137,8 +137,8 @@ public sealed class RunGroupEndpointsTests(TestDatabase database) : IAsyncDispos
         var agent = await SeedAsync();
         var run = await FinishedRunAsync(agent, "sweep-1");
 
-        var deleted = await server.Delete($"/agents/{agent.Name}/run-groups/sweep-1");
-        var preview = await server.Get($"/agents/{agent.Name}/run-groups/sweep-1/deletion");
+        var deleted = await server.Delete($"/eval/agents/{agent.Name}/run-groups/sweep-1");
+        var preview = await server.Get($"/eval/agents/{agent.Name}/run-groups/sweep-1/deletion");
 
         Assert.All([deleted, preview], response => Assert.Equal(HttpStatusCode.Conflict, response.StatusCode));
         Assert.Contains("archive it first", await deleted.Content.ReadAsStringAsync(Cancellation), StringComparison.Ordinal);
@@ -159,7 +159,7 @@ public sealed class RunGroupEndpointsTests(TestDatabase database) : IAsyncDispos
         );
         await ArchiveAsync(agent, true, "sweep-1");
 
-        var deleted = await server.Delete($"/agents/{agent.Name}/run-groups/sweep-1");
+        var deleted = await server.Delete($"/eval/agents/{agent.Name}/run-groups/sweep-1");
 
         Assert.Equal(HttpStatusCode.Conflict, deleted.StatusCode);
         Assert.Contains("queued or running", await deleted.Content.ReadAsStringAsync(Cancellation), StringComparison.Ordinal);
@@ -167,7 +167,7 @@ public sealed class RunGroupEndpointsTests(TestDatabase database) : IAsyncDispos
     }
 
     private async Task<string?> GroupNoteAsync(SeededAgent agent, string group) =>
-        (await TestServer.Read<RunComparison>(await server.Get($"/runs/compare?group={group}&agent={agent.Name}"))).GroupNote;
+        (await TestServer.Read<RunComparison>(await server.Get($"/eval/runs/compare?group={group}&agent={agent.Name}"))).GroupNote;
 
     [Fact]
     public async Task A_group_note_is_trimmed_shown_by_the_comparison_of_the_group_only_changed_cleared_and_deleted_with_the_group()
@@ -177,23 +177,23 @@ public sealed class RunGroupEndpointsTests(TestDatabase database) : IAsyncDispos
         await FinishedRunAsync(agent, "sweep-1");
         await FinishedRunAsync(agent, "sweep-2");
 
-        var set = await server.Put($"/agents/{agent.Name}/run-groups/sweep-1/note", new NoteRequest { Note = "  three models \n" });
+        var set = await server.Put($"/eval/agents/{agent.Name}/run-groups/sweep-1/note", new NoteRequest { Note = "  three models \n" });
 
         Assert.Equal(HttpStatusCode.NoContent, set.StatusCode);
         Assert.Equal("three models", await GroupNoteAsync(agent, "sweep-1"));
         Assert.Null(await GroupNoteAsync(agent, "sweep-2"));
-        var byRuns = await TestServer.Read<RunComparison>(await server.Get($"/runs/compare?runs={first}"));
+        var byRuns = await TestServer.Read<RunComparison>(await server.Get($"/eval/runs/compare?runs={first}"));
         Assert.Null(byRuns.GroupNote);
 
-        await server.Put($"/agents/{agent.Name}/run-groups/sweep-1/note", new NoteRequest { Note = "other" });
+        await server.Put($"/eval/agents/{agent.Name}/run-groups/sweep-1/note", new NoteRequest { Note = "other" });
         Assert.Equal("other", await GroupNoteAsync(agent, "sweep-1"));
 
-        await server.Put($"/agents/{agent.Name}/run-groups/sweep-1/note", new NoteRequest { Note = "   " });
+        await server.Put($"/eval/agents/{agent.Name}/run-groups/sweep-1/note", new NoteRequest { Note = "   " });
         Assert.Null(await GroupNoteAsync(agent, "sweep-1"));
 
-        await server.Put($"/agents/{agent.Name}/run-groups/sweep-1/note", new NoteRequest { Note = "gone with the group" });
+        await server.Put($"/eval/agents/{agent.Name}/run-groups/sweep-1/note", new NoteRequest { Note = "gone with the group" });
         await ArchiveAsync(agent, true, "sweep-1");
-        Assert.Equal(HttpStatusCode.NoContent, (await server.Delete($"/agents/{agent.Name}/run-groups/sweep-1")).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await server.Delete($"/eval/agents/{agent.Name}/run-groups/sweep-1")).StatusCode);
         await using var connection = await database.Pool.OpenAsync(Cancellation);
         Assert.Equal(
             0,
@@ -210,11 +210,14 @@ public sealed class RunGroupEndpointsTests(TestDatabase database) : IAsyncDispos
         await FinishedRunAsync(stranger, "theirs");
         var note = new NoteRequest { Note = "x" };
 
-        var noAgent = await server.Put("/agents/no-such-agent/run-groups/sweep-1/note", note);
-        var unknown = await server.Put($"/agents/{agent.Name}/run-groups/no-such/note", note);
-        var foreign = await server.Put($"/agents/{agent.Name}/run-groups/theirs/note", note);
-        var badName = await server.Put($"/agents/{agent.Name}/run-groups/Not_Kebab/note", note);
-        var tooLong = await server.Put($"/agents/{agent.Name}/run-groups/sweep-1/note", new NoteRequest { Note = new string('x', 501) });
+        var noAgent = await server.Put("/eval/agents/no-such-agent/run-groups/sweep-1/note", note);
+        var unknown = await server.Put($"/eval/agents/{agent.Name}/run-groups/no-such/note", note);
+        var foreign = await server.Put($"/eval/agents/{agent.Name}/run-groups/theirs/note", note);
+        var badName = await server.Put($"/eval/agents/{agent.Name}/run-groups/Not_Kebab/note", note);
+        var tooLong = await server.Put(
+            $"/eval/agents/{agent.Name}/run-groups/sweep-1/note",
+            new NoteRequest { Note = new string('x', 501) }
+        );
 
         Assert.All([noAgent, unknown, foreign], response => Assert.Equal(HttpStatusCode.NotFound, response.StatusCode));
         Assert.All([badName, tooLong], response => Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode));
@@ -229,10 +232,10 @@ public sealed class RunGroupEndpointsTests(TestDatabase database) : IAsyncDispos
         await FinishedRunAsync(stranger, "theirs");
         await ArchiveAsync(stranger, true, "theirs");
 
-        var unknown = await server.Delete($"/agents/{agent.Name}/run-groups/no-such");
-        var foreign = await server.Delete($"/agents/{agent.Name}/run-groups/theirs");
-        var noAgent = await server.Delete("/agents/no-such-agent/run-groups/theirs");
-        var noPreview = await server.Get($"/agents/{agent.Name}/run-groups/no-such/deletion");
+        var unknown = await server.Delete($"/eval/agents/{agent.Name}/run-groups/no-such");
+        var foreign = await server.Delete($"/eval/agents/{agent.Name}/run-groups/theirs");
+        var noAgent = await server.Delete("/eval/agents/no-such-agent/run-groups/theirs");
+        var noPreview = await server.Get($"/eval/agents/{agent.Name}/run-groups/no-such/deletion");
 
         Assert.All([unknown, foreign, noAgent, noPreview], response => Assert.Equal(HttpStatusCode.NotFound, response.StatusCode));
         Assert.Single(await GroupsAsync(stranger));
@@ -261,7 +264,7 @@ public sealed class RunGroupEndpointsTests(TestDatabase database) : IAsyncDispos
 
         async Task<List<Guid>> ListAsync(string query)
         {
-            var list = await TestServer.Read<RunList>(await server.Get($"/runs?agent={agent.Name}{query}"));
+            var list = await TestServer.Read<RunList>(await server.Get($"/eval/runs?agent={agent.Name}{query}"));
             return [.. list.Runs.Select(run => run.Id)];
         }
 
@@ -270,7 +273,7 @@ public sealed class RunGroupEndpointsTests(TestDatabase database) : IAsyncDispos
         Assert.Equal(3, (await ListAsync("")).Count);
         Assert.Equal(
             HttpStatusCode.UnprocessableEntity,
-            (await server.Get($"/runs?agent={agent.Name}&group=sweep-1&grouping=None")).StatusCode
+            (await server.Get($"/eval/runs?agent={agent.Name}&group=sweep-1&grouping=None")).StatusCode
         );
     }
 }

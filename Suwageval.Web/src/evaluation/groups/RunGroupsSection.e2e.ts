@@ -89,8 +89,8 @@ test("the runs table hides group runs by default, and a group is archived, shown
 
         await expect(dialog).toHaveCount(0);
         await expect(page.getByRole("checkbox", { name: `Select group ${group}`, exact: true })).toHaveCount(0);
-        expect((await request.get(`/api/runs/${grouped}`)).status()).toBe(404);
-        expect((await request.get(`/api/runs/${plain}`)).status()).toBe(200);
+        expect((await request.get(`/api/eval/runs/${grouped}`)).status()).toBe(404);
+        expect((await request.get(`/api/eval/runs/${plain}`)).status()).toBe(200);
     } finally {
         agentServer.close();
     }

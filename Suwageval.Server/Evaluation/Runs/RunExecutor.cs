@@ -73,7 +73,7 @@ internal sealed partial class RunExecutor(
     private async Task CheckContractUnchangedAsync(RunRow run, string versionHash, CancellationToken cancellationToken)
     {
         var now = await agent.GetContractAsync(new Uri(run.EndpointUrl), cancellationToken);
-        if (now.Contract is { } contract && ContractContent.Hash(contract) != versionHash)
+        if (now.Contract is { } contract && AgentContractHash.Of(contract) != versionHash)
         {
             await runs.MarkContractChangedAsync(run.Id, cancellationToken);
         }

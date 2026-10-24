@@ -81,21 +81,21 @@ export async function createAgent(request: APIRequestContext, setup: AgentSetup)
     const { name, endpointUrl, regression } = setup;
     expect((await request.post("/api/agents", { data: { name, endpointUrl, regression } })).ok()).toBe(true);
     const scenarios = setup.scenarios ?? [GREETS_SCENARIO];
-    expect((await request.put(`/api/agents/${name}/scenarios`, { data: { scenarios } })).ok()).toBe(true);
+    expect((await request.put(`/api/eval/agents/${name}/scenarios`, { data: { scenarios } })).ok()).toBe(true);
     if (setup.checks !== undefined) {
-        expect((await request.put(`/api/agents/${name}/checks`, { data: { checks: setup.checks } })).ok()).toBe(true);
+        expect((await request.put(`/api/eval/agents/${name}/checks`, { data: { checks: setup.checks } })).ok()).toBe(true);
     }
 }
 
 export async function startRun(request: APIRequestContext, data: object): Promise<string> {
-    const created = await request.post("/api/runs", { data });
+    const created = await request.post("/api/eval/runs", { data });
     expect(created.ok()).toBe(true);
     return ((await created.json()) as { runId: string }).runId;
 }
 
 async function waitUntilDone(request: APIRequestContext, runId: string): Promise<void> {
     await expect
-        .poll(async () => ((await (await request.get(`/api/runs/${runId}`)).json()) as { status: string }).status, {
+        .poll(async () => ((await (await request.get(`/api/eval/runs/${runId}`)).json()) as { status: string }).status, {
             timeout: 30_000,
             intervals: POLL_INTERVALS_MS,
         })

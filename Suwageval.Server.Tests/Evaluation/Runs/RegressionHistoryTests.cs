@@ -235,7 +235,8 @@ public sealed class RegressionHistoryTests(TestDatabase database) : IAsyncDispos
     }
 
     private async Task<RunResults> ResultsAsync(Guid run) =>
-        await Client().GetFromJsonAsync<RunResults>(new Uri($"/runs/{run}/results", UriKind.Relative), ContractJson.Options, Cancellation)
+        await Client()
+            .GetFromJsonAsync<RunResults>(new Uri($"/eval/runs/{run}/results", UriKind.Relative), ContractJson.Options, Cancellation)
         ?? throw new InvalidOperationException("no body");
 
     [Fact]
@@ -384,7 +385,7 @@ public sealed class RegressionHistoryTests(TestDatabase database) : IAsyncDispos
         var client = Client();
 
         var response = await client.PostAsJsonAsync(
-            new Uri("/runs", UriKind.Relative),
+            new Uri("/eval/runs", UriKind.Relative),
             new RunRequest { Agent = agent.Name, Origin = MasterOrigin() },
             Cancellation
         );
@@ -392,19 +393,23 @@ public sealed class RegressionHistoryTests(TestDatabase database) : IAsyncDispos
         var created = (await response.Content.ReadFromJsonAsync<RunCreated>(Cancellation))!;
         // The agent's settings changed since: the rerun keeps what the run it repeats decided.
         await new AgentStore(database.Pool).SetSettingsAsync(agent.Id, null, new RegressionSettings { Branches = ["other"] }, Cancellation);
-        var rerun = await client.PostAsync(new Uri($"/runs/{created.RunId}/rerun", UriKind.Relative), null, Cancellation);
+        var rerun = await client.PostAsync(new Uri($"/eval/runs/{created.RunId}/rerun", UriKind.Relative), null, Cancellation);
         Assert.Equal(HttpStatusCode.Accepted, rerun.StatusCode);
         var rerunId = (await rerun.Content.ReadFromJsonAsync<RunCreated>(Cancellation))!.RunId;
 
         var original = (
             await client.GetFromJsonAsync<RunSummary>(
-                new Uri($"/runs/{created.RunId}", UriKind.Relative),
+                new Uri($"/eval/runs/{created.RunId}", UriKind.Relative),
                 ContractJson.Options,
                 Cancellation
             )
         )!;
         var repeated = (
-            await client.GetFromJsonAsync<RunSummary>(new Uri($"/runs/{rerunId}", UriKind.Relative), ContractJson.Options, Cancellation)
+            await client.GetFromJsonAsync<RunSummary>(
+                new Uri($"/eval/runs/{rerunId}", UriKind.Relative),
+                ContractJson.Options,
+                Cancellation
+            )
         )!;
 
         Assert.Equal((true, "master", "master"), (original.Reference, original.ComparedWith, original.Origin?.Branch));
@@ -414,7 +419,7 @@ public sealed class RegressionHistoryTests(TestDatabase database) : IAsyncDispos
     private static async Task<RunCreated> StartAsync(HttpClient client, RunRequest request) =>
         (
             await (
-                await client.PostAsJsonAsync(new Uri("/runs", UriKind.Relative), request, Cancellation)
+                await client.PostAsJsonAsync(new Uri("/eval/runs", UriKind.Relative), request, Cancellation)
             ).Content.ReadFromJsonAsync<RunCreated>(Cancellation)
         )!;
 
@@ -441,7 +446,7 @@ public sealed class RegressionHistoryTests(TestDatabase database) : IAsyncDispos
         var reference = await StartAsync(client, new RunRequest { Agent = agent.Name, Origin = MasterOrigin() });
         var rerun = await (
             await client.PostAsJsonAsync(
-                new Uri($"/runs/{reference.RunId}/rerun", UriKind.Relative),
+                new Uri($"/eval/runs/{reference.RunId}/rerun", UriKind.Relative),
                 new RerunRequest { Group = "sweep-1" },
                 Cancellation
             )
@@ -450,14 +455,14 @@ public sealed class RegressionHistoryTests(TestDatabase database) : IAsyncDispos
         foreach (var id in new[] { grouped.RunId, rerun!.RunId })
         {
             var run = (
-                await client.GetFromJsonAsync<RunSummary>(new Uri($"/runs/{id}", UriKind.Relative), ContractJson.Options, Cancellation)
+                await client.GetFromJsonAsync<RunSummary>(new Uri($"/eval/runs/{id}", UriKind.Relative), ContractJson.Options, Cancellation)
             )!;
             Assert.Equal((false, null), (run.Reference, run.ComparedWith));
         }
         Assert.True(
             (
                 await client.GetFromJsonAsync<RunSummary>(
-                    new Uri($"/runs/{reference.RunId}", UriKind.Relative),
+                    new Uri($"/eval/runs/{reference.RunId}", UriKind.Relative),
                     ContractJson.Options,
                     Cancellation
                 )
@@ -497,11 +502,11 @@ public sealed class RegressionHistoryTests(TestDatabase database) : IAsyncDispos
         var client = Client();
 
         var created = await (
-            await client.PostAsJsonAsync(new Uri("/runs", UriKind.Relative), new RunRequest { Agent = agent.Name }, Cancellation)
+            await client.PostAsJsonAsync(new Uri("/eval/runs", UriKind.Relative), new RunRequest { Agent = agent.Name }, Cancellation)
         ).Content.ReadFromJsonAsync<RunCreated>(Cancellation);
         var run = (
             await client.GetFromJsonAsync<RunSummary>(
-                new Uri($"/runs/{created!.RunId}", UriKind.Relative),
+                new Uri($"/eval/runs/{created!.RunId}", UriKind.Relative),
                 ContractJson.Options,
                 Cancellation
             )

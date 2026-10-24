@@ -16,7 +16,7 @@ export function agentErrorsPath(agent: string, versionIds: readonly string[]): s
     const query = new URLSearchParams();
     for (const id of versionIds) query.append("version", id);
     const text = query.toString();
-    return `/agents/${encodeURIComponent(agent)}/agent-errors${text === "" ? "" : `?${text}`}`;
+    return `/eval/agents/${encodeURIComponent(agent)}/agent-errors${text === "" ? "" : `?${text}`}`;
 }
 
 /** "3/12": the samples without an answer over the samples asked. */

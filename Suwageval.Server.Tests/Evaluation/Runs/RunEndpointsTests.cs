@@ -35,7 +35,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         );
 
     private static Task<HttpResponseMessage> Post(HttpClient client, RunRequest request) =>
-        client.PostAsJsonAsync(new Uri("/runs", UriKind.Relative), request, Cancellation);
+        client.PostAsJsonAsync(new Uri("/eval/runs", UriKind.Relative), request, Cancellation);
 
     private static async Task<RunCreated> StartAsync(HttpClient client, RunRequest request)
     {
@@ -60,8 +60,8 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         var second = await StartAsync(client, new RunRequest { Agent = agent.Name });
 
         Assert.Equal((first.AgentVersionId, false), (second.AgentVersionId, second.VersionCreated));
-        var firstRun = await GetAsync<RunSummary>(client, $"/runs/{first.RunId}");
-        var secondRun = await GetAsync<RunSummary>(client, $"/runs/{second.RunId}");
+        var firstRun = await GetAsync<RunSummary>(client, $"/eval/runs/{first.RunId}");
+        var secondRun = await GetAsync<RunSummary>(client, $"/eval/runs/{second.RunId}");
         Assert.Equal(SeededAgent.ExampleVersion.Label, firstRun.Label);
         Assert.Equal("relabelled", secondRun.Label);
     }
@@ -78,7 +78,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
 
         Assert.True(created.VersionCreated);
         Assert.NotEqual(agent.VersionId, created.AgentVersionId);
-        var run = await GetAsync<RunSummary>(client, $"/runs/{created.RunId}");
+        var run = await GetAsync<RunSummary>(client, $"/eval/runs/{created.RunId}");
         Assert.Equal((agent.Name, created.AgentVersionId, fake.Url.AbsoluteUri), (run.Agent, run.AgentVersionId, run.EndpointUrl));
         Assert.Equal(["regression"], run.Tags);
         Assert.Equal(RunStatus.Queued, run.Status);
@@ -118,7 +118,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
 
         var created = await StartAsync(client, new RunRequest { Agent = agent.Id.ToString(), EndpointUrl = fake.Url.AbsoluteUri });
 
-        var run = await GetAsync<RunSummary>(client, $"/runs/{created.RunId}");
+        var run = await GetAsync<RunSummary>(client, $"/eval/runs/{created.RunId}");
         Assert.Equal(fake.Url.AbsoluteUri, run.EndpointUrl);
         Assert.Empty(run.Tags);
         Assert.Equal(1, fake.ContractRequests);
@@ -126,8 +126,8 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
 
     private static Task<HttpResponseMessage> Rerun(HttpClient client, Guid runId, RerunRequest? body = null) =>
         body is null
-            ? client.PostAsync(new Uri($"/runs/{runId}/rerun", UriKind.Relative), null, Cancellation)
-            : client.PostAsJsonAsync(new Uri($"/runs/{runId}/rerun", UriKind.Relative), body, Cancellation);
+            ? client.PostAsync(new Uri($"/eval/runs/{runId}/rerun", UriKind.Relative), null, Cancellation)
+            : client.PostAsJsonAsync(new Uri($"/eval/runs/{runId}/rerun", UriKind.Relative), body, Cancellation);
 
     private static async Task<RunCreated> RerunOkAsync(HttpClient client, Guid runId, RerunRequest? body = null)
     {
@@ -150,7 +150,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         var again = await RerunOkAsync(client, original.RunId);
 
         Assert.NotEqual(original.RunId, again.RunId);
-        Assert.Equal(RunStatus.Interrupted, (await GetAsync<RunSummary>(client, $"/runs/{original.RunId}")).Status);
+        Assert.Equal(RunStatus.Interrupted, (await GetAsync<RunSummary>(client, $"/eval/runs/{original.RunId}")).Status);
     }
 
     [Theory]
@@ -168,8 +168,8 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
 
         Assert.NotEqual(original.RunId, again.RunId);
         Assert.Equal((original.AgentVersionId, false), (again.AgentVersionId, again.VersionCreated));
-        var first = await GetAsync<RunSummary>(client, $"/runs/{original.RunId}");
-        var second = await GetAsync<RunSummary>(client, $"/runs/{again.RunId}");
+        var first = await GetAsync<RunSummary>(client, $"/eval/runs/{original.RunId}");
+        var second = await GetAsync<RunSummary>(client, $"/eval/runs/{again.RunId}");
         Assert.Equal((agent.Name, fake.Url.AbsoluteUri), (second.Agent, second.EndpointUrl));
         Assert.Equal(tags, second.Tags);
         Assert.Equal((RunStatus.Queued, original.RunId), (first.Status, first.Id));
@@ -189,7 +189,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
 
         Assert.True(again.VersionCreated);
         Assert.NotEqual(original.AgentVersionId, again.AgentVersionId);
-        Assert.Equal(other.Url.AbsoluteUri, (await GetAsync<RunSummary>(client, $"/runs/{again.RunId}")).EndpointUrl);
+        Assert.Equal(other.Url.AbsoluteUri, (await GetAsync<RunSummary>(client, $"/eval/runs/{again.RunId}")).EndpointUrl);
     }
 
     [Fact]
@@ -207,7 +207,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         var response = await Rerun(client, original.RunId, new RerunRequest { EndpointUrl = "http://127.0.0.1:1" });
 
         await AssertBadGatewayAsync(response, "http://127.0.0.1:1/suwageval/contract");
-        Assert.Single((await GetAsync<RunList>(client, $"/runs?agent={agent.Name}")).Runs);
+        Assert.Single((await GetAsync<RunList>(client, $"/eval/runs?agent={agent.Name}")).Runs);
     }
 
     [Fact]
@@ -221,7 +221,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         var agent = await NewAgentAsync("http://127.0.0.1:1");
 
         var response = await client.PostAsJsonAsync(
-            new Uri("/runs", UriKind.Relative),
+            new Uri("/eval/runs", UriKind.Relative),
             new { agent = agent.Name, agentVersionId = agent.VersionId },
             Cancellation
         );
@@ -263,7 +263,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         var response = await Post(client, new RunRequest { Agent = agent.Name });
 
         await AssertBadGatewayAsync(response, "http://127.0.0.1:1/suwageval/contract");
-        Assert.Empty((await GetAsync<RunList>(client, $"/runs?agent={agent.Name}")).Runs);
+        Assert.Empty((await GetAsync<RunList>(client, $"/eval/runs?agent={agent.Name}")).Runs);
     }
 
     [Fact]
@@ -287,7 +287,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         fake.ServeContract(SeededAgent.ExampleVersion with { Agents = [] });
         await AssertBadGatewayAsync(await Post(client, new RunRequest { Agent = agent.Name }), "agents: there is at least one agent");
 
-        Assert.Empty((await GetAsync<RunList>(client, $"/runs?agent={agent.Name}")).Runs);
+        Assert.Empty((await GetAsync<RunList>(client, $"/eval/runs?agent={agent.Name}")).Runs);
     }
 
     private static async Task AssertBadGatewayAsync(HttpResponseMessage response, string detailPart)
@@ -331,7 +331,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         Assert.Equal(2, mismatches.Count);
         Assert.Contains(mismatches, m => m!.Contains("refund_order", StringComparison.Ordinal));
         Assert.Contains(mismatches, m => m!.Contains("where.after", StringComparison.Ordinal));
-        Assert.Empty((await GetAsync<RunList>(client, $"/runs?agent={agent.Name}")).Runs);
+        Assert.Empty((await GetAsync<RunList>(client, $"/eval/runs?agent={agent.Name}")).Runs);
     }
 
     [Fact]
@@ -358,7 +358,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
 
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
         Assert.Contains("No judge model is configured", await response.Content.ReadAsStringAsync(Cancellation), StringComparison.Ordinal);
-        Assert.Empty((await GetAsync<RunList>(client, $"/runs?agent={agent.Name}")).Runs);
+        Assert.Empty((await GetAsync<RunList>(client, $"/eval/runs?agent={agent.Name}")).Runs);
     }
 
     [Fact]
@@ -392,7 +392,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         var body = await response.Content.ReadAsStringAsync(Cancellation);
         Assert.Contains("No judge model is configured", body, StringComparison.Ordinal);
         Assert.Contains("argument matching", body, StringComparison.Ordinal);
-        Assert.Empty((await GetAsync<RunList>(client, $"/runs?agent={agent.Name}")).Runs);
+        Assert.Empty((await GetAsync<RunList>(client, $"/eval/runs?agent={agent.Name}")).Runs);
     }
 
     [Fact]
@@ -405,13 +405,13 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         var second = await StartAsync(client, new RunRequest { Agent = agent.Name });
         await NewAgentAsync(fake.Url.AbsoluteUri);
 
-        var runs = await GetAsync<RunList>(client, $"/runs?agent={agent.Name}");
+        var runs = await GetAsync<RunList>(client, $"/eval/runs?agent={agent.Name}");
 
         Assert.Equal([second.RunId, first.RunId], runs.Runs.Select(run => run.Id));
         Assert.Equal(runs.Runs.Count, runs.TotalCount);
         Assert.Equal(
             HttpStatusCode.NotFound,
-            (await client.GetAsync(new Uri("/runs?agent=nope", UriKind.Relative), Cancellation)).StatusCode
+            (await client.GetAsync(new Uri("/eval/runs?agent=nope", UriKind.Relative), Cancellation)).StatusCode
         );
     }
 
@@ -425,8 +425,8 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         var second = await StartAsync(client, new RunRequest { Agent = agent.Name, Group = "sweep-1" });
         await StartAsync(client, new RunRequest { Agent = agent.Name });
 
-        var inGroup = await GetAsync<RunList>(client, $"/runs?agent={agent.Name}&group=sweep-1");
-        var groups = await GetAsync<List<RunGroupSummary>>(client, $"/agents/{agent.Name}/run-groups");
+        var inGroup = await GetAsync<RunList>(client, $"/eval/runs?agent={agent.Name}&group=sweep-1");
+        var groups = await GetAsync<List<RunGroupSummary>>(client, $"/eval/agents/{agent.Name}/run-groups");
 
         Assert.Equal([second.RunId, first.RunId], inGroup.Runs.Select(run => run.Id));
         Assert.All(inGroup.Runs, run => Assert.Equal("sweep-1", run.Group));
@@ -444,8 +444,8 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         var plain = await RerunOkAsync(client, original.RunId);
         var grouped = await RerunOkAsync(client, original.RunId, new RerunRequest { Group = "sweep-2" });
 
-        Assert.Null((await GetAsync<RunSummary>(client, $"/runs/{plain.RunId}")).Group);
-        Assert.Equal("sweep-2", (await GetAsync<RunSummary>(client, $"/runs/{grouped.RunId}")).Group);
+        Assert.Null((await GetAsync<RunSummary>(client, $"/eval/runs/{plain.RunId}")).Group);
+        Assert.Equal("sweep-2", (await GetAsync<RunSummary>(client, $"/eval/runs/{grouped.RunId}")).Group);
     }
 
     [Theory]
@@ -461,11 +461,11 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
         using var problem = JsonDocument.Parse(await response.Content.ReadAsStringAsync(Cancellation));
         Assert.True(problem.RootElement.GetProperty("errors").TryGetProperty("group", out _));
-        Assert.Empty((await GetAsync<RunList>(client, $"/runs?agent={agent.Name}")).Runs);
+        Assert.Empty((await GetAsync<RunList>(client, $"/eval/runs?agent={agent.Name}")).Runs);
     }
 
     private static Task<HttpResponseMessage> PutNote(HttpClient client, Guid runId, string? note) =>
-        client.PutAsJsonAsync(new Uri($"/runs/{runId}/note", UriKind.Relative), new NoteRequest { Note = note }, Cancellation);
+        client.PutAsJsonAsync(new Uri($"/eval/runs/{runId}/note", UriKind.Relative), new NoteRequest { Note = note }, Cancellation);
 
     [Fact]
     public async Task A_note_set_at_start_is_trimmed_listed_and_not_inherited_by_a_rerun_and_can_be_changed_and_cleared_later()
@@ -478,16 +478,16 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         var rerun = await RerunOkAsync(client, original.RunId, new RerunRequest { Note = "trying model X" });
         var plain = await RerunOkAsync(client, original.RunId);
 
-        Assert.Equal("rebuilt the index", (await GetAsync<RunSummary>(client, $"/runs/{original.RunId}")).Note);
-        Assert.Equal("trying model X", (await GetAsync<RunSummary>(client, $"/runs/{rerun.RunId}")).Note);
-        Assert.Null((await GetAsync<RunSummary>(client, $"/runs/{plain.RunId}")).Note);
+        Assert.Equal("rebuilt the index", (await GetAsync<RunSummary>(client, $"/eval/runs/{original.RunId}")).Note);
+        Assert.Equal("trying model X", (await GetAsync<RunSummary>(client, $"/eval/runs/{rerun.RunId}")).Note);
+        Assert.Null((await GetAsync<RunSummary>(client, $"/eval/runs/{plain.RunId}")).Note);
 
         Assert.Equal(HttpStatusCode.NoContent, (await PutNote(client, original.RunId, " new reason ")).StatusCode);
-        var listed = await GetAsync<RunList>(client, $"/runs?agent={agent.Name}");
+        var listed = await GetAsync<RunList>(client, $"/eval/runs?agent={agent.Name}");
         Assert.Equal("new reason", listed.Runs.Single(run => run.Id == original.RunId).Note);
 
         Assert.Equal(HttpStatusCode.NoContent, (await PutNote(client, original.RunId, "   ")).StatusCode);
-        Assert.Null((await GetAsync<RunSummary>(client, $"/runs/{original.RunId}")).Note);
+        Assert.Null((await GetAsync<RunSummary>(client, $"/eval/runs/{original.RunId}")).Note);
     }
 
     [Fact]
@@ -503,14 +503,14 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
             .ExecuteAsync(run ?? throw new InvalidOperationException("not queued"), Cancellation);
 
         Assert.Equal(HttpStatusCode.NoContent, (await PutNote(client, created.RunId, "after it finished")).StatusCode);
-        Assert.Equal("after it finished", (await GetAsync<RunSummary>(client, $"/runs/{created.RunId}")).Note);
+        Assert.Equal("after it finished", (await GetAsync<RunSummary>(client, $"/eval/runs/{created.RunId}")).Note);
         Assert.Equal(HttpStatusCode.NotFound, (await PutNote(client, Guid.NewGuid(), "x")).StatusCode);
 
         var tooLong = await PutNote(client, created.RunId, new string('x', NoteRules.MaxLength + 1));
         Assert.Equal(HttpStatusCode.UnprocessableEntity, tooLong.StatusCode);
         using var problem = JsonDocument.Parse(await tooLong.Content.ReadAsStringAsync(Cancellation));
         Assert.True(problem.RootElement.GetProperty("errors").TryGetProperty("note", out _));
-        Assert.Equal("after it finished", (await GetAsync<RunSummary>(client, $"/runs/{created.RunId}")).Note);
+        Assert.Equal("after it finished", (await GetAsync<RunSummary>(client, $"/eval/runs/{created.RunId}")).Note);
 
         var rejectedAtStart = await Post(client, new RunRequest { Agent = agent.Name, Note = new string('x', NoteRules.MaxLength + 1) });
         Assert.Equal(HttpStatusCode.UnprocessableEntity, rejectedAtStart.StatusCode);
@@ -529,9 +529,9 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         }
         started.Reverse();
 
-        var first = await GetAsync<RunList>(client, $"/runs?agent={agent.Name}&pageSize=2");
-        var second = await GetAsync<RunList>(client, $"/runs?agent={agent.Name}&pageSize=2&page=2");
-        var pastTheEnd = await GetAsync<RunList>(client, $"/runs?agent={agent.Name}&pageSize=2&page=9");
+        var first = await GetAsync<RunList>(client, $"/eval/runs?agent={agent.Name}&pageSize=2");
+        var second = await GetAsync<RunList>(client, $"/eval/runs?agent={agent.Name}&pageSize=2&page=2");
+        var pastTheEnd = await GetAsync<RunList>(client, $"/eval/runs?agent={agent.Name}&pageSize=2&page=9");
 
         Assert.Equal(started.Take(2), first.Runs.Select(run => run.Id));
         Assert.Equal(started.Skip(2), second.Runs.Select(run => run.Id));
@@ -551,8 +551,8 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         await store.EnqueueAsync(agent.Id, agent.VersionId, ["billing"], agent.EndpointUrl, cancellationToken: Cancellation);
         var everything = await store.EnqueueAsync(agent.Id, agent.VersionId, [], agent.EndpointUrl, cancellationToken: Cancellation);
 
-        var one = await GetAsync<RunList>(client, $"/runs?agent={agent.Name}&tag=smoke");
-        var two = await GetAsync<RunList>(client, $"/runs?agent={agent.Name}&tag=smoke&tag=billing");
+        var one = await GetAsync<RunList>(client, $"/eval/runs?agent={agent.Name}&tag=smoke");
+        var two = await GetAsync<RunList>(client, $"/eval/runs?agent={agent.Name}&tag=smoke&tag=billing");
 
         Assert.Equal(new[] { everything, smoke }.Order(), one.Runs.Select(run => run.Id).Order());
         Assert.Equal((2, 3), (one.TotalCount, two.TotalCount));
@@ -568,8 +568,8 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         await StartAsync(client, new RunRequest { Agent = agent.Name, Group = "sweep-1" });
         await StartAsync(client, new RunRequest { Agent = agent.Name, Group = "sweep-1" });
 
-        var inGroup = await GetAsync<RunList>(client, $"/runs?agent={agent.Name}&group=sweep-1&pageSize=1");
-        var outsideGroups = await GetAsync<RunList>(client, $"/runs?agent={agent.Name}&grouping=None&pageSize=1");
+        var inGroup = await GetAsync<RunList>(client, $"/eval/runs?agent={agent.Name}&group=sweep-1&pageSize=1");
+        var outsideGroups = await GetAsync<RunList>(client, $"/eval/runs?agent={agent.Name}&grouping=None&pageSize=1");
 
         Assert.Equal((1, 2), (inGroup.Runs.Count, inGroup.TotalCount));
         Assert.Equal((1, 1), (outsideGroups.Runs.Count, outsideGroups.TotalCount));
@@ -581,7 +581,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
     [InlineData("page=0")]
     public async Task A_bad_page_or_page_size_is_422(string query)
     {
-        var response = await Client().GetAsync(new Uri($"/runs?{query}", UriKind.Relative), Cancellation);
+        var response = await Client().GetAsync(new Uri($"/eval/runs?{query}", UriKind.Relative), Cancellation);
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
     }
@@ -592,14 +592,17 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         var client = Client();
         var id = Guid.NewGuid();
 
-        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync(new Uri($"/runs/{id}", UriKind.Relative), Cancellation)).StatusCode);
         Assert.Equal(
             HttpStatusCode.NotFound,
-            (await client.GetAsync(new Uri($"/runs/{id}/results", UriKind.Relative), Cancellation)).StatusCode
+            (await client.GetAsync(new Uri($"/eval/runs/{id}", UriKind.Relative), Cancellation)).StatusCode
         );
         Assert.Equal(
             HttpStatusCode.NotFound,
-            (await client.PostAsync(new Uri($"/runs/{id}/cancel", UriKind.Relative), null, Cancellation)).StatusCode
+            (await client.GetAsync(new Uri($"/eval/runs/{id}/results", UriKind.Relative), Cancellation)).StatusCode
+        );
+        Assert.Equal(
+            HttpStatusCode.NotFound,
+            (await client.PostAsync(new Uri($"/eval/runs/{id}/cancel", UriKind.Relative), null, Cancellation)).StatusCode
         );
     }
 
@@ -611,10 +614,10 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         var agent = await NewAgentAsync(fake.Url.AbsoluteUri);
         var created = await StartAsync(client, new RunRequest { Agent = agent.Name });
 
-        var response = await client.PostAsync(new Uri($"/runs/{created.RunId}/cancel", UriKind.Relative), null, Cancellation);
+        var response = await client.PostAsync(new Uri($"/eval/runs/{created.RunId}/cancel", UriKind.Relative), null, Cancellation);
 
         Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
-        var run = await GetAsync<RunSummary>(client, $"/runs/{created.RunId}");
+        var run = await GetAsync<RunSummary>(client, $"/eval/runs/{created.RunId}");
         Assert.Equal(RunStatus.Cancelled, run.Status);
         Assert.True(run.CancelRequested);
     }
@@ -627,7 +630,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         var agent = await NewAgentAsync(fake.Url.AbsoluteUri);
         var created = await StartAsync(client, new RunRequest { Agent = agent.Name });
 
-        var results = await GetAsync<RunResults>(client, $"/runs/{created.RunId}/results");
+        var results = await GetAsync<RunResults>(client, $"/eval/runs/{created.RunId}/results");
 
         Assert.Equal(RunStatus.Queued, results.Run.Status);
         Assert.Empty(results.Scenarios);
@@ -648,7 +651,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
             .Services.GetRequiredService<RunExecutor>()
             .ExecuteAsync(run ?? throw new InvalidOperationException("not queued"), Cancellation);
 
-        var summary = await GetAsync<RunSummary>(client, $"/runs/{created.RunId}");
+        var summary = await GetAsync<RunSummary>(client, $"/eval/runs/{created.RunId}");
         Assert.Equal(
             (RunStatus.Done, 1, 1, 2, 0, false),
             (
@@ -660,7 +663,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
                 summary.ContractChangedDuringRun
             )
         );
-        var results = await GetAsync<RunResults>(client, $"/runs/{created.RunId}/results");
+        var results = await GetAsync<RunResults>(client, $"/eval/runs/{created.RunId}/results");
         var scenario = Assert.Single(results.Scenarios);
         Assert.Equal("refund", scenario.Key);
         Assert.Equal(6, scenario.Samples[0].Output?.Count);
@@ -692,7 +695,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
             .Services.GetRequiredService<RunExecutor>()
             .ExecuteAsync(claimed ?? throw new InvalidOperationException("not queued"), Cancellation);
 
-        var points = await GetAsync<List<RunPassRates>>(client, $"/agents/{agent.Name}/pass-rates");
+        var points = await GetAsync<List<RunPassRates>>(client, $"/eval/agents/{agent.Name}/pass-rates");
 
         var point = Assert.Single(points);
         Assert.Equal((queued.RunId, agent.VersionId, 1.0), (point.RunId, point.AgentVersionId, point.PassRate));
@@ -704,7 +707,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         Assert.NotEqual(done.RunId, point.RunId);
         Assert.Equal(
             HttpStatusCode.NotFound,
-            (await client.GetAsync(new Uri("/agents/no-such-agent/pass-rates", UriKind.Relative), Cancellation)).StatusCode
+            (await client.GetAsync(new Uri("/eval/agents/no-such-agent/pass-rates", UriKind.Relative), Cancellation)).StatusCode
         );
     }
 

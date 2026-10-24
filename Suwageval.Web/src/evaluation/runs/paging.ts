@@ -22,5 +22,5 @@ export function runsPath(
     if (group !== null) query.set("group", group);
     if (grouping !== null) query.set("grouping", grouping);
     for (const tag of tags) query.append("tag", tag);
-    return `/runs?${query.toString()}`;
+    return `/eval/runs?${query.toString()}`;
 }

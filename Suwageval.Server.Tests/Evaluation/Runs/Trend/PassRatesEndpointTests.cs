@@ -137,7 +137,7 @@ public sealed class PassRatesEndpointTests(TestDatabase database) : IAsyncDispos
 
         var points = await Client()
             .GetFromJsonAsync<List<RunPassRates>>(
-                new Uri($"/agents/{agent.Name}/pass-rates", UriKind.Relative),
+                new Uri($"/eval/agents/{agent.Name}/pass-rates", UriKind.Relative),
                 ContractJson.Options,
                 Cancellation
             );

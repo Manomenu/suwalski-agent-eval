@@ -45,7 +45,7 @@ public sealed class NoteCommandTests
         Assert.Equal($"Set the note of run {RunId}.{Environment.NewLine}https://eval.example/runs/{RunId}{Environment.NewLine}", output);
         Assert.Empty(error);
         var request = Assert.Single(api.Requests);
-        Assert.Equal($"PUT /runs/{RunId}/note", request[..request.IndexOf(' ', 4)]);
+        Assert.Equal($"PUT /eval/runs/{RunId}/note", request[..request.IndexOf(' ', 4)]);
         Assert.Equal(
             "rebuilt the index",
             JsonDocument.Parse(request[request.IndexOf('{', StringComparison.Ordinal)..]).RootElement.GetProperty("note").GetString()
@@ -119,7 +119,7 @@ public sealed class NoteCommandTests
             output
         );
         var request = Assert.Single(api.Requests);
-        Assert.StartsWith("PUT /agents/example-agent/run-groups/sweep-1/note ", request, StringComparison.Ordinal);
+        Assert.StartsWith("PUT /eval/agents/example-agent/run-groups/sweep-1/note ", request, StringComparison.Ordinal);
         Assert.EndsWith( /*lang=json,strict*/
             "{\"note\":\"three models\"}",
             request,

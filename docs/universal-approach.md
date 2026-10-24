@@ -65,7 +65,7 @@ contract therefore requires `context.retrieval`.
 ### `context.fixturesSchema`
 
 The schema says that the agent accepts scenario fixtures (below), and what shape it expects. It
-is declared in the contract, like event types, so that `validate` and the 409 at `POST /runs`
+is declared in the contract, like event types, so that `validate` and the 409 at `POST /eval/runs`
 can refuse a scenario with fixtures for an agent that would silently ignore them. It is **not
 validated** against yet, just like `dataSchema` of events. JSON Schema validation needs a package
 and stays in TODO.md "Later".

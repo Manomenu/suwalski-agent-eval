@@ -213,7 +213,7 @@ public sealed class CompareCommandTests
         Assert.Equal(0, exit);
         Assert.Empty(error);
         Assert.Empty(opened);
-        Assert.Equal([$"/runs/compare?runs={First}&runs={Second}"], api.PathsAndQueries);
+        Assert.Equal([$"/eval/runs/compare?runs={First}&runs={Second}"], api.PathsAndQueries);
         Assert.Contains("comparison of example-agent (group sweep-1), 2 runs", output, StringComparison.Ordinal);
         Assert.Contains("B  relabelled  models", output, StringComparison.Ordinal);
         Assert.Contains(
@@ -236,7 +236,7 @@ public sealed class CompareCommandTests
         var (exit, output, _, api, _) = Print(First.ToString(), Second.ToString(), "--baseline", First.ToString());
 
         Assert.Equal(0, exit);
-        Assert.Equal([$"/runs/compare?runs={First}&runs={Second}&baseline={First}"], api.PathsAndQueries);
+        Assert.Equal([$"/eval/runs/compare?runs={First}&runs={Second}&baseline={First}"], api.PathsAndQueries);
         Assert.Contains("A baseline  gpt-4o  models", output, StringComparison.Ordinal);
         Assert.Contains("A baseline  judge judge-a  pass 50%", output, StringComparison.Ordinal);
         Assert.Contains("B  judge judge-b (judge differs from baseline)  pass 75%", output, StringComparison.Ordinal);
@@ -259,7 +259,7 @@ public sealed class CompareCommandTests
         var (exit, output, _, api, _) = Print("--group", "sweep-1", "--baseline", First.ToString());
 
         Assert.Equal(0, exit);
-        Assert.Equal([$"/runs/compare?group=sweep-1&agent=example-agent&baseline={First}"], api.PathsAndQueries);
+        Assert.Equal([$"/eval/runs/compare?group=sweep-1&agent=example-agent&baseline={First}"], api.PathsAndQueries);
         Assert.Contains("comparison of example-agent (group sweep-1)", output, StringComparison.Ordinal);
         Assert.Contains("against the baseline:", output, StringComparison.Ordinal);
     }
@@ -330,7 +330,7 @@ public sealed class CompareCommandTests
         Assert.Equal($"{page}{Environment.NewLine}", output);
         Assert.Empty(error);
         Assert.Equal([page], opened);
-        Assert.Equal([$"/runs/compare?runs={Second}&runs={First}&baseline={First}"], api.PathsAndQueries);
+        Assert.Equal([$"/eval/runs/compare?runs={Second}&runs={First}&baseline={First}"], api.PathsAndQueries);
     }
 
     [Fact]

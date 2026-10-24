@@ -59,7 +59,7 @@ public sealed class AgentErrorsCommandTests
 
         Assert.Equal(0, exit);
         Assert.Empty(error);
-        Assert.Equal(["/agents/example-agent/agent-errors"], paths);
+        Assert.Equal(["/eval/agents/example-agent/agent-errors"], paths);
         Assert.Equal($"refund  3/12  version {Version} (v2)  HTTP 500 Internal Server Error", output.Trim());
     }
 
@@ -69,7 +69,7 @@ public sealed class AgentErrorsCommandTests
         var (exit, _, _, paths) = AgentErrors(Found, "--version", Version.ToString());
 
         Assert.Equal(0, exit);
-        Assert.Equal([$"/agents/example-agent/agent-errors?version={Version}"], paths);
+        Assert.Equal([$"/eval/agents/example-agent/agent-errors?version={Version}"], paths);
     }
 
     [Fact]

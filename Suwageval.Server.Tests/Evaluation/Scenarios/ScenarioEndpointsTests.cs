@@ -22,7 +22,7 @@ public sealed class ScenarioEndpointsTests(TestDatabase database) : IAsyncDispos
 
     private async Task<PutScenariosResponse> Put(string agent, params ScenarioInput[] scenarios)
     {
-        var response = await server.Put($"/agents/{agent}/scenarios", new PutScenariosRequest(scenarios));
+        var response = await server.Put($"/eval/agents/{agent}/scenarios", new PutScenariosRequest(scenarios));
         response.EnsureSuccessStatusCode();
         return await TestServer.Read<PutScenariosResponse>(response);
     }
@@ -72,7 +72,7 @@ public sealed class ScenarioEndpointsTests(TestDatabase database) : IAsyncDispos
         Assert.Equal(UpsertOutcome.Updated, withFixtures.Results[0].Outcome);
         Assert.Equal(UpsertOutcome.Unchanged, again.Results[0].Outcome);
         Assert.Equal(UpsertOutcome.Updated, changed.Results[0].Outcome);
-        var detail = await TestServer.Read<ScenarioDetail>(await server.Get($"/agents/{agent}/scenarios/a"));
+        var detail = await TestServer.Read<ScenarioDetail>(await server.Get($"/eval/agents/{agent}/scenarios/a"));
         Assert.Equal( /*lang=json,strict*/
             """{"pinned":["faq"]}""",
             detail.Scenario.Fixtures?.GetRawText()
@@ -85,7 +85,9 @@ public sealed class ScenarioEndpointsTests(TestDatabase database) : IAsyncDispos
         var agent = await server.NewAgent();
         await Put(agent, Scenario("a"));
 
-        var revision = Assert.Single(await TestServer.Read<ScenarioRevision[]>(await server.Get($"/agents/{agent}/scenarios/a/revisions")));
+        var revision = Assert.Single(
+            await TestServer.Read<ScenarioRevision[]>(await server.Get($"/eval/agents/{agent}/scenarios/a/revisions"))
+        );
 
         Assert.Null(revision.Scenario.Fixtures);
         Assert.Equal(UpsertOutcome.Unchanged, (await Put(agent, Scenario("a"))).Results[0].Outcome);
@@ -96,7 +98,7 @@ public sealed class ScenarioEndpointsTests(TestDatabase database) : IAsyncDispos
     {
         var agent = await server.NewAgent();
 
-        var response = await server.Put($"/agents/{agent}/scenarios", new PutScenariosRequest([Scenario("a")]));
+        var response = await server.Put($"/eval/agents/{agent}/scenarios", new PutScenariosRequest([Scenario("a")]));
 
         Assert.Contains("\"outcome\":\"created\"", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
     }
@@ -108,8 +110,8 @@ public sealed class ScenarioEndpointsTests(TestDatabase database) : IAsyncDispos
         await Put(agent, Scenario("a", "one", "x"));
         await Put(agent, Scenario("a", "two", "x"));
 
-        var detail = await TestServer.Read<ScenarioDetail>(await server.Get($"/agents/{agent}/scenarios/a"));
-        var revisions = await TestServer.Read<ScenarioRevision[]>(await server.Get($"/agents/{agent}/scenarios/a/revisions"));
+        var detail = await TestServer.Read<ScenarioDetail>(await server.Get($"/eval/agents/{agent}/scenarios/a"));
+        var revisions = await TestServer.Read<ScenarioRevision[]>(await server.Get($"/eval/agents/{agent}/scenarios/a/revisions"));
 
         Assert.Equal(2, detail.Revision);
         Assert.Equal(["x"], detail.Scenario.Tags);
@@ -125,8 +127,8 @@ public sealed class ScenarioEndpointsTests(TestDatabase database) : IAsyncDispos
         var agent = await server.NewAgent();
         await Put(agent, Scenario("a", "Hello", "regression"), Scenario("b"));
 
-        var all = await TestServer.Read<ScenarioSummary[]>(await server.Get($"/agents/{agent}/scenarios"));
-        var tagged = await TestServer.Read<ScenarioSummary[]>(await server.Get($"/agents/{agent}/scenarios?tag=regression"));
+        var all = await TestServer.Read<ScenarioSummary[]>(await server.Get($"/eval/agents/{agent}/scenarios"));
+        var tagged = await TestServer.Read<ScenarioSummary[]>(await server.Get($"/eval/agents/{agent}/scenarios?tag=regression"));
 
         Assert.Equal(["a", "b"], all.Select(scenario => scenario.Key));
         Assert.Equal(["a"], tagged.Select(scenario => scenario.Key));
@@ -138,9 +140,9 @@ public sealed class ScenarioEndpointsTests(TestDatabase database) : IAsyncDispos
         var agent = await server.NewAgent();
         await Put(agent, Scenario("a"));
 
-        var first = await server.Delete($"/agents/{agent}/scenarios/a");
-        var second = await server.Delete($"/agents/{agent}/scenarios/a");
-        var read = await server.Get($"/agents/{agent}/scenarios/a");
+        var first = await server.Delete($"/eval/agents/{agent}/scenarios/a");
+        var second = await server.Delete($"/eval/agents/{agent}/scenarios/a");
+        var read = await server.Get($"/eval/agents/{agent}/scenarios/a");
 
         Assert.Equal(HttpStatusCode.NoContent, first.StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, second.StatusCode);
@@ -152,11 +154,11 @@ public sealed class ScenarioEndpointsTests(TestDatabase database) : IAsyncDispos
     {
         var agent = await server.NewAgent();
 
-        Assert.Equal(HttpStatusCode.NotFound, (await server.Get($"/agents/{agent}/scenarios/none")).StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, (await server.Get($"/agents/{agent}/scenarios/none/revisions")).StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, (await server.Get("/agents/none/scenarios")).StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, (await server.Put("/agents/none/scenarios", new PutScenariosRequest([]))).StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, (await server.Get("/agents/none/tags")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await server.Get($"/eval/agents/{agent}/scenarios/none")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await server.Get($"/eval/agents/{agent}/scenarios/none/revisions")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await server.Get("/eval/agents/none/scenarios")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await server.Put("/eval/agents/none/scenarios", new PutScenariosRequest([]))).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await server.Get("/eval/agents/none/tags")).StatusCode);
     }
 
     [Fact]
@@ -166,7 +168,7 @@ public sealed class ScenarioEndpointsTests(TestDatabase database) : IAsyncDispos
         var broken = Scenario("Not Kebab", "Hello", "Bad Tag") with { Samples = 0, Conversation = [] };
 
         var response = await server.Put(
-            $"/agents/{agent}/scenarios",
+            $"/eval/agents/{agent}/scenarios",
             new PutScenariosRequest([Scenario("fine"), broken, Scenario("fine")])
         );
 
@@ -175,7 +177,7 @@ public sealed class ScenarioEndpointsTests(TestDatabase database) : IAsyncDispos
             ["scenarios[1].key", "scenarios[1].tags[0]", "scenarios[1].samples", "scenarios[1].conversation", "scenarios[2].key"],
             await TestServer.ErrorFields(response)
         );
-        Assert.Empty(await TestServer.Read<ScenarioSummary[]>(await server.Get($"/agents/{agent}/scenarios")));
+        Assert.Empty(await TestServer.Read<ScenarioSummary[]>(await server.Get($"/eval/agents/{agent}/scenarios")));
     }
 
     [Fact]
@@ -184,10 +186,10 @@ public sealed class ScenarioEndpointsTests(TestDatabase database) : IAsyncDispos
         var agent = await server.NewAgent();
         await Put(agent, Scenario("a", "Hello", "old"), Scenario("b", "Hello", "old", "keep"));
 
-        var response = await server.Post($"/agents/{agent}/scenarios/tags", new TagChangeRequest(["a", "b"], ["new"], ["old"]));
+        var response = await server.Post($"/eval/agents/{agent}/scenarios/tags", new TagChangeRequest(["a", "b"], ["new"], ["old"]));
         var changed = await TestServer.Read<TagChangeResponse>(response);
-        var tags = await TestServer.Read<TagUsage[]>(await server.Get($"/agents/{agent}/tags"));
-        var detail = await TestServer.Read<ScenarioDetail>(await server.Get($"/agents/{agent}/scenarios/a"));
+        var tags = await TestServer.Read<TagUsage[]>(await server.Get($"/eval/agents/{agent}/tags"));
+        var detail = await TestServer.Read<ScenarioDetail>(await server.Get($"/eval/agents/{agent}/scenarios/a"));
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal(["a", "b"], changed.Scenarios.Select(scenario => scenario.Key));
@@ -203,11 +205,11 @@ public sealed class ScenarioEndpointsTests(TestDatabase database) : IAsyncDispos
         var agent = await server.NewAgent();
         await Put(agent, Scenario("a"));
 
-        var response = await server.Post($"/agents/{agent}/scenarios/tags", new TagChangeRequest(["a", "ghost"], ["new"], []));
+        var response = await server.Post($"/eval/agents/{agent}/scenarios/tags", new TagChangeRequest(["a", "ghost"], ["new"], []));
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
         Assert.Contains("ghost", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
-        Assert.Empty(await TestServer.Read<TagUsage[]>(await server.Get($"/agents/{agent}/tags")));
+        Assert.Empty(await TestServer.Read<TagUsage[]>(await server.Get($"/eval/agents/{agent}/tags")));
     }
 
     [Fact]
@@ -215,7 +217,7 @@ public sealed class ScenarioEndpointsTests(TestDatabase database) : IAsyncDispos
     {
         var agent = await server.NewAgent();
 
-        var response = await server.Post($"/agents/{agent}/scenarios/tags", new TagChangeRequest(["a"], ["Bad Tag"], ["Also Bad"]));
+        var response = await server.Post($"/eval/agents/{agent}/scenarios/tags", new TagChangeRequest(["a"], ["Bad Tag"], ["Also Bad"]));
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
         Assert.Equal(["add[0]", "remove[0]"], await TestServer.ErrorFields(response));

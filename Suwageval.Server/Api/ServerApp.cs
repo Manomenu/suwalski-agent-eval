@@ -68,17 +68,26 @@ internal static class ServerApp
         // Touches nothing outside the process, so it doubles as the cluster's liveness probe.
         app.MapGet("/health", () => new Health("ok"));
 
-        // Features map their routes here: app.MapScenarios() — and get a layer in ContractsTests.cs.
+        // Features map their routes here: app.MapAgents(), the Evaluation area's in MapEvaluation — and get a layer in ContractsTests.cs.
         app.MapAgents();
         app.MapVersions();
-        app.MapScenarios();
-        app.MapChecks();
-        app.MapRuns();
-        app.MapCompare();
-        app.MapRunGroups();
-        app.MapTrend();
-        app.MapUnstable();
-        app.MapAgentErrors();
+        MapEvaluation(app.MapGroup("/eval"));
+        // The evaluation's addresses before /eval, for a CLI installed before it: out of the OpenAPI document, so nothing
+        // new is built on them, and removed on epic/monitoring-tab with its other breaking changes.
+        MapEvaluation(app.MapGroup("").ExcludeFromDescription());
         return app;
+    }
+
+    /// <summary>The routes of the Evaluation area, under the prefix the group gives them.</summary>
+    private static void MapEvaluation(IEndpointRouteBuilder evaluation)
+    {
+        evaluation.MapScenarios();
+        evaluation.MapChecks();
+        evaluation.MapRuns();
+        evaluation.MapCompare();
+        evaluation.MapRunGroups();
+        evaluation.MapTrend();
+        evaluation.MapUnstable();
+        evaluation.MapAgentErrors();
     }
 }

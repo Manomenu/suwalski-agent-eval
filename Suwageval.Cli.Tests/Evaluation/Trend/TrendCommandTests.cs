@@ -71,7 +71,7 @@ public sealed class TrendCommandTests
         var (exit, output, paths) = Trend(Points);
 
         Assert.Equal(0, exit);
-        Assert.Equal(["/agents/example-agent/pass-rates"], paths);
+        Assert.Equal(["/eval/agents/example-agent/pass-rates"], paths);
         var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
         Assert.Equal(2, lines.Length);
         Assert.Equal(

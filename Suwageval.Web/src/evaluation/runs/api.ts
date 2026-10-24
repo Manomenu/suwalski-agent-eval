@@ -32,35 +32,35 @@ export function fetchRuns(
 }
 
 export function fetchRunResults(runId: string, signal: AbortSignal): Promise<RunResults> {
-    return request<RunResults>(`/runs/${runId}/results`, { signal });
+    return request<RunResults>(`/eval/runs/${runId}/results`, { signal });
 }
 
 /** The small summary of a run: what the page polls while the run goes on, instead of the full results. */
 export function fetchRunSummary(runId: string, signal: AbortSignal): Promise<RunSummary> {
-    return request<RunSummary>(`/runs/${runId}`, { signal });
+    return request<RunSummary>(`/eval/runs/${runId}`, { signal });
 }
 
 /** Asks the server to stop the run: a queued one is cancelled at once, a running one when its samples in flight are done. */
 export function cancelRun(runId: string): Promise<void> {
-    return request<undefined>(`/runs/${runId}/cancel`, { method: "POST" }).then(() => undefined);
+    return request<undefined>(`/eval/runs/${runId}/cancel`, { method: "POST" }).then(() => undefined);
 }
 
 /** Sets the note of the run (why it was started); none or blank clears it. Any status. */
 export function setRunNote(runId: string, note: string | null): Promise<void> {
-    return request<undefined>(`/runs/${runId}/note`, { method: "PUT", body: JSON.stringify({ note }) }).then(() => undefined);
+    return request<undefined>(`/eval/runs/${runId}/note`, { method: "PUT", body: JSON.stringify({ note }) }).then(() => undefined);
 }
 
 /** A new run with the agent, tag and endpoint of this one, against the version the agent serves now. */
 export function rerun(runId: string): Promise<RunCreated> {
-    return request<RunCreated>(`/runs/${runId}/rerun`, { method: "POST" });
+    return request<RunCreated>(`/eval/runs/${runId}/rerun`, { method: "POST" });
 }
 
 /** What a re-check of the run would do and whether it can start; nothing is started. */
 export function fetchRecheckPlan(runId: string, signal: AbortSignal): Promise<RecheckPlan> {
-    return request<RecheckPlan>(`/runs/${runId}/recheck`, { signal });
+    return request<RecheckPlan>(`/eval/runs/${runId}/recheck`, { signal });
 }
 
 /** A new run that judges this run's stored answers again with the current checks; the agent is not called. */
 export function recheck(runId: string): Promise<RunCreated> {
-    return request<RunCreated>(`/runs/${runId}/recheck`, { method: "POST" });
+    return request<RunCreated>(`/eval/runs/${runId}/recheck`, { method: "POST" });
 }

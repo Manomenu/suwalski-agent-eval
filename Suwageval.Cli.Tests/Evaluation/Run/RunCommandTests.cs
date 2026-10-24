@@ -122,7 +122,7 @@ public sealed class RunCommandTests
     private static HttpResponseMessage Server(HttpRequestMessage request, RunSummary state, RunResults results) =>
         (request.Method.Method, request.RequestUri?.AbsolutePath) switch
         {
-            ("POST", "/runs") => Json(
+            ("POST", "/eval/runs") => Json(
                 new RunCreated
                 {
                     RunId = RunId,
@@ -131,8 +131,8 @@ public sealed class RunCommandTests
                 },
                 HttpStatusCode.Accepted
             ),
-            ("GET", var path) when path == $"/runs/{RunId}" => Json(state),
-            ("GET", var path) when path == $"/runs/{RunId}/results" => Json(results),
+            ("GET", var path) when path == $"/eval/runs/{RunId}" => Json(state),
+            ("GET", var path) when path == $"/eval/runs/{RunId}/results" => Json(results),
             _ => new HttpResponseMessage(HttpStatusCode.NotFound),
         };
 
@@ -508,7 +508,7 @@ public sealed class RunCommandTests
         Assert.Equal($"version {VersionId}: new{Environment.NewLine}{RunId}{Environment.NewLine}", output);
         Assert.Empty(error);
         var (method, path, body) = Assert.Single(server.Requests);
-        Assert.Equal(("POST", "/runs"), (method, path));
+        Assert.Equal(("POST", "/eval/runs"), (method, path));
         using var sent = JsonDocument.Parse(body ?? "");
         Assert.Equal("example-agent", sent.RootElement.GetProperty("agent").GetString());
         Assert.Equal(["regression", "smoke"], sent.RootElement.GetProperty("tags").EnumerateArray().Select(tag => tag.GetString()));
@@ -585,7 +585,7 @@ public sealed class RunCommandTests
             $"version {VersionId}: new{Environment.NewLine}1 of 1 checks passed.{Environment.NewLine}http://localhost:3230/runs/{RunId}{Environment.NewLine}",
             output
         );
-        Assert.Contains(("GET", $"/runs/{RunId}/results", null), server.Requests);
+        Assert.Contains(("GET", $"/eval/runs/{RunId}/results", null), server.Requests);
     }
 
     [Fact]
@@ -834,7 +834,7 @@ public sealed class RunCommandTests
                 {
                     interrupt.Cancel();
                 }
-                return request.RequestUri?.AbsolutePath == $"/runs/{RunId}/cancel"
+                return request.RequestUri?.AbsolutePath == $"/eval/runs/{RunId}/cancel"
                     ? new HttpResponseMessage(HttpStatusCode.Accepted)
                     : Server(request, Summary(RunStatus.Running), Results(RunStatus.Running));
             }
@@ -855,7 +855,7 @@ public sealed class RunCommandTests
     }
 
     private static bool AskedToCancel(FakeServer server) =>
-        server.Requests.Any(request => request == ("POST", $"/runs/{RunId}/cancel", null));
+        server.Requests.Any(request => request == ("POST", $"/eval/runs/{RunId}/cancel", null));
 
     [Fact]
     public void Ctrl_c_while_waiting_cancels_the_run_when_the_person_says_yes()

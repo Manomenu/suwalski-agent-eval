@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Suwageval.AgentSdk.Agents;
 using Suwageval.Contracts.Runs;
 using Suwageval.Server.Agents;
 using Suwageval.Server.Evaluation.Checks;
@@ -17,7 +18,13 @@ internal static class RunHistory
     {
         var registration = await services
             .GetRequiredService<AgentStore>()
-            .RegisterVersionAsync(agent.Id, ContractContent.Json(SeededAgent.ExampleVersionConfigured(prompt)), null, null, Cancellation);
+            .RegisterVersionAsync(
+                agent.Id,
+                AgentContractHash.Content(SeededAgent.ExampleVersionConfigured(prompt)),
+                null,
+                null,
+                Cancellation
+            );
         return registration.Version.Id;
     }
 

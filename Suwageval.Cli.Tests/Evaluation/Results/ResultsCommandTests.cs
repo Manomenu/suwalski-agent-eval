@@ -90,8 +90,8 @@ public sealed class ResultsCommandTests
         return request =>
             request.RequestUri?.AbsolutePath switch
             {
-                var path when path == $"/runs/{RunId}" => Json(Summary(asks++ == 0 ? RunStatus.Running : RunStatus.Done)),
-                var path when path == $"/runs/{RunId}/results" => Json(Failing(RunStatus.Done)),
+                var path when path == $"/eval/runs/{RunId}" => Json(Summary(asks++ == 0 ? RunStatus.Running : RunStatus.Done)),
+                var path when path == $"/eval/runs/{RunId}/results" => Json(Failing(RunStatus.Done)),
                 _ => new HttpResponseMessage(HttpStatusCode.NotFound),
             };
     }
@@ -171,7 +171,7 @@ public sealed class ResultsCommandTests
         var (exit, output, _, api, opened) = Results(Api(), RunId.ToString(), "--json");
 
         Assert.Equal(1, exit);
-        Assert.Equal(2, api.Paths.Count(path => path == $"/runs/{RunId}"));
+        Assert.Equal(2, api.Paths.Count(path => path == $"/eval/runs/{RunId}"));
         var printed = JsonSerializer.Deserialize<RunResults>(output, ContractJson.Options);
         Assert.Equal("refund-called", printed?.Scenarios[0].Checks[0].Key);
         Assert.Empty(opened);
@@ -185,7 +185,7 @@ public sealed class ResultsCommandTests
         Assert.Equal(1, exit);
         Assert.Empty(error);
         Assert.Empty(opened);
-        Assert.Equal(2, api.Paths.Count(path => path == $"/runs/{RunId}"));
+        Assert.Equal(2, api.Paths.Count(path => path == $"/eval/runs/{RunId}"));
         Assert.Contains($"run {RunId}  done", output, StringComparison.Ordinal);
         Assert.Contains("tags -  branch -", output, StringComparison.Ordinal);
         Assert.Contains("1 of 1 checks failed.", output, StringComparison.Ordinal);
@@ -216,7 +216,7 @@ public sealed class ResultsCommandTests
             },
         };
         var (_, output, _, _, _) = Results(
-            request => request.RequestUri?.AbsolutePath == $"/runs/{RunId}" ? Json(Summary(RunStatus.Done)) : Json(withRegression),
+            request => request.RequestUri?.AbsolutePath == $"/eval/runs/{RunId}" ? Json(Summary(RunStatus.Done)) : Json(withRegression),
             RunId.ToString()
         );
 
@@ -298,7 +298,7 @@ public sealed class ResultsCommandTests
             ],
         };
         var (_, output, _, _, _) = Results(
-            request => request.RequestUri?.AbsolutePath == $"/runs/{RunId}" ? Json(Summary(RunStatus.Done)) : Json(mixed),
+            request => request.RequestUri?.AbsolutePath == $"/eval/runs/{RunId}" ? Json(Summary(RunStatus.Done)) : Json(mixed),
             RunId.ToString(),
             "--failed-only"
         );
@@ -324,7 +324,7 @@ public sealed class ResultsCommandTests
         var passing = Failing(RunStatus.Done) with { Scenarios = [Scenario("all-good", SampleStatus.Done, Check("fine", passed: true))] };
         HttpResponseMessage answer(HttpRequestMessage request)
         {
-            return request.RequestUri?.AbsolutePath == $"/runs/{RunId}" ? Json(Summary(RunStatus.Done)) : Json(passing);
+            return request.RequestUri?.AbsolutePath == $"/eval/runs/{RunId}" ? Json(Summary(RunStatus.Done)) : Json(passing);
         }
 
         Assert.DoesNotContain("left out", Results(answer, RunId.ToString()).Output, StringComparison.Ordinal);

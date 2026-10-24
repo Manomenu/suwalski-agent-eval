@@ -42,34 +42,34 @@ public sealed class EveryEndpointHasACliCommandTests(TestDatabase database) : IA
         ["GET /agents/{agent}/versions/{versionId}"] = Cli("versions show"),
         ["GET /agents/{agent}/versions/{versionId}/deletion"] = Cli("versions delete"),
         ["DELETE /agents/{agent}/versions/{versionId}"] = Cli("versions delete"),
-        ["PUT /agents/{agent}/scenarios"] = Cli("push"),
-        ["GET /agents/{agent}/scenarios"] = Cli("scenarios"),
-        ["GET /agents/{agent}/scenarios/{key}"] = Cli("scenario"),
-        ["GET /agents/{agent}/scenarios/{key}/revisions"] = Cli("scenario"),
-        ["DELETE /agents/{agent}/scenarios/{key}"] = NotForCli(NoFrontDoor),
-        ["POST /agents/{agent}/scenarios/tags"] = NotForCli(NoFrontDoor),
-        ["GET /agents/{agent}/tags"] = NotForCli(NoFrontDoor),
-        ["PUT /agents/{agent}/checks"] = Cli("push"),
-        ["GET /agents/{agent}/checks"] = Cli("scenarios"),
-        ["DELETE /agents/{agent}/checks/{key}"] = NotForCli(NoFrontDoor),
-        ["POST /runs"] = Cli("run"),
-        ["GET /runs"] = Cli("runs"),
-        ["GET /agents/{agent}/run-groups"] = Cli("runs"),
-        ["POST /agents/{agent}/run-groups/archive"] = Cli("groups archive"),
-        ["PUT /agents/{agent}/run-groups/{name}/note"] = Cli("note"),
-        ["GET /agents/{agent}/run-groups/{name}/deletion"] = Cli("groups delete"),
-        ["DELETE /agents/{agent}/run-groups/{name}"] = Cli("groups delete"),
-        ["GET /runs/compare"] = Cli("compare"),
-        ["GET /runs/{id}"] = Cli("results"),
-        ["GET /runs/{id}/results"] = Cli("results"),
-        ["POST /runs/{id}/rerun"] = Cli("rerun"),
-        ["GET /runs/{id}/recheck"] = Cli("recheck"),
-        ["POST /runs/{id}/recheck"] = Cli("recheck"),
-        ["POST /runs/{id}/cancel"] = Cli("cancel"),
-        ["PUT /runs/{id}/note"] = Cli("note"),
-        ["GET /agents/{agent}/pass-rates"] = Cli("trend"),
-        ["GET /agents/{agent}/unstable-checks"] = Cli("unstable"),
-        ["GET /agents/{agent}/agent-errors"] = Cli("agent-errors"),
+        ["PUT /eval/agents/{agent}/scenarios"] = Cli("push"),
+        ["GET /eval/agents/{agent}/scenarios"] = Cli("scenarios"),
+        ["GET /eval/agents/{agent}/scenarios/{key}"] = Cli("scenario"),
+        ["GET /eval/agents/{agent}/scenarios/{key}/revisions"] = Cli("scenario"),
+        ["DELETE /eval/agents/{agent}/scenarios/{key}"] = NotForCli(NoFrontDoor),
+        ["POST /eval/agents/{agent}/scenarios/tags"] = NotForCli(NoFrontDoor),
+        ["GET /eval/agents/{agent}/tags"] = NotForCli(NoFrontDoor),
+        ["PUT /eval/agents/{agent}/checks"] = Cli("push"),
+        ["GET /eval/agents/{agent}/checks"] = Cli("scenarios"),
+        ["DELETE /eval/agents/{agent}/checks/{key}"] = NotForCli(NoFrontDoor),
+        ["POST /eval/runs"] = Cli("run"),
+        ["GET /eval/runs"] = Cli("runs"),
+        ["GET /eval/agents/{agent}/run-groups"] = Cli("runs"),
+        ["POST /eval/agents/{agent}/run-groups/archive"] = Cli("groups archive"),
+        ["PUT /eval/agents/{agent}/run-groups/{name}/note"] = Cli("note"),
+        ["GET /eval/agents/{agent}/run-groups/{name}/deletion"] = Cli("groups delete"),
+        ["DELETE /eval/agents/{agent}/run-groups/{name}"] = Cli("groups delete"),
+        ["GET /eval/runs/compare"] = Cli("compare"),
+        ["GET /eval/runs/{id}"] = Cli("results"),
+        ["GET /eval/runs/{id}/results"] = Cli("results"),
+        ["POST /eval/runs/{id}/rerun"] = Cli("rerun"),
+        ["GET /eval/runs/{id}/recheck"] = Cli("recheck"),
+        ["POST /eval/runs/{id}/recheck"] = Cli("recheck"),
+        ["POST /eval/runs/{id}/cancel"] = Cli("cancel"),
+        ["PUT /eval/runs/{id}/note"] = Cli("note"),
+        ["GET /eval/agents/{agent}/pass-rates"] = Cli("trend"),
+        ["GET /eval/agents/{agent}/unstable-checks"] = Cli("unstable"),
+        ["GET /eval/agents/{agent}/agent-errors"] = Cli("agent-errors"),
     };
 
     public ValueTask DisposeAsync() => app.DisposeAsync();
@@ -101,10 +101,20 @@ public sealed class EveryEndpointHasACliCommandTests(TestDatabase database) : IA
             TimeSpan.FromSeconds(1)
         );
 
+    /// <summary>
+    /// The evaluation's address before <c>/eval</c> (ServerApp.MapEvaluation) is covered by the command of its <c>/eval</c> route:
+    /// both stay until epic/monitoring-tab removes the old ones.
+    /// </summary>
+    private static string UnderEval(string route)
+    {
+        var space = route.IndexOf(' ', StringComparison.Ordinal);
+        return $"{route[..space]} /eval{route[(space + 1)..]}";
+    }
+
     [Fact]
     public void Every_route_the_server_maps_is_covered_by_a_command_or_says_why_not()
     {
-        var missing = Mapped().Where(route => !Routes.ContainsKey(route)).ToList();
+        var missing = Mapped().Where(route => !Routes.ContainsKey(route) && !Routes.ContainsKey(UnderEval(route))).ToList();
 
         Assert.True(
             missing.Count == 0,

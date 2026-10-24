@@ -25,7 +25,7 @@ export type TagUsage = components["schemas"]["TagUsage"];
 
 /** The tags of the agent's scenarios, with how many scenarios carry each. */
 export function fetchTags(name: string, signal: AbortSignal): Promise<TagUsage[]> {
-    return request<TagUsage[]>(`${agentPath(name)}/tags`, { signal });
+    return request<TagUsage[]>(`/eval${agentPath(name)}/tags`, { signal });
 }
 
 export type AgentDeletion = components["schemas"]["AgentDeletion"];

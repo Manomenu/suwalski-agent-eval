@@ -71,7 +71,7 @@ test("on paper: no control, header or navbar, every sample open, the line at the
 
 test("a note is dark text on a light box on paper", async ({ page, request }) => {
     const note = "rebuilt the retrieval index";
-    expect((await request.put(`/api/runs/${runId}/note`, { data: { note } })).ok()).toBe(true);
+    expect((await request.put(`/api/eval/runs/${runId}/note`, { data: { note } })).ok()).toBe(true);
     await page.setViewportSize(PAPER);
     await page.goto(`/runs/${runId}`);
     await page.emulateMedia({ media: "print" });

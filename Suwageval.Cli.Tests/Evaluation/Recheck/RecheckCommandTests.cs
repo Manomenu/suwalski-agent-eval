@@ -80,8 +80,8 @@ public sealed class RecheckCommandTests
         request =>
             (request.Method.Method, request.RequestUri?.AbsolutePath) switch
             {
-                ("GET", var path) when path == $"/runs/{SourceId}/recheck" => Json(plan),
-                ("POST", var path) when path == $"/runs/{SourceId}/recheck" => Json(
+                ("GET", var path) when path == $"/eval/runs/{SourceId}/recheck" => Json(plan),
+                ("POST", var path) when path == $"/eval/runs/{SourceId}/recheck" => Json(
                     new RunCreated
                     {
                         RunId = NewId,
@@ -90,8 +90,8 @@ public sealed class RecheckCommandTests
                     },
                     HttpStatusCode.Accepted
                 ),
-                ("GET", var path) when path == $"/runs/{NewId}" => Json(Summary()),
-                ("GET", var path) when path == $"/runs/{NewId}/results" => Json(new RunResults { Run = Summary(), Scenarios = [] }),
+                ("GET", var path) when path == $"/eval/runs/{NewId}" => Json(Summary()),
+                ("GET", var path) when path == $"/eval/runs/{NewId}/results" => Json(new RunResults { Run = Summary(), Scenarios = [] }),
                 _ => new HttpResponseMessage(HttpStatusCode.NotFound),
             };
 
@@ -119,7 +119,7 @@ public sealed class RecheckCommandTests
         var plan = Server(Possible);
         var (exit, _, _, _) = Run(
             request =>
-                request.Method == HttpMethod.Get && request.RequestUri?.AbsolutePath == $"/runs/{NewId}/results"
+                request.Method == HttpMethod.Get && request.RequestUri?.AbsolutePath == $"/eval/runs/{NewId}/results"
                     ? Json(KnownFailureResults.Create(Summary()))
                     : plan(request),
             strict ? ["--wait", "--strict"] : ["--wait"]
@@ -136,7 +136,7 @@ public sealed class RecheckCommandTests
         Assert.Equal(0, exit);
         Assert.Contains("skipped scenario 'old': The scenario was deleted after the run.", output, StringComparison.Ordinal);
         Assert.EndsWith($"{NewId}{Environment.NewLine}", output, StringComparison.Ordinal);
-        Assert.Equal([("GET", $"/runs/{SourceId}/recheck"), ("POST", $"/runs/{SourceId}/recheck")], server.Requests);
+        Assert.Equal([("GET", $"/eval/runs/{SourceId}/recheck"), ("POST", $"/eval/runs/{SourceId}/recheck")], server.Requests);
     }
 
     [Fact]
@@ -157,7 +157,7 @@ public sealed class RecheckCommandTests
         Assert.Equal(0, exit);
         Assert.Contains("changed: refund / refund-called", output, StringComparison.Ordinal);
         Assert.Contains("skipped scenario 'old'", output, StringComparison.Ordinal);
-        Assert.Equal([("GET", $"/runs/{SourceId}/recheck")], server.Requests);
+        Assert.Equal([("GET", $"/eval/runs/{SourceId}/recheck")], server.Requests);
     }
 
     [Fact]

@@ -1,3 +1,4 @@
+using Suwageval.AgentSdk.Agents;
 using Suwageval.Server.Agents;
 using Suwageval.Server.Agents.Versions;
 using Suwageval.Server.Evaluation.Runs;
@@ -50,7 +51,7 @@ public sealed class VersionStoreTests(TestDatabase database)
             return (
                 await store.RegisterVersionAsync(
                     agent.Id,
-                    ContractContent.Json(AgentEndpointsTests.Version(model)),
+                    AgentContractHash.Content(AgentEndpointsTests.Version(model)),
                     null,
                     cancellationToken: Cancellation
                 )

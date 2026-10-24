@@ -60,7 +60,7 @@ public sealed class UnstableCommandTests
 
         Assert.Equal(0, exit);
         Assert.Empty(error);
-        Assert.Equal(["/agents/example-agent/unstable-checks"], paths);
+        Assert.Equal(["/eval/agents/example-agent/unstable-checks"], paths);
         Assert.Equal($"refund/says-sorry  7/9  version {Version} (v2)", output.Trim());
     }
 
@@ -72,7 +72,7 @@ public sealed class UnstableCommandTests
         var (exit, _, _, paths) = Unstable(Found, "--version", Version.ToString(), "--version", other.ToString());
 
         Assert.Equal(0, exit);
-        Assert.Equal([$"/agents/example-agent/unstable-checks?version={Version}&version={other}"], paths);
+        Assert.Equal([$"/eval/agents/example-agent/unstable-checks?version={Version}&version={other}"], paths);
     }
 
     [Fact]

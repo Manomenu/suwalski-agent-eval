@@ -21,7 +21,7 @@ test("Re-check shows what changed, starts only then, and leads to the page of th
         await expect(dialog).toBeHidden();
 
         const changed = { ...check, contains: "there" };
-        expect((await request.put(`/api/agents/${name}/checks`, { data: { checks: [changed] } })).ok()).toBe(true);
+        expect((await request.put(`/api/eval/agents/${name}/checks`, { data: { checks: [changed] } })).ok()).toBe(true);
         await page.getByRole("button", { name: "Re-check", exact: true }).click();
         await expect(dialog.getByText("says-hello", { exact: true })).toBeVisible();
         await expect(dialog.getByLabel("says-hello change", { exact: true })).toHaveText("Changed");

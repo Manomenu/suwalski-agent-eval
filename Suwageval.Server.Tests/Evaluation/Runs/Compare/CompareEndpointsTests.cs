@@ -113,7 +113,7 @@ public sealed class CompareEndpointsTests(TestDatabase database) : IAsyncDisposa
         var weak = await VariantAsync(agent, null, refundCalled: true, refundEvent: false);
         var strong = await VariantAsync(agent, null, refundCalled: true, refundEvent: true, onlyRefund: true);
 
-        var comparison = await TestServer.Read<RunComparison>(await GetAsync($"/runs/compare?runs={weak}&runs={strong}"));
+        var comparison = await TestServer.Read<RunComparison>(await GetAsync($"/eval/runs/compare?runs={weak}&runs={strong}"));
 
         Assert.Equal((agent.Name, null), (comparison.Agent, comparison.Group));
         Assert.Null(comparison.Baseline);
@@ -152,7 +152,9 @@ public sealed class CompareEndpointsTests(TestDatabase database) : IAsyncDisposa
             new Sample("plain", 1, 3000, ("plain-called", false, null))
         );
 
-        var comparison = await TestServer.Read<RunComparison>(await GetAsync($"/runs/compare?runs={second}&runs={first}&baseline={first}"));
+        var comparison = await TestServer.Read<RunComparison>(
+            await GetAsync($"/eval/runs/compare?runs={second}&runs={first}&baseline={first}")
+        );
 
         Assert.Equal([second, first], comparison.Runs.Select(run => run.Run.Id));
         var baseline = comparison.Baseline!;
@@ -190,9 +192,9 @@ public sealed class CompareEndpointsTests(TestDatabase database) : IAsyncDisposa
         var second = await VariantAsync(agent, "sweep-1", true, false);
         await VariantAsync(agent, "sweep-2", true, true);
 
-        var comparison = await TestServer.Read<RunComparison>(await GetAsync($"/runs/compare?group=sweep-1&agent={agent.Name}"));
+        var comparison = await TestServer.Read<RunComparison>(await GetAsync($"/eval/runs/compare?group=sweep-1&agent={agent.Name}"));
         await VariantAsync(other, "sweep-1", true, true);
-        var several = await GetAsync("/runs/compare?group=sweep-1");
+        var several = await GetAsync("/eval/runs/compare?group=sweep-1");
 
         Assert.Equal("sweep-1", comparison.Group);
         Assert.Equal([first, second], comparison.Runs.Select(run => run.Run.Id));
@@ -209,7 +211,7 @@ public sealed class CompareEndpointsTests(TestDatabase database) : IAsyncDisposa
         var second = await VariantAsync(agent, "sweep-1", true, false);
 
         var comparison = await TestServer.Read<RunComparison>(
-            await GetAsync($"/runs/compare?group=sweep-1&agent={agent.Name}&baseline={second}")
+            await GetAsync($"/eval/runs/compare?group=sweep-1&agent={agent.Name}&baseline={second}")
         );
 
         Assert.Equal([first, second], comparison.Runs.Select(run => run.Run.Id));
@@ -225,10 +227,10 @@ public sealed class CompareEndpointsTests(TestDatabase database) : IAsyncDisposa
         var two = await VariantAsync(agent, null, true, true);
         var outside = await VariantAsync(agent, null, true, true);
 
-        var notAmong = await GetAsync($"/runs/compare?runs={one}&runs={two}&baseline={outside}");
-        var alone = await GetAsync($"/runs/compare?runs={one}&baseline={one}");
-        var aloneOutside = await GetAsync($"/runs/compare?runs={one}&baseline={two}");
-        var fine = await GetAsync($"/runs/compare?runs={one}&runs={two}&baseline={two}");
+        var notAmong = await GetAsync($"/eval/runs/compare?runs={one}&runs={two}&baseline={outside}");
+        var alone = await GetAsync($"/eval/runs/compare?runs={one}&baseline={one}");
+        var aloneOutside = await GetAsync($"/eval/runs/compare?runs={one}&baseline={two}");
+        var fine = await GetAsync($"/eval/runs/compare?runs={one}&runs={two}&baseline={two}");
 
         Assert.Equal(["baseline"], await TestServer.ErrorFields(notAmong));
         Assert.Equal(["baseline"], await TestServer.ErrorFields(alone));
@@ -247,8 +249,8 @@ public sealed class CompareEndpointsTests(TestDatabase database) : IAsyncDisposa
             ids.Add(await VariantAsync(agent, null, true, true));
         }
 
-        var twenty = await GetAsync($"/runs/compare?{string.Join("&", ids.Select(id => $"runs={id}"))}&baseline={ids[7]}");
-        var tooMany = await GetAsync($"/runs/compare?{string.Join("&", ids.Select(id => $"runs={id}"))}&runs={Guid.NewGuid()}");
+        var twenty = await GetAsync($"/eval/runs/compare?{string.Join("&", ids.Select(id => $"runs={id}"))}&baseline={ids[7]}");
+        var tooMany = await GetAsync($"/eval/runs/compare?{string.Join("&", ids.Select(id => $"runs={id}"))}&runs={Guid.NewGuid()}");
 
         Assert.Equal(HttpStatusCode.OK, twenty.StatusCode);
         Assert.Equal(ids[7], (await TestServer.Read<RunComparison>(twenty)).Baseline!.RunId);
@@ -263,12 +265,12 @@ public sealed class CompareEndpointsTests(TestDatabase database) : IAsyncDisposa
         var one = await VariantAsync(agent, null, true, true);
         var foreign = await VariantAsync(other, null, true, true);
 
-        var differentAgents = await GetAsync($"/runs/compare?runs={one}&runs={foreign}");
-        var both = await GetAsync($"/runs/compare?runs={one}&group=sweep-1");
-        var neither = await GetAsync("/runs/compare");
-        var unknownRun = await GetAsync($"/runs/compare?runs={Guid.NewGuid()}");
-        var unknownGroup = await GetAsync($"/runs/compare?group=no-such-group&agent={agent.Name}");
-        var alone = await GetAsync($"/runs/compare?runs={one}");
+        var differentAgents = await GetAsync($"/eval/runs/compare?runs={one}&runs={foreign}");
+        var both = await GetAsync($"/eval/runs/compare?runs={one}&group=sweep-1");
+        var neither = await GetAsync("/eval/runs/compare");
+        var unknownRun = await GetAsync($"/eval/runs/compare?runs={Guid.NewGuid()}");
+        var unknownGroup = await GetAsync($"/eval/runs/compare?group=no-such-group&agent={agent.Name}");
+        var alone = await GetAsync($"/eval/runs/compare?runs={one}");
 
         Assert.Equal(["runs"], await TestServer.ErrorFields(differentAgents));
         Assert.Equal(HttpStatusCode.UnprocessableEntity, both.StatusCode);
@@ -290,9 +292,9 @@ public sealed class CompareEndpointsTests(TestDatabase database) : IAsyncDisposa
         );
         var plain = await RunAsync(agent, new Sample("plain", 1, 1, ("plain-called", true, null)));
 
-        var summary = await TestServer.Read<RunSummary>(await GetAsync($"/runs/{judged}"));
-        var none = await TestServer.Read<RunSummary>(await GetAsync($"/runs/{plain}"));
-        var listed = await TestServer.Read<RunList>(await GetAsync($"/runs?agent={agent.Name}"));
+        var summary = await TestServer.Read<RunSummary>(await GetAsync($"/eval/runs/{judged}"));
+        var none = await TestServer.Read<RunSummary>(await GetAsync($"/eval/runs/{plain}"));
+        var listed = await TestServer.Read<RunList>(await GetAsync($"/eval/runs?agent={agent.Name}"));
 
         Assert.Equal(["alpha", "zeta"], summary.JudgeModels);
         Assert.Empty(none.JudgeModels);

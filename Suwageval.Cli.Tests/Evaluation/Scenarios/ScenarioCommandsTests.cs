@@ -79,18 +79,18 @@ public sealed class ScenarioCommandsTests
             paths.Add(uri.PathAndQuery);
             object? body = uri.AbsolutePath switch
             {
-                "/agents/example-agent/scenarios" => new ScenarioSummary[]
+                "/eval/agents/example-agent/scenarios" => new ScenarioSummary[]
                 {
                     new("refund", ["smoke", "refunds"], 2, Created),
                     new("other-scenario", [], 1, Created),
                 },
-                "/agents/example-agent/scenarios/refund" => new ScenarioDetail(2, Created, Refund(["smoke"])),
-                "/agents/example-agent/scenarios/refund/revisions" => new ScenarioRevision[]
+                "/eval/agents/example-agent/scenarios/refund" => new ScenarioDetail(2, Created, Refund(["smoke"])),
+                "/eval/agents/example-agent/scenarios/refund/revisions" => new ScenarioRevision[]
                 {
                     new(1, "0123456789abcdef", Created.AddDays(-1), Refund([])),
                     new(2, "fedcba9876543210", Created, Refund([])),
                 },
-                "/agents/example-agent/checks" => uri.Query.Contains("scenario=refund", StringComparison.Ordinal)
+                "/eval/agents/example-agent/checks" => uri.Query.Contains("scenario=refund", StringComparison.Ordinal)
                     ? [.. Checks.Take(2)]
                     : Checks,
                 _ => null,
@@ -127,7 +127,7 @@ public sealed class ScenarioCommandsTests
         var (exit, output, _, paths) = Run("scenarios");
 
         Assert.Equal(0, exit);
-        Assert.Equal(["/agents/example-agent/scenarios", "/agents/example-agent/checks"], paths);
+        Assert.Equal(["/eval/agents/example-agent/scenarios", "/eval/agents/example-agent/checks"], paths);
         Assert.Equal(
             ["refund  revision 2  2 checks  tags: smoke, refunds", "other-scenario  revision 1  1 check  tags: -"],
             output.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
@@ -139,7 +139,7 @@ public sealed class ScenarioCommandsTests
     {
         var (_, _, _, paths) = Run("scenarios", "--tag", "smoke");
 
-        Assert.Equal("/agents/example-agent/scenarios?tag=smoke", paths[0]);
+        Assert.Equal("/eval/agents/example-agent/scenarios?tag=smoke", paths[0]);
     }
 
     [Fact]
@@ -161,7 +161,7 @@ public sealed class ScenarioCommandsTests
 
         Assert.Equal(0, exit);
         Assert.Empty(error);
-        Assert.Contains("/agents/example-agent/checks?scenario=refund", paths);
+        Assert.Contains("/eval/agents/example-agent/checks?scenario=refund", paths);
         var text = output.ReplaceLineEndings("\n").TrimEnd();
         Assert.StartsWith("refund  revision 2  tags: smoke\nsamples: 5  turns: 1\n", text, StringComparison.Ordinal);
         Assert.Contains("  user: I want my money back.\n    Order 42.\n", text, StringComparison.Ordinal);

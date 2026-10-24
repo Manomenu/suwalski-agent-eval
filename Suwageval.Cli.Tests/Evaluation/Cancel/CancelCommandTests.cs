@@ -49,9 +49,9 @@ public sealed class CancelCommandTests
 
     private static Func<HttpRequestMessage, HttpResponseMessage> Api(RunStatus status) =>
         request =>
-            request.Method == HttpMethod.Post && request.RequestUri?.AbsolutePath == $"/runs/{RunId}/cancel"
+            request.Method == HttpMethod.Post && request.RequestUri?.AbsolutePath == $"/eval/runs/{RunId}/cancel"
                 ? new HttpResponseMessage(HttpStatusCode.Accepted)
-            : request.RequestUri?.AbsolutePath == $"/runs/{RunId}" ? Summary(status)
+            : request.RequestUri?.AbsolutePath == $"/eval/runs/{RunId}" ? Summary(status)
             : new HttpResponseMessage(HttpStatusCode.NotFound);
 
     private static (int Exit, string Output, string Error, FakeApi Api) Cancel(
@@ -77,7 +77,7 @@ public sealed class CancelCommandTests
         Assert.Equal(0, exit);
         Assert.Equal($"Cancelling run {RunId}.{Environment.NewLine}https://eval.example/runs/{RunId}{Environment.NewLine}", output);
         Assert.Empty(error);
-        Assert.Contains($"POST /runs/{RunId}/cancel", api.Requests);
+        Assert.Contains($"POST /eval/runs/{RunId}/cancel", api.Requests);
     }
 
     [Theory]

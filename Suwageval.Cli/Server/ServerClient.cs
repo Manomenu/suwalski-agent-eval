@@ -34,7 +34,7 @@ internal sealed class ServerClient(HttpClient http)
         SendAsync<PutScenariosResponse>(
             () =>
                 http.PutAsJsonAsync(
-                    new Uri($"agents/{Uri.EscapeDataString(agent)}/scenarios", UriKind.Relative),
+                    new Uri($"eval/agents/{Uri.EscapeDataString(agent)}/scenarios", UriKind.Relative),
                     new PutScenariosRequest(scenarios),
                     ContractJson.Options,
                     cancellationToken
@@ -46,7 +46,7 @@ internal sealed class ServerClient(HttpClient http)
         SendAsync<PutChecksResponse>(
             () =>
                 http.PutAsJsonAsync(
-                    new Uri($"agents/{Uri.EscapeDataString(agent)}/checks", UriKind.Relative),
+                    new Uri($"eval/agents/{Uri.EscapeDataString(agent)}/checks", UriKind.Relative),
                     new PutChecksRequest(checks),
                     ContractJson.Options,
                     cancellationToken
@@ -56,7 +56,7 @@ internal sealed class ServerClient(HttpClient http)
 
     public Task<RunCreated> CreateAsync(RunRequest request, CancellationToken cancellationToken) =>
         SendAsync<RunCreated>(
-            () => http.PostAsJsonAsync(new Uri("runs", UriKind.Relative), request, ContractJson.Options, cancellationToken),
+            () => http.PostAsJsonAsync(new Uri("eval/runs", UriKind.Relative), request, ContractJson.Options, cancellationToken),
             cancellationToken
         );
 
@@ -65,7 +65,7 @@ internal sealed class ServerClient(HttpClient http)
         SendAsync<RunCreated>(
             () =>
                 http.PostAsJsonAsync(
-                    new Uri($"runs/{runId}/rerun", UriKind.Relative),
+                    new Uri($"eval/runs/{runId}/rerun", UriKind.Relative),
                     new RerunRequest
                     {
                         EndpointUrl = endpointUrl,
@@ -81,27 +81,27 @@ internal sealed class ServerClient(HttpClient http)
     /// <summary>What a re-check of run <paramref name="runId"/> would do and whether it can start.</summary>
     public Task<RecheckPlan> RecheckPlanAsync(Guid runId, CancellationToken cancellationToken) =>
         SendAsync<RecheckPlan>(
-            () => http.GetAsync(new Uri($"runs/{runId}/recheck", UriKind.Relative), cancellationToken),
+            () => http.GetAsync(new Uri($"eval/runs/{runId}/recheck", UriKind.Relative), cancellationToken),
             cancellationToken
         );
 
     /// <summary>Starts a re-check of run <paramref name="runId"/>: its stored answers judged again by the current checks.</summary>
     public Task<RunCreated> RecheckAsync(Guid runId, CancellationToken cancellationToken) =>
         SendAsync<RunCreated>(
-            () => http.PostAsync(new Uri($"runs/{runId}/recheck", UriKind.Relative), null, cancellationToken),
+            () => http.PostAsync(new Uri($"eval/runs/{runId}/recheck", UriKind.Relative), null, cancellationToken),
             cancellationToken
         );
 
     /// <summary>Asks the server to stop run <paramref name="runId"/>: it answers 202 for any known run, a finished one stays as it is.</summary>
     public Task CancelAsync(Guid runId, CancellationToken cancellationToken) =>
-        SendAsync(() => http.PostAsync(new Uri($"runs/{runId}/cancel", UriKind.Relative), null, cancellationToken), cancellationToken);
+        SendAsync(() => http.PostAsync(new Uri($"eval/runs/{runId}/cancel", UriKind.Relative), null, cancellationToken), cancellationToken);
 
     /// <summary>Sets the note of run <paramref name="runId"/>; none or blank clears it.</summary>
     public Task SetNoteAsync(Guid runId, string? note, CancellationToken cancellationToken) =>
         SendAsync(
             () =>
                 http.PutAsJsonAsync(
-                    new Uri($"runs/{runId}/note", UriKind.Relative),
+                    new Uri($"eval/runs/{runId}/note", UriKind.Relative),
                     new NoteRequest { Note = note },
                     ContractJson.Options,
                     cancellationToken
@@ -114,7 +114,7 @@ internal sealed class ServerClient(HttpClient http)
         SendAsync(
             () =>
                 http.PutAsJsonAsync(
-                    new Uri($"agents/{Uri.EscapeDataString(agent)}/run-groups/{Uri.EscapeDataString(group)}/note", UriKind.Relative),
+                    new Uri($"eval/agents/{Uri.EscapeDataString(agent)}/run-groups/{Uri.EscapeDataString(group)}/note", UriKind.Relative),
                     new NoteRequest { Note = note },
                     ContractJson.Options,
                     cancellationToken
@@ -123,7 +123,7 @@ internal sealed class ServerClient(HttpClient http)
         );
 
     public Task<RunSummary> GetAsync(Guid runId, CancellationToken cancellationToken) =>
-        SendAsync<RunSummary>(() => http.GetAsync(new Uri($"runs/{runId}", UriKind.Relative), cancellationToken), cancellationToken);
+        SendAsync<RunSummary>(() => http.GetAsync(new Uri($"eval/runs/{runId}", UriKind.Relative), cancellationToken), cancellationToken);
 
     /// <summary>
     /// The agent's newest runs, newest first, at most <paramref name="limit"/> of them (asked for in pages the server accepts); only those of
@@ -148,7 +148,7 @@ internal sealed class ServerClient(HttpClient http)
         var size = referenceOnly ? MaxPageSize : Math.Min(limit, MaxPageSize);
         for (var page = 1; runs.Count < limit; page++)
         {
-            var url = $"runs?agent={Uri.EscapeDataString(agent)}&page={page}&pageSize={size}";
+            var url = $"eval/runs?agent={Uri.EscapeDataString(agent)}&page={page}&pageSize={size}";
             foreach (var version in versions ?? [])
             {
                 url += $"&version={version}";
@@ -178,7 +178,7 @@ internal sealed class ServerClient(HttpClient http)
     /// <summary>The groups of the agent's runs, the one with the newest run first.</summary>
     public Task<IReadOnlyList<RunGroupSummary>> RunGroupsAsync(string agent, CancellationToken cancellationToken) =>
         SendAsync<IReadOnlyList<RunGroupSummary>>(
-            () => http.GetAsync(new Uri($"agents/{Uri.EscapeDataString(agent)}/run-groups", UriKind.Relative), cancellationToken),
+            () => http.GetAsync(new Uri($"eval/agents/{Uri.EscapeDataString(agent)}/run-groups", UriKind.Relative), cancellationToken),
             cancellationToken
         );
 
@@ -186,7 +186,7 @@ internal sealed class ServerClient(HttpClient http)
         SendAsync(
             () =>
                 http.PostAsJsonAsync(
-                    new Uri($"agents/{Uri.EscapeDataString(agent)}/run-groups/archive", UriKind.Relative),
+                    new Uri($"eval/agents/{Uri.EscapeDataString(agent)}/run-groups/archive", UriKind.Relative),
                     request,
                     ContractJson.Options,
                     cancellationToken
@@ -199,7 +199,10 @@ internal sealed class ServerClient(HttpClient http)
         SendAsync<RunGroupDeletion>(
             () =>
                 http.GetAsync(
-                    new Uri($"agents/{Uri.EscapeDataString(agent)}/run-groups/{Uri.EscapeDataString(group)}/deletion", UriKind.Relative),
+                    new Uri(
+                        $"eval/agents/{Uri.EscapeDataString(agent)}/run-groups/{Uri.EscapeDataString(group)}/deletion",
+                        UriKind.Relative
+                    ),
                     cancellationToken
                 ),
             cancellationToken
@@ -210,7 +213,7 @@ internal sealed class ServerClient(HttpClient http)
         SendAsync(
             () =>
                 http.DeleteAsync(
-                    new Uri($"agents/{Uri.EscapeDataString(agent)}/run-groups/{Uri.EscapeDataString(group)}", UriKind.Relative),
+                    new Uri($"eval/agents/{Uri.EscapeDataString(agent)}/run-groups/{Uri.EscapeDataString(group)}", UriKind.Relative),
                     cancellationToken
                 ),
             cancellationToken
@@ -232,7 +235,7 @@ internal sealed class ServerClient(HttpClient http)
             () =>
                 http.GetAsync(
                     new Uri(
-                        $"agents/{Uri.EscapeDataString(agent)}/scenarios{(tag is null ? "" : $"?tag={Uri.EscapeDataString(tag)}")}",
+                        $"eval/agents/{Uri.EscapeDataString(agent)}/scenarios{(tag is null ? "" : $"?tag={Uri.EscapeDataString(tag)}")}",
                         UriKind.Relative
                     ),
                     cancellationToken
@@ -244,7 +247,7 @@ internal sealed class ServerClient(HttpClient http)
         SendAsync<ScenarioDetail>(
             () =>
                 http.GetAsync(
-                    new Uri($"agents/{Uri.EscapeDataString(agent)}/scenarios/{Uri.EscapeDataString(key)}", UriKind.Relative),
+                    new Uri($"eval/agents/{Uri.EscapeDataString(agent)}/scenarios/{Uri.EscapeDataString(key)}", UriKind.Relative),
                     cancellationToken
                 ),
             cancellationToken
@@ -254,7 +257,7 @@ internal sealed class ServerClient(HttpClient http)
         SendAsync<IReadOnlyList<ScenarioRevision>>(
             () =>
                 http.GetAsync(
-                    new Uri($"agents/{Uri.EscapeDataString(agent)}/scenarios/{Uri.EscapeDataString(key)}/revisions", UriKind.Relative),
+                    new Uri($"eval/agents/{Uri.EscapeDataString(agent)}/scenarios/{Uri.EscapeDataString(key)}/revisions", UriKind.Relative),
                     cancellationToken
                 ),
             cancellationToken
@@ -266,7 +269,7 @@ internal sealed class ServerClient(HttpClient http)
             () =>
                 http.GetAsync(
                     new Uri(
-                        $"agents/{Uri.EscapeDataString(agent)}/checks{(scenario is null ? "" : $"?scenario={Uri.EscapeDataString(scenario)}")}",
+                        $"eval/agents/{Uri.EscapeDataString(agent)}/checks{(scenario is null ? "" : $"?scenario={Uri.EscapeDataString(scenario)}")}",
                         UriKind.Relative
                     ),
                     cancellationToken
@@ -277,7 +280,7 @@ internal sealed class ServerClient(HttpClient http)
     /// <summary>The points of the agent's trend: one per finished run, with its pass rate, turn times and rate per tag.</summary>
     public Task<IReadOnlyList<RunPassRates>> PassRatesAsync(string agent, CancellationToken cancellationToken) =>
         SendAsync<IReadOnlyList<RunPassRates>>(
-            () => http.GetAsync(new Uri($"agents/{Uri.EscapeDataString(agent)}/pass-rates", UriKind.Relative), cancellationToken),
+            () => http.GetAsync(new Uri($"eval/agents/{Uri.EscapeDataString(agent)}/pass-rates", UriKind.Relative), cancellationToken),
             cancellationToken
         );
 
@@ -293,7 +296,7 @@ internal sealed class ServerClient(HttpClient http)
         SendAsync<IReadOnlyList<UnstableCheck>>(
             () =>
                 http.GetAsync(
-                    new Uri($"agents/{Uri.EscapeDataString(agent)}/unstable-checks{VersionQuery(versions)}", UriKind.Relative),
+                    new Uri($"eval/agents/{Uri.EscapeDataString(agent)}/unstable-checks{VersionQuery(versions)}", UriKind.Relative),
                     cancellationToken
                 ),
             cancellationToken
@@ -311,7 +314,7 @@ internal sealed class ServerClient(HttpClient http)
         SendAsync<IReadOnlyList<AgentError>>(
             () =>
                 http.GetAsync(
-                    new Uri($"agents/{Uri.EscapeDataString(agent)}/agent-errors{VersionQuery(versions)}", UriKind.Relative),
+                    new Uri($"eval/agents/{Uri.EscapeDataString(agent)}/agent-errors{VersionQuery(versions)}", UriKind.Relative),
                     cancellationToken
                 ),
             cancellationToken
@@ -325,7 +328,7 @@ internal sealed class ServerClient(HttpClient http)
 
     public Task<RunResults> ResultsAsync(Guid runId, CancellationToken cancellationToken) =>
         SendAsync<RunResults>(
-            () => http.GetAsync(new Uri($"runs/{runId}/results", UriKind.Relative), cancellationToken),
+            () => http.GetAsync(new Uri($"eval/runs/{runId}/results", UriKind.Relative), cancellationToken),
             cancellationToken
         );
 
@@ -356,7 +359,7 @@ internal sealed class ServerClient(HttpClient http)
         return SendAsync<RunComparison>(
             () =>
                 http.GetAsync(
-                    new Uri($"runs/compare?{query}{(baseline is null ? "" : $"&baseline={baseline}")}", UriKind.Relative),
+                    new Uri($"eval/runs/compare?{query}{(baseline is null ? "" : $"&baseline={baseline}")}", UriKind.Relative),
                     cancellationToken
                 ),
             cancellationToken

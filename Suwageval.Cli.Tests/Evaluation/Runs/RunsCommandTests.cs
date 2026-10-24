@@ -91,7 +91,7 @@ public sealed class RunsCommandTests
 
         Assert.Equal(0, exit);
         Assert.Empty(error);
-        Assert.Equal(["/runs?agent=example-agent&page=1&pageSize=10&grouping=None"], paths);
+        Assert.Equal(["/eval/runs?agent=example-agent&page=1&pageSize=10&grouping=None"], paths);
         var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
         Assert.Equal(3, lines.Length);
         Assert.StartsWith("aaaaaaaa-0000-0000-0000-000000000003  Done  smoke", lines[0], StringComparison.Ordinal);
@@ -109,7 +109,7 @@ public sealed class RunsCommandTests
         var (exit, _, _, paths) = Runs("--version", first, "--version", second);
 
         Assert.Equal(0, exit);
-        Assert.Equal([$"/runs?agent=example-agent&page=1&pageSize=10&version={first}&version={second}&grouping=None"], paths);
+        Assert.Equal([$"/eval/runs?agent=example-agent&page=1&pageSize=10&version={first}&version={second}&grouping=None"], paths);
     }
 
     [Fact]
@@ -118,7 +118,7 @@ public sealed class RunsCommandTests
         var (exit, _, _, paths) = Runs("--tag", "smoke", "--tag", "billing", "--group", "sweep-1");
 
         Assert.Equal(0, exit);
-        Assert.Equal(["/runs?agent=example-agent&page=1&pageSize=10&group=sweep-1&tag=smoke&tag=billing"], paths);
+        Assert.Equal(["/eval/runs?agent=example-agent&page=1&pageSize=10&group=sweep-1&tag=smoke&tag=billing"], paths);
     }
 
     [Fact]
@@ -137,7 +137,7 @@ public sealed class RunsCommandTests
         var (exit, _, _, paths) = Runs("--group", "sweep-1");
 
         Assert.Equal(0, exit);
-        Assert.Equal(["/runs?agent=example-agent&page=1&pageSize=10&group=sweep-1"], paths);
+        Assert.Equal(["/eval/runs?agent=example-agent&page=1&pageSize=10&group=sweep-1"], paths);
     }
 
     [Fact]
@@ -146,8 +146,8 @@ public sealed class RunsCommandTests
         var (_, _, _, any) = Runs("--any-group");
         var (_, _, _, all) = Runs("--all-runs");
 
-        Assert.Equal(["/runs?agent=example-agent&page=1&pageSize=10&grouping=Any"], any);
-        Assert.Equal(["/runs?agent=example-agent&page=1&pageSize=10"], all);
+        Assert.Equal(["/eval/runs?agent=example-agent&page=1&pageSize=10&grouping=Any"], any);
+        Assert.Equal(["/eval/runs?agent=example-agent&page=1&pageSize=10"], all);
     }
 
     [Fact]
@@ -211,7 +211,7 @@ public sealed class RunsCommandTests
     {
         var (_, output, _, paths) = Runs("--limit", "2");
 
-        Assert.Equal(["/runs?agent=example-agent&page=1&pageSize=2&grouping=None"], paths);
+        Assert.Equal(["/eval/runs?agent=example-agent&page=1&pageSize=2&grouping=None"], paths);
         Assert.Equal(2, output.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length);
         Assert.DoesNotContain("000000000001", output, StringComparison.Ordinal);
     }
@@ -221,7 +221,7 @@ public sealed class RunsCommandTests
     {
         var (_, output, _, paths) = Runs("--limit", "150");
 
-        Assert.Equal(["/runs?agent=example-agent&page=1&pageSize=100&grouping=None"], paths);
+        Assert.Equal(["/eval/runs?agent=example-agent&page=1&pageSize=100&grouping=None"], paths);
         Assert.Equal(3, output.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length);
     }
 

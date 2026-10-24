@@ -11,6 +11,7 @@ app.MapSuwagevalAgent();   // GET /suwageval/contract, POST /suwageval/turn
 - the contract types (`AgentContract`, `TurnRequest`, `TurnResponse`, the `ConversationItem`s) and `ContractJson.Options`,
   the JSON options the server reads them with;
 - `AgentContractRules.Problems(contract)`: what the server would reject in your contract, for a unit test.
+- `AgentContractHash.Of(contract)`: the hash the server knows your version by (the same function the server registers it with).
 - `request.Correlation` (`RunId`, `Scenario`, `Sample`): the `Suwageval-*` headers of the turn, for traces and logs; a member is null when its header is absent.
 - `request.HistoryTurns()`: the conversation before the last item as `HistoryTurn`s (user message, null for what was logged before the first one; the items that followed it in order, the tool calls
   paired with their results, the assistant message); a history that cannot be one (a tool call id twice, a result without its call, tool calls no assistant message closes) is a `TurnRejectedException`.

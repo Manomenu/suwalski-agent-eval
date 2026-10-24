@@ -50,7 +50,7 @@ public sealed class RerunCommandTests
     private static HttpResponseMessage Answer(HttpRequestMessage request, RunStatus status) =>
         (request.Method.Method, request.RequestUri?.AbsolutePath) switch
         {
-            ("POST", var path) when path == $"/runs/{OriginalId}/rerun" => Json(
+            ("POST", var path) when path == $"/eval/runs/{OriginalId}/rerun" => Json(
                 new RunCreated
                 {
                     RunId = NewId,
@@ -59,8 +59,8 @@ public sealed class RerunCommandTests
                 },
                 HttpStatusCode.Accepted
             ),
-            ("GET", var path) when path == $"/runs/{NewId}" => Json(Summary(status)),
-            ("GET", var path) when path == $"/runs/{NewId}/results" => Json(new RunResults { Run = Summary(status), Scenarios = [] }),
+            ("GET", var path) when path == $"/eval/runs/{NewId}" => Json(Summary(status)),
+            ("GET", var path) when path == $"/eval/runs/{NewId}/results" => Json(new RunResults { Run = Summary(status), Scenarios = [] }),
             _ => new HttpResponseMessage(HttpStatusCode.NotFound),
         };
 
@@ -86,7 +86,7 @@ public sealed class RerunCommandTests
         Assert.Equal($"version {VersionId}: existing{Environment.NewLine}{NewId}{Environment.NewLine}", output);
         Assert.Empty(error);
         var (method, path, _) = Assert.Single(server.Requests);
-        Assert.Equal(("POST", $"/runs/{OriginalId}/rerun"), (method, path));
+        Assert.Equal(("POST", $"/eval/runs/{OriginalId}/rerun"), (method, path));
     }
 
     [Fact]
@@ -105,7 +105,7 @@ public sealed class RerunCommandTests
     {
         var (exit, _, _, _) = Run(
             request =>
-                request.Method == HttpMethod.Get && request.RequestUri?.AbsolutePath == $"/runs/{NewId}/results"
+                request.Method == HttpMethod.Get && request.RequestUri?.AbsolutePath == $"/eval/runs/{NewId}/results"
                     ? Json(KnownFailureResults.Create(Summary(RunStatus.Done)))
                     : Answer(request, RunStatus.Done),
             strict ? [OriginalId.ToString(), "--wait", "--strict"] : [OriginalId.ToString(), "--wait"]

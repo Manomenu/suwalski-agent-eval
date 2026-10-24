@@ -17,7 +17,7 @@ public sealed class CheckEndpointsTests(TestDatabase database) : IAsyncDisposabl
     {
         var agent = await server.NewAgent();
         var scenarios = keys.Select(key => new ScenarioInput { Key = key, Conversation = [new UserMessage { Text = "Hello" }] }).ToList();
-        (await server.Put($"/agents/{agent}/scenarios", new PutScenariosRequest(scenarios))).EnsureSuccessStatusCode();
+        (await server.Put($"/eval/agents/{agent}/scenarios", new PutScenariosRequest(scenarios))).EnsureSuccessStatusCode();
         return agent;
     }
 
@@ -31,7 +31,7 @@ public sealed class CheckEndpointsTests(TestDatabase database) : IAsyncDisposabl
 
     private async Task<PutChecksResponse> Put(string agent, params CheckInput[] checks)
     {
-        var response = await server.Put($"/agents/{agent}/checks", new PutChecksRequest(checks));
+        var response = await server.Put($"/eval/agents/{agent}/checks", new PutChecksRequest(checks));
         response.EnsureSuccessStatusCode();
         return await TestServer.Read<PutChecksResponse>(response);
     }
@@ -103,7 +103,7 @@ public sealed class CheckEndpointsTests(TestDatabase database) : IAsyncDisposabl
         ];
         await Put(agent, checks);
 
-        var listed = await TestServer.Read<CheckDetail[]>(await server.Get($"/agents/{agent}/checks"));
+        var listed = await TestServer.Read<CheckDetail[]>(await server.Get($"/eval/agents/{agent}/checks"));
 
         Assert.Equal(
             [
@@ -128,7 +128,7 @@ public sealed class CheckEndpointsTests(TestDatabase database) : IAsyncDisposabl
         var agent = await AgentWithScenariosAsync("one", "two");
         await Put(agent, Called("a", "one"), Called("b", "two"));
 
-        var narrowed = await TestServer.Read<CheckDetail[]>(await server.Get($"/agents/{agent}/checks?scenario=two"));
+        var narrowed = await TestServer.Read<CheckDetail[]>(await server.Get($"/eval/agents/{agent}/checks?scenario=two"));
 
         Assert.Equal(["b"], narrowed.Select(detail => detail.Check.Key));
     }
@@ -138,11 +138,14 @@ public sealed class CheckEndpointsTests(TestDatabase database) : IAsyncDisposabl
     {
         var agent = await AgentWithScenariosAsync("s");
 
-        var response = await server.Put($"/agents/{agent}/checks", new PutChecksRequest([Called("good", "s"), Called("lost", "ghost")]));
+        var response = await server.Put(
+            $"/eval/agents/{agent}/checks",
+            new PutChecksRequest([Called("good", "s"), Called("lost", "ghost")])
+        );
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
         Assert.Equal(["checks[1].scenarioKey"], await TestServer.ErrorFields(response));
-        Assert.Empty(await TestServer.Read<CheckDetail[]>(await server.Get($"/agents/{agent}/checks")));
+        Assert.Empty(await TestServer.Read<CheckDetail[]>(await server.Get($"/eval/agents/{agent}/checks")));
     }
 
     [Fact]
@@ -164,7 +167,7 @@ public sealed class CheckEndpointsTests(TestDatabase database) : IAsyncDisposabl
             Criteria = "  ",
         };
 
-        var response = await server.Put($"/agents/{agent}/checks", new PutChecksRequest([bad, empty, Called("empty", "s"), judge]));
+        var response = await server.Put($"/eval/agents/{agent}/checks", new PutChecksRequest([bad, empty, Called("empty", "s"), judge]));
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
         Assert.Equal(
@@ -199,7 +202,7 @@ public sealed class CheckEndpointsTests(TestDatabase database) : IAsyncDisposabl
             ),
         };
 
-        var response = await server.Put($"/agents/{agent}/checks", new PutChecksRequest([bad, badEvent]));
+        var response = await server.Put($"/eval/agents/{agent}/checks", new PutChecksRequest([bad, badEvent]));
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
         Assert.Equal(
@@ -230,7 +233,7 @@ public sealed class CheckEndpointsTests(TestDatabase database) : IAsyncDisposabl
             ),
         };
 
-        var response = await server.Put($"/agents/{agent}/checks", new PutChecksRequest([check]));
+        var response = await server.Put($"/eval/agents/{agent}/checks", new PutChecksRequest([check]));
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
@@ -240,7 +243,10 @@ public sealed class CheckEndpointsTests(TestDatabase database) : IAsyncDisposabl
     {
         var agent = await AgentWithScenariosAsync("s");
 
-        var response = await server.Put($"/agents/{agent}/checks", new PutChecksRequest([new TextCheck { Key = "t", ScenarioKey = "s" }]));
+        var response = await server.Put(
+            $"/eval/agents/{agent}/checks",
+            new PutChecksRequest([new TextCheck { Key = "t", ScenarioKey = "s" }])
+        );
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
         Assert.Equal(["checks[0]"], await TestServer.ErrorFields(response));
@@ -252,14 +258,14 @@ public sealed class CheckEndpointsTests(TestDatabase database) : IAsyncDisposabl
         var agent = await AgentWithScenariosAsync("s");
         await Put(agent, Called("a", "s"));
 
-        var first = await server.Delete($"/agents/{agent}/checks/a");
-        var second = await server.Delete($"/agents/{agent}/checks/a");
+        var first = await server.Delete($"/eval/agents/{agent}/checks/a");
+        var second = await server.Delete($"/eval/agents/{agent}/checks/a");
 
         Assert.Equal(HttpStatusCode.NoContent, first.StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, second.StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, (await server.Get("/agents/none/checks")).StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, (await server.Delete("/agents/none/checks/a")).StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, (await server.Put("/agents/none/checks", new PutChecksRequest([]))).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await server.Get("/eval/agents/none/checks")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await server.Delete("/eval/agents/none/checks/a")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await server.Put("/eval/agents/none/checks", new PutChecksRequest([]))).StatusCode);
     }
 
     [Fact]
@@ -294,7 +300,7 @@ public sealed class CheckEndpointsTests(TestDatabase database) : IAsyncDisposabl
             ),
         };
 
-        var response = await server.Put($"/agents/{agent}/checks", new PutChecksRequest([badResult, mixed, inverted]));
+        var response = await server.Put($"/eval/agents/{agent}/checks", new PutChecksRequest([badResult, mixed, inverted]));
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
         Assert.Equal(["checks[0].result.note.$judge", "checks[1].args.reason", "checks[2].data"], await TestServer.ErrorFields(response));

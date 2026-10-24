@@ -57,7 +57,7 @@ public sealed class GroupsCommandTests
         Assert.Empty(error);
         Assert.Contains($"{verb}d 2 group(s)", output, StringComparison.Ordinal);
         var call = api.Calls.Single();
-        Assert.Equal((HttpMethod.Post, "/agents/example-agent/run-groups/archive"), (call.Method, call.Path));
+        Assert.Equal((HttpMethod.Post, "/eval/agents/example-agent/run-groups/archive"), (call.Method, call.Path));
         var sent = JsonSerializer.Deserialize<ArchiveRunGroupsRequest>(call.Body, ContractJson.Options);
         Assert.Equal(["sweep-1", "sweep-2"], sent?.Names);
         Assert.Equal(archived, sent?.Archived);
@@ -71,7 +71,7 @@ public sealed class GroupsCommandTests
         Assert.Equal(0, exit);
         Assert.Contains("would delete: 3 run(s), 12 sample(s), 36 verdict(s)", output, StringComparison.Ordinal);
         Assert.Equal(
-            (HttpMethod.Get, "/agents/example-agent/run-groups/sweep-1/deletion"),
+            (HttpMethod.Get, "/eval/agents/example-agent/run-groups/sweep-1/deletion"),
             (api.Calls.Single().Method, api.Calls.Single().Path)
         );
     }
@@ -83,7 +83,7 @@ public sealed class GroupsCommandTests
 
         Assert.Equal(0, exit);
         Assert.Contains("Type the group name to confirm", output, StringComparison.Ordinal);
-        Assert.Equal((HttpMethod.Delete, "/agents/example-agent/run-groups/sweep-1"), (api.Calls[^1].Method, api.Calls[^1].Path));
+        Assert.Equal((HttpMethod.Delete, "/eval/agents/example-agent/run-groups/sweep-1"), (api.Calls[^1].Method, api.Calls[^1].Path));
     }
 
     [Theory]
