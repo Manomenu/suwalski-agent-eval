@@ -62,14 +62,13 @@ public sealed class EveryEndpointHasACliCommandTests(TestDatabase database) : IA
         ["GET /eval/runs/compare"] = Cli("compare"),
         ["GET /eval/runs/{id}"] = Cli("results"),
         ["GET /eval/runs/{id}/results"] = Cli("results"),
-        ["POST /eval/runs/{id}/rerun"] = Cli("rerun"),
         ["GET /eval/runs/{id}/recheck"] = Cli("recheck"),
         ["POST /eval/runs/{id}/recheck"] = Cli("recheck"),
         ["POST /eval/runs/{id}/cancel"] = Cli("cancel"),
         ["PUT /eval/runs/{id}/note"] = Cli("note"),
         ["GET /eval/agents/{agent}/pass-rates"] = Cli("trend"),
-        ["GET /eval/agents/{agent}/unstable-checks"] = Cli("unstable"),
-        ["GET /eval/agents/{agent}/agent-errors"] = Cli("agent-errors"),
+        ["GET /eval/agents/{agent}/unstable-checks"] = Cli("problems"),
+        ["GET /eval/agents/{agent}/agent-errors"] = Cli("problems"),
         ["POST /monitoring/turns"] = NotForCli(
             "Sent by a monitored agent (the SDK, or an agent speaking its protocol), never by a person."
         ),

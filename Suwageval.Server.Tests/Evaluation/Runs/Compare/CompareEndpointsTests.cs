@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Suwageval.Contracts.Runs;
 using Suwageval.Server.Evaluation.Checks;
 using Suwageval.Server.Evaluation.Runs;
+using Suwageval.Server.Evaluation.Runs.Compare;
 using Suwageval.Server.Evaluation.Scenarios;
 using Suwageval.Server.Tests.Api;
 
@@ -239,21 +240,21 @@ public sealed class CompareEndpointsTests(TestDatabase database) : IAsyncDisposa
     }
 
     [Fact]
-    public async Task Twenty_runs_can_be_compared_but_not_twenty_one()
+    public async Task Seven_runs_can_be_compared_but_not_eight()
     {
         var agent = await AgentAsync(database);
         var run = await VariantAsync(agent, null, true, true);
         var ids = new List<Guid> { run };
-        for (var index = 1; index < 20; index++)
+        for (var index = 1; index < RunComparisonReport.MaxRuns; index++)
         {
             ids.Add(await VariantAsync(agent, null, true, true));
         }
 
-        var twenty = await GetAsync($"/eval/runs/compare?{string.Join("&", ids.Select(id => $"runs={id}"))}&baseline={ids[7]}");
+        var seven = await GetAsync($"/eval/runs/compare?{string.Join("&", ids.Select(id => $"runs={id}"))}&baseline={ids[3]}");
         var tooMany = await GetAsync($"/eval/runs/compare?{string.Join("&", ids.Select(id => $"runs={id}"))}&runs={Guid.NewGuid()}");
 
-        Assert.Equal(HttpStatusCode.OK, twenty.StatusCode);
-        Assert.Equal(ids[7], (await TestServer.Read<RunComparison>(twenty)).Baseline!.RunId);
+        Assert.Equal(HttpStatusCode.OK, seven.StatusCode);
+        Assert.Equal(ids[3], (await TestServer.Read<RunComparison>(seven)).Baseline!.RunId);
         Assert.Equal(["runs"], await TestServer.ErrorFields(tooMany));
     }
 

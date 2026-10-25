@@ -13,11 +13,11 @@ describe("toError", () => {
     });
 
     it("carries the field messages of a validation problem", async () => {
-        const response = new Response(JSON.stringify({ errors: { runs: ["Choose at most 20 runs."], group: ["Bad group."] } }), {
+        const response = new Response(JSON.stringify({ errors: { runs: ["Choose at most 7 runs."], group: ["Bad group."] } }), {
             status: 422,
         });
 
-        expect((await toError(response)).message).toBe("Choose at most 20 runs. Bad group.");
+        expect((await toError(response)).message).toBe("Choose at most 7 runs. Bad group.");
     });
 
     it("falls back to the status when the body says nothing", async () => {

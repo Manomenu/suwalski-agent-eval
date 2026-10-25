@@ -146,6 +146,8 @@ export function runsToCompare(runs: { id: string }[], selected: ReadonlySet<stri
 }
 
 /** What the Runs section's heading and columns say on hover. */
+export const PROBLEMS_SECTION_HELP =
+    "What is wrong with the agent beyond one run: checks that pass in some runs of a version and fail in others, and scenarios where the agent gave no answer. The same as `suwageval problems`.";
 export const RUNS_SECTION_HELP = "One run of the scenarios against a version of the agent.";
 export const RUN_ID_HELP = "The start of the run's id; open it for its results. Tick runs to compare them.";
 export const RUN_STATUS_HELP =

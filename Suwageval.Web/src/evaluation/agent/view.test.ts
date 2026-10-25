@@ -91,8 +91,8 @@ describe("modelsOf", () => {
 });
 
 describe("comparing", () => {
-    it("accepts two to twenty runs", () => {
-        expect([0, 1, 2, 20, 21].map(canCompare)).toEqual([false, false, true, true, false]);
+    it("accepts two to seven runs", () => {
+        expect([0, 1, 2, 7, 8].map(canCompare)).toEqual([false, false, true, true, false]);
     });
 
     it("puts the oldest selected run first, whatever the order of selecting", () => {

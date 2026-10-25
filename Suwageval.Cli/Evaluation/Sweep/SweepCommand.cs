@@ -172,6 +172,13 @@ internal static partial class SweepCommand
             chosen = await SelectAsync(chosen, terminal, output, error, cancellationToken);
             problem = "";
         }
+        if (chosen is { Count: > ComparisonLimit.MaxRuns })
+        {
+            await error.WriteLineAsync(
+                $"A sweep runs at most {ComparisonLimit.MaxRuns} variants (the runs one comparison holds): pick them with --select or by naming them ({chosen.Count} chosen)."
+            );
+            return 2;
+        }
         if (chosen is null)
         {
             if (problem.Length > 0)

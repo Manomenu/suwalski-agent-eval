@@ -22,7 +22,6 @@ internal static class HelpSections
                 "validate",
                 "push",
                 "run",
-                "rerun",
                 "recheck",
                 "cancel",
                 "results",
@@ -34,8 +33,7 @@ internal static class HelpSections
                 "scenarios",
                 "scenario",
                 "trend",
-                "unstable",
-                "agent-errors",
+                "problems",
             ]
         ),
         ("Monitoring", ["monitoring"]),

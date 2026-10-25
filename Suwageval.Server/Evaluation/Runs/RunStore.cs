@@ -370,7 +370,7 @@ internal sealed class RunStore(Pool pool)
         );
     }
 
-    public const string InterruptedError = "Interrupted: the server stopped during the run; start it again with rerun.";
+    public const string InterruptedError = "Interrupted: the server stopped during the run; start a new run.";
 
     /// <summary>Stores a finished sample and the verdicts of its checks, all or nothing.</summary>
     public async Task AddSampleAsync(Guid runId, NewSample sample, CancellationToken cancellationToken = default)

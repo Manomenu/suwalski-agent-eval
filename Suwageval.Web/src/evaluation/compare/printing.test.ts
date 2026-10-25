@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
+import { COMPARE_MAX_RUNS } from "../../routes/links";
 import { PRINT_COLUMN_WIDTH, PRINT_LABEL_COLUMN_WIDTH, PRINT_MAX_RUNS, PRINT_PAGE_WIDTH } from "./layout";
-import { comparePrintLine, printDisabledReason, printMaxRuns } from "./printing";
+import { comparePrintLine, printMaxRuns } from "./printing";
 
 describe("printMaxRuns", () => {
     it("counts the columns that fit after the label column", () => {
@@ -13,14 +14,9 @@ describe("printMaxRuns", () => {
     it("gives PRINT_MAX_RUNS for the widths of the printed table", () => {
         expect(printMaxRuns(PRINT_PAGE_WIDTH, PRINT_LABEL_COLUMN_WIDTH, PRINT_COLUMN_WIDTH)).toBe(PRINT_MAX_RUNS);
     });
-});
 
-describe("printDisabledReason", () => {
-    it("is undefined up to the cap and says the cap above it", () => {
-        expect(printDisabledReason(PRINT_MAX_RUNS, PRINT_MAX_RUNS)).toBeUndefined();
-        expect(printDisabledReason(PRINT_MAX_RUNS + 1, PRINT_MAX_RUNS)).toBe(
-            `At most ${String(PRINT_MAX_RUNS)} runs fit a printed page — compare fewer runs, e.g. with the same baseline, and print each.`,
-        );
+    it("is the number of runs one comparison holds", () => {
+        expect(COMPARE_MAX_RUNS).toBe(PRINT_MAX_RUNS);
     });
 });
 

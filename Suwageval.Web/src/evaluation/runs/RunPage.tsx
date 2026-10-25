@@ -122,7 +122,7 @@ export function RunPage({ runId }: { runId: string }) {
                     </Alert>
                 )}
                 <Group gap="sm" align="flex-start" className="no-print">
-                    <RerunButton runId={run.id} />
+                    <RerunButton run={run} />
                     <RecheckButton run={run} />
                     <CancelButton run={run} />
                 </Group>

@@ -867,47 +867,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/eval/runs/{id}/rerun": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": null | components["schemas"]["RerunRequest"];
-                };
-            };
-            responses: {
-                /** @description Accepted */
-                202: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["RunCreated"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/eval/runs/{id}/recheck": {
         parameters: {
             query?: never;
@@ -2634,15 +2593,6 @@ export interface components {
             /** Format: int32 */
             agentErrors: number;
         };
-        /** @description The optional body of a rerun: everything else (agent, tags) is taken from the run being repeated. */
-        RerunRequest: {
-            /** @description Where to reach the agent for the new run; none means the endpoint the repeated run used. */
-            endpointUrl?: null | string;
-            /** @description The group of the new run (RunGroupRules); none means no group, the repeated run's group is not inherited. */
-            group?: null | string;
-            /** @description The note of the new run (NoteRules); none means no note, the repeated run's note is not inherited. */
-            note?: null | string;
-        };
         /** @description Retrieval data a version's runs ran on: its `dataVersion` and what the agent said it is (the newest description given). */
         RetrievalData: {
             version: string;
@@ -2832,7 +2782,7 @@ export interface components {
         /**
          * @description Where a run stands. `Failed` is the run itself breaking down; a scenario the agent did not answer is a result,
          *     not a failure. `Interrupted` is the server stopping while the run was going (a restart, a deploy): the samples stored so far are
-         *     kept, nothing is wrong with the agent, and `rerun` starts it again.
+         *     kept, nothing is wrong with the agent, and a new run (`run`, or "Run again" on its page) does it again.
          * @enum {unknown}
          */
         RunStatus: "Queued" | "Running" | "Done" | "Failed" | "Cancelled" | "Interrupted";

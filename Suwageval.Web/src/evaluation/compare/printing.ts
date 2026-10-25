@@ -6,13 +6,6 @@ export function printMaxRuns(pageWidth: number, labelWidth: number, columnWidth:
     return Math.max(0, Math.floor((pageWidth - labelWidth) / columnWidth));
 }
 
-/** Why the Print button is off, or undefined when `runs` fit a printed page. */
-export function printDisabledReason(runs: number, max: number): string | undefined {
-    return runs <= max
-        ? undefined
-        : `At most ${String(max)} runs fit a printed page — compare fewer runs, e.g. with the same baseline, and print each.`;
-}
-
 /** "Comparison of support · group sweep · runs 1a2b3c4d, 5e6f7a8b · baseline 1a2b3c4d · scenarios with tags: smoke · only rows that differ". */
 export function comparePrintLine(view: {
     agent: string;

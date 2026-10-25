@@ -378,7 +378,7 @@ public sealed class RegressionHistoryTests(TestDatabase database) : IAsyncDispos
         };
 
     [Fact]
-    public async Task A_new_run_stores_its_origin_and_whether_it_is_a_reference_and_a_rerun_inherits_them()
+    public async Task A_new_run_stores_its_origin_and_whether_it_is_a_reference()
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
         var agent = await SeededAgent.CreateAsync(
@@ -396,17 +396,6 @@ public sealed class RegressionHistoryTests(TestDatabase database) : IAsyncDispos
         );
         Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
         var created = (await response.Content.ReadFromJsonAsync<RunCreated>(Cancellation))!;
-        // The agent's settings changed since: the rerun keeps what the run it repeats decided.
-        await new AgentStore(database.Pool).SetSettingsAsync(
-            agent.Id,
-            null,
-            new RegressionSettings { Branches = ["other"] },
-            cancellationToken: Cancellation
-        );
-        var rerun = await client.PostAsync(new Uri($"/eval/runs/{created.RunId}/rerun", UriKind.Relative), null, Cancellation);
-        Assert.Equal(HttpStatusCode.Accepted, rerun.StatusCode);
-        var rerunId = (await rerun.Content.ReadFromJsonAsync<RunCreated>(Cancellation))!.RunId;
-
         var original = (
             await client.GetFromJsonAsync<RunSummary>(
                 new Uri($"/eval/runs/{created.RunId}", UriKind.Relative),
@@ -414,16 +403,8 @@ public sealed class RegressionHistoryTests(TestDatabase database) : IAsyncDispos
                 Cancellation
             )
         )!;
-        var repeated = (
-            await client.GetFromJsonAsync<RunSummary>(
-                new Uri($"/eval/runs/{rerunId}", UriKind.Relative),
-                ContractJson.Options,
-                Cancellation
-            )
-        )!;
 
         Assert.Equal((true, "master", "master"), (original.Reference, original.ComparedWith, original.Origin?.Branch));
-        Assert.Equal((true, "master", "master"), (repeated.Reference, repeated.ComparedWith, repeated.Origin?.Branch));
     }
 
     private static async Task<RunCreated> StartAsync(HttpClient client, RunRequest request) =>
@@ -434,7 +415,7 @@ public sealed class RegressionHistoryTests(TestDatabase database) : IAsyncDispos
         )!;
 
     [Fact]
-    public async Task A_run_in_a_group_is_an_experiment_never_a_reference_whatever_its_origin_or_the_run_it_repeats()
+    public async Task A_run_in_a_group_is_an_experiment_never_a_reference_whatever_its_origin()
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
         var agent = await SeededAgent.CreateAsync(
@@ -454,15 +435,7 @@ public sealed class RegressionHistoryTests(TestDatabase database) : IAsyncDispos
             }
         );
         var reference = await StartAsync(client, new RunRequest { Agent = agent.Name, Origin = MasterOrigin() });
-        var rerun = await (
-            await client.PostAsJsonAsync(
-                new Uri($"/eval/runs/{reference.RunId}/rerun", UriKind.Relative),
-                new RerunRequest { Group = "sweep-1" },
-                Cancellation
-            )
-        ).Content.ReadFromJsonAsync<RunCreated>(Cancellation);
-
-        foreach (var id in new[] { grouped.RunId, rerun!.RunId })
+        foreach (var id in new[] { grouped.RunId })
         {
             var run = (
                 await client.GetFromJsonAsync<RunSummary>(new Uri($"/eval/runs/{id}", UriKind.Relative), ContractJson.Options, Cancellation)

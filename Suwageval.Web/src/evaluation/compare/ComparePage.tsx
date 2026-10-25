@@ -30,15 +30,8 @@ import {
     referenceColumn,
 } from "./compare";
 import { contractDifferences, type Difference } from "./contractDiff";
-import {
-    COLUMN_MIN_WIDTH,
-    LABEL_COLUMN_WIDTH,
-    PRINT_COLUMN_WIDTH,
-    PRINT_LABEL_COLUMN_WIDTH,
-    PRINT_MAX_RUNS,
-    tableMinWidth,
-} from "./layout";
-import { comparePrintLine, printDisabledReason } from "./printing";
+import { COLUMN_MIN_WIDTH, LABEL_COLUMN_WIDTH, PRINT_COLUMN_WIDTH, PRINT_LABEL_COLUMN_WIDTH, tableMinWidth } from "./layout";
+import { comparePrintLine } from "./printing";
 import { ScenarioRows } from "./ScenarioRows";
 import { useOpenScenarios } from "./useOpenScenarios";
 import {
@@ -204,7 +197,7 @@ function View({
                     onChange={selectTags}
                 />
             </Box>
-            <PrintButton disabledReason={printDisabledReason(columns, PRINT_MAX_RUNS)} />
+            <PrintButton />
             <Paper withBorder p="md" className="compare-paper">
                 <Table.ScrollContainer minWidth={tableMinWidth(columns)}>
                     <Table

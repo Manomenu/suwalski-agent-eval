@@ -196,22 +196,6 @@ public sealed class RunCommandEndToEndTests(TestDatabase database) : IAsyncDispo
         Assert.Empty(fake.Requests);
     }
 
-    [Fact]
-    public async Task Rerun_repeats_a_run_of_the_agent_with_its_tag_and_prints_like_run()
-    {
-        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
-        var agent = await SeedAsync(fake.Url.AbsoluteUri);
-        var (_, first, _) = await RunCliAsync(agent, "--tag", "regression");
-        var original = first.Trim().Split('\n')[^1];
-
-        var (exit, output, error) = await CliAsync(agent, ["rerun", original, "--wait"]);
-
-        Assert.Equal(0, exit);
-        Assert.Contains(": existing", output, StringComparison.Ordinal);
-        Assert.Contains("2 checks: 2 passed, 0 failed", output, StringComparison.Ordinal);
-        Assert.Empty(error);
-    }
-
     public async ValueTask DisposeAsync()
     {
         await app.DisposeAsync();

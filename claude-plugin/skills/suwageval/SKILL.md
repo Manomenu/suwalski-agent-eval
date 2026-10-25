@@ -30,8 +30,8 @@ run in this session's terminal:
 The CLI talks to the Suwageval server through the address of its **web app**; the API is under
 its `/api`. The address is `--server` on a command, else `SUWAGEVAL_URL`, else `suwagevalUrl` in
 `suwageval/agent.yaml`, else `http://localhost:3230` (a laptop running `just web` in the clone).
-The agent's own address (`validate`, `run`, `rerun`) is `--endpoint` on the command, else `SUWAGEVAL_ENDPOINT_URL`, else
-`endpointUrl` in `agent.yaml` (`run` and `rerun` then use the endpoint registered by `push` / of the earlier run).
+The agent's own address (`validate`, `run`) is `--endpoint` on the command, else `SUWAGEVAL_ENDPOINT_URL`, else
+`endpointUrl` in `agent.yaml` (`run` then uses the endpoint registered by `push`).
 `validate` and `init` need no server.
 `push` and `run` need the server, and `run` needs the agent itself running too.
 
@@ -72,9 +72,9 @@ user's clone of the suwageval repository, wherever they keep it: if its folder i
 | check the files and the names against the agent's contract | `suwageval validate [dir]` (`--json`, `--offline` to skip the agent, `--endpoint URL`) |
 | send the agent, scenarios and checks to the server | `suwageval push [dir]` |
 | run the scenarios and wait | `suwageval run --wait --json` (`--tag <tag>` for some scenarios only, repeat it for the scenarios with any of the tags; `--group <name>` to put the run in a group, e.g. the runs of one sweep over models (an experiment: no regression states, not in the trend; it exits 1 when any check fails, as `--strict`); `--ref <branch>` to compare with another branch's reference runs; `--strict` to exit 1 on any failed check) |
-| run an earlier run again | `suwageval rerun <runId> --wait --json` (`--endpoint URL`, `--group <name>`, `--strict`): same agent, tags and endpoint, the version the agent serves now |
-| judge a finished run's stored answers again with the current checks (no agent call) | `suwageval recheck <runId> --wait --json` (`--strict`); `--dry-run` first prints what would be evaluated again (exit 0 when no check changed: nothing is started). Use it after fixing a check; `rerun` is for when the agent changed |
-| set or clear the note of a run (why it was started; free text, 500 characters) | `suwageval note <runId> "<text>"`, `suwageval note <runId> --clear`; at the start `suwageval run --note "<text>"` / `rerun --note`. A note changes no verdict, so setting one needs no confirmation |
+| run an earlier run again | `suwageval run --wait --json` with that run's tags (`--tag`, from `runs --json` or `results --json`), its `--group` and `--endpoint` when they differ; there is no `rerun`: the web's "Run again" does the same |
+| judge a finished run's stored answers again with the current checks (no agent call) | `suwageval recheck <runId> --wait --json` (`--strict`); `--dry-run` first prints what would be evaluated again (exit 0 when no check changed: nothing is started). Use it after fixing a check; `run` is for when the agent changed |
+| set or clear the note of a run (why it was started; free text, 500 characters) | `suwageval note <runId> "<text>"`, `suwageval note <runId> --clear`; at the start `suwageval run --note "<text>"`. A note changes no verdict, so setting one needs no confirmation |
 | set or clear the note of a run group (what the experiment is about; shown only in the group's comparison) | `suwageval note --group <name> "<text>"`, `suwageval note --group <name> --clear`; at the start of a sweep `suwageval sweep --note "<text>"`. Needs a group that has runs. Needs no confirmation |
 | stop a queued or running run | `suwageval cancel <runId>`: samples in flight finish, no new one starts; a finished run stays as it is. Only for a run the user asked to stop |
 | read a run's results (status, version, tags, branch, regressions, failing checks with reasons, turn times) | `suwageval results <runId>`: text on stdout; waits for a run still going. Prefer it to opening a browser |
@@ -86,13 +86,12 @@ user's clone of the suwageval repository, wherever they keep it: if its folder i
 | list the agent's scenarios | `suwageval scenarios` (`--tag <tag>`, `--json`): key, revision, number of checks, tags |
 | read one scenario as the server stores it | `suwageval scenario <key>` (`--json`): the conversation, every check with its definition, the revisions, the tags. Use it before changing or explaining a scenario that is not in the working tree |
 | see how the pass rate moved over the runs | `suwageval trend` (`--json`): per finished run, oldest first, pass rate, median and p95 turn time and the rate per tag (only for a tag whose every scenario the run ran: a `--tag` run has no rate for another tag it ran in part) |
-| list the checks that pass in some runs of a version and fail in others | `suwageval unstable` (`--json`; `--version <id>` and `--data-version <v>` repeatable): open ones only, i.e. unstable in the newest version (not archived by default) that ran the check at least twice; per check `scenarioKey`, `checkKey`, `passedRuns` of `runs`, the version; "No unstable checks." when none |
-| list the scenarios where the agent gave no answer (HTTP error, timeout) | `suwageval agent-errors` (`--json`; `--version <id>` and `--data-version <v>` repeatable): open ones only, i.e. the newest version (not archived by default) that ran the scenario has errors; per version and scenario `errors` of `samples`, `newestErrorRunId`, `newestError`; "No agent errors." when none. Such samples do not count against checks: an agent that fails here is unreliable itself, not a check to fix |
+| what is wrong with the agent beyond one run: checks that pass in some runs of a version and fail in others, scenarios where the agent gave no answer (HTTP error, timeout) | `suwageval problems` (`--json`: `{ unstableChecks, agentErrors }`; `--version <id>` and `--data-version <v>` repeatable): open ones only, i.e. the newest version (not archived by default) that ran it has the problem; an unstable check gives `scenarioKey`, `checkKey`, `passedRuns` of `runs` and the version; an agent error gives `errors` of `samples`, `newestErrorRunId`, `newestError`. Agent-error samples do not count against checks: an agent that fails there is unreliable itself, not a check to fix. "No unstable checks and no agent errors." when none |
 | run the scenarios once per variant of the agent (models, prompts, settings: the `sweep:` section of `agent.yaml`) | `suwageval sweep <variant>...` (the variant names are the files of `sweep.variantsDir`; `--tag`, `--endpoint`, `--ref`, `--group <name>`): for each variant it runs `reconfigure`, waits until the agent's contract `label` equals the variant's name, starts a run in one group and waits for it; `restore` and `after` always run. Prints a row per variant and the group's compare link. `--select` asks in a terminal, so never use it here: name the variants. Give `--group` a name (see **Names**) instead of the default `sweep-<time>-<agent>` |
-| put up to 20 runs of one agent side by side (for example the variants of a sweep, started with the same `--group`) | `suwageval compare <runId>...` or `suwageval compare --group <name>` (`--json`): prints on stdout, no browser, absolute values — a lettered column per run (version label, models, checks passed, samples answered, turn times, the judge model when a model judged some check), the pass rate per tag and the checks per scenario with the failed ones (a model-judged one marked `(model-judged)`: its verdict can vary between runs). There is no default baseline. Prefer it to opening a browser. Exit 2 for an unknown run or group or runs of different agents |
+| put up to 7 runs of one agent side by side (for example the variants of a sweep, started with the same `--group`) | `suwageval compare <runId>...` or `suwageval compare --group <name>` (`--json`): prints on stdout, no browser, absolute values — a lettered column per run (version label, models, checks passed, samples answered, turn times, the judge model when a model judged some check), the pass rate per tag and the checks per scenario with the failed ones (a model-judged one marked `(model-judged)`: its verdict can vary between runs). There is no default baseline. Prefer it to opening a browser. Exit 2 for an unknown run or group or runs of different agents |
 | read the others against one of those runs | add `--baseline <runId>` (one of the runs; with `--group`, any run of the group): also prints, against that run, each run's judge model, pass rate and turn time changes, the pass rate changes per tag and the checks that differ with the trend (▲ better, ▼ worse), with a `judge differs from baseline` warning when the judge model changed |
 | archive, restore or delete a run group | `suwageval groups archive <name>...` / `unarchive <name>...` (hidden from the web's Groups section, kept); `suwageval groups delete <name>` deletes an archived group with its runs (`--dry-run`, `--yes`; ask the user first: it cannot be undone) |
-| open that comparison on the web, only when the user wants the page | `suwageval compare <runId>... --open` (or `--group <name>`; with `--baseline` when meant); `--print` makes the page open the browser's print dialog, at most 7 runs fit a printed page (more: exit 2, compare fewer): only when the user asks to print, never on your own |
+| open that comparison on the web, only when the user wants the page | `suwageval compare <runId>... --open` (or `--group <name>`; with `--baseline` when meant); `--print` makes the page open the browser's print dialog (every comparison, at most 7 runs, fits a printed page): only when the user asks to print, never on your own |
 | list the conversations the deployed agent sent (monitoring on: `features.monitoring` in `agent.yaml`) | `suwageval monitoring conversations` (`--limit N` up to 100, `--environment <name>`, `--version <id>` repeatable, `--state Open|Closed`, `--failed-check <key>` for the ones that failed a monitoring check, `--json`): per conversation id, environment, state, turns, the version of its last turn (marked when it changed during it), the last turn, "not checked" / "checks passed" / "N checks failed", the agent's own id of it; "No conversations." when none |
 | read one monitored conversation | `suwageval monitoring conversation <id>` (`--json`): its line, the monitoring checks it got (✓ passed, ✗ failed, ? not judged, with the reason), then each turn with its items (the user's message, tool calls and results, retrievals, events, the answer) |
 | write the checks run on every real conversation | `suwageval/monitoring-checks.yaml` (`checks:`, each with a `description`; no `samples` or `passThreshold`; format in the file format doc), then `suwageval validate` and `suwageval push` |
@@ -126,10 +125,10 @@ checked (`namesChecked: false` in `--json`). Say so; do not call the scenarios v
 Where a command or a file lets you choose a name, choose one that says what it is, so a person reading the runs list,
 the groups or the compare page later knows it without opening anything. Do this by default, without being asked:
 
-- **`--group`** of `run`, `rerun` and `sweep`: lowercase kebab-case, what the runs compare and the day, e.g.
+- **`--group`** of `run` and `sweep`: lowercase kebab-case, what the runs compare and the day, e.g.
   `models-gpt-4o-vs-mini-2026-10-23`, `prompt-concise-2026-10-23`. Never a bare `test`, `exp1` or a timestamp alone; reuse an
   existing group's name only to add runs to that very experiment (`suwageval runs --groups` lists them).
-- **`--note`** of `run` and `rerun`: one sentence on why this run is started, taken from the conversation ("after the refund prompt
+- **`--note`** of `run`: one sentence on why this run is started, taken from the conversation ("after the refund prompt
   was shortened", "checks the fix of order-status", "trying qwen3 as the agent's model"). Add it by default to every run you start,
   in the user's language, and say in your summary which note you gave. When the reason is not known, leave the note out rather than
   invent one. When the user says afterwards why a run was made, set it with `suwageval note <runId> "<text>"`.
@@ -255,7 +254,7 @@ version on your own initiative.
 ## Reading results
 
 `run --wait --json` prints `{ run, scenarios }`. `run` has the agent, `agentVersionId`, `status`,
-`error` and the totals (`checksPassed`, `checksFailed`). `status` `Interrupted` means the server stopped during the run (a restart, a deploy), not that the agent or a check failed: the results so far are partial, so offer `suwageval rerun <id>`. Each scenario has `key` and its
+`error` and the totals (`checksPassed`, `checksFailed`). `status` `Interrupted` means the server stopped during the run (a restart, a deploy), not that the agent or a check failed: the results so far are partial, so offer a new run with its tags. Each scenario has `key` and its
 `checks`; a check has `key`, `passed`, `passRate`, `passThreshold` and per-sample `message` and
 `evidence` — the message says why it failed. A judge check's message is the judge's reason; a sample with `notJudged: true` was not judged at all. A scenario sample with an `error` means the agent
 itself failed on that turn, which is not a check failing: say which.
@@ -277,8 +276,8 @@ history, so it is *new* until it has run enough times.
 ## Unstable checks
 
 A model does not answer the same way twice: a check can pass in one run and fail in another of the
-**same** agent version. Before suggesting a fix for a failing check, run `suwageval unstable --json`
-and look for it (by `scenarioKey`, `checkKey` and the run's version). When it is listed, say so first:
+**same** agent version. Before suggesting a fix for a failing check, run `suwageval problems --json`
+and look for it in `unstableChecks` (by `scenarioKey`, `checkKey` and the run's version). When it is listed, say so first:
 the failure may be noise, not a regression. Do not change the agent for it; suggest raising `samples`
 of that scenario or that check (so the pass rate over samples decides) or loosening `passThreshold`, and leave the
 choice to the user.
@@ -294,7 +293,7 @@ vary to keep runs fast.
 `suwageval compare` aligns runs of one agent by scenario and check key and prints them side by side: read it (or `--json`)
 instead of fetching every run's results.
 
-- **Which runs:** `suwageval runs --json` lists the newest first; `compare <runId>...` takes up to 20, `compare --group <name>`
+- **Which runs:** `suwageval runs --json` lists the newest first; `compare <runId>...` takes up to 7, `compare --group <name>`
   every run of a group.
 - **There is no default baseline.** Without `--baseline` the values are absolute: per run the version label, models, checks
   passed, samples answered and turn times, the pass rate per tag, and the checks per scenario with the failed ones. With

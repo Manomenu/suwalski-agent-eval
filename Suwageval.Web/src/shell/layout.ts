@@ -5,7 +5,7 @@ export const CONTENT_MAX_WIDTH = 1400;
 
 /**
  * How wide a page's content may grow: CONTENT_MAX_WIDTH, but none for the pages that set their own widths — the agent's (its
- * analytics reach the right edge on a wide screen, app.css) and the comparison (up to 20 run columns: it takes the whole screen
+ * analytics reach the right edge on a wide screen, app.css) and the comparison (up to 7 run columns: it takes the whole screen
  * and its table scrolls sideways beyond that).
  */
 export function contentMaxWidth(kind: string): number | undefined {

@@ -6,8 +6,8 @@ namespace Suwageval.Server.Evaluation.Runs.Compare;
 /// <summary>The compare view of runs, as a pure function over their results: the checks and tags are counted by the rules of <see cref="RunComparer"/>.</summary>
 internal static class RunComparisonReport
 {
-    /// <summary>The most runs a comparison holds.</summary>
-    public const int MaxRuns = 20;
+    /// <summary>The most runs a comparison holds: the same as the web's print limit (<c>PRINT_MAX_RUNS</c>) and the CLI's (<c>CompareCommand.MaxRuns</c>); a test compares them.</summary>
+    public const int MaxRuns = 7;
 
     public static RunComparison Build(
         string agent,

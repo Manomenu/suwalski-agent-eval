@@ -25,7 +25,6 @@ internal static class RunEndpoints
         app.MapGet("/runs", ListAsync).Produces<RunList>();
         app.MapGet("/runs/{id:guid}", GetAsync).Produces<RunSummary>();
         app.MapGet("/runs/{id:guid}/results", ResultsAsync).Produces<RunResults>();
-        app.MapPost("/runs/{id:guid}/rerun", RerunAsync).Produces<RunCreated>(StatusCodes.Status202Accepted);
         app.MapGet("/runs/{id:guid}/recheck", RecheckPlanAsync).Produces<RecheckPlan>();
         app.MapPost("/runs/{id:guid}/recheck", RecheckAsync).Produces<RunCreated>(StatusCodes.Status202Accepted);
         app.MapPost("/runs/{id:guid}/cancel", CancelAsync).Produces(StatusCodes.Status202Accepted);
@@ -40,25 +39,8 @@ internal static class RunEndpoints
     /// and checks — the mismatches are listed and nothing is queued; 409 also when a judge check or a <c>$judge</c> argument matcher is
     /// picked and no judge model is configured, or a simulated scenario and no simulator model.
     /// </summary>
-    private static Task<IResult> CreateAsync(
+    private static async Task<IResult> CreateAsync(
         RunRequest request,
-        AgentStore agents,
-        ScenarioStore scenarios,
-        CheckStore checks,
-        RunStore runs,
-        AgentClient client,
-        Judge judge,
-        UserSimulator simulator,
-        CancellationToken cancellationToken
-    ) => StartAsync(request, null, agents, scenarios, checks, runs, client, judge, simulator, cancellationToken);
-
-    /// <summary>
-    /// <see cref="CreateAsync"/> with the placement of the run (origin, reference, compared branch) given by the caller — a rerun's is its
-    /// source's; none decides it from the request's origin and the agent's regression settings.
-    /// </summary>
-    private static async Task<IResult> StartAsync(
-        RunRequest request,
-        RunPlacement? inherited,
         AgentStore agents,
         ScenarioStore scenarios,
         CheckStore checks,
@@ -172,7 +154,7 @@ internal static class RunEndpoints
             );
         }
 
-        var placement = inherited ?? RunPlacement.Decide(request.Origin, agent.Regression);
+        var placement = RunPlacement.Decide(request.Origin, agent.Regression);
         if (request.Group is not null)
         {
             placement = placement.AsExperiment();
@@ -198,50 +180,6 @@ internal static class RunEndpoints
                 AgentVersionId = version.Id,
                 VersionCreated = registration.Created,
             }
-        );
-    }
-
-    /// <summary>
-    /// A new run with the parameters of run <paramref name="id"/> — its agent, tags and endpoint (unless the body gives another) —
-    /// through <see cref="CreateAsync"/>: the version is what the agent serves now, the scenarios its current ones, and the
-    /// answers and refusals are the same. 404 for an unknown run; the repeated run is not touched.
-    /// </summary>
-    private static async Task<IResult> RerunAsync(
-        Guid id,
-        RerunRequest? request,
-        AgentStore agents,
-        ScenarioStore scenarios,
-        CheckStore checks,
-        RunStore runs,
-        AgentClient client,
-        Judge judge,
-        UserSimulator simulator,
-        CancellationToken cancellationToken
-    )
-    {
-        var original = await runs.GetAsync(id, cancellationToken);
-        if (original is null)
-        {
-            return ProblemResults.NotFound("Run", id.ToString());
-        }
-        return await StartAsync(
-            new RunRequest
-            {
-                Agent = original.AgentId.ToString(),
-                Tags = original.Tags,
-                EndpointUrl = request?.EndpointUrl ?? original.EndpointUrl,
-                Group = request?.Group,
-                Note = request?.Note,
-            },
-            original.Placement,
-            agents,
-            scenarios,
-            checks,
-            runs,
-            client,
-            judge,
-            simulator,
-            cancellationToken
         );
     }
 

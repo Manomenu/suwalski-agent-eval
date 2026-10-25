@@ -21,7 +21,7 @@ internal static class RunVerdict
         var run = results.Run;
         if (run.Status == RunStatus.Interrupted)
         {
-            return $"The run was interrupted: the server stopped during the run. Start it again with `suwageval rerun {run.Id}`.";
+            return $"The run was interrupted: the server stopped during the run. Start a new run (`suwageval run`).";
         }
         if (run.Status != RunStatus.Done)
         {

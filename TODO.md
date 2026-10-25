@@ -193,7 +193,7 @@ To do in that change:
   - **The plugin picks the cheapest step:** only checks changed → `recheck` (no agent call); a scenario's file changed → run only
     that scenario (`--scenario`), not the tag.
   - **`run --samples 1`** for an iteration, the full `samples` only for the run that decides (before push, in CI).
-  - **`rerun --failed`**: only the scenarios that failed in a given run.
+  - **`run --failed-from <runId>`**: only the scenarios that failed in a given run.
   - **Results as they come:** `run --wait` prints each scenario's verdict when it finishes, and `--fail-fast` stops the run at the
     first regression, so the agent starts fixing early.
   - **A judge cache:** the same criteria over the same output gives the stored verdict without calling the model (keyed by a hash

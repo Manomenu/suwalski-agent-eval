@@ -61,24 +61,6 @@ internal sealed class ServerClient(HttpClient http)
             cancellationToken
         );
 
-    /// <summary>A new run with the agent, tags and endpoint of run <paramref name="runId"/> (the endpoint unless another is given), in <paramref name="group"/> if any, with <paramref name="note"/> if any.</summary>
-    public Task<RunCreated> RerunAsync(Guid runId, string? endpointUrl, string? group, string? note, CancellationToken cancellationToken) =>
-        SendAsync<RunCreated>(
-            () =>
-                http.PostAsJsonAsync(
-                    new Uri($"eval/runs/{runId}/rerun", UriKind.Relative),
-                    new RerunRequest
-                    {
-                        EndpointUrl = endpointUrl,
-                        Group = group,
-                        Note = note,
-                    },
-                    ContractJson.Options,
-                    cancellationToken
-                ),
-            cancellationToken
-        );
-
     /// <summary>What a re-check of run <paramref name="runId"/> would do and whether it can start.</summary>
     public Task<RecheckPlan> RecheckPlanAsync(Guid runId, CancellationToken cancellationToken) =>
         SendAsync<RecheckPlan>(

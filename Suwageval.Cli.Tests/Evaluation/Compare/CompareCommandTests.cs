@@ -3,7 +3,6 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using Suwageval.AgentSdk;
-using Suwageval.Cli.Evaluation.Compare;
 using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Cli.Tests.Evaluation.Compare;
@@ -352,54 +351,6 @@ public sealed class CompareCommandTests
         Assert.Empty(output);
         Assert.Contains("--print needs --open", error, StringComparison.Ordinal);
         Assert.Empty(api.PathsAndQueries);
-        Assert.Empty(opened);
-    }
-
-    [Fact]
-    public void Print_of_more_runs_than_a_page_holds_is_refused_before_anything_is_asked()
-    {
-        var ids = Enumerable
-            .Range(1, CompareCommand.PrintMaxRuns + 1)
-            .Select(n => Guid.Parse($"{n:D8}-0000-0000-0000-000000000000"))
-            .ToArray();
-
-        var (exit, output, error, api, opened) = Print([.. ids.Select(id => id.ToString()), "--open", "--print"]);
-
-        Assert.Equal(2, exit);
-        Assert.Empty(output);
-        Assert.Contains(
-            $"{ids.Length} runs do not fit a printed page (at most {CompareCommand.PrintMaxRuns})",
-            error,
-            StringComparison.Ordinal
-        );
-        Assert.Empty(api.PathsAndQueries);
-        Assert.Empty(opened);
-    }
-
-    [Fact]
-    public void Print_of_a_group_larger_than_a_page_is_refused_before_the_page_is_opened()
-    {
-        // The group's size is known only from the answer: the answer here has more columns than a page holds.
-        var runs = Enumerable.Range(0, CompareCommand.PrintMaxRuns + 1).Select(_ => Comparison(null).Runs[0]).ToArray();
-        var (exit, output, error, _, opened) = Compare(
-            _ => new HttpResponseMessage(HttpStatusCode.OK)
-            {
-                Content = new StringContent(
-                    JsonSerializer.Serialize(Comparison(null) with { Runs = runs }, ContractJson.Options),
-                    Encoding.UTF8,
-                    "application/json"
-                ),
-            },
-            null,
-            "--group",
-            "sweep-1",
-            "--open",
-            "--print"
-        );
-
-        Assert.Equal(2, exit);
-        Assert.Empty(output);
-        Assert.Contains("do not fit a printed page", error, StringComparison.Ordinal);
         Assert.Empty(opened);
     }
 

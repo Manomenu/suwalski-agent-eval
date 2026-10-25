@@ -1,21 +1,19 @@
 using System.CommandLine;
 using Suwageval.Cli.AgentDelete;
 using Suwageval.Cli.Agents;
-using Suwageval.Cli.Evaluation.AgentErrors;
 using Suwageval.Cli.Evaluation.Cancel;
 using Suwageval.Cli.Evaluation.Compare;
 using Suwageval.Cli.Evaluation.Groups;
 using Suwageval.Cli.Evaluation.Note;
+using Suwageval.Cli.Evaluation.Problems;
 using Suwageval.Cli.Evaluation.Push;
 using Suwageval.Cli.Evaluation.Recheck;
-using Suwageval.Cli.Evaluation.Rerun;
 using Suwageval.Cli.Evaluation.Results;
 using Suwageval.Cli.Evaluation.Run;
 using Suwageval.Cli.Evaluation.Runs;
 using Suwageval.Cli.Evaluation.Scenarios;
 using Suwageval.Cli.Evaluation.Sweep;
 using Suwageval.Cli.Evaluation.Trend;
-using Suwageval.Cli.Evaluation.Unstable;
 using Suwageval.Cli.Evaluation.Validate;
 using Suwageval.Cli.Files;
 using Suwageval.Cli.Init;
@@ -34,7 +32,7 @@ internal static class CliApp
     // interactive: whether a person answers on input; without one, nothing is asked.
     // origins: how run reads the repository and the CI environment; null is the real ones.
     // shell, labelPollInterval: how sweep runs its command lines and how often it reads the agent's label; null is the real shell and 2 s.
-    // interrupt: Ctrl+C (Program.cs). It cancels what a command does; run and rerun --wait ask then whether to cancel the run too.
+    // interrupt: Ctrl+C (Program.cs). It cancels what a command does; run --wait asks then whether to cancel the run too.
     public static int Run(
         string[] args,
         TextReader input,
@@ -83,7 +81,6 @@ internal static class CliApp
             ValidateCommand.Create(input, http),
             PushCommand.Create(http),
             RunCommand.Create(terminal, http, origins),
-            RerunCommand.Create(terminal, http),
             RecheckCommand.Create(terminal, http),
             CancelCommand.Create(http),
             NoteCommand.Create(http),
@@ -96,8 +93,7 @@ internal static class CliApp
             ScenariosCommand.Create(http),
             ScenarioCommand.Create(http),
             TrendCommand.Create(http),
-            UnstableCommand.Create(http),
-            AgentErrorsCommand.Create(http),
+            ProblemsCommand.Create(http),
             VersionsCommand.Create(terminal, http, openBrowser),
             GroupsCommand.Create(terminal, http),
             AgentDeleteCommand.Create(terminal, http),

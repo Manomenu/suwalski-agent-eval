@@ -38,7 +38,7 @@ internal sealed record RunRow(
     string? DataDescription = null
 )
 {
-    /// <summary>What a rerun or a re-check of this run inherits.</summary>
+    /// <summary>What a re-check of this run inherits.</summary>
     public RunPlacement Placement =>
         new(Origin is null ? null : JsonSerializer.Deserialize<RunOrigin>(Origin, ContractJson.Options), Reference, ComparedWith);
 

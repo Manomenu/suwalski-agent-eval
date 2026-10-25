@@ -25,7 +25,7 @@ The agent changed; bring its Suwageval scenarios back in line. Folder, if given:
    the fix is seen as a change (a check that did not change is not re-evaluated; exit 0 with nothing to do means the
    push did not change it), then `suwageval recheck <runId> --wait --json`. It judges the same stored answers with the
    current checks, so any difference from the original run comes from the checks alone: compare the two runs
-   (`suwageval results <runId> --json` for each). `rerun` is for when the agent changed.
+   (`suwageval results <runId> --json` for each). A new `run` is for when the agent changed.
 5. Report what changed, file by file. List separately what needs the user's decision — a check
    whose intent no longer makes sense after the change, a removed tool with no successor — and
    leave it in place rather than deleting or weakening it. Do not `run`.

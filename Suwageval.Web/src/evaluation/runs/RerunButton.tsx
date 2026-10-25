@@ -1,18 +1,21 @@
 import { Alert, Button, Stack } from "@mantine/core";
 import { useState } from "react";
 
-import { rerun } from "./api";
+import { runRequestLike, startRun, type RunSummary } from "./api";
 import { runHref } from "../../routes/links";
 
-/** "Run again": a new run like this one, then its page. Any status may be repeated; the server's refusal is shown as it came. */
-export function RerunButton({ runId }: { runId: string }) {
+/**
+ * "Run again": a new run like this one (its agent, tags, endpoint and group), started the way any run is, then its page. Any status may
+ * be repeated; the server's refusal is shown as it came.
+ */
+export function RerunButton({ run }: { run: RunSummary }) {
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const start = () => {
         setBusy(true);
         setError(null);
-        rerun(runId).then(
+        startRun(runRequestLike(run)).then(
             (created) => {
                 window.location.assign(runHref(created.runId));
             },

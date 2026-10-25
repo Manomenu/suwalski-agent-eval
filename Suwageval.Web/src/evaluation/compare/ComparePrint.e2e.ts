@@ -1,6 +1,6 @@
 // Printing the comparison: the same page on paper (print media, A4 landscape), PRINT_MAX_RUNS run columns inside the paper at their
-// printed width, every scenario row open, no control; the Print button is off above the cap. The agent is a tiny HTTP server; the
-// runs are PRINT_MAX_RUNS + 1 of one group.
+// printed width, every scenario row open, no control. The agent is a tiny HTTP server; the
+// runs are PRINT_MAX_RUNS of one group.
 import { expect, test, type Page } from "@playwright/test";
 
 import {
@@ -41,7 +41,7 @@ test.beforeAll(async ({ request }) => {
     // The first run's answer lacks the refund, the others have it: both scenarios differ between the columns.
     const first = await runToEnd(request, { agent: name, group });
     served.reply = "Hello, your refund is on its way.";
-    const others = await Promise.all(Array.from({ length: PRINT_MAX_RUNS }, () => runToEnd(request, { agent: name, group })));
+    const others = await Promise.all(Array.from({ length: PRINT_MAX_RUNS - 1 }, () => runToEnd(request, { agent: name, group })));
     runIds = [first, ...others];
 });
 
@@ -49,7 +49,7 @@ test.afterAll(() => {
     agentServer.close();
 });
 
-const fitting = (extra = "") => `/compare?${new URLSearchParams({ runs: runIds.slice(0, PRINT_MAX_RUNS).join(",") }).toString()}${extra}`;
+const fitting = (extra = "") => `/compare?${new URLSearchParams({ runs: runIds.join(",") }).toString()}${extra}`;
 
 async function openForPaper(page: Page, address: string) {
     await page.setViewportSize(PAPER);
@@ -67,18 +67,6 @@ test("the Print button is on the screen, calls window.print and is not on paper"
     expect(await printedCount(page)).toBe(1);
     await page.emulateMedia({ media: "print" });
     await expect(button).toBeHidden();
-});
-
-test("above the cap the Print button is off and says why", async ({ page }) => {
-    // PRINT_MAX_RUNS + 1 runs picked one by one.
-    await page.goto(`/compare?${new URLSearchParams({ runs: runIds.join(",") }).toString()}`);
-    await expect(page.getByRole("button", { name: "Print", exact: true })).toBeDisabled();
-    await expect(
-        page.getByText(
-            `At most ${String(PRINT_MAX_RUNS)} runs fit a printed page — compare fewer runs, e.g. with the same baseline, and print each.`,
-            { exact: true },
-        ),
-    ).toBeVisible();
 });
 
 test("on paper PRINT_MAX_RUNS columns fit the paper at their printed width, every row is open, no control shows", async ({ page }) => {
@@ -102,6 +90,7 @@ test("on paper PRINT_MAX_RUNS columns fit the paper at their printed width, ever
         };
     });
     expect(heads).toHaveLength(PRINT_MAX_RUNS + 1);
+    expect(runIds).toHaveLength(PRINT_MAX_RUNS);
     for (const head of heads) {
         expect(head.left).toBeGreaterThanOrEqual(box.x - 1);
         expect(head.right).toBeLessThanOrEqual(box.x + box.width + 1);

@@ -53,6 +53,7 @@ import {
     RUN_GROUP_HELP,
     RUN_ID_HELP,
     RUN_STATUS_HELP,
+    PROBLEMS_SECTION_HELP,
     RUNS_SECTION_HELP,
 } from "./view";
 import { VERSION_HELP } from "../../versions/view";
@@ -215,10 +216,15 @@ function AgentView({
                     <Stack gap="lg">
                         {/* First, so it is never missed below the charts: these failures may be noise. */}
                         {(unstable.length > 0 || errors.length > 0) && (
-                            <div className="agent-health-cards">
-                                <UnstableChecksCard checks={unstable} />
-                                <AgentErrorsCard errors={errors} />
-                            </div>
+                            <Stack gap="sm">
+                                <Title order={3}>
+                                    <HeaderHelp label="Problems" help={PROBLEMS_SECTION_HELP} />
+                                </Title>
+                                <div className="agent-health-cards">
+                                    <UnstableChecksCard checks={unstable} />
+                                    <AgentErrorsCard errors={errors} />
+                                </div>
+                            </Stack>
                         )}
                         <Suspense fallback={null}>
                             <Trends points={trendPoints} />

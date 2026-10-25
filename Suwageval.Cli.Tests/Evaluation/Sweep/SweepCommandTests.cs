@@ -4,6 +4,7 @@ using System.Text.Json;
 using Suwageval.AgentSdk;
 using Suwageval.AgentSdk.Agents;
 using Suwageval.Cli.Files;
+using Suwageval.Cli.Server;
 using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Cli.Tests.Evaluation.Sweep;
@@ -172,6 +173,20 @@ public sealed class SweepCommandTests : IDisposable
         Assert.Equal(2, exit);
         Assert.Contains("No such variant: turbo", error, StringComparison.Ordinal);
         Assert.Empty(commands);
+    }
+
+    [Fact]
+    public void More_variants_than_one_comparison_holds_are_refused_before_anything_runs()
+    {
+        var names = Enumerable.Range(1, ComparisonLimit.MaxRuns + 1).Select(n => $"v{n}").ToArray();
+        var dir = Agent(Section, names);
+
+        var (exit, _, error) = Sweep(dir);
+
+        Assert.Equal(2, exit);
+        Assert.Contains($"A sweep runs at most {ComparisonLimit.MaxRuns} variants", error, StringComparison.Ordinal);
+        Assert.Empty(commands);
+        Assert.Equal(0, Sweep(dir, names[0]).Exit);
     }
 
     [Fact]

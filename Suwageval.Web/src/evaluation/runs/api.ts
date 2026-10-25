@@ -7,6 +7,7 @@ export type RunResults = components["schemas"]["RunResults"];
 export type RunCreated = components["schemas"]["RunCreated"];
 export type RunList = components["schemas"]["RunList"];
 export type RunSummary = components["schemas"]["RunSummary"];
+export type RunRequest = components["schemas"]["RunRequest"];
 export type ScenarioRunResult = components["schemas"]["ScenarioRunResult"];
 export type SampleResult = components["schemas"]["SampleResult"];
 export type CheckRunResult = components["schemas"]["CheckRunResult"];
@@ -51,9 +52,14 @@ export function setRunNote(runId: string, note: string | null): Promise<void> {
     return request<undefined>(`/eval/runs/${runId}/note`, { method: "PUT", body: JSON.stringify({ note }) }).then(() => undefined);
 }
 
-/** A new run with the agent, tag and endpoint of this one, against the version the agent serves now. */
-export function rerun(runId: string): Promise<RunCreated> {
-    return request<RunCreated>(`/eval/runs/${runId}/rerun`, { method: "POST" });
+/** The start of a new run like `run`: its agent, tags, endpoint, group and origin, against the version the agent serves now. */
+export function runRequestLike(run: RunSummary): RunRequest {
+    return { agent: run.agent, tags: run.tags ?? [], endpointUrl: run.endpointUrl, group: run.group ?? null, origin: run.origin ?? null };
+}
+
+/** Starts a new run (the same start as `suwageval run`). */
+export function startRun(body: RunRequest): Promise<RunCreated> {
+    return request<RunCreated>("/eval/runs", { method: "POST", body: JSON.stringify(body) });
 }
 
 /** What a re-check of the run would do and whether it can start; nothing is started. */

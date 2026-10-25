@@ -57,9 +57,9 @@ export const runHref = (runId: string) => `/runs/${runId}`;
 /** The page of one monitored conversation, with its turns. */
 export const conversationHref = (id: string) => `/conversations/${id}`;
 
-/** The comparison page takes at least two runs and at most twenty (the server's limit). */
+/** The comparison page takes at least two runs and at most seven: the same as the print limit (`PRINT_MAX_RUNS`) and the server's. */
 export const COMPARE_MIN_RUNS = 2;
-export const COMPARE_MAX_RUNS = 20;
+export const COMPARE_MAX_RUNS = 7;
 
 /** The compare page for these runs, side by side; with a `baseline` (one of them) the others are read against it. */
 export const compareHref = (runIds: readonly string[], baseline?: string) =>

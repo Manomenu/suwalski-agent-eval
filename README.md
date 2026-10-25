@@ -68,7 +68,7 @@ The same two last lines go into CI.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/visual/board/img/readme/features-dark.png">
-  <img alt="What you get. Evaluation, before a release: regressions (each check judged against its own history, CI-ready); unstable checks (flaky checks found per version); compare up to 20 runs side by side against a baseline; version diff of prompts, models and tools read from the agent; simulated users (a model plays a user described in plain words); re-check of stored answers without calling the agent; sweeps (one run per configuration variant, in one group); turn time on every turn and on the trend. Monitoring, after it: conversations per environment, sent by the deployed agent without slowing it; monitoring checks on each closed conversation with pass rates over 7 and 30 days; day-by-day charts of traffic and pass rates with deploys and data changes marked; a conversation copied as a scenario in one click, with the failed checks as comments." src="docs/visual/board/img/readme/features-light.png" width="100%">
+  <img alt="What you get. Evaluation, before a release: regressions (each check judged against its own history, CI-ready); unstable checks (flaky checks found per version); compare up to 7 runs side by side against a baseline; version diff of prompts, models and tools read from the agent; simulated users (a model plays a user described in plain words); re-check of stored answers without calling the agent; sweeps (one run per configuration variant, in one group); turn time on every turn and on the trend. Monitoring, after it: conversations per environment, sent by the deployed agent without slowing it; monitoring checks on each closed conversation with pass rates over 7 and 30 days; day-by-day charts of traffic and pass rates with deploys and data changes marked; a conversation copied as a scenario in one click, with the failed checks as comments." src="docs/visual/board/img/readme/features-light.png" width="100%">
 </picture>
 
 <picture>
@@ -81,7 +81,7 @@ The same two last lines go into CI.
   <img alt="Left: unstable checks and the pass-rate trend over runs. Right: what changed between two versions of the agent." src="docs/visual/board/img/readme/shot-trends-light.png" width="100%">
 </picture>
 
-Also: `compare` up to 20 runs against a baseline, `recheck` stored answers after fixing a check, `sweep` configuration variants,
+Also: `compare` up to 7 runs against a baseline, `recheck` stored answers after fixing a check, `sweep` configuration variants,
 and multi-turn **simulation** where a model plays a user you describe in plain words
 ([docs/scenario-format.md#simulation](docs/scenario-format.md#simulation)).
 

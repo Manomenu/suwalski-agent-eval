@@ -126,7 +126,6 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         );
 
         var run = await Post(client, new RunRequest { Agent = agent.Name });
-        var rerun = await client.PostAsync(new Uri($"/eval/runs/{done.RunId}/rerun", UriKind.Relative), null, Cancellation);
         var scenarios = await client.PutAsJsonAsync(
             new Uri($"/eval/agents/{agent.Name}/scenarios", UriKind.Relative),
             new PutScenariosRequest([]),
@@ -134,7 +133,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
             Cancellation
         );
 
-        foreach (var response in new[] { run, rerun, scenarios })
+        foreach (var response in new[] { run, scenarios })
         {
             Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
             var problem = await response.Content.ReadFromJsonAsync<JsonElement>(Cancellation);
@@ -199,92 +198,6 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         Assert.Equal(fake.Url.AbsoluteUri, run.EndpointUrl);
         Assert.Empty(run.Tags);
         Assert.Equal(1, fake.ContractRequests);
-    }
-
-    private static Task<HttpResponseMessage> Rerun(HttpClient client, Guid runId, RerunRequest? body = null) =>
-        body is null
-            ? client.PostAsync(new Uri($"/eval/runs/{runId}/rerun", UriKind.Relative), null, Cancellation)
-            : client.PostAsJsonAsync(new Uri($"/eval/runs/{runId}/rerun", UriKind.Relative), body, Cancellation);
-
-    private static async Task<RunCreated> RerunOkAsync(HttpClient client, Guid runId, RerunRequest? body = null)
-    {
-        var response = await Rerun(client, runId, body);
-        Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
-        return await response.Content.ReadFromJsonAsync<RunCreated>(Cancellation) ?? throw new InvalidOperationException("no body");
-    }
-
-    [Fact]
-    public async Task An_interrupted_run_can_be_run_again()
-    {
-        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
-        var client = Client();
-        var agent = await NewAgentAsync(fake.Url.AbsoluteUri);
-        var original = await StartAsync(client, new RunRequest { Agent = agent.Name });
-        var store = new RunStore(database.Pool);
-        await store.ClaimNextAsync(agent.Id, Cancellation);
-        await store.InterruptRunningAsync(agent.Id, Cancellation);
-
-        var again = await RerunOkAsync(client, original.RunId);
-
-        Assert.NotEqual(original.RunId, again.RunId);
-        Assert.Equal(RunStatus.Interrupted, (await GetAsync<RunSummary>(client, $"/eval/runs/{original.RunId}")).Status);
-    }
-
-    [Theory]
-    [InlineData("regression")]
-    [InlineData("regression", "smoke")]
-    [InlineData]
-    public async Task A_rerun_is_a_new_run_with_the_agent_tags_and_endpoint_of_the_original(params string[] tags)
-    {
-        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
-        var client = Client();
-        var agent = await NewAgentAsync(fake.Url.AbsoluteUri);
-        var original = await StartAsync(client, new RunRequest { Agent = agent.Name, Tags = tags });
-
-        var again = await RerunOkAsync(client, original.RunId);
-
-        Assert.NotEqual(original.RunId, again.RunId);
-        Assert.Equal((original.AgentVersionId, false), (again.AgentVersionId, again.VersionCreated));
-        var first = await GetAsync<RunSummary>(client, $"/eval/runs/{original.RunId}");
-        var second = await GetAsync<RunSummary>(client, $"/eval/runs/{again.RunId}");
-        Assert.Equal((agent.Name, fake.Url.AbsoluteUri), (second.Agent, second.EndpointUrl));
-        Assert.Equal(tags, second.Tags);
-        Assert.Equal((RunStatus.Queued, original.RunId), (first.Status, first.Id));
-    }
-
-    [Fact]
-    public async Task A_rerun_takes_the_version_the_agent_serves_now_and_may_go_to_another_endpoint()
-    {
-        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
-        await using var other = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
-        var client = Client();
-        var agent = await NewAgentAsync(fake.Url.AbsoluteUri);
-        var original = await StartAsync(client, new RunRequest { Agent = agent.Name });
-
-        other.ServeContract(SeededAgent.ExampleVersionConfigured("Changed since."));
-        var again = await RerunOkAsync(client, original.RunId, new RerunRequest { EndpointUrl = other.Url.AbsoluteUri });
-
-        Assert.True(again.VersionCreated);
-        Assert.NotEqual(original.AgentVersionId, again.AgentVersionId);
-        Assert.Equal(other.Url.AbsoluteUri, (await GetAsync<RunSummary>(client, $"/eval/runs/{again.RunId}")).EndpointUrl);
-    }
-
-    [Fact]
-    public async Task Rerunning_an_unknown_run_is_404() =>
-        Assert.Equal(HttpStatusCode.NotFound, (await Rerun(Client(), Guid.NewGuid())).StatusCode);
-
-    [Fact]
-    public async Task A_rerun_meets_the_refusals_of_a_new_run()
-    {
-        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
-        var client = Client();
-        var agent = await NewAgentAsync(fake.Url.AbsoluteUri);
-        var original = await StartAsync(client, new RunRequest { Agent = agent.Name });
-
-        var response = await Rerun(client, original.RunId, new RerunRequest { EndpointUrl = "http://127.0.0.1:1" });
-
-        await AssertBadGatewayAsync(response, "http://127.0.0.1:1/suwageval/contract");
-        Assert.Single((await GetAsync<RunList>(client, $"/eval/runs?agent={agent.Name}")).Runs);
     }
 
     [Fact]
@@ -510,21 +423,6 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         Assert.Equal(("sweep-1", 2, 1), (groups.Single().Name, groups.Single().Runs, groups.Single().Versions));
     }
 
-    [Fact]
-    public async Task A_rerun_is_in_the_group_it_asks_for_and_does_not_inherit_the_original_s()
-    {
-        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
-        var client = Client();
-        var agent = await NewAgentAsync(fake.Url.AbsoluteUri);
-        var original = await StartAsync(client, new RunRequest { Agent = agent.Name, Group = "sweep-1" });
-
-        var plain = await RerunOkAsync(client, original.RunId);
-        var grouped = await RerunOkAsync(client, original.RunId, new RerunRequest { Group = "sweep-2" });
-
-        Assert.Null((await GetAsync<RunSummary>(client, $"/eval/runs/{plain.RunId}")).Group);
-        Assert.Equal("sweep-2", (await GetAsync<RunSummary>(client, $"/eval/runs/{grouped.RunId}")).Group);
-    }
-
     [Theory]
     [InlineData("Sweep 1")]
     [InlineData("sweep--1")]
@@ -545,19 +443,14 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         client.PutAsJsonAsync(new Uri($"/eval/runs/{runId}/note", UriKind.Relative), new NoteRequest { Note = note }, Cancellation);
 
     [Fact]
-    public async Task A_note_set_at_start_is_trimmed_listed_and_not_inherited_by_a_rerun_and_can_be_changed_and_cleared_later()
+    public async Task A_note_set_at_start_is_trimmed_listed_and_can_be_changed_and_cleared_later()
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
         var client = Client();
         var agent = await NewAgentAsync(fake.Url.AbsoluteUri);
         var original = await StartAsync(client, new RunRequest { Agent = agent.Name, Note = "  rebuilt the index \n" });
 
-        var rerun = await RerunOkAsync(client, original.RunId, new RerunRequest { Note = "trying model X" });
-        var plain = await RerunOkAsync(client, original.RunId);
-
         Assert.Equal("rebuilt the index", (await GetAsync<RunSummary>(client, $"/eval/runs/{original.RunId}")).Note);
-        Assert.Equal("trying model X", (await GetAsync<RunSummary>(client, $"/eval/runs/{rerun.RunId}")).Note);
-        Assert.Null((await GetAsync<RunSummary>(client, $"/eval/runs/{plain.RunId}")).Note);
 
         Assert.Equal(HttpStatusCode.NoContent, (await PutNote(client, original.RunId, " new reason ")).StatusCode);
         var listed = await GetAsync<RunList>(client, $"/eval/runs?agent={agent.Name}");
