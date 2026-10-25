@@ -44,7 +44,7 @@ function View({ detail }: { detail: ConversationDetail }) {
                 </Badge>
                 <ScenarioDraftButton
                     conversationId={conversation.id}
-                    turns={turns.length}
+                    items={turns.flatMap((turn) => turn.items)}
                     failed={detail.checks?.some((check) => !check.passed && check.notJudged !== true) ?? false}
                 />
             </Group>

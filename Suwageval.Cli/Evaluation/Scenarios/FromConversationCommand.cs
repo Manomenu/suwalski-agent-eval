@@ -4,10 +4,10 @@ using Suwageval.Cli.Server;
 namespace Suwageval.Cli.Evaluation.Scenarios;
 
 /// <summary>
-/// <c>suwageval scenario from-conversation &lt;id&gt;</c>: a monitored conversation drafted as a scenario file, taken as it is (the agent
-/// answers its last message) or, with <c>--until-turn N</c>, replayed to turn N and simulated after it (the simulated user drafted by
-/// Suwageval's model, to review), with the checks drafted from what the agent did as comments. Prints the YAML; with <c>--write</c> writes it
-/// to <c>&lt;dir&gt;/scenarios/&lt;key&gt;.yaml</c>, never over a file that is there. Exits 0; 1 when the file exists; 2 when the server is wrong.
+/// <c>suwageval scenario from-conversation &lt;id&gt;</c>: a monitored conversation drafted as a scenario file, copied to its end or, with
+/// <c>--up-to-user N</c> / <c>--up-to-agent N</c>, up to its N-th user or agent message (included); the monitoring checks it failed come
+/// below as comments. Prints the YAML; with <c>--write</c> writes it to <c>&lt;dir&gt;/scenarios/&lt;key&gt;.yaml</c>, never over a file that
+/// is there. Exits 0; 1 when the file exists; 2 when the server is wrong (no such message too).
 /// </summary>
 internal static class FromConversationCommand
 {
@@ -19,31 +19,29 @@ internal static class FromConversationCommand
         {
             Description = "Write the file to <dir>/scenarios/<key>.yaml instead of printing it (never over an existing file).",
         };
-        var untilTurn = new Option<int?>("--until-turn")
-        {
-            Description =
-                "Replay the conversation up to this turn (from 1): the agent answers its message, then a simulated user, described from the real one, goes on.",
-        };
-        untilTurn.Validators.Add(result =>
-        {
-            if (result.GetValueOrDefault<int?>() is < 1)
-            {
-                result.AddError("--until-turn is a turn of the conversation, from 1.");
-            }
-        });
+        var upToUser = MessageOption("--up-to-user", "user");
+        var upToAgent = MessageOption("--up-to-agent", "agent");
         var server = CommandOptions.Server();
         var dir = CommandOptions.Dir();
         var command = new Command(
             "from-conversation",
-            "Draft a scenario from a monitored conversation, as it is (the agent answers its last message) or replayed to --until-turn and simulated after it; checks drafted as comments."
+            "Draft a scenario from a monitored conversation, copied to its end or up to a user or agent message; its failed monitoring checks as comments."
         )
         {
             id,
-            untilTurn,
+            upToUser,
+            upToAgent,
             write,
             server,
             dir,
         };
+        command.Validators.Add(result =>
+        {
+            if (result.GetValue(upToUser) is not null && result.GetValue(upToAgent) is not null)
+            {
+                result.AddError("Copy up to a user message or an agent message, not both.");
+            }
+        });
         command.SetAction(
             (parsed, cancellationToken) =>
                 ServerCall.RunAsync(
@@ -52,12 +50,13 @@ internal static class FromConversationCommand
                     parsed.InvocationConfiguration.Error,
                     async (client, _) =>
                     {
-                        var draft = await client.ScenarioDraftAsync(parsed.GetValue(id), cancellationToken, parsed.GetValue(untilTurn));
+                        var draft = await client.ScenarioDraftAsync(
+                            parsed.GetValue(id),
+                            parsed.GetValue(upToUser),
+                            parsed.GetValue(upToAgent),
+                            cancellationToken
+                        );
                         var output = parsed.InvocationConfiguration.Output;
-                        if (draft.Notice is { } notice)
-                        {
-                            await parsed.InvocationConfiguration.Error.WriteLineAsync($"{notice} Write simulatedUser yourself.");
-                        }
                         if (!parsed.GetValue(write))
                         {
                             await output.WriteAsync(draft.Yaml);
@@ -76,14 +75,26 @@ internal static class FromConversationCommand
                         }
                         Directory.CreateDirectory(Path.GetDirectoryName(file)!);
                         await File.WriteAllTextAsync(file, draft.Yaml, cancellationToken);
-                        await output.WriteLineAsync(
-                            $"wrote {file}: review it (the checks are drafts, as comments), then validate and push."
-                        );
+                        await output.WriteLineAsync($"wrote {file}: review it, add the checks it must keep, then validate and push.");
                         return 0;
                     },
                     agentDir: parsed.GetRequiredValue(dir)
                 )
         );
         return command;
+    }
+
+    /// <summary>The option naming the <paramref name="who"/> message (from 1) the copy ends at.</summary>
+    private static Option<int?> MessageOption(string name, string who)
+    {
+        var option = new Option<int?>(name) { Description = $"Copy up to the conversation's N-th {who} message (from 1), included." };
+        option.Validators.Add(result =>
+        {
+            if (result.GetValueOrDefault<int?>() is < 1)
+            {
+                result.AddError($"{name} is a {who} message of the conversation, from 1.");
+            }
+        });
+        return option;
     }
 }

@@ -66,33 +66,47 @@ export function versionText(conversation: { agentVersionId: string; versionLabel
     return conversation.versionChanged === true ? `${name} (changed during it)` : name;
 }
 
-/** The path of the conversation's scenario draft: taken as it is (null), or replayed to a turn and simulated after it. */
-export function scenarioDraftPath(id: string, untilTurn: number | null): string {
-    return `/monitoring/conversations/${id}/scenario${untilTurn === null ? "" : `?untilTurn=${String(untilTurn)}`}`;
+/** Where the copy of a conversation ends: at its end, or at a chosen user or agent message (included). */
+export type DraftCut = "end" | "user" | "agent";
+
+export const DRAFT_CUTS: { value: DraftCut; label: string }[] = [
+    { value: "end", label: "Whole conversation" },
+    { value: "user", label: "Up to a user message" },
+    { value: "agent", label: "Up to an agent message" },
+];
+
+/** The cut the field's value names; anything else is the whole conversation. */
+export function draftCutOf(value: string | null): DraftCut {
+    return value === "user" || value === "agent" ? value : "end";
 }
 
-/** What the draft's "Replay" field offers: the conversation as it is, then each turn before the last to simulate after. */
-export function replayOptions(turns: number): { value: string; label: string }[] {
-    return [
-        { value: "", label: "As it is: the agent answers the last message" },
-        ...Array.from({ length: Math.max(turns - 1, 0) }, (_, index) => ({
-            value: String(index + 1),
-            label: `To turn ${String(index + 1)}, then a simulated user`,
-        })),
-    ];
+/** The path of the conversation's scenario draft: to its end, or up to its `ordinal`-th (from 1) user or agent message. */
+export function scenarioDraftPath(id: string, cut: DraftCut, ordinal: number): string {
+    const base = `/monitoring/conversations/${id}/scenario`;
+    if (cut === "end") return base;
+    return `${base}?${cut === "user" ? "upToUserMessage" : "upToAgentMessage"}=${String(ordinal)}`;
 }
 
-/** The turn the "Replay" field's value names; null: as it is. */
-export function untilTurnOf(value: string | null): number | null {
-    const turn = Number(value);
-    return value === null || value === "" || !Number.isInteger(turn) || turn < 1 ? null : turn;
-}
+/** How much of a message the picker shows. */
+export const MESSAGE_PREVIEW_LENGTH = 70;
 
-export const SIMULATED_DRAFT_HELP =
-    "Replayed to the chosen turn: the agent answers its message, then Suwageval's model plays the user for as many turns as the real conversation went on. The simulated user is described from the real one: review it before you save the file.";
+/** The user's or the agent's messages of the conversation to pick from, numbered from 1, each with the start of its text. */
+export function messageOptions(
+    items: readonly { kind?: string; text?: string }[],
+    cut: Exclude<DraftCut, "end">,
+): { value: string; label: string }[] {
+    const kind = cut === "user" ? "UserMessage" : "AssistantMessage";
+    return items
+        .filter((item) => item.kind === kind)
+        .map((item, index) => {
+            const text = (item.text ?? "").replace(/\s+/g, " ").trim();
+            const preview = text.length > MESSAGE_PREVIEW_LENGTH ? `${text.slice(0, MESSAGE_PREVIEW_LENGTH)}…` : text;
+            return { value: String(index + 1), label: `${String(index + 1)}. ${preview}` };
+        });
+}
 
 export const SCENARIO_DRAFT_HELP =
-    "Taken as it is: every turn before the last is the history, and the agent answers the last user message. The checks at the end are drafts, as comments, from what the agent did: keep what it must do, delete the rest. Add the fixtures the agent needs (the conversation ran on real data). Save the file in the agent's repository, then suwageval validate and push.";
+    "The conversation copied as a scenario: whole, or up to the message you pick. The monitoring checks it failed are at the end, as comments with their definitions. Build the scenario's checks from it (Claude can), add the fixtures the agent needs (the conversation ran on real data), save the file in the agent's repository, then suwageval validate and push.";
 
 export const CONVERSATIONS_HELP =
     "Conversations the deployed agent sent, the one with the newest turn first. A conversation is Open while turns come and Closed after the agent's closeAfter without one; a turn after that opens it again.";

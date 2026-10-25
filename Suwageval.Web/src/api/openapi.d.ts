@@ -1619,7 +1619,8 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
-                    untilTurn?: number;
+                    upToUserMessage?: number;
+                    upToAgentMessage?: number;
                 };
                 header?: never;
                 path: {
@@ -2946,15 +2947,13 @@ export interface components {
         SampleStatus: "Done" | "Failed" | "NotSimulated";
         /**
          * @description A scenario file drafted from a monitored conversation, for a person to review and put in the agent's repository: its proposed
-         *     string ScenarioDraft.Key, the file's string ScenarioDraft.Path in the repository and its string ScenarioDraft.Yaml (with draft checks as comments).
+         *     string ScenarioDraft.Key, the file's string ScenarioDraft.Path in the repository and its string ScenarioDraft.Yaml (with the monitoring checks the conversation failed as comments).
          */
         ScenarioDraft: {
             key: string;
             /** @description Where the file goes, relative to the repository's root: `suwageval/scenarios/&lt;key&gt;.yaml`. */
             path: string;
             yaml: string;
-            /** @description For a draft that simulates the rest of the conversation: why its simulated user was not drafted by a model; null when it was, or for one taken as it is. */
-            notice?: null | string;
         };
         /** @description A frozen moment of a conversation; the agent answers its last message. */
         ScenarioInput: {

@@ -11,15 +11,14 @@ $ARGUMENTS
 1. Read `features` in `suwageval/agent.yaml`. Without `monitoring` there are no conversations: say so and propose switching it on
    (then `suwageval push`) instead of going on.
 2. No id given: run `suwageval monitoring conversations` and ask which one (a closed one, ideally one where the agent went wrong).
-3. Decide with the user how to replay it. As it is (`suwageval scenario from-conversation <id>`): every turn before the last is the
-   history, and the agent answers the last user message — for a conversation that went wrong in its last answer. Replayed to a turn
-   (`--until-turn N`): the turns before N are the history, the agent answers turn N's message and a simulated user goes on — for one
-   that went wrong only later, or to test the agent against a user like this one. Run it and show the draft. With `--until-turn`, read
-   `simulatedUser` with the user and fix it (it was drafted by a model from the real user's messages; if stderr says no model wrote it,
-   write it together). The checks at the end are drafts, as comments, made from what the agent
-   did: they are not the expected answer (the agent may have been wrong; that is often why the conversation was picked).
-4. With the user, decide the checks: uncomment the ones that state what the agent must do, fix their values, delete the rest, add what
-   is missing (the scenario command's rules for choosing checks apply). Add the `fixtures` the agent needs, if its contract declares
+3. Decide with the user where the copy ends: the whole conversation (`suwageval scenario from-conversation <id>`), or up to a message,
+   included (`--up-to-user N` / `--up-to-agent N`: the N-th user or agent message; read the conversation with `suwageval monitoring
+   conversation <id>` to pick it) — usually the user message the agent answered wrongly, so that the scenario asks the agent that again.
+   Run it and show the draft. The comments at the end are the monitoring checks the conversation failed, with their definitions:
+   what went wrong, not checks of the scenario yet.
+4. With the user, write the scenario's checks: what the agent must do in answer to the copied conversation, starting from the failed
+   monitoring checks (a `judge` criteria can often be kept as it is; drop `description` where the scenario does not need it) and the
+   scenario command's rules for choosing checks. Add the `fixtures` the agent needs, if its contract declares
    `context.fixturesSchema`: the conversation ran on real data. Rename the key if a better one says what it checks.
 5. Ask before writing. Then `suwageval scenario from-conversation <id> --write` (it never overwrites a file), apply the decided edits to
    the written file, and run `suwageval validate` until it is valid.

@@ -67,13 +67,6 @@ internal sealed class RecordedModel(Func<CancellationToken, Task<string>> answer
     public UserSimulator Simulator(double temperature = 0.7) =>
         new(Clients(), Options.Create(new SimulationOptions { Temperature = temperature }));
 
-    /// <summary>A user describer over this model, through a simulator configured the way the server is.</summary>
-    public UserDescriber Describer()
-    {
-        var clients = Clients();
-        return new(new UserSimulator(clients, Options.Create(new SimulationOptions())), clients);
-    }
-
     public ModelClients Clients(int maxConcurrency = 8) =>
         new(
             new ModelsOptions

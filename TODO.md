@@ -39,11 +39,14 @@ To do in that change:
   `features` in `agent.yaml`, `dataVersion` out of the version's hash, the evaluation API under `/api/eval/…` (the old addresses
   removed), conversations sent by a deployed agent (`POST /api/monitoring/turns`, the .NET SDK's `IConversationRecorder`), the
   Monitoring page, `suwageval/monitoring-checks.yaml` run on every closed conversation by `MonitoringWorker` with 7/30-day rates and
-  daily charts, Versions' `monitoring` usage (Current, Not evaluated, `?environment=`), a scenario drafted from a conversation as it
-  is or replayed to a turn with a simulated user, and the old version filters gone (`versions --archived`, `--any-group`,
+  daily charts, Versions' `monitoring` usage (Current, Not evaluated, `?environment=`), a scenario drafted from a conversation (whole or up to a
+  chosen message, the failed monitoring checks as comments), and the old version filters gone (`versions --archived`, `--any-group`,
   `--all-versions`, the API's `grouping` of versions, `GroupRunsOnly`, the web's `?versions=`). The example agent sends its `/chat`
   conversations. **Before merging:** announce the breaking change (an installed CLI from before the epic calls the old addresses and
   flags), and update the bots to the new CLI. What is left, not in the first version:
+  - **Show where a scenario came from.** A scenario drafted from a monitored conversation stores `origin: { monitoringConversation:
+    <id> }`, but nothing shows it yet: a link "From conversation …" on the run page's scenario card and in `suwageval scenario <key>`,
+    so a regression in evaluation leads straight back to the real conversation it came from.
   - **A version's page with two panels side by side:** Evaluation (runs, pass rate) and Monitoring (conversations, the monitoring
     checks' pass rate) — the plan's "Strona wersji".
   - **A daily limit of judge calls** (`Monitoring:MaxJudgeCallsPerDay`; over it a conversation is checked without the judge and

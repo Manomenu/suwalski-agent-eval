@@ -3,9 +3,10 @@ import { describe, expect, it } from "vitest";
 import {
     checksVerdict,
     checksText,
-    replayOptions,
+    draftCutOf,
+    MESSAGE_PREVIEW_LENGTH,
+    messageOptions,
     scenarioDraftPath,
-    untilTurnOf,
     conversationsPath,
     initialFilter,
     stateOf,
@@ -68,16 +69,26 @@ describe("checksVerdict", () => {
 });
 
 describe("scenario draft", () => {
-    it("asks for the draft as it is or until a turn", () => {
-        expect(scenarioDraftPath("c1", null)).toBe("/monitoring/conversations/c1/scenario");
-        expect(scenarioDraftPath("c1", 2)).toBe("/monitoring/conversations/c1/scenario?untilTurn=2");
+    it("asks for the whole conversation or up to a user or agent message", () => {
+        expect(scenarioDraftPath("c1", "end", 1)).toBe("/monitoring/conversations/c1/scenario");
+        expect(scenarioDraftPath("c1", "user", 2)).toBe("/monitoring/conversations/c1/scenario?upToUserMessage=2");
+        expect(scenarioDraftPath("c1", "agent", 1)).toBe("/monitoring/conversations/c1/scenario?upToAgentMessage=1");
+        expect(draftCutOf("agent")).toBe("agent");
+        expect(draftCutOf(null)).toBe("end");
     });
 
-    it("offers as it is and every turn before the last, and reads the choice back", () => {
-        expect(replayOptions(3).map((option) => option.value)).toEqual(["", "1", "2"]);
-        expect(replayOptions(1)).toHaveLength(1);
-        expect(untilTurnOf("2")).toBe(2);
-        expect(untilTurnOf("")).toBeNull();
-        expect(untilTurnOf(null)).toBeNull();
+    it("numbers the messages of one side and shows the start of each", () => {
+        const items = [
+            { kind: "UserMessage", text: "Where is\nA-17?" },
+            { kind: "AssistantMessage", text: "x".repeat(MESSAGE_PREVIEW_LENGTH + 5) },
+            { kind: "ToolCall" },
+            { kind: "UserMessage", text: "Thanks" },
+        ];
+
+        expect(messageOptions(items, "user")).toEqual([
+            { value: "1", label: "1. Where is A-17?" },
+            { value: "2", label: "2. Thanks" },
+        ]);
+        expect(messageOptions(items, "agent")[0]?.label).toBe(`1. ${"x".repeat(MESSAGE_PREVIEW_LENGTH)}…`);
     });
 });

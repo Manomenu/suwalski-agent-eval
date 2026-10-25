@@ -1,6 +1,6 @@
 using System.Text.Json;
 using Suwageval.AgentSdk.Conversations;
-using Suwageval.Server.Evaluation.Simulation;
+using Suwageval.Contracts.Checks;
 using Suwageval.Server.ScenarioDrafts;
 
 namespace Suwageval.Server.Tests.ScenarioDrafts;
@@ -27,67 +27,61 @@ public sealed class ScenarioDraftWriterTests
             ],
         ];
 
-    [Fact]
-    public void The_history_is_every_turn_before_the_last_and_the_scenario_ends_with_the_last_user_message()
+    private static readonly CheckInput NoRefund = new ToolNotCalledCheck
     {
-        var draft = ScenarioDraftWriter.Draft("Chat #81", Id, Turns());
+        Key = "no-refund",
+        Tool = "refund_order",
+        Description = "Never refunds on its own.",
+    };
+
+    private static List<ConversationItem> Items() => [.. Turns().SelectMany(turn => turn)];
+
+    [Fact]
+    public void The_whole_conversation_is_copied_to_its_last_message_and_remembers_where_it_came_from()
+    {
+        var draft = ScenarioDraftWriter.Draft("Chat #81", Id, Items(), upTo: null, []);
 
         Assert.Equal("conversation-chat-81", draft.Key);
         Assert.Equal("suwageval/scenarios/conversation-chat-81.yaml", draft.Path);
-        var yaml = draft.Yaml;
-        Assert.Contains(
-            "- user: Hi\n- assistant: Hello, how can I help?\n- user: Refund order A-17, it arrived broken.\n",
-            yaml,
-            StringComparison.Ordinal
-        );
-        Assert.DoesNotContain("\n- assistant: Refunded.", yaml, StringComparison.Ordinal);
-        Assert.Contains($"origin:\n  monitoringConversation: {Id}\n", yaml, StringComparison.Ordinal);
+        Assert.Contains("copied to its end", draft.Yaml, StringComparison.Ordinal);
+        Assert.Contains("- user: Hi\n- assistant: Hello, how can I help?\n- user: Refund order A-17", draft.Yaml, StringComparison.Ordinal);
+        // The last answer cites a source, so it is written in full rather than as the shorthand.
+        Assert.Contains("text: Refunded.", draft.Yaml, StringComparison.Ordinal);
+        Assert.Contains($"origin:\n  monitoringConversation: {Id}\n", draft.Yaml, StringComparison.Ordinal);
+        Assert.DoesNotContain("checks", draft.Yaml, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(true, 1, "- user: Hi\n", "- assistant: Hello")]
+    [InlineData(false, 1, "- assistant: Hello, how can I help?\n", "- user: Refund")]
+    [InlineData(true, 2, "- user: Refund order A-17, it arrived broken.\n", "refund_order")]
+    public void A_copy_up_to_a_message_ends_with_it(bool userMessage, int ordinal, string last, string after)
+    {
+        var draft = ScenarioDraftWriter.Draft("chat-81", Id, Items(), new MessageCut(userMessage, ordinal), []);
+
+        Assert.Contains($"{last}origin:", draft.Yaml, StringComparison.Ordinal);
+        Assert.DoesNotContain(after, draft.Yaml, StringComparison.Ordinal);
+        Assert.Contains($"up to {(userMessage ? "user" : "agent")} message {ordinal}, included", draft.Yaml, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void What_the_agent_did_in_the_last_turn_is_drafted_as_commented_checks()
+    public void The_failed_monitoring_checks_come_below_as_comments_with_their_definitions()
     {
-        var yaml = ScenarioDraftWriter.Draft("chat-81", Id, Turns()).Yaml;
+        var yaml = ScenarioDraftWriter.Draft("chat-81", Id, Items(), upTo: null, [NoRefund]).Yaml;
 
         Assert.Contains("# checks:\n", yaml, StringComparison.Ordinal);
-        Assert.Contains(
-            "# - key: calls-refund-order\n#   type: tool-called\n#   tool: refund_order\n#   by: support\n",
-            yaml,
-            StringComparison.Ordinal
-        );
-        Assert.Contains("# - key: emits-state-changed\n#   type: event\n", yaml, StringComparison.Ordinal);
-        Assert.Contains("# - key: cites-its-sources\n#   type: cited\n", yaml, StringComparison.Ordinal);
+        Assert.Contains("key: no-refund\n", yaml, StringComparison.Ordinal);
+        Assert.Contains("type: tool-not-called\n", yaml, StringComparison.Ordinal);
+        Assert.Contains("#   tool: refund_order\n", yaml, StringComparison.Ordinal);
+        Assert.Contains("#   description: Never refunds on its own.\n", yaml, StringComparison.Ordinal);
         Assert.DoesNotContain("\nchecks:", yaml, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Until_a_turn_the_history_ends_with_its_user_message_and_a_simulated_user_goes_on()
+    public void A_message_the_conversation_does_not_have_is_no_cut()
     {
-        var draft = ScenarioDraftWriter.Draft(
-            "chat-81",
-            Id,
-            Turns(),
-            untilTurn: 1,
-            new UserDescription("You want a refund.", "not by a model")
-        );
-
-        var yaml = draft.Yaml;
-        Assert.Contains("replayed to turn 1", yaml, StringComparison.Ordinal);
-        Assert.Contains("conversation:\n- user: Hi\n", yaml, StringComparison.Ordinal);
-        Assert.DoesNotContain("- assistant: Hello", yaml, StringComparison.Ordinal);
-        Assert.Contains("continuation:\n  turns: 2\n  simulatedUser: You want a refund.\n", yaml, StringComparison.Ordinal);
-        // The later turns' calls are drafted too: a simulation's checks look at the whole conversation.
-        Assert.Contains("# - key: calls-refund-order\n", yaml, StringComparison.Ordinal);
-        Assert.Equal("not by a model", draft.Notice);
-    }
-
-    [Fact]
-    public void Until_the_last_turn_is_the_conversation_taken_as_it_is()
-    {
-        var draft = ScenarioDraftWriter.Draft("chat-81", Id, Turns(), untilTurn: 2);
-
-        Assert.Equal(ScenarioDraftWriter.Draft("chat-81", Id, Turns()).Yaml, draft.Yaml);
-        Assert.Null(draft.Notice);
+        Assert.Null(new MessageCut(true, 3).IndexIn(Items()));
+        Assert.Equal(1, new MessageCut(false, 1).IndexIn(Items()));
     }
 
     [Fact]

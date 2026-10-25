@@ -306,15 +306,25 @@ internal sealed class ServerClient(HttpClient http)
         );
 
     /// <summary>
-    /// A monitored conversation drafted as a scenario file (its key, path and YAML): taken as it is, or replayed to <paramref name="untilTurn"/>
-    /// and simulated after it.
+    /// A monitored conversation drafted as a scenario file (its key, path and YAML): copied to its end, or up to its
+    /// <paramref name="upToUser"/>-th user or <paramref name="upToAgent"/>-th agent message.
     /// </summary>
-    public Task<ScenarioDraft> ScenarioDraftAsync(Guid conversationId, CancellationToken cancellationToken, int? untilTurn = null) =>
+    public Task<ScenarioDraft> ScenarioDraftAsync(
+        Guid conversationId,
+        int? upToUser,
+        int? upToAgent,
+        CancellationToken cancellationToken
+    ) =>
         SendAsync<ScenarioDraft>(
             () =>
                 http.GetAsync(
                     new Uri(
-                        $"monitoring/conversations/{conversationId}/scenario{(untilTurn is { } turn ? $"?untilTurn={turn.ToString(CultureInfo.InvariantCulture)}" : "")}",
+                        $"monitoring/conversations/{conversationId}/scenario"
+                            + (
+                                upToUser is { } user ? $"?upToUserMessage={user.ToString(CultureInfo.InvariantCulture)}"
+                                : upToAgent is { } agent ? $"?upToAgentMessage={agent.ToString(CultureInfo.InvariantCulture)}"
+                                : ""
+                            ),
                         UriKind.Relative
                     ),
                     cancellationToken

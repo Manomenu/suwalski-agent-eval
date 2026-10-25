@@ -59,16 +59,22 @@ public sealed class FromConversationCommandTests : IDisposable
     }
 
     [Fact]
-    public void Until_turn_goes_to_the_server_and_a_turn_below_one_is_refused_before_it()
+    public void The_message_to_copy_up_to_goes_to_the_server_and_a_wrong_one_is_refused_before_it()
     {
-        var (exit, _, _, paths) = Run("--dir", dir, "--until-turn", "2");
-        var (refused, _, error, none) = Run("--dir", dir, "--until-turn", "0");
+        var (user, _, _, userPaths) = Run("--dir", dir, "--up-to-user", "2");
+        var (agent, _, _, agentPaths) = Run("--dir", dir, "--up-to-agent", "1");
+        var (zero, _, zeroError, zeroPaths) = Run("--dir", dir, "--up-to-user", "0");
+        var (both, _, bothError, bothPaths) = Run("--dir", dir, "--up-to-user", "1", "--up-to-agent", "1");
 
-        Assert.Equal(0, exit);
-        Assert.Equal([$"/monitoring/conversations/{Id}/scenario?untilTurn=2"], paths);
-        Assert.NotEqual(0, refused);
-        Assert.Contains("--until-turn is a turn of the conversation, from 1.", error, StringComparison.Ordinal);
-        Assert.Empty(none);
+        Assert.Equal((0, 0), (user, agent));
+        Assert.Equal([$"/monitoring/conversations/{Id}/scenario?upToUserMessage=2"], userPaths);
+        Assert.Equal([$"/monitoring/conversations/{Id}/scenario?upToAgentMessage=1"], agentPaths);
+        Assert.NotEqual(0, zero);
+        Assert.Contains("--up-to-user is a user message of the conversation, from 1.", zeroError, StringComparison.Ordinal);
+        Assert.NotEqual(0, both);
+        Assert.Contains("not both", bothError, StringComparison.Ordinal);
+        Assert.Empty(zeroPaths);
+        Assert.Empty(bothPaths);
     }
 
     [Fact]

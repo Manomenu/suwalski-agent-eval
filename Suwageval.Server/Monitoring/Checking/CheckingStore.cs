@@ -65,6 +65,29 @@ internal sealed class CheckingStore(Pool pool)
         ];
     }
 
+    /// <summary>The definitions of the monitoring checks the conversation failed (not those not judged), in the revision that failed, by key.</summary>
+    public async Task<IReadOnlyList<string>> FailedChecksAsync(Guid conversationId, CancellationToken cancellationToken = default)
+    {
+        await using var connection = await pool.OpenAsync(cancellationToken);
+        return
+        [
+            .. await connection.QueryAsync<string>(
+                new CommandDefinition(
+                    """
+                    SELECT r.content::text
+                    FROM monitoring_check_results res
+                    JOIN monitoring_checks c ON c.id = res.check_id
+                    JOIN monitoring_check_revisions r ON r.check_id = res.check_id AND r.revision = res.revision
+                    WHERE res.conversation_id = @conversationId AND NOT res.passed AND NOT res.not_judged
+                    ORDER BY c.key
+                    """,
+                    new { conversationId },
+                    cancellationToken: cancellationToken
+                )
+            ),
+        ];
+    }
+
     /// <summary>
     /// Stores the verdicts as the conversation's, replacing those it had, and marks it checked — unless a turn opened it again meanwhile
     /// (then nothing is stored: it is checked when it closes again). True when stored.

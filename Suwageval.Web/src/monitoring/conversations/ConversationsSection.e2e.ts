@@ -67,7 +67,7 @@ test("Versions in monitoring lists the version answering now, marked Current and
     await expect(page.getByRole("columnheader", { name: /Conversations, 30 d/ })).toBeVisible();
 });
 
-test("a conversation drafts as a scenario, as it is or replayed to a turn with a simulated user", async ({ page, request }) => {
+test("a conversation drafts as a scenario, whole or up to a chosen message", async ({ page, request }) => {
     const name = `e2e-monitoring-draft-${String(Date.now())}`;
     const data = { name, endpointUrl: "http://localhost:9/", features: { monitoring: {} } };
     expect((await request.post("/api/agents", { data })).ok()).toBe(true);
@@ -85,13 +85,15 @@ test("a conversation drafts as a scenario, as it is or replayed to a turn with a
     await page.goto(`/agents/${name}/monitoring`);
     await page.getByRole("link", { name: "chat-7", exact: true }).click();
     await page.getByRole("button", { name: "Scenario YAML", exact: true }).click();
-    await expect(page.getByLabel("Scenario YAML")).toContainText("- user: And B-2?");
+    const yaml = page.getByLabel("Scenario YAML");
+    await expect(yaml).toContainText("- assistant: About And B-2?");
 
-    await page.getByRole("combobox", { name: "Replay", exact: true }).click();
-    await page.getByRole("option", { name: "To turn 1, then a simulated user", exact: true }).click();
+    await page.getByRole("combobox", { name: "Copy", exact: true }).click();
+    await page.getByRole("option", { name: "Up to a user message", exact: true }).click();
+    await page.getByRole("combobox", { name: "Last user message", exact: true }).click();
+    await page.getByRole("option", { name: "1. Where is A-17?", exact: true }).click();
 
-    await expect(page.getByLabel("Scenario YAML")).toContainText("simulatedUser:");
-    await expect(page.getByLabel("Scenario YAML")).not.toContainText("- user: And B-2?");
-    // The e2e server has no model: the description is the plain draft, and the page says so.
-    await expect(page.getByText("Write the simulated user yourself", { exact: true })).toBeVisible();
+    await expect(yaml).toContainText("- user: Where is A-17?");
+    await expect(yaml).not.toContainText("About Where is A-17?");
+    await expect(yaml).not.toContainText("And B-2?");
 });

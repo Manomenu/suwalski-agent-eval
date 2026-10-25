@@ -11,6 +11,7 @@ using Suwageval.Contracts;
 using Suwageval.Contracts.Agents;
 using Suwageval.Contracts.Checks;
 using Suwageval.Contracts.Monitoring;
+using Suwageval.Contracts.Scenarios;
 using Suwageval.Server.Agents;
 using Suwageval.Server.Monitoring.Checking;
 using Suwageval.Server.Monitoring.Conversations;
@@ -261,6 +262,15 @@ public sealed class MonitoringChecksTests(TestDatabase database) : IAsyncDisposa
             trend.Points.Where(point => point.CheckKey == "no-refund").Select(point => (point.Passed, point.Checked)).Single()
         );
         Assert.Single(trend.Versions);
+        // The scenario drafted from it carries the checks it failed as comments (not the one not judged), and refuses a message it lacks.
+        var draft = await Get<ScenarioDraft>(client, $"/monitoring/conversations/{bad.Id}/scenario?upToUserMessage=1");
+        Assert.Contains("#   tool: refund_order\n", draft.Yaml, StringComparison.Ordinal);
+        Assert.DoesNotContain("is-polite", draft.Yaml, StringComparison.Ordinal);
+        var missing = await client.GetAsync(
+            new Uri($"/monitoring/conversations/{bad.Id}/scenario?upToAgentMessage=2", UriKind.Relative),
+            Cancellation
+        );
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, missing.StatusCode);
     }
 
     [Fact]

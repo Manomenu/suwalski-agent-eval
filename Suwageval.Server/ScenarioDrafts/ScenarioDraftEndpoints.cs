@@ -1,9 +1,10 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Suwageval.AgentSdk.Conversations;
+using Suwageval.Contracts.Checks;
 using Suwageval.Contracts.Scenarios;
 using Suwageval.Server.Agents;
-using Suwageval.Server.Evaluation.Simulation;
+using Suwageval.Server.Monitoring.Checking;
 using Suwageval.Server.Monitoring.Conversations;
 using Suwageval.Server.Problems;
 
@@ -22,14 +23,16 @@ internal static class ScenarioDraftEndpoints
     }
 
     /// <summary>
-    /// The conversation as a scenario file (<see cref="ScenarioDraftWriter"/>): taken as it is, or with <c>untilTurn</c> (from 1) replayed to
-    /// that turn and simulated after it, the simulated user drafted by the simulator's model. 404: no such conversation; 422: no such turn.
+    /// The conversation as a scenario file (<see cref="ScenarioDraftWriter"/>): to its end, or up to its <c>upToUserMessage</c>-th user
+    /// message or <c>upToAgentMessage</c>-th agent message (from 1, included), with the monitoring checks it failed as comments. 404: no
+    /// such conversation; 422: both cuts, or a message the conversation does not have.
     /// </summary>
     private static async Task<IResult> DraftAsync(
         Guid id,
-        [FromQuery] int? untilTurn,
+        [FromQuery] int? upToUserMessage,
+        [FromQuery] int? upToAgentMessage,
         ConversationStore conversations,
-        UserDescriber describer,
+        CheckingStore checking,
         CancellationToken cancellationToken
     )
     {
@@ -38,18 +41,36 @@ internal static class ScenarioDraftEndpoints
         {
             return ProblemResults.NotFound("Conversation", id.ToString());
         }
-        IReadOnlyList<IReadOnlyList<ConversationItem>> turns =
+        if (upToUserMessage is not null && upToAgentMessage is not null)
+        {
+            return ProblemResults.Invalid(
+                "upToAgentMessage",
+                "Name one message to copy up to: a user message or an agent message, not both."
+            );
+        }
+        List<ConversationItem> items =
         [
-            .. (await conversations.TurnsAsync(id, cancellationToken)).Select(turn =>
-                (IReadOnlyList<ConversationItem>)(JsonSerializer.Deserialize<ConversationItem[]>(turn.Items, ContractContent.Lenient) ?? [])
+            .. (await conversations.TurnsAsync(id, cancellationToken)).SelectMany(turn =>
+                JsonSerializer.Deserialize<ConversationItem[]>(turn.Items, ContractContent.Lenient) ?? []
             ),
         ];
-        if (untilTurn is { } until && (until < 1 || until > turns.Count))
+        var cut =
+            upToUserMessage is { } user ? new MessageCut(true, user)
+            : upToAgentMessage is { } agent ? new MessageCut(false, agent)
+            : null;
+        if (cut is not null && cut.IndexIn(items) is null)
         {
-            return ProblemResults.Invalid("untilTurn", $"untilTurn is a turn of the conversation: from 1 to {turns.Count}.");
+            return ProblemResults.Invalid(
+                cut.UserMessage ? "upToUserMessage" : "upToAgentMessage",
+                $"The conversation has no {cut.Describe()}."
+            );
         }
-        var description =
-            untilTurn < turns.Count ? await describer.DescribeAsync([.. turns.SelectMany(turn => turn)], cancellationToken) : null;
-        return Results.Ok(ScenarioDraftWriter.Draft(conversation.ConversationKey, id, turns, untilTurn, description));
+        var failed = (await checking.FailedChecksAsync(id, cancellationToken))
+            .Select(content =>
+                JsonSerializer.Deserialize<CheckInput>(content, ContractContent.Lenient)
+                ?? throw new InvalidOperationException("A stored check is empty.")
+            )
+            .ToList();
+        return Results.Ok(ScenarioDraftWriter.Draft(conversation.ConversationKey, id, items, cut, failed));
     }
 }

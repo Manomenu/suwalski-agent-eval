@@ -367,20 +367,13 @@ failed check is the one to turn into a scenario (`suwageval scenario from-conver
 | `origin` | | where the scenario came from: `monitoringConversation: <id>`, the monitored conversation it was drafted from (below). It changes nothing in a run |
 
 **A scenario from a monitored conversation.** `suwageval scenario from-conversation <id>` (or "Scenario YAML" on the conversation's page)
-drafts a scenario file from a conversation the deployed agent had, taken as it is: every turn before the last is the `conversation`'s
-history, and the agent answers the last user message. The key is proposed from the conversation's id (`conversation-<id>`), `origin`
-names the conversation, and what the agent did in that last turn (its tool calls, events, cited sources) is drafted as checks in
-comments: a starting point to keep what the agent must do and delete the rest, never the expected answer written blindly — the agent
-may have been wrong, which is often why the conversation was picked. The conversation ran on real data Suwageval does not keep: add the
-`fixtures` the agent needs. A failure in production becomes a regression test this way.
-
-**Replayed to a turn, simulated after it.** With `--until-turn N` (or "Replay: To turn N" in the draft's window) the turns before N are
-the history, the agent answers turn N's user message, and a simulated user goes on (`continuation`, *Simulation* below) for as many
-turns as the real conversation went on from there (at most 20). Suwageval's simulator model drafts `simulatedUser` from what the real
-user wrote (`Models:simulator`, else the judge's model); without one, or when it does not answer, the draft lists the user's messages
-to rewrite and says so (`notice` in the API's answer, a line on stderr). The draft checks then come from everything the agent did from
-turn N on: in a simulation they look at the whole conversation. Use it when the conversation went wrong only after some turns, or when
-the agent should be tested against a user like this one rather than against these exact words.
+drafts a scenario file from a conversation the deployed agent had: copied whole, to its last message, or with `--up-to-user N` /
+`--up-to-agent N` (on the web: "Copy: Up to a user message / an agent message" and the message) up to its N-th user or agent message,
+included. The key is proposed from the conversation's id (`conversation-<id>`) and `origin` names the conversation. The monitoring
+checks the conversation failed come at the end as comments, with their definitions: what went wrong, to turn into the scenario's own
+checks (a monitoring check is not always a valid scenario check as it is, so it is never written as one). The draft is the base: the
+checks, and the `fixtures` the agent needs (the conversation ran on real data Suwageval does not keep), are added by a person or by
+Claude (`/suwageval:from-conversation`). A failure in production becomes a regression test this way.
 
 ### Samples
 
