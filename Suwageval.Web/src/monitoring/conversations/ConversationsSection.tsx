@@ -7,9 +7,10 @@ import { HeaderHelp } from "../../help/HeaderHelp";
 import { ListPagination } from "../../pagination/ListPagination";
 import { usePageParam } from "../../pagination/usePageParam";
 import { conversationHref, versionInMonitoringHref } from "../../routes/links";
-import { fetchConversations } from "./api";
+import { fetchConversations, type ConversationList } from "./api";
+import { VerdictBadge } from "../../verdict/VerdictBadge";
 import {
-    checksColor,
+    checksVerdict,
     checksText,
     CONVERSATIONS_HELP,
     FAILED_CHECK_PARAM,
@@ -119,9 +120,7 @@ export function ConversationsSection({ agent }: { agent: string }) {
                                         </Table.Td>
                                         <Table.Td>{formatTime(conversation.lastTurnAt)}</Table.Td>
                                         <Table.Td>
-                                            <Badge variant="light" color={checksColor(conversation)}>
-                                                {checksText(conversation)}
-                                            </Badge>
+                                            <ChecksCell conversation={conversation} />
                                         </Table.Td>
                                     </Table.Tr>
                                 ))}
@@ -132,5 +131,17 @@ export function ConversationsSection({ agent }: { agent: string }) {
                 </>
             )}
         </Stack>
+    );
+}
+
+/** The Checks column: the conversation's verdict in the shared colours, grey until its checks ran. */
+function ChecksCell({ conversation }: { conversation: ConversationList["conversations"][number] }) {
+    const verdict = checksVerdict(conversation);
+    return verdict === null ? (
+        <Badge variant="light" color="gray">
+            {checksText(conversation)}
+        </Badge>
+    ) : (
+        <VerdictBadge verdict={verdict} label={checksText(conversation)} />
     );
 }

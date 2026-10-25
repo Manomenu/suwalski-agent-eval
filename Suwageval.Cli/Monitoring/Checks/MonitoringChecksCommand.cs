@@ -107,9 +107,7 @@ internal static class MonitoringChecksCommand
 
     /// <summary>"80% (8/10)", or "-" when the check ran on no conversation.</summary>
     internal static string Rate(CheckRate rate) =>
-        rate.Checked == 0
-            ? "-"
-            : string.Create(CultureInfo.InvariantCulture, $"{100.0 * rate.Passed / rate.Checked:0}% ({rate.Passed}/{rate.Checked})");
+        rate.Checked == 0 ? "-" : $"{PercentText.Of((double)rate.Passed / rate.Checked)} ({rate.Passed}/{rate.Checked})";
 
     internal static string Text(MonitoringTrend trend)
     {

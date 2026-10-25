@@ -1,7 +1,7 @@
 // What the run page shows, as plain functions: labels, numbers and which items to highlight.
 import { formatSeconds, percent } from "../../format/numbers";
 import { versionTitle } from "../../format/names";
-import { itemKey } from "../../conversation/items";
+import { failedEvidence } from "../../verdict/verdict";
 import type { CheckRunResult, RunResults, RunSummary, ScenarioRunResult } from "./api";
 
 export const POLL_INTERVAL_MS = 2000;
@@ -152,15 +152,7 @@ export function scenariosSamplesCounts(
 
 /** The items failed checks point at for one sample — to highlight them in the agent's output. */
 export function failedEvidenceKeys(scenario: ScenarioRunResult, sample: number): Set<string> {
-    const keys = new Set<string>();
-    for (const check of scenario.checks) {
-        for (const checkSample of check.samples) {
-            if (checkSample.sample === sample && !checkSample.passed) {
-                for (const item of checkSample.evidence) keys.add(itemKey(item));
-            }
-        }
-    }
-    return keys;
+    return failedEvidence(scenario.checks.flatMap((check) => check.samples.filter((checkSample) => checkSample.sample === sample)));
 }
 
 export interface SampleVerdict {

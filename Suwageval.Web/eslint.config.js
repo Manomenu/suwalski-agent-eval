@@ -47,7 +47,7 @@ export default defineConfig(
                 // Order matters: the first matching pattern wins.
                 { type: "api", pattern: "src/api" },
                 // The folders no area owns, used by every area the way api/ is: routes/ (the addresses of the pages), format/, help/,
-                // tagSelect/, tagFilter/, dataVersion/, conversation/ (the items of a conversation log, shown by a run and by a monitored conversation), diff/, note/, pagination/, print/, shell/ (the sidebar), health/, and the two
+                // tagSelect/, tagFilter/, dataVersion/, conversation/ (the items of a conversation log, shown by a run and by a monitored conversation), verdict/ (a check's verdict: its chip, message, evidence and the model-judged mark), charts/ (the line charts both areas draw), diff/, note/, pagination/, print/, shell/ (the sidebar), health/, and the two
                 // pieces of an agent that more than one area shows: agents/ (the list, the delete plumbing) and versions/, and archive/ (the "Archived" chip and the archive plumbing both lists share).
                 {
                     type: "shared",
@@ -59,6 +59,8 @@ export default defineConfig(
                         "src/tagFilter",
                         "src/dataVersion",
                         "src/conversation",
+                        "src/verdict",
+                        "src/charts",
                         "src/diff",
                         "src/note",
                         "src/pagination",

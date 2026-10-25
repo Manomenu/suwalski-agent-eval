@@ -18,7 +18,7 @@ import {
     type ScenarioSection,
 } from "./variants";
 import { OnPaper } from "../../print/OnPaper";
-import { ModelJudgedIcon } from "../checks/ModelJudgedIcon";
+import { ModelJudgedIcon } from "../../verdict/ModelJudgedIcon";
 import { scenarioInRunHref } from "../../routes/links";
 import { shortId } from "../../format/names";
 

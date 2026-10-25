@@ -58,11 +58,12 @@ internal sealed class ArgumentJudge(ModelClients models, IOptions<JudgeOptions> 
             string text;
             try
             {
-                text = await JudgeModel.AskAsync<ArgumentAnswers>(
+                text = await ModelQuestion.AskAsync<ArgumentAnswers>(
                     models.Get(model),
                     "argument-judge",
                     Instructions,
                     Prompt(search.Context, candidate),
+                    temperature: 0,
                     cancellationToken
                 );
             }
@@ -74,7 +75,7 @@ internal sealed class ArgumentJudge(ModelClients models, IOptions<JudgeOptions> 
             {
                 return JudgeModel.NotJudged(
                     search.Named,
-                    $"the judge model could not be asked ({JudgeModel.Shorten(error.Message)})",
+                    $"the judge model could not be asked ({ModelQuestion.Shorten(error.Message)})",
                     modelName
                 );
             }
@@ -84,7 +85,7 @@ internal sealed class ArgumentJudge(ModelClients models, IOptions<JudgeOptions> 
             {
                 return JudgeModel.NotJudged(
                     search.Named,
-                    $"the judge model's answer is not the JSON asked for ({JudgeModel.Shorten(text)})",
+                    $"the judge model's answer is not the JSON asked for ({ModelQuestion.Shorten(text)})",
                     modelName
                 );
             }
@@ -114,15 +115,7 @@ internal sealed class ArgumentJudge(ModelClients models, IOptions<JudgeOptions> 
     public static IReadOnlyList<ArgumentAnswers.Entry>? Read(string text, ArgumentCandidate candidate)
     {
         ArgumentNullException.ThrowIfNull(candidate);
-        ArgumentAnswers? answers;
-        try
-        {
-            answers = JsonSerializer.Deserialize<ArgumentAnswers>(text, Json);
-        }
-        catch (JsonException)
-        {
-            return null;
-        }
+        var answers = ModelQuestion.Read<ArgumentAnswers>(text);
         var wanted = candidate.Judgements.Select(judgement => judgement.Path).Order(StringComparer.Ordinal);
         var given = answers?.Results.Select(entry => entry.Path).Order(StringComparer.Ordinal);
         return given is not null && wanted.SequenceEqual(given, StringComparer.Ordinal) ? answers?.Results : null;

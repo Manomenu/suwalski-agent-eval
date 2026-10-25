@@ -1,5 +1,6 @@
-import { LineChart } from "@mantine/charts";
-import { ColorSwatch, Group, Paper, Stack, Text } from "@mantine/core";
+import { Paper, Stack, Text } from "@mantine/core";
+
+import { LineTrend } from "../../charts/LineTrend";
 
 import {
     ALL_SERIES,
@@ -9,7 +10,6 @@ import {
     RUN_KEY,
     asTrendRow,
     hasRechecks,
-    legendColor,
     measuredSeries,
     seriesColor,
     shownSeries,
@@ -22,7 +22,6 @@ import { type RunPassRates } from "./api";
 /** Said under every trend chart: group runs are experiments and never make a point. */
 const GROUP_RUNS_NOT_INCLUDED = "Runs started in a group are experiments and are not included in this chart.";
 
-const TREND_HEIGHT = 300;
 const ALL_STROKE_WIDTH = 4;
 const TAG_STROKE_WIDTH = 2;
 
@@ -38,6 +37,7 @@ export function TrendChart({
     recent,
     format,
     domain,
+    wholeNumbers = false,
 }: {
     points: RunPassRates[];
     rows: TrendRow[];
@@ -48,6 +48,8 @@ export function TrendChart({
     recent: readonly string[];
     format: (value: number) => string;
     domain: [number, number | "auto"];
+    /** The y axis in whole numbers: percentages; turn times keep their decimals. */
+    wholeNumbers?: boolean;
 }) {
     // The colours follow `names`, so a line keeps its colour whatever else is picked.
     const shown = shownSeries(names, picked, recent);
@@ -58,71 +60,51 @@ export function TrendChart({
 
     return (
         <Stack gap="sm">
-            <LineChart
-                h={TREND_HEIGHT}
-                data={rows}
+            <LineTrend
+                rows={rows}
                 dataKey={RUN_KEY}
-                xAxisProps={{ tickFormatter: (runId: string) => String(labelOf.get(runId) ?? "") }}
-                referenceLines={changes.map((change) => ({
-                    x: change.runId,
-                    label: change.label,
-                    labelPosition: "insideTopLeft",
-                    color: "gray.6",
-                    strokeDasharray: "4 4",
+                xTickFormatter={(runId) => String(labelOf.get(runId) ?? "")}
+                marks={changes.map((change) => ({ x: change.runId, label: change.label }))}
+                series={shown.map((name) => ({
+                    name,
+                    color: seriesColor(name, names),
+                    strokeWidth: name === ALL_SERIES ? ALL_STROKE_WIDTH : TAG_STROKE_WIDTH,
                 }))}
-                series={shown.map((name) => ({ name, color: seriesColor(name, names) }))}
-                curveType="linear"
-                connectNulls
-                withDots
-                withLegend={false}
-                valueFormatter={format}
-                yAxisProps={{ domain }}
-                lineProps={(series) => ({ strokeWidth: series.name === ALL_SERIES ? ALL_STROKE_WIDTH : TAG_STROKE_WIDTH })}
-                lineChartProps={{
-                    onClick: (state) => {
-                        const row = rows[Number(state.activeIndex)];
-                        const runId = row?.[RUN_KEY];
-                        if (typeof runId === "string") window.location.assign(runHref(runId));
-                    },
+                format={format}
+                domain={domain}
+                wholeNumbers={wholeNumbers}
+                onPointClick={(index) => {
+                    const runId = rows[index]?.[RUN_KEY];
+                    if (typeof runId === "string") window.location.assign(runHref(runId));
                 }}
-                tooltipProps={{
-                    content: ({ payload }) => {
-                        const row = asTrendRow(payload[0]?.payload);
-                        if (!row) return null;
-                        return (
-                            <Paper withBorder shadow="sm" p="xs">
-                                <Text fw={500}>{row[LABEL_KEY]}</Text>
-                                <Text size="xs" c="dimmed">
-                                    {row[DETAILS_KEY]}
+                tooltip={(value) => {
+                    const row = asTrendRow(value);
+                    if (!row) return null;
+                    return (
+                        <Paper withBorder shadow="sm" p="xs">
+                            <Text fw={500}>{row[LABEL_KEY]}</Text>
+                            <Text size="xs" c="dimmed">
+                                {row[DETAILS_KEY]}
+                            </Text>
+                            {typeof row[RUN_KEY] === "string" && newVersionOf.has(row[RUN_KEY]) && (
+                                <Text size="xs" fw={600}>
+                                    New agent version from this run: {newVersionOf.get(row[RUN_KEY])}
                                 </Text>
-                                {typeof row[RUN_KEY] === "string" && newVersionOf.has(row[RUN_KEY]) && (
-                                    <Text size="xs" fw={600}>
-                                        New agent version from this run: {newVersionOf.get(row[RUN_KEY])}
-                                    </Text>
-                                )}
-                                {typeof row[RECHECK_KEY] === "string" && (
-                                    <Text size="xs" c="dimmed">
-                                        Re-checked: these are the results of its latest re-check
-                                    </Text>
-                                )}
-                                {measuredSeries(row, shown).map((name) => (
-                                    <Text key={name} size="sm" c={seriesColor(name, names)}>
-                                        {name}: {format(Number(row[name]))}
-                                    </Text>
-                                ))}
-                            </Paper>
-                        );
-                    },
+                            )}
+                            {typeof row[RECHECK_KEY] === "string" && (
+                                <Text size="xs" c="dimmed">
+                                    Re-checked: these are the results of its latest re-check
+                                </Text>
+                            )}
+                            {measuredSeries(row, shown).map((name) => (
+                                <Text key={name} size="sm" c={seriesColor(name, names)}>
+                                    {name}: {format(Number(row[name]))}
+                                </Text>
+                            ))}
+                        </Paper>
+                    );
                 }}
             />
-            <Group gap="md" role="list" aria-label="Series">
-                {shown.map((name) => (
-                    <Group key={name} gap={6} wrap="nowrap" role="listitem">
-                        <ColorSwatch color={`var(--mantine-color-${legendColor(name, names)}-5)`} size={10} withShadow={false} />
-                        <Text size="sm">{name}</Text>
-                    </Group>
-                ))}
-            </Group>
             <Text size="xs" c="dimmed">
                 {GROUP_RUNS_NOT_INCLUDED}
             </Text>

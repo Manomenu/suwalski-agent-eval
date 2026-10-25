@@ -1,10 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
-using System.Text.Json;
-using Microsoft.Agents.AI;
-using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Options;
-using Suwageval.AgentSdk;
 using Suwageval.AgentSdk.Conversations;
 using Suwageval.Server.LanguageModels;
 
@@ -33,13 +29,9 @@ internal sealed class UserSimulator(ModelClients models, IOptions<SimulationOpti
 
     private const string NoWords = "(the agent wrote nothing)";
 
-    private const int MaxErrorLength = 300;
-
     private const string SimulatorEntry = "simulator";
 
     private const string JudgeEntry = "judge";
-
-    private static readonly JsonSerializerOptions Json = ContractJson.Options;
 
     /// <summary>The entry under <c>Models</c> that plays the user: <c>simulator</c> when configured, else the judge's <c>judge</c>; null when neither is.</summary>
     public string? ModelEntry =>
@@ -70,20 +62,14 @@ internal sealed class UserSimulator(ModelClients models, IOptions<SimulationOpti
         string text;
         try
         {
-            var agent = new ChatClientAgent(
+            text = await ModelQuestion.AskAsync<SimulatedAnswer>(
                 models.Get(model),
-                new ChatClientAgentOptions
-                {
-                    Name = "simulated-user",
-                    ChatOptions = new ChatOptions
-                    {
-                        Instructions = Instructions,
-                        Temperature = (float)options.Value.Temperature,
-                        ResponseFormat = ChatResponseFormat.ForJsonSchema<SimulatedAnswer>(Json),
-                    },
-                }
+                "simulated-user",
+                Instructions,
+                Prompt(simulatedUser, conversation),
+                (float)options.Value.Temperature,
+                cancellationToken
             );
-            text = (await agent.RunAsync(Prompt(simulatedUser, conversation), cancellationToken: cancellationToken)).Text;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -91,28 +77,15 @@ internal sealed class UserSimulator(ModelClients models, IOptions<SimulationOpti
         }
         catch (Exception error)
         {
-            return SimulatedTurn.Failed($"the simulator model could not be asked ({Shorten(error.Message)})");
+            return SimulatedTurn.Failed($"the simulator model could not be asked ({ModelQuestion.Shorten(error.Message)})");
         }
 
-        return Read(text) switch
+        return ModelQuestion.Read<SimulatedAnswer>(text) switch
         {
             { End: true } => SimulatedTurn.End(),
             { Message: { } message } when !string.IsNullOrWhiteSpace(message) => SimulatedTurn.Wrote(message.Trim()),
-            _ => SimulatedTurn.Failed($"the simulator model's answer is not the JSON asked for ({Shorten(text)})"),
+            _ => SimulatedTurn.Failed($"the simulator model's answer is not the JSON asked for ({ModelQuestion.Shorten(text)})"),
         };
-    }
-
-    /// <summary>The answer as asked for, or null when it is anything else.</summary>
-    public static SimulatedAnswer? Read(string text)
-    {
-        try
-        {
-            return JsonSerializer.Deserialize<SimulatedAnswer>(text, Json);
-        }
-        catch (JsonException)
-        {
-            return null;
-        }
     }
 
     /// <summary>
@@ -160,11 +133,5 @@ internal sealed class UserSimulator(ModelClients models, IOptions<SimulationOpti
         }
         prompt.AppendLine().Append("Write the user's next message, or end the conversation.");
         return prompt.ToString();
-    }
-
-    private static string Shorten(string text)
-    {
-        var line = text.ReplaceLineEndings(" ").Trim();
-        return line.Length <= MaxErrorLength ? line : line[..MaxErrorLength] + "…";
     }
 }

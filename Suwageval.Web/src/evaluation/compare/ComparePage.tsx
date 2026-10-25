@@ -18,7 +18,7 @@ import { useState } from "react";
 
 import { fetchVersion } from "../../agents/api";
 import { useRequest } from "../../api/useRequest";
-import { ModelJudgedIcon } from "../checks/ModelJudgedIcon";
+import { ModelJudgedIcon } from "../../verdict/ModelJudgedIcon";
 import { HeaderHelp } from "../../help/HeaderHelp";
 import { NoteBox } from "../../note/NoteBox";
 import { ChecksCount, SamplesCount } from "../runs/RunCounts";

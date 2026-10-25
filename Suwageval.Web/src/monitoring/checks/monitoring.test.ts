@@ -53,8 +53,8 @@ describe("passRateRows", () => {
 describe("dayMarks", () => {
     it("marks deploys by label or short id and data changes, joined per day", () => {
         expect(dayMarks(trend)).toEqual([
-            { date: "2026-10-23", label: "version v7" },
-            { date: "2026-10-24", label: "version bbbbbbbb, data index-8" },
+            { x: "2026-10-23", label: "version v7" },
+            { x: "2026-10-24", label: "version bbbbbbbb, data index-8" },
         ]);
     });
 });

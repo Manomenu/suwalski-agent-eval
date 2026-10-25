@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
-    checksColor,
+    checksVerdict,
     checksText,
     replayOptions,
     scenarioDraftPath,
@@ -58,12 +58,12 @@ describe("checksText", () => {
     });
 });
 
-describe("checksColor", () => {
-    it("is red on a failure, yellow on checks not judged, green when all passed", () => {
-        expect(checksColor({ checkedAt: null })).toBe("gray");
-        expect(checksColor({ checkedAt: "x", failedChecks: 1, notJudgedChecks: 1 })).toBe("red");
-        expect(checksColor({ checkedAt: "x", notJudgedChecks: 1 })).toBe("yellow");
-        expect(checksColor({ checkedAt: "x" })).toBe("green");
+describe("checksVerdict", () => {
+    it("is failed on a failure, not judged on checks not judged, passed when all passed, none before checking", () => {
+        expect(checksVerdict({ checkedAt: null })).toBeNull();
+        expect(checksVerdict({ checkedAt: "x", failedChecks: 1, notJudgedChecks: 1 })).toBe("failed");
+        expect(checksVerdict({ checkedAt: "x", notJudgedChecks: 1 })).toBe("not judged");
+        expect(checksVerdict({ checkedAt: "x" })).toBe("passed");
     });
 });
 

@@ -1,4 +1,5 @@
 // The monitored conversations of an agent as the Monitoring page lists them, as plain functions.
+import type { Verdict } from "../../verdict/verdict";
 
 /** The page size of the conversations table. */
 export const CONVERSATIONS_PAGE_SIZE = 20;
@@ -38,11 +39,11 @@ export function checksText(conversation: Checked): string {
     return parts.filter((part) => part !== null).join(", ") || "Passed";
 }
 
-/** The colour of the Checks column: red for a failure, yellow for checks not judged, green when all passed, grey when not checked. */
-export function checksColor(conversation: Checked): "red" | "yellow" | "green" | "gray" {
-    if (conversation.checkedAt == null) return "gray";
-    if ((conversation.failedChecks ?? 0) > 0) return "red";
-    return (conversation.notJudgedChecks ?? 0) > 0 ? "yellow" : "green";
+/** The verdict the Checks column shows: failed on a failure, not judged when some check was not, passed when all were; null: not checked. */
+export function checksVerdict(conversation: Checked): Verdict | null {
+    if (conversation.checkedAt == null) return null;
+    if ((conversation.failedChecks ?? 0) > 0) return "failed";
+    return (conversation.notJudgedChecks ?? 0) > 0 ? "not judged" : "passed";
 }
 
 /** The path of one page of the agent's conversations, the newest last turn first, narrowed by the filter. */

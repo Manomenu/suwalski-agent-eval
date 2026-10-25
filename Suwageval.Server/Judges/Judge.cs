@@ -62,11 +62,12 @@ internal sealed class Judge(ModelClients models, IOptions<JudgeOptions> options)
         string text;
         try
         {
-            text = await JudgeModel.AskAsync<JudgeAnswer>(
+            text = await ModelQuestion.AskAsync<JudgeAnswer>(
                 models.Get(model),
                 "judge",
                 Instructions,
                 Prompt(check, conversation, scope),
+                temperature: 0,
                 cancellationToken
             );
         }
@@ -76,31 +77,18 @@ internal sealed class Judge(ModelClients models, IOptions<JudgeOptions> options)
         }
         catch (Exception error)
         {
-            return NotJudged(scope, $"the judge model could not be asked ({JudgeModel.Shorten(error.Message)})", ModelName);
+            return NotJudged(scope, $"the judge model could not be asked ({ModelQuestion.Shorten(error.Message)})", ModelName);
         }
 
-        var answer = Read(text);
+        var answer = ModelQuestion.Read<JudgeAnswer>(text);
         return answer is null
-            ? NotJudged(scope, $"the judge model's answer is not the JSON asked for ({JudgeModel.Shorten(text)})", ModelName)
+            ? NotJudged(scope, $"the judge model's answer is not the JSON asked for ({ModelQuestion.Shorten(text)})", ModelName)
             : new CheckVerdict(
                 answer.Passed,
                 scope.Items,
                 string.IsNullOrWhiteSpace(answer.Reason) ? "The judge gave no reason." : answer.Reason,
                 ModelName: ModelName
             );
-    }
-
-    /// <summary>The answer as the contract wants it, or null when it is anything else.</summary>
-    public static JudgeAnswer? Read(string text)
-    {
-        try
-        {
-            return JsonSerializer.Deserialize<JudgeAnswer>(text, Json);
-        }
-        catch (JsonException)
-        {
-            return null;
-        }
     }
 
     public static string Prompt(JudgeCheck check, IReadOnlyList<ConversationItem> conversation, CheckScope scope)

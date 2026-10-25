@@ -171,8 +171,7 @@ internal static class CompareText
             _ => "",
         };
 
-    private static string Percent(double? rate) =>
-        rate is { } value ? string.Create(CultureInfo.InvariantCulture, $"{value * 100:0}%") : "-";
+    private static string Percent(double? rate) => rate is { } value ? PercentText.Of(value) : "-";
 
     private static string Mark(RunTrend trend) =>
         trend switch

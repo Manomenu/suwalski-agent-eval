@@ -3,7 +3,7 @@ import { Accordion, Alert, Badge, Box, Card, Group, List, Stack, Text, Title } f
 
 import { OnPaper } from "../../print/OnPaper";
 import { CheckDefinitionButton } from "../checks/CheckDefinitionButton";
-import { ModelJudgedIcon } from "../checks/ModelJudgedIcon";
+import { ModelJudgedIcon } from "../../verdict/ModelJudgedIcon";
 import { UnstableCheckIcon } from "../checks/UnstableCheckIcon";
 import type { SampleResult, ScenarioRunResult } from "./api";
 import { ConversationView } from "./ConversationView";
@@ -12,6 +12,8 @@ import { CheckHistory } from "./CheckHistory";
 import { failedOnOtherData, stateLabel } from "./regression";
 import { DataChangedBadge } from "./DataChangedBadge";
 import { StateBadge } from "./StateBadge";
+import { VerdictBadge } from "../../verdict/VerdictBadge";
+import { VerdictMessage } from "../../verdict/VerdictMessage";
 import { findUnstable, unstableTooltip } from "../unstable/stability";
 import { checkAnchor, checkSummary, failedEvidenceKeys, notJudgedCount, sampleVerdict, samplesToOpen } from "./results";
 import { visibleChecks } from "./hidePassed";
@@ -19,19 +21,25 @@ import { isSimulated, sampleTitle } from "./simulation";
 import { scenarioAnchor } from "../../routes/links";
 import { type UnstableCheck } from "../unstable/api";
 
-const VERDICT_COLOR = { passed: "green", failed: "red", "not judged": "yellow", "no output": "red" } as const;
-
 function SampleRowLabel({ scenario, sample }: { scenario: ScenarioRunResult; sample: SampleResult }) {
     const verdict = sampleVerdict(scenario, sample.sample);
     return (
         <Group gap="xs">
             <span>{sampleTitle(sample)}</span>
-            {verdict.kind !== "unchecked" && (
-                <Badge color={VERDICT_COLOR[verdict.kind]} variant={verdict.kind === "failed" ? "filled" : "light"}>
-                    {verdict.kind === "failed"
-                        ? `failed: ${verdict.failedChecks} ${verdict.failedChecks === 1 ? "check" : "checks"}`
-                        : verdict.kind}
+            {verdict.kind === "no output" && (
+                <Badge color="red" variant="light">
+                    no output
                 </Badge>
+            )}
+            {verdict.kind !== "unchecked" && verdict.kind !== "no output" && (
+                <VerdictBadge
+                    verdict={verdict.kind}
+                    label={
+                        verdict.kind === "failed"
+                            ? `failed: ${verdict.failedChecks} ${verdict.failedChecks === 1 ? "check" : "checks"}`
+                            : verdict.kind
+                    }
+                />
             )}
         </Group>
     );
@@ -101,7 +109,7 @@ export function ScenarioCard({
                         <Stack key={check.key} gap={4} id={checkAnchor(scenario.key, check.key)} className="check-target">
                             <Group justify="space-between" wrap="nowrap" align="flex-start">
                                 <Group gap="xs">
-                                    <Badge color={check.passed ? "green" : "red"}>{check.passed ? "passed" : "failed"}</Badge>
+                                    <VerdictBadge verdict={check.passed ? "passed" : "failed"} />
                                     {check.regression != null && check.regression.state !== "Passed" && (
                                         <StateBadge state={check.regression.state} variant="light">
                                             {stateLabel(check.regression.state)}
@@ -146,13 +154,7 @@ export function ScenarioCard({
                                     .map((sample) => (
                                         <List.Item key={sample.sample}>
                                             {check.samples.length > 1 ? `sample ${sample.sample}: ` : ""}
-                                            {check.judgedByModel && !sample.notJudged ? (
-                                                <Text span fs="italic" inherit>
-                                                    {sample.message}
-                                                </Text>
-                                            ) : (
-                                                sample.message
-                                            )}
+                                            <VerdictMessage message={sample.message} byModel={check.judgedByModel && !sample.notJudged} />
                                         </List.Item>
                                     ))}
                             </List>

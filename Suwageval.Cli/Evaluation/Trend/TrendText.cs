@@ -17,5 +17,5 @@ internal static class TrendText
         );
     }
 
-    private static string Rate(string tag, double rate) => string.Create(CultureInfo.InvariantCulture, $"{tag} {rate * 100:0}%");
+    private static string Rate(string tag, double rate) => $"{tag} {PercentText.Of(rate)}";
 }

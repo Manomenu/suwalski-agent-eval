@@ -1,9 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
-using System.Text.Json;
-using Microsoft.Agents.AI;
-using Microsoft.Extensions.AI;
-using Suwageval.AgentSdk;
 using Suwageval.AgentSdk.Conversations;
 using Suwageval.Server.LanguageModels;
 
@@ -24,10 +20,6 @@ internal sealed class UserDescriber(UserSimulator simulator, ModelClients models
         Answer with JSON only: description (the text).
         """;
 
-    private const int MaxErrorLength = 300;
-
-    private static readonly JsonSerializerOptions Json = ContractJson.Options;
-
     [SuppressMessage(
         "Design",
         "CA1031:Do not catch general exception types",
@@ -43,20 +35,14 @@ internal sealed class UserDescriber(UserSimulator simulator, ModelClients models
         string text;
         try
         {
-            var agent = new ChatClientAgent(
+            text = await ModelQuestion.AskAsync<DescribedUser>(
                 models.Get(model),
-                new ChatClientAgentOptions
-                {
-                    Name = "user-describer",
-                    ChatOptions = new ChatOptions
-                    {
-                        Instructions = Instructions,
-                        Temperature = 0,
-                        ResponseFormat = ChatResponseFormat.ForJsonSchema<DescribedUser>(Json),
-                    },
-                }
+                "user-describer",
+                Instructions,
+                Prompt(conversation),
+                temperature: 0,
+                cancellationToken
             );
-            text = (await agent.RunAsync(Prompt(conversation), cancellationToken: cancellationToken)).Text;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -64,24 +50,11 @@ internal sealed class UserDescriber(UserSimulator simulator, ModelClients models
         }
         catch (Exception error)
         {
-            return Fallback(conversation, $"the simulator model could not be asked ({Shorten(error.Message)})");
+            return Fallback(conversation, $"the simulator model could not be asked ({ModelQuestion.Shorten(error.Message)})");
         }
-        return Read(text) is { Description: { } description } && !string.IsNullOrWhiteSpace(description)
+        return ModelQuestion.Read<DescribedUser>(text) is { Description: { } description } && !string.IsNullOrWhiteSpace(description)
             ? new UserDescription(description.Trim())
-            : Fallback(conversation, $"the simulator model's answer is not the JSON asked for ({Shorten(text)})");
-    }
-
-    /// <summary>The answer as asked for, or null when it is anything else.</summary>
-    public static DescribedUser? Read(string text)
-    {
-        try
-        {
-            return JsonSerializer.Deserialize<DescribedUser>(text, Json);
-        }
-        catch (JsonException)
-        {
-            return null;
-        }
+            : Fallback(conversation, $"the simulator model's answer is not the JSON asked for ({ModelQuestion.Shorten(text)})");
     }
 
     /// <summary>The conversation as the user saw it: their messages and the agent's text, one line each.</summary>
@@ -115,11 +88,5 @@ internal sealed class UserDescriber(UserSimulator simulator, ModelClients models
             $"Rewrite: describe this user (goal, temperament, what they know, the language they write in). In the real conversation they wrote:\n{string.Join('\n', said)}",
             $"The description was not drafted by a model: {why}."
         );
-    }
-
-    private static string Shorten(string text)
-    {
-        var line = text.ReplaceLineEndings(" ").Trim();
-        return line.Length <= MaxErrorLength ? line : line[..MaxErrorLength] + "…";
     }
 }

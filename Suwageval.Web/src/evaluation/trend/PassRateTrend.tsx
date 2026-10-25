@@ -1,6 +1,7 @@
 import { Paper, Stack, Text, Title } from "@mantine/core";
 
 import { HeaderHelp } from "../../help/HeaderHelp";
+import { percentText } from "../../charts/chartStyle";
 import { TrendChart } from "./TrendChart";
 import { TREND_MIN_RUNS, trendRows, trendSeries } from "./trend";
 import { type RunPassRates } from "./api";
@@ -34,8 +35,9 @@ export function PassRateTrend({
                         names={trendSeries(points)}
                         picked={picked}
                         recent={recent}
-                        format={(value) => `${String(value)}%`}
+                        format={percentText}
                         domain={[0, 100]}
+                        wholeNumbers
                     />
                 )}
             </Stack>

@@ -1,3 +1,4 @@
+import { seriesColor as chartSeriesColor } from "../../charts/chartStyle";
 import { percentValue, seconds } from "../../format/numbers";
 import { versionTitle } from "../../format/names";
 import { type RunPassRates } from "./api";
@@ -91,18 +92,9 @@ export function asTrendRow(value: unknown): TrendRow | null {
     return typeof value === "object" && value !== null && RUN_KEY in value ? (value as TrendRow) : null;
 }
 
-/** Mocha accents after mauve ("All"), in the order the series come; the colours repeat when there are more tags. */
-const TAG_COLORS = ["blue", "green", "yellow", "orange", "teal", "pink", "red"];
-
-/** The colour without its shade (`yellow`), for the legend's swatches. */
-export function legendColor(name: string, series: string[]): string {
-    return seriesColor(name, series).split(".")[0] ?? "blue";
-}
-
+/** A series' colour: "All" the main one, each tag an accent by its place among the series, so a line keeps its colour whatever is picked. */
 export function seriesColor(name: string, series: string[]): string {
-    if (name === ALL_SERIES) return "mauve.5";
-    const index = Math.max(series.indexOf(name) - 1, 0);
-    return `${TAG_COLORS[index % TAG_COLORS.length] ?? "blue"}.5`;
+    return name === ALL_SERIES ? chartSeriesColor(0) : chartSeriesColor(Math.max(series.indexOf(name), 1));
 }
 
 /** How many tags the charts draw beside "All" while none is picked. */

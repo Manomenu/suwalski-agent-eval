@@ -1,8 +1,9 @@
-import { LineChart } from "@mantine/charts";
 import { Anchor, Group, SegmentedControl, Stack, Table, Text, Title } from "@mantine/core";
 import { useState } from "react";
 
 import { useRequest } from "../../api/useRequest";
+import { percentText, seriesColor } from "../../charts/chartStyle";
+import { LineTrend } from "../../charts/LineTrend";
 import { HeaderHelp } from "../../help/HeaderHelp";
 import { failedConversationsHref } from "../../routes/links";
 import { fetchMonitoringChecks, fetchMonitoringTrend, type MonitoringTrend } from "./api";
@@ -10,6 +11,7 @@ import {
     CHECKED_SERIES,
     checkKeys,
     CONVERSATIONS_SERIES,
+    DAY_KEY,
     dayMarks,
     hasFailures,
     MONITORING_CHECKS_HELP,
@@ -21,9 +23,6 @@ import {
     type Rate,
     type TrendDays,
 } from "./monitoring";
-
-const CHART_HEIGHT = 240;
-const CHECK_COLORS = ["blue", "teal", "grape", "orange", "cyan", "pink", "lime", "indigo"];
 
 /** The agent's monitoring checks: a table of their 7- and 30-day pass rates, and the charts of the last days. */
 export function ChecksSection({ agent }: { agent: string }) {
@@ -92,53 +91,37 @@ export function ChecksSection({ agent }: { agent: string }) {
 
 function TrendCharts({ trend }: { trend: MonitoringTrend }) {
     if (trend.days.length === 0) return <Text c="dimmed">No conversations in these days.</Text>;
-    const marks = dayMarks(trend).map((mark) => ({
-        x: mark.date,
-        label: mark.label,
-        labelPosition: "insideTopLeft" as const,
-        color: "gray.6",
-        strokeDasharray: "4 4",
-    }));
+    const marks = dayMarks(trend);
     const keys = checkKeys(trend);
     return (
         <Stack gap="md">
             <Text size="sm" fw={500}>
                 Conversations
             </Text>
-            <LineChart
-                h={CHART_HEIGHT}
-                data={volumeRows(trend)}
-                dataKey="date"
-                referenceLines={marks}
+            <LineTrend
+                rows={volumeRows(trend)}
+                dataKey={DAY_KEY}
+                marks={marks}
                 series={[
-                    { name: CONVERSATIONS_SERIES, color: "blue.6" },
-                    { name: CHECKED_SERIES, color: "teal.6" },
+                    { name: CONVERSATIONS_SERIES, color: seriesColor(0) },
+                    { name: CHECKED_SERIES, color: seriesColor(1) },
                 ]}
-                curveType="linear"
-                withLegend
-                withDots
-                yAxisProps={{ allowDecimals: false }}
+                format={String}
+                wholeNumbers
             />
             {keys.length > 0 && (
                 <>
                     <Text size="sm" fw={500}>
                         Pass rate per check
                     </Text>
-                    <LineChart
-                        h={CHART_HEIGHT}
-                        data={passRateRows(trend)}
-                        dataKey="date"
-                        referenceLines={marks}
-                        series={keys.map((key, index) => ({
-                            name: key,
-                            color: `${CHECK_COLORS[index % CHECK_COLORS.length] ?? "blue"}.6`,
-                        }))}
-                        curveType="linear"
-                        connectNulls
-                        withLegend
-                        withDots
-                        unit="%"
-                        yAxisProps={{ domain: [0, 100], allowDecimals: false }}
+                    <LineTrend
+                        rows={passRateRows(trend)}
+                        dataKey={DAY_KEY}
+                        marks={marks}
+                        series={keys.map((key, index) => ({ name: key, color: seriesColor(index + 1) }))}
+                        format={percentText}
+                        domain={[0, 100]}
+                        wholeNumbers
                     />
                 </>
             )}

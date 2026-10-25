@@ -10,6 +10,10 @@ import { useReportAgent } from "../../shell/reportAgent";
 import { fetchConversation, type ConversationDetail } from "./api";
 import { versionText } from "./conversations";
 import { ScenarioDraftButton } from "./ScenarioDraftButton";
+import { ModelJudgedIcon } from "../../verdict/ModelJudgedIcon";
+import { failedEvidence, verdictOf } from "../../verdict/verdict";
+import { VerdictBadge } from "../../verdict/VerdictBadge";
+import { VerdictMessage } from "../../verdict/VerdictMessage";
 
 /** `/conversations/<id>`: one monitored conversation, its turns one under another with what the agent did in each. */
 export function ConversationPage({ conversationId }: { conversationId: string }) {
@@ -24,6 +28,8 @@ export function ConversationPage({ conversationId }: { conversationId: string })
 
 function View({ detail }: { detail: ConversationDetail }) {
     const { conversation, turns } = detail;
+    // What failed checks point at is marked in the turns, as on a run's page.
+    const evidence = failedEvidence(detail.checks ?? []);
     return (
         <Stack gap="md">
             <Group gap="xs" className="no-print">
@@ -53,21 +59,21 @@ function View({ detail }: { detail: ConversationDetail }) {
                         <Title order={4}>Monitoring checks</Title>
                         {detail.checks.map((check) => (
                             <Stack key={check.key} gap={4}>
-                                <Group gap="xs">
-                                    <Badge variant="light" color={check.passed ? "green" : check.notJudged === true ? "yellow" : "red"}>
-                                        {check.passed ? "Passed" : check.notJudged === true ? "Not judged" : "Failed"}
-                                    </Badge>
-                                    <Text fw={500} className="wrap-key">
-                                        {check.key}
-                                    </Text>
-                                    {check.judgeModel != null && check.notJudged !== true && (
-                                        <Text size="xs" c="dimmed">
-                                            judged by {check.judgeModel}
+                                <Group justify="space-between" wrap="nowrap" align="flex-start">
+                                    <Group gap="xs">
+                                        <VerdictBadge verdict={verdictOf(check)} />
+                                        <Text fw={600} className="wrap-key">
+                                            {check.key}
                                         </Text>
-                                    )}
+                                    </Group>
+                                    {check.judgeModel != null && <ModelJudgedIcon model={check.judgeModel} />}
                                 </Group>
-                                <Text size="sm">{check.message}</Text>
-                                {check.evidence != null && check.evidence.length > 0 && <ConversationItems items={check.evidence} />}
+                                <Text size="sm">
+                                    <VerdictMessage
+                                        message={check.message}
+                                        byModel={check.judgeModel != null && check.notJudged !== true}
+                                    />
+                                </Text>
                             </Stack>
                         ))}
                     </Stack>
@@ -88,7 +94,7 @@ function View({ detail }: { detail: ConversationDetail }) {
                             )}
                         </Group>
                         {turn.dataVersion != null && <DataVersion dataVersion={turn.dataVersion} />}
-                        <ConversationItems items={turn.items} />
+                        <ConversationItems items={turn.items} highlight={evidence} />
                     </Stack>
                 </Paper>
             ))}

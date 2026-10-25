@@ -3,7 +3,7 @@ import { useState } from "react";
 
 import { useRequest } from "../../api/useRequest";
 import { definitionYaml } from "../checks/definition";
-import { ModelJudgedIcon } from "../checks/ModelJudgedIcon";
+import { ModelJudgedIcon } from "../../verdict/ModelJudgedIcon";
 import { diffBlocks, diffRows } from "../../diff/lineDiff";
 import { LineDiffView } from "../../diff/LineDiffView";
 import { fetchRecheckPlan, recheck, type ChangedCheck, type RunSummary } from "./api";

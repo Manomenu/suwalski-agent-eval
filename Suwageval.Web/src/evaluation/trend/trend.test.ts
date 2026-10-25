@@ -8,7 +8,6 @@ import {
     RUN_KEY,
     asTrendRow,
     hasRechecks,
-    legendColor,
     measuredSeries,
     recentTags,
     seriesColor,
@@ -121,11 +120,6 @@ describe("All", () => {
         const rows = trendRows([point("full", 0.9, [["smoke", 1]]), point("smoke-only", 0.5, [["smoke", 0.5]], "v1", ["smoke"])]);
         expect(rows.map((row) => row[ALL_SERIES])).toEqual([90, null]);
         expect(rows.map((row) => row["smoke"])).toEqual([100, 50]);
-    });
-
-    it("takes the legend's colour without the shade", () => {
-        expect(legendColor("smoke", [ALL_SERIES, "smoke"])).toBe("blue");
-        expect(legendColor(ALL_SERIES, [ALL_SERIES])).toBe("mauve");
     });
 });
 
