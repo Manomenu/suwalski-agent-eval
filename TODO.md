@@ -180,6 +180,29 @@ To do in that change:
   - Open questions: the cost (a model call per failed check; a cap per run), whether its classes feed "Judge control"
     (a reflection saying "judge noise" is a candidate mark), and how it differs from what Claude Code already does locally with
     `/suwageval:fix` (this one works on the web and for anyone, with the run's whole history at hand).
+- **An agent's start page as an overview.** Today `/agents/<name>` is the Versions list; a person asking "how is my agent doing"
+  lands in a table of versions. Instead: the last run (pass rate, regressions), the Monitoring checks' 7-day rates, the trend with
+  its change marks, links on to Evaluation, Monitoring and Versions. Versions stays one click away.
+- **A faster, cheaper loop for a coding agent (Claude Code fixing the agent or its scenarios).** Each try is a full run today:
+  `samples` (default 3) times every scenario, the judge on every sample, and the agent waits on `run --wait`. Ideas, cheapest first:
+  - **The plugin picks the cheapest step:** only checks changed → `recheck` (no agent call); a scenario's file changed → run only
+    that scenario (`--scenario`), not the tag.
+  - **`run --samples 1`** for an iteration, the full `samples` only for the run that decides (before push, in CI).
+  - **`rerun --failed`**: only the scenarios that failed in a given run.
+  - **Results as they come:** `run --wait` prints each scenario's verdict when it finishes, and `--fail-fast` stops the run at the
+    first regression, so the agent starts fixing early.
+  - **A judge cache:** the same criteria over the same output gives the stored verdict without calling the model (keyed by a hash
+    of both; the model's name in the key too).
+  - **More caught by `validate`** offline (fixtures and `arguments` against their JSON Schemas, below), so a run is not the first
+    place a mistake shows.
+- **Less output for a coding agent to read.** The results of many scenarios fill the agent's context: it loses the thread and the
+  person pays for the tokens. Ideas:
+  - **Summary first by default:** `run --wait` and `results` print the counts and only what did not pass (one line per check:
+    scenario, check, state, the message cut to ~120 characters); `--all` for everything.
+  - **Drill-down instead of dumps:** `results <run> --scenario <key>` (one scenario with its conversation and evidence),
+    `--failed`, and `--json --fields key,state,message`.
+  - **Long texts cut:** evidence and conversations trimmed in the text output with "… (full on the web: <link>)".
+  - **The plugin reads in that order:** summary, then one failing scenario at a time, never the whole JSON of a run.
 - **Cost and tokens per run.** The agent's contract could report token usage per turn (an optional field in the turn answer),
   and the judge's calls are Suwageval's own; show tokens and an estimated cost per run, per scenario and in the trends — samples
   default to 3, so the calls tripled and the cost should be visible. Open questions: the field in contract v1 (an optional

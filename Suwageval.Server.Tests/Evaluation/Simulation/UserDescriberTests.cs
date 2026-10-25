@@ -30,7 +30,7 @@ public sealed class UserDescriberTests
     ];
 
     [Fact]
-    public async Task The_model_describes_the_user_from_what_the_user_saw_through_the_judges_entry()
+    public async Task The_model_describes_the_user_from_what_the_user_saw_through_the_fallback()
     {
         var model = RecordedModel.Answering("described-user.json");
         var describer = model.Describer();
@@ -39,7 +39,7 @@ public sealed class UserDescriberTests
 
         Assert.StartsWith("You are a customer whose order A-17 arrived broken.", description.Text, StringComparison.Ordinal);
         Assert.Null(description.Notice);
-        Assert.Equal(("judge", false), (describer.ModelEntry, describer.HasOwnModel));
+        Assert.Equal(("fallback", false), (describer.ModelEntry, describer.HasOwnModel));
         var prompt = Assert.Single(model.Requests).Messages[^1].Text;
         Assert.Contains(
             "User: My order A-17 arrived broken.\nAgent: Sorry. Shall I repair it?\nUser: No, I want",
@@ -57,7 +57,7 @@ public sealed class UserDescriberTests
         var description = await describer.DescribeAsync(Conversation, Cancellation);
 
         Assert.Contains("- My order A-17 arrived broken.\n- No, I want my money back.", description.Text, StringComparison.Ordinal);
-        Assert.Equal("The simulated user was not described by a model: no describer or judge model is configured.", description.Notice);
+        Assert.Equal("The simulated user was not described by a model: no describer or fallback model is configured.", description.Notice);
     }
 
     [Fact]

@@ -13,7 +13,7 @@ namespace Suwageval.Server.Tests.LiveCheck;
 /// The judge against the REAL model — left out of the gate (<c>check.sh</c> filters the trait), run by
 /// <c>scripts/.internal/live-check.sh</c>: the model can change its answer without a commit here (AGENTS.md, section 3,
 /// "An outside service"). The model comes from the server's own configuration (<c>appsettings.json</c>, copied to the test output:
-/// <c>Judge:Model</c>) with the environment on top (<c>Models__judge__BaseUrl</c>, <c>Models__judge__Model</c>, from <c>.env</c>).
+/// <c>Judge:Model</c>) with the environment on top (<c>Models__fallback__BaseUrl</c>, <c>Models__fallback__Model</c>, from <c>.env</c>).
 /// </summary>
 public sealed class JudgeLiveTests
 {
@@ -34,7 +34,10 @@ public sealed class JudgeLiveTests
     {
         using var services = Services();
         var judge = services.GetRequiredService<Judge>();
-        Assert.SkipUnless(judge.IsConfigured, "No judge model configured: set Models__judge__BaseUrl and Models__judge__Model (.env).");
+        Assert.SkipUnless(
+            judge.IsConfigured,
+            "No judge model configured: set Models__fallback__BaseUrl and Models__fallback__Model (.env)."
+        );
 
         var problem = await JudgeLiveCheck.ProblemAsync(judge, services.GetRequiredService<ArgumentJudge>(), Cancellation);
 
@@ -47,7 +50,10 @@ public sealed class JudgeLiveTests
     {
         using var services = Services();
         var judge = services.GetRequiredService<Judge>();
-        Assert.SkipUnless(judge.IsConfigured, "No judge model configured: set Models__judge__BaseUrl and Models__judge__Model (.env).");
+        Assert.SkipUnless(
+            judge.IsConfigured,
+            "No judge model configured: set Models__fallback__BaseUrl and Models__fallback__Model (.env)."
+        );
         var check = new JudgeCheck
         {
             Key = "polite",
@@ -88,7 +94,7 @@ public sealed class JudgeLiveTests
         using var services = Services();
         Assert.SkipUnless(
             services.GetRequiredService<Judge>().IsConfigured,
-            "No judge model configured: set Models__judge__BaseUrl and Models__judge__Model (.env)."
+            "No judge model configured: set Models__fallback__BaseUrl and Models__fallback__Model (.env)."
         );
         var arguments = JsonSerializer.Serialize(new { order_id = "A-17", reason });
 

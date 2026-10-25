@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using Suwageval.AgentSdk.Conversations;
 using Suwageval.Contracts.Checks;
 using Suwageval.Server.Judges;
+using Suwageval.Server.LanguageModels;
 using static Suwageval.Server.Tests.Evaluation.Checks.Items;
 
 namespace Suwageval.Server.Tests.Judges;
@@ -147,7 +148,7 @@ public sealed class ArgumentJudgeTests
     public async Task Without_a_judge_model_the_check_is_not_judged_and_nothing_is_asked()
     {
         var model = RecordedModel.Answering("argument-correct.json");
-        var judge = new ArgumentJudge(model.Clients(), Options.Create(new JudgeOptions { Model = " " }));
+        var judge = new ArgumentJudge(new ModelClients([], _ => model), Options.Create(new JudgeOptions { Model = "judge" }));
 
         var verdict = await judge.JudgeAsync(Reason, Turn(Refund("broken")), Cancellation);
 

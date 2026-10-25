@@ -175,9 +175,10 @@ Then ask in plain words, or use the commands:
 | `/suwageval:run` | `/suwageval:run tag regression` — push, run, and explain what failed; then offers comparing with the agent's previous run |
 | `/suwageval:from-conversation` | `/suwageval:from-conversation 2b75526e-…` — a real conversation of the deployed agent as a scenario, the checks decided with you, written after you confirm |
 | `/suwageval:versions` | `/suwageval:versions archive all but the last 3` — list versions, archive, restore or delete them after you confirm |
+| `/suwageval:update` | `/suwageval:update` — the plugin to the newest `master` of the marketplace, with the versions before and after |
 
 The plugin needs the CLI: without it, Claude gives you the lines to install it. To update the
-plugin later:
+plugin later, `/suwageval:update`, or `/plugin` → **Marketplaces** → `suwalski-agent-eval` → **Enable auto-update** once, or by hand:
 
 ```
 ! claude plugin marketplace update suwalski-agent-eval

@@ -1,6 +1,6 @@
 namespace Suwageval.Server.Evaluation.Simulation;
 
-/// <summary>The <c>Simulation</c> section of the configuration: how freely the simulated user writes (its model is the <c>Models:simulator</c> entry, else the judge's; see UserSimulator).</summary>
+/// <summary>The <c>Simulation</c> section of the configuration: how freely the simulated user writes (its model is the <c>Models:simulator</c> entry, else <c>Models:fallback</c>; see UserSimulator).</summary>
 internal sealed class SimulationOptions
 {
     public const string Section = "Simulation";

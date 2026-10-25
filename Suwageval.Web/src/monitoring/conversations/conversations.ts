@@ -126,7 +126,7 @@ export function messageOptions(
 }
 
 export const SIMULATE_REST_HELP =
-    "Instead of copying only the start, simulate the rest: a model (Models:describer, else the judge's) reads the whole conversation and describes the customer, so the simulated customer goes for the same goal the real one did. Turns: how long the simulation runs, by default as long as the real conversation went on.";
+    "Instead of copying only the start, simulate the rest: a model (Models:describer, else Models:fallback) reads the whole conversation and describes the customer, so the simulated customer goes for the same goal the real one did. Turns: how long the simulation runs, by default as long as the real conversation went on.";
 export const NOTHING_TO_SIMULATE = "Nothing came after this message: there is no rest to simulate.";
 
 export const SCENARIO_DRAFT_HELP =

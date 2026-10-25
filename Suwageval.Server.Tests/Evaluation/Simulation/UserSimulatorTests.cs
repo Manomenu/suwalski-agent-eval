@@ -60,14 +60,14 @@ public sealed class UserSimulatorTests
     }
 
     [Fact]
-    public async Task Without_a_simulator_entry_the_judges_entry_plays_the_user()
+    public async Task Without_a_simulator_entry_the_fallback_plays_the_user()
     {
         var judge = RecordedModel.Answering("simulated-message.json");
-        var user = SimulatorOver(("judge", judge));
+        var user = SimulatorOver(("fallback", judge));
 
         var turn = await user.NextAsync(Anna, Conversation, Cancellation);
 
-        Assert.Equal("judge", user.ModelEntry);
+        Assert.Equal("fallback", user.ModelEntry);
         Assert.True(user.IsConfigured);
         Assert.Equal("It arrived broken, I want my money back.", turn.Message);
         Assert.Single(judge.Requests);

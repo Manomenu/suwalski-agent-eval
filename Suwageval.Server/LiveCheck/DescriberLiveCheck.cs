@@ -6,7 +6,7 @@ namespace Suwageval.Server.LiveCheck;
 /// <summary>
 /// The user describer's part of the daily check from production's network (<c>Suwageval.Server live-check</c>, LiveCheck/JudgeLiveCheck.cs):
 /// one call with a fixed tiny conversation, only when the describer has a model of its own (<c>Models:describer</c>); without one it asks
-/// the judge's model, which the check already asks. Its wording varies, so the check asks only that the model wrote the description.
+/// the fallback, which the check already asks. Its wording varies, so the check asks only that the model wrote the description.
 /// </summary>
 internal static class DescriberLiveCheck
 {

@@ -33,11 +33,22 @@ internal sealed class Judge(ModelClients models, IOptions<JudgeOptions> options)
 
     private static readonly JsonSerializerOptions Json = ContractJson.Options;
 
-    /// <summary>Whether judge checks can run: <c>Judge:Model</c> names a model that is configured under <c>Models</c>.</summary>
-    public bool IsConfigured => options.Value.Model is { Length: > 0 } model && models.Has(model);
+    /// <summary>The entry under <c>Models</c> that gives the verdicts: the one <c>Judge:Model</c> names, else the fallback; null when neither is configured.</summary>
+    private string? Entry => EntryOf(models, options.Value);
 
-    /// <summary>The name of the model that gives the verdicts (<c>Models:&lt;Judge:Model&gt;:Model</c>); null when none is configured.</summary>
-    public string? ModelName => options.Value.Model is { Length: > 0 } model ? models.ModelNameOf(model) : null;
+    /// <summary>The entry the judges call: the one <c>Judge:Model</c> names when configured, else the fallback; null when neither is.</summary>
+    public static string? EntryOf(ModelClients models, JudgeOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(models);
+        ArgumentNullException.ThrowIfNull(options);
+        return models.EntryFor(string.IsNullOrWhiteSpace(options.Model) ? ModelClients.FallbackEntry : options.Model.Trim());
+    }
+
+    /// <summary>Whether judge checks can run: a model for them is configured (its own or the fallback).</summary>
+    public bool IsConfigured => Entry is not null;
+
+    /// <summary>The name of the model that gives the verdicts (its <c>Model</c> setting); null when none is configured.</summary>
+    public string? ModelName => Entry is { } entry ? models.ModelNameOf(entry) : null;
 
     [SuppressMessage(
         "Design",
@@ -54,7 +65,7 @@ internal sealed class Judge(ModelClients models, IOptions<JudgeOptions> options)
         ArgumentNullException.ThrowIfNull(check);
         ArgumentNullException.ThrowIfNull(conversation);
         var scope = CheckScope.Of(trace, check.Where);
-        if (options.Value.Model is not { Length: > 0 } model)
+        if (Entry is not { } model)
         {
             return NotJudged(scope, "no judge model is configured");
         }

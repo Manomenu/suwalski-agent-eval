@@ -24,48 +24,44 @@ server:
     requests: { cpu: 50m, memory: 128Mi }
     limits: { memory: 384Mi }
 
-# The model Suwageval itself calls to give the verdicts of `judge` checks: an OpenAI-compatible
-# server (its endpoints directly under baseUrl, e.g. {baseUrl}/chat/completions). Empty baseUrl and
-# secret = no model: the server starts, and a run with judge checks is refused. maxConcurrency is the
-# one pool of calls to this model, shared by everything that asks (TODO.md, "Parallel runs").
-# The address of a private model server does not belong in a public repo, so on the cluster use
-# `secret`: a Secret in the release namespace with Models__judge__BaseUrl and Models__judge__Model,
-# created by the platform repo's setup.sh; the server and the live check read it through envFrom and
-# baseUrl/name are then ignored. baseUrl/name are the plain-values way, for a model that may be public.
-judgeModel:
-  baseUrl: ""
-  name: ""
-  secret: ""
-  maxConcurrency: 8
-
-# A model of its own for the simulated user of simulated scenarios (Models:simulator), same shape as
-# judgeModel: `secret` is a Secret in the release namespace with Models__simulator__BaseUrl and
-# Models__simulator__Model (optionally Models__simulator__ApiKey), read through envFrom; baseUrl/name are
-# then ignored. Empty baseUrl and secret = no separate model: the simulated user uses the judge's, and
-# shares its pool. maxConcurrency is the pool of this model alone.
-simulatorModel:
-  baseUrl: ""
-  name: ""
-  secret: ""
-  maxConcurrency: 8
-
-# A model of its own for the user describer (Models:describer): it describes the user of a monitored conversation when a
-# scenario is drafted from it with the rest simulated. Same shape as judgeModel; empty baseUrl and secret = no separate model:
-# the describer uses the judge's, and shares its pool. With one, the daily live check asks it too.
-describerModel:
-  baseUrl: ""
-  name: ""
-  secret: ""
-  maxConcurrency: 8
+# The models Suwageval itself calls (Models:<name>), each an OpenAI-compatible server (its endpoints directly under baseUrl,
+# e.g. {baseUrl}/chat/completions). `fallback` is enough: every role without an entry of its own uses it — judge (the
+# verdicts of `judge` checks), simulator (the simulated user) and describer (a simulated user described from a monitored
+# conversation). Give a role its own entry only to call another model for it. No model at all: the server starts, and a run
+# with judge checks or simulations is refused. maxConcurrency is the pool of calls to that model, shared by everything that asks it.
+# The address of a private model server does not belong in a public repo, so on the cluster use `secret`: a Secret in the
+# release namespace with Models__<name>__BaseUrl and Models__<name>__Model (optionally __ApiKey), created by the platform repo's
+# setup.sh; the server and the live check read it through envFrom and baseUrl/name are then ignored.
+models:
+  fallback:
+    baseUrl: ""
+    name: ""
+    secret: ""
+    maxConcurrency: 8
+  judge:
+    baseUrl: ""
+    name: ""
+    secret: ""
+    maxConcurrency: 8
+  simulator:
+    baseUrl: ""
+    name: ""
+    secret: ""
+    maxConcurrency: 8
+  describer:
+    baseUrl: ""
+    name: ""
+    secret: ""
+    maxConcurrency: 8
 
 # The simulated user's settings. temperature: how freely the simulated user writes, 0 to 2;
 # empty = the server's default (0.7).
 simulation:
   temperature: ""
 
-# The daily check of that model from the cluster's own network (templates/live-check.yaml): the
-# server's image, another command, one judge call with a fixed tiny case. Rendered only with a
-# judgeModel. A failure turns the Job red and, with discordSecret, posts to the alerts channel.
+# The daily check of the models from the cluster's own network (templates/live-check.yaml): the
+# server's image, another command, one call per role with a fixed tiny case. Rendered only with a
+# model in `models`. A failure turns the Job red and, with discordSecret, posts to the alerts channel.
 liveCheck:
   schedule: "17 6 * * *" # once a day (the CronJob's time zone is Europe/Warsaw)
   # A Secret in the release namespace with LiveCheck__DiscordWebhookUrl (a Discord webhook), created

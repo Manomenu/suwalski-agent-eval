@@ -23,7 +23,7 @@ corepack enable --install-directory ~/.local/bin   # pnpm, in the version packag
 
 ```sh
 just                 # every recipe, grouped
-cp .env.example .env # once: the judge's model (address and name), never committed
+cp .env.example .env # once: the model Suwageval calls (Models__fallback__*: address and name), never committed
 just db up           # local PostgreSQL on :5463
 just server          # API on :6230 (OpenAPI document at /openapi/v1.json)
 just web             # web app on :3230, proxies /api to the server

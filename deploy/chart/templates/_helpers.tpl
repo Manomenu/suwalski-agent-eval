@@ -26,92 +26,48 @@ zatrzymać wdrożenie z czytelnym błędem, a nie po cichu wziąć „latest".
 {{- end -}}
 
 {{/*
-The judge's model as environment variables (appsettings: Models:judge and Judge:Model). Rendered only when
-judgeModel.baseUrl or judgeModel.secret is set: without a model the server starts anyway and refuses runs that have
-judge checks. With judgeModel.secret the address and the name come from that Secret (app.judgeEnvFrom) and only the
-non-secret pool size is rendered here. Used by the server and by the daily live check, so both ask the same model the same way.
+The models Suwageval itself calls (values: models; appsettings: Models:<name>) as environment variables, one entry each:
+fallback, which every role uses unless it has its own, and the roles judge, simulator and describer. An entry renders only
+when its baseUrl or secret is set; with a secret the address and the name come from that Secret (app.modelsEnvFrom) and only
+the non-secret pool size is rendered here. Used by the server and by the daily live check, so both ask the same models.
 */}}
-{{- define "app.judgeEnv" -}}
-{{- with .Values.judgeModel }}
-{{- if or .baseUrl .secret }}
-{{- if not .secret }}
-- name: Models__judge__BaseUrl
-  value: {{ .baseUrl | quote }}
-- name: Models__judge__Model
-  value: {{ required "judgeModel.name is required when judgeModel.baseUrl is set" .name | quote }}
+{{- define "app.modelsEnv" -}}
+{{- range $name, $model := .Values.models }}
+{{- if or $model.baseUrl $model.secret }}
+{{- if not $model.secret }}
+- name: Models__{{ $name }}__BaseUrl
+  value: {{ $model.baseUrl | quote }}
+- name: Models__{{ $name }}__Model
+  value: {{ required (printf "models.%s.name is required when models.%s.baseUrl is set" $name $name) $model.name | quote }}
 {{- end }}
-- name: Models__judge__MaxConcurrency
-  value: {{ .maxConcurrency | quote }}
+- name: Models__{{ $name }}__MaxConcurrency
+  value: {{ $model.maxConcurrency | quote }}
 {{- end }}
 {{- end }}
 {{- end -}}
 
 {{/*
-The Secret that holds the judge's model address and name (judgeModel.secret), as an envFrom item; empty without one.
+The Secrets that hold the models' addresses and names (models.<name>.secret), as envFrom items; empty without any.
 */}}
-{{- define "app.judgeEnvFrom" -}}
-{{- with .Values.judgeModel.secret }}
+{{- define "app.modelsEnvFrom" -}}
+{{- range $name, $model := .Values.models }}
+{{- with $model.secret }}
 - secretRef:
     name: {{ . }}
 {{- end }}
-{{- end -}}
-
-{{/*
-The simulated user's own model as environment variables (appsettings: Models:simulator). Rendered only when
-simulatorModel.baseUrl or simulatorModel.secret is set: without it the simulated user uses the judge's model. Same shape as
-app.judgeEnv; with simulatorModel.secret the address and the name come from that Secret (app.simulatorEnvFrom).
-*/}}
-{{- define "app.simulatorEnv" -}}
-{{- with .Values.simulatorModel }}
-{{- if or .baseUrl .secret }}
-{{- if not .secret }}
-- name: Models__simulator__BaseUrl
-  value: {{ .baseUrl | quote }}
-- name: Models__simulator__Model
-  value: {{ required "simulatorModel.name is required when simulatorModel.baseUrl is set" .name | quote }}
-{{- end }}
-- name: Models__simulator__MaxConcurrency
-  value: {{ .maxConcurrency | quote }}
-{{- end }}
 {{- end }}
 {{- end -}}
 
 {{/*
-The Secret that holds the simulator's model address and name (simulatorModel.secret), as an envFrom item; empty without one.
+"true" when a model is configured at all (its baseUrl or secret set), else empty.
 */}}
-{{- define "app.simulatorEnvFrom" -}}
-{{- with .Values.simulatorModel.secret }}
-- secretRef:
-    name: {{ . }}
-{{- end }}
+{{- define "app.anyModel" -}}
+{{- range $name, $model := .Values.models }}{{ if or $model.baseUrl $model.secret }}true{{ end }}{{ end }}
 {{- end -}}
 
 {{/*
-The user describer's own model as environment variables (appsettings: Models:describer). Rendered only when
-describerModel.baseUrl or describerModel.secret is set: without it the describer uses the judge's model. Same shape as
-app.judgeEnv; with describerModel.secret the address and the name come from that Secret (app.describerEnvFrom).
+"true" when a model's address comes from a Secret, else empty.
 */}}
-{{- define "app.describerEnv" -}}
-{{- with .Values.describerModel }}
-{{- if or .baseUrl .secret }}
-{{- if not .secret }}
-- name: Models__describer__BaseUrl
-  value: {{ .baseUrl | quote }}
-- name: Models__describer__Model
-  value: {{ required "describerModel.name is required when describerModel.baseUrl is set" .name | quote }}
-{{- end }}
-- name: Models__describer__MaxConcurrency
-  value: {{ .maxConcurrency | quote }}
-{{- end }}
-{{- end }}
-{{- end -}}
-
-{{/*
-The Secret that holds the describer's model address and name (describerModel.secret), as an envFrom item; empty without one.
-*/}}
-{{- define "app.describerEnvFrom" -}}
-{{- with .Values.describerModel.secret }}
-- secretRef:
-    name: {{ . }}
-{{- end }}
+{{- define "app.anyModelSecret" -}}
+{{- range $name, $model := .Values.models }}{{ if $model.secret }}true{{ end }}{{ end }}
 {{- end -}}

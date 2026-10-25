@@ -3,6 +3,7 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Suwageval.Server.Evaluation.Simulation;
 using Suwageval.Server.Judges;
 using Suwageval.Server.LanguageModels;
 using Suwageval.Server.Tests.Evaluation.Checks;
@@ -50,7 +51,7 @@ public sealed class ModelClientsTests
     public async Task Twenty_calls_through_eight_slots_never_have_more_than_eight_in_flight()
     {
         var counting = new Counting();
-        var client = counting.Model.Clients(maxConcurrency: 8).Get("judge");
+        var client = counting.Model.Clients(maxConcurrency: 8).Get("fallback");
 
         await Task.WhenAll(Enumerable.Range(0, 20).Select(_ => client.GetResponseAsync(Question, cancellationToken: Cancellation)));
 
@@ -63,7 +64,7 @@ public sealed class ModelClientsTests
         var counting = new Counting();
         var clients = counting.Model.Clients(maxConcurrency: 3);
 
-        Assert.Same(clients.Get("judge"), clients.Get("JUDGE"));
+        Assert.Same(clients.Get("fallback"), clients.Get("FALLBACK"));
 
         // Two judges (two runs, say) on the same clients compete for the same three slots.
         var options = Options.Create(new JudgeOptions { Model = "judge" });
@@ -91,7 +92,7 @@ public sealed class ModelClientsTests
             await Task.Delay(Timeout.Infinite, cancellation);
             return "";
         });
-        var client = model.Clients(maxConcurrency: 1).Get("judge");
+        var client = model.Clients(maxConcurrency: 1).Get("fallback");
         using var source = CancellationTokenSource.CreateLinkedTokenSource(Cancellation);
         var holding = client.GetResponseAsync(Question, cancellationToken: source.Token);
         var waiting = client.GetResponseAsync(Question, cancellationToken: source.Token);
@@ -163,6 +164,28 @@ public sealed class ModelClientsTests
 
         Assert.Equal((8, 120), (model.MaxConcurrency, model.TimeoutSeconds));
         Assert.True(services.GetRequiredService<Judge>().IsConfigured);
+    }
+
+    [Fact]
+    public void Every_role_without_a_model_of_its_own_takes_the_fallback()
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(
+                new Dictionary<string, string?>
+                {
+                    ["Judge:Model"] = "judge",
+                    ["Models:fallback:BaseUrl"] = "http://fallback.example/v",
+                    ["Models:fallback:Model"] = "small",
+                    ["Models:simulator:BaseUrl"] = "http://simulator.example/v",
+                    ["Models:simulator:Model"] = "big",
+                }
+            )
+            .Build();
+        using var services = new ServiceCollection().AddJudges(configuration).AddSimulation(configuration).BuildServiceProvider();
+
+        Assert.Equal("small", services.GetRequiredService<Judge>().ModelName);
+        Assert.Equal("simulator", services.GetRequiredService<UserSimulator>().ModelEntry);
+        Assert.Equal("fallback", services.GetRequiredService<UserDescriber>().ModelEntry);
     }
 
     [Fact]

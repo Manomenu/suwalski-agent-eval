@@ -379,7 +379,7 @@ drafts a scenario file from a conversation the deployed agent had: copied whole,
 included. Copied up to a message, the rest can be simulated instead of dropped: `--simulate` (on the web: "Simulate the rest", then
 "Generate scenario") adds a `continuation` whose `simulatedUser` a model writes from the **whole** conversation, so the simulated user
 goes for the goal the real one did, for `--turns N` turns (1 to 20; by default as many as the real conversation had after the cut). The
-model is `Models:describer` when configured, else the judge's; without either, `simulatedUser` lists the user's messages to rewrite and
+model is `Models:describer` when configured, else `Models:fallback`; without either, `simulatedUser` lists the user's messages to rewrite and
 the draft says why. The key is proposed from the conversation's id (`conversation-<id>`) and `origin` names the conversation. The monitoring
 checks the conversation failed come at the end as comments, with their definitions: what went wrong, to turn into the scenario's own
 checks (a monitoring check is not always a valid scenario check as it is, so it is never written as one). The draft is the base: the
@@ -514,7 +514,7 @@ is grounded or complete, whether a refusal was explained.
   sample counts as failed with a message starting `Not judged:`, and the results mark it `notJudged: true` (the web shows
   "not judged"; the CLI's summary line counts them). The run goes on and other checks are unaffected. "Not judged" is
   not "judged failed" — run again before concluding anything about the agent.
-- **The model** is the server's: `Judge:Model` names one of `Models:<name>` (`BaseUrl` of an OpenAI-compatible server,
+- **The model** is the server's: `Models:judge` when configured, else `Models:fallback` (`BaseUrl` of an OpenAI-compatible server,
   `Model`, `MaxConcurrency` — default 8 calls at once to that model, shared by everything that calls it, and
   `TimeoutSeconds`). A run whose scenarios have a `judge` check is refused with 409 when no judge model is configured.
   `validate` checks only that `criteria` is not empty.
@@ -614,8 +614,8 @@ checks:
   turns. A `judge` check judges the agent over the whole conversation; the simulated user's messages are context to it, never judged.
   Simulations vary more than one turn: use several `samples`, a `passThreshold` below 1 for what depends on the course of the
   conversation, and 1.0 for what must never happen.
-- **The model** is `Models:simulator` when that entry is configured, else `Models:judge`. With no `simulator` entry the simulated user
-  shares the judge's client and its limit of calls at once (`MaxConcurrency`); a `simulator` entry has its own client and its own limit. `Simulation:Temperature` (0 to 2,
+- **The model** is `Models:simulator` when that entry is configured, else `Models:fallback`. With no `simulator` entry the simulated user
+  shares the fallback's client and its limit of calls at once (`MaxConcurrency`); a `simulator` entry has its own client and its own limit. `Simulation:Temperature` (0 to 2,
   default 0.7; `Simulation__Temperature` in the environment) is how freely the user writes: above 0 on purpose, so the samples do not
   all go the same way. A run with a simulated scenario is refused with 409 when no simulator model is configured.
 - **Cost.** Each sample is up to `turns` agent calls and up to `turns` simulator calls, plus the judge's calls once at the end.

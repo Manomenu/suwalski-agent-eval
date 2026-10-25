@@ -25,7 +25,7 @@ internal static class FromConversationCommand
         var simulate = new Option<bool>("--simulate")
         {
             Description =
-                "Simulate the rest after the cut: a model describes the user from the whole conversation (Models:describer, else the judge's).",
+                "Simulate the rest after the cut: a model describes the user from the whole conversation (Models:describer, else Models:fallback).",
         };
         var turns = new Option<int?>("--turns")
         {

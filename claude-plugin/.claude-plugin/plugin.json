@@ -1,6 +1,6 @@
 {
   "name": "suwageval",
-  "description": "Teaches Claude Code to evaluate an LLM agent with Suwageval: write scenarios as files in the agent's repository, keep them valid, run them and read the results, with /suwageval:scenario, /suwageval:fix, /suwageval:run and /suwageval:versions.",
+  "description": "Teaches Claude Code to evaluate an LLM agent with Suwageval: write scenarios as files in the agent's repository, keep them valid, run them and read the results, with /suwageval:scenario, /suwageval:fix, /suwageval:run, /suwageval:versions, /suwageval:from-conversation and /suwageval:update.",
   "author": {
     "name": "Piotr Gugnowski"
   },

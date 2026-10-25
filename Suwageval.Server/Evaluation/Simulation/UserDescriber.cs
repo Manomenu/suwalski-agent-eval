@@ -24,15 +24,10 @@ internal sealed class UserDescriber(ModelClients models)
 
     private const string DescriberEntry = "describer";
 
-    private const string JudgeEntry = "judge";
+    /// <summary>The entry under <c>Models</c> that describes the user: <c>describer</c> when configured, else <c>fallback</c>; null when neither is.</summary>
+    public string? ModelEntry => models.EntryFor(DescriberEntry);
 
-    /// <summary>The entry under <c>Models</c> that describes the user: <c>describer</c> when configured, else the judge's <c>judge</c>; null when neither is.</summary>
-    public string? ModelEntry =>
-        models.Has(DescriberEntry) ? DescriberEntry
-        : models.Has(JudgeEntry) ? JudgeEntry
-        : null;
-
-    /// <summary>Whether a model of its own is configured (<c>Models:describer</c>), not the judge's.</summary>
+    /// <summary>Whether a model of its own is configured (<c>Models:describer</c>), not the fallback.</summary>
     public bool HasOwnModel => models.Has(DescriberEntry);
 
     [SuppressMessage(
@@ -45,7 +40,7 @@ internal sealed class UserDescriber(ModelClients models)
         ArgumentNullException.ThrowIfNull(conversation);
         if (ModelEntry is not { } model)
         {
-            return Fallback(conversation, "no describer or judge model is configured");
+            return Fallback(conversation, "no describer or fallback model is configured");
         }
         string text;
         try

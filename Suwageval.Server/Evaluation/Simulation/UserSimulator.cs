@@ -31,15 +31,10 @@ internal sealed class UserSimulator(ModelClients models, IOptions<SimulationOpti
 
     private const string SimulatorEntry = "simulator";
 
-    private const string JudgeEntry = "judge";
+    /// <summary>The entry under <c>Models</c> that plays the user: <c>simulator</c> when configured, else <c>fallback</c>; null when neither is.</summary>
+    public string? ModelEntry => models.EntryFor(SimulatorEntry);
 
-    /// <summary>The entry under <c>Models</c> that plays the user: <c>simulator</c> when configured, else the judge's <c>judge</c>; null when neither is.</summary>
-    public string? ModelEntry =>
-        models.Has(SimulatorEntry) ? SimulatorEntry
-        : models.Has(JudgeEntry) ? JudgeEntry
-        : null;
-
-    /// <summary>Whether simulated scenarios can run: <c>Models:simulator</c> or, failing that, <c>Models:judge</c> is configured.</summary>
+    /// <summary>Whether simulated scenarios can run: <c>Models:simulator</c> or, failing that, <c>Models:fallback</c> is configured.</summary>
     public bool IsConfigured => ModelEntry is not null;
 
     [SuppressMessage(

@@ -10,9 +10,9 @@ Discord webhook is configured, posts to the alerts channel.
 The same image as the server, another command. Right now, without waiting for the schedule:
   kubectl -n <namespace> create job --from=cronjob/<release>-live-check <release>-live-check-now
 
-Rendered only when a judge model is configured (judgeModel.baseUrl or judgeModel.secret): with none there is nothing to ask.
+Rendered only when a model is configured (models.<name>.baseUrl or .secret): with none there is nothing to ask.
 */ -}}
-{{- if or .Values.judgeModel.baseUrl .Values.judgeModel.secret }}
+{{- if include "app.anyModel" . }}
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -48,10 +48,8 @@ spec:
               imagePullPolicy: {{ .Values.image.pullPolicy }}
               args: ["live-check"]
               env:
-                {{- include "app.judgeEnv" . | nindent 16 }}
-                {{- include "app.simulatorEnv" . | nindent 16 }}
-                {{- include "app.describerEnv" . | nindent 16 }}
-              {{- if or .Values.liveCheck.discordSecret .Values.judgeModel.secret .Values.simulatorModel.secret .Values.describerModel.secret }}
+                {{- include "app.modelsEnv" . | nindent 16 }}
+              {{- if or .Values.liveCheck.discordSecret (include "app.anyModelSecret" .) }}
               envFrom:
                 {{- with .Values.liveCheck.discordSecret }}
                 # Optional: without it the check still runs, it just tells nobody.
@@ -59,9 +57,7 @@ spec:
                     name: {{ . }}
                     optional: true
                 {{- end }}
-                {{- include "app.judgeEnvFrom" . | nindent 16 }}
-                {{- include "app.simulatorEnvFrom" . | nindent 16 }}
-                {{- include "app.describerEnvFrom" . | nindent 16 }}
+                {{- include "app.modelsEnvFrom" . | nindent 16 }}
               {{- end }}
               resources:
                 {{- toYaml .Values.liveCheck.resources | nindent 16 }}

@@ -12,7 +12,7 @@ namespace Suwageval.Server.LiveCheck;
 /// <summary>
 /// The daily check from production's network (<c>Suwageval.Server live-check</c>, the chart's CronJob): calls with fixed tiny
 /// cases — one <c>judge</c> check, one <c>$judge</c> argument and, when one is configured, the simulated user
-/// (<see cref="SimulatorLiveCheck"/>, through <c>Models:simulator</c> or else the judge's entry) and, with a model of its own, the user
+/// (<see cref="SimulatorLiveCheck"/>, through <c>Models:simulator</c> or else <c>Models:fallback</c>) and, with a model of its own, the user
 /// describer (<see cref="DescriberLiveCheck"/>) — through the production registration of the models, the judges and the simulator. The model is not ours, so it can change
 /// its answer without a commit here; this is what notices. A problem is logged, posted to the Discord alerts channel when a
 /// webhook is configured, and makes the process exit non-zero. It writes nothing anywhere, so there is nothing to roll back.

@@ -24,9 +24,14 @@ Needs the .NET 10 SDK, [`just`](https://just.systems) and Docker with `docker co
 
 ```sh
 git clone https://github.com/Manomenu/suwalski-agent-eval && cd suwalski-agent-eval
-just up            # Suwageval on http://localhost:8093
-just cli-install   # the `suwageval` command
+cp .env.example .env   # set one model: Models__fallback__BaseUrl and Models__fallback__Model
+just up                # Suwageval on http://localhost:8093
+just cli-install       # the `suwageval` command
 ```
+
+Suwageval calls a model itself for `judge` checks, simulated users and a user described from a conversation. **One model is
+enough**: `Models:fallback` (any OpenAI-compatible server). Each of these roles takes it unless you give the role a model of its own
+(`Models:judge`, `Models:simulator`, `Models:describer`, the same three settings).
 
 Your agent serves two routes: `GET /suwageval/contract` (what it is: its LLM agents, models, prompts, tools, events) and
 `POST /suwageval/turn` (its answer to a conversation). A .NET agent gets both from the `Suwageval.AgentSdk` package
@@ -174,7 +179,8 @@ explains what failed and turns a monitored conversation into a scenario.
 ```
 
 Then ask, or use `/suwageval:scenario`, `/suwageval:fix`, `/suwageval:run`, `/suwageval:from-conversation` — see
-[docs/front-doors.md](docs/front-doors.md#use-it-from-claude-code).
+[docs/front-doors.md](docs/front-doors.md#use-it-from-claude-code). `/suwageval:update` brings the plugin to the newest `master`;
+`/plugin` → **Marketplaces** → `suwalski-agent-eval` → **Enable auto-update** does it by itself.
 
 ## How it is built
 

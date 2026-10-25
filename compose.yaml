@@ -13,8 +13,8 @@ services:
     build:
       context: .
       dockerfile: Suwageval.Server/Dockerfile
-    # The judge's model (Models__judge__BaseUrl, Models__judge__Model) and, optionally, the simulated user's
-    # (Models__simulator__*) and the user describer's (Models__describer__*) from the gitignored .env, as for `just server`; without the judge's the stack runs and refuses runs with judge checks. .env.example lists the names.
+    # The model (Models__fallback__BaseUrl, Models__fallback__Model) and, optionally, the judge's, the simulated user's and the
+    # user describer's own (Models__judge__*, Models__simulator__*, Models__describer__*) from the gitignored .env, as for `just server`; without any model the stack runs and refuses runs with judge checks or simulations. .env.example lists the names.
     env_file:
       - path: .env
         required: false

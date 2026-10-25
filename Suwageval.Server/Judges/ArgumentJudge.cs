@@ -46,7 +46,7 @@ internal sealed class ArgumentJudge(ModelClients models, IOptions<JudgeOptions> 
         {
             return search.WhenNoCandidate;
         }
-        if (options.Value.Model is not { Length: > 0 } model || !models.Has(model))
+        if (Judge.EntryOf(models, options.Value) is not { } model)
         {
             return JudgeModel.NotJudged(search.Named, "no judge model is configured");
         }

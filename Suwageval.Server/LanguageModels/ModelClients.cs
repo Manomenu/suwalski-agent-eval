@@ -17,7 +17,16 @@ internal sealed class ModelClients(ModelsOptions options, Func<ModelOptions, ICh
         StringComparer.OrdinalIgnoreCase
     );
 
+    /// <summary>The entry under <c>Models</c> that every role without an entry of its own uses.</summary>
+    public const string FallbackEntry = "fallback";
+
     public bool Has(string name) => clients.ContainsKey(name);
+
+    /// <summary>The entry a role calls: its own (<c>Models:&lt;role&gt;</c>) when configured, else <c>Models:fallback</c>; null when neither is.</summary>
+    public string? EntryFor(string role) =>
+        Has(role) ? role
+        : Has(FallbackEntry) ? FallbackEntry
+        : null;
 
     /// <summary>The model's own name on its server (<see cref="ModelOptions.Model"/>) of the model called <paramref name="name"/>; null when it is not configured.</summary>
     public string? ModelNameOf(string name) => options.TryGetValue(name, out var model) ? model.Model : null;

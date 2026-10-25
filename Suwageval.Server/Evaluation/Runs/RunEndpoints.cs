@@ -158,7 +158,7 @@ internal static class RunEndpoints
         {
             return Results.Problem(
                 title: "No judge model is configured",
-                detail: "The scenarios have judge checks or $judge argument matching, but the judge's model is not configured (Models:<Judge:Model>:BaseUrl and :Model); nothing was queued.",
+                detail: "The scenarios have judge checks or $judge argument matching, but no model is configured for the judge (Models:fallback, or Models:judge of its own: BaseUrl and Model); nothing was queued.",
                 statusCode: StatusCodes.Status409Conflict
             );
         }
@@ -167,7 +167,7 @@ internal static class RunEndpoints
         {
             return Results.Problem(
                 title: "No simulator model is configured",
-                detail: "The scenarios have a simulated user, but the simulator's model is not configured (Models:simulator, or else Models:judge: :BaseUrl and :Model); nothing was queued.",
+                detail: "The scenarios have a simulated user, but no model is configured for the simulated user (Models:fallback, or Models:simulator of its own: BaseUrl and Model); nothing was queued.",
                 statusCode: StatusCodes.Status409Conflict
             );
         }

@@ -56,25 +56,25 @@ internal sealed class RecordedModel(Func<CancellationToken, Task<string>> answer
 
     public static RecordedModel Failing(Exception error) => new(_ => Task.FromException<string>(error));
 
-    /// <summary>A judge over this model, configured the way the server is: model "judge" under Models, named by Judge:Model.</summary>
+    /// <summary>A judge over this model, configured the way the server is: Judge:Model "judge", which has no entry of its own, so the fallback answers.</summary>
     public Judge Judge(int maxConcurrency = 8) => new(Clients(maxConcurrency), Options.Create(new JudgeOptions { Model = "judge" }));
 
     /// <summary>An argument judge over this model, configured the way the server is.</summary>
     public ArgumentJudge ArgumentJudge(int maxConcurrency = 8) =>
         new(Clients(maxConcurrency), Options.Create(new JudgeOptions { Model = "judge" }));
 
-    /// <summary>A user simulator over this model, configured the way the server is: the judge's entry under Models (no "simulator" entry).</summary>
+    /// <summary>A user simulator over this model, configured the way the server is: the fallback entry under Models (no "simulator" entry).</summary>
     public UserSimulator Simulator(double temperature = 0.7) =>
         new(Clients(), Options.Create(new SimulationOptions { Temperature = temperature }));
 
-    /// <summary>A user describer over this model, configured the way the server is: the judge's entry under Models (no "describer" entry).</summary>
+    /// <summary>A user describer over this model, configured the way the server is: the fallback entry under Models (no "describer" entry).</summary>
     public UserDescriber Describer() => new(Clients());
 
     public ModelClients Clients(int maxConcurrency = 8) =>
         new(
             new ModelsOptions
             {
-                ["judge"] = new ModelOptions
+                ["fallback"] = new ModelOptions
                 {
                     BaseUrl = "http://model.invalid",
                     Model = "recorded",
