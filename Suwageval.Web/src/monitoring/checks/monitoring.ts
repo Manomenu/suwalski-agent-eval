@@ -1,7 +1,6 @@
 // The monitoring checks and their trend as the Monitoring page shows them, as plain functions.
-import type { ChartMark } from "../../charts/chartStyle";
+import { changeMarks, type ChartMark } from "../../charts/chartStyle";
 import type { ChartRow } from "../../charts/LineTrend";
-import { versionTitle } from "../../format/names";
 import { percent, percentValue } from "../../format/numbers";
 
 /** How a check did over some conversations. */
@@ -91,16 +90,13 @@ export function passRateRows(trend: Trend): ChartRow[] {
 
 /** The deploys and the data changes as marks on the charts, on the day (UTC) they were first seen; marks of one day are joined. */
 export function dayMarks(trend: Trend): ChartMark[] {
-    const labels = new Map<string, string[]>();
-    const add = (at: string, label: string) => {
-        const date = at.slice(0, 10);
-        labels.set(date, [...(labels.get(date) ?? []), label]);
-    };
-    for (const change of trend.versions) {
-        add(change.at, `version ${versionTitle(change.agentVersionId, change.label)}`);
-    }
-    for (const change of trend.dataVersions) add(change.at, `data ${change.dataVersion}`);
-    return [...labels].sort(([a], [b]) => a.localeCompare(b)).map(([date, parts]) => ({ x: date, label: parts.join(", ") }));
+    const day = (at: string) => at.slice(0, 10);
+    return changeMarks(
+        [
+            ...trend.versions.map((change) => ({ x: day(change.at), version: change })),
+            ...trend.dataVersions.map((change) => ({ x: day(change.at), dataVersion: change.dataVersion })),
+        ].sort((a, b) => a.x.localeCompare(b.x)),
+    );
 }
 
 export const MONITORING_CHECKS_HELP =

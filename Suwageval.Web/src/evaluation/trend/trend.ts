@@ -1,10 +1,12 @@
-import { seriesColor as chartSeriesColor } from "../../charts/chartStyle";
+import { seriesColor as chartSeriesColor, type ChartChange } from "../../charts/chartStyle";
 import { percentValue, seconds } from "../../format/numbers";
-import { versionTitle } from "../../format/names";
 import { type RunPassRates } from "./api";
 
 /** The series of every run's rate over all checks. */
 export const ALL_SERIES = "All";
+
+/** Said in the help of every trend chart: what its dashed lines mark. */
+export const CHANGE_MARKS_HELP = "A dashed line marks the run that started a new agent version or new retrieval data.";
 
 /** The trend needs this many points to be a line. */
 export const TREND_MIN_RUNS = 2;
@@ -133,17 +135,25 @@ export function measuredSeries(row: TrendRow, series: readonly string[]): string
     return series.filter((name) => typeof row[name] === "number");
 }
 
-/** A run of the chart whose agent version differs from the run before it: where a line marks the change. */
-export interface VersionChange {
-    runId: string;
-    label: string;
-}
-
-/** The runs of `rows` (oldest first) that start a new agent version, with the version's name; none for the first run. */
-export function versionChanges(points: readonly RunPassRates[], rows: readonly TrendRow[]): VersionChange[] {
+/**
+ * The charted runs (oldest first) that start a new agent version or new retrieval data, as the chart's changes keyed by run; none for
+ * the first run. Data is compared with the last run that had any, so a run without retrieval neither starts nor breaks a change.
+ */
+export function runChanges(points: readonly RunPassRates[], rows: readonly TrendRow[]): ChartChange[] {
     const charted = new Set(rows.map((row) => row[RUN_KEY]));
     const shown = points.filter((point) => charted.has(point.runId));
-    return shown
-        .filter((point, i) => i > 0 && shown[i - 1]?.agentVersionId !== point.agentVersionId)
-        .map((point) => ({ runId: point.runId, label: versionTitle(point.agentVersionId, point.versionLabel) }));
+    const changes: ChartChange[] = [];
+    let lastData: string | null = null;
+    shown.forEach((point, i) => {
+        const previous = shown[i - 1];
+        const change: ChartChange = { x: point.runId };
+        if (previous && previous.agentVersionId !== point.agentVersionId) {
+            change.version = { agentVersionId: point.agentVersionId, label: point.versionLabel };
+        }
+        const data = point.dataVersion ?? null;
+        if (data !== null && lastData !== null && data !== lastData) change.dataVersion = data;
+        if (data !== null) lastData = data;
+        if (change.version || change.dataVersion !== undefined) changes.push(change);
+    });
+    return changes;
 }

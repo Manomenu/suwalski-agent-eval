@@ -15,7 +15,7 @@ import {
     trendRows,
     trendSeries,
     turnTimeMeasure,
-    versionChanges,
+    runChanges,
     withTurnTimes,
 } from "./trend";
 import { type RunPassRates } from "./api";
@@ -173,29 +173,38 @@ describe("turn time", () => {
     });
 });
 
-describe("versionChanges", () => {
-    it("marks each charted run whose version differs from the run before it, named by its label or the start of its id", () => {
+describe("runChanges", () => {
+    it("marks each charted run whose version differs from the run before it", () => {
         const runs = [
             { ...point("r1", 1, []), agentVersionId: "aaaaaaaa-1" },
             { ...point("r2", 1, []), agentVersionId: "aaaaaaaa-1" },
             { ...point("r3", 1, [], null), agentVersionId: "bbbbbbbb-2" },
-            { ...point("r4", 1, [], "v3"), agentVersionId: "cccccccc-3" },
         ];
 
-        expect(versionChanges(runs, trendRows(runs))).toEqual([
-            { runId: "r3", label: "bbbbbbbb" },
-            { runId: "r4", label: "v3" },
+        expect(runChanges(runs, trendRows(runs))).toEqual([{ x: "r3", version: { agentVersionId: "bbbbbbbb-2", label: null } }]);
+    });
+
+    it("marks new data against the last run that had any; a run without retrieval changes nothing", () => {
+        const runs = [
+            { ...point("r1", 1, []), dataVersion: "d1" },
+            { ...point("r2", 1, []), dataVersion: null },
+            { ...point("r3", 1, []), dataVersion: "d1" },
+            { ...point("r4", 1, [], "v2"), agentVersionId: "other", dataVersion: "d2" },
+        ];
+
+        expect(runChanges(runs, trendRows(runs))).toEqual([
+            { x: "r4", version: { agentVersionId: "other", label: "v2" }, dataVersion: "d2" },
         ]);
     });
 
     it("compares only the runs the chart shows", () => {
         const runs = [
-            { ...point("r1", 1, []), agentVersionId: "a" },
-            { ...point("r2", 1, []), agentVersionId: "b" },
-            { ...point("r3", 1, []), agentVersionId: "a" },
+            { ...point("r1", 1, []), agentVersionId: "a", dataVersion: "d1" },
+            { ...point("r2", 1, []), agentVersionId: "b", dataVersion: "d2" },
+            { ...point("r3", 1, []), agentVersionId: "a", dataVersion: "d1" },
         ];
         const charted = trendRows(runs).filter((row) => row[RUN_KEY] !== "r2");
 
-        expect(versionChanges(runs, charted)).toEqual([]);
+        expect(runChanges(runs, charted)).toEqual([]);
     });
 });

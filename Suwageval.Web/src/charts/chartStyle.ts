@@ -1,4 +1,6 @@
 // How the line charts of every area look: the same palette, the same marks for a change, the same height.
+import { shortDataVersion } from "../dataVersion/shortDataVersion";
+import { versionTitle } from "../format/names";
 
 /** The height of a line chart. */
 export const CHART_HEIGHT = 300;
@@ -22,6 +24,25 @@ export function swatchColor(color: string): string {
 export interface ChartMark {
     x: string;
     label: string;
+}
+
+/** What changed at one point of the x axis: a new agent version, new retrieval data, or both. */
+export interface ChartChange {
+    x: string;
+    version?: { agentVersionId: string; label?: string | null | undefined };
+    dataVersion?: string;
+}
+
+/** The changes as marks, one per point of the x axis (its changes joined), in the order the points first come. */
+export function changeMarks(changes: readonly ChartChange[]): ChartMark[] {
+    const labels = new Map<string, string[]>();
+    for (const change of changes) {
+        const parts = labels.get(change.x) ?? [];
+        if (change.version) parts.push(`version ${versionTitle(change.version.agentVersionId, change.version.label)}`);
+        if (change.dataVersion !== undefined) parts.push(`data ${shortDataVersion(change.dataVersion)}`);
+        labels.set(change.x, parts);
+    }
+    return [...labels].filter(([, parts]) => parts.length > 0).map(([x, parts]) => ({ x, label: parts.join(", ") }));
 }
 
 /** The marks as the chart's dashed reference lines, labelled at their top. */

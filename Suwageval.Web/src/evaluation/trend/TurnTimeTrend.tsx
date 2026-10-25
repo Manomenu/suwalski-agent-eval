@@ -3,12 +3,13 @@ import { useState } from "react";
 
 import { HeaderHelp } from "../../help/HeaderHelp";
 import { TrendChart } from "./TrendChart";
-import { TREND_MIN_RUNS, trendRows, trendSeries, turnTimeMeasure, withTurnTimes, type TurnTimeStat } from "./trend";
+import { CHANGE_MARKS_HELP, TREND_MIN_RUNS, trendRows, trendSeries, turnTimeMeasure, withTurnTimes, type TurnTimeStat } from "./trend";
 import { type RunPassRates } from "./api";
 
 /** What the chart shows, said on hover over its heading. */
 const TURN_TIME_HELP =
-    "How long the agent took to answer one turn, measured by Suwageval around the call (the network included), per finished run: the median or the 95th percentile of its samples that made a call. The series follow the rules of the pass-rate chart: All comes only from runs of every scenario; a tag's line also takes runs limited to tags including it. Click a point to open the run. Lower is better.";
+    "How long the agent took to answer one turn, measured by Suwageval around the call (the network included), per finished run: the median or the 95th percentile of its samples that made a call. The series follow the rules of the pass-rate chart: All comes only from runs of every scenario; a tag's line also takes runs limited to tags including it. Click a point to open the run. Lower is better." +
+    ` ${CHANGE_MARKS_HELP}`;
 
 const STATS: { value: TurnTimeStat; label: string }[] = [
     { value: "median", label: "Median" },

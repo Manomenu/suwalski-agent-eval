@@ -1,5 +1,6 @@
 import { Paper, Stack, Text } from "@mantine/core";
 
+import { changeMarks } from "../../charts/chartStyle";
 import { LineTrend } from "../../charts/LineTrend";
 
 import {
@@ -13,7 +14,7 @@ import {
     measuredSeries,
     seriesColor,
     shownSeries,
-    versionChanges,
+    runChanges,
     type TrendRow,
 } from "./trend";
 import { runHref } from "../../routes/links";
@@ -55,8 +56,8 @@ export function TrendChart({
     const shown = shownSeries(names, picked, recent);
     // The x axis is keyed by run (two runs can share a minute); its ticks show the run's short date.
     const labelOf = new Map(rows.map((row) => [row[RUN_KEY], row[LABEL_KEY]]));
-    const changes = versionChanges(points, rows);
-    const newVersionOf = new Map(changes.map((change) => [change.runId, change.label]));
+    const marks = changeMarks(runChanges(points, rows));
+    const markOf = new Map(marks.map((mark) => [mark.x, mark.label]));
 
     return (
         <Stack gap="sm">
@@ -64,7 +65,7 @@ export function TrendChart({
                 rows={rows}
                 dataKey={RUN_KEY}
                 xTickFormatter={(runId) => String(labelOf.get(runId) ?? "")}
-                marks={changes.map((change) => ({ x: change.runId, label: change.label }))}
+                marks={marks}
                 series={shown.map((name) => ({
                     name,
                     color: seriesColor(name, names),
@@ -86,9 +87,9 @@ export function TrendChart({
                             <Text size="xs" c="dimmed">
                                 {row[DETAILS_KEY]}
                             </Text>
-                            {typeof row[RUN_KEY] === "string" && newVersionOf.has(row[RUN_KEY]) && (
+                            {typeof row[RUN_KEY] === "string" && markOf.has(row[RUN_KEY]) && (
                                 <Text size="xs" fw={600}>
-                                    New agent version from this run: {newVersionOf.get(row[RUN_KEY])}
+                                    New from this run: {markOf.get(row[RUN_KEY])}
                                 </Text>
                             )}
                             {typeof row[RECHECK_KEY] === "string" && (
