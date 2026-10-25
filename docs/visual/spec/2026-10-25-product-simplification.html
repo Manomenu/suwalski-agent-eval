@@ -372,125 +372,101 @@ pre.out { font: 12px/1.5 var(--mono); background: var(--code-bg); border: 1px so
 <section data-role="tldr">
   <h2>TL;DR</h2>
   <div class="tldr">
-    <p>Suwageval urósł o rzeczy, które służą głównie eksperymentom i papierowi, a nie codziennej pętli „co pada → scenariusz → run → dlaczego”. Proponuję <b>usunąć grupy runów ze <code>sweep</code></b>, <b>wydruk do PDF</b> i <b><code>rerun</code></b>, <b>zastąpić porównanie do 20 runów porównaniem dwóch</b>, a <b>Unstable i Agent errors</b> zebrać w jedną sekcję problemów. Ubywa ok. <b>3–4 tys. linii</b> i kilka pojęć, a nie traci się nic, co dziś robi agent w Claude Code.</p>
-    <p>Decyzja przy każdym kandydacie jest Twoja: formularz na dole ma propozycję zaznaczoną jako rekomendowaną.</p>
+    <p>Trzy uproszczenia. <b><code>rerun</code> znika</b> z CLI, API i pluginu: przycisk „Rerun” w webie zostaje, ale po prostu startuje nowy run z tymi samymi ustawieniami. <b>Unstable i Agent errors łączą się</b> w jedną sekcję „Problemy” na stronie Evaluation i jedną komendę CLI. <b>Limit porównania to limit wydruku: 7 runów</b> — tyle obejmuje <code>compare</code>, otwarcie porównania i jeden <code>sweep</code>.</p>
+    <p>Zostają bez zmian: grupy runów i <code>sweep</code> (eval na kilku modelach), wydruk do PDF (pokazanie wyników z lokalnej instancji), filtr usage w Versions.</p>
   </div>
   <div class="stats">
-    <div><b>4</b><span>do usunięcia</span></div>
-    <div><b>3</b><span>do zastąpienia / uproszczenia</span></div>
-    <div><b>~3,5 tys.</b><span>linii mniej (szac.)</span></div>
-    <div><b>7</b><span>pytań do decyzji</span></div>
+    <div><b>1</b><span>komenda i trasa API mniej</span></div>
+    <div><b>2→1</b><span>strony i komendy problemów</span></div>
+    <div><b>20→7</b><span>runów w porównaniu</span></div>
+    <div><b>0</b><span>otwartych pytań</span></div>
   </div>
 </section>
 
 <section data-role="problem">
-  <h2>Mapa funkcji: co zostaje, co idzie</h2>
-  <p>Kryterium: czy funkcja pomaga w pętli, którą użytkownik (przez Claude Code) robi codziennie, i ile kosztuje w kodzie i pojęciach. Liczby linii to kod funkcji z testami (serwer, CLI, web), policzone z repo.</p>
+  <h2>Co zmieniamy, co zostaje</h2>
   <table>
-    <tr><th>Funkcja</th><th>Linie</th><th>Werdykt</th><th>Dlaczego</th></tr>
-    <tr><td><b>Grupy runów + <code>sweep</code></b> (archiwum i usuwanie grup, notatki grup, użycie „Groups” w Versions, <code>--group</code>, porównanie grupy)</td><td>~1 400</td><td><span class="tag bad">usuń</span></td><td>Osobny świat zasad: brak stanów regresji, poza trendem, nigdy referencyjny, własne archiwum. Służy porównaniu wariantów konfiguracji raz na jakiś czas</td></tr>
-    <tr><td><b>Wydruk do PDF</b> (przycisk Print, <code>print.css</code>, <code>--print</code>, limit 7 runów na papierze)</td><td>~600</td><td><span class="tag bad">usuń</span></td><td>Nikt nie wysyła raportów na papierze; link do strony runu jest lepszy. Przeglądarka i tak drukuje</td></tr>
-    <tr><td><b><code>rerun</code></b></td><td>~150</td><td><span class="tag bad">usuń</span></td><td>To <code>run</code> z tymi samymi flagami; agent powtórzy komendę. Jedno pojęcie mniej</td></tr>
-    <tr><td><b>Notatki grup</b></td><td>(w grupach)</td><td><span class="tag bad">usuń</span></td><td>Odchodzi z grupami; notatka runu zostaje</td></tr>
-    <tr><td><b>Porównanie do 20 runów</b> (+ baseline, „What differs”, warianty)</td><td>~3 300</td><td><span class="tag warn">zastąp</span></td><td>Wiele kolumn było dla sweepów. Na co dzień porównuje się dwa runy: przed i po. Dwa runy obok siebie z różnicami kontraktu zostają</td></tr>
-    <tr><td><b>Strony Unstable i Agent errors</b> + komendy <code>unstable</code>, <code>agent-errors</code></td><td>~740</td><td><span class="tag warn">uprość</span></td><td>Jedna sekcja „Problemy” na stronie Evaluation (regresje, niestabilne, błędy agenta) i jedna komenda zamiast dwóch</td></tr>
-    <tr><td><b>Filtr usage w Versions</b> (5 wartości)</td><td>—</td><td><span class="tag warn">uprość</span></td><td>Bez grup zostają Evaluation / Monitoring / Unused / Archived</td></tr>
-    <tr><td>Stany regresji (8), wersje z archiwum i usuwaniem, recheck, symulacja, <code>$judge</code>, Monitoring, Generate scenario, <code>init</code>, live check</td><td>—</td><td><span class="tag ok">zostaw</span></td><td>Rdzeń pętli albo ochrona danych; tooltipy już tłumaczą stany</td></tr>
+    <tr><th>Funkcja</th><th>Decyzja</th><th>Dlaczego</th></tr>
+    <tr><td><b><code>rerun</code></b> (CLI, <code>POST /eval/runs/{id}/rerun</code>, plugin)</td><td><span class="tag bad">usuń</span></td><td>To nowy run z tymi samymi flagami. Przycisk „Rerun” w webie zostaje i robi właśnie to; w CLI i pluginie wystarczy <code>run</code></td></tr>
+    <tr><td><b>Strony Unstable i Agent errors</b> + komendy <code>unstable</code>, <code>agent-errors</code></td><td><span class="tag warn">połącz</span></td><td>Jedno miejsce na „co jest nie tak z agentem poza ostatnim runem”: sekcja „Problemy” i jedna komenda</td></tr>
+    <tr><td><b>Porównanie runów</b> (do 20)</td><td><span class="tag warn">do 7</span></td><td>Porównanie, które da się wydrukować, jest tym samym, które da się otworzyć: jeden limit (dziś wydruk: 7)</td></tr>
+    <tr><td><b><code>sweep</code></b> (warianty w jednej grupie)</td><td><span class="tag warn">do 7 wariantów</span></td><td>Grupa sweepa musi mieścić się w porównaniu i na papierze</td></tr>
+    <tr><td>Grupy runów, notatki grup</td><td><span class="tag ok">zostaw</span></td><td>Eval tego samego agenta na kilku modelach w jednej grupie i porównanie ich obok siebie</td></tr>
+    <tr><td>Wydruk do PDF</td><td><span class="tag ok">zostaw</span></td><td>Jedyny sposób pokazania wyników z instancji na localhoście komuś z zewnątrz</td></tr>
+    <tr><td>Filtr usage w Versions</td><td><span class="tag ok">zostaw</span></td><td>„Groups” ma sens, skoro grupy zostają</td></tr>
   </table>
 </section>
 
 <section data-role="goals">
   <h2>Cele</h2>
-  <div class="versus">
-    <div class="before"><h4><span class="tag bad">Dziś</span></h4><ul>
-      <li>run zwykły i run w grupie z innymi zasadami</li>
-      <li>porównanie do 20 kolumn, wydruk, limit papieru</li>
-      <li><code>run</code>, <code>rerun</code>, <code>sweep</code> — trzy sposoby na start</li>
-      <li>trzy miejsca na „co jest nie tak”: wynik, Unstable, Agent errors</li>
-      <li>Versions z filtrem 5 wartości</li>
+  <div class="cols">
+    <div><h4>Cele</h4><ul>
+      <li>Jeden sposób startu runu w CLI (<code>run</code>) i w API</li>
+      <li>Jedno miejsce na problemy agenta: web i CLI</li>
+      <li>Jeden limit porównania, ten sam dla ekranu, papieru i sweepa</li>
     </ul></div>
-    <div class="after"><h4><span class="tag ok">Po</span></h4><ul>
-      <li>jeden rodzaj runu; eksperyment to run z notatką albo tagiem</li>
-      <li>porównanie dwóch runów: przed i po, z różnicą kontraktu</li>
-      <li>jeden <code>run</code></li>
-      <li>jedna sekcja „Problemy” i jedna komenda</li>
-      <li>Versions z 4 wartościami albo samym chipem Archived</li>
+    <div><h4>Poza zakresem</h4><ul>
+      <li>Grupy, sweep (poza limitem), wydruk, Versions</li>
+      <li>Liczenie stanów niestabilności i błędów agenta: dane i reguły zostają, zmienia się tylko miejsce, gdzie je widać</li>
+      <li>Strona startowa agenta (TODO)</li>
     </ul></div>
   </div>
-  <div class="callout note" data-label="Poza zakresem"><p>Strona startowa agenta (TODO), skrócony output dla agenta (TODO), zmiany Monitoringu. Usuwanie robimy migracją, która kasuje dane grup — bez naprawiania wstecz, jak przy 0026.</p></div>
 </section>
 
 <section data-role="scenarios">
-  <h2>Jak użytkownik robi to po zmianie</h2>
+  <h2>Scenariusze</h2>
   <ol class="steps">
-    <li><h4>Porównać dwa prompty (zamiast sweepa)</h4><p>Claude uruchamia agenta z wariantem A, <code>suwageval run --note "prompt A" --wait</code>, potem wariant B z notatką „prompt B”, i <code>suwageval compare &lt;A&gt; &lt;B&gt;</code>. Skrypt przełączania wariantów zostaje w repo agenta (suwexag ma już <code>scripts/sweep-variant.sh</code>).</p></li>
-    <li><h4>Co jest nie tak z agentem</h4><p>Strona Evaluation ma sekcję „Problemy”: regresje ostatniego runu, niestabilne checki, scenariusze z błędem agenta. W CLI jedna komenda (nazwa do decyzji) zamiast <code>unstable</code> i <code>agent-errors</code>.</p></li>
-    <li><h4>Pokazać wynik komuś</h4><p>Link do strony runu albo porównania; drukowanie przez przeglądarkę bez specjalnego układu.</p></li>
+    <li><h4>Rerun w webie</h4><p>Na stronie runu <code>7b4d9afd</code> (tag <code>smoke</code>) Piotr klika „Rerun”. Startuje nowy run tego agenta z tym samym tagiem, endpointem i grupą — jak dziś, ale przez zwykły start runu. Przechodzi na stronę nowego runu.</p></li>
+    <li><h4>Rerun z Claude Code</h4><p>Claude chce powtórzyć run: używa <code>suwageval run --tag smoke --wait</code> (tagi zna z <code>results</code>). <code>suwageval rerun</code> kończy się błędem „unknown command”; skill <code>run</code> i dokumentacja mówią, jak to zrobić przez <code>run</code>.</p></li>
+    <li><h4>Co jest nie tak z agentem</h4><p>Na stronie Evaluation sekcja „Problemy” ma dwie listy: niestabilne checki (z wersją i liczbą przebiegów) i scenariusze z błędem agenta. W CLI jedna komenda wypisuje oba, z <code>--json</code>.</p></li>
+    <li><h4>Sweep na 9 modelach</h4><p><code>suwageval sweep</code> z 9 wariantami odmawia przed startem: „at most 7 variants in one sweep: pick them with …”. Dwa sweepy po 4–5 wariantów działają i każdy otwiera się i drukuje w całości.</p></li>
+    <li><h4>Porównanie 8 runów</h4><p><code>suwageval compare</code> z 8 id (albo grupa z 8 runami) → błąd z limitem 7; web pozwala zaznaczyć najwyżej 7 runów do porównania.</p></li>
   </ol>
 </section>
 
+<section data-role="behaviour">
+  <h2>Zachowanie i przypadki brzegowe</h2>
+  <table>
+    <tr><th>Sytuacja</th><th>Oczekiwane zachowanie</th></tr>
+    <tr><td>Rerun runu z grupy</td><td>Nowy run w tej samej grupie (jak dziś)</td></tr>
+    <tr><td>Rerun runu ograniczonego do tagów</td><td>Te same tagi</td></tr>
+    <tr><td>Rerun, gdy agent serwuje już inną wersję</td><td>Run na wersji, którą agent serwuje teraz (jak dziś)</td></tr>
+    <tr><td>Grupa z więcej niż 7 runami (dane sprzed zmiany)</td><td>Porównanie grupy pokazuje 7 najnowszych i mówi, ile pominięto; wybór innych przez id</td></tr>
+    <tr><td>Sekcja „Problemy” pusta</td><td>Jedna linia „No unstable checks or agent errors”</td></tr>
+    <tr><td>Stare adresy stron Unstable / Agent errors</td><td>Prowadzą do strony Evaluation (sekcja „Problemy”), nie do 404</td></tr>
+  </table>
+</section>
+
+<section data-role="data">
+  <h2>API i CLI</h2>
+  <table>
+    <tr><th>Co</th><th>Teraz</th><th>Po</th></tr>
+    <tr><td><code>POST /eval/runs/{id}/rerun</code></td><td>nowy run z ustawieniami starego</td><td>usunięte; web startuje run zwykłą trasą z ustawieniami odczytanymi ze strony runu</td></tr>
+    <tr><td>CLI <code>rerun</code></td><td>jest</td><td>usunięte</td></tr>
+    <tr><td>CLI <code>unstable</code>, <code>agent-errors</code></td><td>dwie komendy</td><td>jedna komenda (nazwa w planie, np. <code>problems</code>); trasy API mogą zostać dwie</td></tr>
+    <tr><td>Limit porównania</td><td>20 (serwer, CLI), 7 na papierze</td><td>7 wszędzie, jedna stała sprawdzana testem (jak dziś <code>PRINT_MAX_RUNS</code>)</td></tr>
+    <tr><td>Limit sweepa</td><td>brak</td><td>7 wariantów</td></tr>
+  </table>
+</section>
+
 <section data-role="acceptance">
-  <h2>Kryteria (po decyzjach)</h2>
+  <h2>Kryteria akceptacji</h2>
   <ul class="checks">
-    <li>Nie ma grup runów: <code>--group</code>, <code>sweep</code>, <code>groups</code>, sekcji Groups, użycia „Groups” w Versions; migracja kasuje runy grup</li>
-    <li>Nie ma przycisku Print, <code>--print</code> ani <code>print.css</code></li>
-    <li>Nie ma <code>rerun</code>; dokumentacja i plugin mówią, jak zrobić to samo przez <code>run</code></li>
-    <li><code>compare</code> przyjmuje dwa runy i pokazuje różnice wyników i kontraktu</li>
-    <li>Strona Evaluation ma sekcję „Problemy”; CLI ma jedną komendę na to samo</li>
-    <li>Bramka i e2e zielone; <code>EveryEndpointHasACliCommandTests</code> bez usuniętych tras</li>
+    <li>„Rerun” na stronie runu startuje nowy run z tymi samymi tagami, endpointem i grupą i otwiera jego stronę (e2e)</li>
+    <li><code>suwageval rerun</code> nie istnieje; trasa <code>/rerun</code> nie istnieje (<code>EveryEndpointHasACliCommandTests</code> bez niej)</li>
+    <li>Plugin, <code>front-doors.md</code> i README nie wspominają o <code>rerun</code> jako komendzie</li>
+    <li>Strona Evaluation ma sekcję „Problemy” z niestabilnymi checkami i błędami agenta; osobnych stron nie ma, stare adresy prowadzą do niej</li>
+    <li>Jedna komenda CLI wypisuje niestabilne checki i błędy agenta (tekst i <code>--json</code>)</li>
+    <li><code>compare</code> (CLI, API, web) przyjmuje najwyżej 7 runów; ten sam limit co wydruk, pilnowany testem</li>
+    <li><code>sweep</code> z więcej niż 7 wariantami odmawia przed startem czegokolwiek</li>
+    <li>Bramka i e2e zielone</li>
   </ul>
 </section>
 
 <section data-role="risks">
   <h2>Ryzyka</h2>
-  <div class="callout risk"><p><b>Utrata danych:</b> runy w grupach (sweepy) znikną z bazy. Na produkcji to historia eksperymentów; jeśli jest potrzebna, eksport przed deployem.</p></div>
-  <div class="callout risk"><p><b>Porównanie wielu wariantów naraz</b> stanie się serią porównań par. Jeśli porównujesz często 3+ warianty, to jest realna strata — pytanie 4.</p></div>
-  <div class="callout assumption"><p>Zakładam, że grup i sweepa używasz rzadko, a wydruku wcale — nie mam danych o użyciu, tylko kod i to, co robiliśmy w tej sesji.</p></div>
-</section>
-
-<section data-role="questions">
-  <h2>Decyzje</h2>
-  <form class="questions">
-    <fieldset data-id="q1">
-      <legend>Grupy runów i <code>sweep</code></legend>
-      <p class="why">~1 400 linii i osobne zasady dla runów w grupie.</p>
-      <label data-recommended><input type="radio" value="remove"><span><b>Usuń</b><small>eksperyment = run z notatką/tagiem + compare</small></span></label>
-      <label><input type="radio" value="keep-sweep-only"><span><b>Zostaw <code>sweep</code>, usuń resztę grup</b><small>sweep tylko uruchamia serię runów z notatkami</small></span></label>
-      <label><input type="radio" value="keep"><span><b>Zostaw</b></span></label>
-    </fieldset>
-    <fieldset data-id="q2">
-      <legend>Wydruk do PDF</legend>
-      <p class="why">~600 linii, osobny styl i limit 7 runów na papierze.</p>
-      <label data-recommended><input type="radio" value="remove"><span><b>Usuń</b></span></label>
-      <label><input type="radio" value="keep"><span><b>Zostaw</b><small>raporty dla klienta na papierze są potrzebne</small></span></label>
-    </fieldset>
-    <fieldset data-id="q3">
-      <legend><code>rerun</code></legend>
-      <label data-recommended><input type="radio" value="remove"><span><b>Usuń</b></span></label>
-      <label><input type="radio" value="keep"><span><b>Zostaw</b></span></label>
-    </fieldset>
-    <fieldset data-id="q4">
-      <legend>Porównanie runów</legend>
-      <p class="why">~3 300 linii; wiele kolumn służyło sweepom.</p>
-      <label data-recommended><input type="radio" value="two"><span><b>Dwa runy</b><small>przed i po, z różnicą kontraktu</small></span></label>
-      <label><input type="radio" value="few"><span><b>Do 4 runów, bez „What differs” i wariantów</b></span></label>
-      <label><input type="radio" value="keep"><span><b>Zostaw do 20</b></span></label>
-    </fieldset>
-    <fieldset data-id="q5">
-      <legend>Unstable i Agent errors</legend>
-      <label data-recommended><input type="radio" value="merge"><span><b>Jedna sekcja „Problemy” i jedna komenda</b></span></label>
-      <label><input type="radio" value="keep"><span><b>Zostaw osobno</b></span></label>
-    </fieldset>
-    <fieldset data-id="q6">
-      <legend>Filtr usage w Versions</legend>
-      <label data-recommended><input type="radio" value="four"><span><b>Evaluation / Monitoring / Unused / Archived</b><small>bez Groups</small></span></label>
-      <label><input type="radio" value="archived-only"><span><b>Tylko chip Archived</b><small>kolumny mówią o użyciu</small></span></label>
-    </fieldset>
-    <fieldset data-id="q7">
-      <legend>Coś, co uważasz za zbędne, a nie ma tego na liście?</legend>
-      <p class="why">Ty znasz użycie; ja widzę tylko kod.</p>
-    </fieldset>
-  </form>
+  <div class="callout risk"><p><b>Zmiana łamiąca CLI i API:</b> skrypty z <code>suwageval rerun</code>, <code>unstable</code>, <code>agent-errors</code> albo porównaniem więcej niż 7 runów przestaną działać. Ten epik i tak łamie CLI (adresy <code>/eval</code>), więc wchodzi w to samo ogłoszenie przed merge.</p></div>
+  <div class="callout assumption"><p>7 to dzisiejszy limit wydruku porównania (<code>PRINT_MAX_RUNS</code>). Jeśli wydruk zmieni limit, porównanie i sweep idą za nim.</p></div>
 </section>
 <!-- CONTENT END -->
 </main>
