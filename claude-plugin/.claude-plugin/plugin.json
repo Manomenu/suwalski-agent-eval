@@ -1,7 +1,7 @@
 {
   "name": "suwageval",
   "displayName": "Suwageval",
-  "description": "Evaluate and monitor an LLM agent with Suwageval from Claude Code: write scenarios as files in the agent's repository, keep them valid, run them and explain what failed, turn a real conversation of the deployed agent into a scenario (/suwageval:scenario, fix, run, from-conversation, versions, update), and a session hook that brings the loop conversation → scenario → run → why into every session in an agent's repository.",
+  "description": "Evaluate and monitor an LLM agent with Suwageval from Claude Code: write scenarios as files in the agent's repository, keep them valid, run them and explain what failed (results opened on the matching web page by default), turn a real conversation of the deployed agent into a scenario (/suwageval:scenario, fix, run, from-conversation, versions, update), and a session hook that brings the loop conversation → scenario → run → why into every session in an agent's repository.",
   "author": {
     "name": "Piotr Gugnowski"
   },

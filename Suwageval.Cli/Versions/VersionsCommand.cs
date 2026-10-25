@@ -17,7 +17,7 @@ internal static class VersionsCommand
 {
     /// <param name="terminal">Where <c>delete</c> asks the person to type the version's id.</param>
     /// <param name="http">The client to the API; none means one is made from <c>--server</c> or <c>SUWAGEVAL_URL</c> (the tests pass their own).</param>
-    /// <param name="openBrowser">Opens a page for <c>diff</c>; none means the system's default browser (the tests record the page instead).</param>
+    /// <param name="openBrowser">Opens a page for <c>--open</c> (here, in <c>show</c> and in <c>diff</c>); none means the system's default browser (the tests record the page instead).</param>
     public static Command Create(Terminal terminal, HttpClient? http = null, Action<Uri>? openBrowser = null)
     {
         var usage = new Option<VersionUsage[]>("--usage")
@@ -51,6 +51,7 @@ internal static class VersionsCommand
                 "Only the monitoring of this environment: the usage monitoring, the conversations and where a version is current.",
         };
         var json = CommandOptions.Json("Print the versions as JSON.");
+        var open = CommandOptions.Open("the Versions page with the same --usage, --version and --environment");
         var server = CommandOptions.Server();
         var dir = CommandOptions.Dir();
 
@@ -63,14 +64,16 @@ internal static class VersionsCommand
             only,
             environment,
             json,
+            open,
             server,
             dir,
             Change("archive", "Archive versions: hidden from the web's default views, kept with their runs.", archive: true, http),
             Change("unarchive", "Restore archived versions.", archive: false, http),
-            Show(http),
+            Show(http, openBrowser),
             Diff(http, openBrowser),
             Delete(terminal, http),
         };
+        CommandOptions.RefuseJsonWithOpen(command, json, open);
         command.SetAction(
             (parsed, cancellationToken) =>
                 ServerCall.ForAgentAsync(
@@ -78,9 +81,27 @@ internal static class VersionsCommand
                     parsed.GetValue(server),
                     http,
                     parsed.InvocationConfiguration.Error,
-                    async (client, agent, _) =>
+                    async (client, agent, site) =>
                     {
                         var chosen = parsed.GetValue(usage) is { Length: > 0 } named ? named.ToHashSet() : [.. VersionUsages.Default];
+                        if (parsed.GetValue(open))
+                        {
+                            await WebPage.ShowAsync(
+                                ServerAddress.VersionsPage(
+                                    site,
+                                    agent,
+                                    chosen.SetEquals(VersionUsages.Default)
+                                        ? []
+                                        : [.. chosen.Order().Select(one => one.ToString().ToLowerInvariant())],
+                                    parsed.GetValue(only) ?? [],
+                                    parsed.GetValue(environment)
+                                ),
+                                parsed.InvocationConfiguration.Output,
+                                parsed.InvocationConfiguration.Error,
+                                openBrowser
+                            );
+                            return 0;
+                        }
                         var chosenIds = parsed.GetValue(only) ?? [];
                         var listed = (await client.VersionsAsync(agent, cancellationToken)).Where(version =>
                             VersionUsages.Matches(version, chosen, parsed.GetValue(environment))
@@ -200,19 +221,25 @@ internal static class VersionsCommand
         return command;
     }
 
-    private static Command Show(HttpClient? http)
+    private static Command Show(HttpClient? http, Action<Uri>? openBrowser)
     {
         var id = new Argument<Guid>("versionId") { Description = "The version, as `versions` lists it." };
         var json = CommandOptions.Json("Print the version with its contract as JSON.");
+        var open = CommandOptions.Open("the version's page");
         var server = CommandOptions.Server();
         var dir = CommandOptions.Dir();
-        var command = new Command("show", "Print one version of the agent: its id, label and creation time, then its contract as JSON.")
+        var command = new Command(
+            "show",
+            "Print one version of the agent: its id, label and creation time, then its contract as JSON (or --open its page on the web)."
+        )
         {
             id,
             json,
+            open,
             server,
             dir,
         };
+        CommandOptions.RefuseJsonWithOpen(command, json, open);
         command.SetAction(
             (parsed, cancellationToken) =>
                 ServerCall.ForAgentAsync(
@@ -220,10 +247,20 @@ internal static class VersionsCommand
                     parsed.GetValue(server),
                     http,
                     parsed.InvocationConfiguration.Error,
-                    async (client, agent, _) =>
+                    async (client, agent, site) =>
                     {
                         var version = await client.VersionAsync(agent, parsed.GetRequiredValue(id), cancellationToken);
                         var output = parsed.InvocationConfiguration.Output;
+                        if (parsed.GetValue(open))
+                        {
+                            await WebPage.ShowAsync(
+                                ServerAddress.VersionPage(site, agent, version.Id),
+                                parsed.InvocationConfiguration.Output,
+                                parsed.InvocationConfiguration.Error,
+                                openBrowser
+                            );
+                            return 0;
+                        }
                         if (parsed.GetValue(json))
                         {
                             await output.WriteLineAsync(OutputJson.Of(version));

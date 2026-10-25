@@ -106,7 +106,9 @@ The server has one interface, its HTTP API. Three users reach it:
   one, a cell better than the baseline's is green and a worse one red (per-tag rates, scenario cells, the checks of an opened scenario,
   the Summary's checks and samples); the baseline and equal cells stay neutral. Cells carry `data-change` and a text for screen readers.
 - **What the web shows, the CLI prints.** `suwageval agents`, `agent`, `scenarios`, `scenario <key>`, `trend`, `runs`, `results`, `compare` and `versions diff` print on
-  stdout (text, or `--json` for the records), so Claude reads them without opening a browser.
+  stdout (text, or `--json` for the records), so Claude reads them without opening a browser. `agents`, `trend`, `runs`, `problems`, `versions`, `versions show`, `results`, `compare`, `versions diff` and
+  the `monitoring` commands have `--open` for the page instead (the list commands open their area's page with the filters the web reads
+  from its address); `--open` and `--json` exclude each other.
 - **A scenario's definition opens on the run page.** The `{ }` button next to a scenario's key opens it as a scenario file
   (`docs/scenario-format.md`: key, tags, conversation in the log shorthands, `continuation` when it is not 1 turn, `fixtures`),
   highlighted, with a copy button. Its `samples` and `checks` are left out: the results show them. The server writes it from the

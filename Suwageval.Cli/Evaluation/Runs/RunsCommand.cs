@@ -18,7 +18,8 @@ internal static class RunsCommand
     private const int DefaultLimit = 10;
 
     /// <param name="http">The client to the API; none means one is made from <c>--server</c> or <c>SUWAGEVAL_URL</c> (the tests pass their own).</param>
-    public static Command Create(HttpClient? http = null)
+    /// <param name="openBrowser">Opens a page for <c>--open</c>; none means the system's default browser (the tests record the page instead).</param>
+    public static Command Create(HttpClient? http = null, Action<Uri>? openBrowser = null)
     {
         var limit = new Option<int>("--limit")
         {
@@ -53,6 +54,7 @@ internal static class RunsCommand
             Description = "List the agent's run groups (name, runs, versions, newest run) instead of runs.",
         };
         var json = CommandOptions.Json("Print the runs (or the groups) as JSON.");
+        var open = CommandOptions.Open("the agent's Evaluation page (its runs; no filter of this command applies there)");
         var server = CommandOptions.Server();
         var dir = CommandOptions.Dir();
 
@@ -72,9 +74,11 @@ internal static class RunsCommand
             groups,
             archived,
             json,
+            open,
             server,
             dir,
         };
+        CommandOptions.RefuseJsonWithOpen(command, json, open);
         command.Validators.Add(result =>
         {
             if (
@@ -92,8 +96,18 @@ internal static class RunsCommand
                     parsed.GetValue(server),
                     http,
                     parsed.InvocationConfiguration.Error,
-                    async (client, agent, _) =>
+                    async (client, agent, site) =>
                     {
+                        if (parsed.GetValue(open))
+                        {
+                            await WebPage.ShowAsync(
+                                ServerAddress.EvaluationPage(site, agent),
+                                parsed.InvocationConfiguration.Output,
+                                parsed.InvocationConfiguration.Error,
+                                openBrowser
+                            );
+                            return 0;
+                        }
                         if (parsed.GetValue(groups))
                         {
                             var listed = (await client.RunGroupsAsync(agent, cancellationToken))

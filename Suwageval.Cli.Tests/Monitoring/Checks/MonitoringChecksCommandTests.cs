@@ -117,4 +117,36 @@ public sealed class MonitoringChecksCommandTests
 
     [Fact]
     public void An_unused_check_has_no_rate() => Assert.Equal("-", MonitoringChecksCommand.Rate(new CheckRate(0, 0)));
+
+    [Fact]
+    public void Checks_open_the_monitoring_page_of_the_environment()
+    {
+        var (exit, output, error, opened, paths) = OpenedPage.Run(
+            "[]",
+            "monitoring",
+            "checks",
+            "--environment",
+            "production",
+            "--dir",
+            OpenedPage.Sample
+        );
+
+        Assert.Equal(0, exit);
+        Assert.Empty(error);
+        Assert.Equal([new Uri("https://eval.example/agents/example-agent/monitoring?environment=production")], opened);
+        Assert.Equal("https://eval.example/agents/example-agent/monitoring?environment=production" + Environment.NewLine, output);
+        Assert.Empty(paths);
+    }
+
+    [Fact]
+    public void Trend_opens_the_monitoring_page_of_the_agent()
+    {
+        var (exit, output, error, opened, paths) = OpenedPage.Run("{}", "monitoring", "trend", "--dir", OpenedPage.Sample);
+
+        Assert.Equal(0, exit);
+        Assert.Empty(error);
+        Assert.Equal([new Uri("https://eval.example/agents/example-agent/monitoring")], opened);
+        Assert.Equal("https://eval.example/agents/example-agent/monitoring" + Environment.NewLine, output);
+        Assert.Empty(paths);
+    }
 }

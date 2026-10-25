@@ -28,7 +28,7 @@ namespace Suwageval.Cli;
 internal static class CliApp
 {
     // http: the client the commands reach the outside with (the API for push, run and results, the agent for validate); null makes their own.
-    // openBrowser: how results, compare and versions diff open a page; null is the system's browser.
+    // openBrowser: how results, compare, versions and the list commands open a page; null is the system's browser.
     // interactive: whether a person answers on input; without one, nothing is asked.
     // origins: how run reads the repository and the CI environment; null is the real ones.
     // shell, labelPollInterval: how sweep runs its command lines and how often it reads the agent's label; null is the real shell and 2 s.
@@ -87,22 +87,22 @@ internal static class CliApp
             ResultsCommand.Create(http, openBrowser),
             CompareCommand.Create(http, openBrowser),
             SweepCommand.Create(terminal, http, origins, shell, labelPollInterval),
-            RunsCommand.Create(http),
-            AgentsCommand.Create(http),
+            RunsCommand.Create(http, openBrowser),
+            AgentsCommand.Create(http, openBrowser),
             AgentCommand.Create(http),
             ScenariosCommand.Create(http),
             ScenarioCommand.Create(http),
-            TrendCommand.Create(http),
-            ProblemsCommand.Create(http),
+            TrendCommand.Create(http, openBrowser),
+            ProblemsCommand.Create(http, openBrowser),
             VersionsCommand.Create(terminal, http, openBrowser),
             GroupsCommand.Create(terminal, http),
             AgentDeleteCommand.Create(terminal, http),
             new Command("monitoring", "The conversations of the deployed agent (features.monitoring in agent.yaml).")
             {
-                ConversationsCommand.List(http),
-                ConversationsCommand.Show(http),
-                MonitoringChecksCommand.List(http),
-                MonitoringChecksCommand.Trend(http),
+                ConversationsCommand.List(http, openBrowser),
+                ConversationsCommand.Show(http, openBrowser),
+                MonitoringChecksCommand.List(http, openBrowser),
+                MonitoringChecksCommand.Trend(http, openBrowser),
             },
         };
         HelpSections.Apply(root);

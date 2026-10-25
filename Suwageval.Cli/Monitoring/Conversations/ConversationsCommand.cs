@@ -16,7 +16,8 @@ internal static class ConversationsCommand
     private const int DefaultLimit = 20;
 
     /// <param name="http">The client to the API; none means one is made from <c>--server</c> or <c>SUWAGEVAL_URL</c> (the tests pass their own).</param>
-    public static Command List(HttpClient? http = null)
+    /// <param name="openBrowser">Opens a page for <c>--open</c>; none means the system's default browser (the tests record the page instead).</param>
+    public static Command List(HttpClient? http = null, Action<Uri>? openBrowser = null)
     {
         var limit = new Option<int>("--limit")
         {
@@ -46,6 +47,9 @@ internal static class ConversationsCommand
             Description = "Only the conversations that failed this monitoring check (its key).",
         };
         var json = CommandOptions.Json("Print the page of conversations as JSON.");
+        var open = CommandOptions.Open(
+            "the agent's Monitoring page, narrowed to --environment and --failed-check (the other options do not apply there)"
+        );
         var server = CommandOptions.Server();
         var dir = CommandOptions.Dir();
         var command = new Command("conversations", "List the newest conversations of the deployed agent, the newest turn first.")
@@ -56,9 +60,11 @@ internal static class ConversationsCommand
             state,
             failedCheck,
             json,
+            open,
             server,
             dir,
         };
+        CommandOptions.RefuseJsonWithOpen(command, json, open);
         command.SetAction(
             (parsed, cancellationToken) =>
                 ServerCall.ForAgentAsync(
@@ -66,8 +72,18 @@ internal static class ConversationsCommand
                     parsed.GetValue(server),
                     http,
                     parsed.InvocationConfiguration.Error,
-                    async (client, agent, _) =>
+                    async (client, agent, site) =>
                     {
+                        if (parsed.GetValue(open))
+                        {
+                            await WebPage.ShowAsync(
+                                ServerAddress.MonitoringPage(site, agent, parsed.GetValue(environment), parsed.GetValue(failedCheck)),
+                                parsed.InvocationConfiguration.Output,
+                                parsed.InvocationConfiguration.Error,
+                                openBrowser
+                            );
+                            return 0;
+                        }
                         var list = await client.ConversationsAsync(
                             agent,
                             parsed.GetValue(limit),
@@ -99,22 +115,40 @@ internal static class ConversationsCommand
         return command;
     }
 
-    public static Command Show(HttpClient? http = null)
+    public static Command Show(HttpClient? http = null, Action<Uri>? openBrowser = null)
     {
         var id = new Argument<Guid>("id") { Description = "The conversation's id, as `monitoring conversations` lists it." };
         var json = CommandOptions.Json("Print the conversation with its turns as JSON.");
+        var open = CommandOptions.Open("the conversation's page");
         var server = CommandOptions.Server();
-        var command = new Command("conversation", "Print one monitored conversation with its turns.") { id, json, server };
+        var command = new Command("conversation", "Print one monitored conversation with its turns (or --open its page on the web).")
+        {
+            id,
+            json,
+            open,
+            server,
+        };
+        CommandOptions.RefuseJsonWithOpen(command, json, open);
         command.SetAction(
             (parsed, cancellationToken) =>
                 ServerCall.RunAsync(
                     parsed.GetValue(server),
                     http,
                     parsed.InvocationConfiguration.Error,
-                    async (client, _) =>
+                    async (client, site) =>
                     {
                         var detail = await client.ConversationAsync(parsed.GetValue(id), cancellationToken);
                         var output = parsed.InvocationConfiguration.Output;
+                        if (parsed.GetValue(open))
+                        {
+                            await WebPage.ShowAsync(
+                                ServerAddress.ConversationPage(site, detail.Conversation.Id),
+                                parsed.InvocationConfiguration.Output,
+                                parsed.InvocationConfiguration.Error,
+                                openBrowser
+                            );
+                            return 0;
+                        }
                         await output.WriteLineAsync(parsed.GetValue(json) ? OutputJson.Of(detail) : Describe(detail));
                         return 0;
                     }

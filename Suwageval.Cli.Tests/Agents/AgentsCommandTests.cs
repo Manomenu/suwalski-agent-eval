@@ -70,4 +70,16 @@ public sealed class AgentsCommandTests
 
         Assert.Equal(Found, JsonSerializer.Deserialize<Agent[]>(output, ContractJson.Options));
     }
+
+    [Fact]
+    public void Open_opens_the_agents_list_and_prints_its_link()
+    {
+        var (exit, output, error, opened, paths) = OpenedPage.Run("[]", "agents");
+
+        Assert.Equal(0, exit);
+        Assert.Empty(error);
+        Assert.Equal([new Uri("https://eval.example/")], opened);
+        Assert.Equal("https://eval.example/" + Environment.NewLine, output);
+        Assert.Empty(paths);
+    }
 }

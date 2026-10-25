@@ -41,7 +41,8 @@ $ARGUMENTS
    totals changed, and, if the user wants more, run `suwageval compare {previous} {run.id} --baseline {previous}` and
    report it as the skill's "Comparing runs" describes, ending with the link
    `{SUWAGEVAL_URL or http://localhost:3230}/compare?runs={previous},{run.id}&baseline={previous}`.
-   Do not run `suwageval compare --open` without asking: it opens a browser.
+   Present the result on the web: `suwageval results {run.id} --open` (and the comparison with `compare … --open` when you made one),
+   then sum it up in a few lines; that page is what the user reads.
 5. Do not change files or checks to make a failure go away, a regression above all; if you suspect a bad check, say so.
    When the user says the behaviour change was intended, the check is what is out of date: update it (`/suwageval:fix`)
    instead of treating the regression as noise.

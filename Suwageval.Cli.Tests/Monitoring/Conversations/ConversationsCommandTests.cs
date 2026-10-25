@@ -173,4 +173,55 @@ public sealed class ConversationsCommandTests
         Assert.Equal("  assistant: On its way.", lines[4]);
         Assert.Equal("turn 2  2026-10-24 12:05:00Z  data index-7", lines[6]);
     }
+
+    [Fact]
+    public void Open_opens_the_monitoring_page_narrowed_to_the_environment_and_the_failed_check()
+    {
+        var (exit, output, error, opened, paths) = OpenedPage.Run(
+            "{}",
+            "monitoring",
+            "conversations",
+            "--environment",
+            "production",
+            "--failed-check",
+            "no-refund",
+            "--dir",
+            OpenedPage.Sample
+        );
+
+        Assert.Equal(0, exit);
+        Assert.Empty(error);
+        Assert.Equal(
+            [new Uri("https://eval.example/agents/example-agent/monitoring?failedCheck=no-refund&environment=production#conversations")],
+            opened
+        );
+        Assert.Equal(
+            "https://eval.example/agents/example-agent/monitoring?failedCheck=no-refund&environment=production#conversations"
+                + Environment.NewLine,
+            output
+        );
+        Assert.Empty(paths);
+    }
+
+    [Fact]
+    public void Open_opens_the_conversations_page()
+    {
+        var detail = JsonSerializer.Serialize(
+            new ConversationDetail
+            {
+                Conversation = Chat,
+                Turns = [],
+                Checks = [],
+            },
+            ContractJson.Options
+        );
+
+        var (exit, output, error, opened, paths) = OpenedPage.Run(detail, "monitoring", "conversation", Chat.Id.ToString());
+
+        Assert.Equal(0, exit);
+        Assert.Empty(error);
+        Assert.Equal([new Uri($"https://eval.example/conversations/{Chat.Id}")], opened);
+        Assert.Equal($"https://eval.example/conversations/{Chat.Id}" + Environment.NewLine, output);
+        Assert.Equal([$"/monitoring/conversations/{Chat.Id}"], paths);
+    }
 }

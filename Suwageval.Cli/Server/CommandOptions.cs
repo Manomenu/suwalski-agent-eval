@@ -65,6 +65,22 @@ internal static class CommandOptions
         return note;
     }
 
+    /// <summary>The <c>--open</c> of the commands that print what a page of the web shows: the page opens and its link is printed instead.</summary>
+    public static Option<bool> Open(string page) => new("--open") { Description = $"Open {page} on the web instead of printing." };
+
+    /// <summary>A command with both <c>--json</c> and <c>--open</c> refuses them together: one prints the data, the other opens the page.</summary>
+    public static void RefuseJsonWithOpen(Command command, Option<bool> json, Option<bool> open)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        command.Validators.Add(result =>
+        {
+            if (result.GetValue(json) && result.GetValue(open))
+            {
+                result.AddError("--json and --open cannot be used together.");
+            }
+        });
+    }
+
     public static Option<string?> Group(string description) => new("--group") { Description = description };
 
     public static Option<bool> Json(string description) => new("--json") { Description = description };

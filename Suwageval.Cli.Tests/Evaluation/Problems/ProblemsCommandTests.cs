@@ -147,4 +147,16 @@ public sealed class ProblemsCommandTests
         Assert.Equal(Unstable, printed.UnstableChecks);
         Assert.Equal(Errors, printed.AgentErrors);
     }
+
+    [Fact]
+    public void Open_opens_the_evaluation_page_of_the_agent()
+    {
+        var (exit, output, error, opened, paths) = OpenedPage.Run("[]", "problems", "--dir", OpenedPage.Sample);
+
+        Assert.Equal(0, exit);
+        Assert.Empty(error);
+        Assert.Equal([new Uri("https://eval.example/agents/example-agent/evaluation")], opened);
+        Assert.Equal("https://eval.example/agents/example-agent/evaluation" + Environment.NewLine, output);
+        Assert.Empty(paths);
+    }
 }

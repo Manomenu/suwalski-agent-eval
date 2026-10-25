@@ -717,4 +717,61 @@ public sealed class VersionsCommandTests
         Assert.Contains("archive it first", error, StringComparison.Ordinal);
         Assert.DoesNotContain(api.Calls, call => call.Method == HttpMethod.Delete);
     }
+
+    [Fact]
+    public void Open_opens_the_versions_page_with_the_filters_it_was_given()
+    {
+        var (exit, output, error, opened, paths) = OpenedPage.Run(
+            "[]",
+            "versions",
+            "--usage",
+            "groups,archived",
+            "--version",
+            Active.ToString(),
+            "--environment",
+            "production",
+            "--dir",
+            OpenedPage.Sample
+        );
+
+        Assert.Equal(0, exit);
+        Assert.Empty(error);
+        var page = new Uri($"https://eval.example/agents/example-agent?usage=groups,archived&version={Active}&environment=production");
+        Assert.Equal([page], opened);
+        Assert.Equal(page + Environment.NewLine, output);
+        Assert.Empty(paths);
+    }
+
+    [Fact]
+    public void Open_without_filters_opens_the_versions_page_as_it_is_by_default()
+    {
+        var (exit, _, _, opened, _) = OpenedPage.Run("[]", "versions", "--dir", OpenedPage.Sample);
+
+        Assert.Equal(0, exit);
+        Assert.Equal([new Uri("https://eval.example/agents/example-agent")], opened);
+    }
+
+    [Fact]
+    public async Task Show_open_opens_the_page_of_the_version()
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"http://api.test/agents/example-agent/versions/{Active}");
+        using var answer = Detail(request);
+        var version = await answer.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+
+        var (exit, output, error, opened, paths) = OpenedPage.Run(
+            version,
+            "versions",
+            "show",
+            Active.ToString(),
+            "--dir",
+            OpenedPage.Sample
+        );
+
+        Assert.Equal(0, exit);
+        Assert.Empty(error);
+        var page = new Uri($"https://eval.example/agents/example-agent/versions/{Active}");
+        Assert.Equal([page], opened);
+        Assert.Equal(page + Environment.NewLine, output);
+        Assert.Equal([$"/agents/example-agent/versions/{Active}"], paths);
+    }
 }

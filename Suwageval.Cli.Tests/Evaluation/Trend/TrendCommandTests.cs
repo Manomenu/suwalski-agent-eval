@@ -101,4 +101,16 @@ public sealed class TrendCommandTests
         Assert.Equal(Points.Select(point => point.RunId), printed?.Select(point => point.RunId));
         Assert.Equal(Points[0].Tags, printed?[0].Tags);
     }
+
+    [Fact]
+    public void Open_opens_the_evaluation_page_of_the_agent()
+    {
+        var (exit, output, error, opened, paths) = OpenedPage.Run("[]", "trend", "--dir", OpenedPage.Sample);
+
+        Assert.Equal(0, exit);
+        Assert.Empty(error);
+        Assert.Equal([new Uri("https://eval.example/agents/example-agent/evaluation")], opened);
+        Assert.Equal("https://eval.example/agents/example-agent/evaluation" + Environment.NewLine, output);
+        Assert.Empty(paths);
+    }
 }

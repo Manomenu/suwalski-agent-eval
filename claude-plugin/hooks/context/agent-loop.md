@@ -15,5 +15,9 @@ When the work touches how the agent behaves, go around this loop:
 5. **Fix the agent, not the test.** Change a check only when the intended behaviour changed, and say so to the user: a loosened
    check hides a regression. Run again until the regressions are gone.
 
+Present results on the web by default: every command that shows something the web has a page for takes `--open` (`results`,
+`compare`, `problems`, `trend`, `versions`, `monitoring checks`, `monitoring conversation <id>`, …). Open the page, then sum it up
+in a few lines — the page is easier for the user to read than terminal output.
+
 `/suwageval:fix` repairs scenarios after an intended change of the agent; `/suwageval:update` brings this plugin to the newest
 version when a flag or command seems missing.

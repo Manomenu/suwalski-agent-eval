@@ -14,19 +14,23 @@ namespace Suwageval.Cli.Monitoring.Checks;
 internal static class MonitoringChecksCommand
 {
     /// <param name="http">The client to the API; none means one is made from <c>--server</c> or <c>SUWAGEVAL_URL</c> (the tests pass their own).</param>
-    public static Command List(HttpClient? http = null)
+    /// <param name="openBrowser">Opens a page for <c>--open</c>; none means the system's default browser (the tests record the page instead).</param>
+    public static Command List(HttpClient? http = null, Action<Uri>? openBrowser = null)
     {
         var environment = new Option<string?>("--environment") { Description = "The rates over this environment's conversations only." };
         var json = CommandOptions.Json("Print the checks as JSON.");
+        var open = CommandOptions.Open("the agent's Monitoring page (narrowed to --environment)");
         var server = CommandOptions.Server();
         var dir = CommandOptions.Dir();
         var command = new Command("checks", "List the agent's monitoring checks with their pass rates over the last 7 and 30 days.")
         {
             environment,
             json,
+            open,
             server,
             dir,
         };
+        CommandOptions.RefuseJsonWithOpen(command, json, open);
         command.SetAction(
             (parsed, cancellationToken) =>
                 ServerCall.ForAgentAsync(
@@ -34,8 +38,18 @@ internal static class MonitoringChecksCommand
                     parsed.GetValue(server),
                     http,
                     parsed.InvocationConfiguration.Error,
-                    async (client, agent, _) =>
+                    async (client, agent, site) =>
                     {
+                        if (parsed.GetValue(open))
+                        {
+                            await WebPage.ShowAsync(
+                                ServerAddress.MonitoringPage(site, agent, parsed.GetValue(environment)),
+                                parsed.InvocationConfiguration.Output,
+                                parsed.InvocationConfiguration.Error,
+                                openBrowser
+                            );
+                            return 0;
+                        }
                         var checks = await client.MonitoringChecksAsync(agent, parsed.GetValue(environment), cancellationToken);
                         var output = parsed.InvocationConfiguration.Output;
                         if (parsed.GetValue(json))
@@ -61,7 +75,7 @@ internal static class MonitoringChecksCommand
         return command;
     }
 
-    public static Command Trend(HttpClient? http = null)
+    public static Command Trend(HttpClient? http = null, Action<Uri>? openBrowser = null)
     {
         var days = new Option<int>("--days") { Description = "How many days back (1 to 365).", DefaultValueFactory = _ => 30 };
         days.Validators.Add(result =>
@@ -73,6 +87,7 @@ internal static class MonitoringChecksCommand
         });
         var environment = new Option<string?>("--environment") { Description = "Only the conversations of this environment." };
         var json = CommandOptions.Json("Print the trend as JSON (what the web's charts draw).");
+        var open = CommandOptions.Open("the agent's Monitoring page, where the trend is drawn (narrowed to --environment)");
         var server = CommandOptions.Server();
         var dir = CommandOptions.Dir();
         var command = new Command("trend", "Day by day: the conversations, how many were checked, and each monitoring check's pass rate.")
@@ -80,9 +95,11 @@ internal static class MonitoringChecksCommand
             days,
             environment,
             json,
+            open,
             server,
             dir,
         };
+        CommandOptions.RefuseJsonWithOpen(command, json, open);
         command.SetAction(
             (parsed, cancellationToken) =>
                 ServerCall.ForAgentAsync(
@@ -90,8 +107,18 @@ internal static class MonitoringChecksCommand
                     parsed.GetValue(server),
                     http,
                     parsed.InvocationConfiguration.Error,
-                    async (client, agent, _) =>
+                    async (client, agent, site) =>
                     {
+                        if (parsed.GetValue(open))
+                        {
+                            await WebPage.ShowAsync(
+                                ServerAddress.MonitoringPage(site, agent, parsed.GetValue(environment)),
+                                parsed.InvocationConfiguration.Output,
+                                parsed.InvocationConfiguration.Error,
+                                openBrowser
+                            );
+                            return 0;
+                        }
                         var trend = await client.MonitoringTrendAsync(
                             agent,
                             parsed.GetValue(days),
