@@ -9,12 +9,13 @@ using Suwageval.Contracts.Checks;
 using Suwageval.Contracts.Scenarios;
 using Suwageval.Server.Agents;
 using Suwageval.Server.Evaluation.Scenarios;
+using Suwageval.Server.Evaluation.Simulation;
 
 namespace Suwageval.Server.ScenarioDrafts;
 
 /// <summary>
-/// A monitored conversation as a scenario file, copied to its end or up to a chosen message: the base a person (or Claude) builds a
-/// scenario on. The monitoring checks the conversation failed come below as comments, with their definitions: a monitoring check is not
+/// A monitored conversation as a scenario file, copied to its end or up to a chosen message, the rest optionally simulated: the base a
+/// person (or Claude) builds a scenario on. The monitoring checks the conversation failed come below as comments, with their definitions: a monitoring check is not
 /// always a valid scenario check as it is, so it is never written as one.
 /// </summary>
 internal static partial class ScenarioDraftWriter
@@ -27,12 +28,14 @@ internal static partial class ScenarioDraftWriter
     /// <param name="items">The conversation's items, oldest first, over all its turns.</param>
     /// <param name="upTo">Where the copy ends: null, the whole conversation; else at that message, included.</param>
     /// <param name="failedChecks">The monitoring checks the conversation failed, as they are defined.</param>
+    /// <param name="simulation">The rest simulated (only with <paramref name="upTo"/>): the user described from the whole conversation and the turns; null, copied only.</param>
     public static ScenarioDraft Draft(
         string conversationId,
         Guid id,
         IReadOnlyList<ConversationItem> items,
         MessageCut? upTo,
-        IReadOnlyList<CheckInput> failedChecks
+        IReadOnlyList<CheckInput> failedChecks,
+        (UserDescription User, int Turns)? simulation = null
     )
     {
         ArgumentNullException.ThrowIfNull(items);
@@ -43,12 +46,21 @@ internal static partial class ScenarioDraftWriter
         {
             Key = key,
             Conversation = [.. items.Take(end + 1)],
+            Continuation = simulation is { } simulated
+                ? new Continuation { Turns = simulated.Turns, SimulatedUser = simulated.User.Text }
+                : new(),
             Origin = new ScenarioOrigin { MonitoringConversation = id },
         };
         var yaml = new StringBuilder()
             .Append(
                 CultureInfo.InvariantCulture,
-                $"# From the monitored conversation {conversationId}, copied {(upTo is { } named ? $"up to {named.Describe()}, included" : "to its end")}.\n"
+                $"# From the monitored conversation {conversationId}, copied {(upTo is { } named ? $"up to {named.Describe()}, included" : "to its end")}{(simulation is null ? "" : "; the rest simulated")}.\n"
+            )
+            .Append(
+                simulation is null ? ""
+                : simulation.Value.User.Notice is null
+                    ? "# The simulated user was described by a model from the whole conversation: review it before you keep it.\n"
+                : "# The simulated user is not described yet: rewrite continuation.simulatedUser from the messages it lists.\n"
             )
             .Append("# It ran on real data Suwageval does not keep: add the fixtures the agent needs to answer it the same way.\n")
             .Append(ScenarioYaml.Of(scenario));
@@ -72,6 +84,7 @@ internal static partial class ScenarioDraftWriter
             Key = key,
             Path = $"suwageval/scenarios/{key}.yaml",
             Yaml = yaml.ToString(),
+            Notice = simulation?.User.Notice,
         };
     }
 

@@ -84,10 +84,10 @@ test("a note is dark text on a light box on paper", async ({ page, request }) =>
     }
 });
 
-test("the filters stay applied on paper and are named in the line, without the switch and the tag field", async ({ page }) => {
+test("the filters stay applied on paper and are named in the line, without the Hide passed chip and the tag field", async ({ page }) => {
     await page.setViewportSize(PAPER);
     await page.goto(`/runs/${runId}?tag=billing&hide=passed`);
-    await expect(page.getByRole("switch", { name: "Hide passed checks", exact: true })).toBeChecked();
+    await expect(page.getByRole("checkbox", { name: "Hide passed checks", exact: true })).toBeChecked();
     await page.emulateMedia({ media: "print" });
 
     await expect(
@@ -95,7 +95,7 @@ test("the filters stay applied on paper and are named in the line, without the s
     ).toBeVisible();
     await expect(page.getByRole("heading", { name: "refunds", exact: true })).toHaveCount(0);
     await expect(page.getByRole("heading", { name: "greets", exact: true })).toHaveCount(0);
-    await expect(page.getByRole("switch", { name: "Hide passed checks", exact: true })).toBeHidden();
+    await expect(page.locator("label", { hasText: /^Hide passed checks$/ })).toBeHidden();
     await expect(page.getByRole("textbox", { name: "Filter by tag" })).toBeHidden();
     await expect(page.getByText("Hidden:", { exact: false })).toBeHidden();
     expect(await visibleOnPaperButNotWanted(page)).toEqual([]);

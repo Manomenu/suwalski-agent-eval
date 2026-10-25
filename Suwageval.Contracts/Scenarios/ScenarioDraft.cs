@@ -12,4 +12,7 @@ public sealed record ScenarioDraft
     public required string Path { get; init; }
 
     public required string Yaml { get; init; }
+
+    /// <summary>Said above the YAML when the simulated user was not described by a model, and why; null otherwise.</summary>
+    public string? Notice { get; init; }
 }

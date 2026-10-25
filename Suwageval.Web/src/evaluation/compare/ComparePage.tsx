@@ -1,19 +1,4 @@
-import {
-    Alert,
-    Anchor,
-    Badge,
-    Box,
-    Group,
-    Loader,
-    Paper,
-    SegmentedControl,
-    Stack,
-    Switch,
-    Table,
-    Text,
-    Title,
-    Tooltip,
-} from "@mantine/core";
+import { Alert, Anchor, Badge, Box, Group, Loader, Paper, SegmentedControl, Stack, Table, Text, Title, Tooltip } from "@mantine/core";
 import { useState } from "react";
 
 import { fetchVersion } from "../../agents/api";
@@ -73,6 +58,7 @@ import { useReportAgent } from "../../shell/reportAgent";
 import { percent } from "../../format/numbers";
 import { PrintButton } from "../../print/PrintButton";
 import { usePrintOnLoad } from "../../print/usePrintOnLoad";
+import { ToggleChip } from "../../toggle/ToggleChip";
 
 const BEST_BACKGROUND = "var(--mantine-color-green-light)";
 const HELP_WIDTH = 280;
@@ -393,12 +379,10 @@ function View({
                                     <Group justify="space-between">
                                         Scenarios
                                         <Group gap="lg" className="no-print">
-                                            <Switch
+                                            <ToggleChip
                                                 label="Only rows that differ"
                                                 checked={onlyDifferences}
-                                                onChange={(event) => {
-                                                    setOnlyDifferences(event.currentTarget.checked);
-                                                }}
+                                                onChange={setOnlyDifferences}
                                             />
                                             <SegmentedControl
                                                 size="xs"

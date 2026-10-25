@@ -49,6 +49,15 @@ simulatorModel:
   secret: ""
   maxConcurrency: 8
 
+# A model of its own for the user describer (Models:describer): it describes the user of a monitored conversation when a
+# scenario is drafted from it with the rest simulated. Same shape as judgeModel; empty baseUrl and secret = no separate model:
+# the describer uses the judge's, and shares its pool. With one, the daily live check asks it too.
+describerModel:
+  baseUrl: ""
+  name: ""
+  secret: ""
+  maxConcurrency: 8
+
 # The simulated user's settings. temperature: how freely the simulated user writes, 0 to 2;
 # empty = the server's default (0.7).
 simulation:

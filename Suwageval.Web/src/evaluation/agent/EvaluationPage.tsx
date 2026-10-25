@@ -17,7 +17,7 @@ import {
 import { lazy, Suspense, useState } from "react";
 
 import { ARCHIVED_RUNS_PARAM } from "../../archive/archivedParam";
-import { ArchivedChip } from "../../archive/ArchivedChip";
+import { ToggleChip } from "../../toggle/ToggleChip";
 import { useArchivedParam } from "../../archive/useArchivedParam";
 import { ListPagination } from "../../pagination/ListPagination";
 import { usePageParam } from "../../pagination/usePageParam";
@@ -277,7 +277,12 @@ function AgentView({
                                 selected={tagFilter}
                                 onChange={filtered(setTagFilter)}
                             />
-                            <ArchivedChip checked={showArchived} help={ARCHIVED_RUNS_HELP} onChange={filtered(setShowArchived)} />
+                            <ToggleChip
+                                label="Archived"
+                                checked={showArchived}
+                                help={ARCHIVED_RUNS_HELP}
+                                onChange={filtered(setShowArchived)}
+                            />
                         </Group>
                         <Button
                             disabled={!canCompare(toCompare.length)}

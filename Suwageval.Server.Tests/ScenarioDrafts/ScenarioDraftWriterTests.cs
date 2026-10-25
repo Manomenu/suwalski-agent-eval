@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Suwageval.AgentSdk.Conversations;
 using Suwageval.Contracts.Checks;
+using Suwageval.Server.Evaluation.Simulation;
 using Suwageval.Server.ScenarioDrafts;
 
 namespace Suwageval.Server.Tests.ScenarioDrafts;
@@ -91,5 +92,43 @@ public sealed class ScenarioDraftWriterTests
         var key = ScenarioDraftWriter.Key(new string('a', 100), Id);
         Assert.Equal(ScenarioDraftWriter.MaxKeyLength, key.Length);
         Assert.DoesNotContain("--", ScenarioDraftWriter.Key("a__b", Id), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void With_the_rest_simulated_the_draft_continues_with_the_described_user_for_the_turns_asked()
+    {
+        var draft = ScenarioDraftWriter.Draft(
+            "chat-81",
+            Id,
+            Items(),
+            new MessageCut(true, 1),
+            [],
+            (new UserDescription("You are a customer whose kettle broke."), 2)
+        );
+
+        Assert.Contains("copied up to user message 1, included; the rest simulated.", draft.Yaml, StringComparison.Ordinal);
+        Assert.Contains("described by a model from the whole conversation: review it", draft.Yaml, StringComparison.Ordinal);
+        Assert.Contains(
+            "continuation:\n  turns: 2\n  simulatedUser: You are a customer whose kettle broke.\n",
+            draft.Yaml,
+            StringComparison.Ordinal
+        );
+        Assert.Null(draft.Notice);
+    }
+
+    [Fact]
+    public void A_description_no_model_wrote_is_said_in_the_file_and_in_the_notice()
+    {
+        var draft = ScenarioDraftWriter.Draft(
+            "chat-81",
+            Id,
+            Items(),
+            new MessageCut(true, 1),
+            [],
+            (new UserDescription("Rewrite: …", "The simulated user was not described by a model: no model."), 2)
+        );
+
+        Assert.Contains("# The simulated user is not described yet", draft.Yaml, StringComparison.Ordinal);
+        Assert.Equal("The simulated user was not described by a model: no model.", draft.Notice);
     }
 }

@@ -7,6 +7,7 @@ import {
     MESSAGE_PREVIEW_LENGTH,
     messageOptions,
     scenarioDraftPath,
+    draftTurns,
     conversationsPath,
     initialFilter,
     stateOf,
@@ -68,10 +69,43 @@ describe("checksVerdict", () => {
     });
 });
 
+describe("draftTurns", () => {
+    const items = [
+        { kind: "UserMessage" },
+        { kind: "AssistantMessage" },
+        { kind: "UserMessage" },
+        { kind: "ToolCall" },
+        { kind: "AssistantMessage" },
+        { kind: "UserMessage" },
+        { kind: "AssistantMessage" },
+    ];
+
+    it("counts the turns the real conversation had after the cut, the agent's answer to a cut user message included", () => {
+        expect(draftTurns(items, "user", 1)).toBe(3);
+        expect(draftTurns(items, "user", 3)).toBe(1);
+        expect(draftTurns(items, "agent", 1)).toBe(2);
+        expect(draftTurns(items, "agent", 3)).toBe(0);
+        expect(draftTurns(items, "agent", 9)).toBe(0);
+    });
+
+    it("stops at the most turns a scenario may run", () => {
+        expect(
+            draftTurns(
+                Array.from({ length: 30 }, () => ({ kind: "UserMessage" })),
+                "user",
+                1,
+            ),
+        ).toBe(20);
+    });
+});
+
 describe("scenario draft", () => {
     it("asks for the whole conversation or up to a user or agent message", () => {
         expect(scenarioDraftPath("c1", "end", 1)).toBe("/monitoring/conversations/c1/scenario");
         expect(scenarioDraftPath("c1", "user", 2)).toBe("/monitoring/conversations/c1/scenario?upToUserMessage=2");
+        expect(scenarioDraftPath("c1", "agent", 1, 4)).toBe(
+            "/monitoring/conversations/c1/scenario?upToAgentMessage=1&simulate=true&turns=4",
+        );
         expect(scenarioDraftPath("c1", "agent", 1)).toBe("/monitoring/conversations/c1/scenario?upToAgentMessage=1");
         expect(draftCutOf("agent")).toBe("agent");
         expect(draftCutOf(null)).toBe("end");

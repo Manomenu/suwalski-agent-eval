@@ -85,3 +85,33 @@ The Secret that holds the simulator's model address and name (simulatorModel.sec
     name: {{ . }}
 {{- end }}
 {{- end -}}
+
+{{/*
+The user describer's own model as environment variables (appsettings: Models:describer). Rendered only when
+describerModel.baseUrl or describerModel.secret is set: without it the describer uses the judge's model. Same shape as
+app.judgeEnv; with describerModel.secret the address and the name come from that Secret (app.describerEnvFrom).
+*/}}
+{{- define "app.describerEnv" -}}
+{{- with .Values.describerModel }}
+{{- if or .baseUrl .secret }}
+{{- if not .secret }}
+- name: Models__describer__BaseUrl
+  value: {{ .baseUrl | quote }}
+- name: Models__describer__Model
+  value: {{ required "describerModel.name is required when describerModel.baseUrl is set" .name | quote }}
+{{- end }}
+- name: Models__describer__MaxConcurrency
+  value: {{ .maxConcurrency | quote }}
+{{- end }}
+{{- end }}
+{{- end -}}
+
+{{/*
+The Secret that holds the describer's model address and name (describerModel.secret), as an envFrom item; empty without one.
+*/}}
+{{- define "app.describerEnvFrom" -}}
+{{- with .Values.describerModel.secret }}
+- secretRef:
+    name: {{ . }}
+{{- end }}
+{{- end -}}

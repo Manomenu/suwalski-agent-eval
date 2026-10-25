@@ -62,5 +62,26 @@ public sealed class ScenarioYamlRoundTripTests
         Assert.Empty(read.Checks);
     }
 
+    [Fact]
+    public void A_scenario_drafted_with_the_rest_simulated_is_a_valid_simulation()
+    {
+        var draft = Suwageval.Server.ScenarioDrafts.ScenarioDraftWriter.Draft(
+            "chat-81",
+            Guid.NewGuid(),
+            [.. Suwageval.Server.Tests.ScenarioDrafts.ScenarioDraftWriterTests.Turns().SelectMany(turn => turn)],
+            new Suwageval.Server.ScenarioDrafts.MessageCut(true, 1),
+            [],
+            (new Suwageval.Server.Evaluation.Simulation.UserDescription("You are a customer whose kettle broke.\nYou write in English."), 2)
+        );
+        var problems = new List<Cli::Suwageval.Cli.Files.Problem>();
+
+        var read = ScenarioFileReader.Read(draft.Path, draft.Yaml, problems);
+
+        Assert.Empty(problems);
+        Assert.NotNull(read);
+        Assert.Equal(2, read.Scenario.Continuation.Turns);
+        Assert.Equal("You are a customer whose kettle broke.\nYou write in English.", read.Scenario.Continuation.SimulatedUser?.TrimEnd());
+    }
+
     private static string Json<T>(T value) => JsonSerializer.Serialize(value, ContractJson.Options);
 }

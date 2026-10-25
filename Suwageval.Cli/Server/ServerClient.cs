@@ -324,24 +324,40 @@ internal sealed class ServerClient(HttpClient http)
         Guid conversationId,
         int? upToUser,
         int? upToAgent,
+        bool simulate,
+        int? turns,
         CancellationToken cancellationToken
-    ) =>
-        SendAsync<ScenarioDraft>(
+    )
+    {
+        List<string> query = [];
+        if (upToUser is { } user)
+        {
+            query.Add($"upToUserMessage={user.ToString(CultureInfo.InvariantCulture)}");
+        }
+        if (upToAgent is { } agent)
+        {
+            query.Add($"upToAgentMessage={agent.ToString(CultureInfo.InvariantCulture)}");
+        }
+        if (simulate)
+        {
+            query.Add("simulate=true");
+        }
+        if (turns is { } count)
+        {
+            query.Add($"turns={count.ToString(CultureInfo.InvariantCulture)}");
+        }
+        return SendAsync<ScenarioDraft>(
             () =>
                 http.GetAsync(
                     new Uri(
-                        $"monitoring/conversations/{conversationId}/scenario"
-                            + (
-                                upToUser is { } user ? $"?upToUserMessage={user.ToString(CultureInfo.InvariantCulture)}"
-                                : upToAgent is { } agent ? $"?upToAgentMessage={agent.ToString(CultureInfo.InvariantCulture)}"
-                                : ""
-                            ),
+                        $"monitoring/conversations/{conversationId}/scenario" + (query.Count == 0 ? "" : "?" + string.Join('&', query)),
                         UriKind.Relative
                     ),
                     cancellationToken
                 ),
             cancellationToken
         );
+    }
 
     /// <summary>A monitored conversation with its turns.</summary>
     public Task<ConversationDetail> ConversationAsync(Guid id, CancellationToken cancellationToken) =>

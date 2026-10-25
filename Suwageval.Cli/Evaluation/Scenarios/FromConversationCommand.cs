@@ -6,7 +6,8 @@ namespace Suwageval.Cli.Evaluation.Scenarios;
 /// <summary>
 /// <c>suwageval scenario from-conversation &lt;id&gt;</c>: a monitored conversation drafted as a scenario file, copied to its end or, with
 /// <c>--up-to-user N</c> / <c>--up-to-agent N</c>, up to its N-th user or agent message (included); the monitoring checks it failed come
-/// below as comments. Prints the YAML; with <c>--write</c> writes it to <c>&lt;dir&gt;/scenarios/&lt;key&gt;.yaml</c>, never over a file that
+/// below as comments. With <c>--simulate</c> (and a cut) the rest is simulated: a model describes the user from the whole conversation,
+/// for <c>--turns</c> turns (by default as many as the real conversation had after the cut). Prints the YAML; with <c>--write</c> writes it to <c>&lt;dir&gt;/scenarios/&lt;key&gt;.yaml</c>, never over a file that
 /// is there. Exits 0; 1 when the file exists; 2 when the server is wrong (no such message too).
 /// </summary>
 internal static class FromConversationCommand
@@ -21,16 +22,28 @@ internal static class FromConversationCommand
         };
         var upToUser = MessageOption("--up-to-user", "user");
         var upToAgent = MessageOption("--up-to-agent", "agent");
+        var simulate = new Option<bool>("--simulate")
+        {
+            Description =
+                "Simulate the rest after the cut: a model describes the user from the whole conversation (Models:describer, else the judge's).",
+        };
+        var turns = new Option<int?>("--turns")
+        {
+            Description =
+                "How many turns the simulated rest runs, 1 to 20 (with --simulate); by default as many as the real conversation had after the cut.",
+        };
         var server = CommandOptions.Server();
         var dir = CommandOptions.Dir();
         var command = new Command(
             "from-conversation",
-            "Draft a scenario from a monitored conversation, copied to its end or up to a user or agent message; its failed monitoring checks as comments."
+            "Draft a scenario from a monitored conversation, copied to its end or up to a user or agent message, the rest optionally simulated; its failed monitoring checks as comments."
         )
         {
             id,
             upToUser,
             upToAgent,
+            simulate,
+            turns,
             write,
             server,
             dir,
@@ -40,6 +53,14 @@ internal static class FromConversationCommand
             if (result.GetValue(upToUser) is not null && result.GetValue(upToAgent) is not null)
             {
                 result.AddError("Copy up to a user message or an agent message, not both.");
+            }
+            if (result.GetValue(simulate) && result.GetValue(upToUser) is null && result.GetValue(upToAgent) is null)
+            {
+                result.AddError("--simulate needs --up-to-user or --up-to-agent: the rest after that message is simulated.");
+            }
+            if (result.GetValue(turns) is not null && !result.GetValue(simulate))
+            {
+                result.AddError("--turns needs --simulate.");
             }
         });
         command.SetAction(
@@ -54,8 +75,14 @@ internal static class FromConversationCommand
                             parsed.GetValue(id),
                             parsed.GetValue(upToUser),
                             parsed.GetValue(upToAgent),
+                            parsed.GetValue(simulate),
+                            parsed.GetValue(turns),
                             cancellationToken
                         );
+                        if (draft.Notice is { } notice)
+                        {
+                            await parsed.InvocationConfiguration.Error.WriteLineAsync(notice);
+                        }
                         var output = parsed.InvocationConfiguration.Output;
                         if (!parsed.GetValue(write))
                         {

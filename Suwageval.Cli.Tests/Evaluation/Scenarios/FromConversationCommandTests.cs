@@ -78,6 +78,23 @@ public sealed class FromConversationCommandTests : IDisposable
     }
 
     [Fact]
+    public void The_simulated_rest_and_its_turns_go_to_the_server_only_with_a_cut()
+    {
+        var (simulated, _, _, simulatedPaths) = Run("--dir", dir, "--up-to-user", "2", "--simulate", "--turns", "4");
+        var (noCut, _, noCutError, noCutPaths) = Run("--dir", dir, "--simulate");
+        var (noSimulate, _, noSimulateError, noSimulatePaths) = Run("--dir", dir, "--up-to-user", "2", "--turns", "4");
+
+        Assert.Equal(0, simulated);
+        Assert.Equal([$"/monitoring/conversations/{Id}/scenario?upToUserMessage=2&simulate=true&turns=4"], simulatedPaths);
+        Assert.NotEqual(0, noCut);
+        Assert.Contains("--simulate needs --up-to-user or --up-to-agent", noCutError, StringComparison.Ordinal);
+        Assert.NotEqual(0, noSimulate);
+        Assert.Contains("--turns needs --simulate.", noSimulateError, StringComparison.Ordinal);
+        Assert.Empty(noCutPaths);
+        Assert.Empty(noSimulatePaths);
+    }
+
+    [Fact]
     public void With_write_the_file_is_written_into_the_scenarios_folder_and_never_over_one_that_is_there()
     {
         var (first, firstOutput, _, _) = Run("--dir", dir, "--write");

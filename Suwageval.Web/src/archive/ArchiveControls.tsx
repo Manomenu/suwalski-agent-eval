@@ -1,7 +1,7 @@
 import { Alert, Button, Group } from "@mantine/core";
 import type { ReactNode } from "react";
 
-import { ArchivedChip } from "./ArchivedChip";
+import { ToggleChip } from "../toggle/ToggleChip";
 
 /** The texts that differ between the lists that are archived (versions, run groups). */
 export interface ArchiveLabels {
@@ -82,7 +82,9 @@ export function ArchiveControls({
                         </Button>
                     )}
                 </Group>
-                {archivedChip && <ArchivedChip checked={showArchived} help={archivedChip.help} onChange={archivedChip.onChange} />}
+                {archivedChip && (
+                    <ToggleChip label="Archived" checked={showArchived} help={archivedChip.help} onChange={archivedChip.onChange} />
+                )}
             </Group>
             {notice !== null && <Alert color="green">{notice}</Alert>}
             {error !== null && (

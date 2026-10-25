@@ -1623,6 +1623,8 @@ export interface paths {
                 query?: {
                     upToUserMessage?: number;
                     upToAgentMessage?: number;
+                    simulate?: boolean;
+                    turns?: number;
                 };
                 header?: never;
                 path: {
@@ -2962,6 +2964,8 @@ export interface components {
             /** @description Where the file goes, relative to the repository's root: `suwageval/scenarios/&lt;key&gt;.yaml`. */
             path: string;
             yaml: string;
+            /** @description Said above the YAML when the simulated user was not described by a model, and why; null otherwise. */
+            notice?: null | string;
         };
         /** @description A frozen moment of a conversation; the agent answers its last message. */
         ScenarioInput: {

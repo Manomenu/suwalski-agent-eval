@@ -274,6 +274,26 @@ public sealed class MonitoringChecksTests(TestDatabase database) : IAsyncDisposa
             Cancellation
         );
         Assert.Equal(HttpStatusCode.UnprocessableEntity, missing.StatusCode);
+        // With the rest simulated: one turn was left after the first user message; no model in the tests, so the plain description and why.
+        var simulated = await Get<ScenarioDraft>(client, $"/monitoring/conversations/{bad.Id}/scenario?upToUserMessage=1&simulate=true");
+        Assert.Contains("continuation:\n  turns: 1\n  simulatedUser: ", simulated.Yaml, StringComparison.Ordinal);
+        Assert.StartsWith("The simulated user was not described by a model", simulated.Notice, StringComparison.Ordinal);
+        foreach (
+            var invalid in new[]
+            {
+                "simulate=true",
+                "upToAgentMessage=1&simulate=true",
+                "upToUserMessage=1&turns=2",
+                "upToUserMessage=1&simulate=true&turns=21",
+            }
+        )
+        {
+            var refused = await client.GetAsync(
+                new Uri($"/monitoring/conversations/{bad.Id}/scenario?{invalid}", UriKind.Relative),
+                Cancellation
+            );
+            Assert.Equal(HttpStatusCode.UnprocessableEntity, refused.StatusCode);
+        }
     }
 
     [Fact]

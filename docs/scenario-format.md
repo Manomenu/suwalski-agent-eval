@@ -369,7 +369,11 @@ failed check is the one to turn into a scenario (`suwageval scenario from-conver
 **A scenario from a monitored conversation.** `suwageval scenario from-conversation <id>` (or "Scenario YAML" on the conversation's page)
 drafts a scenario file from a conversation the deployed agent had: copied whole, to its last message, or with `--up-to-user N` /
 `--up-to-agent N` (on the web: "Copy: Up to a user message / an agent message" and the message) up to its N-th user or agent message,
-included. The key is proposed from the conversation's id (`conversation-<id>`) and `origin` names the conversation. The monitoring
+included. Copied up to a message, the rest can be simulated instead of dropped: `--simulate` (on the web: "Simulate the rest", then
+"Generate scenario") adds a `continuation` whose `simulatedUser` a model writes from the **whole** conversation, so the simulated user
+goes for the goal the real one did, for `--turns N` turns (1 to 20; by default as many as the real conversation had after the cut). The
+model is `Models:describer` when configured, else the judge's; without either, `simulatedUser` lists the user's messages to rewrite and
+the draft says why. The key is proposed from the conversation's id (`conversation-<id>`) and `origin` names the conversation. The monitoring
 checks the conversation failed come at the end as comments, with their definitions: what went wrong, to turn into the scenario's own
 checks (a monitoring check is not always a valid scenario check as it is, so it is never written as one). The draft is the base: the
 checks, and the `fixtures` the agent needs (the conversation ran on real data Suwageval does not keep), are added by a person or by

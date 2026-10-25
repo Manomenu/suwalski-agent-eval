@@ -1,5 +1,5 @@
 import { DataVersion } from "../../dataVersion/DataVersion";
-import { Alert, Anchor, Badge, Box, Group, List, Loader, Paper, Stack, Switch, Text, Title } from "@mantine/core";
+import { Alert, Anchor, Badge, Box, Group, List, Loader, Paper, Stack, Text, Title } from "@mantine/core";
 
 import { isNotFound } from "../../api/client";
 import { CancelButton } from "./CancelButton";
@@ -34,6 +34,7 @@ import { PrintButton } from "../../print/PrintButton";
 import { usePrintOnLoad } from "../../print/usePrintOnLoad";
 import { runPrintLine } from "./printLine";
 import { useReportAgent } from "../../shell/reportAgent";
+import { ToggleChip } from "../../toggle/ToggleChip";
 
 /** One run's results at `/runs/<id>`: the header, then a card per scenario. */
 export function RunPage({ runId }: { runId: string }) {
@@ -135,13 +136,7 @@ export function RunPage({ runId }: { runId: string }) {
                     />
                 </Box>
                 <Group gap="lg" className="no-print">
-                    <Switch
-                        label="Hide passed checks"
-                        checked={hidePassed}
-                        onChange={(event) => {
-                            setHidePassed(event.currentTarget.checked);
-                        }}
-                    />
+                    <ToggleChip label="Hide passed checks" checked={hidePassed} onChange={setHidePassed} />
                     <PrintButton />
                 </Group>
                 {hidePassed && (

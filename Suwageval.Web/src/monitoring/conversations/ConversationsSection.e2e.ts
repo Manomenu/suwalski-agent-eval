@@ -67,7 +67,7 @@ test("Versions in monitoring lists the version answering now, marked Current and
     await expect(page.getByRole("columnheader", { name: /Conversations, 30 d/ })).toBeVisible();
 });
 
-test("a conversation drafts as a scenario, whole or up to a chosen message", async ({ page, request }) => {
+test("a conversation drafts as a scenario, whole, up to a chosen message, or with the rest simulated", async ({ page, request }) => {
     const name = `e2e-monitoring-draft-${String(Date.now())}`;
     const data = { name, endpointUrl: "http://localhost:9/", features: { monitoring: {} } };
     expect((await request.post("/api/agents", { data })).ok()).toBe(true);
@@ -96,6 +96,15 @@ test("a conversation drafts as a scenario, whole or up to a chosen message", asy
     await expect(yaml).toContainText("- user: Where is A-17?");
     await expect(yaml).not.toContainText("About Where is A-17?");
     await expect(yaml).not.toContainText("And B-2?");
+
+    // The rest simulated: as long as the real conversation went on after the cut (the answer to message 1, then message 2), on a click.
+    await page.locator("label", { hasText: /^Simulate the rest$/ }).click();
+    await expect(page.getByRole("textbox", { name: "Turns", exact: true })).toHaveValue("2");
+    await expect(yaml).toHaveCount(0);
+    await page.getByRole("button", { name: "Generate scenario", exact: true }).click();
+    await expect(yaml).toContainText("turns: 2");
+    await expect(yaml).toContainText("simulatedUser:");
+    await expect(yaml).not.toContainText("About Where is A-17?");
 });
 
 test("the environment filter above the page narrows the conversations, all of them by default", async ({ page, request }) => {

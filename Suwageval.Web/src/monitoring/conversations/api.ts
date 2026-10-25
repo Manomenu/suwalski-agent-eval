@@ -22,7 +22,13 @@ export function fetchConversation(id: string, signal: AbortSignal): Promise<Conv
     return request<ConversationDetail>(`/monitoring/conversations/${id}`, { signal });
 }
 
-/** The conversation drafted as a scenario file (its key, the file's path and the YAML); see `scenarioDraftPath`. */
-export function fetchScenarioDraft(id: string, cut: DraftCut, ordinal: number, signal: AbortSignal): Promise<ScenarioDraft> {
-    return request<ScenarioDraft>(scenarioDraftPath(id, cut, ordinal), { signal });
+/** The conversation drafted as a scenario file (its key, the file's path, the YAML and a notice); see `scenarioDraftPath`. */
+export function fetchScenarioDraft(
+    id: string,
+    cut: DraftCut,
+    ordinal: number,
+    turns: number | null,
+    signal: AbortSignal,
+): Promise<ScenarioDraft> {
+    return request<ScenarioDraft>(scenarioDraftPath(id, cut, ordinal, turns), { signal });
 }

@@ -12,7 +12,8 @@ namespace Suwageval.Server.LiveCheck;
 /// <summary>
 /// The daily check from production's network (<c>Suwageval.Server live-check</c>, the chart's CronJob): calls with fixed tiny
 /// cases — one <c>judge</c> check, one <c>$judge</c> argument and, when one is configured, the simulated user
-/// (<see cref="SimulatorLiveCheck"/>, through <c>Models:simulator</c> or else the judge's entry) — through the production registration of the models, the judges and the simulator. The model is not ours, so it can change
+/// (<see cref="SimulatorLiveCheck"/>, through <c>Models:simulator</c> or else the judge's entry) and, with a model of its own, the user
+/// describer (<see cref="DescriberLiveCheck"/>) — through the production registration of the models, the judges and the simulator. The model is not ours, so it can change
 /// its answer without a commit here; this is what notices. A problem is logged, posted to the Discord alerts channel when a
 /// webhook is configured, and makes the process exit non-zero. It writes nothing anywhere, so there is nothing to roll back.
 /// </summary>
@@ -96,13 +97,17 @@ internal static class JudgeLiveCheck
                 host.Services.GetRequiredService<Judge>(),
                 host.Services.GetRequiredService<ArgumentJudge>(),
                 CancellationToken.None
-            ) ?? await SimulatorLiveCheck.ProblemAsync(host.Services.GetRequiredService<UserSimulator>(), CancellationToken.None);
+            )
+            ?? await SimulatorLiveCheck.ProblemAsync(host.Services.GetRequiredService<UserSimulator>(), CancellationToken.None)
+            ?? await DescriberLiveCheck.ProblemAsync(host.Services.GetRequiredService<UserDescriber>(), CancellationToken.None);
         if (problem is null)
         {
             var entry = host.Services.GetRequiredService<UserSimulator>().ModelEntry;
             await Console.Out.WriteLineAsync(
                 "The models answered as expected (a judge check, a $judge argument"
-                    + (entry is null ? ")." : $" and the simulated user, through the model entry '{entry}').")
+                    + (entry is null ? "" : $", the simulated user through the model entry '{entry}'")
+                    + (host.Services.GetRequiredService<UserDescriber>().HasOwnModel ? ", the user describer through 'describer'" : "")
+                    + ")."
             );
             return 0;
         }

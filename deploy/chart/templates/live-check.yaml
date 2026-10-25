@@ -50,7 +50,8 @@ spec:
               env:
                 {{- include "app.judgeEnv" . | nindent 16 }}
                 {{- include "app.simulatorEnv" . | nindent 16 }}
-              {{- if or .Values.liveCheck.discordSecret .Values.judgeModel.secret .Values.simulatorModel.secret }}
+                {{- include "app.describerEnv" . | nindent 16 }}
+              {{- if or .Values.liveCheck.discordSecret .Values.judgeModel.secret .Values.simulatorModel.secret .Values.describerModel.secret }}
               envFrom:
                 {{- with .Values.liveCheck.discordSecret }}
                 # Optional: without it the check still runs, it just tells nobody.
@@ -60,6 +61,7 @@ spec:
                 {{- end }}
                 {{- include "app.judgeEnvFrom" . | nindent 16 }}
                 {{- include "app.simulatorEnvFrom" . | nindent 16 }}
+                {{- include "app.describerEnvFrom" . | nindent 16 }}
               {{- end }}
               resources:
                 {{- toYaml .Values.liveCheck.resources | nindent 16 }}

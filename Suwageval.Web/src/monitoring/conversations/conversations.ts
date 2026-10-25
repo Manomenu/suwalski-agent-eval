@@ -80,11 +80,31 @@ export function draftCutOf(value: string | null): DraftCut {
     return value === "user" || value === "agent" ? value : "end";
 }
 
-/** The path of the conversation's scenario draft: to its end, or up to its `ordinal`-th (from 1) user or agent message. */
-export function scenarioDraftPath(id: string, cut: DraftCut, ordinal: number): string {
+/** The most turns a scenario's continuation may run (`continuation.turns`). */
+export const MAX_DRAFT_TURNS = 20;
+
+/**
+ * The path of the conversation's scenario draft: to its end, or up to its `ordinal`-th (from 1) user or agent message; with `turns` the
+ * rest is simulated for that many turns.
+ */
+export function scenarioDraftPath(id: string, cut: DraftCut, ordinal: number, turns: number | null = null): string {
     const base = `/monitoring/conversations/${id}/scenario`;
     if (cut === "end") return base;
-    return `${base}?${cut === "user" ? "upToUserMessage" : "upToAgentMessage"}=${String(ordinal)}`;
+    const upTo = `${cut === "user" ? "upToUserMessage" : "upToAgentMessage"}=${String(ordinal)}`;
+    return turns === null ? `${base}?${upTo}` : `${base}?${upTo}&simulate=true&turns=${String(turns)}`;
+}
+
+/**
+ * How many turns a simulation of the rest runs by default: as many as the real conversation had after the cut — one per user message
+ * after it, and one more when the cut is at a user message (the agent answers it first); at most `MAX_DRAFT_TURNS`, 0 when nothing is
+ * left. The server counts the same way when it is not told.
+ */
+export function draftTurns(items: readonly { kind?: string }[], cut: Exclude<DraftCut, "end">, ordinal: number): number {
+    const kind = cut === "user" ? "UserMessage" : "AssistantMessage";
+    const end = items.map((item, index) => (item.kind === kind ? index : -1)).filter((index) => index >= 0)[ordinal - 1];
+    if (end === undefined) return 0;
+    const left = items.slice(end + 1).filter((item) => item.kind === "UserMessage").length + (cut === "user" ? 1 : 0);
+    return Math.min(left, MAX_DRAFT_TURNS);
 }
 
 /** How much of a message the picker shows. */
@@ -104,6 +124,10 @@ export function messageOptions(
             return { value: String(index + 1), label: `${String(index + 1)}. ${preview}` };
         });
 }
+
+export const SIMULATE_REST_HELP =
+    "Instead of copying only the start, simulate the rest: a model (Models:describer, else the judge's) reads the whole conversation and describes the customer, so the simulated customer goes for the same goal the real one did. Turns: how long the simulation runs, by default as long as the real conversation went on.";
+export const NOTHING_TO_SIMULATE = "Nothing came after this message: there is no rest to simulate.";
 
 export const SCENARIO_DRAFT_HELP =
     "The conversation copied as a scenario: whole, or up to the message you pick. The monitoring checks it failed are at the end, as comments with their definitions. Build the scenario's checks from it (Claude can), add the fixtures the agent needs (the conversation ran on real data), save the file in the agent's repository, then suwageval validate and push.";
