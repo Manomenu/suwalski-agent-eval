@@ -68,7 +68,7 @@ user's clone of the suwageval repository, wherever they keep it: if its folder i
 
 | want | command |
 | --- | --- |
-| set a repository up (no `suwageval/agent.yaml` yet, or a field to change) | `suwageval init [path] --name N --endpoint-url URL [--suwageval-url URL]`: give every value as an option, since there is no terminal to ask on; an existing file keeps its comments and other fields, and a repeat changes nothing |
+| set a repository up (no `suwageval/agent.yaml` yet, or a field to change) | `suwageval init [path] --name N --endpoint-url URL [--suwageval-url URL] [--monitoring [--close-after 30m] [--environment E]…]`: give every value as an option, since there is no terminal to ask on; `--monitoring` switches monitoring on and prints what the agent needs (the SDK's `AddSuwagevalMonitoring` and `Record`, three `Suwageval__*` settings); an existing file keeps its comments and other fields, and a repeat changes nothing |
 | check the files and the names against the agent's contract | `suwageval validate [dir]` (`--json`, `--offline` to skip the agent, `--endpoint URL`) |
 | send the agent, scenarios and checks to the server | `suwageval push [dir]` |
 | run the scenarios and wait | `suwageval run --wait --json` (`--tag <tag>` for some scenarios only, repeat it for the scenarios with any of the tags; `--group <name>` to put the run in a group, e.g. the runs of one sweep over models (an experiment: no regression states, not in the trend; it exits 1 when any check fails, as `--strict`); `--ref <branch>` to compare with another branch's reference runs; `--strict` to exit 1 on any failed check) |

@@ -34,7 +34,7 @@ Your agent serves two routes: `GET /suwageval/contract` (what it is: its LLM age
 Then, in the agent's repository:
 
 ```sh
-suwageval init --suwageval-url http://localhost:8093   # writes suwageval/agent.yaml, asks for the name and the agent's address
+suwageval init --suwageval-url http://localhost:8093   # writes suwageval/agent.yaml, asks for the name, the agent's address and whether to monitor it
 ```
 
 ```yaml

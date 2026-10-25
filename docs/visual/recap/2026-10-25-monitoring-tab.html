@@ -305,8 +305,8 @@ pre.out { font: 12px/1.5 var(--mono); background: var(--code-bg); border: 1px so
 <section data-role="tldr">
   <h2>TL;DR</h2>
   <div class="tldr">
-    <p>🟢 Suwageval ma drugi obszar obok ewaluacji: <b>Monitoring</b>. Wdrożony agent (przez SDK albo sam, wg opisanego protokołu) wysyła tury prawdziwych rozmów, Suwageval zamyka rozmowę po bezczynności, sprawdza ją checkami z <code>suwageval/monitoring-checks.yaml</code> i pokazuje pass rate w 7/30 dniach, wykresy dzienne i listę rozmów. Rozmowa jednym kliknięciem (albo <code>scenario from-conversation</code>) staje się bazą scenariusza: skopiowana w całości albo do wybranej wiadomości użytkownika lub agenta, z checks, które oblała, w komentarzach.</p>
-    <p>Po drodze: <code>dataVersion</code> wypadło z tożsamości wersji (jest atrybutem runu), agent.yaml ma przełączniki <code>features</code>, Versions pokazuje użycie w Monitoringu (Current, Not evaluated), a ewaluacja odpowiada już <b>tylko pod <code>/api/eval</code></b> — to zmiana łamiąca dla zainstalowanego CLI, do ogłoszenia przed merge. Bramka zielona. Odstępstwo od planu: odtwarzanie rozmowy z symulowanym użytkownikiem zostało usunięte (zastąpione kopiowaniem do wiadomości). Brakuje z planu: strony wersji z dwoma panelami i dziennego limitu judge'a.</p>
+    <p>🟢 Suwageval ma drugi obszar obok ewaluacji: <b>Monitoring</b>. Wdrożony agent (przez SDK albo sam, wg opisanego protokołu) wysyła tury prawdziwych rozmów, Suwageval zamyka rozmowę po bezczynności, sprawdza ją checkami z <code>suwageval/monitoring-checks.yaml</code> i pokazuje pass rate w 7/30 dniach, wykresy dzienne i listę rozmów. Rozmowa jednym kliknięciem (albo <code>scenario from-conversation</code>) staje się bazą scenariusza: skopiowana w całości albo do wybranej wiadomości, a z przełącznikiem <b>Simulate the rest</b> — z resztą dogrywaną przez symulowanego klienta, którego opis model pisze z całej rozmowy. Podłączenie agenta zaczyna się od <code>suwageval init</code>, który pyta, czy włączyć Monitoring, i wypisuje, co dopisać w agencie.</p>
+    <p>Po drodze: <code>dataVersion</code> wypadło z tożsamości wersji (jest atrybutem runu), agent.yaml ma przełączniki <code>features</code>, Versions pokazuje użycie w Monitoringu (Current, Not evaluated), a ewaluacja odpowiada już <b>tylko pod <code>/api/eval</code></b> — to zmiana łamiąca dla zainstalowanego CLI, do ogłoszenia przed merge. Kreski zmiany wersji i danych są na wykresach obu obszarów, a wszystkie przełączniki w aplikacji to jeden <code>ToggleChip</code>. Bramka zielona. Brakuje z planu: strony wersji z dwoma panelami i dziennego limitu judge'a.</p>
   </div>
   <div class="stats">
     <div><b>5+2</b><span>etapy planu (0–5 i przygotowania)</span></div>
@@ -322,7 +322,7 @@ pre.out { font: 12px/1.5 var(--mono); background: var(--code-bg); border: 1px so
   <p>Kryteria wzięte z dokumentu <a href="https://claude.ai/artifact/Y7FDEQtqn36YaaCUwA4p2e">„rozmowy z produkcji i checks na żywym ruchu — plan”</a>, etap po etapie.</p>
   <ul class="checks">
     <li data-status="pass">Przygotowania: ewaluacja pod <code>/api/eval/…</code>, hash kontraktu liczony w SDK tą samą funkcją co na serwerze <span class="evidence">419363f; test przypina hash znanego kontraktu (<code>AgentContractHash</code>)</span></li>
-    <li data-status="pass">Etap 0: <code>dataVersion</code> poza hashem wersji, wersje różniące się tylko danymi połączone, dane zapisane przy runie; „data changed” przy regresji <span class="evidence">migracja 0026, 5c5ac9a; filtr Data version na runach, CLI <code>--data-version</code></span></li>
+    <li data-status="pass">Etap 0: <code>dataVersion</code> poza hashem wersji, dane zapisane przy runie (stare wersje z danymi w treści migracja kasuje); „data changed” przy regresji <span class="evidence">migracja 0026, 5c5ac9a; filtr Data version na runach, CLI <code>--data-version</code></span></li>
     <li data-status="pass">Etap 1: <code>features: { evaluation, monitoring }</code> w agent.yaml; serwer odpowiada 409, CLI kończy kodem 2 z podpowiedzią „push to apply”, panel boczny ukrywa wyłączony obszar <span class="evidence">migracja 0027, <code>FeatureRules</code> wspólne dla validate/push/serwera</span></li>
     <li data-status="pass">Etap 2: SDK wysyła tury (kolejka w pamięci, wątek w tle, ponowienia, odrzucanie najstarszych), hash i „send contract”, środowisko z listą dozwolonych, zamykanie po <code>closeAfter</code>, lista i podgląd rozmów (web + CLI) <span class="evidence">migracja 0028, f75089b; zrzut 1 i 2</span></li>
     <li data-status="pass">Tury z runu ewaluacji nie trafiają do Monitoringu <span class="evidence"><code>ConversationRecorder</code>: pomija <code>POST /suwageval/turn</code> i baggage runu</span></li>
@@ -335,7 +335,8 @@ pre.out { font: 12px/1.5 var(--mono); background: var(--code-bg); border: 1px so
     <li data-status="pass">„Filtr środowiska nad wszystkim” <span class="evidence">79d6083: jeden filtr <code>?environment=</code> zawęża tabelę checks, wykresy i rozmowy; wykres rozmów ma linię na środowisko. Pokazuje się dopiero przy co najmniej dwóch środowiskach (u suwexaga jest jedno, więc na zrzucie go nie ma)</span></li>
     <li data-status="skipped">Dzienny limit judge'a (<code>Monitoring:MaxJudgeCallsPerDay</code>) <span class="evidence">odłożone decyzją z planu (ok. 10 rozmów dziennie); w TODO.md</span></li>
     <li data-status="skipped">Ostrzeżenie <code>validate</code> dla checka, który prawie zawsze oblewa <span class="evidence">w TODO.md</span></li>
-    <li data-status="partial">Etap 5: scenariusz z rozmowy z symulacją <span class="evidence">zbudowany w 6a8d2bd i usunięty w b568b07 (<code>--until-turn</code>, <code>UserDescriber</code>). Zostało kopiowanie do N-tej wiadomości użytkownika albo agenta; symulowanego użytkownika osoba (albo Claude) dopisuje sama. Patrz „Odstępstwa od planu”</span></li>
+    <li data-status="pass">Etap 5: scenariusz z rozmowy z symulacją <span class="evidence">8a37816: „Simulate the rest” + „Generate scenario” w webie, <code>--simulate [--turns N]</code> w CLI; <code>simulatedUser</code> pisze <code>UserDescriber</code> z całej rozmowy (<code>Models:describer</code>, domyślnie sędzia), tury domyślnie = reszta prawdziwej rozmowy. Cięcie po wiadomości, nie po turze — patrz „Odstępstwa od planu”</span></li>
+    <li data-status="pass">Ponad plan: <code>suwageval init</code> włącza Monitoring <span class="evidence">pyta [y/N], <code>closeAfter</code> [30m] i środowiska; pisze <code>features.monitoring</code>, pusty <code>monitoring-checks.yaml</code> i wypisuje wywołania SDK i zmienne agenta; test <code>InitCommandTests</code></span></li>
     <li data-status="pass">Versions: <code>usage=monitoring</code>, <code>?environment=</code>, kolumny „Conversations, 30 d” i „Last conversation”, chipy Current i Not evaluated; to samo w <code>suwageval versions</code> <span class="evidence">c9c7104; zrzut 3</span></li>
     <li data-status="pass">Linki z Monitoringu do Versions i „Versions in monitoring” <span class="evidence">zrzut 1 (prawy górny róg)</span></li>
     <li data-status="pass">Usunięte stare rzeczy: adresy bez <code>/eval</code>, <code>--archived</code>, <code>--any-group</code>, <code>--all-versions</code>, <code>grouping</code>, <code>GroupRunsOnly</code>, <code>?versions=</code> <span class="evidence">e17afb7</span></li>
@@ -396,6 +397,41 @@ checks:
     <tr><td>Zmiana w pliku</td><td>działa od następnego push</td><td>zmieniony check = nowa rewizja; usunięty check zachowuje historię wyników</td></tr>
     <tr><td>Gdzie widać</td><td><code>suwageval agent</code>, panel boczny, nagłówek strony Monitoring</td><td>tabela Monitoring checks, wykresy, strona rozmowy, <code>suwageval monitoring checks</code></td></tr>
   </table>
+
+  <h3>Jak to ustawić: <code>suwageval init</code></h3>
+  <p>W repo agenta <code>init</code> pyta o to, czego brakuje (Enter bierze domyślną wartość), a na końcu o Monitoring. Bez terminala to samo mówią opcje <code>--monitoring</code>, <code>--close-after</code> i <code>--environment</code> (powtarzalna).</p>
+  <div class="term"><span class="dim">$</span> suwageval init
+name [suwalski-example-agent]: suwexag
+endpointUrl [http://localhost:8000]: http://localhost:7010
+suwagevalUrl (empty: not written): http://localhost:3230
+Monitor the deployed agent's conversations? (stored and checked by Suwageval) [y/N]: y
+  closeAfter [30m]:
+  environments, comma-separated (empty: any): local, production
+./suwageval/agent.yaml: created
+  name: suwexag
+  endpointUrl: http://localhost:7010
+  suwagevalUrl: http://localhost:3230
+  features.monitoring: closeAfter 30m, environments local, production
+./suwageval/scenarios/: created
+./suwageval/monitoring-checks.yaml: created
+Next: write a scenario in the scenarios folder (see docs/scenario-format.md), then `suwageval validate` and `suwageval push`.
+Monitoring: write checks in monitoring-checks.yaml, `suwageval push`, then in the agent (.NET, Suwageval.AgentSdk):
+  builder.Services.AddSuwagevalMonitoring(builder.Configuration);
+  // after each turn, with IConversationRecorder recorder:
+  recorder.Record(conversationId, items, dataVersion); // items: the user's message and what the agent produced
+and in its environment (.env):
+  Suwageval__Url=http://localhost:3230
+  Suwageval__Agent=suwexag
+  Suwageval__Environment=local</div>
+  <script type="text/x-code" data-file="suwageval/agent.yaml" data-lang="yaml" data-title="Co init dopisał (ostatnie linie)"
+    data-notes='[{"lines":"1-4","label":"monitoring","note":"pod istniejącym blokiem features albo jako nowy blok; reszta pliku i komentarze zostają"}]'>
+features:
+  monitoring:
+    closeAfter: 30m
+    environments: [local, production]
+</script>
+  <div class="callout decision"><p><b>SDK zostaje małe.</b> Agent .NET potrzebuje dwóch wywołań i trzech zmiennych. Mapowanie odpowiedzi modelu na elementy rozmowy zostaje w agencie, bo SDK nie bierze zależności od <code>Microsoft.Extensions.AI</code>. Nie ma też helpera do <code>dataVersion</code>: to id, które każdy agent składa z własnych pól (id builda indeksu, hash dokumentów).</p></div>
+  <div class="callout note"><p><code>features.monitoring</code>, które już jest w pliku, <code>init</code> zostawia bez zmian: ustawienia zmienia się ręcznie. <code>features</code> zapisane inline (<code>features: { … }</code>) też zostają do ręcznej edycji.</p></div>
 
   <h3>Wdrożony agent: konfiguracja SDK</h3>
   <p>To nie jest plik w <code>suwageval/</code>, tylko konfiguracja wdrożenia agenta (.NET: sekcja <code>Suwageval</code>, czyli zmienne <code>Suwageval__…</code>). Ten sam kod działa wszędzie: bez <code>Url</code> recorder nic nie robi.</p>
@@ -646,6 +682,18 @@ flowchart LR
   <div class="callout note"><p>Drobiazgi widoczne na zrzutach: na wykresie „Conversations” linia Conversations chowa się pod Checked, gdy wartości są równe; podpis znacznika wersji nachodzi na linię 100% w „Pass rate per check”.</p></div>
 </section>
 
+<section data-role="extras">
+  <h2>Dołożone ponad plan</h2>
+  <div class="cards" style="--cols:2">
+    <div><span class="ico">🧪</span><h4>Generate scenario</h4><p class="when">okno Scenario YAML, CLI <code>--simulate</code></p><p>Początek rozmowy skopiowany, reszta grana przez symulowanego klienta opisanego przez model z całej rozmowy; liczba tur domyślnie = reszta prawdziwej rozmowy.</p><div class="foot"><span class="tag accent">8a37816</span></div></div>
+    <div><span class="ico">🛠️</span><h4><code>suwageval init</code> z Monitoringiem</h4><p class="when">[y/N], potem Enter = domyślne</p><p>Pisze <code>features.monitoring</code> i pusty <code>monitoring-checks.yaml</code>, wypisuje wywołania SDK i zmienne agenta.</p><div class="foot"><span class="tag accent">init</span></div></div>
+    <div><span class="ico">📈</span><h4>Kreski danych na trendzie Evaluation</h4><p class="when">wykresy pass rate i turn time</p><p>Run, który zaczął nową wersję albo nowe <code>dataVersion</code>, dostaje kreskę; tekst kresek wspólny z Monitoringiem (<code>changeMarks</code>).</p><div class="foot"><span class="tag accent">092f48f</span></div></div>
+    <div><span class="ico">🔘</span><h4>Jeden przełącznik: <code>ToggleChip</code></h4><p class="when"><code>src/toggle/</code></p><p>Archived, „Hide passed checks”, „Only rows that differ”, „Simulate the rest”; Mantine <code>Switch</code> zniknął z kodu.</p><div class="foot"><span class="tag accent">8a37816</span></div></div>
+    <div><span class="ico">💬</span><h4>Czat w suwexag</h4><p class="when">http://localhost:7010</p><p>Strona do rozmowy z agentem; pod odpowiedzią akapity polityki, które pobrał. Każda rozmowa ląduje w Monitoringu.</p><div class="foot"><span class="tag note">repo suwexag, master</span></div></div>
+    <div><span class="ico">🪟</span><h4>Panele tmux z portami</h4><p class="when"><code>just tmux-dev start</code></p><p><code>server: (6230)</code>, <code>web: (3230)</code>, <code>suwexag: (7010)</code>.</p><div class="foot"><span class="tag muted">kosmetyka</span></div></div>
+  </div>
+</section>
+
 <section data-role="data">
   <h2>Dane i API</h2>
   <script type="text/x-mermaid" data-caption="Nowe tabele (0028, 0029)">
@@ -673,7 +721,7 @@ erDiagram
   <h2>Odstępstwa od planu</h2>
   <table>
     <tr><th>Plan</th><th>Jest</th><th>Dlaczego / skutek</th></tr>
-    <tr><td>„Copy YAML: do tury N, dalej symulacja”: historia do tury N, <code>simulatedUser</code> proponowany przez model Suwageval</td><td>Kopiowanie do N-tej wiadomości użytkownika albo agenta (<code>--up-to-user</code>, <code>--up-to-agent</code>, w webie „Copy” + wybór wiadomości). <code>--until-turn</code> i <code>UserDescriber</code> usunięte (b568b07)</td><td>Draft to baza, a nie gotowy test: symulowanego użytkownika, checks i fixtures dopisuje osoba albo Claude. Mniej wywołań modelu po stronie Suwageval</td></tr>
+    <tr><td>„Copy YAML: do tury N, dalej symulacja”: historia do tury N, <code>simulatedUser</code> proponowany przez model Suwageval</td><td>Cięcie do N-tej wiadomości użytkownika albo agenta (<code>--up-to-user</code>, <code>--up-to-agent</code>); symulacja reszty jest opcją (przełącznik „Simulate the rest”, <code>--simulate</code>), a model jest pytany dopiero na „Generate scenario”</td><td>Wiadomość jest dokładniejsza niż tura (można uciąć przed odpowiedzią agenta). Bez przełącznika draft to sama kopia, bez wywołań modelu; model ma osobny wpis <code>Models:describer</code></td></tr>
     <tr><td>Zakomentowane szkice checks z tego, co agent zrobił</td><td>Na końcu draftu komentarze z definicjami monitoring checks, które rozmowa oblała</td><td>Wskazuje, co poszło źle, zamiast utrwalać to, co agent zrobił (często źle — dlatego rozmowa została wybrana)</td></tr>
     <tr><td>Filtr środowiska nad wszystkim</td><td>Jest (79d6083), ale widoczny dopiero przy co najmniej dwóch środowiskach</td><td>Przy jednym środowisku byłby pustym wyborem</td></tr>
     <tr><td>Stany rozmowy <code>open → closed → checked</code></td><td>Dwa stany, <code>Open</code> i <code>Closed</code>; sprawdzenie to znacznik <code>checked_at</code>, widoczny w kolumnie Checks</td><td>Trzeci stan byłby zbędny: kolumna Checks mówi „Not checked”, dopóki worker nie oceni rozmowy, a potem PASSED / N failed / not judged</td></tr>

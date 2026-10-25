@@ -44,8 +44,15 @@ Options: `--name`, `--endpoint-url`, `--suwageval-url`. Values not given are ask
 It changes only the fields it sets, on their lines, so the comments and everything else in an existing file stay, and running it
 again with the same values writes nothing. It does not call the server.
 
+It also switches monitoring on when asked: at the terminal it asks "Monitor the deployed agent's conversations? [y/N]", then
+`closeAfter` (Enter: `30m`) and the environments (Enter: any); without a terminal `--monitoring`, `--close-after` and `--environment`
+(repeatable) say it. It writes `features.monitoring` (under a `features:` block that is there, else as a new one), creates an empty
+`monitoring-checks.yaml` with an example in a comment, and prints what the agent itself needs: the SDK's two calls and its
+`Suwageval__Url`, `__Agent` and `__Environment`. Monitoring already in the file is left as it is: its settings are changed by hand.
+
 ```sh
 suwageval init --name my-agent --endpoint-url http://localhost:8000 --suwageval-url http://localhost:8093
+suwageval init --monitoring --environment production    # monitoring on, closeAfter 30m, only production's conversations
 ```
 
 ## `agent.yaml`

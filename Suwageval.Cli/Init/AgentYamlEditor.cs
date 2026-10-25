@@ -35,6 +35,30 @@ internal static partial class AgentYamlEditor
         return root.Where(pair => pair.Value is JsonValue).ToDictionary(pair => pair.Key, pair => pair.Value!.ToString());
     }
 
+    /// <summary>Whether the file already says anything about monitoring (<c>features.monitoring</c>), or null when it is not a YAML mapping.</summary>
+    public static bool? HasMonitoring(string file, string text) =>
+        YamlSource.Read(file, text, []) is { Root: JsonObject root }
+            ? root["features"] is JsonObject features && features.ContainsKey("monitoring")
+            : null;
+
+    /// <summary>
+    /// The text with <c>features.monitoring</c> added: under a <c>features:</c> block that is there, else as a new block at the end. Null when
+    /// <c>features</c> is written some other way (inline, <c>features: {}</c>), which only a person should rewrite.
+    /// </summary>
+    public static string? WithMonitoring(string text, string closeAfter, IReadOnlyList<string> environments)
+    {
+        var newline = text.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
+        var block =
+            $"  monitoring:{newline}    closeAfter: {closeAfter}{newline}"
+            + (environments.Count == 0 ? "" : $"    environments: [{string.Join(", ", environments)}]{newline}");
+        var features = FeaturesBlock().Match(text);
+        if (features.Success)
+        {
+            return text.Insert(features.Index + features.Length, newline + block.TrimEnd('\r', '\n'));
+        }
+        return FieldLine("features").IsMatch(text) ? null : Append(text, $"features:{newline}{block.TrimEnd('\r', '\n')}");
+    }
+
     public static string NewFile(IReadOnlyList<(string Field, string Value)> fields) =>
         Header + string.Concat(fields.Select(field => $"{field.Field}: {Scalar(field.Value)}\n"));
 
@@ -97,6 +121,10 @@ internal static partial class AgentYamlEditor
             RegexOptions.Multiline | RegexOptions.CultureInvariant,
             TimeSpan.FromSeconds(1)
         );
+
+    /// <summary>A <c>features:</c> line that opens a block (nothing after the colon but a comment).</summary>
+    [GeneratedRegex("""^features:[ \t]*(?:#[^\r\n]*)?(?=\r?$)""", RegexOptions.Multiline)]
+    private static partial Regex FeaturesBlock();
 
     [GeneratedRegex("""^[A-Za-z0-9][^\s#"'\\:]*(:[^\s#"'\\:]+)*$""")]
     private static partial Regex PlainText();
