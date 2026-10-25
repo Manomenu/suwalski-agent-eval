@@ -120,10 +120,7 @@ internal sealed class AgentStore(Pool pool)
         return [.. rows];
     }
 
-    /// <summary>
-    /// Registers a version; content seen before (same hash) gives the existing version back. A version whose hash a migration could
-    /// not compute (<c>pending:</c>, 0026) is found by its content and takes the hash now.
-    /// </summary>
+    /// <summary>Registers a version; content seen before (same hash) gives the existing version back.</summary>
     public async Task<AgentVersionRegistration> RegisterVersionAsync(
         Guid agentId,
         string contentJson,
@@ -133,22 +130,6 @@ internal sealed class AgentStore(Pool pool)
     {
         var hash = ContentHash.Of(contentJson);
         await using var connection = await pool.OpenAsync(cancellationToken);
-        await connection.ExecuteAsync(
-            new CommandDefinition(
-                """
-                UPDATE agent_versions SET content_hash = @hash
-                WHERE agent_id = @agentId AND content_hash LIKE 'pending:%' AND content = @contentJson::jsonb
-                    AND NOT EXISTS (SELECT 1 FROM agent_versions AS known WHERE known.agent_id = @agentId AND known.content_hash = @hash)
-                """,
-                new
-                {
-                    agentId,
-                    contentJson,
-                    hash,
-                },
-                cancellationToken: cancellationToken
-            )
-        );
         var created = await connection.QuerySingleOrDefaultAsync<AgentVersionRow>(
             new CommandDefinition(
                 $"""

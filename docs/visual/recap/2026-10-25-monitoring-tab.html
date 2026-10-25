@@ -556,22 +556,17 @@ flowchart LR
   </table>
 
   <h3>Co migracja 0026 robi z istniejącymi wersjami</h3>
-  <script type="text/x-mermaid" data-caption="Wersje różniące się tylko danymi łączą się w najstarszą">
+  <script type="text/x-mermaid" data-caption="Wersje zapisane z danymi w treści znikają razem z runami">
 flowchart LR
   subgraph PRZED[Przed 0026]
     direction TB
     V1["v1 · dane A<br/>hash h1"] --- R1["runy 1–3"]
     V2["v2 · dane B<br/>hash h2"] --- R2["runy 4–6"]
   end
-  subgraph PO[Po 0026]
-    direction TB
-    VK["v1 · bez danych<br/>hash pending:v1"] --- RA["runy 1–3 · data A"]
-    VK --- RB["runy 4–6 · data B"]
-  end
-  PRZED --> PO
-  PO -->|"następna rejestracja tej samej treści<br/>(run albo paczka tur)"| HASH["v1 dostaje prawdziwy hash z SDK"]
+  PRZED -->|"DELETE (kaskada)"| PO["brak wersji i runów"]
+  PO -->|"następna rejestracja<br/>(run albo paczka tur)"| NEW["nowa wersja z hashem z SDK,<br/>dane przy runie"]
   </script>
-  <div class="callout decision"><p>SQL nie umie policzyć hasha tak jak C# (serializacja kontraktu), więc migracja zostawia <code>pending:&lt;id&gt;</code>, a <code>AgentStore.RegisterVersionAsync</code> przy najbliższej rejestracji znajduje wersję po treści JSONB i wpisuje hash. Połączona wersja jest zarchiwizowana tylko, gdy wszystkie łączone były. Pokrywa to <code>DataVersionMigrationTests</code>.</p></div>
+  <div class="callout decision"><p>Bez naprawiania wstecz: stary hash i tak nie pasuje do tego, co wysyła agent, więc migracja kasuje takie wersje z ich runami (klucze obce kaskadują), a agent rejestruje się od nowa. Repo zostaje lekkie: bez <code>pending:</code>, bez łączenia wersji i bez testu migracji. Cena: historia runów sprzed 0026 przepada.</p></div>
 </section>
 
 <section data-role="ui">
@@ -665,7 +660,7 @@ erDiagram
   </script>
   <table>
     <tr><th>Zmiana</th><th>Co znaczy dla istniejących danych i klientów</th></tr>
-    <tr><td>0026: <code>data_version</code> przy runie</td><td>Wersje różniące się tylko danymi łączą się w najstarszą, ich runy przechodzą pod nią. Hash połączonej wersji to <code>pending:</code> do następnej rejestracji tej samej treści (SQL nie umie go policzyć).</td></tr>
+    <tr><td>0026: <code>data_version</code> przy runie</td><td>Wersje zapisane z <code>dataVersion</code> w treści są kasowane razem z runami; agent rejestruje je od nowa.</td></tr>
     <tr><td>0027: <code>agents.evaluation</code>, <code>agents.monitoring</code></td><td>Domyślnie bez zmian: ewaluacja włączona, Monitoring wyłączony. Push bez <code>features</code> przywraca domyślne.</td></tr>
     <tr><td>Adresy ewaluacji tylko pod <code>/api/eval/…</code></td><td><b>Łamie</b> CLI zainstalowane przed epikiem i boty — trzeba je zaktualizować.</td></tr>
     <tr><td>Usunięte flagi <code>versions --archived/--any-group/--all-versions</code>, parametr <code>grouping</code>, pole <code>GroupRunsOnly</code>, web <code>?versions=</code></td><td><b>Łamie</b> skrypty z tymi flagami; zastępuje je <code>--usage</code>.</td></tr>
@@ -724,7 +719,7 @@ erDiagram
 <section data-role="review">
   <h2>Gdzie patrzeć uważnie</h2>
   <ol class="steps">
-    <li><h4>Migracja 0026 łączy wersje</h4><p><code>Suwageval.Server/Database/Migrations/up/0026_data_version_on_runs.sql</code> przepisuje historię: przenosi runy pod najstarszą wersję i zostawia hash <code>pending:</code> do następnej rejestracji. Nieodwracalna na produkcyjnej bazie — warto zrobić kopię przed deployem i sprawdzić, że „pending” wersja odnajduje się po treści JSONB.</p></li>
+    <li><h4>Migracja 0026 kasuje stare wersje</h4><p><code>Suwageval.Server/Database/Migrations/up/0026_data_version_on_runs.sql</code> kasuje wersje z <code>dataVersion</code> w treści razem z ich runami. Nieodwracalna na produkcyjnej bazie — historia ewaluacji sprzed 0026 przepada; kopia bazy przed deployem, jeśli jest potrzebna.</p></li>
     <li><h4>Zmiana łamiąca API i CLI</h4><p>Stare adresy bez <code>/eval</code> i stare flagi zniknęły. Boty i CI z CLI sprzed epiku przestaną działać w chwili deployu serwera — kolejność: ogłosić, zaktualizować CLI w botach, dopiero potem merge (tak mówi TODO.md).</p></li>
     <li><h4>Ponowne otwarcie rozmowy w trakcie oceny</h4><p><code>Monitoring/Checking/CheckingStore.cs:78</code> blokuje rozmowę i zapisuje wyniki tylko, gdy wciąż jest zamknięta; sędzia działa poza blokadą. Przy kilku replikach serwera dwa workery mogą ocenić tę samą rozmowę równolegle (płacąc dwa razy za judge'a) — dziś chart ma jedną replikę.</p></li>
     <li><h4>Kolejka SDK w pamięci</h4><p><code>Suwageval.AgentSdk/Monitoring/MonitoringSender.cs</code>: przy dłuższej awarii Suwageval albo restarcie agenta tury przepadają po cichu (ostrzeżenie tylko w logu agenta). Świadoma decyzja planu, ale rozmowy w Monitoringu mogą wtedy mieć dziury.</p></li>
