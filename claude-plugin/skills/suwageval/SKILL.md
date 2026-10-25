@@ -14,6 +14,15 @@ Source and docs: https://github.com/Manomenu/suwalski-agent-eval
 command's `--open` as the default, and say in one or two lines what is on it; use the text or `--json` output for your own reading.
 Leave the browser closed only when the user said so, or when nothing would open (no display: then give the link `--open` printed).
 
+**How to run a command with `--open`**, or the browser silently does not open:
+- **One command per Bash call, its output not piped or captured**: no `| head`, `| tail`, `| grep`, no `$(…)`, no `&&` chain after
+  it. The command ends right after handing the page to the system's opener; a closed pipe kills it before the browser starts.
+- **Outside Claude Code's sandbox**: the sandboxed shell cannot reach the user's desktop, and the opener still exits 0. Run it with
+  the sandbox off (the Bash tool's sandbox override, which the user approves), never in the background.
+- **Never with `--json`**: they are refused together. Read the data with `--json` in one call, open the page with `--open` in another.
+- **Check it opened**: the command prints the page's address; when you cannot be sure the browser showed it, give that address
+  to the user as a link.
+
 ## First: is it installed?
 
 ```bash

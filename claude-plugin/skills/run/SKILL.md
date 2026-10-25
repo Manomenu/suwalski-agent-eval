@@ -42,6 +42,7 @@ $ARGUMENTS
    report it as the skill's "Comparing runs" describes, ending with the link
    `{SUWAGEVAL_URL or http://localhost:3230}/compare?runs={previous},{run.id}&baseline={previous}`.
    Present the result on the web: `suwageval results {run.id} --open` (and the comparison with `compare … --open` when you made one),
+   each as its own Bash call, output not piped, outside the sandbox (the skill's "How to run a command with `--open`"),
    then sum it up in a few lines; that page is what the user reads.
 5. Do not change files or checks to make a failure go away, a regression above all; if you suspect a bad check, say so.
    When the user says the behaviour change was intended, the check is what is out of date: update it (`/suwageval:fix`)

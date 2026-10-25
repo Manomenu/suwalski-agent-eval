@@ -17,7 +17,8 @@ When the work touches how the agent behaves, go around this loop:
 
 Present results on the web by default: every command that shows something the web has a page for takes `--open` (`results`,
 `compare`, `problems`, `trend`, `versions`, `monitoring checks`, `monitoring conversation <id>`, …). Open the page, then sum it up
-in a few lines — the page is easier for the user to read than terminal output.
+in a few lines — the page is easier for the user to read than terminal output. Run each `--open` command on its own, its output
+not piped or captured, outside the sandbox (the sandboxed shell cannot reach the user's desktop), and give the printed link too.
 
 `/suwageval:fix` repairs scenarios after an intended change of the agent; `/suwageval:update` brings this plugin to the newest
 version when a flag or command seems missing.
