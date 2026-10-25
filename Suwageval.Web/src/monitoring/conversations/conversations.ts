@@ -2,7 +2,7 @@
 import type { Verdict } from "../../verdict/verdict";
 
 /** The page size of the conversations table. */
-export const CONVERSATIONS_PAGE_SIZE = 20;
+export const CONVERSATIONS_PAGE_SIZE = 40;
 
 /** A conversation's state, as the server says it. */
 export type ConversationState = "Open" | "Closed";

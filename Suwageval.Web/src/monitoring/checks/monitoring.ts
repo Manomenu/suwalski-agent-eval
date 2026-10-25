@@ -99,6 +99,9 @@ export function dayMarks(trend: Trend): ChartMark[] {
     );
 }
 
+/** How many monitoring checks the table shows a page. */
+export const MONITORING_CHECKS_PAGE_SIZE = 20;
+
 export const MONITORING_CHECKS_HELP =
     "The checks of suwageval/monitoring-checks.yaml, run on every closed conversation of the deployed agent. The rates count the conversations whose last turn came in the last 7 and 30 days; a failing rate links to its conversations.";
 export const MONITORING_TREND_HELP =
