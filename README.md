@@ -3,7 +3,11 @@
 Regression testing for LLM agents. Scenarios — a conversation plus checks on the agent's next answer — live as
 YAML in the agent's repository. Suwageval sends them to the running agent over HTTP, several times each, checks
 the answers (tool calls, events, text, an LLM judge) and tells you after a prompt or model change **what got
-worse** — and what is only noise.
+worse** — and what is only noise. A deployed agent can also send its real conversations: Suwageval checks every one, draws
+pass rates per day and version, and turns a bad conversation into a scenario.
+
+**The whole picture on one page, with diagrams and screenshots: [Suwageval at a glance](https://claude.ai/artifact/EShbQZVYoRpajpUH3PN2YV)**
+([source](docs/visual-readme.html)).
 
 ## What you get
 
@@ -24,6 +28,18 @@ agent and diffs any two.
 ![Diff of two agent versions](docs/images/version-diff.png)
 
 Also: comparing up to 20 runs side by side, optionally against a baseline run, and re-checking stored answers after you fix a check.
+
+**Monitoring: real conversations.** With `features.monitoring` in `agent.yaml`, the deployed agent sends the turns of its
+conversations (the .NET SDK does it in the background; any language can follow the protocol). The checks in
+`suwageval/monitoring-checks.yaml` run on every closed conversation, with pass rates over 7 and 30 days and daily charts
+per environment and version.
+
+![Monitoring page: checks' pass rates, traffic and pass-rate charts, conversations](docs/images/monitoring-page.png)
+
+**A failure in production becomes a test.** A conversation that failed a check is copied as a scenario file — whole or up
+to a chosen message — with the failed checks as comments (`suwageval scenario from-conversation <id> --write`).
+
+![A monitored conversation copied as a scenario](docs/images/scenario-from-conversation.png)
 
 ## Claude Code plugin
 
@@ -72,7 +88,8 @@ suwageval run --wait     # prints regressions first, exits 1 on them — ready f
 
 ## Documentation
 
-- [docs/scenario-format.md](docs/scenario-format.md) — the files, the agent contract, every check, regressions
+- [Suwageval at a glance](https://claude.ai/artifact/EShbQZVYoRpajpUH3PN2YV) — the visual overview ([source](docs/visual-readme.html))
+- [docs/scenario-format.md](docs/scenario-format.md) — the files, the agent contract, every check, regressions, monitoring
 - [docs/concepts.md](docs/concepts.md) — scenarios, runs, checks and how regressions are decided
 - [docs/front-doors.md](docs/front-doors.md) — the web app, every CLI command, the Claude Code plugin
 - [docs/universal-approach.md](docs/universal-approach.md) — why the contract and the checks look the way they do
