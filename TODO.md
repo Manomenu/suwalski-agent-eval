@@ -57,6 +57,12 @@ To do in that change:
     for how long.
   - **Which checks a conversation gets**, only when running all of them becomes a problem (cost, too many checks): (a) retrieval
     over the checks' descriptions in a vector store, or (b) triage by tags a model picks; (b) needs no new component.
+  - **Idea: regressions of monitoring checks.** Not per conversation (every conversation is different, nothing to pair as in
+    evaluation): per check, the pass rate since the last change mark (a new version or new `dataVersion`) against the one before it
+    (the previous version or data; the previous 7 days when nothing changed). Not "yesterday": one day is too few conversations and
+    too noisy. States Regression / Fixed / Unchanged / Not enough data (a minimum of conversations on each side), a drop counted
+    only when it is beyond noise (two proportions or Wilson intervals, not a bare threshold); a section on the Monitoring page and
+    `suwageval monitoring regressions`. Open: the minimum, per environment or not, shown only or also alerted.
   - Alerts on a falling pass rate, scaled scores, the agent's own check types (below).
 
 - **Check types defined by the agent** (Langfuse's code evaluators, the black-box way). Besides the built-in check types, the
