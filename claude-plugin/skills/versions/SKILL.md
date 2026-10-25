@@ -1,7 +1,10 @@
 ---
+name: versions
 description: List the agent's Suwageval versions, archive, restore or delete them
+disable-model-invocation: true
 argument-hint: "[what to archive, e.g. all but the last 3]"
-allowed-tools: Bash(suwageval:*)
+allowed-tools:
+  - Bash(suwageval:*)
 ---
 
 Work with the agent's versions, as the user describes it:

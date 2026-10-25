@@ -1,7 +1,12 @@
 ---
+name: fix
 description: After the agent changed, validate the Suwageval scenarios and fix those that no longer fit
+when_to_use: The agent under test changed (prompt, tools, events, contract) and `suwageval validate` fails or scenarios no longer fit.
 argument-hint: "[dir] — the suwageval folder, default ./suwageval"
-allowed-tools: Bash(suwageval:*), Bash(curl:*), WebFetch
+allowed-tools:
+  - Bash(suwageval:*)
+  - Bash(curl:*)
+  - WebFetch
 ---
 
 The agent changed; bring its Suwageval scenarios back in line. Folder, if given: $ARGUMENTS

@@ -1,7 +1,12 @@
 ---
+name: scenario
 description: Write a new Suwageval scenario as a file in suwageval/scenarios/ and validate it
+when_to_use: The user asks for a new test or scenario for their agent, or to turn something that just went wrong in a chat into a regression test.
 argument-hint: "<what the scenario should check> — or nothing, to build it from this conversation"
-allowed-tools: Bash(suwageval:*), Bash(curl:*), WebFetch
+allowed-tools:
+  - Bash(suwageval:*)
+  - Bash(curl:*)
+  - WebFetch
 ---
 
 Write a Suwageval scenario for:

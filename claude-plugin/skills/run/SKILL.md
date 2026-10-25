@@ -1,7 +1,10 @@
 ---
+name: run
 description: Push the agent's Suwageval files, run the scenarios and explain what failed
+when_to_use: The user asks to run the scenarios or a tag of them, to check for regressions after a change, or what failed in the last run.
 argument-hint: "[tag <name>] [group <name>] — only the scenarios with this tag; the run in a named experiment group"
-allowed-tools: Bash(suwageval:*)
+allowed-tools:
+  - Bash(suwageval:*)
 ---
 
 Push and run Suwageval scenarios, as the user describes it:

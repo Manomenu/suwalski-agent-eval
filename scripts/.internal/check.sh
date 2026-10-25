@@ -74,7 +74,7 @@ compose_file() {
 
 shell_scripts() {
     # Warnings and up: the info level flags every function run_step calls by name.
-    (cd "$ROOT" && { find scripts -name "*.sh"; echo .githooks/pre-commit; } | xargs shellcheck -S warning)
+    (cd "$ROOT" && { find scripts claude-plugin/scripts -name "*.sh"; echo .githooks/pre-commit; } | xargs shellcheck -S warning)
 }
 
 secrets_in_git() {

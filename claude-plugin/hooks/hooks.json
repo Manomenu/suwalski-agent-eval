@@ -1,0 +1,18 @@
+{
+  "description": "In an agent's repository (one with suwageval/agent.yaml), add the Suwageval loop to the context at session start: what fails, capture it as a scenario, run, find why, fix the agent",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/session-context.sh"],
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,7 +1,10 @@
 ---
+name: from-conversation
 description: Turn a monitored conversation (a real one the deployed agent had) into a scenario file, after you confirm
+when_to_use: The user points at a real conversation of the deployed agent (a monitored one, often one that failed a monitoring check) and wants it kept as a scenario.
 argument-hint: "<conversation id> — or nothing, to pick from the newest conversations"
-allowed-tools: Bash(suwageval:*)
+allowed-tools:
+  - Bash(suwageval:*)
 ---
 
 Turn a monitored conversation into a Suwageval scenario:

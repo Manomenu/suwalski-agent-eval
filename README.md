@@ -178,6 +178,8 @@ explains what failed and turns a monitored conversation into a scenario.
 /plugin install suwageval --marketplace Manomenu/suwalski-agent-eval
 ```
 
+In an agent's repository a session hook gives Claude the loop at the start of every session: what fails now, the conversation
+as a scenario, run, find why (in your tracing too, if the project has it), fix the agent rather than the test.
 Then ask, or use `/suwageval:scenario`, `/suwageval:fix`, `/suwageval:run`, `/suwageval:from-conversation` — see
 [docs/front-doors.md](docs/front-doors.md#use-it-from-claude-code). `/suwageval:update` brings the plugin to the newest `master`;
 `/plugin` → **Marketplaces** → `suwalski-agent-eval` → **Enable auto-update** does it by itself.

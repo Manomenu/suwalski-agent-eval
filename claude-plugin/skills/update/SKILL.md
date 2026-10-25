@@ -1,6 +1,11 @@
 ---
+name: update
 description: Update this plugin (suwageval) to the newest one on the marketplace's master
-allowed-tools: Bash(claude plugin:*)
+disable-model-invocation: true
+allowed-tools:
+  - Bash(claude plugin list)
+  - Bash(claude plugin marketplace update suwalski-agent-eval)
+  - Bash(claude plugin update suwageval@suwalski-agent-eval)
 ---
 
 Update the suwageval plugin, so Claude knows the newest commands and flags of the `suwageval` CLI. The installed copy is cached

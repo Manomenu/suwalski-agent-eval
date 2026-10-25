@@ -177,6 +177,11 @@ Then ask in plain words, or use the commands:
 | `/suwageval:versions` | `/suwageval:versions archive all but the last 3` — list versions, archive, restore or delete them after you confirm |
 | `/suwageval:update` | `/suwageval:update` — the plugin to the newest `master` of the marketplace, with the versions before and after |
 
+In an agent's repository (one with `suwageval/agent.yaml`) the plugin's `SessionStart` hook adds the working loop to every session:
+what fails now (`runs`, `results`, monitoring checks), the failing conversation captured as a scenario, `validate` and run (the
+cheapest step first: `recheck` when only checks changed), why it failed (the evidence, and the project's tracing if it has some),
+and fixing the agent rather than loosening the check. Elsewhere it adds nothing.
+
 The plugin needs the CLI: without it, Claude gives you the lines to install it. To update the
 plugin later, `/suwageval:update`, or `/plugin` → **Marketplaces** → `suwalski-agent-eval` → **Enable auto-update** once, or by hand:
 
