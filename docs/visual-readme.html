@@ -492,8 +492,8 @@ sequenceDiagram
 stateDiagram-v2
   [*] --> Open: first turn
   Open --> Closed: closeAfter without a turn
-  Closed --> Checked: monitoring worker
-  Checked --> Open: a new turn
+  Closed --> Closed: the worker checks it (checked_at)
+  Closed --> Open: a new turn
       </script>
     </div>
   </div>
@@ -567,9 +567,9 @@ flowchart LR
   <figure class="shot">
     <div class="shot-img">
       <img src="images/versions-usage.png" alt="The Versions page filtered by usage">
-      <span class="mark new" data-n="1" style="left:17.3%; top:35.2%; width:41%; height:3.6%"></span>
-      <span class="mark new" data-n="2" style="left:21%; top:58.2%; width:5.8%; height:2.6%"></span>
-      <span class="mark new" data-n="3" style="left:39.8%; top:52%; width:34%; height:8.2%"></span>
+      <span class="mark new" data-n="1" style="left:17.3%; top:51.8%; width:41%; height:5.3%"></span>
+      <span class="mark new" data-n="2" style="left:21%; top:85.6%; width:5.8%; height:3.8%"></span>
+      <span class="mark new" data-n="3" style="left:38.6%; top:76.5%; width:35.2%; height:12.1%"></span>
     </div>
     <ol class="shot-legend">
       <li class="new" data-n="1"><div><b>Usage</b>: where a version is used — Evaluation, Groups (experiments), Monitoring, Unused, Archived</div></li>

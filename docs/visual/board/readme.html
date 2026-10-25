@@ -1,0 +1,828 @@
+<!doctype html>
+<html lang="en" data-lang="en" data-kind="board" data-source="docs/visual/board/readme.html">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Suwageval README</title>
+<!--
+  suwagent visual document. Copy this file, then replace only TITLE and the
+  content between CONTENT START and CONTENT END. Leave the <style> and <script>
+  blocks alone: they render every block described in shared/components.md.
+-->
+<style>
+:root {
+  --bg: #f7f7f5; --paper: #ffffff; --card: #fbfbfa; --ink: #1d1d1f; --muted: #6b6b70;
+  --line: #e3e3e0; --accent: #3b5bdb; --accent-soft: #e8edff;
+  --ok: #2b8a3e; --ok-soft: #e6f4ea; --warn: #b8590b; --warn-soft: #fff1e0;
+  --bad: #c92a2a; --bad-soft: #fde8e8; --note: #5f3dc4; --note-soft: #efe9ff;
+  --term-bg: #17171c; --term-ink: #e8e8ec; --term-dim: #8d8d98;
+  --code-bg: #f4f4f2; --radius: 10px; --shadow: 0 1px 2px rgb(0 0 0 / 5%), 0 4px 16px rgb(0 0 0 / 4%);
+  --mono: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141416; --paper: #1c1c1f; --card: #222226; --ink: #ececef; --muted: #9a9aa3;
+    --line: #34343a; --accent: #8ea6ff; --accent-soft: #252c47;
+    --ok: #6fcf86; --ok-soft: #1c3324; --warn: #f0a35c; --warn-soft: #3a2a17;
+    --bad: #ff8787; --bad-soft: #3d1f1f; --note: #b69cff; --note-soft: #2c2342;
+      --code-bg: #18181b; --shadow: 0 1px 2px rgb(0 0 0 / 30%);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141416; --paper: #1c1c1f; --card: #222226; --ink: #ececef; --muted: #9a9aa3;
+  --line: #34343a; --accent: #8ea6ff; --accent-soft: #252c47;
+  --ok: #6fcf86; --ok-soft: #1c3324; --warn: #f0a35c; --warn-soft: #3a2a17;
+  --bad: #ff8787; --bad-soft: #3d1f1f; --note: #b69cff; --note-soft: #2c2342;
+  --code-bg: #18181b; --shadow: 0 1px 2px rgb(0 0 0 / 30%);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { scroll-padding-top: 16px; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.6 var(--sans); }
+a { color: var(--accent); }
+code, kbd { font-family: var(--mono); font-size: .88em; background: var(--code-bg); border: 1px solid var(--line); border-radius: 5px; padding: 0 .3em; }
+h1, h2, h3, h4 { line-height: 1.25; margin: 1.6em 0 .5em; }
+h1 { font-size: 1.9rem; margin: .2em 0 .3em; letter-spacing: -.01em; }
+h2 { font-size: 1.35rem; }
+h3 { font-size: 1.08rem; }
+h4 { font-size: 1rem; margin: 0 0 .3em; }
+p, ul, ol { margin: .5em 0 .9em; }
+table { border-collapse: collapse; width: 100%; margin: .8em 0 1.2em; font-size: .93em; background: var(--paper); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
+th, td { text-align: left; padding: .55em .8em; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { background: var(--card); font-weight: 600; }
+tr:last-child td { border-bottom: 0; }
+.table-wrap { overflow-x: auto; }
+
+.layout { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 40px; max-width: 1240px; margin: 0 auto; padding: 32px 24px 140px; }
+.toc { position: sticky; top: 24px; align-self: start; max-height: calc(100vh - 48px); overflow: auto; font-size: .87rem; }
+.toc .toc-title { font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; font-size: .72rem; margin-bottom: .6em; }
+.toc a { display: block; color: var(--muted); text-decoration: none; padding: .25em .6em; border-left: 2px solid var(--line); }
+.toc a:hover, .toc a.active { color: var(--ink); border-left-color: var(--accent); }
+main { min-width: 0; }
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; padding: 20px 16px 160px; gap: 0; }
+  .toc { display: none; }
+}
+
+/* header */
+.doc-head { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 22px 26px; box-shadow: var(--shadow); margin-bottom: 26px; }
+.doc-kind { display: inline-flex; gap: .4em; align-items: center; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); background: var(--accent-soft); padding: .25em .7em; border-radius: 99px; }
+.doc-meta { display: flex; flex-wrap: wrap; gap: .4em 1.2em; color: var(--muted); font-size: .87rem; }
+.doc-meta b { color: var(--ink); font-weight: 600; }
+.doc-nav { display: flex; flex-wrap: wrap; gap: .5em; margin-top: 14px; }
+.doc-nav a { font-size: .85rem; text-decoration: none; padding: .3em .8em; border: 1px solid var(--line); border-radius: 99px; color: var(--muted); }
+.doc-nav a[aria-current] { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+.status { font-size: .75rem; font-weight: 700; padding: .15em .6em; border-radius: 99px; background: var(--card); border: 1px solid var(--line); }
+.status.draft { color: var(--warn); border-color: currentColor; }
+.status.approved, .status.done { color: var(--ok); border-color: currentColor; }
+
+/* sections */
+main > section { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 4px 26px 18px; margin-bottom: 22px; box-shadow: var(--shadow); position: relative; }
+main > section > h2:first-child { margin-top: 18px; padding-right: 110px; }
+@media (max-width: 600px) { main > section, .doc-head { padding-left: 16px; padding-right: 16px; } }
+
+.tldr { font-size: 1.04rem; border-left: 4px solid var(--accent); background: var(--accent-soft); padding: 14px 18px; border-radius: 0 var(--radius) var(--radius) 0; margin: 16px 0 6px; }
+.tldr > :first-child { margin-top: 0; } .tldr > :last-child { margin-bottom: 0; }
+
+.callout { border: 1px solid var(--line); border-left-width: 4px; border-radius: var(--radius); padding: 10px 16px; margin: 14px 0; background: var(--card); }
+.callout > :first-child { margin-top: 0; } .callout > :last-child { margin-bottom: 0; }
+.callout::before { display: block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; margin-bottom: .2em; }
+.callout.decision { border-left-color: var(--accent); } .callout.decision::before { content: var(--t-decision, "Decision"); color: var(--accent); }
+.callout.risk { border-left-color: var(--bad); background: var(--bad-soft); } .callout.risk::before { content: var(--t-risk, "Risk"); color: var(--bad); }
+.callout.warn { border-left-color: var(--warn); background: var(--warn-soft); } .callout.warn::before { content: var(--t-warn, "Watch out"); color: var(--warn); }
+.callout.note { border-left-color: var(--note); background: var(--note-soft); } .callout.note::before { content: var(--t-note, "Note"); color: var(--note); }
+.callout.ok { border-left-color: var(--ok); background: var(--ok-soft); } .callout.ok::before { content: var(--t-ok, "Verified"); color: var(--ok); }
+.callout.assumption { border-left-color: var(--muted); border-style: dashed; } .callout.assumption::before { content: var(--t-assumption, "Assumption"); color: var(--muted); }
+.callout[data-label]::before { content: attr(data-label); }
+
+.badge { display: inline-block; font-size: .72rem; font-weight: 700; padding: .1em .55em; border-radius: 99px; vertical-align: middle; border: 1px solid currentColor; }
+.badge.added, .badge.new { color: var(--ok); } .badge.modified { color: var(--warn); } .badge.deleted { color: var(--bad); } .badge.renamed { color: var(--note); }
+
+.stats { display: flex; flex-wrap: wrap; gap: 12px; margin: 16px 0; }
+.stats > div { flex: 1 1 120px; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 14px; }
+.stats b { display: block; font-size: 1.5rem; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.stats span { color: var(--muted); font-size: .82rem; }
+
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 14px 0; }
+.cols > * { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 16px; min-width: 0; }
+.cols > * > :first-child { margin-top: 0; } .cols > * > :last-child { margin-bottom: 0; }
+.cols.two { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.cols > .chosen { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.cols > .chosen h4::after { content: var(--t-chosen, " ✓ chosen"); color: var(--accent); font-size: .78rem; margin-left: .4em; }
+.cols > .rejected { opacity: .78; }
+
+ol.steps { counter-reset: step; list-style: none; padding: 0; }
+ol.steps > li { counter-increment: step; position: relative; padding: 12px 16px 12px 58px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); margin-bottom: 10px; }
+ol.steps > li::before { content: counter(step); position: absolute; left: 16px; top: 12px; width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: var(--paper); font-weight: 700; display: grid; place-items: center; font-size: .9rem; }
+ol.steps > li > :last-child { margin-bottom: 0; }
+ol.steps .touches { font-size: .84rem; color: var(--muted); }
+ol.steps .done-when { font-size: .88rem; border-top: 1px dashed var(--line); margin-top: 8px; padding-top: 6px; }
+ol.steps .done-when::before { content: var(--t-donewhen, "Done when: "); font-weight: 600; }
+
+ul.files { list-style: none; padding: 0; font-size: .92rem; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+ul.files li { display: grid; grid-template-columns: 22px minmax(0, max-content) 1fr auto; gap: 10px; align-items: baseline; padding: 6px 12px; border-bottom: 1px solid var(--line); background: var(--paper); }
+ul.files li:last-child { border-bottom: 0; }
+ul.files li::before { font-family: var(--mono); font-weight: 700; text-align: center; }
+ul.files li[data-change="added"]::before { content: "A"; color: var(--ok); }
+ul.files li[data-change="modified"]::before { content: "M"; color: var(--warn); }
+ul.files li[data-change="deleted"]::before { content: "D"; color: var(--bad); }
+ul.files li[data-change="renamed"]::before { content: "R"; color: var(--note); }
+ul.files li[data-change="unchanged"]::before { content: "·"; color: var(--muted); }
+ul.files .path { font-family: var(--mono); font-size: .86rem; word-break: break-all; }
+ul.files .why { color: var(--muted); font-size: .86rem; }
+ul.files .stat { font-family: var(--mono); font-size: .8rem; white-space: nowrap; }
+ul.files .stat .p { color: var(--ok); } ul.files .stat .m { color: var(--bad); }
+ul.files li.dir { background: var(--card); grid-template-columns: 1fr; font-family: var(--mono); font-size: .8rem; color: var(--muted); }
+ul.files li.dir::before { content: none; }
+@media (max-width: 600px) { ul.files li { grid-template-columns: 22px 1fr; } ul.files .why, ul.files .stat { grid-column: 2; } }
+
+ul.checks { list-style: none; padding: 0; }
+ul.checks li { padding: 6px 10px 6px 34px; position: relative; border-bottom: 1px dashed var(--line); }
+ul.checks li:last-child { border-bottom: 0; }
+ul.checks li::before { position: absolute; left: 8px; top: 6px; font-weight: 700; content: "☐"; color: var(--muted); }
+ul.checks li[data-status="pass"]::before { content: "✓"; color: var(--ok); }
+ul.checks li[data-status="fail"]::before { content: "✗"; color: var(--bad); }
+ul.checks li[data-status="partial"]::before { content: "◐"; color: var(--warn); }
+ul.checks li[data-status="skipped"]::before { content: "–"; color: var(--muted); }
+ul.checks .evidence { display: block; font-size: .84rem; color: var(--muted); }
+
+/* tabs */
+.tabs { margin: 14px 0; }
+.tab-bar { display: flex; gap: 2px; overflow-x: auto; border-bottom: 1px solid var(--line); }
+.tab-bar button { font: inherit; font-size: .88rem; background: none; border: 0; border-bottom: 2px solid transparent; padding: .5em .9em; color: var(--muted); cursor: pointer; white-space: nowrap; }
+.tab-bar button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.tabs > [data-tab] { padding-top: 12px; }
+.tabs > [data-tab][hidden] { display: none; }
+
+/* code + diff */
+.code-card { border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; margin: 14px 0; background: var(--code-bg); }
+.code-card > summary, .code-card > .code-head { list-style: none; display: flex; flex-wrap: wrap; gap: .3em .8em; align-items: center; padding: 8px 12px; background: var(--card); border-bottom: 1px solid var(--line); font-size: .85rem; cursor: default; }
+.code-card > summary { cursor: pointer; }
+.code-card > summary::-webkit-details-marker { display: none; }
+.code-card > summary::before { content: "▸"; color: var(--muted); transition: transform .15s; }
+.code-card[open] > summary::before { transform: rotate(90deg); }
+.code-card .fname { font-family: var(--mono); font-weight: 600; word-break: break-all; }
+.code-card .summary { flex-basis: 100%; color: var(--muted); }
+.code-scroll { overflow-x: auto; }
+table.code { box-shadow: none; border-radius: 0; margin: 0; background: transparent; font: 12.5px/1.55 var(--mono); width: 100%; }
+table.code td { border: 0; padding: 0 10px; white-space: pre; }
+table.code td.ln { width: 1%; text-align: right; color: var(--muted); user-select: none; opacity: .7; padding: 0 6px; }
+table.code tr.hl td { background: var(--warn-soft); }
+table.code tr.hl td.ln { box-shadow: inset 3px 0 0 var(--warn); }
+table.code tr.note-row td { white-space: normal; font-family: var(--sans); font-size: .86rem; padding: 6px 12px 8px; background: var(--paper); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.anno { display: flex; gap: 8px; align-items: flex-start; }
+.anno .pin { flex: none; background: var(--warn); color: var(--paper); font-weight: 700; font-size: .72rem; border-radius: 99px; padding: 0 .55em; font-family: var(--mono); }
+.anno b { font-weight: 600; }
+
+/* diagrams */
+.diagram { background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; margin: 14px 0; overflow-x: auto; text-align: center; }
+.diagram .mermaid-src { text-align: left; font: 12px/1.5 var(--mono); white-space: pre; color: var(--muted); }
+.diagram figcaption, figure figcaption { color: var(--muted); font-size: .84rem; margin-top: 8px; text-align: center; }
+figure { margin: 14px 0; }
+
+/* screenshots with numbered marks */
+.shot-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin: 14px 0; }
+.shot-pair .shot { margin: 0; }
+.shot-img { position: relative; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; line-height: 0; background: var(--paper); }
+.shot-img img { width: 100%; height: auto; display: block; }
+.shot .mark { position: absolute; border: 2.5px solid var(--warn); border-radius: 6px; box-shadow: 0 0 0 2px rgb(255 255 255 / 70%); }
+.shot .mark::before { content: attr(data-n); position: absolute; top: -11px; left: -11px; min-width: 22px; height: 22px; padding: 0 5px; box-sizing: border-box; border-radius: 99px; background: var(--warn); color: #fff; font: 700 .75rem/22px var(--mono); text-align: center; box-shadow: 0 1px 3px rgb(0 0 0 / 35%); }
+.shot .mark.new { border-color: var(--ok); }
+.shot .mark.new::before { background: var(--ok); }
+.shot .mark.gone { border-color: var(--bad); border-style: dashed; }
+.shot .mark.gone::before { background: var(--bad); }
+.shot-legend { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 6px; font-size: .9rem; }
+.shot-legend li { display: flex; gap: 8px; align-items: flex-start; }
+.shot-legend li::before { content: attr(data-n); flex: none; min-width: 22px; height: 22px; padding: 0 5px; box-sizing: border-box; border-radius: 99px; background: var(--warn); color: #fff; font: 700 .75rem/22px var(--mono); text-align: center; }
+.shot-legend li.new::before { background: var(--ok); }
+.shot-legend li.gone::before { background: var(--bad); }
+
+/* wireframes */
+.wire-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin: 14px 0; }
+.wire { border: 1.5px solid var(--ink); border-radius: 12px; background: var(--paper); overflow: hidden; font-size: .88rem; margin: 14px 0; }
+.wire-pair .wire { margin: 0; }
+.wire > .wf-label { display: block; font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 6px 12px; border-bottom: 1px dashed var(--line); background: var(--card); }
+.wire.after > .wf-label { color: var(--accent); }
+.wf-body { padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.wf-bar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--line); background: var(--card); }
+.wf-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.wf-grow { flex: 1; }
+.wf-card { border: 1px solid var(--line); border-radius: 8px; padding: 10px; background: var(--paper); }
+.wf-btn { display: inline-block; border: 1.5px solid var(--ink); border-radius: 6px; padding: 2px 10px; font-size: .82rem; font-weight: 600; background: var(--paper); }
+.wf-btn.primary { background: var(--ink); color: var(--paper); }
+.wf-input { border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; color: var(--muted); background: var(--card); min-width: 120px; }
+.wf-muted { color: var(--muted); font-size: .84em; }
+.wf-line { height: 8px; border-radius: 4px; background: var(--line); }
+.wf-new { outline: 2px dashed var(--accent); outline-offset: 2px; border-radius: 6px; }
+.wf-gone { opacity: .45; text-decoration: line-through; }
+
+/* questions */
+.questions fieldset { border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 16px 14px; margin: 0 0 14px; background: var(--card); }
+.questions legend { font-weight: 600; padding: 0 .4em; }
+.questions .why { color: var(--muted); font-size: .88rem; margin: 0 0 .6em; }
+.questions label { display: flex; gap: 10px; align-items: flex-start; padding: 6px 8px; border-radius: 8px; cursor: pointer; }
+.questions label:hover { background: var(--paper); }
+.questions label input { margin-top: .35em; }
+.questions label[data-recommended]::after { content: var(--t-recommended, "recommended"); font-size: .7rem; font-weight: 700; color: var(--accent); border: 1px solid currentColor; border-radius: 99px; padding: 0 .5em; margin-left: auto; align-self: center; white-space: nowrap; }
+.questions label small { display: block; color: var(--muted); }
+textarea { width: 100%; font: inherit; font-size: .9rem; color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; resize: vertical; min-height: 2.6em; }
+.questions textarea { margin-top: 6px; }
+
+main details:not(.code-card) { border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 14px; margin: 12px 0; background: var(--card); }
+main details:not(.code-card) > summary { cursor: pointer; font-weight: 600; }
+main details:not(.code-card)[open] > summary { margin-bottom: 8px; }
+pre.out { font: 12px/1.5 var(--mono); background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; overflow-x: auto; }
+
+.tag { display: inline-block; font-size: .72rem; font-weight: 700; letter-spacing: .02em; padding: .12em .6em; border-radius: 99px; border: 1px solid var(--line); background: var(--card); color: var(--muted); vertical-align: middle; white-space: nowrap; }
+.tag.accent { color: var(--accent); background: var(--accent-soft); border-color: transparent; }
+.tag.ok { color: var(--ok); background: var(--ok-soft); border-color: transparent; }
+.tag.warn { color: var(--warn); background: var(--warn-soft); border-color: transparent; }
+.tag.note { color: var(--note); background: var(--note-soft); border-color: transparent; }
+.tag.bad { color: var(--bad); background: var(--bad-soft); border-color: transparent; }
+.term { background: var(--term-bg); color: var(--term-ink); font: 12.5px/1.65 var(--mono); border-radius: var(--radius); padding: 12px 16px; margin: 14px 0; overflow-x: auto; white-space: pre; }
+.term .dim { color: var(--term-dim); }
+.term b { color: #fff; font-weight: 600; }
+
+/* syntax colours for highlight.js, from the page tokens: claude.ai artifacts block CDN stylesheets */
+.hljs-keyword, .hljs-built_in, .hljs-selector-tag, .hljs-meta .hljs-keyword { color: var(--note); }
+.hljs-string, .hljs-regexp, .hljs-attr .hljs-string { color: var(--ok); }
+.hljs-number, .hljs-literal, .hljs-symbol { color: var(--warn); }
+.hljs-title, .hljs-title.function_, .hljs-section { color: var(--accent); }
+.hljs-comment, .hljs-quote { color: var(--muted); font-style: italic; }
+.hljs-type, .hljs-title.class_, .hljs-attr, .hljs-attribute, .hljs-variable, .hljs-property { color: var(--bad); }
+
+/* picture blocks: drawn for a reader who looks rather than reads (boards, README pictures, any page) */
+.hero { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 28px; align-items: center; padding: 8px 0; }
+.hero h1 { font-size: 2.6rem; margin: 10px 0 2px; }
+.hero .lead { font-size: 1.2rem; margin: 0 0 14px; }
+.hero .side { width: 300px; }
+.hero .side .wire { margin: 0; }
+.hero > .stats { grid-column: 1 / -1; margin: 0; }
+@media (max-width: 700px) { .hero { grid-template-columns: 1fr; } .hero .side { width: auto; } }
+.flow { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 28px; margin: 14px 0; }
+.flow > * { position: relative; background: var(--card); border: 1px solid var(--line); border-top: 4px solid var(--accent); border-radius: var(--radius); padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
+.flow > * + *::before { content: "→"; position: absolute; left: -22px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 1.2rem; }
+.flow > .alt { border-top-color: var(--note); }
+.flow h4 { margin: 0; font-size: 1.05rem; }
+.flow p { margin: 0; }
+.flow > * > .tag, .cards > * > .tag { align-self: flex-start; }
+.flow ul { margin: 0; padding-left: 1.1em; font-size: .87rem; }
+@media (max-width: 700px) { .flow { grid-auto-flow: row; } .flow > * + *::before { content: "↓"; left: 50%; top: -24px; transform: none; } }
+.cards { display: grid; grid-template-columns: repeat(var(--cols, auto-fit), minmax(min(100%, 170px), 1fr)); gap: 12px; margin: 12px 0; }
+.cards > * { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.cards h4 { margin: 0; }
+.cards p { margin: 0; font-size: .87rem; }
+.ico { font-size: 1.5rem; line-height: 1; }
+.when { color: var(--muted); }
+.foot { margin-top: auto; padding-top: 4px; display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+/* style="--cols:N" fixes the columns, so no card is left alone in a row; phones go back to auto-fit */
+@media (max-width: 700px) { .cards, .settings { --cols: auto-fit !important; } }
+.group { display: flex; align-items: center; gap: 10px; margin: 18px 0 10px; font-weight: 700; }
+.group::after { content: ""; flex: 1; border-top: 1px solid var(--line); }
+.versus { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 14px 0; }
+.versus > * { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 16px; }
+.versus > .before { background: var(--bad-soft); } .versus > .after { background: var(--ok-soft); }
+.versus ul { list-style: none; padding: 0; margin: 0; }
+.versus li { padding: 7px 0 7px 26px; position: relative; border-top: 1px dashed var(--line); font-size: .93rem; }
+.versus li:first-child { border-top: 0; }
+.versus li::before { position: absolute; left: 4px; font-weight: 700; }
+.versus .before li::before { content: "✗"; color: var(--bad); } .versus .after li::before { content: "✓"; color: var(--ok); }
+.pick { display: grid; grid-template-columns: minmax(0, 1fr) 30px minmax(0, 15em); gap: 8px 0; align-items: center; margin: 14px 0; }
+.pick > .if { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 14px; font-size: .93rem; }
+.pick > .then { grid-column: 3; position: relative; display: flex; justify-content: space-between; gap: 8px; align-items: center; padding: 8px 14px; border-radius: var(--radius); font-family: var(--mono); font-size: .86rem; font-weight: 700; background: var(--accent-soft); color: var(--accent); }
+.pick > .then::before { content: "→"; position: absolute; left: -21px; color: var(--muted); font-family: var(--sans); font-weight: 400; }
+.pick > .then small { font-family: var(--sans); font-weight: 600; font-size: .7rem; opacity: .85; }
+.pick > .then.note { background: var(--note-soft); color: var(--note); }
+.pick > .then.ok { background: var(--ok-soft); color: var(--ok); }
+.pick > .then.muted { background: var(--card); color: var(--muted); border: 1px solid var(--line); }
+.settings { display: grid; grid-template-columns: repeat(var(--cols, auto-fit), minmax(min(100%, 260px), 1fr)); gap: 12px; margin: 14px 0; }
+.setting { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 14px; }
+.setting h4 { margin: 0; }
+.setting p { margin: 0; grid-column: 1; font-size: .85rem; color: var(--muted); }
+.setting > .toggle, .setting > .seg, .setting > .tag { grid-row: 1 / span 2; grid-column: 2; align-self: center; }
+.setting.fixed { border-style: dashed; }
+.toggle { width: 42px; height: 24px; border-radius: 99px; background: var(--accent); position: relative; display: inline-block; }
+.toggle::after { content: ""; position: absolute; right: 3px; top: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; }
+.toggle.off { background: var(--line); } .toggle.off::after { right: auto; left: 3px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; font-size: .8rem; font-weight: 600; }
+.seg > * { padding: .25em .7em; color: var(--muted); background: var(--paper); }
+.seg > .on { background: var(--accent); color: #fff; }
+.btn { display: inline-block; font-size: .8rem; font-weight: 600; border: 1px solid var(--line); border-radius: 8px; padding: .2em .7em; background: var(--paper); color: var(--ink); white-space: nowrap; }
+.btn.ok { color: var(--ok); border-color: currentColor; } .btn.warn { color: var(--warn); border-color: currentColor; }
+.btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.strip { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 14px 0; font-size: .9rem; background: var(--note-soft); border-radius: var(--radius); padding: 10px 14px; }
+.strip > .lbl { font-weight: 700; color: var(--note); text-transform: uppercase; font-size: .72rem; letter-spacing: .07em; margin-right: 4px; }
+
+/* a board: a page of picture panels (vdoc.py new board), one <section id> per picture */
+[data-kind="board"] .layout { grid-template-columns: minmax(0, 1fr); max-width: 1008px; }
+[data-kind="board"] .toc { display: none; }
+[data-kind="board"] main > section > h2:first-child { padding-right: 0; }
+[data-kind="board"] main > section { padding-bottom: 22px; }
+/* #only=<id>: the element alone, for vdoc.py shot / render */
+.vdoc-frame { padding: 24px; }
+.vdoc-frame > * { margin: 0 !important; }
+
+/* feedback */
+.sec-comment-btn { position: absolute; top: 16px; right: 18px; font: inherit; font-size: .78rem; background: var(--card); color: var(--muted); border: 1px solid var(--line); border-radius: 99px; padding: .2em .8em; cursor: pointer; }
+.sec-comment-btn.has { color: var(--note); border-color: var(--note); background: var(--note-soft); }
+.sec-comment { margin: 12px 0 0; padding: 10px 12px; border: 1px dashed var(--note); border-radius: var(--radius); background: var(--note-soft); }
+.sec-comment[hidden] { display: none; }
+.feedback-bar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--paper); border-top: 1px solid var(--line); box-shadow: 0 -4px 20px rgb(0 0 0 / 8%); z-index: 10; }
+/* one fixed grid row, so nothing jumps when the count or the clear state changes */
+.feedback-bar .inner { max-width: 1240px; margin: 0 auto; padding: 10px 24px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto auto; grid-template-areas: "verdict text copy clear theme"; gap: 10px; align-items: center; }
+.feedback-bar .verdict { grid-area: verdict; display: flex; gap: 4px; }
+.feedback-bar textarea { grid-area: text; height: 2.5em; min-height: 2.5em; max-height: 8em; resize: none; }
+.feedback-bar .copy { grid-area: copy; } .feedback-bar .clear { grid-area: clear; } .feedback-bar .theme { grid-area: theme; }
+.feedback-bar button, .feedback-bar label { font: inherit; font-size: .88rem; }
+.feedback-bar button { border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 8px; padding: .45em 1em; cursor: pointer; white-space: nowrap; }
+.feedback-bar button.primary { background: var(--accent); border-color: var(--accent); color: var(--paper); font-weight: 600; display: inline-flex; align-items: center; gap: .5em; }
+.feedback-bar .verdict button[aria-pressed="true"].ok { background: var(--ok-soft); border-color: var(--ok); color: var(--ok); }
+.feedback-bar .verdict button[aria-pressed="true"].change { background: var(--warn-soft); border-color: var(--warn); color: var(--warn); }
+.feedback-bar .n { min-width: 1.6em; padding: 0 .4em; border-radius: 99px; background: var(--paper); color: var(--accent); font-size: .78rem; font-weight: 700; text-align: center; }
+.feedback-bar .n:empty { visibility: hidden; }
+.feedback-bar .icon { width: 2.6em; padding-left: 0; padding-right: 0; text-align: center; }
+.feedback-bar .clear[data-armed] { background: var(--bad-soft); border-color: var(--bad); color: var(--bad); }
+.toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--paper); padding: .5em 1.1em; border-radius: 99px; font-size: .9rem; z-index: 20; }
+.copy-fallback { position: fixed; inset: 10% 10%; z-index: 30; background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 16px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 8px; }
+.copy-fallback textarea { flex: 1; font-family: var(--mono); }
+@media (max-width: 760px) { .feedback-bar .inner { padding: 8px 16px; grid-template-columns: auto 1fr auto auto; grid-template-areas: "verdict copy clear theme" "text text text text"; } .feedback-bar .copy { justify-self: end; } }
+@media print { .feedback-bar, .sec-comment-btn, .toc { display: none !important; } .layout { display: block; } main > section { break-inside: avoid-page; box-shadow: none; } }
+</style>
+</head>
+<body>
+<div class="layout">
+<nav class="toc" aria-label="Contents"></nav>
+<main>
+<!-- CONTENT START -->
+<section id="hero">
+  <div class="hero">
+    <div>
+      <span class="doc-kind">LLM agent testing</span>
+      <h1>Suwageval</h1>
+      <p class="lead">Regression tests for LLM agents before a release, <b>and checks on their real conversations after it</b>.</p>
+      <span class="tag accent">🧪 scenarios as YAML</span> <span class="tag ok">📉 regressions, not noise</span> <span class="tag note">📡 production monitoring</span> <span class="tag warn">🤖 Claude Code plugin</span>
+    </div>
+    <div class="side">
+      <div class="wire after"><span class="wf-label">suwageval run --wait</span>
+        <div class="wf-body">
+          <div class="wf-card wf-row"><span class="wf-btn" style="color:var(--bad)">REGRESSION</span><span class="wf-grow">gives-tracking-link</span><span class="wf-muted">✓✓✓✓✓ → ✗</span></div>
+          <div class="wf-card wf-row"><span class="wf-btn">UNSTABLE</span><span class="wf-grow">declines-politely</span><span class="wf-muted">✓✗✓✗✓ → ✗</span></div>
+          <div class="wf-card wf-row"><span class="wf-btn" style="color:var(--ok)">FIXED</span><span class="wf-grow">mentions-carrier</span><span class="wf-muted">✗✗✗ → ✓</span></div>
+          <div class="wf-line"></div>
+          <div class="wf-row"><span class="wf-muted">exit 1: one regression</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="stats">
+      <div><b>2</b><span>areas: Evaluation and Monitoring</span></div>
+      <div><b>7</b><span>check types, one a model judge</span></div>
+      <div><b>3 of 8</b><span>check states fail CI</span></div>
+      <div><b>any</b><span>agent language: two HTTP routes</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="why">
+  <h2>Why</h2>
+  <div class="versus">
+    <div class="before"><h4><span class="tag bad">Without Suwageval</span></h4><ul>
+      <li>a prompt change ships after a few chats by hand</li>
+      <li>one red test: a real break or a dice roll?</li>
+      <li>"it worked last week" — on which prompt, model, data?</li>
+      <li>production failures stay in logs nobody reads</li>
+      <li>tests live in a notebook beside the agent</li>
+    </ul></div>
+    <div class="after"><h4><span class="tag ok">With Suwageval</span></h4><ul>
+      <li>every scenario runs several times on each change, in CI</li>
+      <li>each check has a history: <b>regression</b>, <b>unstable</b> or <b>known</b></li>
+      <li>every run records the agent's version and data</li>
+      <li>real conversations are checked daily, a bad one becomes a test</li>
+      <li>scenarios are YAML in the agent's own repository</li>
+    </ul></div>
+  </div>
+</section>
+
+<section id="flow">
+  <h2>How it works</h2>
+  <div class="flow">
+    <div class="alt"><span class="tag note">you</span><h4>Write</h4><p class="when">suwageval/scenarios/*.yaml</p><ul><li>a conversation</li><li>checks on the answer</li></ul></div>
+    <div><span class="tag accent">evaluation</span><h4>Run</h4><p class="when">suwageval run --wait</p><ul><li>each scenario × samples</li><li>against the agent in test mode</li></ul></div>
+    <div><span class="tag accent">evaluation</span><h4>Compare</h4><p class="when">with the history on master</p><ul><li>regression · new · error fail CI</li><li>noise does not</li></ul></div>
+    <div><span class="tag ok">monitoring</span><h4>Watch</h4><p class="when">the deployed agent sends turns</p><ul><li>checks on every conversation</li><li>pass rate per day, version</li></ul></div>
+    <div class="alt"><span class="tag note">you</span><h4>Capture</h4><p class="when">conversation → scenario</p><ul><li>the failure becomes a test</li></ul></div>
+  </div>
+  <div class="strip"><span class="lbl">Every step</span> web app · <code>suwageval</code> CLI · CI exit codes · <span class="btn primary">/suwageval:run</span> in Claude Code</div>
+</section>
+
+<section id="features">
+  <h2>What you get</h2>
+  <div class="group">🧪 Evaluation — before a release</div>
+  <div class="cards" style="--cols:4">
+    <div><span class="ico">📉</span><h4>Regressions</h4><p class="when">every run</p><p>each check judged against its own history</p><div class="foot"><span class="tag accent">CI-ready</span></div></div>
+    <div><span class="ico">🎲</span><h4>Unstable checks</h4><p class="when">per version</p><p>flaky checks found, not blamed on the change</p><div class="foot"><span class="tag accent">trend</span></div></div>
+    <div><span class="ico">🔀</span><h4>Compare</h4><p class="when">up to 20 runs</p><p>side by side, against a baseline run</p><div class="foot"><span class="tag accent">web · CLI</span></div></div>
+    <div><span class="ico">🧾</span><h4>Version diff</h4><p class="when">any two versions</p><p>prompts, models, tools read from the agent</p><div class="foot"><span class="tag accent">automatic</span></div></div>
+    <div><span class="ico">🗣️</span><h4>Simulated users</h4><p class="when">multi-turn</p><p>a model plays a user described in plain words</p><div class="foot"><span class="tag accent">continuation</span></div></div>
+    <div><span class="ico">♻️</span><h4>Re-check</h4><p class="when">after fixing a check</p><p>stored answers judged again, no agent call</p><div class="foot"><span class="tag accent">recheck</span></div></div>
+    <div><span class="ico">🎛️</span><h4>Sweeps</h4><p class="when">config variants</p><p>one run per variant, in one group</p><div class="foot"><span class="tag accent">sweep</span></div></div>
+    <div><span class="ico">⏱️</span><h4>Turn time</h4><p class="when">every turn</p><p>how long the agent took, on the trend too</p><div class="foot"><span class="tag accent">trend</span></div></div>
+  </div>
+  <div class="group">📡 Monitoring — after it</div>
+  <div class="cards" style="--cols:4">
+    <div><span class="ico">💬</span><h4>Conversations</h4><p class="when">per environment</p><p>sent by the deployed agent, never slowing it</p><div class="foot"><span class="tag ok">SDK · protocol</span></div></div>
+    <div><span class="ico">✅</span><h4>Monitoring checks</h4><p class="when">each closed conversation</p><p>pass rates over 7 and 30 days</p><div class="foot"><span class="tag ok">automatic</span></div></div>
+    <div><span class="ico">📊</span><h4>Charts</h4><p class="when">day by day</p><p>traffic and pass rates, deploys and data changes marked</p><div class="foot"><span class="tag ok">web · CLI</span></div></div>
+    <div><span class="ico">🪝</span><h4>Conversation → test</h4><p class="when">one click</p><p>copied as a scenario, failed checks as comments</p><div class="foot"><span class="tag note">you finish it</span></div></div>
+  </div>
+</section>
+
+<section id="checks">
+  <h2>Checks</h2>
+  <div class="cards" style="--cols:4">
+    <div><span class="ico">🔧</span><h4><code>tool-called</code></h4><p class="when">by whom, with what</p><p>it looked the order up</p></div>
+    <div><span class="ico">🚫</span><h4><code>tool-not-called</code></h4><p class="when">a forbidden action</p><p>no refund without asking</p></div>
+    <div><span class="ico">📣</span><h4><code>event</code> · <code>event-not-emitted</code></h4><p class="when">what the agent signalled</p><p>a handover happened</p></div>
+    <div><span class="ico">📚</span><h4><code>cited</code></h4><p class="when">RAG sources</p><p>answered from the right policy</p></div>
+    <div><span class="ico">🔤</span><h4><code>text</code></h4><p class="when">contains · not · pattern</p><p>no internal ids leaked</p></div>
+    <div><span class="ico">⚖️</span><h4><code>judge</code></h4><p class="when">criteria in plain words</p><p>tone, correctness, policy</p></div>
+    <div><span class="ico">🎯</span><h4><code>where</code></h4><p class="when">any check</p><p>one turn, after or before a tool or event</p></div>
+    <div><span class="ico">🎲</span><h4><code>samples</code></h4><p class="when">per scenario or check</p><p>a pass threshold over repeats</p></div>
+  </div>
+</section>
+
+<section id="states">
+  <h2>A failing check is not just red</h2>
+  <div class="pick">
+    <div class="if">Passed its last N runs, fails now</div><div class="then">Regression <small>CI fails</small></div>
+    <div class="if">Fails, with too little history</div><div class="then">New <small>CI fails</small></div>
+    <div class="if">The agent gave no answer (HTTP error, timeout)</div><div class="then">Agent error <small>CI fails</small></div>
+    <div class="if">Started failing in an earlier run</div><div class="then note">Already broken <small>CI passes</small></div>
+    <div class="if">History mixes passes and failures</div><div class="then note">Unstable <small>CI passes</small></div>
+    <div class="if">Failing for N runs or more</div><div class="then muted">Known failure <small>CI passes</small></div>
+    <div class="if">Passes after a failing streak</div><div class="then ok">Fixed <small>CI passes</small></div>
+  </div>
+  <div class="strip"><span class="lbl">History</span> the newest reference runs: clean, pushed commits on the branches in <code>regression.branches</code></div>
+</section>
+
+<section id="settings">
+  <h2>agent.yaml</h2>
+  <div class="settings" style="--cols:3">
+    <div class="setting"><h4><code>samples</code></h4><p>times each scenario is sent</p><span class="seg"><span>1</span><span class="on">3</span><span>5</span><span>…20</span></span></div>
+    <div class="setting"><h4><code>regression.history</code></h4><p>reference runs that make a steady pass</p><span class="seg"><span>3</span><span class="on">5</span><span>…20</span></span></div>
+    <div class="setting"><h4><code>features.evaluation</code></h4><p>scenarios, runs, comparisons</p><span class="toggle"></span></div>
+    <div class="setting"><h4><code>features.monitoring</code></h4><p>store the deployed agent's conversations</p><span class="toggle off"></span></div>
+    <div class="setting"><h4><code>monitoring.closeAfter</code></h4><p>quiet time before a conversation is checked</p><span class="seg"><span>1m</span><span class="on">30m</span><span>…24h</span></span></div>
+    <div class="setting"><h4><code>monitoring.environments</code></h4><p>taken from (none: any)</p><span class="seg"><span class="on">prod</span><span class="on">staging</span></span></div>
+  </div>
+  <div class="strip"><span class="lbl">Never in a file</span> what the agent <b>is</b> — prompts, models, tools: the running agent serves it, so a run records what really ran</div>
+</section>
+
+<section id="architecture">
+  <h2>The moving parts</h2>
+  <div class="cards" style="--cols:3">
+    <div><span class="ico">🤖</span><h4>Your agent</h4><p class="when">any language</p><p>serves the contract and answers turns; .NET: <code>Suwageval.AgentSdk</code></p><div class="foot"><span class="tag note">two routes</span></div></div>
+    <div><span class="ico">⌨️</span><h4><code>suwageval</code> CLI</h4><p class="when">repo and CI</p><p>validate, push, run, compare, monitoring</p><div class="foot"><span class="tag accent">.NET tool</span></div></div>
+    <div><span class="ico">🗄️</span><h4>Server</h4><p class="when">ASP.NET Core · PostgreSQL</p><p>run queue, monitoring worker, versions by contract hash</p><div class="foot"><span class="tag accent">Docker · Helm</span></div></div>
+    <div><span class="ico">🖥️</span><h4>Web app</h4><p class="when">React · Mantine</p><p>Versions, Evaluation and Monitoring pages per agent</p><div class="foot"><span class="tag accent">same API</span></div></div>
+    <div><span class="ico">⚖️</span><h4>Judge and simulator</h4><p class="when">models Suwageval calls</p><p>judge checks, play simulated users</p><div class="foot"><span class="tag ok">OpenAI-compatible</span></div></div>
+    <div><span class="ico">✨</span><h4>Claude Code plugin</h4><p class="when">plain words</p><p>writes and fixes scenarios, runs them, explains failures</p><div class="foot"><span class="tag warn">/suwageval:*</span></div></div>
+  </div>
+</section>
+
+<section id="shot-run">
+  <figure class="shot">
+    <div class="shot-img">
+      <img src="../../images/run-regressions.png" alt="A run's checks grouped by state">
+      <span class="mark" data-n="1" style="left:1.3%; top:11%; width:9%; height:3%"></span>
+      <span class="mark" data-n="2" style="left:26.6%; top:14.9%; width:11%; height:3.2%"></span>
+      <span class="mark" data-n="3" style="left:37.6%; top:14.9%; width:24.6%; height:3.2%"></span>
+      <span class="mark" data-n="4" style="left:1.3%; top:57%; width:64%; height:12%"></span>
+      <span class="mark" data-n="5" style="left:1.3%; top:94.6%; width:18%; height:3.6%"></span>
+    </div>
+    <ol class="shot-legend">
+      <li data-n="1"><div><b>Grouped by state</b>: regressions first, with their count</div></li>
+      <li data-n="2"><div><b>History</b>: the check in the reference runs, oldest first → this run</div></li>
+      <li data-n="3"><div>One click to the <b>last passing run</b>, side by side</div></li>
+      <li data-n="4"><div><b>Already broken</b>: failing since an earlier run, not blamed on this one</div></li>
+      <li data-n="5"><div><b>Known failures</b> folded away</div></li>
+    </ol>
+    <figcaption>The run page — compared with master</figcaption>
+  </figure>
+</section>
+
+<section id="shot-monitoring">
+  <figure class="shot">
+    <div class="shot-img">
+      <img src="../../images/monitoring-page.png" alt="The Monitoring page">
+      <span class="mark" data-n="1" style="left:16.2%; top:14%; width:83%; height:8.7%"></span>
+      <span class="mark" data-n="2" style="left:16.2%; top:24.3%; width:83%; height:46.2%"></span>
+      <span class="mark" data-n="3" style="left:16.2%; top:71.6%; width:83%; height:26.8%"></span>
+      <span class="mark" data-n="4" style="left:89.4%; top:87.2%; width:5.6%; height:1.8%"></span>
+    </div>
+    <ol class="shot-legend">
+      <li data-n="1"><div><b>Monitoring checks</b>: pass rate over 7 and 30 days; a red rate links to the failed conversations</div></li>
+      <li data-n="2"><div><b>Traffic and pass rates</b> per day; dashed marks where the version or the data changed</div></li>
+      <li data-n="3"><div><b>Conversations</b>: environment, state, version, checks</div></li>
+      <li data-n="4"><div>A conversation that failed a check</div></li>
+    </ol>
+    <figcaption>Monitoring — the deployed agent's real conversations</figcaption>
+  </figure>
+</section>
+
+<section id="shot-conversation">
+  <figure class="shot">
+    <div class="shot-img">
+      <img src="../../images/monitoring-conversation.png" alt="A conversation that failed a check">
+      <span class="mark" data-n="1" style="left:53.8%; top:11.2%; width:10.4%; height:4.6%"></span>
+      <span class="mark" data-n="2" style="left:16.2%; top:20.8%; width:82.8%; height:22.2%"></span>
+      <span class="mark" data-n="3" style="left:16.2%; top:44.4%; width:82.8%; height:32%"></span>
+    </div>
+    <ol class="shot-legend">
+      <li data-n="1"><div><b>Scenario YAML</b>, red: the conversation failed a check</div></li>
+      <li data-n="2"><div>Each monitoring check's verdict, with the judge's reasons</div></li>
+      <li data-n="3"><div>The turns as the agent recorded them: messages, tool calls, the data version</div></li>
+    </ol>
+    <figcaption>A real conversation that failed a check…</figcaption>
+  </figure>
+</section>
+
+<section id="shot-scenario">
+  <figure class="shot">
+    <div class="shot-img">
+      <img src="../../images/scenario-from-conversation.png" alt="The conversation copied as a scenario">
+      <span class="mark" data-n="1" style="left:23.6%; top:11.2%; width:52.6%; height:13.6%"></span>
+      <span class="mark" data-n="2" style="left:23.6%; top:34.8%; width:32.4%; height:3%"></span>
+      <span class="mark" data-n="3" style="left:23.6%; top:43.4%; width:52.6%; height:4.4%"></span>
+    </div>
+    <ol class="shot-legend">
+      <li data-n="1"><div>Copy it <b>whole</b>, or <b>up to a chosen</b> user or agent message</div></li>
+      <li data-n="2"><div>The file to save in the agent's repository</div></li>
+      <li data-n="3"><div>Where it came from; the failed checks follow at the end as comments</div></li>
+    </ol>
+    <figcaption>…becomes a regression test</figcaption>
+  </figure>
+</section>
+
+<section id="shot-versions">
+  <figure class="shot">
+    <div class="shot-img">
+      <img src="../../images/versions-usage.png" alt="The Versions page">
+      <span class="mark" data-n="1" style="left:17.3%; top:51.8%; width:41%; height:5.3%"></span>
+      <span class="mark" data-n="2" style="left:21%; top:85.6%; width:5.8%; height:3.8%"></span>
+      <span class="mark" data-n="3" style="left:38.6%; top:76.5%; width:35.2%; height:12.1%"></span>
+    </div>
+    <ol class="shot-legend">
+      <li data-n="1"><div><b>Usage</b>: Evaluation, Groups, Monitoring, Unused, Archived</div></li>
+      <li data-n="2"><div><b>Current</b> answers in production now; <b>Not evaluated</b>: real traffic, no run</div></li>
+      <li data-n="3"><div>Runs, group runs, conversations in 30 days, the last conversation</div></li>
+    </ol>
+    <figcaption>Versions — one identity for evaluation and production</figcaption>
+  </figure>
+</section>
+
+<section id="shot-trends">
+  <div class="cols">
+    <div><figure class="shot"><div class="shot-img"><img src="../../images/agent-trends.png" alt="Unstable checks and the pass-rate trend"></div><figcaption>Unstable checks and the pass-rate trend</figcaption></figure></div>
+    <div><figure class="shot"><div class="shot-img"><img src="../../images/version-diff.png" alt="Diff of two agent versions"></div><figcaption>What changed between two versions</figcaption></figure></div>
+  </div>
+</section>
+
+<!-- CONTENT END -->
+</main>
+</div>
+
+<script type="module">
+const root = document.documentElement;
+/* data-lang survives when a host (a claude.ai artifact) wraps the page in its own <html> */
+const lang = (root.dataset.lang || root.lang || "en").slice(0, 2);
+const T = {
+  en: { decision: "Decision", risk: "Risk", warn: "Watch out", note: "Note", ok: "Verified", assumption: "Assumption",
+        chosen: " ✓ chosen", recommended: "recommended", donewhen: "Done when: ", contents: "Contents",
+        comment: "💬 Comment", commented: "💬 Commented", commentPh: "Your comment on this section for the agent…",
+        otherPh: "Your own answer or a note…", generalPh: "General feedback for the agent…",
+        approve: "✅ Approve", changes: "✏️ Request changes", copy: "Copy feedback for the agent",
+        copied: "Copied. Paste it into the chat with the agent.", clear: "Clear all my feedback on this page", theme: "Theme",
+        count: n => `${n} comment(s)/answer(s)`, fbTitle: "Feedback on", verdictOk: "APPROVED — go ahead.",
+        verdictChange: "CHANGES REQUESTED — update the document before going further.", answers: "Answers to open questions",
+        comments: "Comments on sections", general: "General feedback", recPick: "(recommended)", fallback: "Copy this text (Ctrl+C) and paste it into the chat:", close: "Close",
+        confirmClear: "Click again to clear" },
+  pl: { decision: "Decyzja", risk: "Ryzyko", warn: "Uwaga", note: "Notatka", ok: "Zweryfikowane", assumption: "Założenie",
+        chosen: " ✓ wybrane", recommended: "rekomendowane", donewhen: "Gotowe, gdy: ", contents: "Spis treści",
+        comment: "💬 Skomentuj", commented: "💬 Skomentowane", commentPh: "Twój komentarz do tej sekcji dla agenta…",
+        otherPh: "Własna odpowiedź albo uwaga…", generalPh: "Uwagi ogólne dla agenta…",
+        approve: "✅ Zatwierdzam", changes: "✏️ Poprawki", copy: "Kopiuj feedback dla agenta",
+        copied: "Skopiowane. Wklej to agentowi w czacie.", clear: "Wyczyść mój feedback na tej stronie", theme: "Motyw",
+        count: n => `komentarze/odpowiedzi: ${n}`, fbTitle: "Feedback do", verdictOk: "ZATWIERDZAM — działaj dalej.",
+        verdictChange: "POPRAWKI — popraw dokument, zanim pójdziesz dalej.", answers: "Odpowiedzi na otwarte pytania",
+        comments: "Komentarze do sekcji", general: "Uwagi ogólne", recPick: "(rekomendowane)", fallback: "Skopiuj ten tekst (Ctrl+C) i wklej agentowi:", close: "Zamknij",
+        confirmClear: "Kliknij ponownie, aby wyczyścić" },
+};
+const S = T[lang] || T.en;
+for (const k of ["decision", "risk", "warn", "note", "ok", "assumption", "chosen", "recommended", "donewhen"]) {
+  root.style.setProperty(`--t-${k}`, JSON.stringify(S[k]));
+}
+
+const esc = s => s.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const el = (tag, attrs = {}, html = "") => { const e = document.createElement(tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); if (html) e.innerHTML = html; return e; };
+/* raw blocks escape the closing script tag and the comment opener with a backslash; undo that here */
+const dedent = s => {
+  const lines = s.replace(/<\\\/script/gi, "<\/script").replace(/<\\!--/g, "<\x21--").replace(/^\s*\n/, "").replace(/\s+$/, "").split("\n");
+  const ind = Math.min(...lines.filter(l => l.trim()).map(l => l.match(/^\s*/)[0].length));
+  return lines.map(l => l.slice(Number.isFinite(ind) ? ind : 0)).join("\n");
+};
+const parseNotes = node => { try { return JSON.parse(node.dataset.notes || "[]"); } catch (e) { console.warn("bad data-notes", node, e); return []; } };
+const inRange = (n, spec) => String(spec).split(",").some(part => { const [a, b] = part.split("-").map(Number); return b ? n >= a && n <= b : n === a; });
+const extLang = { js: "javascript", mjs: "javascript", cjs: "javascript", jsx: "javascript", ts: "typescript", tsx: "typescript", py: "python", rb: "ruby", rs: "rust", go: "go", java: "java", kt: "kotlin", cs: "csharp", cpp: "cpp", cc: "cpp", c: "c", h: "c", hpp: "cpp", php: "php", swift: "swift", sh: "bash", bash: "bash", zsh: "bash", yml: "yaml", yaml: "yaml", json: "json", toml: "ini", ini: "ini", md: "markdown", html: "xml", xml: "xml", vue: "xml", svelte: "xml", css: "css", scss: "scss", sql: "sql", dockerfile: "dockerfile", tf: "hcl", lua: "lua", dart: "dart" };
+const langOf = (file, explicit) => explicit || extLang[(file || "").split(".").pop().toLowerCase()] || "";
+const annoHTML = (n, i) => `<div class="anno"><span class="pin">${i + 1}</span><div>${n.label ? `<b>${esc(n.label)}</b> — ` : ""}${n.html || esc(n.note || "")}</div></div>`;
+const codeCell = (text, lng) => `<td class="cx" data-lang="${lng}">${esc(text) || " "}</td>`;
+
+/* plain code blocks: <script type="text/x-code" data-file data-lang data-start data-notes data-title> */
+for (const src of document.querySelectorAll('script[type="text/x-code"]')) {
+  const d = src.dataset, lng = langOf(d.file, d.lang), start = Number(d.start || 1);
+  const notes = parseNotes(src);
+  const lines = dedent(src.textContent).split("\n");
+  let rows = "";
+  lines.forEach((line, i) => {
+    const n = start + i, hit = notes.map((x, j) => [x, j]).filter(([x]) => inRange(n, x.lines ?? x.line));
+    rows += `<tr class="${hit.length ? "hl" : ""}"><td class="ln">${n}</td>${codeCell(line, lng)}</tr>`;
+    const ends = hit.filter(([x]) => { const spec = String(x.lines ?? x.line); const last = Math.max(...spec.split(/[,-]/).map(Number)); return last === n; });
+    if (ends.length) rows += `<tr class="note-row"><td></td><td>${ends.map(([x, j]) => annoHTML(x, j)).join("")}</td></tr>`;
+  });
+  const head = d.file || d.title ? `<div class="code-head">${d.file ? `<span class="fname">${esc(d.file)}</span>` : ""}${d.title ? `<span>${esc(d.title)}</span>` : ""}${d.summary ? `<span class="summary">${esc(d.summary)}</span>` : ""}</div>` : "";
+  const card = el("div", { class: "code-card" }, `${head}<div class="code-scroll"><table class="code">${rows}</table></div>`);
+  src.replaceWith(card);
+}
+
+/* mermaid sources: <script type="text/x-mermaid" data-caption> */
+const diagrams = [];
+for (const src of document.querySelectorAll('script[type="text/x-mermaid"]')) {
+  const fig = el("figure", { class: "diagram" });
+  const box = el("div", { class: "mermaid-src" }); box.textContent = dedent(src.textContent);
+  fig.append(box);
+  if (src.dataset.caption) fig.append(el("figcaption", {}, esc(src.dataset.caption)));
+  diagrams.push({ box, code: box.textContent });
+  src.replaceWith(fig);
+}
+
+/* tabs: <div class="tabs"><div data-tab="Label">…</div>…</div> */
+document.querySelectorAll(".tabs").forEach((tabs, ti) => {
+  const panes = [...tabs.children].filter(c => c.dataset.tab !== undefined);
+  const bar = el("div", { class: "tab-bar", role: "tablist" });
+  panes.forEach((p, i) => {
+    const b = el("button", { role: "tab", type: "button", "aria-selected": String(i === 0) }); b.textContent = p.dataset.tab;
+    b.onclick = () => { panes.forEach((q, k) => { q.hidden = k !== i; bar.children[k].setAttribute("aria-selected", String(k === i)); }); };
+    bar.append(b); p.hidden = i !== 0; p.setAttribute("role", "tabpanel");
+  });
+  tabs.prepend(bar);
+});
+
+/* tables scroll on phones */
+document.querySelectorAll("main table:not(.code)").forEach(tb => { if (!tb.parentElement.classList.contains("table-wrap")) { const w = el("div", { class: "table-wrap" }); tb.replaceWith(w); w.append(tb); } });
+
+const board = root.dataset.kind === "board";
+
+/* table of contents */
+const toc = document.querySelector(".toc");
+const secs = [...document.querySelectorAll("main > section")];
+toc.append(el("div", { class: "toc-title" }, esc(S.contents)));
+secs.forEach((s, i) => {
+  const h = s.querySelector("h2"); if (!h) return;
+  if (!s.id) s.id = "s-" + (h.textContent.toLowerCase().normalize("NFD").replace(/[^\w]+/g, "-").replace(/^-|-$/g, "") || i);
+  const a = el("a", { href: "#" + s.id }); a.textContent = h.textContent; toc.append(a);
+});
+const obs = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) toc.querySelectorAll("a").forEach(a => a.classList.toggle("active", a.getAttribute("href") === "#" + e.target.id)); }), { rootMargin: "0px 0px -70% 0px" });
+secs.forEach(s => obs.observe(s));
+
+/* ---------- feedback ---------- */
+/* the repository path set by vdoc.py: stable across artifact versions, unlike location.pathname */
+const source = root.dataset.source || decodeURIComponent(location.pathname);
+const key = "suwagent-feedback:" + source;
+const store = { load() { try { return JSON.parse(localStorage.getItem(key) || "{}"); } catch { return {}; } }, save(v) { try { localStorage.setItem(key, JSON.stringify(v)); } catch { } } };
+const fb = Object.assign({ sections: {}, answers: {}, other: {}, general: "", verdict: "" }, store.load());
+const persist = () => { store.save(fb); updateCount(); };
+
+secs.forEach(s => {
+  const h = s.querySelector("h2"); if (!h || board) return;
+  const btn = el("button", { class: "sec-comment-btn", type: "button" });
+  const box = el("div", { class: "sec-comment" });
+  const ta = el("textarea", { placeholder: S.commentPh, rows: "2" });
+  ta.value = fb.sections[s.id]?.text || "";
+  box.append(ta); box.hidden = !ta.value;
+  const paint = () => { btn.textContent = ta.value.trim() ? S.commented : S.comment; btn.classList.toggle("has", !!ta.value.trim()); };
+  btn.onclick = () => { box.hidden = !box.hidden; if (!box.hidden) ta.focus(); };
+  ta.oninput = () => { if (ta.value.trim()) fb.sections[s.id] = { title: h.textContent, text: ta.value }; else delete fb.sections[s.id]; paint(); persist(); };
+  paint(); s.append(btn, box);
+});
+
+document.querySelectorAll(".questions fieldset").forEach((fs, i) => {
+  const id = fs.dataset.id || "q" + (i + 1); fs.dataset.id = id;
+  const inputs = [...fs.querySelectorAll("input")];
+  inputs.forEach(inp => { inp.name = inp.name || id; const saved = fb.answers[id]; if (saved && [].concat(saved).includes(inp.value)) inp.checked = true; });
+  fs.addEventListener("change", () => { const v = inputs.filter(x => x.checked).map(x => x.value); if (v.length) fb.answers[id] = v; else delete fb.answers[id]; persist(); });
+  if (!fs.querySelector("textarea")) fs.append(el("textarea", { placeholder: S.otherPh, rows: "1" }));
+  const ta = fs.querySelector("textarea"); ta.value = fb.other[id] || "";
+  ta.oninput = () => { if (ta.value.trim()) fb.other[id] = ta.value; else delete fb.other[id]; persist(); };
+});
+
+const bar = el("div", { class: "feedback-bar" });
+bar.innerHTML = `<div class="inner"><span class="verdict"><button type="button" class="ok" data-v="approve">${S.approve}</button><button type="button" class="change" data-v="changes">${S.changes}</button></span><textarea rows="1" placeholder="${esc(S.generalPh)}"></textarea><button type="button" class="primary copy">${esc(S.copy)}<span class="n"></span></button><button type="button" class="clear icon" title="${esc(S.clear)}" aria-label="${esc(S.clear)}">🗑</button><button type="button" class="theme icon" title="${esc(S.theme)}" aria-label="${esc(S.theme)}">◐</button></div>`;
+if (!board) document.body.append(bar);
+const gta = bar.querySelector("textarea"); gta.value = fb.general || "";
+gta.oninput = () => { fb.general = gta.value; persist(); };
+const vbtns = [...bar.querySelectorAll(".verdict button")];
+const paintV = () => vbtns.forEach(b => b.setAttribute("aria-pressed", String(fb.verdict === b.dataset.v)));
+vbtns.forEach(b => b.onclick = () => { fb.verdict = fb.verdict === b.dataset.v ? "" : b.dataset.v; paintV(); persist(); });
+paintV();
+function updateCount() { const n = Object.keys(fb.sections).length + new Set([...Object.keys(fb.answers), ...Object.keys(fb.other)]).size + (fb.general.trim() ? 1 : 0); const c = bar.querySelector(".n"); c.textContent = n ? String(n) : ""; c.title = n ? S.count(n) : ""; }
+updateCount();
+
+function feedbackText() {
+  const kind = root.dataset.kind || "document";
+  const out = [`${S.fbTitle} ${kind}: "${document.title}"`, source, ""];
+  if (fb.verdict) out.push(fb.verdict === "approve" ? S.verdictOk : S.verdictChange, "");
+  const qs = [...document.querySelectorAll(".questions fieldset")].filter(fs => fb.answers[fs.dataset.id] || fb.other[fs.dataset.id]);
+  if (qs.length) {
+    out.push(`## ${S.answers}`);
+    for (const fs of qs) {
+      const id = fs.dataset.id, q = fs.querySelector("legend")?.textContent.trim() || id;
+      const picked = [...fs.querySelectorAll("input")].filter(x => x.checked).map(x => { const lab = x.closest("label"); const txt = (lab?.querySelector("b")?.textContent || lab?.querySelector("span")?.textContent || x.value).trim(); return txt + (lab?.hasAttribute("data-recommended") ? " " + S.recPick : ""); });
+      out.push(`- [${id}] ${q}`); if (picked.length) out.push(`  → ${picked.join("; ")}`); if (fb.other[id]) out.push(`  → ${fb.other[id].trim()}`);
+    }
+    out.push("");
+  }
+  const cs = secs.filter(s => fb.sections[s.id]);
+  if (cs.length) { out.push(`## ${S.comments}`); for (const s of cs) out.push(`- ${fb.sections[s.id].title} (#${s.id}): ${fb.sections[s.id].text.trim()}`); out.push(""); }
+  if (fb.general.trim()) out.push(`## ${S.general}`, fb.general.trim(), "");
+  return out.join("\n").trim() + "\n";
+}
+const toast = msg => { const x = el("div", { class: "toast" }); x.textContent = msg; document.body.append(x); setTimeout(() => x.remove(), 2600); };
+bar.querySelector(".copy").onclick = async () => {
+  const text = feedbackText();
+  try { await navigator.clipboard.writeText(text); toast(S.copied); }
+  catch {
+    const box = el("div", { class: "copy-fallback" }); box.innerHTML = `<b>${esc(S.fallback)}</b><textarea readonly></textarea><button type="button">${esc(S.close)}</button>`;
+    box.querySelector("textarea").value = text; box.querySelector("button").onclick = () => box.remove(); document.body.append(box); box.querySelector("textarea").select();
+  }
+};
+/* a second click confirms: confirm() is refused inside claude.ai artifacts */
+const clearBtn = bar.querySelector(".clear");
+clearBtn.onclick = () => {
+  if (clearBtn.dataset.armed) { try { localStorage.removeItem(key); } catch { } location.reload(); return; }
+  clearBtn.dataset.armed = "1"; clearBtn.title = S.confirmClear; toast(S.confirmClear);
+  setTimeout(() => { delete clearBtn.dataset.armed; clearBtn.title = S.clear; }, 3000);
+};
+
+/* theme toggle: auto → light → dark */
+const themes = ["", "light", "dark"];
+try { const th = localStorage.getItem("suwagent-theme"); if (th) root.dataset.theme = th; } catch { }
+bar.querySelector(".theme").onclick = () => {
+  const next = themes[(themes.indexOf(root.dataset.theme || "") + 1) % themes.length];
+  if (next) root.dataset.theme = next; else delete root.dataset.theme;
+  try { localStorage.setItem("suwagent-theme", next); } catch { }
+  renderDiagrams(); highlight();
+};
+
+/* render parameters for vdoc.py shot / render: #only=<element id or section data-role>&theme=light|dark&zoom=2 (not saved) */
+const hp = new URLSearchParams(location.hash.slice(1));
+if (["light", "dark"].includes(hp.get("theme"))) root.dataset.theme = hp.get("theme");
+if (Number(hp.get("zoom")) > 0) root.style.zoom = hp.get("zoom");
+const only = hp.get("only") && (document.getElementById(hp.get("only")) || document.querySelector(`main > section[data-role="${CSS.escape(hp.get("only"))}"]`));
+if (only) {
+  only.querySelectorAll(".sec-comment-btn, .sec-comment").forEach(x => x.remove());
+  /* a <main>, so a section keeps its `main > section` card look */
+  const frame = el("main", { class: "vdoc-frame" }); frame.append(only); document.body.replaceChildren(frame);
+}
+
+/* ---------- progressive enhancement from CDNs (the page reads fine without them) ---------- */
+const isDark = () => root.dataset.theme === "dark" || (!root.dataset.theme && matchMedia("(prefers-color-scheme: dark)").matches);
+let mermaid = null;
+async function renderDiagrams() {
+  if (!diagrams.length) return;
+  try {
+    mermaid = mermaid || (await import("https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs")).default;
+    mermaid.initialize({ startOnLoad: false, theme: isDark() ? "dark" : "neutral", fontFamily: getComputedStyle(document.body).fontFamily, flowchart: { htmlLabels: true, curve: "basis" } });
+    for (const [i, dg] of diagrams.entries()) {
+      try { const { svg } = await mermaid.render(`dg${i}-${Date.now()}`, dg.code); dg.box.className = "mermaid-out"; dg.box.innerHTML = svg; }
+      catch (e) { dg.box.className = "mermaid-src"; dg.box.textContent = dg.code + "\n\n⚠ " + e.message; }
+    }
+  } catch (e) { console.warn("mermaid unavailable, showing source", e); }
+}
+let hljsReady = null;
+function highlight() {
+  hljsReady = hljsReady || new Promise((res, rej) => { const s = el("script", { src: "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" }); s.onload = res; s.onerror = rej; document.head.append(s); });
+  hljsReady.then(() => {
+    document.querySelectorAll("td.cx[data-lang]:not([data-hl])").forEach(td => {
+      const lng = td.dataset.lang; if (!lng || !window.hljs.getLanguage(lng)) return;
+      td.innerHTML = window.hljs.highlight(td.textContent, { language: lng, ignoreIllegals: true }).value || " "; td.dataset.hl = "1";
+    });
+  }).catch(() => { });
+}
+renderDiagrams(); highlight();
+</script>
+</body>
+</html>

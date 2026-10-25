@@ -455,8 +455,8 @@ stateDiagram-v2
   [*] --> Open: pierwsza tura
   Open --> Open: kolejna tura
   Open --> Closed: closeAfter bez tury
-  Closed --> Checked: MonitoringWorker
-  Checked --> Open: nowa tura (wyniki zostaną zastąpione)
+  Closed --> Closed: MonitoringWorker ustawia checked_at
+  Closed --> Open: nowa tura (checked_at czyszczone, wyniki zastąpione)
       </script>
     </div>
     <div>
@@ -469,6 +469,7 @@ flowchart TB
       </script>
     </div>
   </div>
+  <div class="callout note"><p><b>Stany rozmowy są dwa: <code>Open</code> i <code>Closed</code>.</b> To, że rozmowa została sprawdzona, nie jest stanem, tylko znacznikiem <code>checked_at</code>; w webie widać to w kolumnie <b>Checks</b> (PASSED / 1 FAILED), a nie w <b>State</b>. Plan zakładał <code>open → closed → checked</code>.</p></div>
   <div class="callout decision"><p><b>Jedyny most między obszarami to <code>ScenarioDrafts</code></b>, postawione nad obszarami jak <code>Api</code>. Monitoring nie zna ewaluacji, ewaluacja nie zna Monitoringu, a wspólne części (werdykt, wykresy, wywołania modelu — przeniesione w ostatnim commicie) leżą pod oboma. Bramka tego pilnuje.</p></div>
 
   <h3>Elementy i ich role</h3>
@@ -680,6 +681,7 @@ erDiagram
     <tr><td>„Copy YAML: do tury N, dalej symulacja”: historia do tury N, <code>simulatedUser</code> proponowany przez model Suwageval</td><td>Kopiowanie do N-tej wiadomości użytkownika albo agenta (<code>--up-to-user</code>, <code>--up-to-agent</code>, w webie „Copy” + wybór wiadomości). <code>--until-turn</code> i <code>UserDescriber</code> usunięte (b568b07)</td><td>Draft to baza, a nie gotowy test: symulowanego użytkownika, checks i fixtures dopisuje osoba albo Claude. Mniej wywołań modelu po stronie Suwageval</td></tr>
     <tr><td>Zakomentowane szkice checks z tego, co agent zrobił</td><td>Na końcu draftu komentarze z definicjami monitoring checks, które rozmowa oblała</td><td>Wskazuje, co poszło źle, zamiast utrwalać to, co agent zrobił (często źle — dlatego rozmowa została wybrana)</td></tr>
     <tr><td>Filtr środowiska nad wszystkim</td><td>Jest (79d6083), ale widoczny dopiero przy co najmniej dwóch środowiskach</td><td>Przy jednym środowisku byłby pustym wyborem</td></tr>
+    <tr><td>Stany rozmowy <code>open → closed → checked</code></td><td>Dwa stany, <code>Open</code> i <code>Closed</code>; sprawdzenie to znacznik <code>checked_at</code>, widoczny w kolumnie Checks</td><td>Filtr stanu w webie i CLI zna tylko Open/Closed; rozmowy zamkniętej, ale jeszcze niesprawdzonej, nie da się odfiltrować</td></tr>
     <tr><td>Strona wersji z dwoma panelami; dzienny limit judge'a</td><td>Nie ma</td><td>W TODO.md; limit świadomie odłożony (ok. 10 rozmów dziennie)</td></tr>
   </table>
 </section>
