@@ -180,6 +180,11 @@ To do in that change:
   - Open questions: the cost (a model call per failed check; a cap per run), whether its classes feed "Judge control"
     (a reflection saying "judge noise" is a candidate mark), and how it differs from what Claude Code already does locally with
     `/suwageval:fix` (this one works on the web and for anyone, with the run's whole history at hand).
+- **Mark a check a coding agent loosened.** Claude fixing a red run (`/suwageval:fix`, or on its own) can make the check pass
+  instead of the agent: a lower `passThreshold`, a wider `contains`, a `judge` criteria that asks less, a check deleted. The person
+  then sees green and no regression. Ideas: `push` compares each check with its previous revision and says "loosened" for the
+  cases that are clear by type (threshold down, matcher wider, check removed), the run page and `scenario <key>` show the revision
+  with that mark, and the plugin's skills say to ask before any such change. Open: what "looser" means for a `judge` criteria.
 - **An agent's start page as an overview.** Today `/agents/<name>` is the Versions list; a person asking "how is my agent doing"
   lands in a table of versions. Instead: the last run (pass rate, regressions), the Monitoring checks' 7-day rates, the trend with
   its change marks, links on to Evaluation, Monitoring and Versions. Versions stays one click away.

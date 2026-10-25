@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Suwageval.AgentSdk.Agents;
 using Suwageval.AgentSdk.Conversations;
 using Suwageval.Cli.Files;
@@ -115,6 +116,20 @@ internal static class Validator
         {
             problems.Add(
                 source.Problem("fixtures", "The scenario has fixtures, but the agent's contract declares no context.fixturesSchema.")
+            );
+        }
+        if (
+            contract is { Context.FixturesSchema: { } fixturesSchema }
+            && MissingFixtures(fixturesSchema, scenario.Fixtures) is { Count: > 0 } missing
+        )
+        {
+            problems.Add(
+                source.Problem(
+                    "fixtures",
+                    scenario.Fixtures is null
+                        ? $"The agent requires fixtures ({string.Join(", ", missing)}); this scenario has none."
+                        : $"The agent requires fixtures this scenario does not give: {string.Join(", ", missing)}."
+                )
             );
         }
 
@@ -285,5 +300,29 @@ internal static class Validator
     {
         var known = string.Join(", ", EventTypes(contract));
         return $"The agent does not declare the event type '{type}' in its contract (declared: {(known.Length == 0 ? "none" : known)}).";
+    }
+
+    /// <summary>
+    /// The keys the agent's <c>fixturesSchema</c> lists in its top-level <c>required</c> that <paramref name="fixtures"/> does not have (all
+    /// of them when there are none). Only the top level: the rest of the schema is not checked yet.
+    /// </summary>
+    private static List<string> MissingFixtures(JsonElement schema, JsonElement? fixtures)
+    {
+        if (
+            schema.ValueKind != JsonValueKind.Object
+            || !schema.TryGetProperty("required", out var required)
+            || required.ValueKind != JsonValueKind.Array
+        )
+        {
+            return [];
+        }
+        return
+        [
+            .. required
+                .EnumerateArray()
+                .Select(key => key.ValueKind == JsonValueKind.String ? key.GetString() : null)
+                .OfType<string>()
+                .Where(key => fixtures is not { ValueKind: JsonValueKind.Object } given || !given.TryGetProperty(key, out _)),
+        ];
     }
 }

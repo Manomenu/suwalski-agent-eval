@@ -207,7 +207,8 @@ public sealed class MonitoringChecksTests(TestDatabase database) : IAsyncDisposa
             .Select(field => field.Name)
             .Order(StringComparer.Ordinal);
         Assert.Equal(
-            ["checks[0].description", "checks[1].samples", "checks[1].scenarioKey", "checks[2].key", "checks[2].passThreshold"],
+            // A check without a description is fine (checks[0]), as in a scenario.
+            ["checks[1].samples", "checks[1].scenarioKey", "checks[2].key", "checks[2].passThreshold"],
             fields
         );
         Assert.Equal(HttpStatusCode.Conflict, refused.StatusCode);

@@ -344,7 +344,7 @@ scenarios.
 ```yaml
 checks:
   - key: no-refund-without-asking        # unique in the file, kebab-case
-    description: Never refunds an order the user did not ask to refund.   # required: what the check makes sure of
+    description: Never refunds an order the user did not ask to refund.   # optional, as in a scenario: what the check makes sure of
     type: tool-not-called
     tool: refund_order
   - key: polite
@@ -564,7 +564,9 @@ Inside `args` and `result` (of `tool-called`) and `data` (of `event`), at any de
 - **Write it well.** A precise description of what the value must say, and two or three varied examples (different words,
   same meaning); one value per `$judge`.
 
-Not checked yet: that `arguments`, `data` and `fixtures` match the JSON Schemas the agent declares.
+`validate` checks one thing of the fixtures already: the keys the agent's `context.fixturesSchema` lists in its top-level
+`required` must be in the scenario's `fixtures` (a scenario without fixtures, for an agent that requires some, is an error that
+names them). Not checked yet: that `arguments`, `data` and `fixtures` match the rest of the JSON Schemas the agent declares.
 
 ## Simulation
 

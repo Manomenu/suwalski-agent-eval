@@ -4,7 +4,7 @@ using Suwageval.Contracts.Checks;
 namespace Suwageval.Cli.Files;
 
 /// <summary>
-/// Reads <c>suwageval/monitoring-checks.yaml</c>: <c>checks:</c>, a list of checks as in a scenario file, each with a <c>description</c> and
+/// Reads <c>suwageval/monitoring-checks.yaml</c>: <c>checks:</c>, a list of checks as in a scenario file, with
 /// no scenario (they run on every monitored conversation of the agent). The rules of such a check are <c>MonitoringCheckRules</c>, applied
 /// by the validator.
 /// </summary>
@@ -29,7 +29,7 @@ internal static class MonitoringChecksFileReader
         {
             if (items[i] is not JsonObject item)
             {
-                problems.Add(source.Problem($"checks[{i}]", "A check is a mapping with 'key', 'description' and 'type'."));
+                problems.Add(source.Problem($"checks[{i}]", "A check is a mapping with 'key' and 'type'."));
                 readable = false;
                 continue;
             }

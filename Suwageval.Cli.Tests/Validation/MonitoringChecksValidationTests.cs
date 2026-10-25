@@ -42,7 +42,7 @@ public sealed class MonitoringChecksValidationTests
     }
 
     [Fact]
-    public void A_check_without_a_description_or_with_a_scenarios_options_is_a_problem()
+    public void A_check_without_a_description_is_valid_but_one_with_a_scenarios_options_is_a_problem()
     {
         var problems = Problems(
             Validate(
@@ -56,7 +56,7 @@ public sealed class MonitoringChecksValidationTests
             )
         );
 
-        Assert.Contains("description", problems, StringComparison.Ordinal);
+        Assert.DoesNotContain("description", problems, StringComparison.Ordinal);
         Assert.Contains("samples", problems, StringComparison.Ordinal);
     }
 

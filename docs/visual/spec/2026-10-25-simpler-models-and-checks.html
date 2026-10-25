@@ -362,7 +362,7 @@ pre.out { font: 12px/1.5 var(--mono); background: var(--code-bg); border: 1px so
   <span class="doc-kind">Spec</span>
   <h1>Prostsze modele i checki</h1>
   <div class="doc-meta">
-    <span><b>Status:</b> <span class="status draft">draft</span></span>
+    <span><b>Status:</b> <span class="status approved">approved</span></span>
     <span><b>Data:</b> 2026-10-25</span>
     <span><b>Branch:</b> <code>epic/monitoring-tab</code></span>
   </div>
@@ -379,7 +379,7 @@ pre.out { font: 12px/1.5 var(--mono); background: var(--code-bg); border: 1px so
     <div><b>3</b><span>zmiany zachowania</span></div>
     <div><b>1</b><span>już wdrażana (modele)</span></div>
     <div><b>10</b><span>kryteriów</span></div>
-    <div><b>2</b><span>otwarte pytania</span></div>
+    <div><b>0</b><span>otwartych pytań</span></div>
   </div>
 </section>
 
@@ -424,6 +424,8 @@ pre.out { font: 12px/1.5 var(--mono); background: var(--code-bg); border: 1px so
 
 <section data-role="behaviour">
   <h2>Zachowanie</h2>
+  <div class="callout decision"><p><b>Brak fixtures to błąd tylko wtedy, gdy agent sam mówi, czego wymaga:</b> <code>required</code> na najwyższym poziomie <code>fixturesSchema</code>. Scenariusze, które fixtures nie potrzebują, przechodzą jak dziś.</p></div>
+  <div class="callout decision"><p><b>Checki poluzowane przez agenta</b> (np. przez <code>/suwageval:fix</code>) to osobny temat w TODO, poza tym specem.</p></div>
   <h3>Który model bierze rola</h3>
   <script type="text/x-mermaid" data-caption="Rozwiązanie modelu dla roli">
 flowchart LR
@@ -440,7 +442,7 @@ flowchart LR
     <tr><td>Fallback + własny model roli</td><td>Rola używa swojego, pozostałe fallbacku; każdy model ma własną pulę wywołań</td></tr>
     <tr><td>Codzienna kontrola</td><td>Sprawdza sędziego zawsze, symulator zawsze (fallback albo swój), opisywacz tylko z własnym modelem</td></tr>
     <tr><td>Check monitoringu bez <code>description</code></td><td>Poprawny; web i CLI pokazują sam klucz</td></tr>
-    <tr><td><code>fixturesSchema</code> z <code>required</code>, scenariusz bez fixtures</td><td>Błąd <code>validate</code> z listą wymaganych kluczy</td></tr>
+    <tr><td><code>fixturesSchema</code> z <code>required</code> na najwyższym poziomie, scenariusz bez fixtures</td><td>Błąd <code>validate</code> z listą wymaganych kluczy</td></tr>
     <tr><td><code>fixturesSchema</code> bez <code>required</code>, scenariusz bez fixtures</td><td>Poprawny (u suwexag: <code>greeting-pl</code>, <code>shipping-policy</code> nie potrzebują sklepu)</td></tr>
     <tr><td>Fixtures są, ale brakuje części wymaganych kluczy</td><td>Błąd z brakującymi kluczami (tylko najwyższy poziom; głębiej — pełna walidacja schema, poza zakresem)</td></tr>
     <tr><td><code>validate --offline</code> (bez kontraktu)</td><td>Bez tej reguły: nie wiadomo, co agent wymaga</td></tr>
@@ -482,23 +484,6 @@ flowchart LR
   <div class="callout assumption"><p>Suwexag dziś ma <code>fixturesSchema</code> bez listy <code>required</code> (scenariusze bez fixtures przechodzą runy), więc reguła z <code>required</code> go nie zablokuje. Nie sprawdzone w samym schema (budowany w kodzie przez <code>ContractSchema.ObjectSchema</code>).</p></div>
 </section>
 
-<section data-role="questions">
-  <h2>Otwarte pytania</h2>
-  <form class="questions">
-    <fieldset data-id="q1">
-      <legend>Kiedy <code>validate</code> zgłasza brak fixtures?</legend>
-      <p class="why">Część scenariuszy legalnie nie potrzebuje fixtures (powitanie, pytanie o politykę), więc „schema jest, fixtures nie ma” nie może być zawsze błędem.</p>
-      <label data-recommended><input type="radio" value="required"><span><b>Gdy schema ma <code>required</code> na najwyższym poziomie</b><small>agent sam mówi, czego potrzebuje; reszta przechodzi</small></span></label>
-      <label><input type="radio" value="always"><span><b>Zawsze, gdy agent deklaruje schema</b><small>prostsze, ale wymusza <code>fixtures: {}</code> w scenariuszach, które ich nie potrzebują</small></span></label>
-    </fieldset>
-    <fieldset data-id="q2">
-      <legend>Oznaczać checki poluzowane przez agenta (np. przez <code>/suwageval:fix</code>)?</legend>
-      <p class="why">Agent może „naprawić” czerwony test, osłabiając check, a człowiek tego nie zauważy.</p>
-      <label><input type="radio" value="now"><span><b>Tak, w tym specu</b></span></label>
-      <label data-recommended><input type="radio" value="todo"><span><b>Do TODO jako osobny temat</b><small>wymaga przemyślenia, co znaczy „poluzowany” dla każdego typu checka</small></span></label>
-    </fieldset>
-  </form>
-</section>
 <!-- CONTENT END -->
 </main>
 </div>

@@ -24,7 +24,7 @@ $ARGUMENTS
    Run it and show the draft. The comments at the end are the monitoring checks the conversation failed, with their definitions:
    what went wrong, not checks of the scenario yet.
 4. With the user, write the scenario's checks: what the agent must do in answer to the copied conversation, starting from the failed
-   monitoring checks (a `judge` criteria can often be kept as it is; drop `description` where the scenario does not need it) and the
+   monitoring checks (a `judge` criteria can often be kept as it is; `description` is optional in both files) and the
    scenario command's rules for choosing checks. Add the `fixtures` the agent needs, if its contract declares
    `context.fixturesSchema`: the conversation ran on real data. Rename the key if a better one says what it checks.
 5. Ask before writing. Then `suwageval scenario from-conversation <id> --write` with the same options (it never overwrites a file; a

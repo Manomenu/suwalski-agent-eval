@@ -23,12 +23,6 @@ public static class MonitoringCheckRules
             {
                 problems.Add(new CheckProblem($"{path}.key", $"The key '{check.Key}' is there twice."));
             }
-            if (string.IsNullOrWhiteSpace(check.Description))
-            {
-                problems.Add(
-                    new CheckProblem($"{path}.description", "A monitoring check says what it makes sure of: a description in plain words.")
-                );
-            }
             if (check.ScenarioKey.Length > 0)
             {
                 problems.Add(new CheckProblem($"{path}.scenarioKey", "A monitoring check belongs to the agent, not to a scenario."));

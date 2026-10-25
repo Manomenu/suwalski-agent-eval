@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Suwageval.AgentSdk.Agents;
 using Suwageval.Cli.Files;
 using Suwageval.Cli.Validation;
@@ -425,6 +426,32 @@ public sealed class ValidatorTests
         Assert.True(Validate(scenario, TestAgent.WithFixtures).IsValid);
         AssertProblem(Validate(scenario), "fixtures", "fixturesSchema");
         Assert.True(Validate(scenario, offline: true).IsValid);
+    }
+
+    [Fact]
+    public void Fixtures_the_agent_requires_at_the_top_level_must_be_given()
+    {
+        var requiring = TestAgent.WithFixtures with
+        {
+            Context = TestAgent.WithFixtures.Context with
+            {
+                FixturesSchema = JsonDocument.Parse("""{"type":"object","required":["orders","customer"]}""").RootElement,
+            },
+        };
+
+        AssertProblem(
+            Validate("key: k\nconversation:\n  - user: hi\n", requiring),
+            "fixtures",
+            "requires fixtures (orders, customer); this scenario has none"
+        );
+        AssertProblem(
+            Validate("key: k\nfixtures:\n  orders: {}\nconversation:\n  - user: hi\n", requiring),
+            "fixtures",
+            "does not give: customer"
+        );
+        Assert.True(Validate("key: k\nfixtures:\n  orders: {}\n  customer: x\nconversation:\n  - user: hi\n", requiring).IsValid);
+        // A schema that requires nothing: a scenario that needs no fixtures stays valid.
+        Assert.True(Validate("key: k\nconversation:\n  - user: hi\n", TestAgent.WithFixtures).IsValid);
     }
 
     [Fact]

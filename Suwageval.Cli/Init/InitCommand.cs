@@ -26,7 +26,7 @@ internal static class InitCommand
     public const string DefaultCloseAfter = "30m";
 
     private const string MonitoringChecks = """
-        # The checks run on every closed conversation of the deployed agent; each one as a scenario's check, with a description.
+        # The checks run on every closed conversation of the deployed agent; each one as a scenario's check (no samples, no passThreshold).
         # Format: https://github.com/Manomenu/suwalski-agent-eval/blob/master/docs/scenario-format.md#monitoring-checks-monitoring-checksyaml
         # For example:
         #   - key: polite
