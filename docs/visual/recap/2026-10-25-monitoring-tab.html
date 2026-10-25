@@ -294,7 +294,7 @@ pre.out { font: 12px/1.5 var(--mono); background: var(--code-bg); border: 1px so
     <span><b>Status:</b> <span class="status done">done</span></span>
     <span><b>Data:</b> 2026-10-25</span>
     <span><b>Branch:</b> <code>epic/monitoring-tab</code></span>
-    <span><b>Zakres:</b> <code>master..79d6083</code>, 14 commitów, 305 plików, +9617 / −1514</span>
+    <span><b>Zakres:</b> <code>master..00ed51a</code>, 23 commity, 375 plików, +14374 / −1666</span>
   </div>
   <nav class="doc-nav">
     <a href="https://claude.ai/artifact/Y7FDEQtqn36YaaCUwA4p2e">Plan (doc)</a>
@@ -758,10 +758,11 @@ erDiagram
 
 <section data-role="verification">
   <h2>Weryfikacja</h2>
-  <div class="callout ok"><p><b>Bramka <code>check.sh</code> — PASS</b>, uruchomiona na <code>79d6083</code> (po pullu) w osobnym worktree: build z analizatorami, format, 1621/1621 testów serwera (z kontraktami importów), tsc, eslint, prettier, 316/316 vitest, knip, typy API, helm, shellcheck, gitleaks, compose.</p></div>
-  <div class="callout ok"><p><b>Testy przeglądarkowe <code>e2e.sh</code> — 43/43 PASS</b> (1,9 min, Playwright na pustej bazie), w tym: lista rozmów i podgląd, Versions in monitoring z Current i Not evaluated, draft scenariusza w całości i do wiadomości, panel boczny wg <code>features</code>, tabela monitoring checks.</p></div>
-  <div class="callout ok"><p><b>Lokalny stos po restarcie</b> (<code>just tmux-dev start --restart</code>) i globalne <code>suwageval</code> z <code>just cli-install</code>: API, web i suwexag odpowiadają, <code>scenario from-conversation</code> ma <code>--up-to-user</code> / <code>--up-to-agent</code>; zrzuty ekranu są z tego stosu.</p></div>
-  <div class="callout warn"><p><b>Nieuruchomione teraz:</b> live testy (<code>live-check.sh</code>: sędzia i symulator na prawdziwym modelu) i CI na GitHubie — dla tego brancha nie ma runów CI. Działanie end-to-end z prawdziwym agentem widać na lokalnym stosie: suwexag wysłał 8 rozmów, worker je ocenił (zrzuty powyżej).</p></div>
+  <div class="callout ok"><p><b>Bramka <code>check.sh</code> — PASS</b> na kodzie <code>00ed51a</code> (ostatnia zmiana: <code>init</code>), w osobnym worktree: build z analizatorami, format, testy serwera z kontraktami importów, tsc, eslint, prettier, vitest, knip, typy API, helm, shellcheck, gitleaks, compose.</p></div>
+  <div class="callout ok"><p><b>Testy przeglądarkowe <code>e2e.sh</code></b>: pełny przebieg na <code>8a37816</code> — 41/43, dwa testy szukały „Hide passed checks” jako Switcha (dziś <code>ToggleChip</code>); po poprawce lokatorów Run, Print i Compare 22/22. W tym: draft scenariusza w całości, do wiadomości i z „Generate scenario”. Zmiana <code>init</code> nie dotyka webu.</p></div>
+  <div class="callout ok"><p><b>Live test opisu klienta</b> (<code>UserDescriberLiveTests</code>, prawdziwy model z <code>.env</code>) — PASS. Na lokalnym stosie: rozmowa <code>long-third-party</code> z suwexag ucięta na 2. wiadomości klienta dała <code>turns: 4</code> i opis zgodny z całą rozmową.</p></div>
+  <div class="callout ok"><p><b>Lokalny stos</b> (<code>just tmux-dev</code>) i globalne <code>suwageval</code> z <code>just cli-install</code>; czat suwexag pod :7010 odpowiada z <code>sources</code>; zrzuty ekranu są z tego stosu.</p></div>
+  <div class="callout warn"><p><b>Nieuruchomione:</b> live testy sędziego i symulatora oraz CI na GitHubie dla tego brancha. Interaktywny przebieg <code>init</code> (pytania w terminalu) sprawdzają testy z podanym wejściem; w prawdziwym terminalu nie był klikany.</p></div>
 </section>
 
 <section data-role="review">
