@@ -83,4 +83,4 @@ export function dayMarks(trend: Trend): DayMark[] {
 export const MONITORING_CHECKS_HELP =
     "The checks of suwageval/monitoring-checks.yaml, run on every closed conversation of the deployed agent. The rates count the conversations whose last turn came in the last 7 and 30 days; a failing rate links to its conversations.";
 export const MONITORING_TREND_HELP =
-    "Day by day (UTC, the day of a conversation's last turn): how many conversations came and how many were checked, and each check's pass rate. A dashed line marks the day a new agent version first answered or new retrieval data was first seen.";
+    "Per day (UTC, the day of a conversation's last turn): how many conversations came and how many were checked, and each check's pass rate. A dashed line marks the day a new agent version first answered or new retrieval data was first seen.";

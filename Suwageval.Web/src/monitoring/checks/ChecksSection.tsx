@@ -73,7 +73,7 @@ export function ChecksSection({ agent }: { agent: string }) {
             )}
             <Group justify="space-between" align="flex-end">
                 <Title order={4}>
-                    <HeaderHelp label="Day by day" help={MONITORING_TREND_HELP} />
+                    <HeaderHelp label="Traffic and pass rates" help={MONITORING_TREND_HELP} />
                 </Title>
                 <SegmentedControl
                     aria-label="Days"
@@ -117,6 +117,7 @@ function TrendCharts({ trend }: { trend: MonitoringTrend }) {
                 curveType="linear"
                 withLegend
                 withDots
+                yAxisProps={{ allowDecimals: false }}
             />
             {keys.length > 0 && (
                 <>
@@ -137,7 +138,7 @@ function TrendCharts({ trend }: { trend: MonitoringTrend }) {
                         withLegend
                         withDots
                         unit="%"
-                        yAxisProps={{ domain: [0, 100] }}
+                        yAxisProps={{ domain: [0, 100], allowDecimals: false }}
                     />
                 </>
             )}
