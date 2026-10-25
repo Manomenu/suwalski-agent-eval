@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { checkKeys, dayMarks, hasFailures, passRateRows, rateText, volumeRows, type Trend } from "./monitoring";
+import { checkKeys, dayMarks, hasFailures, passRateRows, rateText, volumeRows, volumeSeries, type Trend } from "./monitoring";
 
 const trend: Trend = {
     days: [
-        { date: "2026-10-23", conversations: 4, checked: 3 },
-        { date: "2026-10-24", conversations: 2, checked: 0 },
+        { date: "2026-10-23", environment: "production", conversations: 3, checked: 3 },
+        { date: "2026-10-23", environment: "staging", conversations: 1, checked: 0 },
+        { date: "2026-10-24", environment: "production", conversations: 2, checked: 0 },
     ],
     points: [
         { date: "2026-10-23", checkKey: "polite", passed: 1, checked: 1 },
@@ -36,7 +37,15 @@ describe("hasFailures", () => {
 
 describe("volumeRows", () => {
     it("has the conversations and the checked ones per day", () => {
-        expect(volumeRows(trend)[0]).toEqual({ date: "2026-10-23", Conversations: 4, Checked: 3 });
+        expect(volumeRows(trend)).toEqual([
+            { date: "2026-10-23", Conversations: 4, Checked: 3, production: 3, staging: 1 },
+            { date: "2026-10-24", Conversations: 2, Checked: 0, production: 2 },
+        ]);
+        expect(volumeSeries(trend)).toEqual(["Conversations", "production", "staging", "Checked"]);
+        expect(volumeSeries({ ...trend, days: trend.days.filter((day) => day.environment === "production") })).toEqual([
+            "Conversations",
+            "Checked",
+        ]);
     });
 });
 

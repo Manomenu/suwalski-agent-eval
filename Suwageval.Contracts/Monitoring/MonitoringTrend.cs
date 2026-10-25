@@ -15,4 +15,7 @@ public sealed record MonitoringTrend
 
     /// <summary>When a data version was first seen in the period, oldest first (only for an agent that sends it).</summary>
     public required IReadOnlyList<DataChange> DataVersions { get; init; }
+
+    /// <summary>Every environment the agent's conversations came from, whatever the environment asked for: what a filter offers.</summary>
+    public IReadOnlyList<string> Environments { get; init; } = [];
 }

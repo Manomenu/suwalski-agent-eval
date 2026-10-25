@@ -16,11 +16,13 @@ internal static class MonitoringChecksCommand
     /// <param name="http">The client to the API; none means one is made from <c>--server</c> or <c>SUWAGEVAL_URL</c> (the tests pass their own).</param>
     public static Command List(HttpClient? http = null)
     {
+        var environment = new Option<string?>("--environment") { Description = "The rates over this environment's conversations only." };
         var json = CommandOptions.Json("Print the checks as JSON.");
         var server = CommandOptions.Server();
         var dir = CommandOptions.Dir();
         var command = new Command("checks", "List the agent's monitoring checks with their pass rates over the last 7 and 30 days.")
         {
+            environment,
             json,
             server,
             dir,
@@ -34,7 +36,7 @@ internal static class MonitoringChecksCommand
                     parsed.InvocationConfiguration.Error,
                     async (client, agent, _) =>
                     {
-                        var checks = await client.MonitoringChecksAsync(agent, cancellationToken);
+                        var checks = await client.MonitoringChecksAsync(agent, parsed.GetValue(environment), cancellationToken);
                         var output = parsed.InvocationConfiguration.Output;
                         if (parsed.GetValue(json))
                         {
@@ -116,16 +118,19 @@ internal static class MonitoringChecksCommand
             return "No conversations in the period.";
         }
         var lines = new List<string>();
-        foreach (var day in trend.Days)
+        foreach (var date in trend.Days.Select(day => day.Date).Distinct())
         {
+            var days = trend.Days.Where(day => day.Date == date).ToList();
+            var environments =
+                days.Count > 1 ? $" ({string.Join(", ", days.Select(day => $"{day.Environment} {day.Conversations}"))})" : "";
             var checks = trend
-                .Points.Where(point => point.Date == day.Date)
+                .Points.Where(point => point.Date == date)
                 .GroupBy(point => point.CheckKey)
                 .Select(group => $"{group.Key} {Rate(new CheckRate(group.Sum(point => point.Passed), group.Sum(point => point.Checked)))}");
             lines.Add(
                 string.Create(
                         CultureInfo.InvariantCulture,
-                        $"{day.Date}  {day.Conversations} conversations  {day.Checked} checked  {string.Join("  ", checks)}"
+                        $"{date}  {days.Sum(day => day.Conversations)} conversations{environments}  {days.Sum(day => day.Checked)} checked  {string.Join("  ", checks)}"
                     )
                     .TrimEnd()
             );

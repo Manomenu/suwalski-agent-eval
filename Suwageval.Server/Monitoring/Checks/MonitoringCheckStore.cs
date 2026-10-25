@@ -97,11 +97,12 @@ internal sealed class MonitoringCheckStore(Pool pool)
 
     /// <summary>
     /// The agent's live monitoring checks with their latest revision, by key, and their verdicts over the conversations whose last turn came
-    /// in the last 7 and 30 days before <paramref name="now"/>.
+    /// in the last 7 and 30 days before <paramref name="now"/>, those of <paramref name="environment"/> only when one is given.
     /// </summary>
     public async Task<IReadOnlyList<MonitoringCheckRow>> ListAsync(
         Guid agentId,
         DateTimeOffset now,
+        string? environment = null,
         CancellationToken cancellationToken = default
     )
     {
@@ -122,11 +123,17 @@ internal sealed class MonitoringCheckStore(Pool pool)
                     ) r ON true
                     LEFT JOIN monitoring_check_results res ON res.check_id = c.id AND NOT res.not_judged
                     LEFT JOIN monitoring_conversations conv ON conv.id = res.conversation_id
+                        AND (@environment::text IS NULL OR conv.environment = @environment)
                     WHERE c.agent_id = @agentId AND c.deleted_at IS NULL
                     GROUP BY c.id, c.key, r.revision, r.content, r.created_at
                     ORDER BY c.key
                     """,
-                    new { agentId, now },
+                    new
+                    {
+                        agentId,
+                        now,
+                        environment,
+                    },
                     cancellationToken: cancellationToken
                 )
             ),

@@ -256,7 +256,10 @@ public sealed class MonitoringChecksTests(TestDatabase database) : IAsyncDisposa
         Assert.Equal(new CheckRate(0, 0), checks.Single(check => check.Check.Key == "is-polite").Last30Days);
         var trend = await Get<MonitoringTrend>(client, $"/monitoring/agents/{agent}/trend?days=7");
         var today = DateTime.UtcNow.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
-        Assert.Equal(new MonitoringDay(today, 2, 2), Assert.Single(trend.Days));
+        Assert.Equal(new MonitoringDay(today, "production", 2, 2), Assert.Single(trend.Days));
+        Assert.Equal(["production"], trend.Environments);
+        var elsewhere = await Get<MonitoringCheck[]>(client, $"/monitoring/agents/{agent}/checks?environment=staging");
+        Assert.Equal(new CheckRate(0, 0), elsewhere.Single(check => check.Check.Key == "no-refund").Last7Days);
         Assert.Equal(
             (1, 2),
             trend.Points.Where(point => point.CheckKey == "no-refund").Select(point => (point.Passed, point.Checked)).Single()

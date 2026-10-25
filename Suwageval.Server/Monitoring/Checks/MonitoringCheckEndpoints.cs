@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.AspNetCore.Mvc;
 using Suwageval.Contracts.Checks;
 using Suwageval.Contracts.Monitoring;
 using Suwageval.Server.Agents;
@@ -45,8 +46,10 @@ internal static class MonitoringCheckEndpoints
         return Results.Ok(new PutChecksResponse(await checks.ReplaceAsync(row.Id, request.Checks, cancellationToken)));
     }
 
+    /// <summary>The agent's monitoring checks with their 7- and 30-day pass rates; <c>environment</c>: over that environment's conversations only.</summary>
     private static async Task<IResult> ListAsync(
         string agent,
+        [FromQuery] string? environment,
         AgentStore agents,
         MonitoringCheckStore checks,
         TimeProvider time,
@@ -59,7 +62,7 @@ internal static class MonitoringCheckEndpoints
             return ProblemResults.NotFound("Agent", agent);
         }
         return Results.Ok(
-            (await checks.ListAsync(row.Id, time.GetUtcNow(), cancellationToken)).Select(check => new MonitoringCheck
+            (await checks.ListAsync(row.Id, time.GetUtcNow(), environment, cancellationToken)).Select(check => new MonitoringCheck
             {
                 Revision = check.Revision,
                 CreatedAt = check.CreatedAt,

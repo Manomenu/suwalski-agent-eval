@@ -31,10 +31,10 @@ internal sealed class MonitoringTrendStore(Pool pool)
         var days = await connection.QueryAsync<MonitoringDay>(
             new CommandDefinition(
                 $"""
-                SELECT to_char(c.last_turn_at AT TIME ZONE 'UTC', 'YYYY-MM-DD') AS Date, count(*)::int AS Conversations,
-                       (count(*) FILTER (WHERE c.checked_at IS NOT NULL))::int AS Checked
+                SELECT to_char(c.last_turn_at AT TIME ZONE 'UTC', 'YYYY-MM-DD') AS Date, c.environment AS Environment,
+                       count(*)::int AS Conversations, (count(*) FILTER (WHERE c.checked_at IS NOT NULL))::int AS Checked
                 {Conversations}
-                GROUP BY 1 ORDER BY 1
+                GROUP BY 1, 2 ORDER BY 1, 2
                 """,
                 parameters,
                 cancellationToken: cancellationToken

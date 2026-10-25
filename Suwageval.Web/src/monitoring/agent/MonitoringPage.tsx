@@ -8,10 +8,12 @@ import { versionsInMonitoringHref } from "../../routes/links";
 import { ChecksSection } from "../checks/ChecksSection";
 import { ConversationsSection } from "../conversations/ConversationsSection";
 import { monitoringSettingsText } from "./settings";
+import { useEnvironmentFilter } from "./useEnvironmentFilter";
 
 /** `/agents/<name>/monitoring`: the conversations of the deployed agent and the checks run on them, when its monitoring is on. */
 export function MonitoringPage({ name }: { name: string }) {
     const state = useRequest(name, (signal) => fetchAgent(name, signal));
+    const [environment, setEnvironment] = useEnvironmentFilter();
     return (
         <Page state={state} notFound={`There is no agent ${name}.`}>
             {(agent) =>
@@ -29,8 +31,9 @@ export function MonitoringPage({ name }: { name: string }) {
                                 <Text c="dimmed">{monitoringSettingsText(agent.features.monitoring)}</Text>
                             </Stack>
                         </Paper>
-                        <ChecksSection agent={agent.name} />
-                        <ConversationsSection agent={agent.name} />
+                        <ChecksSection agent={agent.name} environment={environment} onEnvironmentChange={setEnvironment} />
+                        {/* A new environment starts the list over (its page is reset in the address). */}
+                        <ConversationsSection key={environment ?? ""} agent={agent.name} environment={environment} />
                     </Stack>
                 )
             }

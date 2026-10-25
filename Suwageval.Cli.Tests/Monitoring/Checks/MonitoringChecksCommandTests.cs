@@ -69,6 +69,14 @@ public sealed class MonitoringChecksCommandTests
     }
 
     [Fact]
+    public void The_environment_goes_to_the_server()
+    {
+        var (_, _, paths) = Run(Array.Empty<MonitoringCheck>(), "checks", "--environment", "production");
+
+        Assert.Equal(["/monitoring/agents/example-agent/checks?environment=production"], paths);
+    }
+
+    [Fact]
     public void No_checks_says_where_they_come_from()
     {
         var (exit, output, _) = Run(Array.Empty<MonitoringCheck>(), "checks");
@@ -82,7 +90,7 @@ public sealed class MonitoringChecksCommandTests
     {
         var trend = new MonitoringTrend
         {
-            Days = [new MonitoringDay("2026-10-24", 3, 2)],
+            Days = [new MonitoringDay("2026-10-24", "production", 2, 2), new MonitoringDay("2026-10-24", "staging", 1, 0)],
             Points = [new MonitoringPoint("2026-10-24", "no-refund", Version, 1, 2)],
             Versions = [new VersionChange(DateTimeOffset.Parse("2026-10-24T08:00:00Z", CultureInfo.InvariantCulture), Version, "v7")],
             DataVersions = [],
@@ -93,7 +101,7 @@ public sealed class MonitoringChecksCommandTests
         Assert.Equal(0, exit);
         Assert.Equal(["/monitoring/agents/example-agent/trend?days=7&environment=production"], paths);
         var lines = output.Trim().ReplaceLineEndings("\n").Split('\n');
-        Assert.Equal("2026-10-24  3 conversations  2 checked  no-refund 50% (1/2)", lines[0]);
+        Assert.Equal("2026-10-24  3 conversations (production 2, staging 1)  2 checked  no-refund 50% (1/2)", lines[0]);
         Assert.StartsWith($"version {Version}", lines[1], StringComparison.Ordinal);
     }
 

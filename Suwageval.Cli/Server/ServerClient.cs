@@ -285,9 +285,20 @@ internal sealed class ServerClient(HttpClient http)
         );
 
     /// <summary>The agent's monitoring checks with how they did in the last 7 and 30 days.</summary>
-    public Task<IReadOnlyList<MonitoringCheck>> MonitoringChecksAsync(string agent, CancellationToken cancellationToken) =>
+    public Task<IReadOnlyList<MonitoringCheck>> MonitoringChecksAsync(
+        string agent,
+        string? environment,
+        CancellationToken cancellationToken
+    ) =>
         SendAsync<IReadOnlyList<MonitoringCheck>>(
-            () => http.GetAsync(new Uri($"monitoring/agents/{Uri.EscapeDataString(agent)}/checks", UriKind.Relative), cancellationToken),
+            () =>
+                http.GetAsync(
+                    new Uri(
+                        $"monitoring/agents/{Uri.EscapeDataString(agent)}/checks{(environment is null ? "" : $"?environment={Uri.EscapeDataString(environment)}")}",
+                        UriKind.Relative
+                    ),
+                    cancellationToken
+                ),
             cancellationToken
         );
 

@@ -4,8 +4,8 @@ import { expect, test, type APIRequestContext } from "@playwright/test";
 const CONTRACT = { agents: [{ name: "support", model: { name: "test-model" }, config: "Be helpful." }] };
 
 /** Sends turns as a deployed agent does; the hash it must name comes from the server's answer to a wrong one. */
-async function sendTurns(request: APIRequestContext, agent: string, turns: object[]): Promise<void> {
-    const batch = { agent, environment: "production", contractHash: "unknown", contract: CONTRACT, turns };
+async function sendTurns(request: APIRequestContext, agent: string, turns: object[], environment = "production"): Promise<void> {
+    const batch = { agent, environment, contractHash: "unknown", contract: CONTRACT, turns };
     const refused = await request.post("/api/monitoring/turns", { data: batch });
     expect(refused.status()).toBe(422);
     const hash = /hashes to ([0-9a-f]{64})/.exec(JSON.stringify(await refused.json()))?.[1];
@@ -96,4 +96,32 @@ test("a conversation drafts as a scenario, whole or up to a chosen message", asy
     await expect(yaml).toContainText("- user: Where is A-17?");
     await expect(yaml).not.toContainText("About Where is A-17?");
     await expect(yaml).not.toContainText("And B-2?");
+});
+
+test("the environment filter above the page narrows the conversations, all of them by default", async ({ page, request }) => {
+    const name = `e2e-monitoring-environments-${String(Date.now())}`;
+    const data = { name, endpointUrl: "http://localhost:9/", features: { monitoring: {} } };
+    expect((await request.post("/api/agents", { data })).ok()).toBe(true);
+    const turn = (conversationId: string) => ({
+        id: crypto.randomUUID(),
+        conversationId,
+        at: new Date().toISOString(),
+        items: [
+            { kind: "UserMessage", text: "Hi" },
+            { kind: "AssistantMessage", text: "Hello" },
+        ],
+    });
+    await sendTurns(request, name, [turn("in-production")]);
+    await sendTurns(request, name, [turn("in-staging")], "staging");
+
+    await page.goto(`/agents/${name}/monitoring`);
+    await expect(page.getByRole("link", { name: "in-production", exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: "in-staging", exact: true })).toBeVisible();
+
+    await page.getByRole("combobox", { name: "Environment", exact: true }).click();
+    await page.getByRole("option", { name: "staging", exact: true }).click();
+
+    await expect(page.getByRole("link", { name: "in-staging", exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: "in-production", exact: true })).toHaveCount(0);
+    expect(page.url()).toContain("environment=staging");
 });

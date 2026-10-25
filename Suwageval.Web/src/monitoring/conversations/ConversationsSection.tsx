@@ -22,16 +22,17 @@ import {
     type ConversationFilter,
 } from "./conversations";
 
-/** The agent's monitored conversations: a table, newest turn first, narrowed by environment and state, a page at a time. */
-export function ConversationsSection({ agent }: { agent: string }) {
-    const [filter, setFilter] = useState<ConversationFilter>(() => initialFilter(window.location.search));
+/** The agent's monitored conversations: a table, newest turn first, in the page's environment, narrowed by state, a page at a time. */
+export function ConversationsSection({ agent, environment }: { agent: string; environment: string | null }) {
+    const [narrowed, setFilter] = useState<ConversationFilter>(() => initialFilter(window.location.search));
+    const filter = { ...narrowed, environment };
     const [page, setPage] = usePageParam("conversationsPage");
     const loaded = useRequest(JSON.stringify([agent, filter, page]), (signal) =>
         fetchConversations(agent, filter, page, CONVERSATIONS_PAGE_SIZE, signal),
     );
     const list = loaded.kind === "loaded" ? loaded.value : null;
     const narrow = (change: Partial<ConversationFilter>) => {
-        setFilter({ ...filter, ...change });
+        setFilter({ ...narrowed, ...change });
         setPage(1);
     };
     const showAllChecks = () => {
@@ -46,16 +47,6 @@ export function ConversationsSection({ agent }: { agent: string }) {
                 <HeaderHelp label="Conversations" help={CONVERSATIONS_HELP} />
             </Title>
             <Group align="flex-end">
-                <Select
-                    label="Environment"
-                    placeholder="All environments"
-                    data={list?.environments ?? []}
-                    value={filter.environment}
-                    onChange={(value) => {
-                        narrow({ environment: value });
-                    }}
-                    clearable
-                />
                 <Select
                     label="State"
                     placeholder="Open and closed"

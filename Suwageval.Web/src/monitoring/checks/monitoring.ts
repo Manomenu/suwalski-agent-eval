@@ -12,7 +12,7 @@ export interface Rate {
 
 /** The trend as the server sends it, only what the charts read. */
 export interface Trend {
-    days: { date: string; conversations: number; checked: number }[];
+    days: { date: string; environment: string; conversations: number; checked: number }[];
     points: { date: string; checkKey: string; passed: number; checked: number }[];
     versions: { at: string; agentVersionId: string; label?: string | null }[];
     dataVersions: { at: string; dataVersion: string }[];
@@ -26,7 +26,7 @@ export const TREND_DAYS = [7, 30, 90] as const;
 export type TrendDays = (typeof TREND_DAYS)[number];
 
 export const CONVERSATIONS_SERIES = "Conversations";
-export const CHECKED_SERIES = "Checked";
+const CHECKED_SERIES = "Checked";
 
 /** "80% (4/5)", or "—" when the check ran on no conversation. */
 export function rateText(rate: Rate): string {
@@ -39,9 +39,34 @@ export function hasFailures(rate: Rate): boolean {
     return rate.passed < rate.checked;
 }
 
-/** Per day: the conversations and how many of them were checked. */
+/** The days of the trend, oldest first, each once (a day has a row per environment). */
+function datesOf(trend: Trend): string[] {
+    return [...new Set(trend.days.map((day) => day.date))].sort();
+}
+
+/** The environments the trend's conversations came from, sorted: a line each when there is more than one. */
+function dayEnvironments(trend: Trend): string[] {
+    return [...new Set(trend.days.map((day) => day.environment))].sort();
+}
+
+/** The series of the conversations chart: all of them, then one per environment when there are several, then how many were checked. */
+export function volumeSeries(trend: Trend): string[] {
+    const environments = dayEnvironments(trend);
+    return [CONVERSATIONS_SERIES, ...(environments.length > 1 ? environments : []), CHECKED_SERIES];
+}
+
+/** Per day: the conversations in all, in each environment, and how many of them were checked. */
 export function volumeRows(trend: Trend): ChartRow[] {
-    return trend.days.map((day) => ({ [DAY_KEY]: day.date, [CONVERSATIONS_SERIES]: day.conversations, [CHECKED_SERIES]: day.checked }));
+    return datesOf(trend).map((date) => {
+        const days = trend.days.filter((day) => day.date === date);
+        const row: ChartRow = {
+            [DAY_KEY]: date,
+            [CONVERSATIONS_SERIES]: days.reduce((sum, day) => sum + day.conversations, 0),
+            [CHECKED_SERIES]: days.reduce((sum, day) => sum + day.checked, 0),
+        };
+        for (const day of days) row[day.environment] = day.conversations;
+        return row;
+    });
 }
 
 /** The checks the trend has verdicts of, in key order. */
@@ -52,10 +77,10 @@ export function checkKeys(trend: Trend): string[] {
 /** Per day and check: the pass rate in percent over every version that answered that day; null on a day the check did not run. */
 export function passRateRows(trend: Trend): ChartRow[] {
     const keys = checkKeys(trend);
-    return trend.days.map((day) => {
-        const row: ChartRow = { [DAY_KEY]: day.date };
+    return datesOf(trend).map((date) => {
+        const row: ChartRow = { [DAY_KEY]: date };
         for (const key of keys) {
-            const points = trend.points.filter((point) => point.date === day.date && point.checkKey === key);
+            const points = trend.points.filter((point) => point.date === date && point.checkKey === key);
             const checked = points.reduce((sum, point) => sum + point.checked, 0);
             const passed = points.reduce((sum, point) => sum + point.passed, 0);
             row[key] = checked === 0 ? null : percentValue(passed / checked);

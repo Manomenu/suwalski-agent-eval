@@ -1516,7 +1516,9 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    environment?: string;
+                };
                 header?: never;
                 path: {
                     agent: string;
@@ -2487,9 +2489,13 @@ export interface components {
             last7Days: components["schemas"]["CheckRate"];
             last30Days: components["schemas"]["CheckRate"];
         };
-        /** @description One day (UTC, `yyyy-MM-dd`, the day of the conversations' last turn): how many conversations, how many of them checked. */
+        /**
+         * @description One day (UTC, `yyyy-MM-dd`, the day of the conversations' last turn) in one environment: how many conversations, how many of them
+         *     checked. A day has a row per environment that sent conversations on it.
+         */
         MonitoringDay: {
             date: string;
+            environment: string;
             /** Format: int32 */
             conversations: number;
             /** Format: int32 */
@@ -2530,6 +2536,8 @@ export interface components {
             versions: components["schemas"]["VersionChange"][];
             /** @description When a data version was first seen in the period, oldest first (only for an agent that sends it). */
             dataVersions: components["schemas"]["DataChange"][];
+            /** @description Every environment the agent's conversations came from, whatever the environment asked for: what a filter offers. */
+            environments?: string[];
         };
         /** @description Sets the note of a run or of a run group (NoteRules); none or blank clears it. */
         NoteRequest: {

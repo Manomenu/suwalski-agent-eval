@@ -1,14 +1,16 @@
-import { Anchor, Group, SegmentedControl, Stack, Table, Text, Title } from "@mantine/core";
+import { Anchor, Group, SegmentedControl, Select, Stack, Table, Text, Title } from "@mantine/core";
 import { useState } from "react";
 
 import { useRequest } from "../../api/useRequest";
 import { percentText, seriesColor } from "../../charts/chartStyle";
 import { LineTrend } from "../../charts/LineTrend";
+
+/** The line of all conversations stands out from the environments' ones, as "All" does in the evaluation's trend. */
+const MAIN_STROKE_WIDTH = 4;
 import { HeaderHelp } from "../../help/HeaderHelp";
 import { failedConversationsHref } from "../../routes/links";
 import { fetchMonitoringChecks, fetchMonitoringTrend, type MonitoringTrend } from "./api";
 import {
-    CHECKED_SERIES,
     checkKeys,
     CONVERSATIONS_SERIES,
     DAY_KEY,
@@ -20,18 +22,34 @@ import {
     rateText,
     TREND_DAYS,
     volumeRows,
+    volumeSeries,
     type Rate,
     type TrendDays,
 } from "./monitoring";
 
-/** The agent's monitoring checks: a table of their 7- and 30-day pass rates, and the charts of the last days. */
-export function ChecksSection({ agent }: { agent: string }) {
-    const checks = useRequest(agent, (signal) => fetchMonitoringChecks(agent, signal));
+/**
+ * The agent's monitoring checks: the environment filter over the whole page (all by default), a table of the checks' 7- and 30-day
+ * pass rates, and the charts of the last days, all in the chosen environment.
+ */
+export function ChecksSection({
+    agent,
+    environment,
+    onEnvironmentChange,
+}: {
+    agent: string;
+    /** The environment the page shows; null: all of them. */
+    environment: string | null;
+    onEnvironmentChange: (environment: string | null) => void;
+}) {
+    const checks = useRequest(JSON.stringify([agent, environment]), (signal) => fetchMonitoringChecks(agent, environment, signal));
     const [days, setDays] = useState<TrendDays>(30);
-    const trend = useRequest(JSON.stringify([agent, days]), (signal) => fetchMonitoringTrend(agent, days, signal));
+    const trend = useRequest(JSON.stringify([agent, days, environment]), (signal) =>
+        fetchMonitoringTrend(agent, days, environment, signal),
+    );
+    const environments = trend.kind === "loaded" ? (trend.value.environments ?? []) : [];
     const rate = (key: string, value: Rate) =>
         hasFailures(value) ? (
-            <Anchor c="red" href={failedConversationsHref(agent, key)}>
+            <Anchor c="red" href={failedConversationsHref(agent, key, environment)}>
                 {rateText(value)}
             </Anchor>
         ) : (
@@ -39,6 +57,17 @@ export function ChecksSection({ agent }: { agent: string }) {
         );
     return (
         <Stack gap="sm">
+            {(environments.length > 1 || environment !== null) && (
+                <Select
+                    label="Environment"
+                    placeholder="All environments"
+                    data={environments}
+                    value={environment}
+                    onChange={onEnvironmentChange}
+                    clearable
+                    maw={260}
+                />
+            )}
             <Title order={3}>
                 <HeaderHelp label="Monitoring checks" help={MONITORING_CHECKS_HELP} />
             </Title>
@@ -102,10 +131,11 @@ function TrendCharts({ trend }: { trend: MonitoringTrend }) {
                 rows={volumeRows(trend)}
                 dataKey={DAY_KEY}
                 marks={marks}
-                series={[
-                    { name: CONVERSATIONS_SERIES, color: seriesColor(0) },
-                    { name: CHECKED_SERIES, color: seriesColor(1) },
-                ]}
+                series={volumeSeries(trend).map((name, index) => ({
+                    name,
+                    color: seriesColor(index),
+                    ...(name === CONVERSATIONS_SERIES ? { strokeWidth: MAIN_STROKE_WIDTH } : {}),
+                }))}
                 format={String}
                 wholeNumbers
             />
