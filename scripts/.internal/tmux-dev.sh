@@ -110,9 +110,10 @@ bottom_right=$(tmux split-window -h -t "$bottom_left" -c "$REPO" -P -F '#{pane_i
 
 tmux set-option -t "$SESSION" pane-border-status top
 tmux select-pane -t "$left" -T "cli"
-tmux select-pane -t "$top_left" -T "server"
-tmux select-pane -t "$top_right" -T "web"
-tmux select-pane -t "$bottom_left" -T "example agent (suwexag)"
+# A pane that serves something is named "<name>: (<port>)", or "(<port>/<path>)" when its page is not at the root.
+tmux select-pane -t "$top_left" -T "server: (6230)"
+tmux select-pane -t "$top_right" -T "web: (3230)"
+tmux select-pane -t "$bottom_left" -T "suwexag: (7010)"
 tmux select-pane -t "$bottom_right" -T "shell"
 
 run "$top_left" "just db up && just server"
