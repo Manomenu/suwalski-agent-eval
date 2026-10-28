@@ -148,6 +148,32 @@ public sealed class CheckStoreTests(TestDatabase database)
     }
 
     [Fact]
+    public async Task Replace_deletes_the_live_keys_missing_from_the_list()
+    {
+        var store = Store();
+        var agent = await NewAgentWithScenariosAsync("s1", "s2");
+        await store.ReplaceAsync(agent, [Item("a", "s1"), Item("b", "s2")], Cancellation);
+
+        var result = await store.ReplaceAsync(agent, [Item("a", "s1")], Cancellation);
+
+        Assert.Equal([("a", CheckOutcome.Unchanged), ("b", CheckOutcome.Deleted)], result.Select(row => (row.Key, row.Outcome)));
+        Assert.Equal(["a"], (await store.ListAsync(agent, cancellationToken: Cancellation)).Select(row => row.Key));
+    }
+
+    [Fact]
+    public async Task Replace_with_an_unknown_scenario_deletes_no_check()
+    {
+        var store = Store();
+        var agent = await NewAgentWithScenariosAsync("s1");
+        await store.ReplaceAsync(agent, [Item("a", "s1")], Cancellation);
+
+        var result = await store.ReplaceAsync(agent, [Item("bad", "missing")], Cancellation);
+
+        Assert.Equal(CheckOutcome.UnknownScenario, Assert.Single(result).Outcome);
+        Assert.Equal(["a"], (await store.ListAsync(agent, cancellationToken: Cancellation)).Select(row => row.Key));
+    }
+
+    [Fact]
     public async Task Delete_hides_the_check_and_a_returning_key_is_undeleted_with_a_new_revision()
     {
         var store = Store();

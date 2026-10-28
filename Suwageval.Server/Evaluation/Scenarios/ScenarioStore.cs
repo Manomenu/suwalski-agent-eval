@@ -18,14 +18,31 @@ internal sealed class ScenarioStore(Pool pool)
         """;
 
     /// <summary>
+    /// Makes the agent's scenarios the given ones, in one transaction: <see cref="UpsertAsync"/>, and a live scenario not in the list is
+    /// deleted (its revisions and the runs that used it stay). One result per given scenario, in order, then one per deleted scenario.
+    /// </summary>
+    public Task<IReadOnlyList<ScenarioUpsertResult>> ReplaceAsync(
+        Guid agentId,
+        IReadOnlyList<ScenarioItem> items,
+        CancellationToken cancellationToken = default
+    ) => WriteAsync(agentId, items, deleteMissing: true, cancellationToken);
+
+    /// <summary>
     /// Writes the scenarios in one transaction; keys not in the list are untouched. A new revision exists only
     /// when the content changed (or the scenario comes back from deletion); tags alone change in place and the
     /// scenario then counts as <see cref="ScenarioOutcome.Unchanged"/>.
     /// </summary>
-    public async Task<IReadOnlyList<ScenarioUpsertResult>> UpsertAsync(
+    public Task<IReadOnlyList<ScenarioUpsertResult>> UpsertAsync(
         Guid agentId,
         IReadOnlyList<ScenarioItem> items,
         CancellationToken cancellationToken = default
+    ) => WriteAsync(agentId, items, deleteMissing: false, cancellationToken);
+
+    private async Task<IReadOnlyList<ScenarioUpsertResult>> WriteAsync(
+        Guid agentId,
+        IReadOnlyList<ScenarioItem> items,
+        bool deleteMissing,
+        CancellationToken cancellationToken
     )
     {
         await using var connection = await pool.OpenAsync(cancellationToken);
@@ -106,6 +123,22 @@ internal sealed class ScenarioStore(Pool pool)
                 outcome = ScenarioOutcome.Unchanged;
             }
             results.Add(new ScenarioUpsertResult(item.Key, outcome));
+        }
+        if (deleteMissing)
+        {
+            var deleted = await connection.QueryAsync<string>(
+                new CommandDefinition(
+                    """
+                    UPDATE scenarios SET deleted_at = now()
+                    WHERE agent_id = @agentId AND deleted_at IS NULL AND NOT (key = ANY(@keys))
+                    RETURNING key
+                    """,
+                    new { agentId, keys = items.Select(item => item.Key).ToArray() },
+                    transaction,
+                    cancellationToken: cancellationToken
+                )
+            );
+            results.AddRange(deleted.Order(StringComparer.Ordinal).Select(key => new ScenarioUpsertResult(key, ScenarioOutcome.Deleted)));
         }
         await transaction.CommitAsync(cancellationToken);
         return results;

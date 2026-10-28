@@ -52,7 +52,7 @@ internal static class ScenarioEndpoints
                 JsonSerializer.Serialize(scenario with { Tags = [] }, ContractJson.Options)
             ))
             .ToList();
-        var results = await store.UpsertAsync(row.Id, items, cancellationToken);
+        var results = await store.ReplaceAsync(row.Id, items, cancellationToken);
         return Results.Ok(
             new PutScenariosResponse([.. results.Select(result => new ScenarioResult(result.Key, ToOutcome(result.Outcome)))])
         );
@@ -197,6 +197,7 @@ internal static class ScenarioEndpoints
             ScenarioOutcome.Created => UpsertOutcome.Created,
             ScenarioOutcome.Updated => UpsertOutcome.Updated,
             ScenarioOutcome.Unchanged => UpsertOutcome.Unchanged,
+            ScenarioOutcome.Deleted => UpsertOutcome.Deleted,
             _ => throw new ArgumentOutOfRangeException(nameof(outcome), outcome, null),
         };
 }

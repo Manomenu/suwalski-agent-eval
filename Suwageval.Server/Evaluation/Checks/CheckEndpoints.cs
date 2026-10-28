@@ -61,7 +61,7 @@ internal static class CheckEndpoints
             check.ScenarioKey,
             JsonSerializer.Serialize(check, ContractJson.Options)
         ));
-        var results = await store.UpsertAsync(row.Id, [.. items], cancellationToken);
+        var results = await store.ReplaceAsync(row.Id, [.. items], cancellationToken);
         var missing = results.Where(result => result.Outcome == CheckOutcome.UnknownScenario).ToList();
         if (missing.Count > 0)
         {
@@ -119,6 +119,7 @@ internal static class CheckEndpoints
             CheckOutcome.Created => UpsertOutcome.Created,
             CheckOutcome.Updated => UpsertOutcome.Updated,
             CheckOutcome.Unchanged => UpsertOutcome.Unchanged,
+            CheckOutcome.Deleted => UpsertOutcome.Deleted,
             CheckOutcome.UnknownScenario => throw new InvalidOperationException("An unknown scenario is reported before this."),
             _ => throw new ArgumentOutOfRangeException(nameof(outcome), outcome, null),
         };

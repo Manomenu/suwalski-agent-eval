@@ -1,4 +1,4 @@
 namespace Suwageval.Contracts.Scenarios;
 
-/// <summary>The scenarios to write for an agent; keys not listed are left alone.</summary>
+/// <summary>The agent's whole set of scenarios; a stored scenario not listed is deleted (its revisions and past runs stay).</summary>
 public sealed record PutScenariosRequest(IReadOnlyList<ScenarioInput> Scenarios);

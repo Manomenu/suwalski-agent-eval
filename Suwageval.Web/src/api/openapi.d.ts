@@ -2504,15 +2504,15 @@ export interface components {
         NoteRequest: {
             note?: null | string;
         };
-        /** @description The checks to write for an agent; keys not listed are left alone. */
+        /** @description The agent's whole set of checks; a stored check not listed is deleted (its revisions and past verdicts stay). */
         PutChecksRequest: {
             checks: components["schemas"]["CheckInput"][];
         };
-        /** @description What happened to each check of the request, in its order. */
+        /** @description What happened to each check of the request, in its order, then to each check it deleted. */
         PutChecksResponse: {
             results: components["schemas"]["CheckResult"][];
         };
-        /** @description The scenarios to write for an agent; keys not listed are left alone. */
+        /** @description The agent's whole set of scenarios; a stored scenario not listed is deleted (its revisions and past runs stay). */
         PutScenariosRequest: {
             scenarios: components["schemas"]["ScenarioInput"][];
         };
@@ -3081,7 +3081,7 @@ export interface components {
         };
         /**
          * @description What a push did to one scenario or check, serialized by name: `created`, `updated`, `unchanged`; `deleted` for a
-         *     monitoring check the file no longer has.
+         *     scenario or check the files no longer have.
          * @enum {unknown}
          */
         UpsertOutcome: "created" | "updated" | "unchanged" | "deleted";

@@ -136,6 +136,43 @@ public sealed class ScenarioStoreTests(TestDatabase database)
     }
 
     [Fact]
+    public async Task Replace_deletes_the_live_keys_missing_from_the_list_and_they_keep_their_revisions()
+    {
+        var store = Store();
+        var agent = await NewAgentAsync();
+        await store.ReplaceAsync(agent, [Item("a"), Item("c"), Item("b")], Cancellation);
+
+        var result = await store.ReplaceAsync(
+            agent,
+            [
+                Item(
+                    "a", /*lang=json,strict*/
+                    """{"v":2}"""
+                ),
+            ],
+            Cancellation
+        );
+        var again = await store.ReplaceAsync(
+            agent,
+            [
+                Item(
+                    "a", /*lang=json,strict*/
+                    """{"v":2}"""
+                ),
+            ],
+            Cancellation
+        );
+
+        Assert.Equal(
+            [("a", ScenarioOutcome.Updated), ("b", ScenarioOutcome.Deleted), ("c", ScenarioOutcome.Deleted)],
+            result.Select(row => (row.Key, row.Outcome))
+        );
+        Assert.Equal([("a", ScenarioOutcome.Unchanged)], again.Select(row => (row.Key, row.Outcome)));
+        Assert.Equal(["a"], (await store.ListAsync(agent, cancellationToken: Cancellation)).Select(row => row.Key));
+        Assert.Single(await store.ListRevisionsAsync(agent, "b", Cancellation));
+    }
+
+    [Fact]
     public async Task Delete_hides_the_scenario_keeps_its_revisions_and_a_returning_key_is_undeleted_with_a_new_revision()
     {
         var store = Store();

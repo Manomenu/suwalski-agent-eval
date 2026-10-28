@@ -51,6 +51,19 @@ public sealed class CheckEndpointsTests(TestDatabase database) : IAsyncDisposabl
     }
 
     [Fact]
+    public async Task A_check_left_out_of_the_put_is_deleted()
+    {
+        var agent = await AgentWithScenariosAsync("s");
+        await Put(agent, Called("a", "s"), Called("b", "s"));
+
+        var put = await Put(agent, Called("a", "s"));
+
+        Assert.Equal([new CheckResult("a", UpsertOutcome.Unchanged), new CheckResult("b", UpsertOutcome.Deleted)], put.Results);
+        var all = await TestServer.Read<CheckDetail[]>(await server.Get($"/eval/agents/{agent}/checks"));
+        Assert.Equal(["a"], all.Select(check => check.Check.Key));
+    }
+
+    [Fact]
     public async Task Every_kind_of_check_comes_back_as_what_it_was()
     {
         var agent = await AgentWithScenariosAsync("s");

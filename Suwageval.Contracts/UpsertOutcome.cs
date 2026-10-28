@@ -4,7 +4,7 @@ namespace Suwageval.Contracts;
 
 /// <summary>
 /// What a push did to one scenario or check, serialized by name: <c>created</c>, <c>updated</c>, <c>unchanged</c>; <c>deleted</c> for a
-/// monitoring check the file no longer has.
+/// scenario or check the files no longer have.
 /// </summary>
 [JsonConverter(typeof(JsonStringEnumConverter<UpsertOutcome>))]
 public enum UpsertOutcome

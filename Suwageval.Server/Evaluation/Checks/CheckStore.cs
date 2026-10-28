@@ -19,14 +19,32 @@ internal sealed class CheckStore(Pool pool)
         """;
 
     /// <summary>
+    /// Makes the agent's checks the given ones, in one transaction: <see cref="UpsertAsync"/>, and a live check not in the list is deleted
+    /// (its revisions and its verdicts in past runs stay) — unless an item named an unknown scenario. One result per given check, in order,
+    /// then one per deleted check.
+    /// </summary>
+    public Task<IReadOnlyList<CheckUpsertResult>> ReplaceAsync(
+        Guid agentId,
+        IReadOnlyList<CheckItem> items,
+        CancellationToken cancellationToken = default
+    ) => WriteAsync(agentId, items, deleteMissing: true, cancellationToken);
+
+    /// <summary>
     /// Writes the checks in one transaction; keys not in the list are untouched. A new revision exists when the
     /// content or the scenario changed (or the check comes back from deletion). An item naming a scenario that
     /// is not there is reported as <see cref="CheckOutcome.UnknownScenario"/> and writes nothing.
     /// </summary>
-    public async Task<IReadOnlyList<CheckUpsertResult>> UpsertAsync(
+    public Task<IReadOnlyList<CheckUpsertResult>> UpsertAsync(
         Guid agentId,
         IReadOnlyList<CheckItem> items,
         CancellationToken cancellationToken = default
+    ) => WriteAsync(agentId, items, deleteMissing: false, cancellationToken);
+
+    private async Task<IReadOnlyList<CheckUpsertResult>> WriteAsync(
+        Guid agentId,
+        IReadOnlyList<CheckItem> items,
+        bool deleteMissing,
+        CancellationToken cancellationToken
     )
     {
         await using var connection = await pool.OpenAsync(cancellationToken);
@@ -108,6 +126,22 @@ internal sealed class CheckStore(Pool pool)
                 outcome = CheckOutcome.Unchanged;
             }
             results.Add(new CheckUpsertResult(item.Key, outcome));
+        }
+        if (deleteMissing && results.All(result => result.Outcome != CheckOutcome.UnknownScenario))
+        {
+            var deleted = await connection.QueryAsync<string>(
+                new CommandDefinition(
+                    """
+                    UPDATE checks SET deleted_at = now()
+                    WHERE agent_id = @agentId AND deleted_at IS NULL AND NOT (key = ANY(@keys))
+                    RETURNING key
+                    """,
+                    new { agentId, keys = items.Select(item => item.Key).ToArray() },
+                    transaction,
+                    cancellationToken: cancellationToken
+                )
+            );
+            results.AddRange(deleted.Order(StringComparer.Ordinal).Select(key => new CheckUpsertResult(key, CheckOutcome.Deleted)));
         }
         await transaction.CommitAsync(cancellationToken);
         return results;

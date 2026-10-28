@@ -123,6 +123,25 @@ public sealed class PushCommandEndToEndTests(TestDatabase database) : IAsyncDisp
     }
 
     [Fact]
+    public void A_removed_scenario_file_deletes_the_scenario_and_its_checks_on_the_next_push()
+    {
+        using var http = Client();
+        var dir = Folder();
+        Run(http, "push", dir);
+        File.Delete(Path.Combine(dir, "scenarios", "refund-happy-path.yaml"));
+
+        var (exit, output, _) = Run(http, "push", dir);
+        var (_, again, _) = Run(http, "push", dir);
+
+        Assert.Equal(0, exit);
+        Assert.Contains("scenario refund-happy-path: deleted", output, StringComparison.Ordinal);
+        Assert.Contains("check refund-called-after-lookup: deleted", output, StringComparison.Ordinal);
+        Assert.Contains("check refunded-state-event: deleted", output, StringComparison.Ordinal);
+        Assert.Equal(3, Count(output, ": deleted"));
+        Assert.Equal(0, Count(again, ": deleted"));
+    }
+
+    [Fact]
     public void Json_prints_one_object_with_the_outcomes()
     {
         using var http = Client();

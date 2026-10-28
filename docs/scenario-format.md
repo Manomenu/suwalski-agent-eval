@@ -361,6 +361,11 @@ failed check is the one to turn into a scenario (`suwageval scenario from-conver
 
 ## A scenario file
 
+`suwageval/scenarios/` is the whole set of the agent's scenarios: `suwageval push` makes the server's set the same. A file
+removed from the folder (or a check removed from a file) is deleted on the server by the next push and reported as `deleted`;
+runs no longer take it, while the runs that already used it keep its revision and their results. A file that comes back is
+stored again, as a new revision.
+
 | Field | | |
 | --- | --- | --- |
 | `key` | required | lowercase kebab-case (`refund-happy-path`), unique within the agent |

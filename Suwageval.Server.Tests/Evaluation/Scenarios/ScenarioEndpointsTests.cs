@@ -42,6 +42,20 @@ public sealed class ScenarioEndpointsTests(TestDatabase database) : IAsyncDispos
     }
 
     [Fact]
+    public async Task A_scenario_left_out_of_the_put_is_deleted_and_keeps_its_revisions()
+    {
+        var agent = await server.NewAgent();
+        await Put(agent, Scenario("a"), Scenario("b"));
+
+        var put = await Put(agent, Scenario("a"));
+
+        Assert.Equal([new ScenarioResult("a", UpsertOutcome.Unchanged), new ScenarioResult("b", UpsertOutcome.Deleted)], put.Results);
+        var all = await TestServer.Read<ScenarioSummary[]>(await server.Get($"/eval/agents/{agent}/scenarios"));
+        Assert.Equal(["a"], all.Select(scenario => scenario.Key));
+        Assert.Single(await TestServer.Read<ScenarioRevision[]>(await server.Get($"/eval/agents/{agent}/scenarios/b/revisions")));
+    }
+
+    [Fact]
     public async Task Fixtures_are_stored_with_the_revision_and_changing_them_is_a_new_revision()
     {
         var agent = await server.NewAgent();

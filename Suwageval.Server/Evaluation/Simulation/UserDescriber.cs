@@ -67,26 +67,26 @@ internal sealed class UserDescriber(ModelClients models)
             : Fallback(conversation, $"the model's answer is not the JSON asked for ({ModelQuestion.Shorten(text)})");
     }
 
-    /// <summary>The conversation as the user saw it: their messages and the agent's text, one line each.</summary>
+    /// <summary>The conversation as the user saw it: their messages and the agent's text, one line each (<c>\n</c> on every system).</summary>
     public static string Prompt(IReadOnlyList<ConversationItem> conversation)
     {
         ArgumentNullException.ThrowIfNull(conversation);
-        var prompt = new StringBuilder().AppendLine("The conversation:");
+        var prompt = new StringBuilder().Append("The conversation:\n");
         foreach (var item in conversation)
         {
             switch (item)
             {
                 case UserMessage user:
-                    prompt.Append("User: ").AppendLine(user.Text.ReplaceLineEndings(" "));
+                    prompt.Append("User: ").Append(user.Text.ReplaceLineEndings(" ")).Append('\n');
                     break;
                 case AssistantMessage { Text.Length: > 0 } said:
-                    prompt.Append("Agent: ").AppendLine(said.Text.ReplaceLineEndings(" "));
+                    prompt.Append("Agent: ").Append(said.Text.ReplaceLineEndings(" ")).Append('\n');
                     break;
                 default:
                     break;
             }
         }
-        return prompt.AppendLine().Append("Describe the user.").ToString();
+        return prompt.Append("\nDescribe the user.").ToString();
     }
 
     /// <summary>The draft without a model: the user's messages, for the person to turn into a description.</summary>

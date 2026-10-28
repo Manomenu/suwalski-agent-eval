@@ -7,7 +7,7 @@ using Suwageval.Cli.Validation;
 
 namespace Suwageval.Cli.Evaluation.Push;
 
-/// <summary><c>suwageval push [dir]</c>: validates the agent's files, then writes the agent, its scenarios and checks to the server (its version is not pushed: a run reads it from the agent).</summary>
+/// <summary><c>suwageval push [dir]</c>: validates the agent's files, then makes the server's agent, scenarios and checks those of the files (its version is not pushed: a run reads it from the agent).</summary>
 internal static class PushCommand
 {
     /// <param name="http">The client to reach the server with; null makes one for <c>--server</c> (tests pass the in-process server's).</param>
@@ -23,7 +23,7 @@ internal static class PushCommand
 
         var command = new Command(
             "push",
-            "Validate the agent's files, then write the agent, its scenarios and checks to the server. Pushing the same files again changes nothing. (Versions are not pushed: a run reads them from the running agent.)"
+            "Validate the agent's files, then write the agent, its scenarios and checks to the server. Pushing the same files again changes nothing; a scenario or check no longer in the files is deleted on the server (past runs keep it). (Versions are not pushed: a run reads them from the running agent.)"
         )
         {
             dir,
