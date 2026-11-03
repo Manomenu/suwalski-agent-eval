@@ -6,6 +6,7 @@ using Suwageval.AgentSdk.Conversations;
 using Suwageval.AgentSdk.Invocation;
 using Suwageval.Contracts.Checks;
 using Suwageval.Contracts.Runs;
+using Suwageval.Contracts.Scenarios;
 using Suwageval.Server.Agents;
 using Suwageval.Server.Evaluation.Checks;
 using Suwageval.Server.Evaluation.Invocation;
@@ -16,7 +17,7 @@ using Suwageval.Server.Judges;
 namespace Suwageval.Server.Evaluation.Runs;
 
 /// <summary>
-/// Carries out one claimed run: for every scenario picked by the run's tags (or all of them) and every sample of it, it calls
+/// Carries out one claimed run (a gate run its own way, <see cref="GatePlan"/>): for every scenario picked by the run's tags (or all of them) and every sample of it, it calls
 /// the agent under test with the scenario's conversation, stores what the agent produced, evaluates the scenario's checks on
 /// it and stores the verdicts. Samples run in parallel up to <see cref="RunOptions.MaxParallelScenarios"/>.
 /// </summary>
@@ -44,25 +45,128 @@ internal sealed partial class RunExecutor(
     public Task ExecuteAsync(RunRow run, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(run);
+        if (run.GateRetryLimit is { } agentRetryLimit)
+        {
+            return RunLoop.ExecuteAsync(
+                runs,
+                options.Value.MaxParallelScenarios,
+                run,
+                async () =>
+                {
+                    var (declared, versionHash) = await DeclaredAsync(run, cancellationToken);
+                    var plan = await PlanAsync(run, null, cancellationToken);
+                    return GatePlan(run, declared, versionHash, plan, agentRetryLimit, cancellationToken);
+                },
+                error => LogRunFailed(error, run.Id),
+                cancellationToken
+            );
+        }
         return RunLoop.ExecuteAsync(
             runs,
             options.Value.MaxParallelScenarios,
             run,
             async () =>
             {
-                var version = await agents.GetVersionAsync(run.AgentVersionId, cancellationToken);
-                var declared = ContractContent.Read(version?.Content ?? throw new InvalidOperationException("The run's version is gone."));
+                var (declared, versionHash) = await DeclaredAsync(run, cancellationToken);
                 var agentSamples = (await agents.GetAsync(run.AgentId.ToString(), cancellationToken))?.Samples;
                 var plan = await PlanAsync(run, agentSamples, cancellationToken);
                 var work = plan.SelectMany(scenario => Enumerable.Range(1, scenario.Calls).Select(sample => (scenario, sample))).ToList();
                 return new RunLoop.Plan<(PlannedScenario scenario, int sample)>(
                     work,
-                    item => RunSampleAsync(run, declared, item.scenario, item.sample, agentSamples, cancellationToken),
-                    () => CheckContractUnchangedAsync(run, version.ContentHash, cancellationToken)
+                    item =>
+                        RunSampleAsync(
+                            run,
+                            declared,
+                            item.scenario,
+                            item.sample,
+                            SamplePlan.JudgedOn(item.sample, item.scenario.Content, item.scenario.Checks, agentSamples),
+                            cancellationToken
+                        ),
+                    () => CheckContractUnchangedAsync(run, versionHash, cancellationToken)
                 );
             },
             error => LogRunFailed(error, run.Id),
             cancellationToken
+        );
+    }
+
+    /// <summary>What the run's version declares, and its hash.</summary>
+    private async Task<(AgentContract Declared, string Hash)> DeclaredAsync(RunRow run, CancellationToken cancellationToken)
+    {
+        var version = await agents.GetVersionAsync(run.AgentVersionId, cancellationToken);
+        return (
+            ContractContent.Read(version?.Content ?? throw new InvalidOperationException("The run's version is gone.")),
+            version.ContentHash
+        );
+    }
+
+    /// <summary>
+    /// A gate run: one item per scenario with an <c>acGuardrail</c>, in key order. A scenario's attempts go one after another, each judged
+    /// by every check of the scenario, until one passes them all or its limit is reached. The first scenario that reaches its limit stops
+    /// the gate: the scenarios not started by then start no attempt, and are recorded as skipped once the items are done. The run is
+    /// Done either way; its results say whether the gate passed.
+    /// </summary>
+    private RunLoop.Plan<PlannedScenario> GatePlan(
+        RunRow run,
+        AgentContract declared,
+        string versionHash,
+        IReadOnlyList<PlannedScenario> planned,
+        int agentRetryLimit,
+        CancellationToken cancellationToken
+    )
+    {
+        var guardrails = planned
+            .Where(scenario => scenario.Content.AcGuardrail is not null)
+            .OrderBy(scenario => scenario.Row.Key, StringComparer.Ordinal)
+            .ToList();
+        var stoppedBy = (string?)null;
+        var notStarted = new System.Collections.Concurrent.ConcurrentBag<string>();
+        int Limit(PlannedScenario scenario)
+        {
+            return AcGuardrailRules.EffectiveRetryLimit(scenario.Content.AcGuardrail!.RetryLimit, agentRetryLimit);
+        }
+
+        async Task AttemptAsync(PlannedScenario scenario)
+        {
+            var limit = Limit(scenario);
+            for (var attempt = 1; attempt <= limit; attempt++)
+            {
+                if (Volatile.Read(ref stoppedBy) is not null)
+                {
+                    if (attempt == 1)
+                    {
+                        notStarted.Add(scenario.Row.Key);
+                    }
+                    return;
+                }
+                if (await RunSampleAsync(run, declared, scenario, attempt, scenario.Checks, cancellationToken))
+                {
+                    return;
+                }
+            }
+            Interlocked.CompareExchange(ref stoppedBy, scenario.Content.AcGuardrail!.Id, null);
+        }
+
+        return new RunLoop.Plan<PlannedScenario>(
+            guardrails,
+            AttemptAsync,
+            async () =>
+            {
+                if (Volatile.Read(ref stoppedBy) is { } failed && !notStarted.IsEmpty)
+                {
+                    await runs.SetSkippedAsync(
+                        run.Id,
+                        [
+                            .. notStarted
+                                .Order(StringComparer.Ordinal)
+                                .Select(key => new SkippedScenario { Key = key, Reason = $"Not run: the gate stopped at {failed}." }),
+                        ],
+                        cancellationToken
+                    );
+                }
+                await CheckContractUnchangedAsync(run, versionHash, cancellationToken);
+            },
+            guardrails.Sum(Limit)
         );
     }
 
@@ -96,12 +200,13 @@ internal sealed partial class RunExecutor(
         ];
     }
 
-    private async Task RunSampleAsync(
+    /// <summary>Plays one sample of <paramref name="scenario"/>, judges it with <paramref name="judged"/> and stores it; true when the agent answered and every one of them passed.</summary>
+    private async Task<bool> RunSampleAsync(
         RunRow run,
         AgentContract declared,
         PlannedScenario scenario,
         int sample,
-        int? agentSamples,
+        IEnumerable<(CheckRow Row, CheckInput Input)> judged,
         CancellationToken cancellationToken
     )
     {
@@ -109,7 +214,6 @@ internal sealed partial class RunExecutor(
             ? await SimulateAsync(run, scenario, sample, simulatedUser, cancellationToken)
             : await AnswerOnceAsync(run, scenario, sample, cancellationToken);
 
-        var judged = SamplePlan.JudgedOn(sample, scenario.Content, scenario.Checks, agentSamples);
         var results = new List<NewCheckResult>();
         if (played is { Status: SampleStatus.Done, Output: { } output })
         {
@@ -144,6 +248,7 @@ internal sealed partial class RunExecutor(
             ),
             cancellationToken
         );
+        return played.Status == SampleStatus.Done && results.Count > 0 && results.TrueForAll(result => result.Passed);
     }
 
     /// <summary>A scenario of one turn: the agent answers the conversation's last message.</summary>

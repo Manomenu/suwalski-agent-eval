@@ -10,7 +10,7 @@ namespace Suwageval.Server.Agents;
 internal sealed class AgentStore(Pool pool)
 {
     private const string AgentColumns =
-        "id, name, endpoint_url AS EndpointUrl, created_at AS CreatedAt, to_json(regression_branches)::text AS RegressionBranches, regression_history AS RegressionHistory, samples, evaluation, monitoring::text AS Monitoring";
+        "id, name, endpoint_url AS EndpointUrl, created_at AS CreatedAt, to_json(regression_branches)::text AS RegressionBranches, regression_history AS RegressionHistory, samples, evaluation, monitoring::text AS Monitoring, ac_guardrail_retry_limit AS AcGuardrailRetryLimit";
 
     private const string VersionColumns =
         "id, agent_id AS AgentId, content::text AS Content, content_hash AS ContentHash, label, created_at AS CreatedAt, archived_at AS ArchivedAt";
@@ -51,12 +51,13 @@ internal sealed class AgentStore(Pool pool)
         );
     }
 
-    /// <summary>Stores the agent's default samples, regression settings and features; none puts the defaults back.</summary>
+    /// <summary>Stores the agent's default samples, regression settings, features and gate attempts; none puts the defaults back.</summary>
     public async Task<AgentRow> SetSettingsAsync(
         Guid id,
         int? samples,
         RegressionSettings? settings,
         AgentFeatures? features = null,
+        int? acGuardrailRetryLimit = null,
         CancellationToken cancellationToken = default
     )
     {
@@ -65,7 +66,8 @@ internal sealed class AgentStore(Pool pool)
             new CommandDefinition(
                 $"""
                 UPDATE agents SET samples = @samples, regression_branches = @branches, regression_history = @history,
-                                  evaluation = @evaluation, monitoring = @monitoring::jsonb
+                                  evaluation = @evaluation, monitoring = @monitoring::jsonb,
+                                  ac_guardrail_retry_limit = @acGuardrailRetryLimit
                 WHERE id = @id RETURNING {AgentColumns}
                 """,
                 new
@@ -76,6 +78,7 @@ internal sealed class AgentStore(Pool pool)
                     history = settings?.History,
                     evaluation = features?.Evaluation ?? true,
                     monitoring = features?.Monitoring is { } monitoring ? JsonSerializer.Serialize(monitoring, ContractJson.Options) : null,
+                    acGuardrailRetryLimit,
                 },
                 cancellationToken: cancellationToken
             )
@@ -274,7 +277,7 @@ internal sealed class AgentStore(Pool pool)
         );
     }
 
-    /// <summary>The agent's version with this content hash (<see cref="Suwageval.AgentSdk.Agents.AgentContractHash"/>), or null.</summary>
+    /// <summary>The agent's version with this content hash (<see cref="AgentSdk.Agents.AgentContractHash"/>), or null.</summary>
     public async Task<AgentVersionRow?> FindVersionAsync(Guid agentId, string contentHash, CancellationToken cancellationToken = default)
     {
         await using var connection = await pool.OpenAsync(cancellationToken);

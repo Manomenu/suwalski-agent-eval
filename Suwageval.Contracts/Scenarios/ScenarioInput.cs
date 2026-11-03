@@ -31,6 +31,10 @@ public sealed record ScenarioInput
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public int? Samples { get; init; }
 
+    /// <summary>The acceptance criterion the scenario guards on the gate (<c>suwageval gate</c>); none for a scenario that guards none.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public AcGuardrail? AcGuardrail { get; init; }
+
     /// <summary>Where the scenario came from (a monitored conversation), when it was made from one; it changes nothing in a run.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public ScenarioOrigin? Origin { get; init; }

@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="pl" data-lang="pl" data-kind="recap" data-source="docs/visual/recap/2026-10-25-simpler-models-and-checks.html">
+<html lang="pl" data-lang="pl" data-kind="spec" data-source="docs/visual/spec/2026-11-03-gate-runs.html">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Prostsze modele i checki</title>
+<title>Bramkowy run AC</title>
 <!--
   suwagent visual document. Copy this file, then replace only TITLE and the
   content between CONTENT START and CONTENT END. Leave the <style> and <script>
@@ -359,145 +359,200 @@ pre.out { font: 12px/1.5 var(--mono); background: var(--code-bg); border: 1px so
 <main>
 <!-- CONTENT START -->
 <header class="doc-head">
-  <span class="doc-kind">Recap</span>
-  <h1>Prostsze modele i checki</h1>
+  <span class="doc-kind">Spec</span>
+  <h1>Bramkowy run AC: <code>suwageval gate</code></h1>
   <div class="doc-meta">
-    <span><b>Status:</b> <span class="status done">done</span></span>
-    <span><b>Data:</b> 2026-10-25</span>
-    <span><b>Branch:</b> <code>epic/monitoring-tab</code></span>
-    <span><b>Zakres:</b> <code>00ed51a..4b95b26</code>, 3 commity kodu, 51 plików, +456 / −231</span>
+    <span><b>Status:</b> <span class="status approved">approved</span></span>
+    <span><b>Data:</b> 2026-11-03</span>
+    <span><b>Branch:</b> <code>master</code></span>
+    <span><b>Rozmiar:</b> L (nowa funkcja + kontrakt YAML)</span>
   </div>
-  <nav class="doc-nav">
-    <a href="https://claude.ai/artifact/5rJQMtmHNEVMdPX6hoiMZF">Spec</a>
-    <a aria-current="page">Recap</a>
-  </nav>
 </header>
 
 <section data-role="tldr">
   <h2>TL;DR</h2>
-  <div class="tldr">
-    <p>🟡 Suwageval potrzebuje teraz <b>jednego modelu</b>: <code>Models:fallback</code>. Sędzia, symulowany klient i opisywacz klienta biorą go, chyba że mają własny wpis. Chart ma jedną mapę <code>models</code>, a lokalny <code>.env</code> jest przestawiony. <code>description</code> checka monitoringu jest opcjonalne, <code>validate</code> łapie fixtures, których agent wymaga. Plugin działa jak suwagent: skille zamiast komend, <code>/suwageval:update</code> i hook sesji z pętlą pracy.</p>
-    <p>Bramka zielona, testy z prawdziwym modelem 7/7 przez sam fallback, run symulacji na suwexag przez serwer działa. Czeka na Ciebie: zmiana sekretu w platform repo przed deployem (bez niej klaster nie ma modelu) i <code>just secrets backup</code>.</p>
-  </div>
+  <div class="tldr"><p>Scenariusz może być <b>guardrailem kryterium akceptacji</b>: sekcja <code>acGuardrail: { id: AC-refunds-1 }</code> w jego YAML-u. Komenda <code>suwageval gate</code> uruchamia wszystkie takie scenariusze agenta, a każdy zalicza <b>pierwsza udana próba</b> (domyślnie do 5 prób). Wynikiem nie jest raport z pass rate'ami, tylko odpowiedź tak/nie w CLI: przy sukcesie jedna linia, przy porażce pełny opis tego, co padło. Bramka zatrzymuje się na pierwszym AC, które wyczerpie próby, i kończy kodem ≠ 0. To narzędzie dla CI agenta i dla agenta w Claude Code. Web jej nie pokazuje.</p></div>
   <div class="stats">
-    <div><b>10/11</b><span>kryteriów (1 częściowo)</span></div>
-    <div><b>4</b><span>nowe testy</span></div>
-    <div><b>6</b><span>skilli z komend</span></div>
-    <div><b>1</b><span>hook sesji</span></div>
+    <div><b>3</b><span>nowe pola YAML</span></div>
+    <div><b>1</b><span>nowa komenda</span></div>
+    <div><b>12</b><span>kryteriów</span></div>
   </div>
 </section>
 
-<section data-role="acceptance">
-  <h2>Kryteria ze speca</h2>
-  <ul class="checks">
-    <li data-status="pass">Z samym <code>Models:fallback</code> działa sędzia, symulacja i opisywacz <span class="evidence">run <code>d21b5f75</code> (tag simulation) na suwexag: 8 checków ocenionych, symulowany klient grał; „Generate scenario” przez API bez <code>notice</code>; <code>live-check.sh</code> 7/7 z .env zawierającym tylko fallback</span></li>
-    <li data-status="pass">Fallback + własny <code>Models:simulator</code>: symulator idzie swoim, sędzia i opisywacz fallbackiem <span class="evidence">test <code>Every_role_without_a_model_of_its_own_takes_the_fallback</code></span></li>
-    <li data-status="pass">Bez modelu run z checkiem judge → 409 wskazujące <code>Models:fallback</code> <span class="evidence">tekst w <code>RunEndpoints.cs</code>; istniejące testy 409 w <code>RunEndpointsTests</code> zielone</span></li>
-    <li data-status="pass"><code>.env.example</code> i README: wystarczy fallback; lokalny <code>.env</code> na <code>Models__fallback__*</code> <span class="evidence">86e489d; stos zrestartowany, health ok</span></li>
-    <li data-status="pass"><code>helm template</code> z <code>models.fallback.secret</code> daje <code>envFrom</code> w serwerze i live check <span class="evidence">render sprawdzony ręcznie; bramka: helm lint + template</span></li>
-    <li data-status="pass"><code>live-check.sh</code> z samym fallbackiem przechodzi dla sędziego, symulatora i opisywacza <span class="evidence">7/7 succeeded</span></li>
-    <li data-status="partial">Check monitoringu bez <code>description</code> przechodzi <code>validate</code> i <code>push</code>; web i CLI go pokazują <span class="evidence">validate: <code>MonitoringChecksValidationTests</code>; serwer przyjmuje (<code>MonitoringChecksTests</code>). Strony Monitoringu z takim checkiem nie oglądałem — kolumna opisu jest wtedy pusta</span></li>
-    <li data-status="pass">Brak fixtures z <code>required</code> → błąd <code>validate</code> z listą kluczy <span class="evidence">test <code>Fixtures_the_agent_requires_at_the_top_level_must_be_given</code></span></li>
-    <li data-status="pass">Scenariusze suwexag bez fixtures dalej przechodzą <span class="evidence">nowe CLI na żywym suwexag: „valid (11 scenarios, 34 checks, 2 monitoring checks)”; jego <code>required</code> jest puste</span></li>
-    <li data-status="pass">TODO.md: strona startowa, szybsza pętla, krótszy output, checki poluzowane przez agenta <span class="evidence">86e489d, 4b95b26</span></li>
-    <li data-status="pass"><code>/suwageval:update</code> pokazuje wersję przed i po i poleca auto-update <span class="evidence"><code>claude-plugin/skills/update/SKILL.md</code>; ręcznie zaktualizowałem plugin z <code>e33ac73</code> do <code>198750d</code></span></li>
+<section data-role="problem">
+  <h2>Stan bez bramki</h2>
+  <p><code>suwageval run</code> to run <b>ewaluacyjny</b>: każdy scenariusz leci <code>samples</code> razy (domyślnie 3), a check przechodzi, gdy jego pass rate osiąga <code>passThreshold</code>. Wynikiem jest raport z regresjami względem poprzednich runów. Tryb świetnie sprawdza się przy mierzeniu jakości. Na bramce przeszkadza:</p>
+  <ul>
+    <li>nie da się powiedzieć, <b>które scenariusze pilnują kryteriów akceptacji</b>: scenariusz nie ma powiązania z id AC ze specki;</li>
+    <li>run zawsze przechodzi wszystkie scenariusze i wszystkie sample, a CI chce tylko odpowiedzi „przeszło / nie przeszło” i powodu;</li>
+    <li>semantyka „pass rate ≥ próg” nie pasuje do bramki: tu chcemy wiedzieć, czy agent <b>potrafi</b> spełnić kryterium, z kilkoma podejściami na niedeterminizm modelu.</li>
   </ul>
 </section>
 
-<section data-role="how">
-  <h2>Jak to działa</h2>
+<section data-role="goals">
+  <h2>Cele</h2>
   <div class="cols">
-    <script type="text/x-mermaid" data-caption="Przed: każda rola miała własny łańcuch">
-flowchart TB
-  J[sędzia] --> MJ["Judge:Model → Models:judge"]
-  S[symulator] --> MS["Models:simulator"] -.brak.-> MJ
-  D[opisywacz] --> MD["Models:describer"] -.brak.-> MJ
-    </script>
-    <script type="text/x-mermaid" data-caption="Po: jedna reguła EntryFor(rola)">
-flowchart TB
-  J[sędzia] --> E{"Models:&lt;rola&gt;?"}
-  S[symulator] --> E
-  D[opisywacz] --> E
-  E -->|tak| OWN[własny model]
-  E -->|nie| F["Models:fallback"]
-    </script>
+    <div><h4>Cele</h4><ul>
+      <li>Scenariusz deklaruje, którego AC jest guardrailem (<code>acGuardrail.id</code>), opcjonalnie z własnym limitem prób.</li>
+      <li><code>suwageval gate</code> uruchamia każdy scenariusz z <code>acGuardrail</code>, scenariusz zalicza pierwsza udana próba, a bramka staje na pierwszym AC, które wyczerpało próby.</li>
+      <li>Ciche wyjście do logu CI i kod wyjścia; <code>--json</code> dla agenta.</li>
+      <li>Ta sama walidacja <code>acGuardrail</code> w <code>validate</code> i na serwerze.</li>
+      <li>Plugin Claude Code opisuje komendę, więc agent może sam puścić bramkę i odczytać wynik.</li>
+    </ul></div>
+    <div><h4>Poza zakresem <span class="tag">optional</span></h4><ul>
+      <li>Jakikolwiek widok bramki w webie: lista, filtr czy strona. Bramka żyje w CI, a lokalnie testuje się zwykłym <code>run</code>.</li>
+      <li>Zawężanie bramki tagami (<code>--tag</code>): o udziale decyduje wyłącznie sekcja <code>acGuardrail</code>.</li>
+      <li>Push w ramach <code>gate</code>: najpierw <code>suwageval push</code>, jak przed <code>run</code>.</li>
+      <li>Regresje, trend i ponowna ocena (recheck) runu bramkowego.</li>
+      <li>Sprawdzanie, czy id AC istnieje w specce agenta: Suwageval nie zna repozytorium specek.</li>
+      <li>Wyzwalacze CI (PR, merge): osobny punkt TODO „Runs from an agent's CI”.</li>
+    </ul></div>
   </div>
-  <h3>Elementy i ich role</h3>
-  <div class="cols two">
-    <div><h4><code>ModelClients.EntryFor</code></h4><p>Jedna reguła dla każdej roli: jej własny wpis, a bez niego <code>fallback</code>, a bez niego nic. Każdy wpis ma swoją pulę wywołań.</p><p class="wf-muted">używają: Judge, ArgumentJudge, UserSimulator, UserDescriber</p></div>
-    <div><h4>Chart: <code>models</code></h4><p>Mapa <code>fallback / judge / simulator / describer</code>, jeden helper renderuje zmienne <code>Models__&lt;nazwa&gt;__*</code> i <code>envFrom</code> sekretów. Live check renderuje się, gdy jest jakikolwiek model.</p></div>
-    <div><h4><code>Validator</code>: wymagane fixtures</h4><p>Czyta <code>required</code> z najwyższego poziomu <code>fixturesSchema</code> agenta i porównuje z kluczami <code>fixtures</code> scenariusza. Głębiej nie sprawdza.</p><p class="wf-muted">tylko online: offline nie zna kontraktu</p></div>
-    <div><h4>Hook <code>SessionStart</code></h4><p>W repo z <code>suwageval/agent.yaml</code> dokłada do sesji pętlę: co pada → rozmowa jako scenariusz → run → dlaczego (z tracingiem projektu) → popraw agenta, nie test. Dopisuje, czy monitoring jest włączony i czy jest CLI.</p></div>
-  </div>
-  <h3>Co się dzieje, gdy Claude otwiera sesję w repo suwexag</h3>
-  <ol class="steps">
-    <li><p><code>hooks.json</code> odpala <code>session-context.sh</code> przy starcie, <code>/clear</code> i kompaktowaniu.</p></li>
-    <li><p>Skrypt widzi <code>suwageval/agent.yaml</code>, wypisuje <code>agent-loop.md</code> i linię „Monitoring is on”, bo plik ma <code>features.monitoring</code>.</p></li>
-    <li><p>Claude Code dodaje to do kontekstu, więc na „agent źle odpowiada o zwrotach” Claude zaczyna od <code>runs</code> / <code>monitoring checks</code>, a nie od zgadywania.</p></li>
-    <li><p>W repo bez <code>suwageval/agent.yaml</code> skrypt nic nie wypisuje: zero kosztu w innych projektach.</p></li>
-  </ol>
 </section>
 
-<section data-role="data">
-  <h2>Konfiguracja i formaty</h2>
+<section data-role="scenarios">
+  <h2>Scenariusze</h2>
+  <h3>1. CI agenta suwexag po zmianie promptu: wszystko przechodzi</h3>
+  <p>Agent ma 13 scenariuszy, z czego 5 ma <code>acGuardrail</code> (<code>AC-refunds-1…5</code>). <code>agent.yaml</code> nie ustawia limitu, więc domyślny wynosi 5.</p>
+  <div class="term"><span class="dim">$</span> suwageval push &amp;&amp; suwageval gate
+PASSED 5 of 5 acceptance criteria
+<span class="dim">$</span> echo $?
+0</div>
+
+  <h3>2. Ta sama bramka, AC pada</h3>
+  <p><code>AC-refunds-2</code> (<code>retryLimit: 2</code>) nie przechodzi w żadnej z prób. Log CI mówi, co padło w każdej próbie i co agent zrobił w ostatniej.</p>
+  <div class="term"><span class="dim">$</span> suwageval gate
+FAILED AC-refunds-2 (scenario refund-not-delivered): 2 of 2 attempts failed
+  attempt 1: no-refund-when-shipped: refund_order (by support) was not called in turn 1.
+  attempt 2: no-refund-when-shipped: refund_order (by support) was not called in turn 1.
+  what the agent did in the last attempt:
+    tool call get_order {"order_id":"A-18"}
+    tool result: {"orderId":"A-18","status":"shipped",…}
+    assistant: Sorry — order A-18 is still shipped, not delivered yet, so I can't refund it…
+FAILED AC-refunds-2 (4 of 5 acceptance criteria passed); everything: suwageval results 243d…
+<span class="dim">$</span> echo $?
+1</div>
+
+  <h3>3. Agent w Claude Code sprawdza swoją zmianę</h3>
+  <p>Claude zmienił narzędzie refundów w repo agenta. Plugin podpowiada mu <code>suwageval push</code> i <code>suwageval gate --json</code>. Z <code>gate.failedGuardrail</code> i komunikatów checków agent odczytuje, co padło, poprawia kod i puszcza bramkę jeszcze raz.</p>
+
+  <h3>4. Błędne id w scenariuszu</h3>
+  <p>Autor wpisał <code>acGuardrail: { id: refunds-1 }</code> i drugi scenariusz z tym samym <code>AC-refunds-1</code>. <code>suwageval validate</code> zgłasza oba problemy przy plikach. Push odrzuca te same błędy na serwerze tą samą regułą.</p>
+</section>
+
+<section data-role="behaviour">
+  <h2>Zachowanie</h2>
+  <script type="text/x-mermaid" data-caption="Jeden run bramkowy">
+flowchart TB
+  S([suwageval gate]) --> Q{scenariusze z acGuardrail, każdy z checkiem, id unikalne?}
+  Q -->|nie| X2([exit 2 z powodem])
+  Q -->|tak| N[następny scenariusz AC]
+  N --> A[próba: jedna rozmowa, wszystkie checki]
+  A -->|wszystkie przeszły| OK[AC zaliczone]
+  A -->|któryś nie przeszedł| R{próby &lt; limit?}
+  R -->|tak| A
+  R -->|nie| F([bramka stoi, opis porażki, exit 1])
+  OK --> M{zostały scenariusze?}
+  M -->|tak| N
+  M -->|nie| D([PASSED, exit 0])
+  </script>
+
+  <h3>Reguły</h3>
+  <ul>
+    <li><b>Udział:</b> w bramce biorą udział dokładnie te scenariusze agenta na serwerze, które mają sekcję <code>acGuardrail</code>. Bramka czyta to, co jest na serwerze, więc wcześniej trzeba zrobić <code>suwageval push</code> (mówi to <code>--help</code>). Scenariusze z <code>acGuardrail</code> dalej wchodzą do zwykłych runów.</li>
+    <li><b>Próba</b> to jedna rozmowa scenariusza (z symulacją, jeśli ją ma), oceniona wszystkimi checkami scenariusza. Przechodzi, gdy przeszedł każdy check. <code>samples</code> i <code>passThreshold</code> bramka ignoruje.</li>
+    <li><b>Limit prób:</b> <code>acGuardrail.retryLimit</code> scenariusza, potem <code>acGuardrailRetryLimit</code> z <code>agent.yaml</code> (z chwili startu bramki), potem <code>5</code>. Liczba oznacza maksymalną liczbę prób, w zakresie 1–20.</li>
+    <li><b>Zatrzymanie:</b> na pierwszym AC, które wyczerpało próby. Scenariusze, które jeszcze nie ruszyły, nie są wywoływane. Te, które już trwają (scenariusze idą równolegle w limicie serwera), kończą bieżącą próbę i nie zaczynają kolejnej.</li>
+    <li><b>Wyjście (quiet):</b> sukces to jedna linia <code>PASSED n of n acceptance criteria</code>. Dla każdego AC, które padło, wydruk podaje każdą próbę z checkami, które nie przeszły, i powodem werdyktu (albo błąd agenta), a potem przebieg ostatniej próby (wywołania narzędzi, wyniki, odpowiedź). Dalej idą AC zatrzymane w trakcie, niezaczęte scenariusze i linia końcowa z id runu. <code>--json</code> wypisuje pełne wyniki z werdyktem w <code>gate</code>.</li>
+    <li><b>Run bramkowy to werdykt, nie ewaluacja:</b> serwer go wykonuje i przechowuje, ale nie pokazuje go żadna lista ani strona weba, <code>suwageval runs</code>, historia regresji, trend, problemy ani liczniki runów wersji. Czyta go tylko <code>gate</code> (i <code>results &lt;id&gt;</code>). Nie da się zrobić jego rechecku: bramkę puszcza się jeszcze raz.</li>
+  </ul>
+
+  <h3>Kod wyjścia</h3>
   <table>
-    <tr><th>Gdzie</th><th>Teraz</th><th>Zgodność</th></tr>
-    <tr><td><code>.env</code></td><td><code>Models__fallback__BaseUrl</code>, <code>__Model</code>; role opcjonalnie</td><td>sam <code>Models__judge__*</code> dalej działa dla sędziego, ale symulator i opisywacz już nie biorą go zapasowo</td></tr>
-    <tr><td>Chart</td><td><code>models.{fallback,judge,simulator,describer}</code></td><td><b>łamie</b> wartości platform repo: <code>judgeModel</code> / <code>simulatorModel</code> nie istnieją</td></tr>
-    <tr><td><code>monitoring-checks.yaml</code></td><td><code>description</code> opcjonalne</td><td>istniejące pliki dalej poprawne</td></tr>
-    <tr><td>Plugin</td><td><code>skills/&lt;nazwa&gt;/SKILL.md</code>, <code>hooks/hooks.json</code></td><td>te same <code>/suwageval:…</code>; zainstalowany plugin dostanie to po merge do <code>master</code></td></tr>
+    <tr><th>Sytuacja</th><th>Kod</th></tr>
+    <tr><td>Każde AC zaliczone</td><td><code>0</code></td></tr>
+    <tr><td>Jakieś AC wyczerpało próby</td><td><code>1</code></td></tr>
+    <tr><td>Bramka się nie zaczęła lub nie skończyła: brak scenariuszy AC, scenariusz AC bez checka, zdublowane id na serwerze, agent nieosiągalny, run failed / anulowany / przerwany restartem serwera</td><td><code>2</code></td></tr>
+    <tr><td>Ctrl+C podczas czekania (jak w <code>run</code>: pytanie, czy anulować na serwerze)</td><td><code>130</code></td></tr>
+  </table>
+
+  <h3>Przypadki brzegowe</h3>
+  <table>
+    <tr><th>Sytuacja</th><th>Oczekiwane zachowanie</th></tr>
+    <tr><td>Agent nie ma żadnego scenariusza z <code>acGuardrail</code></td><td>Run nie powstaje; komunikat i exit 2.</td></tr>
+    <tr><td>Scenariusz z <code>acGuardrail</code> bez checków</td><td>Błąd w <code>validate</code>; serwer odmawia startu bramki (checki są pushowane osobno od scenariuszy).</td></tr>
+    <tr><td>To samo id w dwóch scenariuszach</td><td>Błąd w <code>validate</code> i przy pushu; dwa zapisane scenariusze z tym samym id (stary, którego plik zniknął) blokują start bramki z komunikatem.</td></tr>
+    <tr><td>Agent zwraca błąd w próbie (5xx, timeout)</td><td>Próba się nie udała i liczy się do limitu; wydruk podaje błąd.</td></tr>
+    <tr><td>Model sędziego niedostępny</td><td>Run kończy się statusem failed, exit 2. To nie jest „AC nie przeszło”.</td></tr>
+    <tr><td>Id w złym formacie (<code>refunds-1</code>, <code>ac-refunds-1</code>, <code>AC-refunds</code>)</td><td>Błąd walidacji przy pliku w <code>validate</code>, przy pushu na serwerze.</td></tr>
+    <tr><td><code>retryLimit</code> 0, 21 albo nie liczba</td><td>Błąd walidacji (zakres 1–20).</td></tr>
+    <tr><td><code>suwageval recheck</code> na runie bramkowym</td><td>Odmowa: „run the gate again”.</td></tr>
   </table>
 </section>
 
-<section data-role="files">
-  <h2>Gdzie są zmiany</h2>
-  <details><summary>Mapa (51 plików)</summary>
-  <ul class="files">
-    <li class="dir">Serwer</li>
-    <li data-change="modified"><span class="path">Suwageval.Server/LanguageModels/ModelClients.cs</span><span class="why"><code>FallbackEntry</code>, <code>EntryFor</code></span><span class="stat"><span class="p">+9</span></span></li>
-    <li data-change="modified"><span class="path">Suwageval.Server/Judges/, Evaluation/Simulation/</span><span class="why">sędzia, argumenty, symulator, opisywacz przez <code>EntryFor</code></span><span class="stat"><span class="p">+30</span> <span class="m">−24</span></span></li>
-    <li data-change="modified"><span class="path">Suwageval.Server/Evaluation/Runs/RunEndpoints.cs</span><span class="why">teksty 409</span></li>
-    <li class="dir">CLI i kontrakty</li>
-    <li data-change="modified"><span class="path">Suwageval.Cli/Validation/Validator.cs</span><span class="why">wymagane fixtures</span><span class="stat"><span class="p">+39</span></span></li>
-    <li data-change="modified"><span class="path">Suwageval.Contracts/Monitoring/MonitoringCheckRules.cs</span><span class="why">bez wymogu <code>description</code></span><span class="stat"><span class="m">−6</span></span></li>
-    <li class="dir">Wdrożenie</li>
-    <li data-change="modified"><span class="path">deploy/chart/</span><span class="why">mapa <code>models</code>, jeden helper zamiast trzech</span><span class="stat"><span class="p">+84</span> <span class="m">−100</span></span></li>
-    <li data-change="modified"><span class="path">.env.example, compose.yaml</span><span class="why">fallback</span></li>
-    <li class="dir">Plugin</li>
-    <li data-change="renamed"><span class="path">claude-plugin/commands/*.md → skills/*/SKILL.md</span><span class="why">6 skilli; <code>versions</code> i <code>update</code> tylko na Twoje polecenie</span></li>
-    <li data-change="added"><span class="path">claude-plugin/hooks/, scripts/session-context.sh</span><span class="why">hook sesji i pętla</span><span class="stat"><span class="p">+51</span></span></li>
-    <li class="dir">Testy i dokumentacja</li>
-    <li data-change="modified"><span class="path">Suwageval.Server.Tests/, Suwageval.Cli.Tests/</span><span class="why">fallback w testach, nowe testy fallbacku, fixtures, hooka</span></li>
-    <li data-change="modified"><span class="path">README.md, AGENTS.md, docs/, TODO.md</span><span class="why">jeden model, plugin, fixtures, pomysły</span></li>
+<section data-role="data">
+  <h2>Kontrakt plików</h2>
+  <script type="text/x-code" data-file="suwageval/scenarios/refund-over-limit.yaml" data-lang="yaml"
+    data-notes='[{"lines":"3-5","label":"Nowe","note":"id: AC-<feature>-<n>, feature w kebab-case; retryLimit opcjonalny, 1–20"}]'>
+key: refund-over-limit
+tags: [refunds]
+acGuardrail:
+  id: AC-refunds-2
+  retryLimit: 2
+conversation: …
+checks: …
+</script>
+  <table>
+    <tr><th>Pole</th><th>Gdzie</th><th>Typ</th><th>Znaczenie</th></tr>
+    <tr><td><code>acGuardrail.id</code></td><td>scenariusz</td><td>string, <code>^AC-[a-z0-9]+(-[a-z0-9]+)*-[1-9][0-9]*$</code></td><td>Kryterium akceptacji, którego scenariusz jest guardrailem. Wymagane, gdy jest sekcja. Unikalne w obrębie agenta.</td></tr>
+    <tr><td><code>acGuardrail.retryLimit</code></td><td>scenariusz</td><td>int 1–20, opcjonalne</td><td>Maksymalna liczba prób tego scenariusza na bramce.</td></tr>
+    <tr><td><code>acGuardrailRetryLimit</code></td><td><code>agent.yaml</code></td><td>int 1–20, opcjonalne, domyślnie 5</td><td>Limit prób dla scenariuszy, które nie ustawiają własnego.</td></tr>
+  </table>
+  <p>Zmiana <code>acGuardrail</code> scenariusza tworzy jego nową rewizję, a zmiana <code>acGuardrailRetryLimit</code> rewizji nie tworzy. Format opisuje <code>docs/scenario-format.md</code> („The gate”). <code>--json</code> zwraca wyniki runu: <code>gate: { passed, failedGuardrail }</code>, a na każdym scenariuszu <code>acGuardrail: { id, retryLimit, attempts, passed }</code>.</p>
+</section>
+
+<section data-role="ui">
+  <h2>Web</h2>
+  <p>Runów bramkowych web nie pokazuje. Jedyna widoczna zmiana: karta scenariusza na stronie zwykłego runu ma chip z id AC, jeśli scenariusz pilnuje kryterium.</p>
+  <div class="wire after"><span class="wf-label">Strona runu: karta scenariusza</span>
+    <div class="wf-bar"><b>refund-not-delivered</b><span class="wf-grow"></span><span class="wf-btn wf-new">AC-refunds-2</span></div>
+    <div class="wf-body"><div class="wf-card wf-row"><span class="wf-grow">checki i sample jak dotąd</span></div></div>
+  </div>
+</section>
+
+<section data-role="decisions">
+  <h2>Decyzje <span class="tag">optional</span></h2>
+  <div class="callout decision"><p>Bramkę wykonuje serwer, tak jak <code>run</code>, a nie CLI lokalnie. Sędzia, symulator i modele siedzą na serwerze, a kolejka workera potrzebuje rekordu runu. W CI serwer i jego baza żyją tylko przez czas joba.</p></div>
+  <div class="callout decision"><p>Bramka bierze każdy scenariusz z <code>acGuardrail</code>, bez <code>--tag</code>. O tym, co jest guardrailem, decyduje plik scenariusza, a nie wywołanie w CI, więc nie da się po cichu pominąć AC.</p></div>
+  <div class="callout decision"><p>Bramka nie robi pusha. Jest spójna z <code>run</code>, a push ma własny raport błędów; <code>--help</code> mówi, że push idzie pierwszy.</p></div>
+  <div class="callout decision"><p>Bramka jest tylko w CLI, z cichym wyjściem. Przy sukcesie nikt nie czyta logu, przy porażce log musi wystarczyć do zrozumienia, co padło. Liczniki checków i pasek postępu runu nie opisują dobrze bramki, więc web jej nie pokazuje.</p></div>
+  <div class="callout decision"><p>Format id <code>AC-&lt;feature&gt;-&lt;n&gt;</code> jest wymuszany tak jak w metodzie spec-driven, żeby id w scenariuszu było tym samym id, co w specce agenta. Reguła żyje raz, w <code>Suwageval.Contracts</code>, i używają jej CLI i serwer.</p></div>
+  <div class="callout decision"><p>Recheck runu bramkowego jest zablokowany. Próby urwały się na pierwszym sukcesie albo failu, więc ponowna ocena nie odpowiada na pytanie bramki.</p></div>
+</section>
+
+<section data-role="acceptance">
+  <h2>Kryteria akceptacji</h2>
+  <ul class="checks">
+    <li><code>AC-gate-runs-1</code> <code>validate</code> przyjmuje scenariusz z sekcją <code>acGuardrail</code> (id w formacie AC i <code>retryLimit: 2</code>) i <code>agent.yaml</code> z <code>acGuardrailRetryLimit: 3</code>, a odrzuca id spoza formatu <code>AC-&lt;feature&gt;-&lt;n&gt;</code>, brak <code>id</code>, <code>retryLimit</code> spoza 1–20 oraz scenariusz z <code>acGuardrail</code> bez checków.</li>
+    <li><code>AC-gate-runs-2</code> <code>validate</code> zgłasza to samo id AC w dwóch scenariuszach agenta jako błąd, z nazwami obu plików.</li>
+    <li><code>AC-gate-runs-3</code> Serwer odrzuca push scenariuszy, które łamią którąkolwiek z reguł <code>acGuardrail</code> (format id, unikalność, zakres limitu), tym samym komunikatem, który podaje <code>validate</code> (422, nic nie zostaje zapisane).</li>
+    <li><code>AC-gate-runs-4</code> <code>suwageval gate</code> uruchamia dokładnie scenariusze agenta z <code>acGuardrail</code>. Scenariusze bez sekcji nie są wywoływane.</li>
+    <li><code>AC-gate-runs-5</code> Scenariusz zalicza pierwsza próba, w której przeszły wszystkie checki. Po niej nie startuje żadna kolejna próba tego scenariusza, niezależnie od <code>samples</code> i <code>passThreshold</code>.</li>
+    <li><code>AC-gate-runs-6</code> Limit prób to <code>acGuardrail.retryLimit</code>, a bez niego <code>acGuardrailRetryLimit</code> z <code>agent.yaml</code>, a bez niego 5. Scenariusz, który nie przechodzi nigdy, dostaje dokładnie tyle prób, ile wynosi ten limit.</li>
+    <li><code>AC-gate-runs-7</code> Gdy AC wyczerpie próby, bramka się kończy. Scenariusze, których próby jeszcze się nie zaczęły, nie są wywoływane. <code>gate</code> kończy się kodem 1.</li>
+    <li><code>AC-gate-runs-8</code> <code>gate</code> kończy się kodem 0, gdy każde AC przeszło, a kodem 2, gdy agent nie ma scenariuszy z <code>acGuardrail</code>, któryś nie ma checka, walidacja nie przeszła albo run się nie skończył.</li>
+    <li><code>AC-gate-runs-9</code> Wyjście <code>gate</code> jest ciche: przy sukcesie to jedna linia <code>PASSED n of n acceptance criteria</code>. Dla każdego AC, które padło, podaje każdą próbę z checkami, które nie przeszły, i ich komunikatem, potem przebieg ostatniej próby i linię końcową z id runu. <code>--json</code> zwraca wyniki z werdyktem w <code>gate</code>.</li>
+    <li><code>AC-gate-runs-10</code> Run bramkowy nie pojawia się na żadnej liście runów (web i <code>suwageval runs</code>, przy każdym filtrze), w trendzie, w problemach ani w licznikach runów wersji.</li>
+    <li><code>AC-gate-runs-11</code> Na stronie runu karta scenariusza z <code>acGuardrail</code> pokazuje jego id AC.</li>
+    <li><code>AC-gate-runs-12</code> Plugin opisuje <code>suwageval gate</code> (skill <code>suwageval</code>, skill <code>/suwageval:run</code>): kiedy go użyć, że najpierw idzie push, jak czytać kody wyjścia i <code>--json</code>. Komenda ma też wiersz w <code>docs/front-doors.md</code>.</li>
   </ul>
-  </details>
 </section>
 
-<section data-role="verification">
-  <h2>Weryfikacja</h2>
-  <div class="callout ok"><p><b>Bramka <code>check.sh</code> — PASS</b> przed każdym z trzech pushów (w worktree), ostatnio na zmianach z 4b95b26: m.in. testy serwera, 749/749 testów CLI, helm, shellcheck (teraz też skrypt pluginu).</p></div>
-  <div class="callout ok"><p><b>Live testy — 7/7</b> (<code>live-check.sh</code>, tylko <code>Models__fallback__*</code> w .env): sędzia, argumenty, symulator, opisywacz.</p></div>
-  <div class="callout ok"><p><b>Na lokalnym stosie:</b> run <code>d21b5f75</code> (tag simulation) — 7/8 checków; jedyny czerwony to zachowanie agenta („confirms-the-refund-at-the-end”), nie konfiguracja. „Generate scenario” przez API z modelu, bez <code>notice</code>.</p></div>
-  <div class="callout warn"><p><b>Nieuruchomione:</b> e2e (web zmienił tylko jeden tekst pomocy), hook sesji w prawdziwej sesji Claude Code (zainstalowany plugin jest z <code>master</code>), deploy na klaster.</p></div>
-</section>
-
-<section data-role="review">
-  <h2>Gdzie patrzeć uważnie</h2>
-  <ol class="steps">
-    <li><h4>Klaster po deployu bez modelu</h4><p><code>deploy/chart/values.yaml</code>: <code>judgeModel</code> zniknął. Platform repo musi ustawić <code>models.fallback.secret</code> (Secret z <code>Models__fallback__*</code>), inaczej sędzia i symulacje na klastrze nie mają modelu, a live check się nie renderuje.</p></li>
-    <li><h4>Puste <code>Judge:Model</code> idzie do fallbacku</h4><p><code>Judge.EntryOf</code>: pusta nazwa wpisu sędziego nie wyłącza sędziego, tylko kieruje go do fallbacku. Wyłączyć sędziego można tylko brakiem modeli.</p></li>
-    <li><h4>Wymagane fixtures tylko z najwyższego poziomu</h4><p><code>Validator.MissingFixtures</code> nie schodzi w głąb schematu i nie działa offline. Brak wymaganego pola zagnieżdżonego dalej wyjdzie dopiero w runie.</p></li>
-    <li><h4>Hook czyta YAML grepem</h4><p><code>session-context.sh</code> rozpoznaje monitoring po wciętej linii <code>monitoring:</code>. <code>features: { monitoring: {} }</code> zapisane inline nie zostanie rozpoznane (tylko brak jednej linii w kontekście).</p></li>
-  </ol>
-</section>
-
-<section data-role="followups">
-  <h2>Co zostało</h2>
-  <ul>
-    <li><b>Twoje:</b> platform repo → <code>models.fallback.secret</code> przed deployem; <code>just secrets backup</code> (lokalny <code>.env</code> się zmienił).</li>
-    <li>Po merge epiku: <code>/suwageval:update</code>, żeby zainstalowany plugin dostał skille i hook.</li>
-    <li>W TODO: strona startowa agenta, szybsza i tańsza pętla, krótszy output, oznaczanie poluzowanych checków, pełna walidacja schematów fixtures.</li>
-  </ul>
+<section data-role="risks">
+  <h2>Ryzyka i założenia</h2>
+  <div class="callout risk"><p><b>Koszt przy niestabilnym AC:</b> 10 scenariuszy × 5 prób × symulacja wielu tur to dużo wywołań agenta i sędziego. Ograniczają to zatrzymanie na pierwszym failu i limit 1–20; scenariusze AC warto trzymać krótkie.</p></div>
+  <div class="callout risk"><p><b>„Pierwsza udana próba” przepuszcza niestabilne zachowanie</b>, np. AC przechodzące w 1 na 5 prób. To świadomy wybór bramki (agent <i>potrafi</i>). Stabilność mierzy zwykły run z samplami i <code>passThreshold</code>.</p></div>
+  <div class="callout risk"><p><b>Runy bramkowe zostają w bazie, niewidoczne.</b> W CI baza żyje tylko przez czas joba. Na stałym serwerze runy bramkowe się zbierają: znikają razem z wersją lub agentem, ale nie mają własnego sprzątania.</p></div>
 </section>
 <!-- CONTENT END -->
 </main>

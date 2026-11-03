@@ -1616,6 +1616,19 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * @description The acceptance criterion a scenario guards (`acGuardrail:`): `suwageval gate` runs every scenario that has one, and the
+         *     scenario passes on its first attempt in which every check passes, out of at most int? AcGuardrail.RetryLimit attempts.
+         */
+        AcGuardrail: {
+            /** @description The criterion's id, `AC-&lt;feature&gt;-&lt;n&gt;` (AcGuardrailRules), unique within the agent. */
+            id: string;
+            /**
+             * Format: int32
+             * @description The most attempts the gate makes (1 to 20); not set: the agent's `acGuardrailRetryLimit`, else 5.
+             */
+            retryLimit?: null | number;
+        };
         /** @description An agent under test. The request that creates it is AgentDefinition. */
         Agent: {
             /** Format: uuid */
@@ -1643,6 +1656,11 @@ export interface components {
              * @description How many times each scenario's conversation is sent to the agent by default (1 to 20); none means 3.
              */
             samples?: null | number;
+            /**
+             * Format: int32
+             * @description How many attempts `suwageval gate` gives a scenario that sets no `acGuardrail.retryLimit` (1 to 20); none means 5.
+             */
+            acGuardrailRetryLimit?: null | number;
             regression?: null | components["schemas"]["RegressionSettings"];
             features?: null | components["schemas"]["AgentFeatures"];
         };
@@ -1691,6 +1709,11 @@ export interface components {
              * @description The agent's default number of samples from `agent.yaml`; none when it has no `samples:` (3 then).
              */
             samples?: null | number;
+            /**
+             * Format: int32
+             * @description The gate's default number of attempts from `agent.yaml`; none when it has no `acGuardrailRetryLimit:` (5 then).
+             */
+            acGuardrailRetryLimit?: null | number;
             regression?: null | components["schemas"]["RegressionSettings"];
             /** @description Which areas the agent uses, as pushed from `agent.yaml` (the defaults when it has no `features:`). */
             features: components["schemas"]["AgentFeatures"];
@@ -2397,6 +2420,15 @@ export interface components {
             /** @description The shape of the event's `data`, as a JSON Schema document. */
             dataSchema: components["schemas"]["JsonElement"];
         };
+        /**
+         * @description What a gate run (`suwageval gate`) came to: passed when every acceptance criterion it ran was met, failed at the first one
+         *     that used up its attempts. Read it only once the run is done; a run that did not finish answers nothing.
+         */
+        GateResult: {
+            passed: boolean;
+            /** @description The acceptance criterion that used up its attempts; none when the gate passed. */
+            failedGuardrail?: null | string;
+        };
         /** @description What /health answers. */
         Health: {
             status: string;
@@ -2523,7 +2555,7 @@ export interface components {
             trend: components["schemas"]["Trend"];
         };
         /** @enum {unknown} */
-        RecheckBlocker: "NotFinished" | "AllSkipped" | "Mismatches" | "NothingChanged" | null;
+        RecheckBlocker: "NotFinished" | "AllSkipped" | "Mismatches" | "NothingChanged" | "GateRun" | null;
         /**
          * @description What a re-check of a run would do, and whether it can start at all. A re-check evaluates the run's stored answers again with
          *     the current checks, so it is only worth starting when some check changed since the run; the agent is not asked and its current
@@ -2761,6 +2793,11 @@ export interface components {
             group?: null | string;
             /** @description Why the run is started (NoteRules); none means no note. It can be changed after the run. */
             note?: null | string;
+            /**
+             * @description A gate run (`suwageval gate`): every scenario with an `acGuardrail`, each until its first attempt in which every check
+             *     passes, stopped at the first one whose attempts run out. Takes no IReadOnlyList&lt;string&gt; RunRequest.Tags and no string? RunRequest.Group.
+             */
+            gate?: boolean;
             origin?: null | components["schemas"]["RunOrigin"];
         };
         /** @description A run with what every scenario produced and how every check judged it. */
@@ -2777,6 +2814,7 @@ export interface components {
              * @description The 95th percentile (nearest rank) of the same turn times, in milliseconds; null when none did.
              */
             p95Ms?: null | number;
+            gate?: null | components["schemas"]["GateResult"];
             regression?: null | components["schemas"]["RegressionSummary"];
         };
         /**
@@ -2917,6 +2955,23 @@ export interface components {
             /** @description Said above the YAML when the simulated user was not described by a model, and why; null otherwise. */
             notice?: null | string;
         };
+        /** @description The acceptance criterion a scenario guards (its `acGuardrail` in the revision that ran) and, in a gate run, how its attempts went. */
+        ScenarioGuardrailResult: {
+            /** @description The criterion's id, `AC-&lt;feature&gt;-&lt;n&gt;`. */
+            id: string;
+            /**
+             * Format: int32
+             * @description In a gate run: the most attempts the scenario had (its own limit, else the agent's at the start of the run, else 5); none in another run.
+             */
+            retryLimit?: null | number;
+            /**
+             * Format: int32
+             * @description In a gate run: the attempts made; none in another run.
+             */
+            attempts?: null | number;
+            /** @description In a gate run: true when an attempt passed every check, false when the attempts ran out; none in another run, or while attempts go on. */
+            passed?: null | boolean;
+        };
         /** @description A frozen moment of a conversation; the agent answers its last message. */
         ScenarioInput: {
             /** @description Lowercase kebab-case, unique within the agent. */
@@ -2932,6 +2987,7 @@ export interface components {
              *     Not set: the agent's `samples`, else 3.
              */
             samples?: null | number;
+            acGuardrail?: null | components["schemas"]["AcGuardrail"];
             origin?: null | components["schemas"]["ScenarioOrigin"];
         };
         /** @description Where a scenario came from, when it was made from something real: a monitored conversation (its id in Suwageval). */
@@ -2955,6 +3011,7 @@ export interface components {
              *     belong to no revision. Comments of the pushed file are not kept.
              */
             definitionYaml: string;
+            acGuardrail?: null | components["schemas"]["ScenarioGuardrailResult"];
             samples: components["schemas"]["SampleResult"][];
             checks: components["schemas"]["CheckRunResult"][];
             /**

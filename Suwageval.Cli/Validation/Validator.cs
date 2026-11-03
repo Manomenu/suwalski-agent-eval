@@ -62,6 +62,7 @@ internal static class Validator
 
         var scenarioKeys = new Dictionary<string, string>();
         var checkKeys = new Dictionary<string, string>();
+        var guardrailIds = new Dictionary<string, string>();
         var checkCount = 0;
         var loadedScenarios = new List<LoadedScenario>();
         foreach (var file in scenarioFiles)
@@ -73,7 +74,7 @@ internal static class Validator
             }
             loadedScenarios.Add(loaded);
             checkCount += loaded.Checks.Count;
-            CheckScenario(loaded, contract, scenarioKeys, checkKeys, problems);
+            CheckScenario(loaded, contract, scenarioKeys, checkKeys, guardrailIds, problems);
         }
         return new ValidationResult(problems, loadedScenarios.Count, checkCount) { Agent = loadedAgent, LoadedScenarios = loadedScenarios };
     }
@@ -83,6 +84,7 @@ internal static class Validator
         AgentContract? contract,
         Dictionary<string, string> scenarioKeys,
         Dictionary<string, string> checkKeys,
+        Dictionary<string, string> guardrailIds,
         List<Problem> problems
     )
     {
@@ -103,6 +105,7 @@ internal static class Validator
         {
             problems.Add(source.Problem("samples", samplesProblem));
         }
+        CheckGuardrail(loaded, guardrailIds, problems);
         foreach (var (path, message) in ContinuationRules.Problems(scenario))
         {
             problems.Add(source.Problem(path, message));
@@ -142,6 +145,29 @@ internal static class Validator
             {
                 problems.Add(source.Problem($"checks[{i}].where.turn", turnProblem));
             }
+        }
+    }
+
+    /// <summary>The scenario's <c>acGuardrail</c>: a valid id and limit, an id no other scenario of the agent guards, and checks to guard it with.</summary>
+    private static void CheckGuardrail(LoadedScenario loaded, Dictionary<string, string> guardrailIds, List<Problem> problems)
+    {
+        if (loaded.Scenario.AcGuardrail is not { } guardrail)
+        {
+            return;
+        }
+        var source = loaded.Source;
+        problems.AddRange(AcGuardrailRules.Problems(guardrail).Select(problem => source.Problem(problem.Path, problem.Message)));
+        if (guardrailIds.TryGetValue(guardrail.Id, out var other))
+        {
+            problems.Add(source.Problem("acGuardrail.id", AcGuardrailRules.Duplicate(guardrail.Id, other)));
+        }
+        else
+        {
+            guardrailIds[guardrail.Id] = $"{loaded.Scenario.Key}' in '{source.File}";
+        }
+        if (loaded.Checks.Count == 0)
+        {
+            problems.Add(source.Problem("acGuardrail", AcGuardrailRules.NoChecks));
         }
     }
 

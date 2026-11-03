@@ -13,6 +13,10 @@ public sealed record AgentDefinition
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public int? Samples { get; init; }
 
+    /// <summary>How many attempts <c>suwageval gate</c> gives a scenario that sets no <c>acGuardrail.retryLimit</c> (1 to 20); none means 5.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? AcGuardrailRetryLimit { get; init; }
+
     /// <summary>How the agent's regressions are found; none means the defaults.</summary>
     public RegressionSettings? Regression { get; init; }
 

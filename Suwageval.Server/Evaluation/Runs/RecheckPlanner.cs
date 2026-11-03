@@ -16,6 +16,17 @@ namespace Suwageval.Server.Evaluation.Runs;
 /// </summary>
 internal static class RecheckPlanner
 {
+    /// <summary>The plan of a gate run: never possible, its attempts stopped at the first success or failure, so the gate is run again instead.</summary>
+    public static RecheckPlan GateRun() =>
+        Blocked(
+            RecheckBlocker.GateRun,
+            "A gate run is not re-checked: its attempts stopped at the first success or failure. Run the gate again (suwageval gate).",
+            [],
+            0,
+            [],
+            []
+        );
+
     /// <param name="status">The status of the run the person looked at.</param>
     /// <param name="originalSamples">The samples of the run that called the agent: its answers are what is re-checked.</param>
     /// <param name="shownSamples">The samples of the run the person looked at (the same, unless that is a re-check).</param>

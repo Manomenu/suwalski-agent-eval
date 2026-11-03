@@ -35,13 +35,13 @@ public sealed class ScenarioYamlRoundTripTests
     public void A_scenario_drafted_from_a_conversation_is_a_valid_scenario_file_that_remembers_its_conversation()
     {
         var id = Guid.NewGuid();
-        var draft = Suwageval.Server.ScenarioDrafts.ScenarioDraftWriter.Draft(
+        var draft = Server.ScenarioDrafts.ScenarioDraftWriter.Draft(
             "chat-81",
             id,
-            [.. Suwageval.Server.Tests.ScenarioDrafts.ScenarioDraftWriterTests.Turns().SelectMany(turn => turn)],
-            new Suwageval.Server.ScenarioDrafts.MessageCut(true, 2),
+            [.. ScenarioDrafts.ScenarioDraftWriterTests.Turns().SelectMany(turn => turn)],
+            new Server.ScenarioDrafts.MessageCut(true, 2),
             [
-                new Suwageval.Contracts.Checks.ToolNotCalledCheck
+                new Contracts.Checks.ToolNotCalledCheck
                 {
                     Key = "no-refund",
                     Tool = "refund_order",
@@ -65,13 +65,13 @@ public sealed class ScenarioYamlRoundTripTests
     [Fact]
     public void A_scenario_drafted_with_the_rest_simulated_is_a_valid_simulation()
     {
-        var draft = Suwageval.Server.ScenarioDrafts.ScenarioDraftWriter.Draft(
+        var draft = Server.ScenarioDrafts.ScenarioDraftWriter.Draft(
             "chat-81",
             Guid.NewGuid(),
-            [.. Suwageval.Server.Tests.ScenarioDrafts.ScenarioDraftWriterTests.Turns().SelectMany(turn => turn)],
-            new Suwageval.Server.ScenarioDrafts.MessageCut(true, 1),
+            [.. ScenarioDrafts.ScenarioDraftWriterTests.Turns().SelectMany(turn => turn)],
+            new Server.ScenarioDrafts.MessageCut(true, 1),
             [],
-            (new Suwageval.Server.Evaluation.Simulation.UserDescription("You are a customer whose kettle broke.\nYou write in English."), 2)
+            (new Server.Evaluation.Simulation.UserDescription("You are a customer whose kettle broke.\nYou write in English."), 2)
         );
         var problems = new List<Cli::Suwageval.Cli.Files.Problem>();
 

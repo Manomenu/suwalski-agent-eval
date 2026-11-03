@@ -17,4 +17,7 @@ public enum RecheckBlocker
 
     /// <summary>No check of the run's scenarios changed: the result would be the same.</summary>
     NothingChanged,
+
+    /// <summary>A gate run: its attempts stopped at the first success or failure, so judging them again does not answer the gate; run it again.</summary>
+    GateRun,
 }

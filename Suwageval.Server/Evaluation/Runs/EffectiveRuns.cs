@@ -5,7 +5,7 @@ namespace Suwageval.Server.Evaluation.Runs;
 /// <summary>
 /// The one rule for whose verdicts a re-checked run shows: every run that called the agent counts once, and when it has been
 /// re-checked, its newest finished re-check supplies the verdicts (the re-check judges the same stored answers with the current
-/// checks, so it replaces the original's verdicts and is never a sample of its own). A run started in a group is an experiment and never counts.
+/// checks, so it replaces the original's verdicts and is never a sample of its own). A run started in a group is an experiment and never counts, nor does a gate run.
 /// The pass-rate trend, the unstable checks and the agent errors all read runs through it.
 /// </summary>
 internal static class EffectiveRuns
@@ -22,7 +22,7 @@ internal static class EffectiveRuns
 
     /// <summary>
     /// The finished runs that called the agent among <paramref name="newestFirst"/>, at most <paramref name="maxRuns"/> of them, oldest
-    /// first, those started in a group left out. A re-check is never a point of its own; the newest finished one of a run replaces that run's results.
+    /// first, those started in a group and gate runs left out. A re-check is never a point of its own; the newest finished one of a run replaces that run's results.
     /// </summary>
     public static IReadOnlyList<Point> Pick(IReadOnlyList<RunRow> newestFirst, int maxRuns)
     {
@@ -34,7 +34,7 @@ internal static class EffectiveRuns
         return
         [
             .. newestFirst
-                .Where(run => run.State == RunStatus.Done && run.RecheckOf is null && run.RunGroup is null)
+                .Where(run => run.State == RunStatus.Done && run.RecheckOf is null && run.RunGroup is null && !run.Gate)
                 .Take(maxRuns)
                 .Select(run => new Point(run, latestRecheck.GetValueOrDefault(run.Id)))
                 .Reverse(),

@@ -37,6 +37,11 @@ last user message is the one the agent answers next.
    kind of user, one simulated scenario: `continuation.simulatedUser` (that user in plain words: goal,
    temperament, situation, what they know, language) and `continuation.turns`, with checks over the
    whole conversation (never `where.turn` by number). `fixtures` only if the contract declares `context.fixturesSchema`.
+   A scenario written as the **guardrail of an acceptance criterion** (the user names a criterion of a spec, `AC-<feature>-<n>`, or
+   asks for a scenario that guards one) gets an `acGuardrail:` section with that criterion's `id` (`acGuardrail: { id: AC-refunds-2 }`,
+   the id exactly as the spec writes it; one scenario per criterion; `retryLimit: N` only when the user wants other than the agent's
+   default). It needs at least one check, and its checks together must fail when the criterion breaks: `suwageval gate` passes the
+   scenario on the first attempt in which every check passes. A scenario that guards no criterion has no `acGuardrail`.
 3. Write the scenario as one new file in `suwageval/scenarios/`, named after what it checks
    (`refund-happy-path.yaml`), with the checks inside. Use the `user:` / `assistant:`
    shorthands where they fit.

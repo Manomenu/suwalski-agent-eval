@@ -57,6 +57,22 @@ public sealed class ClaudePluginTests
     }
 
     [Fact]
+    [Trait("criterion", "AC-gate-runs-12")]
+    public void The_plugin_and_the_front_doors_tell_an_agent_how_to_write_a_guardrail_run_the_gate_and_read_its_verdict()
+    {
+        var reference = File.ReadAllText(Path.Combine(RepoRoot, "claude-plugin", "skills", "suwageval", "SKILL.md"));
+        var run = File.ReadAllText(Path.Combine(RepoRoot, "claude-plugin", "skills", "run", "SKILL.md"));
+        var frontDoors = File.ReadAllText(Path.Combine(RepoRoot, "docs", "front-doors.md"));
+        var scenario = File.ReadAllText(Path.Combine(RepoRoot, "claude-plugin", "skills", "scenario", "SKILL.md"));
+
+        Assert.Contains("suwageval gate --json", reference, StringComparison.Ordinal);
+        Assert.Contains("`gate` exits 0 when every acceptance criterion passed, 1 when one failed, 2", reference, StringComparison.Ordinal);
+        Assert.Contains("gate.failedGuardrail", run, StringComparison.Ordinal);
+        Assert.Contains("`gate` to run every scenario with an `acGuardrail`", frontDoors, StringComparison.Ordinal);
+        Assert.Contains("gets an `acGuardrail:` section with that criterion's `id`", scenario, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void The_session_hook_runs_a_script_of_the_plugin_whose_context_file_is_there()
     {
         var plugin = Path.Combine(RepoRoot, "claude-plugin");

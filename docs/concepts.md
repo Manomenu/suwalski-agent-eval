@@ -26,6 +26,11 @@ The agent under test receives the context and produces its next turn: a tool cal
 or both. Tools are not executed for real — what they would return comes from the scenario, so
 a run is repeatable and touches nothing outside.
 
+A **gate run** (`suwageval gate`) is a run of a different question: not "how well does the agent do", but "can it meet each
+acceptance criterion". It takes the scenarios that guard a criterion (`acGuardrail`), tries each until its first attempt that passes
+every check (up to a limit), and stops at the first criterion that fails. Its verdict is pass or fail, for a CI job or an agent at
+work; it stays out of the trend and the regression history ([the format](scenario-format.md), "The gate").
+
 ## The tests
 
 Run after the last message, on what the agent produced:

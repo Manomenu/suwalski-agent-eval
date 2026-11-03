@@ -22,7 +22,12 @@ public sealed class ScenarioDraftWriterTests
                     Arguments = JsonSerializer.SerializeToElement(new { order_id = "A-17", reason = "broken" }),
                     Agent = "support",
                 },
-                new ToolResult { CallId = "c1", Content = """{"refunded":89.9}""" },
+                new ToolResult
+                {
+                    CallId = "c1",
+                    Content = /*lang=json,strict*/
+                        """{"refunded":89.9}""",
+                },
                 new Event { Type = "state.changed", Data = JsonSerializer.SerializeToElement(new { node = "refunded", orderId = "A-17" }) },
                 new AssistantMessage { Text = "Refunded.", Sources = ["refunds"] },
             ],

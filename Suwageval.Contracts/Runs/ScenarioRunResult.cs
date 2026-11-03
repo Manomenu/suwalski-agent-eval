@@ -18,6 +18,9 @@ public sealed record ScenarioRunResult
     /// </summary>
     public required string DefinitionYaml { get; init; }
 
+    /// <summary>The acceptance criterion the scenario guards, with its attempts in a gate run (a sample is an attempt there); none when it guards none.</summary>
+    public ScenarioGuardrailResult? AcGuardrail { get; init; }
+
     public required IReadOnlyList<SampleResult> Samples { get; init; }
 
     public required IReadOnlyList<CheckRunResult> Checks { get; init; }

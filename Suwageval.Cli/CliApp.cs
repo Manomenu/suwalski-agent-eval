@@ -3,6 +3,7 @@ using Suwageval.Cli.AgentDelete;
 using Suwageval.Cli.Agents;
 using Suwageval.Cli.Evaluation.Cancel;
 using Suwageval.Cli.Evaluation.Compare;
+using Suwageval.Cli.Evaluation.Gate;
 using Suwageval.Cli.Evaluation.Groups;
 using Suwageval.Cli.Evaluation.Note;
 using Suwageval.Cli.Evaluation.Problems;
@@ -82,6 +83,7 @@ internal static class CliApp
             PushCommand.Create(http),
             RunCommand.Create(terminal, http, origins),
             RecheckCommand.Create(terminal, http),
+            GateCommand.Create(terminal, http, origins),
             CancelCommand.Create(http),
             NoteCommand.Create(http),
             ResultsCommand.Create(http, openBrowser),

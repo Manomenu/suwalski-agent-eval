@@ -20,6 +20,9 @@ public sealed record AgentDetail
     /// <summary>The agent's default number of samples from <c>agent.yaml</c>; none when it has no <c>samples:</c> (3 then).</summary>
     public int? Samples { get; init; }
 
+    /// <summary>The gate's default number of attempts from <c>agent.yaml</c>; none when it has no <c>acGuardrailRetryLimit:</c> (5 then).</summary>
+    public int? AcGuardrailRetryLimit { get; init; }
+
     /// <summary>The regression settings from <c>agent.yaml</c>; none when it has no <c>regression:</c>.</summary>
     public RegressionSettings? Regression { get; init; }
 

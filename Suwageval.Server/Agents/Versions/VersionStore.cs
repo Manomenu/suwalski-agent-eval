@@ -9,7 +9,8 @@ internal sealed class VersionStore(Pool pool)
 {
     /// <summary>
     /// How many runs each of the agent's versions has, outside a group and in one (a re-check counts as in the group of the run it was made from,
-    /// as in the runs list); one query for all versions. A version with no run is not among the keys.
+    /// as in the runs list); gate runs (<c>suwageval gate</c>) are not counted: a verdict on the acceptance criteria is not an evaluation.
+    /// One query for all versions. A version with no run is not among the keys.
     /// </summary>
     public async Task<IReadOnlyDictionary<Guid, VersionRunCounts>> RunCountsAsync(
         Guid agentId,
@@ -24,7 +25,7 @@ internal sealed class VersionStore(Pool pool)
                        (COUNT(*) FILTER (WHERE {RunGroupSql.EffectiveGroup} IS NULL))::int AS Runs,
                        (COUNT(*) FILTER (WHERE {RunGroupSql.EffectiveGroup} IS NOT NULL))::int AS GroupRuns
                 FROM runs r
-                WHERE r.agent_id = @agentId
+                WHERE r.agent_id = @agentId AND r.gate_retry_limit IS NULL
                 GROUP BY r.agent_version_id
                 """,
                 new { agentId },

@@ -219,6 +219,66 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
+    [Fact]
+    [Trait("criterion", "AC-gate-runs-8")]
+    public async Task A_gate_over_no_guarded_scenario_or_with_tags_is_422_and_nothing_is_queued()
+    {
+        var client = Client();
+        var agent = await NewAgentAsync("http://127.0.0.1:1");
+
+        var none = await Post(client, new RunRequest { Agent = agent.Name, Gate = true });
+        var tagged = await Post(
+            client,
+            new RunRequest
+            {
+                Agent = agent.Name,
+                Gate = true,
+                Tags = ["regression"],
+            }
+        );
+
+        Assert.Equal((HttpStatusCode.UnprocessableEntity, HttpStatusCode.UnprocessableEntity), (none.StatusCode, tagged.StatusCode));
+        Assert.Contains("no scenario with an acGuardrail", await none.Content.ReadAsStringAsync(Cancellation), StringComparison.Ordinal);
+        Assert.Empty(await new RunStore(database.Pool).ListAsync(agent.Id, Cancellation));
+    }
+
+    [Fact]
+    public async Task A_guarded_scenario_without_checks_stops_the_gate_with_a_422()
+    {
+        var client = Client();
+        var agent = await SeededAgent.CreateAsync(
+            database.Pool,
+            "http://127.0.0.1:1",
+            [SeededAgent.Scenario("unchecked") with { AcGuardrail = new AcGuardrail { Id = "AC-refunds-1" } }],
+            []
+        );
+
+        var response = await Post(client, new RunRequest { Agent = agent.Name, Gate = true });
+
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+        Assert.Contains("'unchecked'", await response.Content.ReadAsStringAsync(Cancellation), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_gate_run_is_queued_with_the_agents_retry_limit_and_cannot_be_re_checked()
+    {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
+        var client = Client();
+        var agent = await SeededAgent.CreateAsync(
+            database.Pool,
+            fake.Url.AbsoluteUri,
+            [SeededAgent.Scenario("refund") with { AcGuardrail = new AcGuardrail { Id = "AC-refunds-1" } }],
+            [SeededAgent.RefundAfterLookup("refund-called", "refund")]
+        );
+
+        var created = await StartAsync(client, new RunRequest { Agent = agent.Name, Gate = true });
+        var stored = await new RunStore(database.Pool).GetAsync(created.RunId, Cancellation);
+        var plan = await GetAsync<RecheckPlan>(client, $"/eval/runs/{created.RunId}/recheck");
+
+        Assert.Equal(AcGuardrailRules.DefaultRetryLimit, stored?.GateRetryLimit);
+        Assert.Equal((false, RecheckBlocker.GateRun), (plan.Possible, plan.Blocker));
+    }
+
     [Theory]
     [InlineData("", null, null, "agent")]
     [InlineData("x", "no-scenario-has-this", null, "tags")]

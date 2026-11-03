@@ -14,7 +14,8 @@ internal sealed record AgentRow(
     int? RegressionHistory = null,
     int? Samples = null,
     bool Evaluation = true,
-    string? Monitoring = null
+    string? Monitoring = null,
+    int? AcGuardrailRetryLimit = null
 )
 {
     /// <summary>The areas the agent was pushed with: evaluation on unless switched off, monitoring with its settings or off.</summary>

@@ -23,7 +23,7 @@ internal sealed class RunStore(Pool pool)
                           WHERE s.run_id = r.id AND c.judge_model IS NOT NULL), '[]') AS JudgeModels,
                (SELECT count(*)::int FROM scenario_results s WHERE s.run_id = r.id AND s.status = 'Failed') AS SamplesFailed,
                r.run_group AS RunGroup, r.label AS Label, r.note AS Note,
-               r.data_version AS DataVersion, r.data_description AS DataDescription
+               r.data_version AS DataVersion, r.data_description AS DataDescription, r.gate_retry_limit AS GateRetryLimit
         FROM runs r
         JOIN agents a ON a.id = r.agent_id
         CROSS JOIN LATERAL (
@@ -54,6 +54,7 @@ internal sealed class RunStore(Pool pool)
         string? note = null,
         string? dataVersion = null,
         string? dataDescription = null,
+        int? gateRetryLimit = null,
         CancellationToken cancellationToken = default
     )
     {
@@ -72,9 +73,9 @@ internal sealed class RunStore(Pool pool)
             new CommandDefinition(
                 """
                 INSERT INTO runs (agent_id, agent_version_id, tags, endpoint_url, recheck_of, verdicts_from, origin, reference, compared_with, run_group, label, note,
-                                  data_version, data_description)
+                                  data_version, data_description, gate_retry_limit)
                 VALUES (@agentId, @agentVersionId, @tags, @endpointUrl, @recheckOf, @verdictsFrom, @origin::jsonb, @reference, @comparedWith, @runGroup, @label, @note,
-                        @dataVersion, @dataDescription)
+                        @dataVersion, @dataDescription, @gateRetryLimit)
                 RETURNING id
                 """,
                 new
@@ -93,6 +94,7 @@ internal sealed class RunStore(Pool pool)
                     note,
                     dataVersion,
                     dataDescription,
+                    gateRetryLimit,
                 },
                 transaction,
                 cancellationToken: cancellationToken
@@ -126,6 +128,7 @@ internal sealed class RunStore(Pool pool)
 
     private const string ListFilter = $"""
         WHERE (@agentId::uuid IS NULL OR r.agent_id = @agentId)
+          AND r.gate_retry_limit IS NULL
           AND (@runGroup::text IS NULL OR r.run_group = @runGroup)
           AND (@grouping = 'All'
                OR (@grouping = 'None') = ({RunGroupSql.EffectiveGroup} IS NULL))
@@ -137,7 +140,7 @@ internal sealed class RunStore(Pool pool)
     /// <summary>
     /// A page of runs, newest first (<c>created_at</c> descending, then <c>id</c>): at most <paramref name="limit"/> of them after
     /// the first <paramref name="offset"/>, only those of the given agent versions when <paramref name="versionIds"/> is not empty,
-    /// only those of <paramref name="runGroup"/> when one is given, only those in no group or in some group as <paramref name="grouping"/> says
+    /// only those of <paramref name="runGroup"/> when one is given, only those in no group or in some group as <paramref name="grouping"/> says (never a gate run: its verdict is read by <c>suwageval gate</c>, not from a list)
     /// (a re-check counts as in the group of the run it was made from),
     /// only those that ran the scenarios of any of <paramref name="tags"/> when some are given: limited to tags including one of them, or not limited at all,
     /// only those on one of <paramref name="dataVersions"/> (the retrieval data the run started with) when some are given.
@@ -491,7 +494,7 @@ internal sealed class RunStore(Pool pool)
                     FROM runs c
                     JOIN anchor a ON c.agent_id = a.agent_id AND c.created_at < a.created_at
                     WHERE c.status = 'Done' AND c.recheck_of IS NULL
-                      AND c.run_group IS NULL
+                      AND c.run_group IS NULL AND c.gate_retry_limit IS NULL
                       AND (@comparedWith::text IS NULL OR (c.reference AND c.origin ->> 'branch' = @comparedWith))
                 ),
                 per_run AS (

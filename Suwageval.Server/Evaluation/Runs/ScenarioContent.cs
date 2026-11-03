@@ -18,6 +18,9 @@ internal sealed record ScenarioContent
     /// <summary>Not set (null): the agent's default, else 3.</summary>
     public int? Samples { get; init; }
 
+    /// <summary>The acceptance criterion the scenario guards on the gate; null when none.</summary>
+    public AcGuardrail? AcGuardrail { get; init; }
+
     /// <summary>Whether the scenario is a simulation: a model plays the user and the conversation goes on for up to its turns.</summary>
     public bool Simulated => Continuation.SimulatedUser is not null;
 

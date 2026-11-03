@@ -195,6 +195,62 @@ public sealed class ScenarioEndpointsTests(TestDatabase database) : IAsyncDispos
     }
 
     [Fact]
+    [Trait("criterion", "AC-gate-runs-3")]
+    public async Task A_bad_or_twice_used_acceptance_criterion_is_a_422_with_the_messages_validate_gives_and_nothing_is_written()
+    {
+        var agent = await server.NewAgent();
+        static AcGuardrail Guardrail(string id, int? retryLimit = null)
+        {
+            return new() { Id = id, RetryLimit = retryLimit };
+        }
+
+        var response = await server.Put(
+            $"/eval/agents/{agent}/scenarios",
+            new PutScenariosRequest([
+                Scenario("a") with
+                {
+                    AcGuardrail = Guardrail("AC-refunds-1"),
+                },
+                Scenario("b") with
+                {
+                    AcGuardrail = Guardrail("refunds-1", retryLimit: 21),
+                },
+                Scenario("c") with
+                {
+                    AcGuardrail = Guardrail("AC-refunds-1"),
+                },
+            ])
+        );
+
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+        Assert.Equal(
+            ["scenarios[1].acGuardrail.id", "scenarios[1].acGuardrail.retryLimit", "scenarios[2].acGuardrail.id"],
+            await TestServer.ErrorFields(response)
+        );
+        using var problem = System.Text.Json.JsonDocument.Parse(
+            await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)
+        );
+        Assert.Equal(
+            AcGuardrailRules.Duplicate("AC-refunds-1", "a"),
+            problem.RootElement.GetProperty("errors").GetProperty("scenarios[2].acGuardrail.id")[0].GetString()
+        );
+        Assert.Empty(await TestServer.Read<ScenarioSummary[]>(await server.Get($"/eval/agents/{agent}/scenarios")));
+    }
+
+    [Fact]
+    public async Task An_acceptance_criterion_is_part_of_the_scenarios_content_so_changing_it_is_a_new_revision()
+    {
+        var agent = await server.NewAgent();
+
+        await Put(agent, Scenario("a"));
+        var guarded = await Put(agent, Scenario("a") with { AcGuardrail = new AcGuardrail { Id = "AC-refunds-1" } });
+        var detail = await TestServer.Read<ScenarioDetail>(await server.Get($"/eval/agents/{agent}/scenarios/a"));
+
+        Assert.Equal(UpsertOutcome.Updated, guarded.Results[0].Outcome);
+        Assert.Equal("AC-refunds-1", detail.Scenario.AcGuardrail?.Id);
+    }
+
+    [Fact]
     public async Task Tags_change_on_several_scenarios_at_once_without_a_new_revision()
     {
         var agent = await server.NewAgent();

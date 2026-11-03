@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Suwageval.AgentSdk.Agents;
 using Suwageval.Contracts.Runs;
+using Suwageval.Contracts.Scenarios;
 using Suwageval.Server.Agents;
 using Suwageval.Server.Evaluation.Checks;
 using Suwageval.Server.Evaluation.Invocation;
@@ -70,6 +71,14 @@ internal static class RunEndpoints
             return ProblemResults.Invalid("note", noteProblem);
         }
 
+        if (request.Gate && (request.Tags.Count > 0 || request.Group is not null))
+        {
+            return ProblemResults.Invalid(
+                request.Tags.Count > 0 ? "tags" : "group",
+                "A gate run takes every scenario with an acGuardrail: no tags and no group."
+            );
+        }
+
         var agent = await agents.GetAsync(request.Agent, cancellationToken);
         if (agent is null)
         {
@@ -81,7 +90,15 @@ internal static class RunEndpoints
         }
 
         var picked = await scenarios.ListAsync(agent.Id, request.Tags, cancellationToken);
-        if (picked.Count == 0)
+        if (request.Gate)
+        {
+            picked = [.. picked.Where(scenario => StoredContent.Scenario(scenario.Content).AcGuardrail is not null)];
+            if (await GateProblemAsync(picked, agent.Id, checks, cancellationToken) is { } gateProblem)
+            {
+                return gateProblem;
+            }
+        }
+        else if (picked.Count == 0)
         {
             return ProblemResults.Invalid(
                 "tags",
@@ -155,7 +172,7 @@ internal static class RunEndpoints
         }
 
         var placement = RunPlacement.Decide(request.Origin, agent.Regression);
-        if (request.Group is not null)
+        if (request.Group is not null || request.Gate)
         {
             placement = placement.AsExperiment();
         }
@@ -170,6 +187,7 @@ internal static class RunEndpoints
             note: NoteRules.Normalize(request.Note),
             dataVersion: contract.Context.Retrieval?.DataVersion,
             dataDescription: contract.Context.Retrieval?.Description,
+            gateRetryLimit: request.Gate ? AcGuardrailRules.EffectiveRetryLimit(null, agent.AcGuardrailRetryLimit) : null,
             cancellationToken: cancellationToken
         );
         return Results.Accepted(
@@ -181,6 +199,39 @@ internal static class RunEndpoints
                 VersionCreated = registration.Created,
             }
         );
+    }
+
+    /// <summary>
+    /// Why a gate cannot start over <paramref name="guardrails"/> (the agent's scenarios with an <c>acGuardrail</c>): there are none, one
+    /// has no check (it would pass on any answer), or two guard one criterion (a scenario no file has any more still on the server). Null when it can.
+    /// </summary>
+    private static async Task<IResult?> GateProblemAsync(
+        IReadOnlyList<ScenarioRow> guardrails,
+        Guid agentId,
+        CheckStore checks,
+        CancellationToken cancellationToken
+    )
+    {
+        if (guardrails.Count == 0)
+        {
+            return ProblemResults.Invalid("gate", "The agent has no scenario with an acGuardrail: there is nothing for the gate to run.");
+        }
+        var withChecks = (await checks.ListAsync(agentId, cancellationToken: cancellationToken))
+            .Select(check => check.ScenarioKey)
+            .ToHashSet();
+        if (guardrails.FirstOrDefault(scenario => !withChecks.Contains(scenario.Key)) is { } withoutChecks)
+        {
+            return ProblemResults.Invalid("gate", $"The scenario '{withoutChecks.Key}': {AcGuardrailRules.NoChecks}");
+        }
+        var duplicate = guardrails
+            .GroupBy(scenario => StoredContent.Scenario(scenario.Content).AcGuardrail!.Id, StringComparer.Ordinal)
+            .FirstOrDefault(group => group.Count() > 1);
+        return duplicate is null
+            ? null
+            : ProblemResults.Invalid(
+                "gate",
+                $"The acceptance criterion '{duplicate.Key}' is guarded by several scenarios on the server ({string.Join(", ", duplicate.Select(scenario => $"'{scenario.Key}'"))}); one scenario guards one criterion."
+            );
     }
 
     /// <summary>What a re-check of the run would do and whether it can start (read-only). 404 for an unknown run.</summary>
@@ -277,6 +328,10 @@ internal static class RunEndpoints
         }
         // A re-check has the answers of the run it was made from: that one is what is re-checked again.
         var original = shown.RecheckOf is { } originalId ? await runs.GetAsync(originalId, cancellationToken) ?? shown : shown;
+        if (original.Gate)
+        {
+            return new PlannedRecheck(shown, original, RecheckPlanner.GateRun());
+        }
         var version = await agents.GetVersionAsync(original.AgentVersionId, cancellationToken);
         var originalSamples = await runs.ListScenarioResultsAsync(original.Id, cancellationToken);
         var shownSamples = original.Id == shown.Id ? originalSamples : await runs.ListScenarioResultsAsync(shown.Id, cancellationToken);
@@ -378,7 +433,7 @@ internal static class RunEndpoints
     /// <summary>
     /// The results so far — a run that is still going has some, a queued one none. Once the run is done every check also carries its
     /// <see cref="CheckRunResult.Regression"/> state against its history, and the results the summary of them — except a run started in a
-    /// group (or a re-check of one): an experiment has no regression states.
+    /// group (or a re-check of one) and a gate run: an experiment has no regression states, and a gate run's results are its verdict.
     /// </summary>
     private static async Task<IResult> ResultsAsync(Guid id, RunStore runs, AgentStore agents, CancellationToken cancellationToken)
     {
@@ -395,7 +450,7 @@ internal static class RunEndpoints
             return Results.Ok(results);
         }
         var original = run.RecheckOf is { } recheckOf ? await runs.GetAsync(recheckOf, cancellationToken) : run;
-        if ((original ?? run).RunGroup is not null)
+        if ((original ?? run).RunGroup is not null || run.Gate)
         {
             return Results.Ok(results);
         }

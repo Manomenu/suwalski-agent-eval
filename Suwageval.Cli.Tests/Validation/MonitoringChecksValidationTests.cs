@@ -35,9 +35,7 @@ public sealed class MonitoringChecksValidationTests
         Assert.Empty(result.Problems);
         Assert.Equal(
             "no-refund",
-            Assert
-                .Single(Assert.IsType<IReadOnlyList<Suwageval.Contracts.Checks.CheckInput>>(result.MonitoringChecks, exactMatch: false))
-                .Key
+            Assert.Single(Assert.IsType<IReadOnlyList<Contracts.Checks.CheckInput>>(result.MonitoringChecks, exactMatch: false)).Key
         );
     }
 

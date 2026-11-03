@@ -23,6 +23,7 @@ internal static class HelpSections
                 "push",
                 "run",
                 "recheck",
+                "gate",
                 "cancel",
                 "results",
                 "runs",

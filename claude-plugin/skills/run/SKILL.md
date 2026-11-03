@@ -25,6 +25,9 @@ $ARGUMENTS
    `--strict` makes any failed check exit 1), 1 a check regressed, is new and failing, or is an agent error, 2 the run could
    not finish (or was cancelled). A run with `status` `Interrupted` is not the agent's fault: the server stopped during it (a restart or a deploy), the samples stored so far are kept; say so and offer a new run with the same tags (as above). 1 is a result, not an error; for 2 show `run.error` or the message and stop. 130 means the waiting was
    interrupted and the run goes on: say so, with its id.
+   If the user asks for the gate (the acceptance criteria, `acGuardrail`) instead of an evaluation, run `suwageval gate --json --note "<why>"`:
+   exit 0 every criterion passed, 1 `gate.failedGuardrail` failed (give the scenario, its attempts and the `message` of each check that
+   failed on its last sample), 2 the gate could not start or finish (show the message). It has no tags, groups or regressions.
    If the user asks to stop a run, cancel it with `suwageval cancel <id>` (find the id with
    `suwageval runs --json`): only the run they named, never one on your own initiative.
 3. Summarise from the JSON: the agent version (`run.agentVersionId`), what the run was compared with

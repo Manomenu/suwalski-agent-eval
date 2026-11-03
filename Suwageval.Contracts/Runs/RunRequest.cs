@@ -18,6 +18,12 @@ public sealed record RunRequest
     /// <summary>Why the run is started (<see cref="NoteRules"/>); none means no note. It can be changed after the run.</summary>
     public string? Note { get; init; }
 
+    /// <summary>
+    /// A gate run (<c>suwageval gate</c>): every scenario with an <c>acGuardrail</c>, each until its first attempt in which every check
+    /// passes, stopped at the first one whose attempts run out. Takes no <see cref="Tags"/> and no <see cref="Group"/>.
+    /// </summary>
+    public bool Gate { get; init; }
+
     /// <summary>Where the agent's repository stood; none when the run does not come from a git repository (it is then compared with every run of the agent).</summary>
     public RunOrigin? Origin { get; init; }
 }

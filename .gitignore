@@ -36,3 +36,11 @@ scratchpad/
 # stray run from a project folder must not land them in git again.
 **/output/grate-internal*/
 **/output/migrations/
+
+# Working pages of one task (suwagent: plans, recaps, deviation, QA, guardrails and review pages). Only the final spec is committed.
+docs/visual/plan/
+docs/visual/recap/
+docs/visual/deviation/
+docs/visual/qa/
+docs/visual/guardrails/
+docs/visual/review/

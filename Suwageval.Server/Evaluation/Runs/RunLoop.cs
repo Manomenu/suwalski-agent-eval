@@ -12,9 +12,10 @@ internal static class RunLoop
 {
     /// <summary>
     /// What a claimed run is going to do: the items to work through, what to do with one, and an optional step after the last item
-    /// (before the run is finished).
+    /// (before the run is finished). <paramref name="Total"/> is the samples the run will produce at most, when an item is not one
+    /// sample (a gate run's item is a scenario and its attempts); none means one per item.
     /// </summary>
-    internal sealed record Plan<T>(IReadOnlyList<T> Work, Func<T, Task> Process, Func<Task>? Verify = null);
+    internal sealed record Plan<T>(IReadOnlyList<T> Work, Func<T, Task> Process, Func<Task>? Verify = null, int? Total = null);
 
     [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Whatever breaks a run is recorded on it.")]
     public static async Task ExecuteAsync<T>(
@@ -30,7 +31,7 @@ internal static class RunLoop
         try
         {
             var plan = await prepare();
-            await runs.SetTotalAsync(run.Id, plan.Work.Count, cancellationToken);
+            await runs.SetTotalAsync(run.Id, plan.Total ?? plan.Work.Count, cancellationToken);
 
             using var stop = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             try

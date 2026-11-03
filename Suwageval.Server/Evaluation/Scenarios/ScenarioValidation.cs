@@ -12,6 +12,7 @@ internal static class ScenarioValidation
     {
         var errors = new List<FieldError>();
         var keys = new HashSet<string>();
+        var guardrailIds = new Dictionary<string, string>();
         for (var i = 0; i < scenarios.Count; i++)
         {
             var scenario = scenarios[i];
@@ -33,6 +34,18 @@ internal static class ScenarioValidation
             if (SampleRules.Problem(scenario.Samples, "samples") is { } samplesProblem)
             {
                 errors.Add(new FieldError($"{path}.samples", samplesProblem));
+            }
+            if (scenario.AcGuardrail is { } guardrail)
+            {
+                errors.AddRange(
+                    AcGuardrailRules.Problems(guardrail).Select(problem => new FieldError($"{path}.{problem.Path}", problem.Message))
+                );
+                if (!guardrailIds.TryAdd(guardrail.Id, scenario.Key))
+                {
+                    errors.Add(
+                        new FieldError($"{path}.acGuardrail.id", AcGuardrailRules.Duplicate(guardrail.Id, guardrailIds[guardrail.Id]))
+                    );
+                }
             }
             errors.AddRange(
                 ContinuationRules.Problems(scenario).Select(problem => new FieldError($"{path}.{problem.Path}", problem.Message))

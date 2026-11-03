@@ -40,15 +40,23 @@ internal static class AgentEndpoints
         {
             agent = await store.SetEndpointUrlAsync(agent.Id, definition.EndpointUrl, cancellationToken);
         }
-        // The pushed definition is the source of truth: leaving samples:, regression: or features: out puts the defaults back.
+        // The pushed definition is the source of truth: leaving samples:, acGuardrailRetryLimit:, regression: or features: out puts the defaults back.
         var features = definition.Features ?? new AgentFeatures();
         if (
             agent.Samples != definition.Samples
+            || agent.AcGuardrailRetryLimit != definition.AcGuardrailRetryLimit
             || !SameRegression(agent.Regression, definition.Regression)
             || !SameFeatures(agent.Features, features)
         )
         {
-            agent = await store.SetSettingsAsync(agent.Id, definition.Samples, definition.Regression, features, cancellationToken);
+            agent = await store.SetSettingsAsync(
+                agent.Id,
+                definition.Samples,
+                definition.Regression,
+                features,
+                definition.AcGuardrailRetryLimit,
+                cancellationToken
+            );
         }
         return creation.Created
             ? Results.Created($"/agents/{Uri.EscapeDataString(definition.Name)}", ToAgent(agent))
@@ -85,6 +93,7 @@ internal static class AgentEndpoints
                 Scenarios = counts.Scenarios,
                 Checks = counts.Checks,
                 Samples = row.Samples,
+                AcGuardrailRetryLimit = row.AcGuardrailRetryLimit,
                 Regression = row.Regression,
                 Features = row.Features,
             }

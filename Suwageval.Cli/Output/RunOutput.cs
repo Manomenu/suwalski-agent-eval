@@ -3,7 +3,7 @@ using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Cli.Output;
 
-/// <summary>What <c>run</c> and <c>recheck</c> print once the server has queued a run, and the exit code they give.</summary>
+/// <summary>What <c>run</c> and <c>recheck</c> print once the server has queued a run, and the exit code they give; <c>gate</c> waits the same way.</summary>
 internal static class RunOutput
 {
     /// <summary>The exit code of a wait interrupted with Ctrl+C while the run goes on on the server (128 + SIGINT, as shells report it).</summary>
@@ -42,15 +42,10 @@ internal static class RunOutput
             return 0;
         }
 
-        RunResults results;
-        try
+        var (results, interrupted) = await WaitAsync(client, created.RunId, site, error, terminal, cancellationToken);
+        if (results is null)
         {
-            await client.WaitForEndAsync(created.RunId, cancellationToken);
-            results = await client.ResultsAsync(created.RunId, cancellationToken);
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            return await InterruptedAsync(client, created.RunId, site, error, terminal);
+            return interrupted;
         }
         if (json)
         {
@@ -66,6 +61,31 @@ internal static class RunOutput
             await output.WriteLineAsync(ServerAddress.RunPage(site, created.RunId).ToString());
         }
         return RunVerdict.ExitCode(results, strict);
+    }
+
+    /// <summary>
+    /// Waits for the run's end and reads its results; Ctrl+C (<paramref name="cancellationToken"/>) stops the waiting and asks whether to
+    /// cancel the run too, and then there are no results, only the exit code.
+    /// </summary>
+    public static async Task<(RunResults? Results, int ExitCode)> WaitAsync(
+        ServerClient client,
+        Guid runId,
+        Uri site,
+        TextWriter error,
+        Terminal terminal,
+        CancellationToken cancellationToken
+    )
+    {
+        ArgumentNullException.ThrowIfNull(client);
+        try
+        {
+            await client.WaitForEndAsync(runId, cancellationToken);
+            return (await client.ResultsAsync(runId, cancellationToken), 0);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return (null, await InterruptedAsync(client, runId, site, error, terminal));
+        }
     }
 
     /// <summary>

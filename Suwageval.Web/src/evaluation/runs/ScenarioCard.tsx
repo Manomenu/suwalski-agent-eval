@@ -77,6 +77,15 @@ export function ScenarioCard({
                     <Title order={3} className="wrap-key">
                         {scenario.key}
                     </Title>
+                    {scenario.acGuardrail != null && (
+                        <Badge
+                            variant="light"
+                            color="gray"
+                            title="The acceptance criterion this scenario guards on the gate (suwageval gate)"
+                        >
+                            {scenario.acGuardrail.id}
+                        </Badge>
+                    )}
                     <Box component="span" className="no-print">
                         <ScenarioDefinitionButton scenarioKey={scenario.key} revision={scenario.revision} yaml={scenario.definitionYaml} />
                     </Box>

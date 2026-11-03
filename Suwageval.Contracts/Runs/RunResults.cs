@@ -13,6 +13,9 @@ public sealed record RunResults
     /// <summary>The 95th percentile (nearest rank) of the same turn times, in milliseconds; null when none did.</summary>
     public double? P95Ms { get; init; }
 
+    /// <summary>What a gate run came to; none for another run and for a gate run that is not done.</summary>
+    public GateResult? Gate { get; init; }
+
     /// <summary>The checks against their history; none until the run is done.</summary>
     public RegressionSummary? Regression { get; init; }
 }

@@ -7,3 +7,4 @@ source; the artifact is its published copy. Maintained by `vdoc.py register`, so
 | :- | :- | :- | :- |
 | Uproszczenie produktu | [2026-10-25-product-simplification.html](2026-10-25-product-simplification.html) | <https://claude.ai/artifact/RXBUKSUc3auvx53eqfm3Q7> | 2026-10-25 |
 | Prostsze modele i checki | [2026-10-25-simpler-models-and-checks.html](2026-10-25-simpler-models-and-checks.html) | <https://claude.ai/artifact/5rJQMtmHNEVMdPX6hoiMZF> | 2026-10-25 |
+| Bramkowy run AC | [2026-11-03-gate-runs.html](2026-11-03-gate-runs.html) | <https://claude.ai/artifact/KzV3ZnonYQP5qXpAcDMm14> | 2026-11-03 |

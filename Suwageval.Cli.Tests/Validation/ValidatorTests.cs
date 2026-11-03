@@ -3,6 +3,7 @@ using Suwageval.AgentSdk.Agents;
 using Suwageval.Cli.Files;
 using Suwageval.Cli.Validation;
 using Suwageval.Contracts.Agents;
+using Suwageval.Contracts.Scenarios;
 
 namespace Suwageval.Cli.Tests.Validation;
 
@@ -40,6 +41,80 @@ public sealed class ValidatorTests
     [Fact]
     public void A_scenario_without_checks_is_valid() =>
         Assert.True(Validate("key: only-a-conversation\nconversation:\n  - user: hi\n").IsValid);
+
+    private const string Guarded = """
+        key: refund-over-limit
+        acGuardrail:
+          id: AC-refunds-2
+          retryLimit: 2
+        conversation:
+          - user: "Refund A-17, please."
+        checks:
+          - key: refund-called
+            type: tool-called
+            tool: refund_order
+        """;
+
+    [Fact]
+    [Trait("criterion", "AC-gate-runs-1")]
+    public void A_scenario_guarding_a_criterion_and_an_agent_with_a_default_limit_are_valid()
+    {
+        var result = Validator.Validate(
+            "agent.yaml",
+            TestAgent.Yaml + "\nacGuardrailRetryLimit: 3\n",
+            [new SourceText("s.yaml", Guarded)],
+            TestAgent.Contract
+        );
+
+        Assert.Empty(result.Problems);
+        Assert.Equal(new AcGuardrail { Id = "AC-refunds-2", RetryLimit = 2 }, Assert.Single(result.LoadedScenarios).Scenario.AcGuardrail);
+        Assert.Equal(3, result.Agent?.Definition.AcGuardrailRetryLimit);
+    }
+
+    [Theory]
+    [Trait("criterion", "AC-gate-runs-1")]
+    [InlineData("id: AC-refunds-2", "id: refunds-2", "acGuardrail.id", "is not AC-<feature>-<n>")]
+    [InlineData("  id: AC-refunds-2\n", "", "acGuardrail", "Missing required field: id")]
+    [InlineData("retryLimit: 2", "retryLimit: 21", "acGuardrail.retryLimit", "from 1 to 20")]
+    public void A_bad_acceptance_criterion_is_a_problem(string replaced, string with, string path, string messagePart) =>
+        AssertProblem(Validate(Guarded.Replace(replaced, with, StringComparison.Ordinal)), path, messagePart);
+
+    [Fact]
+    [Trait("criterion", "AC-gate-runs-1")]
+    public void A_scenario_guarding_a_criterion_without_checks_is_a_problem() =>
+        AssertProblem(Validate(Guarded[..Guarded.IndexOf("checks:", StringComparison.Ordinal)]), "acGuardrail", "needs at least one check");
+
+    [Fact]
+    [Trait("criterion", "AC-gate-runs-1")]
+    public void An_agent_default_limit_outside_one_to_twenty_is_a_problem() =>
+        Assert.Contains(
+            ValidateAgentFile(TestAgent.Yaml + "\nacGuardrailRetryLimit: 0\n").Problems,
+            problem => problem.Path == "acGuardrailRetryLimit"
+        );
+
+    [Fact]
+    [Trait("criterion", "AC-gate-runs-2")]
+    public void One_criterion_guarded_by_two_scenarios_is_a_problem_naming_both_files()
+    {
+        var result = Validator.Validate(
+            "agent.yaml",
+            TestAgent.Yaml,
+            [
+                new SourceText("first.yaml", Guarded),
+                new SourceText(
+                    "second.yaml",
+                    Guarded
+                        .Replace("key: refund-over-limit", "key: refund-again", StringComparison.Ordinal)
+                        .Replace("key: refund-called", "key: refund-called-again", StringComparison.Ordinal)
+                ),
+            ],
+            TestAgent.Contract
+        );
+
+        var problem = Assert.Single(result.Problems);
+        Assert.Equal(("second.yaml", "acGuardrail.id"), (problem.File, problem.Path));
+        Assert.Contains("'refund-over-limit' in 'first.yaml'", problem.Message, StringComparison.Ordinal);
+    }
 
     [Fact]
     public void A_missing_agent_file_is_a_problem()

@@ -33,7 +33,7 @@ public sealed class ContractsTests
     {
         ["Evaluation"] =
         [
-            "Validate | Push | Run | Recheck | Cancel | Results | Compare | Sweep | Runs | Groups | Note | Scenarios | Trend | Problems",
+            "Validate | Push | Run | Recheck | Gate | Cancel | Results | Compare | Sweep | Runs | Groups | Note | Scenarios | Trend | Problems",
         ],
         ["Monitoring"] = ["Conversations | Checks"],
     };

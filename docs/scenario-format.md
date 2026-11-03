@@ -66,6 +66,7 @@ what really ran. A `version:` key is an error.
 | `name` | required | the agent's name |
 | `endpointUrl` | required | where the agent is reached: `POST {endpointUrl}/suwageval/turn`, `GET {endpointUrl}/suwageval/contract`. `validate` and `run` take `--endpoint`, else `SUWAGEVAL_ENDPOINT_URL`, over it (`run`: else the endpoint registered by `push`); `push` always registers this one |
 | `samples` | optional | how many times each scenario's conversation is sent to the agent by default: 1 to 20, default `3` (see "Samples" under Scenarios; a scenario or a check can set its own) |
+| `acGuardrailRetryLimit` | optional | how many attempts `suwageval gate` gives a scenario that sets no `acGuardrail.retryLimit`: 1 to 20, default `5` (see "The gate" under Scenarios) |
 | `regression` | optional | how regressions are found (next block, section "Regressions") |
 | `features` | optional | which areas the agent uses: `evaluation` (scenarios, runs, comparisons; default `true`) and `monitoring` (conversations from a deployed agent; off unless present). Below |
 | `sweep` | optional | how `suwageval sweep` switches the agent to each variant (below). For the CLI only: not pushed, not stored |
@@ -376,6 +377,7 @@ stored again, as a new revision.
 | `samples` | | how many times the conversation is repeated: 1 to 20; not set means the agent's `samples`, else `3` (see "Samples" below) |
 | `fixtures` | | free mapping, sent verbatim with every turn of the scenario (e.g. which documents are pinned for the conversation); shaped by the agent's `context.fixturesSchema`, which the agent must declare. Part of the scenario's content: changing it is a new revision |
 | `checks` | | a list of checks, below |
+| `acGuardrail` | | the acceptance criterion the scenario guards on the gate: `id` (required, `AC-<feature>-<n>`, unique within the agent) and `retryLimit` (1 to 20; not set: the agent's `acGuardrailRetryLimit`, else `5`). A scenario with it needs at least one check (see "The gate" below) |
 | `origin` | | where the scenario came from: `monitoringConversation: <id>`, the monitored conversation it was drafted from (below). It changes nothing in a run |
 
 **A scenario from a monitored conversation.** `suwageval scenario from-conversation <id>` (or "Scenario YAML" on the conversation's page)
@@ -410,6 +412,39 @@ threshold); set `samples: 1` on a check whose result does not vary, to keep the 
 
 Changing `samples` of a check or a scenario is a new revision of it (it is part of its content); changing the agent's does not
 create one. A re-check judges the stored samples with the current number of samples of each check.
+
+### The gate
+
+A scenario can guard an **acceptance criterion** of the agent's spec: its `acGuardrail.id` is the criterion's id (`AC-refunds-2`: `AC-`,
+a lowercase kebab-case feature, a number from 1). `suwageval gate` runs every scenario of the agent that has an `acGuardrail` (no
+`--tag`: what is a guardrail is decided by the file, not by the command line) and answers one question: can the agent meet each
+criterion?
+
+```yaml
+key: refund-over-limit
+acGuardrail:
+  id: AC-refunds-2
+  retryLimit: 2      # optional; else the agent's acGuardrailRetryLimit, else 5
+conversation: …
+checks: …
+```
+
+- **An attempt** is one conversation of the scenario (simulated, when it is a simulation), judged by **every** check of the scenario;
+  it passes when every check passes. `samples` and `passThreshold` play no role on the gate.
+- A scenario **passes at its first passing attempt** (no further attempt is made) and **fails** once it has used up its attempts.
+- The gate **stops at the first criterion that fails**: the scenarios not started by then are not run (the run lists them as left
+  out); those in progress finish their current attempt. Scenarios go in key order, in parallel up to the server's limit.
+- `suwageval gate` reads what the server has, so `suwageval push` comes first. It is quiet: `PASSED 5 of 5 acceptance criteria` when
+  every criterion passed (exit 0); for each criterion that failed, every attempt's failed checks with the reason and what the agent
+  did in its last attempt (exit 1), so a CI log tells what broke; the reason when the gate could not start or finish (exit 2: no
+  scenario with an `acGuardrail`, one of them without a check, the agent or the judge not answering). `--json` prints the run's results
+  with the verdict in `gate`.
+- A gate run is a verdict, not an evaluation: no list or page of the web shows it, and it is left out of `suwageval runs`, the
+  regression history, the pass-rate trend, the problems and the versions' run counts. It is not re-checked (run the gate again).
+
+`validate` and the server check the same rules: the id's form, one scenario per criterion, `retryLimit` from 1 to 20, and a check in
+every guardrail scenario (on the server when the gate starts, since checks are pushed apart from scenarios). Changing `acGuardrail` is
+a new revision of the scenario; changing `acGuardrailRetryLimit` is not.
 
 ### The conversation log
 

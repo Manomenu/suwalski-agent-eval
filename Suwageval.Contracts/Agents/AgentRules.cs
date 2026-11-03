@@ -1,9 +1,10 @@
 using Suwageval.Contracts.Samples;
+using Suwageval.Contracts.Scenarios;
 
 namespace Suwageval.Contracts.Agents;
 
 /// <summary>
-/// What is wrong with the optional settings of an <see cref="AgentDefinition"/> (<c>samples</c>, <c>regression</c>, <c>features</c>), written once for
+/// What is wrong with the optional settings of an <see cref="AgentDefinition"/> (<c>samples</c>, <c>acGuardrailRetryLimit</c>, <c>regression</c>, <c>features</c>), written once for
 /// <c>suwageval validate</c> and <c>push</c> and for the server when a push arrives. Paths are relative to the agent definition.
 /// </summary>
 public static class AgentRules
@@ -15,6 +16,10 @@ public static class AgentRules
         if (SampleRules.Problem(definition.Samples, "samples") is { } samples)
         {
             problems.Add(("samples", samples));
+        }
+        if (AcGuardrailRules.RetryLimitProblem(definition.AcGuardrailRetryLimit, "acGuardrailRetryLimit") is { } retryLimit)
+        {
+            problems.Add(("acGuardrailRetryLimit", retryLimit));
         }
         problems.AddRange(RegressionRules.Problems(definition.Regression));
         problems.AddRange(FeatureRules.Problems(definition.Features));

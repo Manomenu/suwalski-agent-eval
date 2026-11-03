@@ -72,18 +72,27 @@ internal static class RunReport
                     .GroupBy(verdict => verdict.CheckKey)
                     .OrderBy(byCheck => byCheck.Key, StringComparer.Ordinal)
                     .Select(byCheck => CheckResult(byCheck.Key, [.. byCheck], sampleNumberOf));
+                var latest = group.MaxBy(sample => sample.ScenarioRevision)!;
                 return new ScenarioRunResult
                 {
                     Key = group.Key,
+                    AcGuardrail = Guardrail(run, Definition(latest).AcGuardrail, [.. group], verdictsOf),
                     Tags = JsonSerializer.Deserialize<string[]>(group.First().ScenarioTagsJson)!,
                     Revision = group.Max(sample => sample.ScenarioRevision),
-                    DefinitionYaml = DefinitionYaml(group.MaxBy(sample => sample.ScenarioRevision)!),
+                    DefinitionYaml = DefinitionYaml(latest),
                     Samples = [.. group.OrderBy(sample => sample.Sample).Select(Sample)],
                     Checks = [.. checks],
                     PassedFully = false,
                 };
             });
-        var results = new RunResults { Run = Summary(run), Scenarios = [.. scenarios.Select(WithPassedFully)] };
+        var summary = Summary(run);
+        var scenarioResults = scenarios.Select(WithPassedFully).ToList();
+        var results = new RunResults
+        {
+            Run = summary,
+            Scenarios = scenarioResults,
+            Gate = run.Gate && run.State == RunStatus.Done ? GateOf(scenarioResults, summary.SkippedScenarios) : null,
+        };
         var durations = TurnTimes.Durations(results.Scenarios);
         return results with { MedianMs = TurnTimes.Median(durations), P95Ms = TurnTimes.P95(durations) };
     }
@@ -101,10 +110,62 @@ internal static class RunReport
                 && scenario.Samples.All(sample => sample.Status == SampleStatus.Done),
         };
 
-    private static string DefinitionYaml(ScenarioResultRow sample)
+    private static ScenarioInput Definition(ScenarioResultRow sample) =>
+        JsonSerializer.Deserialize<ScenarioInput>(sample.ScenarioContent, ContractJson.Options)!;
+
+    private static string DefinitionYaml(ScenarioResultRow sample) =>
+        ScenarioYaml.Of(Definition(sample) with { Tags = JsonSerializer.Deserialize<string[]>(sample.ScenarioTagsJson)! });
+
+    /// <summary>
+    /// The criterion a scenario guards; in a gate run with its attempts (a sample is an attempt): passed once an attempt was answered and
+    /// passed every check judged on it, failed once the attempts reached the limit without one, open otherwise (still going, or stopped by
+    /// another criterion's failure).
+    /// </summary>
+    private static ScenarioGuardrailResult? Guardrail(
+        RunRow run,
+        AcGuardrail? guardrail,
+        IReadOnlyList<ScenarioResultRow> attempts,
+        ILookup<Guid, CheckResultRow> verdictsOf
+    )
     {
-        var scenario = JsonSerializer.Deserialize<ScenarioInput>(sample.ScenarioContent, ContractJson.Options)!;
-        return ScenarioYaml.Of(scenario with { Tags = JsonSerializer.Deserialize<string[]>(sample.ScenarioTagsJson)! });
+        if (guardrail is null)
+        {
+            return null;
+        }
+        if (run.GateRetryLimit is not { } agentRetryLimit)
+        {
+            return new ScenarioGuardrailResult { Id = guardrail.Id };
+        }
+        var limit = AcGuardrailRules.EffectiveRetryLimit(guardrail.RetryLimit, agentRetryLimit);
+        var passed = attempts.Any(attempt =>
+            attempt.Status == nameof(SampleStatus.Done)
+            && verdictsOf[attempt.Id].Any()
+            && verdictsOf[attempt.Id].All(verdict => verdict.Passed)
+        );
+        return new ScenarioGuardrailResult
+        {
+            Id = guardrail.Id,
+            RetryLimit = limit,
+            Attempts = attempts.Count,
+            Passed =
+                passed ? true
+                : attempts.Count >= limit ? false
+                : null,
+        };
+    }
+
+    /// <summary>
+    /// A finished gate run: passed when every criterion it ran passed and none was left out; failed at the first criterion (by scenario
+    /// key) whose attempts ran out.
+    /// </summary>
+    private static GateResult GateOf(IReadOnlyList<ScenarioRunResult> scenarios, IReadOnlyList<SkippedScenario> skipped)
+    {
+        var failed = scenarios.FirstOrDefault(scenario => scenario.AcGuardrail?.Passed == false)?.AcGuardrail?.Id;
+        return new GateResult
+        {
+            Passed = failed is null && skipped.Count == 0 && scenarios.All(scenario => scenario.AcGuardrail?.Passed == true),
+            FailedGuardrail = failed,
+        };
     }
 
     private static CheckRunResult CheckResult(string key, IReadOnlyList<CheckResultRow> rows, Dictionary<Guid, int> sampleNumberOf)

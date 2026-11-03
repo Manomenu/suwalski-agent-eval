@@ -35,9 +35,13 @@ internal sealed record RunRow(
     string? Label = null,
     string? Note = null,
     string? DataVersion = null,
-    string? DataDescription = null
+    string? DataDescription = null,
+    int? GateRetryLimit = null
 )
 {
+    /// <summary>A gate run (<c>suwageval gate</c>): <see cref="GateRetryLimit"/> is the agent's default number of attempts when it started.</summary>
+    public bool Gate => GateRetryLimit is not null;
+
     /// <summary>What a re-check of this run inherits.</summary>
     public RunPlacement Placement =>
         new(Origin is null ? null : JsonSerializer.Deserialize<RunOrigin>(Origin, ContractJson.Options), Reference, ComparedWith);
