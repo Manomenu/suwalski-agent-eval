@@ -371,7 +371,7 @@ pre.out { font: 12px/1.5 var(--mono); background: var(--code-bg); border: 1px so
 
 <section data-role="tldr">
   <h2>TL;DR</h2>
-  <div class="tldr"><p>Scenariusz może być <b>guardrailem kryterium akceptacji</b>: sekcja <code>acGuardrail: { id: AC-refunds-1 }</code> w jego YAML-u. Komenda <code>suwageval gate</code> uruchamia wszystkie takie scenariusze agenta, a każdy zalicza <b>pierwsza udana próba</b> (domyślnie do 5 prób). Wynikiem nie jest raport z pass rate'ami, tylko odpowiedź tak/nie w CLI: przy sukcesie jedna linia, przy porażce pełny opis tego, co padło. Bramka zatrzymuje się na pierwszym AC, które wyczerpie próby, i kończy kodem ≠ 0. To narzędzie dla CI agenta i dla agenta w Claude Code. Web jej nie pokazuje.</p></div>
+  <div class="tldr"><p>Scenariusz może być <b>guardrailem kryterium akceptacji</b>: sekcja <code>acGuardrail: { id: AC-refunds-1 }</code> w jego YAML-u. Komenda <code>suwageval gate</code> uruchamia wszystkie takie scenariusze agenta, a każdy zalicza <b>pierwsza udana próba</b> (domyślnie do 5 prób). Wynikiem nie jest raport z pass rate'ami, tylko odpowiedź tak/nie w CLI: przy sukcesie jedna linia, przy porażce pełny opis tego, co padło. Bramka zatrzymuje się na pierwszym AC, które wyczerpie próby, i kończy kodem ≠ 0. Bramka jest częścią <b>lokalnego pełnego gate'u</b> repo agenta (w przykładowym agencie <code>just check</code>) i narzędziem agenta w Claude Code. <b>CI jej nie puszcza.</b> Web jej nie pokazuje.</p></div>
   <div class="stats">
     <div><b>3</b><span>nowe pola YAML</span></div>
     <div><b>1</b><span>nowa komenda</span></div>
@@ -384,7 +384,7 @@ pre.out { font: 12px/1.5 var(--mono); background: var(--code-bg); border: 1px so
   <p><code>suwageval run</code> to run <b>ewaluacyjny</b>: każdy scenariusz leci <code>samples</code> razy (domyślnie 3), a check przechodzi, gdy jego pass rate osiąga <code>passThreshold</code>. Wynikiem jest raport z regresjami względem poprzednich runów. Tryb świetnie sprawdza się przy mierzeniu jakości. Na bramce przeszkadza:</p>
   <ul>
     <li>nie da się powiedzieć, <b>które scenariusze pilnują kryteriów akceptacji</b>: scenariusz nie ma powiązania z id AC ze specki;</li>
-    <li>run zawsze przechodzi wszystkie scenariusze i wszystkie sample, a CI chce tylko odpowiedzi „przeszło / nie przeszło” i powodu;</li>
+    <li>run zawsze przechodzi wszystkie scenariusze i wszystkie sample, a gate przed pushem chce tylko odpowiedzi „przeszło / nie przeszło” i powodu;</li>
     <li>semantyka „pass rate ≥ próg” nie pasuje do bramki: tu chcemy wiedzieć, czy agent <b>potrafi</b> spełnić kryterium, z kilkoma podejściami na niedeterminizm modelu.</li>
   </ul>
 </section>
@@ -395,32 +395,32 @@ pre.out { font: 12px/1.5 var(--mono); background: var(--code-bg); border: 1px so
     <div><h4>Cele</h4><ul>
       <li>Scenariusz deklaruje, którego AC jest guardrailem (<code>acGuardrail.id</code>), opcjonalnie z własnym limitem prób.</li>
       <li><code>suwageval gate</code> uruchamia każdy scenariusz z <code>acGuardrail</code>, scenariusz zalicza pierwsza udana próba, a bramka staje na pierwszym AC, które wyczerpało próby.</li>
-      <li>Ciche wyjście do logu CI i kod wyjścia; <code>--json</code> dla agenta.</li>
+      <li>Ciche wyjście i kod wyjścia dla lokalnego pełnego gate'u repo agenta; <code>--json</code> dla agenta w Claude Code.</li>
       <li>Ta sama walidacja <code>acGuardrail</code> w <code>validate</code> i na serwerze.</li>
       <li>Plugin Claude Code opisuje komendę, więc agent może sam puścić bramkę i odczytać wynik.</li>
     </ul></div>
     <div><h4>Poza zakresem <span class="tag">optional</span></h4><ul>
-      <li>Jakikolwiek widok bramki w webie: lista, filtr czy strona. Bramka żyje w CI, a lokalnie testuje się zwykłym <code>run</code>.</li>
+      <li>Jakikolwiek widok bramki w webie: lista, filtr czy strona. Bramka żyje w lokalnym pełnym gate, a jakość mierzy się zwykłym <code>run</code>.</li>
       <li>Zawężanie bramki tagami (<code>--tag</code>): o udziale decyduje wyłącznie sekcja <code>acGuardrail</code>.</li>
       <li>Push w ramach <code>gate</code>: najpierw <code>suwageval push</code>, jak przed <code>run</code>.</li>
       <li>Regresje, trend i ponowna ocena (recheck) runu bramkowego.</li>
       <li>Sprawdzanie, czy id AC istnieje w specce agenta: Suwageval nie zna repozytorium specek.</li>
-      <li>Wyzwalacze CI (PR, merge): osobny punkt TODO „Runs from an agent's CI”.</li>
+      <li>Bramka w CI: potrzebuje Suwageval, działającego agenta z modelem i klucza modelu, a każde wywołanie kosztuje. CI repo agenta puszcza tylko część gate'u bez modelu.</li>
     </ul></div>
   </div>
 </section>
 
 <section data-role="scenarios">
   <h2>Scenariusze</h2>
-  <h3>1. CI agenta suwexag po zmianie promptu: wszystko przechodzi</h3>
+  <h3>1. Pełny lokalny gate suwexag po zmianie promptu: wszystko przechodzi</h3>
   <p>Agent ma 13 scenariuszy, z czego 5 ma <code>acGuardrail</code> (<code>AC-refunds-1…5</code>). <code>agent.yaml</code> nie ustawia limitu, więc domyślny wynosi 5.</p>
-  <div class="term"><span class="dim">$</span> suwageval push &amp;&amp; suwageval gate
+  <div class="term"><span class="dim">$</span> just check      <span class="dim"># build, testy, format, potem validate, push, gate</span>
 PASSED 5 of 5 acceptance criteria
 <span class="dim">$</span> echo $?
 0</div>
 
   <h3>2. Ta sama bramka, AC pada</h3>
-  <p><code>AC-refunds-2</code> (<code>retryLimit: 2</code>) nie przechodzi w żadnej z prób. Log CI mówi, co padło w każdej próbie i co agent zrobił w ostatniej.</p>
+  <p><code>AC-refunds-2</code> (<code>retryLimit: 2</code>) nie przechodzi w żadnej z prób. Wyjście bramki mówi, co padło w każdej próbie i co agent zrobił w ostatniej.</p>
   <div class="term"><span class="dim">$</span> suwageval gate
 FAILED AC-refunds-2 (scenario refund-not-delivered): 2 of 2 attempts failed
   attempt 1: no-refund-when-shipped: refund_order (by support) was not called in turn 1.
@@ -522,10 +522,11 @@ checks: …
 
 <section data-role="decisions">
   <h2>Decyzje <span class="tag">optional</span></h2>
-  <div class="callout decision"><p>Bramkę wykonuje serwer, tak jak <code>run</code>, a nie CLI lokalnie. Sędzia, symulator i modele siedzą na serwerze, a kolejka workera potrzebuje rekordu runu. W CI serwer i jego baza żyją tylko przez czas joba.</p></div>
+  <div class="callout decision"><p>Bramkę wykonuje serwer, tak jak <code>run</code>, a nie CLI lokalnie. Sędzia, symulator i modele siedzą na serwerze, a kolejka workera potrzebuje rekordu runu.</p></div>
   <div class="callout decision"><p>Bramka bierze każdy scenariusz z <code>acGuardrail</code>, bez <code>--tag</code>. O tym, co jest guardrailem, decyduje plik scenariusza, a nie wywołanie w CI, więc nie da się po cichu pominąć AC.</p></div>
   <div class="callout decision"><p>Bramka nie robi pusha. Jest spójna z <code>run</code>, a push ma własny raport błędów; <code>--help</code> mówi, że push idzie pierwszy.</p></div>
-  <div class="callout decision"><p>Bramka jest tylko w CLI, z cichym wyjściem. Przy sukcesie nikt nie czyta logu, przy porażce log musi wystarczyć do zrozumienia, co padło. Liczniki checków i pasek postępu runu nie opisują dobrze bramki, więc web jej nie pokazuje.</p></div>
+  <div class="callout decision"><p>Bramka należy do lokalnego pełnego gate'u repo agenta, nie do CI. Potrzebuje Suwageval, działającego agenta z modelem i klucza modelu, a każde wywołanie modelu kosztuje i uzależnia build od usługi spoza repo. CI repo agenta puszcza tylko część bez modelu. Tak jest w suwexag (<code>just check</code> lokalnie, <code>just check-code</code> w CI) i tak mają robić inne repo agentów.</p></div>
+  <div class="callout decision"><p>Bramka jest tylko w CLI, z cichym wyjściem. Przy sukcesie nikt nie czyta wyjścia, przy porażce musi ono wystarczyć do zrozumienia, co padło. Liczniki checków i pasek postępu runu nie opisują dobrze bramki, więc web jej nie pokazuje.</p></div>
   <div class="callout decision"><p>Format id <code>AC-&lt;feature&gt;-&lt;n&gt;</code> jest wymuszany tak jak w metodzie spec-driven, żeby id w scenariuszu było tym samym id, co w specce agenta. Reguła żyje raz, w <code>Suwageval.Contracts</code>, i używają jej CLI i serwer.</p></div>
   <div class="callout decision"><p>Recheck runu bramkowego jest zablokowany. Próby urwały się na pierwszym sukcesie albo failu, więc ponowna ocena nie odpowiada na pytanie bramki.</p></div>
 </section>
@@ -552,7 +553,7 @@ checks: …
   <h2>Ryzyka i założenia</h2>
   <div class="callout risk"><p><b>Koszt przy niestabilnym AC:</b> 10 scenariuszy × 5 prób × symulacja wielu tur to dużo wywołań agenta i sędziego. Ograniczają to zatrzymanie na pierwszym failu i limit 1–20; scenariusze AC warto trzymać krótkie.</p></div>
   <div class="callout risk"><p><b>„Pierwsza udana próba” przepuszcza niestabilne zachowanie</b>, np. AC przechodzące w 1 na 5 prób. To świadomy wybór bramki (agent <i>potrafi</i>). Stabilność mierzy zwykły run z samplami i <code>passThreshold</code>.</p></div>
-  <div class="callout risk"><p><b>Runy bramkowe zostają w bazie, niewidoczne.</b> W CI baza żyje tylko przez czas joba. Na stałym serwerze runy bramkowe się zbierają: znikają razem z wersją lub agentem, ale nie mają własnego sprzątania.</p></div>
+  <div class="callout risk"><p><b>Runy bramkowe zostają w bazie, niewidoczne.</b> Na serwerze, z którego korzysta lokalny gate, runy bramkowe się zbierają: znikają razem z wersją lub agentem, ale nie mają własnego sprzątania.</p></div>
 </section>
 <!-- CONTENT END -->
 </main>

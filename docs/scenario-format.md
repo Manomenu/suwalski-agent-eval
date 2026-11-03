@@ -439,6 +439,10 @@ checks: …
   did in its last attempt (exit 1), so a CI log tells what broke; the reason when the gate could not start or finish (exit 2: no
   scenario with an `acGuardrail`, one of them without a check, the agent or the judge not answering). `--json` prints the run's results
   with the verdict in `gate`.
+- **Where it runs: the agent repository's local full gate, not CI.** The gate needs Suwageval, the agent running with its model, and
+  the model's key; a CI runner has none of them, and calling a model on every push costs money and ties the build to a service
+  outside the repository. So the agent's full local gate runs it (in the example agent, `just check`: the code, then `suwageval
+  validate`, `push`, `gate`), and CI runs only the part without a model (`just check-code` there).
 - A gate run is a verdict, not an evaluation: no list or page of the web shows it, and it is left out of `suwageval runs`, the
   regression history, the pass-rate trend, the problems and the versions' run counts. It is not re-checked (run the gate again).
 

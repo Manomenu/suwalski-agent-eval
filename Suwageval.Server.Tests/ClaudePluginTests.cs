@@ -66,6 +66,7 @@ public sealed class ClaudePluginTests
         var scenario = File.ReadAllText(Path.Combine(RepoRoot, "claude-plugin", "skills", "scenario", "SKILL.md"));
 
         Assert.Contains("suwageval gate --json", reference, StringComparison.Ordinal);
+        Assert.Contains("belongs to the agent repository's local full gate", reference, StringComparison.Ordinal);
         Assert.Contains("`gate` exits 0 when every acceptance criterion passed, 1 when one failed, 2", reference, StringComparison.Ordinal);
         Assert.Contains("gate.failedGuardrail", run, StringComparison.Ordinal);
         Assert.Contains("`gate` to run every scenario with an `acGuardrail`", frontDoors, StringComparison.Ordinal);

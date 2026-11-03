@@ -7,7 +7,7 @@ namespace Suwageval.Cli.Output;
 /// <summary>
 /// What <c>suwageval gate</c> prints for a finished gate run, and the exit code it gives. Quiet: a gate that passed is one line; a gate
 /// that failed says, for each acceptance criterion that failed, every attempt's failed checks with the verdict's message and what the
-/// agent did in the last attempt, so a CI log alone tells what broke.
+/// agent did in the last attempt, so the output alone tells what broke.
 /// </summary>
 internal static class GateText
 {
