@@ -26,6 +26,7 @@ One line per top-level path (at most 300 characters each). `RepositoryLayoutTest
 - `Suwageval.Server/Dockerfile`, `Suwageval.Web/Dockerfile` — the two images; the build context is the repository root.
 - `claude-plugin/`, `.claude-plugin/` — the Claude Code plugin: skills, a session hook and the marketplace file. Text and one shell script; the file format is linked from the skill, not copied.
 - `docs/` — documentation: this map, `development.md`, `deployment.md`, `release.md`, `web.md`, the file format, the concepts and the front doors; specs in `visual/spec/`.
+- `.claude/` — the committed Claude Code settings: the Stop hook and the edit guard of the gate.
 - `scripts/` — `scripts/.internal/` holds everyday tools the gate, CI and `just` run; each answers `--help`.
 - `.just/` — modules of the `justfile`.
 - `.github/` — `workflows/ci.yml` (gate, browser tests, then images, published only from `master`) and `workflows/agent-sdk.yml` (the SDK release; a nuget.org policy names this file, so it is never renamed alone).

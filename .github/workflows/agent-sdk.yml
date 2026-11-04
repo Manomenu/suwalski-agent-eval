@@ -1,7 +1,7 @@
 name: agent-sdk
 
 # Releases Suwageval.AgentSdk to nuget.org: started by `just agent-publish <version>`, never by a push, because a version
-# there cannot be deleted. nuget.org's Trusted Publishing policy names this file, so it cannot be renamed alone (AGENTS.md, section 12).
+# there cannot be deleted. nuget.org's Trusted Publishing policy names this file, so it cannot be renamed alone (docs/release.md).
 on:
   workflow_dispatch:
     inputs:

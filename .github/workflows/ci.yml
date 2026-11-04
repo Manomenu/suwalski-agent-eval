@@ -82,7 +82,7 @@ jobs:
 
       # Deliberately the same script the repo runs locally. CI that runs something else is
       # CI that can disagree with your machine, and then neither of you is trustworthy.
-      - run: ./scripts/.internal/check.sh
+      - run: ./Suwageval.Gate/scripts/check.sh
 
   # The whole app in a real browser (Suwageval.Web/src/**/*.e2e.ts). Same script as `just e2e`;
   # here PostgreSQL is a service, and the runner's psql makes the e2e database in it.

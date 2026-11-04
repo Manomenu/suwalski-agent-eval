@@ -29,13 +29,13 @@ export default defineConfig(
             "@typescript-eslint/no-unused-vars": ["error", { ignoreRestSiblings: true }],
         },
     },
-    // Import contracts: which folder of src/ may import which (AGENTS.md, "Import contracts").
+    // Import contracts: which folder of src/ may import which (docs/architecture.md).
     // src/ has three kinds of folders:
     //  - areas (src/evaluation/, later src/monitoring/): each holds the features of one product area, a folder per feature;
     //  - shared folders: plumbing and what every area uses (api/, routes/, agents/, versions/, …), listed below by name;
     //  - any other folder of src/ is a feature of its own, independent by default (the fallback, so a new folder is checked).
     // A feature of an area may import itself, the shared folders and the features of its area named in an explicit policy; never
-    // another area, and a shared folder never imports an area. The web counterpart of a layer in ContractsTests.cs.
+    // another area, and a shared folder never imports an area. The web counterpart of a layer in Suwageval.Gate/layers.json.
     {
         files: ["src/**/*.{ts,tsx}"],
         // Browser tests drive the page from outside; they import only e2e/helpers.
