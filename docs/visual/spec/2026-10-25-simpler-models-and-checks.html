@@ -466,12 +466,12 @@ flowchart LR
     <li><code>AC-simpler-models-and-checks-1</code> Z samym <code>Models:fallback</code> run z checkiem <code>judge</code> i run ze scenariuszem symulowanym przechodzą, a „Generate scenario” pisze opis modelem (bez <code>notice</code>)</li>
     <li><code>AC-simpler-models-and-checks-2</code> Z <code>Models:fallback</code> i <code>Models:simulator</code> symulowany klient idzie przez <code>simulator</code>, sędzia przez fallback (test konfiguracji)</li>
     <li><code>AC-simpler-models-and-checks-3</code> Bez żadnego modelu run z checkiem <code>judge</code> dostaje 409 z tekstem wskazującym <code>Models:fallback</code></li>
-    <li><code>AC-simpler-models-and-checks-4</code> <code>.env.example</code> i README mówią, że wystarczy fallback; <code>.env</code> na tej maszynie używa <code>Models__fallback__*</code></li>
+    <li><code>AC-simpler-models-and-checks-4</code> <code>.env.example</code> i README mówią, że wystarczy fallback</li>
     <li><code>AC-simpler-models-and-checks-5</code> <code>helm template</code> z <code>models.fallback.secret</code> daje <code>envFrom</code> z tym Secretem w serwerze i w live check</li>
     <li><code>AC-simpler-models-and-checks-6</code> <code>live-check.sh</code> z samym fallbackiem przechodzi dla sędziego, symulatora i opisywacza</li>
     <li><code>AC-simpler-models-and-checks-7</code> Check w <code>monitoring-checks.yaml</code> bez <code>description</code> przechodzi <code>validate</code> i <code>push</code>; strona Monitoringu i <code>suwageval monitoring checks</code> pokazują go bez błędu</li>
     <li><code>AC-simpler-models-and-checks-8</code> Scenariusz bez <code>fixtures</code> u agenta z <code>required</code> w <code>fixturesSchema</code> → <code>validate</code> kończy się błędem z listą wymaganych kluczy</li>
-    <li><code>AC-simpler-models-and-checks-9</code> Scenariusze suwexag bez fixtures (<code>greeting-pl</code>, <code>shipping-policy</code>) dalej przechodzą <code>validate</code>, jeśli jego schema nie ma <code>required</code></li>
+    <li><code>AC-simpler-models-and-checks-9</code> Scenariusze bez fixtures dalej przechodzą <code>validate</code>, jeśli jego schema nie ma <code>required</code></li>
     <li><code>AC-simpler-models-and-checks-11</code> <code>/suwageval:update</code> pokazuje wersję pluginu przed i po aktualizacji i poleca włączenie auto-update w <code>/plugin</code> → Marketplaces</li>
   </ul>
   <p>Poza kryteriami, jako zapis pracy: TODO.md ma wpisy: strona startowa agenta jako przegląd, szybsza i tańsza pętla dla agenta, krótszy output dla agenta.</p>
