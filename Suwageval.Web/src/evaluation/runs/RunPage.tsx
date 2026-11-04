@@ -41,7 +41,7 @@ export function RunPage({ runId }: { runId: string }) {
     const [selectedTags, selectTags] = useTagFilter();
     const [hidePassed, setHidePassed] = useHidePassed();
     const loadedRun = state.kind === "loaded" ? state.results.run : null;
-    const unstable = useUnstableChecks(loadedRun?.agent ?? null, loadedRun === null ? [] : [loadedRun.agentVersionId]);
+    const { checks: unstable } = useUnstableChecks(loadedRun?.agent ?? null, loadedRun === null ? [] : [loadedRun.agentVersionId]);
     useReportAgent(loadedRun?.agent ?? null);
     useScrollToHash(state.kind === "loaded");
     usePrintOnLoad(state.kind === "loaded");

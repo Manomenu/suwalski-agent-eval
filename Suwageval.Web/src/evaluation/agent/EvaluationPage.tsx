@@ -182,9 +182,11 @@ function AgentView({
     // Why: a newer version the filters hide must not close problems of the shown ones; with none shown, nothing is asked
     const considered = consideredVersionIds(versions, showArchived, models, dataVersions, versionFilter);
     const problemsAgent = considered.length === 0 ? null : agent.name;
-    const unstable = useUnstableChecks(problemsAgent, considered, false, dataVersions);
-    const errors = useAgentErrors(problemsAgent, considered, dataVersions);
+    const { checks: unstable, arrived: checksArrived } = useUnstableChecks(problemsAgent, considered, false, dataVersions);
+    const { errors, arrived: errorsArrived } = useAgentErrors(problemsAgent, considered, dataVersions);
     const trendPoints = visibleRuns(passRates, versions, showArchived, models, dataVersions, versionFilter);
+    // Why: the Problems cards stand above the filters, so arriving later they would push an open list off the screen
+    if (!checksArrived || !errorsArrived) return <Loader aria-label="Loading the problems" />;
     return (
         <Stack gap="lg">
             <Anchor href="/">← Agents</Anchor>

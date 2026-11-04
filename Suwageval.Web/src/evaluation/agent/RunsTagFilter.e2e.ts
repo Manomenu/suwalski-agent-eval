@@ -72,3 +72,27 @@ test("the run filters are not shown before the charts' code has arrived, so the 
         agentServer.close();
     }
 });
+
+// Why: The Problems cards stand above the filters and come from requests of their own: arriving later, they pushed an open tag list away, which hid it.
+test("the run filters are not shown before the Problems have arrived, so the cards never push them away", async ({ page, request }) => {
+    const name = `e2e-runs-late-problems-${String(Date.now())}`;
+    const agentServer = await serveAgent({ label: "e2e-runs-late-problems" });
+    try {
+        await createAgentWithTwoTags(request, name, agentServer.endpointUrl);
+        await runToEnd(request, { agent: name, tags: ["smoke"] });
+        const heldProblems: Route[] = [];
+        await page.route(/\/eval\/agents\/[^/]+\/(unstable-checks|agent-errors)/, (route) => {
+            heldProblems.push(route);
+        });
+
+        await page.goto(`/agents/${name}/evaluation`);
+        await expect(page.getByLabel("Loading the problems", { exact: true })).toBeVisible();
+        const tagField = page.getByRole("combobox", { name: "Filter runs by tag", exact: true });
+        await expect(tagField).toHaveCount(0);
+
+        await Promise.all(heldProblems.map((route) => route.continue()));
+        await expect(tagField).toBeVisible();
+    } finally {
+        agentServer.close();
+    }
+});

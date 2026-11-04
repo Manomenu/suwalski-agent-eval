@@ -6,8 +6,8 @@ export function useUnstableChecks(
     versionIds: readonly string[],
     eachVersion = false,
     dataVersions: readonly string[] = NO_DATA,
-): UnstableCheck[] {
-    const checks = useRequest(
+): { checks: UnstableCheck[]; arrived: boolean } {
+    const request = useRequest(
         agent === null ? null : JSON.stringify([agent, versionIds, eachVersion, dataVersions]),
         (signal) =>
             eachVersion
@@ -17,7 +17,11 @@ export function useUnstableChecks(
                 : fetchUnstableChecks(agent ?? "", versionIds, dataVersions, signal),
         { fallback: NONE },
     );
-    return checks.kind === "loaded" && !checks.pending ? checks.value : NONE;
+    // Why: arrived tells the page the first answer is in (or none is asked for), so it can hold the view back instead of letting the cards push the filters down later
+    return {
+        checks: request.kind === "loaded" && !request.pending ? request.value : NONE,
+        arrived: request.kind !== "loading" || !request.pending,
+    };
 }
 
 const NONE: UnstableCheck[] = [];
