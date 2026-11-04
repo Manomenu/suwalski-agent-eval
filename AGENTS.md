@@ -596,6 +596,7 @@ Two vocabularies, chosen word by word:
   | `scripts/.internal/db.sh up\|down\|status\|psql` | the local PostgreSQL on `localhost:5463` (docker container `suwageval-postgres`). `check.sh` runs `up` itself; tests create their own `suwageval_test` database |
   | `scripts/.internal/api-types.sh [--check]` | regenerate `Suwageval.Web/src/api/openapi.d.ts` after changing a record the API exposes. Never edit that file by hand |
   | `scripts/.internal/secrets.sh backup\|restore` | **not for agents** — the owner's copy of the `.env` files in Bitwarden (`just secrets`, section 7); it asks for the master password |
+  | `scripts/.internal/agent-publish.sh <version>` | **not for agents** — the owner's release of `Suwageval.AgentSdk` (`just agent-publish`, section 12); a version on nuget.org cannot be deleted |
   | `scripts/.internal/infra-status.sh` | what of the compose stack is up and on which ports (needs `jq`) |
 
   A new helper an agent should reach for goes here too, with a row in this table.
@@ -635,7 +636,12 @@ means: a clear goal, the files it touches are known, and a check says when it is
 
 ## 12. Releasing `Suwageval.AgentSdk`
 
-The owner releases it by hand, from a commit whose CI is green: `just agent-publish 0.1.0` packs that version
-(`-p:Version=`) and pushes it to the feed named by `AGENT_SDK_FEED_URL` with the key in `AGENT_SDK_FEED_API_KEY`, both
-from the gitignored `.env` (section 7: the feed is the owner's infrastructure). The csproj says `0.0.0-local`, which is
-what `just agent-pack` produces. Agents never publish.
+The owner releases it by hand, from a commit whose CI is green: `just agent-publish 0.1.0` packs that version (`-p:Version=`,
+built with `ContinuousIntegrationBuild`, so the symbols hold no local paths) and pushes it with its `.snupkg` to nuget.org, with
+the key in `AGENT_SDK_NUGET_API_KEY` from the gitignored `.env`; without the key it stops before packing. A version on nuget.org can
+never be deleted, only unlisted, so a bad release is followed by the next version, never replaced. The key comes from nuget.org,
+API Keys, Create: scope Push (new packages and package versions), glob `Suwageval.AgentSdk`; back it up with `just secrets backup`.
+
+To publish to another feed instead, set both `AGENT_SDK_FEED_URL` and `AGENT_SDK_FEED_API_KEY` in `.env` (section 7: a private feed's
+address is the owner's infrastructure); that push leaves the symbols out. The csproj says `0.0.0-local`, which is what `just agent-pack`
+produces. Agents never publish.

@@ -257,7 +257,7 @@ version; the answer to `POST /eval/runs` and `suwageval run` say which version a
 
 ### A .NET agent: the `Suwageval.AgentSdk` package
 
-An ASP.NET Core agent on .NET 9 or later need not write the two routes or declare the records. `Suwageval.AgentSdk` (released by the owner with `just agent-publish`; `just agent-pack` packs
+An ASP.NET Core agent on .NET 9 or later need not write the two routes or declare the records. `Suwageval.AgentSdk` (on nuget.org, released by the owner with `just agent-publish`; `just agent-pack` packs
 a local build into `.artifacts/nupkg`) holds the contract types, the JSON options the server uses (`ContractJson.Options`) and the routes:
 
 ```csharp

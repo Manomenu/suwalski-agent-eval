@@ -7,10 +7,19 @@
     <!-- A release passes its version (just agent-publish, -p:Version=); a local pack is plainly not one. -->
     <Version>0.0.0-local</Version>
     <PackageId>Suwageval.AgentSdk</PackageId>
-    <Description>Everything a .NET agent under test needs for Suwageval: the contract types, their JSON options, the contract rules and the two endpoints (GET /suwageval/contract, POST /suwageval/turn).</Description>
-    <!-- An expression, not the LICENSE file: the company feed (NuGet.Server 2.11) answers 500 to a package with a license file. -->
+    <Authors>Piotr Gugnowski</Authors>
+    <Copyright>Copyright (c) 2026 Piotr Gugnowski</Copyright>
+    <Description>Everything a .NET agent under test needs for Suwageval, an evaluation server for LLM agents: the contract types, their JSON options, the contract rules and the two endpoints (GET /suwageval/contract, POST /suwageval/turn).</Description>
+    <PackageTags>suwageval llm agent evaluation testing aspnetcore</PackageTags>
+    <!-- An expression, not the LICENSE file: nuget.org shows an SPDX identifier most clearly, and MIT has one. -->
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://github.com/Manomenu/suwalski-agent-eval</PackageProjectUrl>
+    <!-- Named here: Source Link would take it from the origin remote, which on a developer's machine is the SSH address. -->
+    <RepositoryUrl>https://github.com/Manomenu/suwalski-agent-eval.git</RepositoryUrl>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
 
   <ItemGroup>

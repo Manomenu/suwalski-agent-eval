@@ -36,6 +36,7 @@ just tmux-dev start --restart  # the same, after killing the old session and eve
 just tmux-dev stop   # kill the session and everything running in it
 just e2e             # browser tests against a real server and database
 just secrets backup  # copy the local .env files into Bitwarden (restore on a new machine)
+just agent-publish VERSION  # release Suwageval.AgentSdk to nuget.org, permanently: AGENTS.md, section 12
 ```
 
 How the repo is organised and what every change must bring along: [AGENTS.md](../AGENTS.md).

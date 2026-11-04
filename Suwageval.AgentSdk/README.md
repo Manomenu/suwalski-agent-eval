@@ -2,6 +2,10 @@
 
 What a .NET agent under test (.NET 9 or later) needs to be evaluated by [Suwageval](https://github.com/Manomenu/suwalski-agent-eval):
 
+```sh
+dotnet add package Suwageval.AgentSdk
+```
+
 ```csharp
 builder.Services.AddSingleton<IAgentContractSource, MyContractSource>();
 builder.Services.AddSingleton<ITurnHandler, MyTurnHandler>();
@@ -23,5 +27,3 @@ app.MapSuwagevalAgent();   // GET /suwageval/contract, POST /suwageval/turn
   after each real turn; the turns go to Suwageval in the background. Without `Suwageval:Url` the recorder does nothing.
 
 The HTTP contract stays the source of truth; this package saves a .NET agent from re-declaring it.
-
-Releases: `just agent-publish <version>`; see AGENTS.md, section 12.
