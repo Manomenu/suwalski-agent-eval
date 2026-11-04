@@ -2,16 +2,10 @@ using Suwageval.Server.Agents;
 
 namespace Suwageval.Server.Evaluation.Runs;
 
-/// <summary>
-/// The runs and versions the open problems of an agent (its unstable checks and its agent errors) are decided over: the considered
-/// versions, and the newest <see cref="MaxRuns"/> finished runs of them, each with the verdicts it shows (<see cref="EffectiveRuns"/>).
-/// </summary>
 internal static class RecentRuns
 {
-    /// <summary>The unstable checks and the agent errors look at the newest this many finished runs of the agent.</summary>
     public const int MaxRuns = 200;
 
-    /// <summary>The versions the open problems are decided over, newest first: the requested ones, else every one not archived.</summary>
     public static List<Guid> Considered(IReadOnlyList<AgentVersionRow> versionsNewestFirst, Guid[]? requested) =>
         [
             .. versionsNewestFirst
@@ -19,7 +13,6 @@ internal static class RecentRuns
                 .Select(row => row.Id),
         ];
 
-    /// <summary>The runs of the considered versions; with <paramref name="dataVersions"/>, only those on one of these retrieval data versions.</summary>
     public static async Task<IReadOnlyList<EffectiveRuns.Point>> PickAsync(
         Guid agentId,
         IReadOnlyCollection<Guid> considered,

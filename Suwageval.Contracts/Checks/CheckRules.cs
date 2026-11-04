@@ -55,7 +55,7 @@ public static class CheckRules
                 AddMatcherProblems(problems, notEmitted.Data, $"{path}.data");
                 if (notEmitted.Data is { } data && HoldsJudge(data))
                 {
-                    // "No event whose data a model would accept" would need a model call per event and turn its verdict upside down.
+                    // Why: "no event whose data a model would accept" would need a model call per event and turn its verdict upside down
                     problems.Add(
                         new CheckProblem(
                             $"{path}.data",

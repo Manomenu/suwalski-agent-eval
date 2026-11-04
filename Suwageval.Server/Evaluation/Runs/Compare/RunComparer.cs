@@ -3,25 +3,12 @@ using Suwageval.Server.Evaluation.Scenarios;
 
 namespace Suwageval.Server.Evaluation.Runs.Compare;
 
-/// <summary>
-/// The rules of comparing runs, as pure functions over their results: how their checks line up, the pass rate per tag, what counts as a
-/// difference, the judge of each run and the changes against the baseline, the run asked for.
-///
-/// Words: a check is "passed" when its pass rate reaches its threshold; its pass rate is the share of its samples that passed. A run's
-/// pass rate over some scenarios is the share of their checks that are passed — a check counts once, however many samples it has.
-/// </summary>
 internal static class RunComparer
 {
-    /// <summary>A turn time within this share of the baseline's counts as the same...</summary>
     public const double TimeSameShare = 0.05;
 
-    /// <summary>...and so does one within this many milliseconds (a fast agent's noise).</summary>
     public const double TimeSameMs = 100;
 
-    /// <summary>
-    /// How <paramref name="runs"/> stand against the one at <paramref name="baselineColumn"/>, in the order of the runs;
-    /// <paramref name="scenarios"/>: the agent's scenarios, for the tags.
-    /// </summary>
     public static BaselineComparison Compare(IReadOnlyList<RunResults> runs, IReadOnlyList<ScenarioLifetime> scenarios, int baselineColumn)
     {
         ArgumentNullException.ThrowIfNull(runs);
@@ -56,7 +43,6 @@ internal static class RunComparer
         };
     }
 
-    /// <summary>The checks of all runs lined up by scenario key and check key, in the order they first appear (the baseline's first).</summary>
     public static IReadOnlyList<ComparedCheck> AlignRows(IReadOnlyList<RunResults> runs, int baselineColumn)
     {
         ArgumentNullException.ThrowIfNull(runs);
@@ -83,7 +69,7 @@ internal static class RunComparer
             .. rows.Select(row =>
             {
                 var cells = row.Value.Select(check => check is null ? null : Cell(check)).ToList();
-                // The check as the baseline ran it, else as the first run that has it.
+                // Why: a row exists only because at least one run has the check, so some cell is not null
                 var shown = row.Value[baselineColumn] ?? row.Value.First(check => check is not null)!;
                 var baseline = cells[baselineColumn];
                 return new ComparedCheck
@@ -118,7 +104,6 @@ internal static class RunComparer
     private static bool SameCell(ComparedCell? a, ComparedCell? b) =>
         a is null || b is null ? a is null && b is null : a.Passed == b.Passed && a.PassRate == b.PassRate;
 
-    /// <summary>How a cell stands against the baseline's: better, worse, the same, or null when either has no check to compare.</summary>
     public static Contracts.Runs.Trend? TrendOf(ComparedCell? cell, ComparedCell? baseline)
     {
         if (cell is null || baseline is null)
@@ -136,10 +121,6 @@ internal static class RunComparer
         return cell.PassRate > baseline.PassRate ? Contracts.Runs.Trend.Better : Contracts.Runs.Trend.Worse;
     }
 
-    /// <summary>
-    /// The model that judged a run: the most common known model among its model-judged checks (the first to reach the count on a tie; a
-    /// run straddling a change of configuration is rare); null when no check was judged by a known model.
-    /// </summary>
     public static string? JudgeModel(RunResults run)
     {
         ArgumentNullException.ThrowIfNull(run);
@@ -162,21 +143,15 @@ internal static class RunComparer
         return best;
     }
 
-    /// <summary>Another judge than the baseline's: both known and different — then the verdicts may differ because of the judge, not the agent.</summary>
     public static bool JudgeChanged(string? model, string? baselineModel) =>
         model is not null && baselineModel is not null && model != baselineModel;
 
-    /// <summary>The share of the checks of these scenarios that are passed, 0 to 1; null when they have no checks.</summary>
     public static double? PassRate(IEnumerable<ScenarioRunResult> scenarios)
     {
         var checks = scenarios.SelectMany(scenario => scenario.Checks).ToList();
         return checks.Count == 0 ? null : checks.Count(check => check.Passed) / (double)checks.Count;
     }
 
-    /// <summary>
-    /// The pass rate over every check (no tag), then one row per tag, sorted by name. A run has a rate for a tag only when it ran every
-    /// scenario of the tag (<see cref="TagCoverage"/>); a scenario the agent no longer has still carries its tags.
-    /// </summary>
     public static IReadOnlyList<ComparedTag> TagRows(
         IReadOnlyList<RunResults> runs,
         IReadOnlyList<ScenarioLifetime> scenarios,
@@ -241,7 +216,6 @@ internal static class RunComparer
             ],
         };
 
-    /// <summary>A rate against the baseline's, in percentage points rounded to one decimal; null when either run has no such checks.</summary>
     public static RateChange? Change(double? rate, double? baseline)
     {
         if (rate is null || baseline is null)
@@ -257,7 +231,6 @@ internal static class RunComparer
         );
     }
 
-    /// <summary>A turn time against the baseline's; for time lower is better, so better is faster. Null when either run made no call.</summary>
     public static TimeChange? TimeChangeOf(double? milliseconds, double? baseline)
     {
         if (milliseconds is null || baseline is null)

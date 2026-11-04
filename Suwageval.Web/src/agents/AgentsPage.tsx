@@ -9,7 +9,6 @@ import { useRequest } from "../api/useRequest";
 import { agentHref } from "../routes/links";
 import { formatTime } from "../format/time";
 
-/** `/`: every agent, each linking to its page. */
 export function AgentsPage() {
     const state = useRequest("agents", fetchAgents);
     const [requestedPage, setRequestedPage] = usePageParam("agentsPage");

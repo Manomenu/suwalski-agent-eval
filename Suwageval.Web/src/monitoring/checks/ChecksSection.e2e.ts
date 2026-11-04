@@ -1,4 +1,3 @@
-// The Monitoring page shows the agent's monitoring checks, pushed as the CLI pushes them.
 import { expect, test } from "@playwright/test";
 
 test("the pushed monitoring checks are listed on the Monitoring page", async ({ page, request }) => {

@@ -3,7 +3,6 @@ using Suwageval.Server.Evaluation.Checks;
 
 namespace Suwageval.Server.Tests.Evaluation.Checks;
 
-/// <summary>What the request adds to <see cref="CheckRules"/> (tested in <see cref="CheckRulesTests"/>): paths in the request, keys, scenario keys.</summary>
 public sealed class CheckValidationTests
 {
     private static string[] Fields(params CheckInput[] checks) => [.. CheckValidation.Validate(checks).Select(error => error.Field)];

@@ -1,9 +1,5 @@
 import { useState } from "react";
 
-/**
- * The state versions and run groups share: the ticked rows (by key), a change in flight, its error, the notice of a deletion, and
- * whether the delete dialog is open. `archive` asks the server; `onChanged` makes the page load its lists again.
- */
 export function useArchiveList(archive: (keys: string[], archived: boolean) => Promise<void>, onChanged: () => void) {
     const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
     const [busy, setBusy] = useState(false);
@@ -37,7 +33,6 @@ export function useArchiveList(archive: (keys: string[], archived: boolean) => P
         }
     };
 
-    /** The server deleted the row: close the dialog, say so and load again. */
     const deleted = (message: string) => {
         setDeleting(false);
         clear();

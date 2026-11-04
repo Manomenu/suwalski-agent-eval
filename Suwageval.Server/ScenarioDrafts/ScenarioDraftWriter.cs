@@ -13,22 +13,10 @@ using Suwageval.Server.Evaluation.Simulation;
 
 namespace Suwageval.Server.ScenarioDrafts;
 
-/// <summary>
-/// A monitored conversation as a scenario file, copied to its end or up to a chosen message, the rest optionally simulated: the base a
-/// person (or Claude) builds a scenario on. The monitoring checks the conversation failed come below as comments, with their definitions: a monitoring check is not
-/// always a valid scenario check as it is, so it is never written as one.
-/// </summary>
 internal static partial class ScenarioDraftWriter
 {
-    /// <summary>How long a proposed key may be.</summary>
     public const int MaxKeyLength = 60;
 
-    /// <param name="conversationId">The agent's own id of the conversation, which the key is proposed from.</param>
-    /// <param name="id">Suwageval's id of the conversation: the scenario's origin.</param>
-    /// <param name="items">The conversation's items, oldest first, over all its turns.</param>
-    /// <param name="upTo">Where the copy ends: null, the whole conversation; else at that message, included.</param>
-    /// <param name="failedChecks">The monitoring checks the conversation failed, as they are defined.</param>
-    /// <param name="simulation">The rest simulated (only with <paramref name="upTo"/>): the user described from the whole conversation and the turns; null, copied only.</param>
     public static ScenarioDraft Draft(
         string conversationId,
         Guid id,
@@ -88,7 +76,6 @@ internal static partial class ScenarioDraftWriter
         };
     }
 
-    /// <summary>The key proposed from the agent's id of the conversation (lowercase words joined by hyphens), else from Suwageval's.</summary>
     public static string Key(string conversationId, Guid id)
     {
         ArgumentNullException.ThrowIfNull(conversationId);

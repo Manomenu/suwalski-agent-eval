@@ -1,14 +1,11 @@
-// The items of a conversation log as the pages show them: a run's samples and a monitored conversation's turns.
 import type { components } from "../api/openapi";
 
 export type ConversationItem = components["schemas"]["ConversationItem"];
 
-/** An item's identity for highlighting: items have no id, so their content is it. */
 export function itemKey(item: ConversationItem): string {
     return JSON.stringify(item);
 }
 
-/** What an item is, in a word or two: "user", "call: get_order", "event: state.changed". */
 export function itemTitle(item: ConversationItem): string {
     switch (item.kind) {
         case "UserMessage":
@@ -29,7 +26,6 @@ export function itemTitle(item: ConversationItem): string {
     return "?";
 }
 
-/** The body of an item as text: message text, pretty arguments, a result, retrieved chunks. */
 export function itemBody(item: ConversationItem): string {
     switch (item.kind) {
         case "UserMessage":

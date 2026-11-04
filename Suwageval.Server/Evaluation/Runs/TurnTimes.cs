@@ -2,22 +2,17 @@ using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Server.Evaluation.Runs;
 
-/// <summary>How long the agent took to answer a turn: the samples' durations and the statistics the run report and the trend show.</summary>
 internal static class TurnTimes
 {
-    /// <summary>
-    /// How long the agent took for each turn of each sample that made a call (a sample of one turn is one; a simulation's turns each
-    /// count); a sample without a call has no duration.
-    /// </summary>
     public static List<int> Durations(IEnumerable<ScenarioRunResult> scenarios) =>
         [
             .. scenarios
                 .SelectMany(scenario => scenario.Samples)
                 .Where(sample => sample.DurationMs is not null)
+                // Why: samples without a call are filtered out before, so a sample without per-turn times has a single duration
                 .SelectMany(sample => sample.TurnDurationsMs ?? [sample.DurationMs!.Value]),
         ];
 
-    /// <summary>The middle value, the mean of the two middle ones for an even count; null for no value.</summary>
     public static double? Median(IReadOnlyCollection<int> values)
     {
         ArgumentNullException.ThrowIfNull(values);
@@ -30,7 +25,6 @@ internal static class TurnTimes
         return sorted.Count % 2 == 1 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2.0;
     }
 
-    /// <summary>The 95th percentile by nearest rank: the value at rank ⌈0.95·n⌉ of the sorted values; null for no value.</summary>
     public static double? P95(IReadOnlyCollection<int> values)
     {
         ArgumentNullException.ThrowIfNull(values);

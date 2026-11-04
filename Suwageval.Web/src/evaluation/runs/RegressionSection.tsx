@@ -19,7 +19,6 @@ import { StateBadge } from "./StateBadge";
 import { runHref } from "../../routes/links";
 import { shortId } from "../../format/names";
 
-/** What a check's state says about it: its name, its history strip, then since when it fails and what to compare with. One cell each, so the columns line up. */
 function CheckLine({ item, runId }: { item: StatedCheck; runId: string }) {
     const regression = item.check.regression;
     const compare = compareLink(runId, regression);
@@ -49,7 +48,6 @@ function CheckLine({ item, runId }: { item: StatedCheck; runId: string }) {
     );
 }
 
-/** Known failures are not news: the same header as the other groups, the checks folded until asked for. */
 function KnownFailures({ known, runId }: { known: readonly StatedCheck[]; runId: string }) {
     const [opened, setOpened] = useState(false);
     return (
@@ -72,7 +70,7 @@ function KnownFailures({ known, runId }: { known: readonly StatedCheck[]; runId:
                     {opened ? "hide" : "show"}
                 </Anchor>
             </Group>
-            {/* Always in the page; folded it is hidden on the screen and still printed (print.css). */}
+            {/* Why: always in the page: folded it is hidden on screen and still printed (print.css) */}
             <ul className={opened ? "regression-checks-group" : "regression-checks-group folded-block"}>
                 {known.map((item) => (
                     <CheckLine key={`${item.scenarioKey}/${item.check.key}`} item={item} runId={runId} />
@@ -82,7 +80,6 @@ function KnownFailures({ known, runId }: { known: readonly StatedCheck[]; runId:
     );
 }
 
-/** The run's checks against their history: what broke, what is new, what is only noise. Nothing without a regression summary. */
 export function RegressionSection({ results }: { results: RunResults }) {
     const summary = results.regression;
     if (summary == null) return null;

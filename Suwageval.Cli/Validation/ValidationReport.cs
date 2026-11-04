@@ -4,13 +4,12 @@ using Suwageval.Cli.Files;
 
 namespace Suwageval.Cli.Validation;
 
-/// <summary>A result written for a person (<c>file:line:col: path: message</c>) or for a program (<c>--json</c>).</summary>
 internal static class ValidationReport
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
         WriteIndented = true,
-        // Printed for a program, not embedded in HTML: quotes stay quotes instead of \u0027.
+        // Why: printed for a program, not embedded in HTML, so quotes stay quotes
         Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
     };
 

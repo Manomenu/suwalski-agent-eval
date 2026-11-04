@@ -6,7 +6,6 @@ using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Cli.Tests.Evaluation.Runs;
 
-/// <summary>The command against a stand-in for the API.</summary>
 public sealed class RunsCommandTests
 {
     private static string Sample => Path.Combine(AppContext.BaseDirectory, "Sample", "suwageval");

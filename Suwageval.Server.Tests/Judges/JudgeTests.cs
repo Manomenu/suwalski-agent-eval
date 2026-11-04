@@ -10,7 +10,6 @@ using static Suwageval.Server.Tests.Evaluation.Checks.Items;
 
 namespace Suwageval.Server.Tests.Judges;
 
-/// <summary>The judge against recorded answers of the model (<c>Answers/</c>): real ones captured from qwen38, and malformed ones.</summary>
 [SuppressMessage(
     "Reliability",
     "CA2000:Dispose objects before losing scope",

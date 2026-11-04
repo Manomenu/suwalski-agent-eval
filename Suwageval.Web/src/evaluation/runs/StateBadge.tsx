@@ -6,7 +6,6 @@ import { stateColor, stateExplanation, stateLabel } from "./regression";
 
 const TOOLTIP_WIDTH = 340;
 
-/** A check's state against its history, with what the state means on hover. */
 export function StateBadge({
     state,
     variant,

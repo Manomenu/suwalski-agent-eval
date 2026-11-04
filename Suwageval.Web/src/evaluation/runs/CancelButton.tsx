@@ -4,10 +4,6 @@ import { useState } from "react";
 import { cancelRun, type RunSummary } from "./api";
 import { canCancel } from "./results";
 
-/**
- * "Cancel run", for a queued or running run: asks first, then asks the server to stop it. The page's own refresh then shows
- * "cancelling…" until the run is cancelled. The server's refusal is shown as it came.
- */
 export function CancelButton({ run }: { run: Pick<RunSummary, "id" | "status" | "cancelRequested"> }) {
     const [asking, setAsking] = useState(false);
     const [busy, setBusy] = useState(false);

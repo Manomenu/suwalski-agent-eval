@@ -7,7 +7,6 @@ using Suwageval.Server.Verdicts;
 
 namespace Suwageval.Server.Evaluation.Runs;
 
-/// <summary>How a check judges the output of one sample — shared by a run, which has just called the agent, and a re-check, which has not.</summary>
 internal static class CheckEvaluation
 {
     public static async Task<NewCheckResult> EvaluateAsync(
@@ -37,7 +36,6 @@ internal static class CheckEvaluation
         );
     }
 
-    /// <summary>The verdict of a check on a sample that produced nothing: failed, and says why it was not evaluated.</summary>
     public static NewCheckResult NotEvaluated(CheckRow row, string reason) =>
         new(row.Id, row.Revision, false, "[]", $"Not evaluated: {reason}");
 }

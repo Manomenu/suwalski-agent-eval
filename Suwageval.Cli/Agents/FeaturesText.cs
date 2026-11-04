@@ -3,7 +3,6 @@ using Suwageval.Contracts.Agents;
 
 namespace Suwageval.Cli.Agents;
 
-/// <summary>The agent's areas in one line: <c>features: evaluation on  monitoring on (close after 30m, environments production, staging)</c>.</summary>
 internal static class FeaturesText
 {
     public static string Of(AgentFeatures features)

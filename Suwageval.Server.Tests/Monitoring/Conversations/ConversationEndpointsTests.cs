@@ -145,7 +145,6 @@ public sealed class ConversationEndpointsTests(TestDatabase database) : IAsyncDi
         var first = versions.Single(version => version.ContentHash == AgentContractHash.Of(Contract()));
         var second = versions.Single(version => version.ContentHash == AgentContractHash.Of(Contract("Be brief.")));
         var before = Assert.Single(first.Monitoring);
-        // The conversation of 40 days ago is out of the 30 days' count, but the version answered it.
         Assert.Equal(("production", 1, false), (before.Environment, before.Conversations30Days, before.Current));
         Assert.Equal(now.AddHours(-2), before.LastConversationAt, TimeSpan.FromSeconds(1));
         var current = Assert.Single(second.Monitoring);

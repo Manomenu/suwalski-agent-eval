@@ -5,7 +5,6 @@ import { HighlightedYaml } from "../checks/HighlightedYaml";
 
 const DEFINITION_DRAWER_WIDTH = 640;
 
-/** A `{ }` button that opens the scenario as a scenario file, as the run used it, in a drawer with a copy button. Nothing shows until it is clicked. */
 export function ScenarioDefinitionButton({ scenarioKey, revision, yaml }: { scenarioKey: string; revision: number; yaml: string }) {
     const [opened, { open, close }] = useDisclosure(false);
     return (

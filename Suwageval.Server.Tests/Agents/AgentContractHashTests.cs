@@ -57,10 +57,7 @@ public sealed class AgentContractHashTests
     public void The_hash_is_the_one_the_server_registers_the_content_under() =>
         Assert.Equal(ContentHash.Of(AgentContractHash.Content(Contract())), AgentContractHash.Of(Contract()));
 
-    /// <summary>
-    /// Agents with the SDK send this hash to name their version, so a change to it splits every version an agent already sent
-    /// from the one the server registers: change the expected value only together with a migration of the stored versions.
-    /// </summary>
+    // Why: agents send this hash as their version name, so changing it splits every stored version; change the expected value only together with a migration
     [Fact]
     public void The_hash_of_a_known_contract_does_not_change() =>
         Assert.Equal(

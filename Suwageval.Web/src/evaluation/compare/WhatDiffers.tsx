@@ -16,10 +16,6 @@ const nameOf = (column: VariantRun | undefined) => (column === undefined ? "" : 
 const WHAT_DIFFERS_HELP =
     "The fields of the agent's contract that are not the same in the versions these columns ran: models and their parameters, tools, other config lines, the retrieval data version. Each column is read against the baseline when one is picked, else against the first column. A prompt is only marked changed — open its diff to read it. Folded, the section still prints whole.";
 
-/**
- * "What differs" as the table's first section: one row per contract field that differs between the columns' versions; none when
- * they ran one version. Its header folds it (folded at first, the choice remembered); folded rows are still printed (print.css).
- */
 export function WhatDiffers({
     agent,
     columns,
@@ -29,13 +25,10 @@ export function WhatDiffers({
 }: {
     agent: string;
     columns: readonly VariantRun[];
-    /** The column the others are read against: the baseline's, else the first. */
     reference: number;
-    /** Null while the contracts are loading. */
     differences: Difference[] | null;
     colSpan: number;
 }) {
-    // The columns whose prompt diff (against the reference column's version) is open.
     const [openDiffs, setOpenDiffs] = useState<readonly number[]>([]);
     const [open, setOpen] = useState(readWhatDiffersOpen);
     const versions = new Set(columns.map((column) => column.run.agentVersionId));
@@ -59,7 +52,6 @@ export function WhatDiffers({
                             {title}
                         </Group>
                     </UnstyledButton>
-                    {/* On paper the section is always whole: its name without the button. */}
                     <Text span inherit className="print-only-inline">
                         What differs
                     </Text>
@@ -123,11 +115,10 @@ function DifferenceRows({
     difference: Difference;
     openDiffs: readonly number[];
     onToggle: (column: number) => void;
-    /** The whole section is folded: its rows are hidden on the screen, still printed. */
     folded: boolean;
     colSpan: number;
 }) {
-    // Every changed prompt's diff is in the page; one the person did not open is hidden on the screen and still printed (print.css).
+    // Why: a prompt diff the person did not open is hidden on screen and still printed (print.css)
     const changed = difference.isPrompt ? difference.cells.flatMap((cell, column) => (cell.changed ? [column] : [])) : [];
     return (
         <>
@@ -174,7 +165,6 @@ function DifferenceRows({
     );
 }
 
-/** The server's line diff of the whole contract between the reference column's version and this column's. */
 function PromptDiff({
     agent,
     columns,

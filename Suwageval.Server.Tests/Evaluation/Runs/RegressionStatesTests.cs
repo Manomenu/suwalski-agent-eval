@@ -11,25 +11,21 @@ public sealed class RegressionStatesTests
     public static TheoryData<bool[], int, bool, RegressionState> Cases =>
         new()
         {
-            // StablePass: the last N all passed
             { [P, P, P, P, P], 5, P, RegressionState.Passed },
             { [P, P, P, P, P], 5, F, RegressionState.Regression },
             { [F, F, P, P, P, P, P], 5, F, RegressionState.Regression },
             { [P], 1, P, RegressionState.Passed },
             { [P], 1, F, RegressionState.Regression },
-            // Known: N failures in a row at the end
             { [F, F, F, F, F], 5, F, RegressionState.KnownFailure },
             { [F, F, F, F, F], 5, P, RegressionState.Fixed },
             { [P, F, F, F, F, F], 5, F, RegressionState.KnownFailure },
             { [F], 1, F, RegressionState.KnownFailure },
             { [F], 1, P, RegressionState.Fixed },
             { [P, F], 1, F, RegressionState.KnownFailure },
-            // Broken: fewer than N failures after N passes
             { [P, P, P, P, P, F], 5, F, RegressionState.AlreadyBroken },
             { [P, P, P, P, P, F], 5, P, RegressionState.Fixed },
             { [P, P, P, P, P, F, F, F, F], 5, F, RegressionState.AlreadyBroken },
             { [P, P, F], 2, F, RegressionState.AlreadyBroken },
-            // NoHistory: fewer than N runs
             { [], 5, P, RegressionState.Passed },
             { [], 5, F, RegressionState.New },
             { [P, P, P, P], 5, P, RegressionState.Passed },
@@ -37,7 +33,6 @@ public sealed class RegressionStatesTests
             { [F], 5, F, RegressionState.New },
             { [F, F, F, F], 5, P, RegressionState.Passed },
             { [], 1, F, RegressionState.New },
-            // Mixed: enough history, no steady past
             { [P, F, P, F, P], 5, P, RegressionState.Unstable },
             { [P, F, P, F, P], 5, F, RegressionState.Unstable },
             { [P, P, P, F, F, F, F, P], 5, P, RegressionState.Unstable },

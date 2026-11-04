@@ -4,7 +4,6 @@ import { branchesText, historyText, samplesText } from "./configuration";
 import { HeaderHelp } from "../../help/HeaderHelp";
 import { CONFIGURATION_HELP, REGRESSION_BRANCHES_HELP, REGRESSION_HISTORY_HELP, SAMPLES_HELP } from "./view";
 
-/** What agent.yaml sets and a version does not hold: the endpoint, the default samples and the regression settings. */
 export function ConfigurationSection({
     endpointUrl,
     samples,

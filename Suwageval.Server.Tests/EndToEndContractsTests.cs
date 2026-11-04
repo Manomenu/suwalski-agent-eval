@@ -6,15 +6,11 @@ using Assembly = System.Reflection.Assembly;
 
 namespace Suwageval.Server.Tests;
 
-/// <summary>
-/// Where the CLI meets the server (AGENTS.md, section 4): only the end-to-end tests may use the CLI, and nothing else
-/// may use them. Read from the compiled assemblies.
-/// </summary>
 public sealed class EndToEndContractsTests
 {
     private const string EndToEnd = @"^Suwageval\.Server\.Tests\.EndToEnd(\..+)?$";
 
-    // By name, not typeof: this file is itself outside EndToEnd and must not use the CLI.
+    // Why: load by name, not typeof, because this file is outside EndToEnd and must not use the CLI
     private static readonly Assembly CliAssembly = Assembly.Load("suwageval");
 
     private static readonly Architecture Tests = new ArchLoader()

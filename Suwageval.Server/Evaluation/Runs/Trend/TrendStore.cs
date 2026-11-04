@@ -3,13 +3,8 @@ using Suwageval.Server.Database;
 
 namespace Suwageval.Server.Evaluation.Runs.Trend;
 
-/// <summary>What the pass-rate trend reads of the runs' results. Plain SQL, mapped by Dapper.</summary>
 internal sealed class TrendStore(Pool pool)
 {
-    /// <summary>
-    /// For the pass-rate trend, in one query: per run among <paramref name="runIds"/> (the runs whose verdicts count), scenario and check
-    /// the samples with a verdict and the passed ones; the threshold is the one of the newest check revision that ran.
-    /// </summary>
     public async Task<IReadOnlyList<TrendCheckRow>> ListTrendChecksAsync(
         IReadOnlyCollection<Guid> runIds,
         CancellationToken cancellationToken = default
@@ -37,7 +32,6 @@ internal sealed class TrendStore(Pool pool)
         return [.. rows];
     }
 
-    /// <summary>For the pass-rate trend, in one query: the scenarios every run among <paramref name="runIds"/> ran, those without a check too.</summary>
     public async Task<IReadOnlyList<TrendScenarioRow>> ListTrendScenariosAsync(
         IReadOnlyCollection<Guid> runIds,
         CancellationToken cancellationToken = default
@@ -59,10 +53,6 @@ internal sealed class TrendStore(Pool pool)
         return [.. rows];
     }
 
-    /// <summary>
-    /// For the pass-rate trend, in one query: how long the agent took for every turn of a sample that made a call (a sample of one turn
-    /// is one), of the runs among <paramref name="runIds"/>.
-    /// </summary>
     public async Task<IReadOnlyList<TrendDurationRow>> ListTrendDurationsAsync(
         IReadOnlyCollection<Guid> runIds,
         CancellationToken cancellationToken = default

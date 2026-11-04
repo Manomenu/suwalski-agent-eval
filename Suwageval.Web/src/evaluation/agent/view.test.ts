@@ -46,7 +46,6 @@ describe("visibleRuns with models", () => {
 });
 
 describe("data versions", () => {
-    // The data is the run's: one version ran on two data versions.
     const runs = [
         { agentVersionId: "v-a", dataVersion: "build-1" },
         { agentVersionId: "v-a", dataVersion: "build-2" },

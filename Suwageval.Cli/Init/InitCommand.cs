@@ -6,14 +6,6 @@ using Suwageval.Contracts.Agents;
 
 namespace Suwageval.Cli.Init;
 
-/// <summary>
-/// <c>suwageval init [path]</c>: sets up <c>suwageval/agent.yaml</c> and <c>suwageval/scenarios/</c> in an agent's repository. It never calls the
-/// server, and it only changes what it is told to: the fields of an existing file that are not set stay as written, comments included, and
-/// running it again with the same values writes nothing. Missing values are asked for when a person is at the terminal, else they take
-/// their defaults. Monitoring (<c>features.monitoring</c>) is added when asked for (<c>--monitoring</c>, or "y" at the terminal) and the file has
-/// none yet, with an empty <c>monitoring-checks.yaml</c> and what the agent itself needs said at the end; settings already in the file are
-/// changed only by hand. Exits 0, or 1 for a value that is not valid or an agent.yaml that cannot be read.
-/// </summary>
 internal static class InitCommand
 {
     public const string DefaultEndpointUrl = "http://localhost:8000";
@@ -22,7 +14,6 @@ internal static class InitCommand
     private const string EndpointUrl = "endpointUrl";
     private const string SuwagevalUrl = AgentFileReader.SuwagevalUrlField;
 
-    /// <summary>The <c>closeAfter</c> proposed for new monitoring: the server's default, written out so it can be found and changed.</summary>
     public const string DefaultCloseAfter = "30m";
 
     private const string MonitoringChecks = """
@@ -106,7 +97,6 @@ internal static class InitCommand
         return command;
     }
 
-    /// <summary>What the options say; null: not given. Monitoring is asked for by <c>--monitoring</c>, <c>--close-after</c> or <c>--environment</c>.</summary>
     private sealed record Given(
         string? Name,
         string? EndpointUrl,
@@ -116,7 +106,6 @@ internal static class InitCommand
         IReadOnlyList<string>? Environments
     );
 
-    /// <summary>The monitoring to add: its <c>closeAfter</c> and environments (none: any).</summary>
     private sealed record NewMonitoring(string CloseAfter, IReadOnlyList<string> Environments);
 
     private static async Task<int> RunAsync(
@@ -312,7 +301,6 @@ internal static class InitCommand
         $"closeAfter {monitoring.CloseAfter}, "
         + (monitoring.Environments.Count == 0 ? "any environment" : $"environments {string.Join(", ", monitoring.Environments)}");
 
-    /// <summary>What the agent itself needs for monitoring, to copy: the SDK's two calls and its three settings.</summary>
     private static string MonitoringNext(List<(string Field, string Value)> fields, NewMonitoring monitoring)
     {
         var name = fields.First(field => field.Field == Name).Value;
@@ -348,7 +336,6 @@ internal static class InitCommand
         return messages;
     }
 
-    /// <summary>A yes/no question, no by default: true only for an answer starting with y.</summary>
     private static async Task<bool> AskYesAsync(string question, Terminal terminal, TextWriter output)
     {
         await output.WriteAsync($"{question} [y/N]: ");
@@ -356,7 +343,6 @@ internal static class InitCommand
         return answer is { Length: > 0 } && char.ToLowerInvariant(answer[0]) == 'y';
     }
 
-    /// <summary>One question: the answer, or <paramref name="proposal"/> for an empty line (or none).</summary>
     private static async Task<string?> AskAsync(string field, string? proposal, Terminal terminal, TextWriter output)
     {
         await output.WriteAsync(proposal is null ? $"{field} (empty: not written): " : $"{field} [{proposal}]: ");

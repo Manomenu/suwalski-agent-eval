@@ -4,10 +4,6 @@ using Suwageval.Contracts.Samples;
 
 namespace Suwageval.Server.Tests.Samples;
 
-/// <summary>
-/// The shared rules and the resolution order of <c>samples</c> (<c>Suwageval.Contracts/Samples</c>), tested here because Contracts has no
-/// test project of its own.
-/// </summary>
 public sealed class SampleRulesTests
 {
     [Theory]

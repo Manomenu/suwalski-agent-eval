@@ -1,5 +1,3 @@
-// A check that passed in the newest reference runs of master and fails now is shown as a regression on the run's page,
-// with a link to compare with the last passing run. (An agent error is not a regression: regression.test.ts, RegressionStatesTests.)
 import { expect, test } from "@playwright/test";
 
 import { createAgent, runToEnd, serveAgent } from "../../../e2e/helpers";

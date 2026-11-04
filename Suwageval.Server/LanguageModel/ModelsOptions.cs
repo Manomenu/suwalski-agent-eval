@@ -2,7 +2,6 @@ using Microsoft.Extensions.Options;
 
 namespace Suwageval.Server.LanguageModel;
 
-/// <summary>The <c>Models</c> section: the models by name. Empty is fine until something names one.</summary>
 internal sealed class ModelsOptions : Dictionary<string, ModelOptions>
 {
     public const string Section = "Models";
@@ -10,7 +9,6 @@ internal sealed class ModelsOptions : Dictionary<string, ModelOptions>
     public ModelsOptions()
         : base(StringComparer.OrdinalIgnoreCase) { }
 
-    /// <summary>Every model must be complete, so a missing or malformed setting stops the server at start.</summary>
     internal sealed class ModelsOptionsValidator : IValidateOptions<ModelsOptions>
     {
         public ValidateOptionsResult Validate(string? name, ModelsOptions options)

@@ -13,13 +13,11 @@ using Suwageval.Contracts.Scenarios;
 
 namespace Suwageval.Cli.Server;
 
-/// <summary>The server's endpoints for agents, scenarios, checks, runs and versions, spoken with the contract records. Anything that goes wrong is a <see cref="ServerClientException"/>.</summary>
 internal sealed class ServerClient(HttpClient http)
 {
     private const int MaxPageSize = 100;
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(1);
 
-    /// <summary>The agent, and whether this call created it (otherwise it existed; its endpoint URL is now the given one).</summary>
     public Task<(Agent Agent, bool Created)> PutAgentAsync(AgentDefinition definition, CancellationToken cancellationToken) =>
         ReadAsync(
             () => http.PostAsJsonAsync(new Uri("agents", UriKind.Relative), definition, ContractJson.Options, cancellationToken),
@@ -61,25 +59,21 @@ internal sealed class ServerClient(HttpClient http)
             cancellationToken
         );
 
-    /// <summary>What a re-check of run <paramref name="runId"/> would do and whether it can start.</summary>
     public Task<RecheckPlan> RecheckPlanAsync(Guid runId, CancellationToken cancellationToken) =>
         SendAsync<RecheckPlan>(
             () => http.GetAsync(new Uri($"eval/runs/{runId}/recheck", UriKind.Relative), cancellationToken),
             cancellationToken
         );
 
-    /// <summary>Starts a re-check of run <paramref name="runId"/>: its stored answers judged again by the current checks.</summary>
     public Task<RunCreated> RecheckAsync(Guid runId, CancellationToken cancellationToken) =>
         SendAsync<RunCreated>(
             () => http.PostAsync(new Uri($"eval/runs/{runId}/recheck", UriKind.Relative), null, cancellationToken),
             cancellationToken
         );
 
-    /// <summary>Asks the server to stop run <paramref name="runId"/>: it answers 202 for any known run, a finished one stays as it is.</summary>
     public Task CancelAsync(Guid runId, CancellationToken cancellationToken) =>
         SendAsync(() => http.PostAsync(new Uri($"eval/runs/{runId}/cancel", UriKind.Relative), null, cancellationToken), cancellationToken);
 
-    /// <summary>Sets the note of run <paramref name="runId"/>; none or blank clears it.</summary>
     public Task SetNoteAsync(Guid runId, string? note, CancellationToken cancellationToken) =>
         SendAsync(
             () =>
@@ -92,7 +86,6 @@ internal sealed class ServerClient(HttpClient http)
             cancellationToken
         );
 
-    /// <summary>Sets the note of the agent's run group <paramref name="group"/>; none or blank clears it. 404: no run of the agent is in the group.</summary>
     public Task SetGroupNoteAsync(string agent, string group, string? note, CancellationToken cancellationToken) =>
         SendAsync(
             () =>
@@ -108,14 +101,6 @@ internal sealed class ServerClient(HttpClient http)
     public Task<RunSummary> GetAsync(Guid runId, CancellationToken cancellationToken) =>
         SendAsync<RunSummary>(() => http.GetAsync(new Uri($"eval/runs/{runId}", UriKind.Relative), cancellationToken), cancellationToken);
 
-    /// <summary>
-    /// The agent's newest runs, newest first, at most <paramref name="limit"/> of them (asked for in pages the server accepts); only those of
-    /// <paramref name="versions"/> when any are given, and, with <paramref name="referenceOnly"/>, only reference runs (the server has no
-    /// filter for those, so older pages are read until enough are found); only those started in <paramref name="group"/> when one is given;
-    /// only those in no group or in some group as <paramref name="grouping"/> says;
-    /// only those that ran the scenarios of any of <paramref name="tags"/> (limited to tags including one of them, or not limited) when some are given;
-    /// only those on one of <paramref name="dataVersions"/> when some are given.
-    /// </summary>
     public async Task<IReadOnlyList<RunSummary>> RunsAsync(
         string agent,
         int limit,
@@ -129,7 +114,7 @@ internal sealed class ServerClient(HttpClient http)
     )
     {
         var runs = new List<RunSummary>();
-        // One page size throughout: the server pages by number, so changing it between requests would skip or repeat runs.
+        // Why: the server pages by number, so changing the page size between requests would skip or repeat runs
         var size = referenceOnly ? MaxPageSize : Math.Min(limit, MaxPageSize);
         for (var page = 1; runs.Count < limit; page++)
         {
@@ -164,7 +149,6 @@ internal sealed class ServerClient(HttpClient http)
         return runs.Count > limit ? runs[..limit] : runs;
     }
 
-    /// <summary>The groups of the agent's runs, the one with the newest run first.</summary>
     public Task<IReadOnlyList<RunGroupSummary>> RunGroupsAsync(string agent, CancellationToken cancellationToken) =>
         SendAsync<IReadOnlyList<RunGroupSummary>>(
             () => http.GetAsync(new Uri($"eval/agents/{Uri.EscapeDataString(agent)}/run-groups", UriKind.Relative), cancellationToken),
@@ -183,7 +167,6 @@ internal sealed class ServerClient(HttpClient http)
             cancellationToken
         );
 
-    /// <summary>What deleting the run group would remove; the server answers like the deletion would (409 for a group that is not archived or has a run in progress).</summary>
     public Task<RunGroupDeletion> RunGroupDeletionAsync(string agent, string group, CancellationToken cancellationToken) =>
         SendAsync<RunGroupDeletion>(
             () =>
@@ -197,7 +180,6 @@ internal sealed class ServerClient(HttpClient http)
             cancellationToken
         );
 
-    /// <summary>Deletes an archived run group with its runs, samples and verdicts.</summary>
     public Task DeleteRunGroupAsync(string agent, string group, CancellationToken cancellationToken) =>
         SendAsync(
             () =>
@@ -208,17 +190,12 @@ internal sealed class ServerClient(HttpClient http)
             cancellationToken
         );
 
-    /// <summary>One agent with what is stored for it; the server answers 404 for an agent it does not have.</summary>
     public Task<AgentDetail> AgentAsync(string agent, CancellationToken cancellationToken) =>
         SendAsync<AgentDetail>(
             () => http.GetAsync(new Uri($"agents/{Uri.EscapeDataString(agent)}", UriKind.Relative), cancellationToken),
             cancellationToken
         );
 
-    /// <summary>
-    /// The agent's newest monitored conversations (the newest last turn first), at most <paramref name="limit"/>, only those of
-    /// <paramref name="environment"/>, of <paramref name="versions"/> and in <paramref name="state"/> when given.
-    /// </summary>
     public async Task<ConversationList> ConversationsAsync(
         string agent,
         int limit,
@@ -249,7 +226,6 @@ internal sealed class ServerClient(HttpClient http)
         return await SendAsync<ConversationList>(() => http.GetAsync(new Uri(url, UriKind.Relative), cancellationToken), cancellationToken);
     }
 
-    /// <summary>Makes the agent's monitoring checks the given ones (a check not among them is deleted).</summary>
     public Task<PutChecksResponse> PutMonitoringChecksAsync(
         string agent,
         IReadOnlyList<CheckInput> checks,
@@ -266,7 +242,6 @@ internal sealed class ServerClient(HttpClient http)
             cancellationToken
         );
 
-    /// <summary>The agent's monitoring checks with how they did in the last 7 and 30 days.</summary>
     public Task<IReadOnlyList<MonitoringCheck>> MonitoringChecksAsync(
         string agent,
         string? environment,
@@ -284,7 +259,6 @@ internal sealed class ServerClient(HttpClient http)
             cancellationToken
         );
 
-    /// <summary>The agent's monitored conversations and verdicts day by day over the last <paramref name="days"/>.</summary>
     public Task<MonitoringTrend> MonitoringTrendAsync(string agent, int days, string? environment, CancellationToken cancellationToken) =>
         SendAsync<MonitoringTrend>(
             () =>
@@ -298,10 +272,6 @@ internal sealed class ServerClient(HttpClient http)
             cancellationToken
         );
 
-    /// <summary>
-    /// A monitored conversation drafted as a scenario file (its key, path and YAML): copied to its end, or up to its
-    /// <paramref name="upToUser"/>-th user or <paramref name="upToAgent"/>-th agent message.
-    /// </summary>
     public Task<ScenarioDraft> ScenarioDraftAsync(
         Guid conversationId,
         int? upToUser,
@@ -341,7 +311,6 @@ internal sealed class ServerClient(HttpClient http)
         );
     }
 
-    /// <summary>A monitored conversation with its turns.</summary>
     public Task<ConversationDetail> ConversationAsync(Guid id, CancellationToken cancellationToken) =>
         SendAsync<ConversationDetail>(
             () => http.GetAsync(new Uri($"monitoring/conversations/{id}", UriKind.Relative), cancellationToken),
@@ -351,7 +320,6 @@ internal sealed class ServerClient(HttpClient http)
     public Task<IReadOnlyList<Agent>> AgentsAsync(CancellationToken cancellationToken) =>
         SendAsync<IReadOnlyList<Agent>>(() => http.GetAsync(new Uri("agents", UriKind.Relative), cancellationToken), cancellationToken);
 
-    /// <summary>The agent's scenarios (the newest revision of each), only those with <paramref name="tag"/> when one is given.</summary>
     public Task<IReadOnlyList<ScenarioSummary>> ScenariosAsync(string agent, string? tag, CancellationToken cancellationToken) =>
         SendAsync<IReadOnlyList<ScenarioSummary>>(
             () =>
@@ -385,7 +353,6 @@ internal sealed class ServerClient(HttpClient http)
             cancellationToken
         );
 
-    /// <summary>The agent's checks (the newest revision of each), only those of scenario <paramref name="scenario"/> when one is given.</summary>
     public Task<IReadOnlyList<CheckDetail>> ChecksAsync(string agent, string? scenario, CancellationToken cancellationToken) =>
         SendAsync<IReadOnlyList<CheckDetail>>(
             () =>
@@ -399,17 +366,12 @@ internal sealed class ServerClient(HttpClient http)
             cancellationToken
         );
 
-    /// <summary>The points of the agent's trend: one per finished run, with its pass rate, turn times and rate per tag.</summary>
     public Task<IReadOnlyList<RunPassRates>> PassRatesAsync(string agent, CancellationToken cancellationToken) =>
         SendAsync<IReadOnlyList<RunPassRates>>(
             () => http.GetAsync(new Uri($"eval/agents/{Uri.EscapeDataString(agent)}/pass-rates", UriKind.Relative), cancellationToken),
             cancellationToken
         );
 
-    /// <summary>
-    /// The agent's open unstable checks, most often failing first: unstable in the newest version that ran them at least twice, among
-    /// <paramref name="versions"/> (none: every version not archived), over the runs on <paramref name="dataVersions"/> (none: any data).
-    /// </summary>
     public Task<IReadOnlyList<UnstableCheck>> UnstableChecksAsync(
         string agent,
         IEnumerable<Guid> versions,
@@ -428,10 +390,6 @@ internal sealed class ServerClient(HttpClient http)
             cancellationToken
         );
 
-    /// <summary>
-    /// The agent's open errors, the highest share of samples first: scenarios where the agent gave no answer in the newest version that ran
-    /// them, among <paramref name="versions"/> (none: every version not archived), over the runs on <paramref name="dataVersions"/> (none: any data).
-    /// </summary>
     public Task<IReadOnlyList<AgentError>> AgentErrorsAsync(
         string agent,
         IEnumerable<Guid> versions,
@@ -465,7 +423,6 @@ internal sealed class ServerClient(HttpClient http)
             cancellationToken
         );
 
-    /// <summary>Asks for the run until it is done, failed or cancelled.</summary>
     public async Task WaitForEndAsync(Guid runId, CancellationToken cancellationToken)
     {
         while ((await GetAsync(runId, cancellationToken)).Status is RunStatus.Queued or RunStatus.Running)
@@ -474,10 +431,6 @@ internal sealed class ServerClient(HttpClient http)
         }
     }
 
-    /// <summary>
-    /// The runs named by <paramref name="runIds"/>, or those of <paramref name="group"/> (of <paramref name="agent"/> when given), side by
-    /// side; with <paramref name="baseline"/> (one of the runs) also how the others stand against it.
-    /// </summary>
     public Task<RunComparison> CompareAsync(
         IReadOnlyCollection<Guid> runIds,
         string? group,
@@ -499,7 +452,6 @@ internal sealed class ServerClient(HttpClient http)
         );
     }
 
-    /// <summary>What changed between two versions of the agent, line by line.</summary>
     public Task<VersionDiff> VersionDiffAsync(string agent, Guid from, Guid to, CancellationToken cancellationToken) =>
         SendAsync<VersionDiff>(
             () =>
@@ -510,14 +462,12 @@ internal sealed class ServerClient(HttpClient http)
             cancellationToken
         );
 
-    /// <summary>The agent's versions, newest first, each with where it is used.</summary>
     public Task<IReadOnlyList<AgentVersion>> VersionsAsync(string agent, CancellationToken cancellationToken) =>
         SendAsync<IReadOnlyList<AgentVersion>>(
             () => http.GetAsync(new Uri($"agents/{Uri.EscapeDataString(agent)}/versions", UriKind.Relative), cancellationToken),
             cancellationToken
         );
 
-    /// <summary>One version of the agent with its contract; the server answers 404 for a version the agent does not have.</summary>
     public Task<AgentVersionDetail> VersionAsync(string agent, Guid versionId, CancellationToken cancellationToken) =>
         SendAsync<AgentVersionDetail>(
             () => http.GetAsync(new Uri($"agents/{Uri.EscapeDataString(agent)}/versions/{versionId}", UriKind.Relative), cancellationToken),
@@ -536,21 +486,18 @@ internal sealed class ServerClient(HttpClient http)
             cancellationToken
         );
 
-    /// <summary>What deleting the agent would remove; the server answers like the deletion would (409 for an agent with a run in progress).</summary>
     public Task<AgentDeletion> AgentDeletionAsync(string agent, CancellationToken cancellationToken) =>
         SendAsync<AgentDeletion>(
             () => http.GetAsync(new Uri($"agents/{Uri.EscapeDataString(agent)}/deletion", UriKind.Relative), cancellationToken),
             cancellationToken
         );
 
-    /// <summary>Deletes the agent with its versions, scenarios, checks, runs, samples and verdicts.</summary>
     public Task DeleteAgentAsync(string agent, CancellationToken cancellationToken) =>
         SendAsync(
             () => http.DeleteAsync(new Uri($"agents/{Uri.EscapeDataString(agent)}", UriKind.Relative), cancellationToken),
             cancellationToken
         );
 
-    /// <summary>What deleting the version would remove; the server answers like the deletion would (409 for a version that is not archived or has a run in progress).</summary>
     public Task<VersionDeletion> VersionDeletionAsync(string agent, Guid versionId, CancellationToken cancellationToken) =>
         SendAsync<VersionDeletion>(
             () =>
@@ -561,7 +508,6 @@ internal sealed class ServerClient(HttpClient http)
             cancellationToken
         );
 
-    /// <summary>Deletes an archived version with its runs, samples and verdicts.</summary>
     public Task DeleteVersionAsync(string agent, Guid versionId, CancellationToken cancellationToken) =>
         SendAsync(
             () =>
@@ -579,7 +525,6 @@ internal sealed class ServerClient(HttpClient http)
         await response.Content.ReadFromJsonAsync<T>(ServerAnswers.Options, cancellationToken)
         ?? throw new ServerClientException("The server's answer was empty.");
 
-    /// <summary>For an answer with no body.</summary>
     private static async Task SendAsync(Func<Task<HttpResponseMessage>> send, CancellationToken cancellationToken) =>
         await ReadAsync(send, _ => Task.FromResult(0), cancellationToken);
 
@@ -611,7 +556,6 @@ internal sealed class ServerClient(HttpClient http)
         }
     }
 
-    /// <summary>The area a refusal says is switched off (its <c>feature</c> extension), or null.</summary>
     private static string? FeatureOf(string body)
     {
         try
@@ -630,7 +574,6 @@ internal sealed class ServerClient(HttpClient http)
         }
     }
 
-    /// <summary>The Problem Details of the server in words: its detail, or every field error of a validation problem.</summary>
     private static string Describe(HttpStatusCode status, string body)
     {
         var text = new StringBuilder().Append(CultureInfo.InvariantCulture, $"The server answered {(int)status} {status}");
@@ -664,10 +607,7 @@ internal sealed class ServerClient(HttpClient http)
                 }
             }
         }
-        catch (JsonException)
-        {
-            // Not Problem Details (a proxy's page, say): the status alone has to do.
-        }
+        catch (JsonException) { }
         return text.ToString();
     }
 }

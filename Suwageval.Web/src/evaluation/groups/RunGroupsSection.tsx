@@ -32,7 +32,6 @@ const LABELS: ArchiveLabels = {
     errorTitle: "Could not change the groups",
 };
 
-/** The agent's run groups: each opens the compare page of its runs; select some to archive them, see archived ones with the Archived chip, restore or delete one. */
 export function RunGroupsSection({
     agentName,
     groups,
@@ -40,7 +39,6 @@ export function RunGroupsSection({
 }: {
     agentName: string;
     groups: RunGroupSummary[];
-    /** Called after the server archived, restored or deleted groups, so the page loads its lists again. */
     onChanged: () => void;
 }) {
     const [showArchived, setShowArchived] = useArchivedParam(ARCHIVED_GROUPS_PARAM);

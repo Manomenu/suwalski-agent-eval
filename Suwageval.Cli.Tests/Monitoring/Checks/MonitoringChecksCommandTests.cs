@@ -9,7 +9,6 @@ using Suwageval.Contracts.Monitoring;
 
 namespace Suwageval.Cli.Tests.Monitoring.Checks;
 
-/// <summary><c>suwageval monitoring checks</c> and <c>trend</c> against a stand-in for the API.</summary>
 public sealed class MonitoringChecksCommandTests
 {
     private static string Sample => Path.Combine(AppContext.BaseDirectory, "Sample", "suwageval");

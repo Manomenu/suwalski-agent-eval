@@ -3,16 +3,10 @@ using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Server.Evaluation.Runs;
 
-/// <summary>
-/// Where a run stands among the runs of its agent, decided once when it is created: the origin it was started from, whether it is a
-/// reference run (it makes the history of its branch) and the branch whose history it is compared with (none: every run of the agent).
-/// </summary>
 internal sealed record RunPlacement(RunOrigin? Origin, bool Reference, string? ComparedWith)
 {
-    /// <summary>The placement of a run in a group (an experiment): never a reference, compared with nothing.</summary>
     public RunPlacement AsExperiment() => this with { Reference = false, ComparedWith = null };
 
-    /// <summary>The placement of a run started from <paramref name="origin"/> for an agent with these regression settings.</summary>
     public static RunPlacement Decide(RunOrigin? origin, RegressionSettings? settings)
     {
         if (origin is null)

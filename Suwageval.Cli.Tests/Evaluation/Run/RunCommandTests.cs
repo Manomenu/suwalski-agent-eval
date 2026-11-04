@@ -9,7 +9,6 @@ using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Cli.Tests.Evaluation.Run;
 
-/// <summary>The command against a stand-in for the server: what it sends, what it prints, which exit code it gives.</summary>
 public sealed class RunCommandTests
 {
     private static readonly Guid RunId = Guid.Parse("11111111-2222-3333-4444-555555555555");
@@ -136,7 +135,6 @@ public sealed class RunCommandTests
             _ => new HttpResponseMessage(HttpStatusCode.NotFound),
         };
 
-    /// <summary>A reader with no repository and no CI: the run has no origin (the sample folder sits in this repository, whose state is not the test's business).</summary>
     private static readonly RunOriginReader NoRepository = new((_, _) => null, _ => null);
 
     private static (int Exit, string Output, string Error, FakeServer Server) Run(
@@ -536,7 +534,6 @@ public sealed class RunCommandTests
         using var sent = JsonDocument.Parse(body ?? "");
         Assert.Equal("example-agent", sent.RootElement.GetProperty("agent").GetString());
         Assert.Equal(["regression", "smoke"], sent.RootElement.GetProperty("tags").EnumerateArray().Select(tag => tag.GetString()));
-        // A version is never sent: the server reads it from the agent.
         Assert.False(sent.RootElement.TryGetProperty("agentVersionId", out _));
     }
 
@@ -700,8 +697,7 @@ public sealed class RunCommandTests
         Assert.Equal(RunStatus.Done, printed?.Run.Status);
     }
 
-    // A real run printed invalid JSON once, a raw line break inside a string: a judge's reason or an agent's reply with line breaks
-    // (also the Unicode ones) must reach stdout escaped.
+    // Why: a real run once printed invalid JSON from a raw line break inside a string, so reasons and replies with line breaks must reach stdout escaped
     private const char LineSeparator = (char)0x2028;
     private const char ParagraphSeparator = (char)0x2029;
     private const char NextLine = (char)0x85;
@@ -779,7 +775,6 @@ public sealed class RunCommandTests
 
         var (_, output, error, _) = Run((request, _) => Server(request, Summary(RunStatus.Done), results), "--wait", "--json");
 
-        // A console that is not UTF-8 would turn the typographic quotes into plain ones: the document is ASCII.
         Assert.All(output, character => Assert.True(character < 128));
         using var printed = JsonDocument.Parse(output);
         Assert.Equal(5, printed.RootElement.GetProperty("scenarios")[0].GetProperty("samples")[0].GetProperty("output").GetArrayLength());
@@ -794,7 +789,6 @@ public sealed class RunCommandTests
                 new HttpResponseMessage(HttpStatusCode.Conflict)
                 {
                     Content = new StringContent(
-                        /*lang=json,strict*/
                         """{"title":"x","mismatches":["check 'a': it names tool 'nope', which the version does not have"]}""",
                         Encoding.UTF8,
                         "application/json"
@@ -840,10 +834,6 @@ public sealed class RunCommandTests
         Assert.Empty(server.Requests);
     }
 
-    /// <summary>
-    /// <c>run --wait</c> where Ctrl+C is pressed while the run is still going: the stand-in server cancels the interrupt the first
-    /// time it is asked for the run's state, and answers that it is running; <paramref name="typed"/> is what the person answers.
-    /// </summary>
     private static (int Exit, string Output, string Error, FakeServer Server) Interrupted(
         string typed,
         bool interactive,

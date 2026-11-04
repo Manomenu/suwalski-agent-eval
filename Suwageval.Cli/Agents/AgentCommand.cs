@@ -5,14 +5,8 @@ using Suwageval.Cli.Server;
 
 namespace Suwageval.Cli.Agents;
 
-/// <summary>
-/// <c>suwageval agent</c>: what the server stores for the agent named in <c>suwageval/agent.yaml</c> — endpoint, creation time, how many
-/// versions, scenarios and checks, the default samples and the regression settings; <c>--json</c> prints the record. Exits 0, or 2 when
-/// the agent file or the server is wrong.
-/// </summary>
 internal static class AgentCommand
 {
-    /// <param name="http">The client to the API; none means one is made from <c>--server</c> or <c>SUWAGEVAL_URL</c> (the tests pass their own).</param>
     public static Command Create(HttpClient? http = null)
     {
         var json = CommandOptions.Json("Print the agent as JSON.");

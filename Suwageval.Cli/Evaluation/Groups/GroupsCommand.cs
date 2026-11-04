@@ -6,15 +6,8 @@ using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Cli.Evaluation.Groups;
 
-/// <summary>
-/// <c>suwageval groups archive|unarchive &lt;name&gt;...</c> hides or restores run groups of the agent named in <c>suwageval/agent.yaml</c>
-/// (<c>runs --groups</c> lists them); <c>groups delete &lt;name&gt;</c> deletes an archived group with its runs (after the person types its name, or
-/// with <c>--yes</c>). Exits 0, 1 when a deletion is not confirmed, or 2 when the agent file, the server or a group is wrong.
-/// </summary>
 internal static class GroupsCommand
 {
-    /// <param name="terminal">Where <c>delete</c> asks the person to type the group's name.</param>
-    /// <param name="http">The client to the API; none means one is made from <c>--server</c> or <c>SUWAGEVAL_URL</c> (the tests pass their own).</param>
     public static Command Create(Terminal terminal, HttpClient? http = null) =>
         new("groups", "Archive or unarchive the agent's run groups; delete an archived one with its runs.")
         {

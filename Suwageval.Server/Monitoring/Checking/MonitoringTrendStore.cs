@@ -4,7 +4,6 @@ using Suwageval.Server.Database;
 
 namespace Suwageval.Server.Monitoring.Checking;
 
-/// <summary>What the Monitoring page's charts read: the agent's conversations and verdicts day by day. Plain SQL, mapped by Dapper.</summary>
 internal sealed class MonitoringTrendStore(Pool pool)
 {
     private const string Conversations = """
@@ -13,7 +12,6 @@ internal sealed class MonitoringTrendStore(Pool pool)
           AND (@environment::text IS NULL OR c.environment = @environment)
         """;
 
-    /// <summary>The trend of the agent's conversations whose last turn came since <paramref name="since"/> (UTC days), of one environment when given.</summary>
     public async Task<MonitoringTrend> TrendAsync(
         Guid agentId,
         DateTimeOffset since,

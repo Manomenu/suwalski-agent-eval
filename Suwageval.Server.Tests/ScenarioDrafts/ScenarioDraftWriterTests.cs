@@ -22,12 +22,7 @@ public sealed class ScenarioDraftWriterTests
                     Arguments = JsonSerializer.SerializeToElement(new { order_id = "A-17", reason = "broken" }),
                     Agent = "support",
                 },
-                new ToolResult
-                {
-                    CallId = "c1",
-                    Content = /*lang=json,strict*/
-                        """{"refunded":89.9}""",
-                },
+                new ToolResult { CallId = "c1", Content = """{"refunded":89.9}""" },
                 new Event { Type = "state.changed", Data = JsonSerializer.SerializeToElement(new { node = "refunded", orderId = "A-17" }) },
                 new AssistantMessage { Text = "Refunded.", Sources = ["refunds"] },
             ],
@@ -51,7 +46,6 @@ public sealed class ScenarioDraftWriterTests
         Assert.Equal("suwageval/scenarios/conversation-chat-81.yaml", draft.Path);
         Assert.Contains("copied to its end", draft.Yaml, StringComparison.Ordinal);
         Assert.Contains("- user: Hi\n- assistant: Hello, how can I help?\n- user: Refund order A-17", draft.Yaml, StringComparison.Ordinal);
-        // The last answer cites a source, so it is written in full rather than as the shorthand.
         Assert.Contains("text: Refunded.", draft.Yaml, StringComparison.Ordinal);
         Assert.Contains($"origin:\n  monitoringConversation: {Id}\n", draft.Yaml, StringComparison.Ordinal);
         Assert.DoesNotContain("checks", draft.Yaml, StringComparison.Ordinal);

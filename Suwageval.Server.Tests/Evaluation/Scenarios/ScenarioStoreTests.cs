@@ -14,12 +14,8 @@ public sealed class ScenarioStoreTests(TestDatabase database)
     private async Task<Guid> NewAgentAsync() =>
         (await new AgentStore(database.Pool).CreateAsync(AgentStoreTests.UniqueName(), "http://agent.test", Cancellation)).Agent.Id;
 
-    private static ScenarioItem Item(
-        string key,
-        string content = /*lang=json,strict*/
-            """{"conversation":[]}""",
-        params string[] tags
-    ) => new(key, tags, content);
+    private static ScenarioItem Item(string key, string content = """{"conversation":[]}""", params string[] tags) =>
+        new(key, tags, content);
 
     [Fact]
     public async Task Upsert_creates_then_leaves_identical_content_unchanged()
@@ -41,37 +37,14 @@ public sealed class ScenarioStoreTests(TestDatabase database)
     {
         var store = Store();
         var agent = await NewAgentAsync();
-        await store.UpsertAsync(
-            agent,
-            [
-                Item(
-                    "a", /*lang=json,strict*/
-                    """{"v":1}"""
-                ),
-            ],
-            Cancellation
-        );
+        await store.UpsertAsync(agent, [Item("a", """{"v":1}""")], Cancellation);
 
-        var result = await store.UpsertAsync(
-            agent,
-            [
-                Item(
-                    "a", /*lang=json,strict*/
-                    """{"v":2}"""
-                ),
-            ],
-            Cancellation
-        );
+        var result = await store.UpsertAsync(agent, [Item("a", """{"v":2}""")], Cancellation);
 
         Assert.Equal(ScenarioOutcome.Updated, Assert.Single(result).Outcome);
         var revisions = await store.ListRevisionsAsync(agent, "a", Cancellation);
         Assert.Equal([1, 2], revisions.Select(revision => revision.Revision));
-        Assert.Equal(
-            ContentHash.Of( /*lang=json,strict*/
-                """{"v":2}"""
-            ),
-            revisions[1].ContentHash
-        );
+        Assert.Equal(ContentHash.Of("""{"v":2}"""), revisions[1].ContentHash);
         var latest = Assert.Single(await store.ListAsync(agent, cancellationToken: Cancellation));
         Assert.Equal(2, latest.Revision);
         Assert.Contains("2", latest.Content, StringComparison.Ordinal);
@@ -83,30 +56,9 @@ public sealed class ScenarioStoreTests(TestDatabase database)
     {
         var store = Store();
         var agent = await NewAgentAsync();
-        await store.UpsertAsync(
-            agent,
-            [
-                Item(
-                    "a", /*lang=json,strict*/
-                    """{"v":1}""",
-                    "x"
-                ),
-            ],
-            Cancellation
-        );
+        await store.UpsertAsync(agent, [Item("a", """{"v":1}""", "x")], Cancellation);
 
-        var result = await store.UpsertAsync(
-            agent,
-            [
-                Item(
-                    "a", /*lang=json,strict*/
-                    """{"v":1}""",
-                    "y",
-                    "x"
-                ),
-            ],
-            Cancellation
-        );
+        var result = await store.UpsertAsync(agent, [Item("a", """{"v":1}""", "y", "x")], Cancellation);
 
         Assert.Equal(ScenarioOutcome.Unchanged, Assert.Single(result).Outcome);
         Assert.Single(await store.ListRevisionsAsync(agent, "a", Cancellation));
@@ -120,16 +72,7 @@ public sealed class ScenarioStoreTests(TestDatabase database)
         var agent = await NewAgentAsync();
         await store.UpsertAsync(agent, [Item("a"), Item("b")], Cancellation);
 
-        await store.UpsertAsync(
-            agent,
-            [
-                Item(
-                    "a", /*lang=json,strict*/
-                    """{"v":2}"""
-                ),
-            ],
-            Cancellation
-        );
+        await store.UpsertAsync(agent, [Item("a", """{"v":2}""")], Cancellation);
 
         Assert.Equal(["a", "b"], (await store.ListAsync(agent, cancellationToken: Cancellation)).Select(row => row.Key));
         Assert.Single(await store.ListRevisionsAsync(agent, "b", Cancellation));
@@ -142,26 +85,8 @@ public sealed class ScenarioStoreTests(TestDatabase database)
         var agent = await NewAgentAsync();
         await store.ReplaceAsync(agent, [Item("a"), Item("c"), Item("b")], Cancellation);
 
-        var result = await store.ReplaceAsync(
-            agent,
-            [
-                Item(
-                    "a", /*lang=json,strict*/
-                    """{"v":2}"""
-                ),
-            ],
-            Cancellation
-        );
-        var again = await store.ReplaceAsync(
-            agent,
-            [
-                Item(
-                    "a", /*lang=json,strict*/
-                    """{"v":2}"""
-                ),
-            ],
-            Cancellation
-        );
+        var result = await store.ReplaceAsync(agent, [Item("a", """{"v":2}""")], Cancellation);
+        var again = await store.ReplaceAsync(agent, [Item("a", """{"v":2}""")], Cancellation);
 
         Assert.Equal(
             [("a", ScenarioOutcome.Updated), ("b", ScenarioOutcome.Deleted), ("c", ScenarioOutcome.Deleted)],

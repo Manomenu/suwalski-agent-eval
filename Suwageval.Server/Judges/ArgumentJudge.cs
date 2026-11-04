@@ -9,16 +9,6 @@ using Suwageval.Server.Verdicts;
 
 namespace Suwageval.Server.Judges;
 
-/// <summary>
-/// The verdict of a <c>tool-called</c> / <c>event</c> check whose <c>args</c> / <c>data</c> hold <c>$judge</c> matchers
-/// (docs/scenario-format.md, "The <c>$judge</c> matcher"). <see cref="CheckEvaluator.Search"/> does the deterministic part with no model;
-/// this asks the model about the candidates it left, in order, ONE request per candidate covering all its <c>$judge</c> values,
-/// and stops at the first candidate where every value is correct.
-/// </summary>
-/// <remarks>
-/// Like <see cref="Judge"/>: a model that cannot be asked, or an answer that is not exactly what was asked for (one entry per path
-/// given: none missing, none extra, none twice), makes the sample "not judged" — never an exception. Calls go through the model's shared, limited client.
-/// </remarks>
 internal sealed class ArgumentJudge(ModelClients models, IOptions<JudgeOptions> options)
 {
     private const string Instructions = """
@@ -108,10 +98,7 @@ internal sealed class ArgumentJudge(ModelClients models, IOptions<JudgeOptions> 
         return new CheckVerdict(false, search.Named, $"{search.Subject}, but not with judged values that fit. {why}", ModelName: modelName);
     }
 
-    /// <summary>
-    /// The answer as asked for: valid JSON of the right shape, with exactly the candidate's paths — each once. Null when it is anything
-    /// else (so a model that skipped a value, made one up or repeated one is "not judged", never a pass).
-    /// </summary>
+    // Why: anything but exactly the candidate's paths, each once, is null so that a skipped, made-up or repeated value is not judged and never a pass
     public static IReadOnlyList<ArgumentAnswers.Entry>? Read(string text, ArgumentCandidate candidate)
     {
         ArgumentNullException.ThrowIfNull(candidate);

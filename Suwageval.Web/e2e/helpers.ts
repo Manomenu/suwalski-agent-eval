@@ -1,4 +1,3 @@
-// Steps the browser tests share: the agent under test (a tiny HTTP server), its scenarios and checks, and runs taken to their end.
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 
@@ -9,11 +8,9 @@ export interface ServedAgent {
     model?: string;
     config?: string;
     reply?: string;
-    /** Every turn answers 500: the run still ends, the version stays. */
     failing?: boolean;
     context?: object;
     tools?: object[];
-    /** Awaited before each turn is answered. */
     beforeAnswer?: () => Promise<void>;
 }
 
@@ -24,7 +21,6 @@ export interface RunningAgent {
 
 const POLL_INTERVALS_MS = [100, 250, 500];
 
-/** The agent under test; changing the fields of `served` changes what its next run sees. */
 export async function serveAgent(served: ServedAgent): Promise<RunningAgent> {
     const server: Server = createServer((request, response) => {
         if (request.url === "/suwageval/contract") {
@@ -74,7 +70,6 @@ export interface AgentSetup {
 
 const GREETING = [{ kind: "UserMessage", text: "Hello" }];
 
-/** The one scenario most tests need: it says hello, one sample. */
 const GREETS_SCENARIO = { key: "greets", samples: 1, conversation: GREETING };
 
 export async function createAgent(request: APIRequestContext, setup: AgentSetup): Promise<void> {
@@ -102,14 +97,12 @@ async function waitUntilDone(request: APIRequestContext, runId: string): Promise
         .toBe("Done");
 }
 
-/** Starts a run and waits until it is over; its id. */
 export async function runToEnd(request: APIRequestContext, data: object): Promise<string> {
     const runId = await startRun(request, data);
     await waitUntilDone(request, runId);
     return runId;
 }
 
-/** Counts the calls of `window.print` in `window.printed`, without opening the dialog. */
 export async function stubPrint(page: Page): Promise<void> {
     await page.addInitScript(() => {
         (window as unknown as { printed: number }).printed = 0;
@@ -121,7 +114,6 @@ export async function stubPrint(page: Page): Promise<void> {
 
 export const printedCount = (page: Page) => page.evaluate(() => (window as unknown as { printed: number }).printed);
 
-/** What a page shows on paper that must not be there: controls, whatever is marked `no-print`, the app's header and navbar. */
 export function visibleOnPaperButNotWanted(page: Page): Promise<string[]> {
     return page.locator("button, input, select, textarea, [role=switch], .no-print, header, nav").evaluateAll((elements) =>
         elements
@@ -134,13 +126,9 @@ export function visibleOnPaperButNotWanted(page: Page): Promise<string[]> {
     );
 }
 
-/** The agents list's page size (`DEFAULT_PAGE_SIZE` in `src/pagination/pages.ts`). */
 const AGENTS_PAGE_SIZE = 10;
 
-/**
- * Opens the agents list on the page that holds `name`: the list is sorted by name and paged, and the other tests' agents share the
- * database, so the agent's page depends on them.
- */
+// Why: the agents list is sorted by name and paged, and other tests' agents share the database, so an agent's page depends on them
 export async function openAgentsListAt(page: Page, request: APIRequestContext, name: string): Promise<void> {
     const response = await request.get("/api/agents");
     expect(response.ok()).toBe(true);

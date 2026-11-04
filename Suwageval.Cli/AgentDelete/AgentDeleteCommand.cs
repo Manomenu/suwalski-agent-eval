@@ -6,16 +6,8 @@ using Suwageval.Contracts.Agents;
 
 namespace Suwageval.Cli.AgentDelete;
 
-/// <summary>
-/// <c>suwageval delete-agent</c>: deletes the agent named in <c>suwageval/agent.yaml</c> from the server — a registration made by mistake —
-/// with its versions, scenarios, checks and every run with its samples and verdicts. Prints what goes first; the person then types the
-/// agent's name (or passes <c>--yes</c>; <c>--dry-run</c> only prints). Files in the repository are not touched. Exits 0, 1 when not
-/// confirmed, 2 when the agent file, the server or the agent is wrong (an unknown agent, or a run still queued or running).
-/// </summary>
 internal static class AgentDeleteCommand
 {
-    /// <param name="terminal">Where the person is asked to type the agent's name.</param>
-    /// <param name="http">The client to the API; none means one is made from <c>--server</c> or <c>SUWAGEVAL_URL</c> (the tests pass their own).</param>
     public static Command Create(Terminal terminal, HttpClient? http = null)
     {
         var dryRun = new Option<bool>("--dry-run") { Description = "Only print what would be deleted." };

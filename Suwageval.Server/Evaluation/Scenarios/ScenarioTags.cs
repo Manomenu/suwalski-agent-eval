@@ -1,7 +1,6 @@
 namespace Suwageval.Server.Evaluation.Scenarios;
 
-/// <summary>The tags of one scenario after a change.</summary>
-/// <remarks>Properties, not a constructor: Dapper cannot match a constructor to a <c>text[]</c> column.</remarks>
+// Why: properties, not a constructor, because Dapper cannot match a constructor to a text[] column
 internal sealed record ScenarioTags
 {
     public required string Key { get; init; }

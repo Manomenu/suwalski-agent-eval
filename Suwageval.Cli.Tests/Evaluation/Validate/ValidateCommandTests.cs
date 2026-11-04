@@ -12,7 +12,6 @@ public sealed class ValidateCommandTests : IDisposable
 
     public void Dispose() => Directory.Delete(work, recursive: true);
 
-    /// <summary>Against an agent that serves <see cref="TestAgent.Contract"/>.</summary>
     private static (int Exit, string Out, string Error) Run(string stdin, params string[] args)
     {
         using var agent = TestAgent.AgentServing(TestAgent.Contract);

@@ -13,10 +13,7 @@ public sealed class YamlSourceTests
         var source = YamlSource.Read("s.yaml", "a: 1\nb: 1.5\nc: true\nd: ~\ne: \"1\"\nf: yes\ng: A-17\n", problems)!;
 
         Assert.Empty(problems);
-        Assert.Equal( /*lang=json,strict*/
-            """{"a":1,"b":1.5,"c":true,"d":null,"e":"1","f":"yes","g":"A-17"}""",
-            source.Root!.ToJsonString()
-        );
+        Assert.Equal("""{"a":1,"b":1.5,"c":true,"d":null,"e":"1","f":"yes","g":"A-17"}""", source.Root!.ToJsonString());
     }
 
     [Fact]

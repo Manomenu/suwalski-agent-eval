@@ -3,7 +3,6 @@ using Suwageval.Server.Database;
 
 namespace Suwageval.Server.Tests.Database;
 
-/// <summary>What the committed migration scripts look like — checked here, not by code at run time.</summary>
 public sealed partial class MigrationFilesTests
 {
     [GeneratedRegex(@"^\d{4}_[a-z0-9]+(_[a-z0-9]+)*\.sql$")]

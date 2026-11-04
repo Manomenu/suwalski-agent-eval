@@ -6,15 +6,8 @@ using Suwageval.Contracts.Monitoring;
 
 namespace Suwageval.Cli.Monitoring.Checks;
 
-/// <summary>
-/// <c>suwageval monitoring checks</c>: the agent's monitoring checks (pushed from <c>monitoring-checks.yaml</c>) with how they did on the
-/// conversations of the last 7 and 30 days; <c>monitoring trend</c>: day by day, the conversations, how many were checked and each check's
-/// pass rate. <c>--json</c> prints the records. Exit 0, or 2 when the agent file or the server is wrong (monitoring off too).
-/// </summary>
 internal static class MonitoringChecksCommand
 {
-    /// <param name="http">The client to the API; none means one is made from <c>--server</c> or <c>SUWAGEVAL_URL</c> (the tests pass their own).</param>
-    /// <param name="openBrowser">Opens a page for <c>--open</c>; none means the system's default browser (the tests record the page instead).</param>
     public static Command List(HttpClient? http = null, Action<Uri>? openBrowser = null)
     {
         var environment = new Option<string?>("--environment") { Description = "The rates over this environment's conversations only." };
@@ -134,7 +127,6 @@ internal static class MonitoringChecksCommand
         return command;
     }
 
-    /// <summary>"80% (8/10)", or "-" when the check ran on no conversation.</summary>
     internal static string Rate(CheckRate rate) =>
         rate.Checked == 0 ? "-" : $"{PercentText.Of((double)rate.Passed / rate.Checked)} ({rate.Passed}/{rate.Checked})";
 

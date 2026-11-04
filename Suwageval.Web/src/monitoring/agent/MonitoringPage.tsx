@@ -10,7 +10,6 @@ import { ConversationsSection } from "../conversations/ConversationsSection";
 import { monitoringSettingsText } from "./settings";
 import { useEnvironmentFilter } from "./useEnvironmentFilter";
 
-/** `/agents/<name>/monitoring`: the conversations of the deployed agent and the checks run on them, when its monitoring is on. */
 export function MonitoringPage({ name }: { name: string }) {
     const state = useRequest(name, (signal) => fetchAgent(name, signal));
     const [environment, setEnvironment] = useEnvironmentFilter();
@@ -32,7 +31,6 @@ export function MonitoringPage({ name }: { name: string }) {
                             </Stack>
                         </Paper>
                         <ChecksSection agent={agent.name} environment={environment} onEnvironmentChange={setEnvironment} />
-                        {/* A new environment starts the list over (its page is reset in the address). */}
                         <ConversationsSection key={environment ?? ""} agent={agent.name} environment={environment} />
                     </Stack>
                 )

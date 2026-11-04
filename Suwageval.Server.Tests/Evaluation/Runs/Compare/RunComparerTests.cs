@@ -5,10 +5,8 @@ using Suwageval.Server.Evaluation.Scenarios;
 
 namespace Suwageval.Server.Tests.Evaluation.Runs.Compare;
 
-/// <summary>The rules of comparing runs on results built by hand (the web's own tests of them, ported).</summary>
 public sealed class RunComparerTests
 {
-    /// <summary>A check with <paramref name="passes"/> of <paramref name="samples"/> samples passed, against a threshold of 1 unless given.</summary>
     private static CheckRunResult Check(
         string key,
         int passes,
@@ -179,7 +177,6 @@ public sealed class RunComparerTests
             [Contracts.Runs.Trend.Same, Contracts.Runs.Trend.Same, Contracts.Runs.Trend.Worse],
             rows.Single(row => row.CheckKey == "c").Cells.Select(cell => cell?.Trend)
         );
-        // A check one of the runs lacks has nothing to compare.
         Assert.Equal(
             [Contracts.Runs.Trend.Same, null, Contracts.Runs.Trend.Same],
             rows.Single(row => row.CheckKey == "d").Cells.Select(cell => cell?.Trend)
@@ -319,7 +316,6 @@ public sealed class RunComparerTests
         );
         Assert.Null(RunComparer.JudgeModel(Run(Scenario("s", Check("c", 1, 1)))));
         Assert.Null(RunComparer.JudgeModel(Run(Scenario("s", Judged("c", null)))));
-        // A model named on a deterministic check does not count.
         Assert.Null(RunComparer.JudgeModel(Run(Scenario("s", Check("c", 1, 1, judgeModel: "stray")))));
     }
 

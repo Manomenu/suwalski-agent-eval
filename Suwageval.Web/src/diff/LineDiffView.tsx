@@ -23,10 +23,9 @@ function Row({ row, hang }: { row: DiffRow; hang: number }) {
     );
 }
 
-/** The unified line diff the server computed: changes with their context, long unchanged runs folded until clicked. */
 export function LineDiffView({ blocks }: { blocks: readonly DiffBlock[] }) {
     const [expanded, setExpanded] = useState<ReadonlySet<number>>(new Set());
-    // Over every row in order, folded ones too: whether a line is inside a block scalar depends on the lines above it.
+    // Why: computed over every row in order, folded ones too, because whether a line is inside a block scalar depends on the lines above it
     const hangs = useMemo(() => {
         const rows = blocks.flatMap((block) => block.rows);
         const indents = hangingIndents(rows.map((row) => row.text));

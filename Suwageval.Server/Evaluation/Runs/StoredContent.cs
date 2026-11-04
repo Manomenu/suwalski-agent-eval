@@ -6,17 +6,12 @@ using Suwageval.Server.Evaluation.Checks;
 
 namespace Suwageval.Server.Evaluation.Runs;
 
-/// <summary>
-/// Reads the content the slices stored (the JSON the caller serialized) back into contract records. Lenient about fields
-/// the run does not need — a scenario's key and tags are stored beside the content too.
-/// </summary>
 internal static class StoredContent
 {
     public static ScenarioContent Scenario(string json) =>
         JsonSerializer.Deserialize<ScenarioContent>(json, ContractContent.Lenient)
         ?? throw new InvalidOperationException("A stored scenario is empty.");
 
-    /// <summary>The check's key and scenario are columns of the row; the stored content may or may not repeat them.</summary>
     public static CheckInput Check(CheckRow row)
     {
         ArgumentNullException.ThrowIfNull(row);

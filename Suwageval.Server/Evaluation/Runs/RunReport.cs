@@ -9,13 +9,11 @@ using Suwageval.Server.Verdicts;
 
 namespace Suwageval.Server.Evaluation.Runs;
 
-/// <summary>Turns the rows of a run into what the API sends: the summary and the results with pass rates.</summary>
 internal static class RunReport
 {
-    /// <summary>Floating-point slack so that 4 of 5 samples reaching a threshold of 0.8 counts as reaching it.</summary>
+    // Why: floating-point slack so that 4 of 5 samples reaching a threshold of 0.8 counts as reaching it
     private const double Epsilon = 1e-9;
 
-    /// <summary>True when <paramref name="passed"/> of <paramref name="total"/> samples reach the pass <paramref name="threshold"/>.</summary>
     public static bool Reaches(int passed, int total, double threshold) => (passed / (double)total) + Epsilon >= threshold;
 
     public static RunSummary Summary(RunRow run)
@@ -54,10 +52,6 @@ internal static class RunReport
         };
     }
 
-    /// <summary>
-    /// Per scenario its samples, and per check over those samples the pass rate (samples passed / samples with a verdict)
-    /// against the threshold of the check revision that ran: the check passes when the rate reaches the threshold.
-    /// </summary>
     public static RunResults Results(RunRow run, IReadOnlyList<ScenarioResultRow> samples, IReadOnlyList<CheckResultRow> verdicts)
     {
         var sampleNumberOf = samples.ToDictionary(sample => sample.Id, sample => sample.Sample);
@@ -72,11 +66,13 @@ internal static class RunReport
                     .GroupBy(verdict => verdict.CheckKey)
                     .OrderBy(byCheck => byCheck.Key, StringComparer.Ordinal)
                     .Select(byCheck => CheckResult(byCheck.Key, [.. byCheck], sampleNumberOf));
+                // Why: a group of samples is never empty
                 var latest = group.MaxBy(sample => sample.ScenarioRevision)!;
                 return new ScenarioRunResult
                 {
                     Key = group.Key,
                     AcGuardrail = Guardrail(run, Definition(latest).AcGuardrail, [.. group], verdictsOf),
+                    // Why: the tags column is always a JSON array written by the server
                     Tags = JsonSerializer.Deserialize<string[]>(group.First().ScenarioTagsJson)!,
                     Revision = group.Max(sample => sample.ScenarioRevision),
                     DefinitionYaml = DefinitionYaml(latest),
@@ -97,10 +93,6 @@ internal static class RunReport
         return results with { MedianMs = TurnTimes.Median(durations), P95Ms = TurnTimes.P95(durations) };
     }
 
-    /// <summary>
-    /// A scenario with nothing to look at: it has checks, every one passed fully, and the agent answered every sample. The one place
-    /// this is decided; the run page's "Hide passed checks" and <c>results --failed-only</c> read it.
-    /// </summary>
     private static ScenarioRunResult WithPassedFully(ScenarioRunResult scenario) =>
         scenario with
         {
@@ -111,16 +103,13 @@ internal static class RunReport
         };
 
     private static ScenarioInput Definition(ScenarioResultRow sample) =>
+        // Why: stored scenario content was serialized by the server, so it is valid JSON
         JsonSerializer.Deserialize<ScenarioInput>(sample.ScenarioContent, ContractJson.Options)!;
 
     private static string DefinitionYaml(ScenarioResultRow sample) =>
+        // Why: the tags column is always a JSON array written by the server
         ScenarioYaml.Of(Definition(sample) with { Tags = JsonSerializer.Deserialize<string[]>(sample.ScenarioTagsJson)! });
 
-    /// <summary>
-    /// The criterion a scenario guards; in a gate run with its attempts (a sample is an attempt): passed once an attempt was answered and
-    /// passed every check judged on it, failed once the attempts reached the limit without one, open otherwise (still going, or stopped by
-    /// another criterion's failure).
-    /// </summary>
     private static ScenarioGuardrailResult? Guardrail(
         RunRow run,
         AcGuardrail? guardrail,
@@ -154,10 +143,6 @@ internal static class RunReport
         };
     }
 
-    /// <summary>
-    /// A finished gate run: passed when every criterion it ran passed and none was left out; failed at the first criterion (by scenario
-    /// key) whose attempts ran out.
-    /// </summary>
     private static GateResult GateOf(IReadOnlyList<ScenarioRunResult> scenarios, IReadOnlyList<SkippedScenario> skipped)
     {
         var failed = scenarios.FirstOrDefault(scenario => scenario.AcGuardrail?.Passed == false)?.AcGuardrail?.Id;
@@ -173,6 +158,7 @@ internal static class RunReport
         var passed = rows.Count(row => row.Passed);
         var passRate = passed / (double)rows.Count;
         var threshold = rows[0].PassThreshold;
+        // Why: a group of check rows is never empty and its definition was serialized by the server
         var definition = JsonSerializer.Deserialize<CheckInput>(rows.MaxBy(row => row.CheckRevision)!.Definition, ContractJson.Options)!;
         return new CheckRunResult
         {
@@ -187,7 +173,7 @@ internal static class RunReport
                 .Select(group => group.Key)
                 .FirstOrDefault(),
             Passed = Reaches(passed, rows.Count, threshold),
-            // Passed for good: the threshold reached and every sample judged (one not judged leaves the verdict open).
+            // Why: a verdict is open while a sample is not judged, so only a fully judged sample set passes for good
             PassedFully = Reaches(passed, rows.Count, threshold) && !rows.Any(row => row.NotJudged),
             PassRate = passRate,
             PassThreshold = threshold,

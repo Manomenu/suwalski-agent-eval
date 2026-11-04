@@ -2,11 +2,6 @@ using Microsoft.Extensions.AI;
 
 namespace Suwageval.Server.LanguageModel;
 
-/// <summary>
-/// A chat client that lets only so many calls through at once and gives each a time limit. One per configured model and
-/// shared by everything that calls that model, so the limit is global to the model (the judge today, the user simulator later).
-/// </summary>
-/// <remarks>Only <see cref="GetResponseAsync"/> is limited and offered: nothing here streams yet.</remarks>
 internal sealed class LimitedChatClient(IChatClient inner, int maxConcurrency, TimeSpan timeout) : DelegatingChatClient(inner)
 {
     private readonly SemaphoreSlim slots = new(maxConcurrency, maxConcurrency);

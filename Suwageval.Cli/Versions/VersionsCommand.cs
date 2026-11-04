@@ -6,18 +6,8 @@ using Suwageval.Contracts.Agents;
 
 namespace Suwageval.Cli.Versions;
 
-/// <summary>
-/// <c>suwageval versions</c>: lists the versions of the agent named in <c>suwageval/agent.yaml</c> by where they are used (<c>--usage</c>,
-/// <see cref="VersionUsages"/>; <c>--version</c> narrows to some, <c>--environment</c> the monitoring to one environment). And
-/// <c>versions archive|unarchive &lt;versionId&gt;...</c> hides or restores them.
-/// <c>versions diff &lt;a&gt; &lt;b&gt;</c> prints what changed between two versions as a unified-style diff (<c>--json</c> the record, <c>--open</c> the page on the web), <c>versions delete &lt;versionId&gt;</c> deletes an archived
-/// version with its runs (after the person types its id, or with <c>--yes</c>). Exits 0, or 2 when the agent file, the server or a version is wrong.
-/// </summary>
 internal static class VersionsCommand
 {
-    /// <param name="terminal">Where <c>delete</c> asks the person to type the version's id.</param>
-    /// <param name="http">The client to the API; none means one is made from <c>--server</c> or <c>SUWAGEVAL_URL</c> (the tests pass their own).</param>
-    /// <param name="openBrowser">Opens a page for <c>--open</c> (here, in <c>show</c> and in <c>diff</c>); none means the system's default browser (the tests record the page instead).</param>
     public static Command Create(Terminal terminal, HttpClient? http = null, Action<Uri>? openBrowser = null)
     {
         var usage = new Option<VersionUsage[]>("--usage")

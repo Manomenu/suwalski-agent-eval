@@ -5,12 +5,6 @@ using Suwageval.Server.Database;
 
 namespace Suwageval.Server.Tests;
 
-/// <summary>
-/// A real PostgreSQL for the tests that need one. The tests get a database of their own, created afresh for
-/// every run next to the development one, so running them never touches data you made by hand. Locally a
-/// missing server skips those tests with a hint; in CI (where <c>CI</c> is set) it fails them, because there
-/// it must exist.
-/// </summary>
 public sealed class TestDatabase : IAsyncLifetime
 {
     public static readonly string ConnectionString =
@@ -20,7 +14,6 @@ public sealed class TestDatabase : IAsyncLifetime
     private string? unavailable;
     private Pool? pool;
 
-    /// <summary>The pool on the test database — or the test is skipped (failed in CI) with the reason.</summary>
     internal Pool Pool
     {
         get
@@ -48,7 +41,6 @@ public sealed class TestDatabase : IAsyncLifetime
         await Migrator.MigrateAsync(ConnectionString, Migrator.DefaultDirectory);
     }
 
-    /// <summary>Drops the database named in the connection string (if it exists) and creates it empty.</summary>
     public static async Task RecreateAsync(string connectionString)
     {
         await DropAsync(connectionString);

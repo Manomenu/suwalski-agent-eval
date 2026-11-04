@@ -1,4 +1,3 @@
-// The runs table's tag field keeps the runs that ran the scenarios of any picked tag (and the unlimited ones), and the pick is in the address.
 import { expect, test, type APIRequestContext, type Route } from "@playwright/test";
 
 import { createAgent, runToEnd, serveAgent, startRun } from "../../../e2e/helpers";
@@ -45,7 +44,7 @@ test("picking a tag hides the runs limited to other tags only and keeps the pick
     }
 });
 
-// The charts stand above the filters and are a full screen tall: arriving later, they pushed an open tag list off the screen, which hid it.
+// Why: the charts are a full screen tall and stand above the filters, so arriving later they pushed an open tag list off the screen
 test("the run filters are not shown before the charts' code has arrived, so the charts never push them away", async ({ page, request }) => {
     const name = `e2e-runs-late-charts-${String(Date.now())}`;
     const agentServer = await serveAgent({ label: "e2e-runs-late-charts" });

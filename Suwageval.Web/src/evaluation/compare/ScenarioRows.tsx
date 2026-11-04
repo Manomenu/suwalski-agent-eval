@@ -24,7 +24,6 @@ import { shortId } from "../../format/names";
 
 const BEST_BACKGROUND = "var(--mantine-color-green-light)";
 
-/** The scenario rows of one section (a tag's, or all): a compact cell per run, and a row that opens into the detail of the checks. */
 export function ScenarioRows({
     section,
     columns,
@@ -48,7 +47,6 @@ export function ScenarioRows({
                 </Table.Tr>
             )}
             {section.scenarios.map((scenario) => {
-                // With a baseline every cell is read by its change; without one the best column of the row is marked.
                 const best = baseline === null ? bestColumns(scenario.cells.map(cellShare)) : new Set<number>();
                 const baselineColumn = baseline === null ? -1 : columns.findIndex((column) => column.run.id === baseline.runId);
                 const baselineCell = scenario.cells[baselineColumn] ?? null;
@@ -112,7 +110,6 @@ function ScenarioRow({
                             </Text>
                         </Group>
                     </UnstyledButton>
-                    {/* On paper the scenario's name, without the button that folds the row. */}
                     <Text span inherit className="wrap-key print-only-inline">
                         {scenario.key}
                     </Text>
@@ -121,7 +118,7 @@ function ScenarioRow({
                     <CellView key={columns[column]?.run.id} cell={cell} best={best.has(column)} change={changes[column] ?? null} />
                 ))}
             </Table.Tr>
-            {/* Always in the page; folded it is hidden on the screen and still printed (print.css). */}
+            {/* Why: always in the page: folded it is hidden on screen and still printed (print.css) */}
             <Table.Tr className={expanded ? undefined : "folded-row"}>
                 <Table.Td colSpan={columns.length + 1} id={detailId}>
                     <ScenarioDetail scenario={scenario} columns={columns} baseline={baseline} baselineColumn={baselineColumn} />
@@ -131,7 +128,6 @@ function ScenarioRow({
     );
 }
 
-/** A run's result for a scenario at a glance: a badge that says it in words, and the count behind it. */
 function CellView({ cell, best, change }: { cell: VariantCell | null; best: boolean; change: Change | null }) {
     const status = cellStatus(cell);
     const noAnswer = noAnswerText(cell);
@@ -159,7 +155,6 @@ function CellView({ cell, best, change }: { cell: VariantCell | null; best: bool
     );
 }
 
-/** What is behind a scenario row: the checks by run, why the samples failed them, the samples nobody answered, and where to read more. */
 function ScenarioDetail({
     scenario,
     columns,

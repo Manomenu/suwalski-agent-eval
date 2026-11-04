@@ -4,7 +4,6 @@ namespace Suwageval.Server.Judges;
 
 internal static class JudgesServiceCollectionExtensions
 {
-    /// <summary>The judge and its setting (with the models it needs); a judge model that is not configured stops the server at start.</summary>
     public static IServiceCollection AddJudges(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddModels(configuration);

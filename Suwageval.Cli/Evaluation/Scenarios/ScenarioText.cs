@@ -7,7 +7,6 @@ using Suwageval.Contracts.Checks;
 
 namespace Suwageval.Cli.Evaluation.Scenarios;
 
-/// <summary>A scenario as <c>suwageval scenario</c> prints it: header, conversation, checks with their definitions, revisions.</summary>
 internal static class ScenarioText
 {
     private const string Indent = "  ";
@@ -73,7 +72,6 @@ internal static class ScenarioText
         return text.ToString().TrimEnd();
     }
 
-    /// <summary>The check's definition as YAML-like lines: <c>key: value</c>, a nested object indented, an array as one line of JSON.</summary>
     internal static List<string> Definition(CheckInput check)
     {
         var lines = new List<string>();

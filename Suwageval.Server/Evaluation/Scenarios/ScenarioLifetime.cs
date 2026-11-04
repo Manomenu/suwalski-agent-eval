@@ -1,7 +1,6 @@
 namespace Suwageval.Server.Evaluation.Scenarios;
 
-/// <summary>A scenario of an agent with the span it existed: from its first revision until it was deleted (null: still live).</summary>
-/// <remarks>Properties, not a constructor: Dapper cannot match a constructor to a <c>text[]</c> column.</remarks>
+// Why: properties, not a constructor, because Dapper cannot match a constructor to a text[] column
 internal sealed record ScenarioLifetime
 {
     public required string Key { get; init; }

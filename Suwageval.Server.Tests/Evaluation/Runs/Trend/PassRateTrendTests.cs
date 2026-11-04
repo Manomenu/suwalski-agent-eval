@@ -5,7 +5,6 @@ namespace Suwageval.Server.Tests.Evaluation.Runs.Trend;
 
 public sealed class PassRateTrendTests
 {
-    /// <summary>A scenario's contribution: one verdict per given flag and one duration per given value (null: no call, so none).</summary>
     private sealed record Scenario(string Key, int?[] Durations, bool[] Checks);
 
     private static Scenario Of(string key, params bool[] checks) => new(key, [], checks);

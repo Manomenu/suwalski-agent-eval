@@ -2,15 +2,9 @@ using Microsoft.Extensions.Options;
 
 namespace Suwageval.Server.Database;
 
-/// <summary>PostgreSQL: how the server gets to it.</summary>
 internal static class DatabaseServiceCollectionExtensions
 {
-    /// <summary>
-    /// The pool as a singleton, and the migrations at start-up: without the database there is nothing to
-    /// serve, so the server fails to start with a clear error rather than failing every request later.
-    /// With <paramref name="migrateOnStart"/> off (the build writing the OpenAPI document) the database is
-    /// not touched.
-    /// </summary>
+    // Why: without the database there is nothing to serve, so the server fails to start with a clear error instead of failing every request later
     public static IServiceCollection AddDatabase(this IServiceCollection services, IConfiguration configuration, bool migrateOnStart)
     {
         var options = services

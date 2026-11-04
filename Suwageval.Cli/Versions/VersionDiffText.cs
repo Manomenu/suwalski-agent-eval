@@ -4,7 +4,6 @@ using Suwageval.Contracts.Agents;
 
 namespace Suwageval.Cli.Versions;
 
-/// <summary>What <c>suwageval versions diff</c> prints: the two versions, then the changed hunks as a unified-style diff.</summary>
 internal static class VersionDiffText
 {
     public static string Describe(VersionDiff diff)

@@ -2,13 +2,10 @@ using Suwageval.Contracts.Agents;
 
 namespace Suwageval.Server.Agents.Versions;
 
-/// <summary>A line diff of two texts: every line with its numbers on each side, and the hunks a reader sees (changes with their context, long unchanged runs folded).</summary>
 internal static class LineDiff
 {
-    /// <summary>Unchanged lines kept around a change; a longer unchanged run folds.</summary>
     public const int Context = 3;
 
-    /// <summary>Every line of both texts, in order, with its numbers on each side; within a change the removed lines come before the added ones.</summary>
     public static IReadOnlyList<DiffRow> Rows(string from, string to)
     {
         ArgumentNullException.ThrowIfNull(from);
@@ -16,7 +13,7 @@ internal static class LineDiff
         var before = Lines(from);
         var after = Lines(to);
 
-        // The common head and tail are unchanged whatever the middle is, and most contracts differ in a few lines only.
+        // Why: most contracts differ in a few lines only, so trimming the common head and tail keeps the quadratic walk small
         var head = 0;
         while (head < before.Length && head < after.Length && before[head] == after[head])
         {
@@ -53,7 +50,7 @@ internal static class LineDiff
             Add(DiffKind.Same, line);
         }
 
-        // Longest common subsequence of the middles, read from the end so that a walk from the start can follow it.
+        // Why: the common subsequence is read from the end so that a walk from the start can follow it
         var common = new int[middleBefore.Length + 1][];
         for (var i = 0; i <= middleBefore.Length; i++)
         {
@@ -92,10 +89,6 @@ internal static class LineDiff
         return rows;
     }
 
-    /// <summary>
-    /// The hunks: every change with <paramref name="context"/> unchanged lines around it. A longer unchanged run folds into one block
-    /// (a run that would hide a single line stays as it is); texts with no change give no blocks at all.
-    /// </summary>
     public static IReadOnlyList<DiffBlock> Blocks(IReadOnlyList<DiffRow> rows, int context = Context)
     {
         ArgumentNullException.ThrowIfNull(rows);

@@ -6,7 +6,6 @@ using Suwageval.Contracts.Agents;
 
 namespace Suwageval.Cli.Tests.Agents;
 
-/// <summary>The command against a stand-in for the API; no agent.yaml is involved.</summary>
 public sealed class AgentsCommandTests
 {
     private static readonly Agent[] Found =

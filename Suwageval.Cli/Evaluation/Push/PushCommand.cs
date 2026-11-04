@@ -7,10 +7,8 @@ using Suwageval.Cli.Validation;
 
 namespace Suwageval.Cli.Evaluation.Push;
 
-/// <summary><c>suwageval push [dir]</c>: validates the agent's files, then makes the server's agent, scenarios and checks those of the files (its version is not pushed: a run reads it from the agent).</summary>
 internal static class PushCommand
 {
-    /// <param name="http">The client to reach the server with; null makes one for <c>--server</c> (tests pass the in-process server's).</param>
     public static Command Create(HttpClient? http)
     {
         var dir = new Argument<string>("dir")
@@ -75,7 +73,7 @@ internal static class PushCommand
             async (client, _) =>
             {
                 var (savedAgent, agentCreated) = await client.PutAgentAsync(agent.Definition, cancellationToken);
-                // With evaluation off the server keeps no scenarios: they stay in the repository, unsent.
+                // Why: with evaluation off the server keeps no scenarios, so the files stay in the repository unsent
                 var evaluation = agent.Definition.Features?.Evaluation ?? true;
                 var scenarioResults = evaluation
                     ? (
@@ -95,7 +93,6 @@ internal static class PushCommand
                         )
                     ).Results
                     : [];
-                // With monitoring on, the file is the whole set of the agent's monitoring checks (none without one).
                 var monitoring = agent.Definition.Features?.Monitoring is not null;
                 var monitoringResults = monitoring
                     ? (await client.PutMonitoringChecksAsync(savedAgent.Name, validation.MonitoringChecks ?? [], cancellationToken)).Results

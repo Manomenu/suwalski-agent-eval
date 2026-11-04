@@ -20,7 +20,6 @@ using Suwageval.Server.Tests.Evaluation.Runs;
 
 namespace Suwageval.Server.Tests.Monitoring.Checking;
 
-/// <summary>The agent's monitoring checks: pushed whole, run on each closed conversation, counted per check and per day.</summary>
 public sealed class MonitoringChecksTests(TestDatabase database) : IAsyncDisposable
 {
     private readonly WebApplicationFactory<Program> app = RunTestApp.Create();
@@ -84,7 +83,6 @@ public sealed class MonitoringChecksTests(TestDatabase database) : IAsyncDisposa
     private static Task<T> Get<T>(HttpClient client, string url) =>
         client.GetFromJsonAsync<T>(new Uri(url, UriKind.Relative), ContractJson.Options, Cancellation)!;
 
-    /// <summary>A conversation of one turn in which the agent answers <paramref name="answer"/>, after calling <paramref name="tool"/> when given.</summary>
     private static async Task SendAsync(HttpClient client, string agent, string conversation, string answer, string? tool = null)
     {
         var contract = AgentEndpointsTests.Version();
@@ -127,7 +125,6 @@ public sealed class MonitoringChecksTests(TestDatabase database) : IAsyncDisposa
         response.EnsureSuccessStatusCode();
     }
 
-    /// <summary>Closes the agent's conversations at once and runs the checks on them, as the closer and the worker do in time.</summary>
     private async Task CloseAndCheckAsync(string agent)
     {
         var agentId = (await new AgentStore(database.Pool).GetAsync(agent, Cancellation))!.Id;
@@ -206,11 +203,7 @@ public sealed class MonitoringChecksTests(TestDatabase database) : IAsyncDisposa
             .EnumerateObject()
             .Select(field => field.Name)
             .Order(StringComparer.Ordinal);
-        Assert.Equal(
-            // A check without a description is fine (checks[0]), as in a scenario.
-            ["checks[1].samples", "checks[1].scenarioKey", "checks[2].key", "checks[2].passThreshold"],
-            fields
-        );
+        Assert.Equal(["checks[1].samples", "checks[1].scenarioKey", "checks[2].key", "checks[2].passThreshold"], fields);
         Assert.Equal(HttpStatusCode.Conflict, refused.StatusCode);
     }
 
@@ -240,7 +233,6 @@ public sealed class MonitoringChecksTests(TestDatabase database) : IAsyncDisposa
         var bad = list.Conversations.Single(conversation => conversation.ConversationId == "bad");
         var good = list.Conversations.Single(conversation => conversation.ConversationId == "good");
         Assert.NotNull(bad.CheckedAt);
-        // The judge check is not judged in the tests (no model): no verdict on the agent, so not counted as failed.
         Assert.Equal((2, 0), (bad.FailedChecks, good.FailedChecks));
         Assert.Equal((1, 1), (bad.NotJudgedChecks, good.NotJudgedChecks));
         var detail = await Get<ConversationDetail>(client, $"/monitoring/conversations/{bad.Id}");
@@ -266,7 +258,6 @@ public sealed class MonitoringChecksTests(TestDatabase database) : IAsyncDisposa
             trend.Points.Where(point => point.CheckKey == "no-refund").Select(point => (point.Passed, point.Checked)).Single()
         );
         Assert.Single(trend.Versions);
-        // The scenario drafted from it carries the checks it failed as comments (not the one not judged), and refuses a message it lacks.
         var draft = await Get<ScenarioDraft>(client, $"/monitoring/conversations/{bad.Id}/scenario?upToUserMessage=1");
         Assert.Contains("#   tool: refund_order\n", draft.Yaml, StringComparison.Ordinal);
         Assert.DoesNotContain("is-polite", draft.Yaml, StringComparison.Ordinal);
@@ -275,7 +266,6 @@ public sealed class MonitoringChecksTests(TestDatabase database) : IAsyncDisposa
             Cancellation
         );
         Assert.Equal(HttpStatusCode.UnprocessableEntity, missing.StatusCode);
-        // With the rest simulated: one turn was left after the first user message; no model in the tests, so the plain description and why.
         var simulated = await Get<ScenarioDraft>(client, $"/monitoring/conversations/{bad.Id}/scenario?upToUserMessage=1&simulate=true");
         Assert.Contains("continuation:\n  turns: 1\n  simulatedUser: ", simulated.Yaml, StringComparison.Ordinal);
         Assert.StartsWith("The simulated user was not described by a model", simulated.Notice, StringComparison.Ordinal);

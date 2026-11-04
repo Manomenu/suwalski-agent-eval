@@ -1,6 +1,5 @@
 namespace Suwageval.Server.Monitoring.Checks;
 
-/// <summary>A live monitoring check with its latest revision (<see cref="Content"/>: the check as pushed, JSON) and its rates.</summary>
 internal sealed record MonitoringCheckRow(
     Guid Id,
     string Key,

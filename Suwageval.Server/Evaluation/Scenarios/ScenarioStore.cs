@@ -4,7 +4,6 @@ using Suwageval.Server.Database;
 
 namespace Suwageval.Server.Evaluation.Scenarios;
 
-/// <summary>Scenarios, their revisions and their tags. Plain SQL, mapped by Dapper.</summary>
 internal sealed class ScenarioStore(Pool pool)
 {
     private const string LatestRevision = """
@@ -17,21 +16,12 @@ internal sealed class ScenarioStore(Pool pool)
         WHERE s.agent_id = @agentId AND s.deleted_at IS NULL
         """;
 
-    /// <summary>
-    /// Makes the agent's scenarios the given ones, in one transaction: <see cref="UpsertAsync"/>, and a live scenario not in the list is
-    /// deleted (its revisions and the runs that used it stay). One result per given scenario, in order, then one per deleted scenario.
-    /// </summary>
     public Task<IReadOnlyList<ScenarioUpsertResult>> ReplaceAsync(
         Guid agentId,
         IReadOnlyList<ScenarioItem> items,
         CancellationToken cancellationToken = default
     ) => WriteAsync(agentId, items, deleteMissing: true, cancellationToken);
 
-    /// <summary>
-    /// Writes the scenarios in one transaction; keys not in the list are untouched. A new revision exists only
-    /// when the content changed (or the scenario comes back from deletion); tags alone change in place and the
-    /// scenario then counts as <see cref="ScenarioOutcome.Unchanged"/>.
-    /// </summary>
     public Task<IReadOnlyList<ScenarioUpsertResult>> UpsertAsync(
         Guid agentId,
         IReadOnlyList<ScenarioItem> items,
@@ -144,7 +134,6 @@ internal sealed class ScenarioStore(Pool pool)
         return results;
     }
 
-    /// <summary>The live scenarios with their latest revision, only those with any of <paramref name="tags"/> when some are given.</summary>
     public async Task<IReadOnlyList<ScenarioRow>> ListAsync(
         Guid agentId,
         IReadOnlyCollection<string>? tags = null,
@@ -162,7 +151,6 @@ internal sealed class ScenarioStore(Pool pool)
         return [.. rows];
     }
 
-    /// <summary>Every scenario of the agent, deleted or not, with the span it existed.</summary>
     public async Task<IReadOnlyList<ScenarioLifetime>> ListLifetimesAsync(Guid agentId, CancellationToken cancellationToken = default)
     {
         await using var connection = await pool.OpenAsync(cancellationToken);
@@ -190,7 +178,6 @@ internal sealed class ScenarioStore(Pool pool)
         );
     }
 
-    /// <summary>Every revision of the scenario, oldest first — deleted or not.</summary>
     public async Task<IReadOnlyList<ScenarioRevisionRow>> ListRevisionsAsync(
         Guid agentId,
         string key,
@@ -214,7 +201,6 @@ internal sealed class ScenarioStore(Pool pool)
         return [.. rows];
     }
 
-    /// <summary>Soft delete: the scenario disappears from lists, its revisions stay. False when there was nothing to delete.</summary>
     public async Task<bool> DeleteAsync(Guid agentId, string key, CancellationToken cancellationToken = default)
     {
         await using var connection = await pool.OpenAsync(cancellationToken);
@@ -228,7 +214,6 @@ internal sealed class ScenarioStore(Pool pool)
         return deleted > 0;
     }
 
-    /// <summary>Adds and removes tags on live scenarios, with no new revision. Keys that match no live scenario change nothing.</summary>
     public async Task<IReadOnlyList<ScenarioTags>> ChangeTagsAsync(
         Guid agentId,
         IReadOnlyList<string> keys,
@@ -261,7 +246,6 @@ internal sealed class ScenarioStore(Pool pool)
         return [.. changed.OrderBy(row => row.Key, StringComparer.Ordinal)];
     }
 
-    /// <summary>Every tag in use on live scenarios, with how many scenarios carry it.</summary>
     public async Task<IReadOnlyList<TagCount>> ListTagsAsync(Guid agentId, CancellationToken cancellationToken = default)
     {
         await using var connection = await pool.OpenAsync(cancellationToken);

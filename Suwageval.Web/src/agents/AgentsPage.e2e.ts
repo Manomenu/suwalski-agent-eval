@@ -1,4 +1,3 @@
-// The agent list shows an agent, its link opens its page, and the page deletes it once its name is typed.
 import { expect, test } from "@playwright/test";
 
 import { openAgentsListAt } from "../../e2e/helpers";

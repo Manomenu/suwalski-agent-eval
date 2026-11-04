@@ -1,4 +1,3 @@
-// A note added in the comparison of a group is saved in the background and survives a reload; a comparison by run ids has no note box.
 import { expect, test } from "@playwright/test";
 
 import { createAgent, runToEnd, serveAgent } from "../../../e2e/helpers";

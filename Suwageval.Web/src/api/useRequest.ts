@@ -5,21 +5,16 @@ import { settledView, settledWith, type Loaded, type Settled } from "./request";
 export type { Loaded } from "./request";
 
 export interface RequestOptions<T> {
-    /** What a failed request gives instead of an error: a hint on a page is never a reason to break it. */
     fallback?: T;
 }
 
-/**
- * What `load` returns, asked once per `key` and again when `key` changes. A null `key` asks nothing (`pending` is false).
- * While a new key loads, the previous result stays and `pending` is true. `load` is a new closure on every render: `key` says what it asks for.
- */
 export function useRequest<T>(key: string | null, load: (signal: AbortSignal) => Promise<T>, options: RequestOptions<T> = {}): Loaded<T> {
     const [settled, setSettled] = useState<Settled<T> | null>(null);
     const { fallback } = options;
 
     useEffect(() => {
         if (key === null) return;
-        // StrictMode runs effects twice in development: abort the first request, ignore its result.
+        // Why: StrictMode runs effects twice in development, so the first request is aborted and its result ignored
         const controller = new AbortController();
         load(controller.signal)
             .then((value) => {
@@ -31,7 +26,7 @@ export function useRequest<T>(key: string | null, load: (signal: AbortSignal) =>
         return () => {
             controller.abort();
         };
-        // `key` says what is asked for; `load` and `fallback` are new on every render.
+        // Why: key says what is asked for; load and fallback are new on every render, so they stay out of the dependencies
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [key]);
 

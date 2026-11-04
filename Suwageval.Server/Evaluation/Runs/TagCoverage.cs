@@ -2,13 +2,8 @@ using Suwageval.Server.Evaluation.Scenarios;
 
 namespace Suwageval.Server.Evaluation.Runs;
 
-/// <summary>Which tags a run covered whole: only for those does the run say anything about the tag's pass rate.</summary>
 internal static class TagCoverage
 {
-    /// <summary>
-    /// The tags whose every scenario is among <paramref name="ranKeys"/>. A tag's scenarios are the ones that existed when the run was
-    /// queued (created before, not yet deleted) and the ones it ran; tags are the scenarios' current ones, they keep no history.
-    /// </summary>
     public static IReadOnlySet<string> CompleteTags(
         DateTime runCreatedAt,
         IReadOnlyCollection<string> ranKeys,
@@ -25,7 +20,6 @@ internal static class TagCoverage
             .ToHashSet();
     }
 
-    /// <summary>How many of the scenarios the tag had when the run was queued the run ran, and how many the tag had (the same scenarios as <see cref="CompleteTags"/> weighs).</summary>
     public static (int Ran, int Total) Counts(
         string tag,
         DateTime runCreatedAt,

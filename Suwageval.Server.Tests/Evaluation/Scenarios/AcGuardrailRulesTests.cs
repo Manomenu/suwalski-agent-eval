@@ -3,10 +3,6 @@ using Suwageval.Contracts.Scenarios;
 
 namespace Suwageval.Server.Tests.Evaluation.Scenarios;
 
-/// <summary>
-/// The shared rules of <c>acGuardrail</c> and <c>acGuardrailRetryLimit</c> (<c>Suwageval.Contracts/Scenarios/AcGuardrailRules.cs</c>), tested
-/// here because Contracts has no test project of its own; <c>suwageval validate</c> and the server both apply them.
-/// </summary>
 public sealed class AcGuardrailRulesTests
 {
     [Theory]

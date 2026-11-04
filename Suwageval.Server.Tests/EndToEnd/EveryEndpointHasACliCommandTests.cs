@@ -8,16 +8,10 @@ using CliApp = Cli::Suwageval.Cli.CliApp;
 
 namespace Suwageval.Server.Tests.EndToEnd;
 
-/// <summary>
-/// AGENTS.md, section 5: "Anything the web can do, the CLI can do". Every route the server maps is listed below with the
-/// <c>suwageval</c> command that covers it, or with the reason it is not for the CLI; a route that is not listed fails the gate, and
-/// so does a command that does not exist. A new endpoint therefore comes with its command (or its stated reason) in the same change.
-/// </summary>
 public sealed class EveryEndpointHasACliCommandTests(TestDatabase database) : IAsyncDisposable
 {
     private readonly WebApplicationFactory<Program> app = RunTestApp.Create();
 
-    /// <summary>A route and what covers it: the command (words as typed after <c>suwageval</c>), or why there is none.</summary>
     private sealed record Coverage(string? Command, string? Reason = null);
 
     private static Coverage Cli(string command) => new(command);
@@ -82,7 +76,6 @@ public sealed class EveryEndpointHasACliCommandTests(TestDatabase database) : IA
 
     public ValueTask DisposeAsync() => app.DisposeAsync();
 
-    /// <summary>Every route the server maps, as "METHOD pattern" (route constraints such as <c>:guid</c> left out).</summary>
     private List<string> Mapped()
     {
         _ = database.Pool;
@@ -109,10 +102,7 @@ public sealed class EveryEndpointHasACliCommandTests(TestDatabase database) : IA
             TimeSpan.FromSeconds(1)
         );
 
-    /// <summary>
-    /// The evaluation's address before <c>/eval</c> (ServerApp.MapEvaluation) is covered by the command of its <c>/eval</c> route:
-    /// both stay until epic/monitoring-tab removes the old ones.
-    /// </summary>
+    // Why: the old address before /eval is covered by the command of its /eval route until the monitoring-tab epic removes the old ones
     private static string UnderEval(string route)
     {
         var space = route.IndexOf(' ', StringComparison.Ordinal);
@@ -150,7 +140,7 @@ public sealed class EveryEndpointHasACliCommandTests(TestDatabase database) : IA
 
         foreach (var command in commands)
         {
-            // Asked of the parent's help: an unknown word after a real command would just print that command's help.
+            // Why: ask the parent's help because an unknown word after a real command would just print that command's help
             var words = command.Split(' ');
             using var output = new StringWriter();
             using var error = new StringWriter();

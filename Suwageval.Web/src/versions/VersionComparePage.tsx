@@ -26,7 +26,6 @@ function VersionCard({ name, role, version }: { name: string; role: string; vers
     );
 }
 
-/** `/agents/<name>/versions/compare?a=…&b=…`: what changed from the older of two versions to the newer — the line diff the server made. */
 export function VersionComparePage({ name, a, b }: { name: string; a: string; b: string }) {
     const state = useRequest(`${name}/${a}/${b}`, (signal) => fetchVersionDiff(name, a, b, signal));
 

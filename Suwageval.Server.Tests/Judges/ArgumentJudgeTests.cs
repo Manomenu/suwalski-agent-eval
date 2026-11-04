@@ -9,10 +9,6 @@ using static Suwageval.Server.Tests.Evaluation.Checks.Items;
 
 namespace Suwageval.Server.Tests.Judges;
 
-/// <summary>
-/// <c>$judge</c> matching against recorded answers of the model (<c>Answers/argument*.json</c>: real ones captured from the model,
-/// and malformed ones) — the gate never calls a model.
-/// </summary>
 [SuppressMessage(
     "Reliability",
     "CA2000:Dispose objects before losing scope",
@@ -28,7 +24,6 @@ public sealed class ArgumentJudgeTests
         ScenarioKey = "refund",
         Tool = "refund_order",
         Args = Json(
-            /*lang=json,strict*/
             """
             {"order_id":"A-17","reason":{"$judge":{"description":"Says the item arrived damaged or broken","examples":["kettle arrived broken","damaged on delivery"]}}}
             """
@@ -41,7 +36,6 @@ public sealed class ArgumentJudgeTests
         ScenarioKey = "refund",
         Tool = "send_message",
         Args = Json(
-            /*lang=json,strict*/
             """
             {"to":"c-1","subject":{"$judge":{"description":"A short, polite subject line about the order"}},"body":{"$judge":{"description":"Apologises to the customer for the delay","examples":["We are sorry your parcel is late."]}}}
             """
@@ -53,7 +47,6 @@ public sealed class ArgumentJudgeTests
 
     private static readonly ToolCall Letter = Call(
         "send_message",
-        /*lang=json,strict*/
         """{"to":"c-1","subject":"Your order A-17","body":"Your parcel is on its way, thanks for nothing."}"""
     );
 
@@ -192,10 +185,7 @@ public sealed class ArgumentJudgeTests
     public async Task A_call_without_the_judged_path_fails_without_asking_the_model()
     {
         var model = RecordedModel.Answering("argument-correct.json");
-        var call = Call(
-            "refund_order", /*lang=json,strict*/
-            """{"order_id":"A-17"}"""
-        );
+        var call = Call("refund_order", """{"order_id":"A-17"}""");
 
         var verdict = await model.ArgumentJudge().JudgeAsync(Reason, Turn(call), Cancellation);
 
@@ -265,23 +255,16 @@ public sealed class ArgumentJudgeTests
     public async Task An_event_check_judges_its_data()
     {
         var model = new RecordedModel(_ =>
-            Task.FromResult( /*lang=json,strict*/
-                """{"results":[{"path":"data.reason","correct":true,"reason":"A cracked kettle is damaged."}]}"""
-            )
+            Task.FromResult("""{"results":[{"path":"data.reason","correct":true,"reason":"A cracked kettle is damaged."}]}""")
         );
         var check = new EventCheck
         {
             Key = "note",
             ScenarioKey = "refund",
             Event = "state.changed",
-            Data = Json( /*lang=json,strict*/
-                """{"node":"refunded","reason":{"$judge":{"description":"Says the kettle was damaged"}}}"""
-            ),
+            Data = Json("""{"node":"refunded","reason":{"$judge":{"description":"Says the kettle was damaged"}}}"""),
         };
-        var emitted = Emit(
-            "state.changed", /*lang=json,strict*/
-            """{"node":"refunded","reason":"cracked kettle"}"""
-        );
+        var emitted = Emit("state.changed", """{"node":"refunded","reason":"cracked kettle"}""");
 
         var verdict = await model.ArgumentJudge().JudgeAsync(check, Turn(emitted), Cancellation);
 
@@ -314,12 +297,7 @@ public sealed class ArgumentJudgeTests
     public async Task Only_what_the_matcher_gives_is_in_the_prompt_and_examples_may_be_any_json()
     {
         var model = RecordedModel.Answering("argument-correct.json");
-        var check = Reason with
-        {
-            Args = Json( /*lang=json,strict*/
-                """{"reason":{"$judge":{"examples":[{"code":1},["a"],7]}}}"""
-            ),
-        };
+        var check = Reason with { Args = Json("""{"reason":{"$judge":{"examples":[{"code":1},["a"],7]}}}""") };
 
         await model.ArgumentJudge().JudgeAsync(check, Turn(Refund("x")), Cancellation);
 
@@ -331,12 +309,7 @@ public sealed class ArgumentJudgeTests
     [Fact]
     public async Task A_check_without_a_matcher_is_refused()
     {
-        var plain = Reason with
-        {
-            Args = Json( /*lang=json,strict*/
-                """{"order_id":"A-17"}"""
-            ),
-        };
+        var plain = Reason with { Args = Json("""{"order_id":"A-17"}""") };
 
         await Assert.ThrowsAsync<ArgumentException>(() =>
             RecordedModel.Answering("argument-correct.json").ArgumentJudge().JudgeAsync(plain, Turn(Refund("x")), Cancellation)

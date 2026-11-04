@@ -6,7 +6,6 @@ using Suwageval.Contracts.Agents;
 
 namespace Suwageval.Cli.Tests.Agents;
 
-/// <summary>The command against a stand-in for the API, with the sample agent folder as the repository.</summary>
 public sealed class AgentCommandTests
 {
     private static string Sample => Path.Combine(AppContext.BaseDirectory, "Sample", "suwageval");

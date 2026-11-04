@@ -4,7 +4,6 @@ using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Cli.Evaluation.Trend;
 
-/// <summary>One point of the trend as a line of <c>suwageval trend</c>.</summary>
 internal static class TrendText
 {
     public static string Line(RunPassRates point)

@@ -12,10 +12,6 @@ import { runHref } from "../../routes/links";
 
 const RECHECK_TOOLTIP_WIDTH = 340;
 
-/**
- * "Re-check": judges this run's stored answers again with the current checks — the agent is not asked. Enabled for a finished run;
- * a click opens a dialog that fetches what would be evaluated again, and only then offers "Start re-check".
- */
 export function RecheckButton({ run }: { run: Pick<RunSummary, "id" | "status"> }) {
     const [asking, setAsking] = useState(false);
     const disabledReason = recheckDisabledReason(run.status);
@@ -51,7 +47,6 @@ export function RecheckButton({ run }: { run: Pick<RunSummary, "id" | "status"> 
     );
 }
 
-/** Mounted only while the dialog is open: it asks for the plan when it opens and abandons the request when it closes. */
 function RecheckDialog({ runId, onClose }: { runId: string; onClose: () => void }) {
     const state = useRequest(runId, (signal) => fetchRecheckPlan(runId, signal));
     const [busy, setBusy] = useState(false);
@@ -162,7 +157,6 @@ function CloseRow({ onClose, busy = false, children }: { onClose: () => void; bu
     );
 }
 
-/** One check of the plan with how it changed; a changed check can show the definition the run used next to the current one. */
 function ChangedCheckRow({ check, judgeModel }: { check: ChangedCheck; judgeModel: string | null | undefined }) {
     const judgedNow = check.afterJudgedByModel;
     return (
@@ -180,7 +174,6 @@ function ChangedCheckRow({ check, judgeModel }: { check: ChangedCheck; judgeMode
                 <Accordion.Item value="change">
                     <Accordion.Control aria-label={`Show change of ${check.checkKey}`}>Show change</Accordion.Control>
                     <Accordion.Panel>
-                        {/* The check as the run used it against the check now: an added one is all new lines, a removed one all gone. */}
                         <LineDiffView
                             blocks={diffBlocks(
                                 diffRows(

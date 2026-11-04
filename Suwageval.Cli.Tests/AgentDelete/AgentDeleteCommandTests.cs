@@ -6,7 +6,6 @@ using Suwageval.Contracts.Agents;
 
 namespace Suwageval.Cli.Tests.AgentDelete;
 
-/// <summary><c>suwageval delete-agent</c> against a stand-in for the API.</summary>
 public sealed class AgentDeleteCommandTests
 {
     private static string Sample => Path.Combine(AppContext.BaseDirectory, "Sample", "suwageval");
@@ -127,7 +126,6 @@ public sealed class AgentDeleteCommandTests
             _ => new HttpResponseMessage(HttpStatusCode.Conflict)
             {
                 Content = new StringContent(
-                    /*lang=json,strict*/
                     """{"title":"Agent has active runs","detail":"A run of this agent is queued or running: cancel it or wait until it ends."}""",
                     Encoding.UTF8,
                     "application/problem+json"

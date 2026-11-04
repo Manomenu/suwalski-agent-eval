@@ -7,7 +7,6 @@ using static Suwageval.Server.Tests.Evaluation.Checks.Items;
 
 namespace Suwageval.Server.Tests.Evaluation.Simulation;
 
-/// <summary>The simulated user's description drafted from a real conversation, against recorded answers of its model.</summary>
 [SuppressMessage(
     "Reliability",
     "CA2000:Dispose objects before losing scope",
@@ -20,10 +19,7 @@ public sealed class UserDescriberTests
     private static readonly ConversationItem[] Conversation =
     [
         new UserMessage { Text = "My order A-17 arrived broken." },
-        Call(
-            "get_order", /*lang=json,strict*/
-            """{"order_id":"A-17"}"""
-        ),
+        Call("get_order", """{"order_id":"A-17"}"""),
         new ToolResult { CallId = "c1", Content = "secret tool output" },
         new AssistantMessage { Text = "Sorry. Shall I repair it?" },
         new UserMessage { Text = "No, I want my money back." },

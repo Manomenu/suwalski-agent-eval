@@ -18,7 +18,6 @@ using Suwageval.Server.Tests.Judges;
 
 namespace Suwageval.Server.Tests.Evaluation.Runs;
 
-/// <summary>The worker's job end to end, against a real PostgreSQL and a fake agent over real HTTP — no model.</summary>
 public sealed class RunExecutorTests(TestDatabase database)
 {
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
@@ -128,11 +127,7 @@ public sealed class RunExecutorTests(TestDatabase database)
                 SeededAgent.Scenario(
                     "with-fixtures",
                     samples: 2,
-                    fixtures: JsonDocument
-                        .Parse( /*lang=json,strict*/
-                            """{"pinnedResources":["plans"]}"""
-                        )
-                        .RootElement.Clone()
+                    fixtures: JsonDocument.Parse("""{"pinnedResources":["plans"]}""").RootElement.Clone()
                 ),
                 SeededAgent.Scenario("without-fixtures"),
             ],
@@ -157,14 +152,7 @@ public sealed class RunExecutorTests(TestDatabase database)
         Assert.Equal(3, baggage.Select(turn => turn.Body.GetProperty("conversationId").GetString()).Distinct().Count());
         var withFixtures = baggage.Where(turn => turn.Baggage[SuwagevalBaggage.ScenarioKey] == "with-fixtures").ToList();
         Assert.Equal(["1", "2"], withFixtures.Select(turn => turn.Baggage[SuwagevalBaggage.ScenarioSample]).Order());
-        Assert.All(
-            withFixtures,
-            turn =>
-                Assert.Equal( /*lang=json,strict*/
-                    """{"pinnedResources":["plans"]}""",
-                    turn.Body.GetProperty("fixtures").GetRawText()
-                )
-        );
+        Assert.All(withFixtures, turn => Assert.Equal("""{"pinnedResources":["plans"]}""", turn.Body.GetProperty("fixtures").GetRawText()));
         var (withoutBody, _) = Assert.Single(baggage, turn => turn.Baggage[SuwagevalBaggage.ScenarioKey] == "without-fixtures");
         Assert.False(withoutBody.TryGetProperty("fixtures", out _));
     }
@@ -268,7 +256,7 @@ public sealed class RunExecutorTests(TestDatabase database)
             Key = key,
             ScenarioKey = scenarioKey,
             Tool = "refund_order",
-            Args = Checks.Items.Json( /*lang=json,strict*/
+            Args = Checks.Items.Json(
                 """{"order_id":"A-17","reason":{"$judge":{"description":"Says the item arrived damaged or broken"}}}"""
             ),
         };
@@ -326,8 +314,7 @@ public sealed class RunExecutorTests(TestDatabase database)
         Assert.True(checks["refund-called"].Passed);
     }
 
-    private const string UndeclaredTurn = /*lang=json,strict*/
-        """
+    private const string UndeclaredTurn = """
         {"items":[
           {"kind":"ToolCall","id":"c1","name":"cancel_order","arguments":{}},
           {"kind":"Event","type":"order.cancelled","data":{}},
@@ -365,7 +352,7 @@ public sealed class RunExecutorTests(TestDatabase database)
     [Fact]
     public async Task A_contract_that_changed_while_the_run_was_going_is_flagged_on_the_run()
     {
-        // A redeploy between the samples: the agent serves another contract once its first turn has been answered.
+        // Why: the agent serves another contract after its first answered turn to simulate a redeploy between samples
         FakeAgent? redeployed = null;
         await using var fake = await FakeAgent.StartAsync(
             (_, _) =>
@@ -421,7 +408,6 @@ public sealed class RunExecutorTests(TestDatabase database)
     [InlineData(1.0, false)]
     public async Task The_pass_rate_over_samples_is_held_against_the_threshold(double threshold, bool passes)
     {
-        // Four of five samples refund; the third answers plainly.
         await using var fake = await FakeAgent.StartAsync(
             (_, _) => Results.Text(Interlocked.Increment(ref calls) == 3 ? FakeAgent.PlainTurn : FakeAgent.RefundTurn, "application/json")
         );

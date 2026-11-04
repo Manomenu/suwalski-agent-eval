@@ -3,14 +3,8 @@ using Suwageval.Server.Database;
 
 namespace Suwageval.Server.Evaluation.Runs.AgentErrors;
 
-/// <summary>What the agent errors read of the runs' results. Plain SQL, mapped by Dapper.</summary>
 internal sealed class AgentErrorStore(Pool pool)
 {
-    /// <summary>
-    /// Per agent version and scenario of the given runs (the ones that called the agent, so the original of a re-check): the samples asked and
-    /// those where the agent gave no answer (status <c>Failed</c>), with the newest such sample's run and error (none without errors).
-    /// The highest share of errors first, then the most, then by key.
-    /// </summary>
     public async Task<IReadOnlyList<AgentErrorRow>> ListAgentErrorsAsync(
         IReadOnlyCollection<Guid> runIds,
         CancellationToken cancellationToken = default

@@ -2,10 +2,7 @@ using System.Text.RegularExpressions;
 
 namespace Suwageval.Server.Tests.AgentSdk;
 
-/// <summary>
-/// The release workflow picks the SDK's tests by class name, and a filter that matches nothing is silent while another still matches:
-/// a renamed class would quietly leave the release's proof.
-/// </summary>
+// Why: the release workflow filters the SDK's tests by class name, and a filter matching nothing is silent, so a renamed class would quietly drop the release's proof
 public sealed partial class AgentSdkWorkflowTests
 {
     [Fact]

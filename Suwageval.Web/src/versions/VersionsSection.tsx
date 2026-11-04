@@ -29,7 +29,6 @@ import { formatTime } from "../format/time";
 import { shortId, versionTitle } from "../format/names";
 import { archiveVersions, deleteVersion, fetchVersionDeletion } from "./api";
 
-/** How wide a usage chip's tooltip is. */
 const USAGE_HELP_WIDTH = 280;
 
 const LABELS: ArchiveLabels = {
@@ -43,7 +42,6 @@ const LABELS: ArchiveLabels = {
 const VERSION_USAGE_HELP =
     "Where the versions are used; a version is listed when it has any of the chosen usages. Evaluation: it has runs outside a group (the default). Groups: it has runs in a group (run --group), such as a sweep's variants. Monitoring: it answered conversations of the deployed agent. Unused: it has no run and no conversation. Archived: the archived versions, which are listed only then.";
 
-/** The agent's versions: select some to archive them (hidden), turn on the Archived usage chip to see, restore or delete them (an archived version, with its runs). */
 export function VersionsSection({
     agentName,
     versions,
@@ -57,16 +55,12 @@ export function VersionsSection({
 }: {
     agentName: string;
     versions: AgentVersion[];
-    /** Where the listed versions are used: a version is listed when it has any of these (the archived ones only with `archived`). */
     usage: VersionUsage[];
     onUsageChange: (usage: VersionUsage[]) => void;
-    /** The versions the list is narrowed to (none: no narrowing); each is shown as a chip that removes it. */
     versionIds: string[];
     onVersionRemoved: (id: string) => void;
-    /** The monitored environment the monitoring usage and columns are narrowed to; null: every one. */
     environment: string | null;
     onEnvironmentChange: (environment: string | null) => void;
-    /** Called after the server archived or restored versions, so the page loads the list again. */
     onChanged: () => void;
 }) {
     const [requestedPage, setRequestedPage] = usePageParam("versionsPage");

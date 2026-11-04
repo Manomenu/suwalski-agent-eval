@@ -6,14 +6,8 @@ using Suwageval.Contracts.Agents;
 
 namespace Suwageval.Cli;
 
-/// <summary>
-/// The sections of <c>suwageval --help</c>: the commands by area (AGENTS.md, section 4), in the order they are listed. The names of the
-/// commands stay flat; only the help groups them. Every registered command is in exactly one section (<c>HelpSectionsTests</c>), so a new
-/// command cannot be forgotten.
-/// </summary>
 internal static class HelpSections
 {
-    /// <summary>Title and command names, in the order the help lists them. A new area adds its section here.</summary>
     public static readonly IReadOnlyList<(string Title, string[] Commands)> All =
     [
         (
@@ -41,13 +35,11 @@ internal static class HelpSections
         ("Agent", ["init", "agents", "agent", "versions", "delete-agent"]),
     ];
 
-    /// <summary>
-    /// Makes the root's own help list its commands by section instead of one flat list. System.CommandLine's help builder is internal, so
-    /// the root's help is written here (same layout as the default); the help of a command stays the library's.
-    /// </summary>
+    // Why: System.CommandLine's help builder is internal, so the root's help is written here
     public static void Apply(RootCommand root)
     {
         var option = root.Options.OfType<HelpOption>().Single();
+        // Why: the root's help option always has an action, and it is a synchronous one
         option.Action = new RootHelpAction(root, (SynchronousCommandLineAction)option.Action!);
     }
 
@@ -82,10 +74,8 @@ internal static class HelpSections
         }
     }
 
-    /// <summary>The agent of <c>./suwageval/agent.yaml</c>, when there is one that reads; nothing is reported (it is only the help).</summary>
     private static AgentDefinition? LocalAgent() => AgentReader.Quietly(AgentFolder.DefaultDir)?.Definition;
 
-    /// <summary>Whether the section's area is switched off in the local file (as the server has it once pushed).</summary>
     private static bool IsOff(AgentDefinition agent, string title) =>
         title switch
         {
@@ -120,7 +110,6 @@ internal static class HelpSections
         var all = rows.ToArray();
         var indent = 2;
         var width = all.Max(row => row.Left.Length) + 2;
-        // Like the default help: the description wraps within the terminal's width, never when the output is redirected.
         var room = Console.IsOutputRedirected ? int.MaxValue : Math.Max(Console.WindowWidth - indent - width, 30);
         output.WriteLine(title + ":");
         foreach (var (left, right) in all)

@@ -7,7 +7,6 @@ using Suwageval.Contracts.Monitoring;
 
 namespace Suwageval.Cli.Tests.Monitoring.Conversations;
 
-/// <summary><c>suwageval monitoring conversations</c> and <c>conversation</c> against a stand-in for the API.</summary>
 public sealed class ConversationsCommandTests
 {
     private static string Sample => Path.Combine(AppContext.BaseDirectory, "Sample", "suwageval");

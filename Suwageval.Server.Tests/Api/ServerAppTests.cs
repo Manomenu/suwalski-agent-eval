@@ -9,12 +9,11 @@ namespace Suwageval.Server.Tests.Api;
 
 public sealed class ServerAppTests(TestDatabase database) : IAsyncDisposable
 {
-    // Without the run worker: it would take the queued runs of the other tests (they share the database).
+    // Why: the run worker is left out because it would take the queued runs of other tests sharing the database
     private readonly WebApplicationFactory<Program> app = RunTestApp.Create();
 
     private HttpClient Client()
     {
-        // Skips (or fails in CI) without a database: the app does not start without one.
         _ = database.Pool;
         return app.CreateClient();
     }
@@ -40,8 +39,7 @@ public sealed class ServerAppTests(TestDatabase database) : IAsyncDisposable
     [Fact]
     public async Task Routes_carry_no_api_prefix()
     {
-        // /api is stripped at the edge (vite proxy, nginx). A route declared with it would be
-        // reachable in no environment at all.
+        // Why: /api is stripped at the edge, so a route declared with it would be reachable in no environment
         var response = await Client().GetAsync(new Uri("/api/health", UriKind.Relative), TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
@@ -56,7 +54,6 @@ public sealed class ServerAppTests(TestDatabase database) : IAsyncDisposable
         var current = await client.GetAsync(new Uri("/eval" + path, UriKind.Relative), TestContext.Current.CancellationToken);
         var old = await client.GetAsync(new Uri(path, UriKind.Relative), TestContext.Current.CancellationToken);
 
-        // The current address refuses a request naming no run (the route is there); the address before /eval is gone.
         Assert.Equal(HttpStatusCode.UnprocessableEntity, current.StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, old.StatusCode);
     }

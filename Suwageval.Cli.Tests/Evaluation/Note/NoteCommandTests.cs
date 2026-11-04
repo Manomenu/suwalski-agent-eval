@@ -3,7 +3,6 @@ using System.Text.Json;
 
 namespace Suwageval.Cli.Tests.Evaluation.Note;
 
-/// <summary>The command against a stand-in for the API.</summary>
 public sealed class NoteCommandTests
 {
     private static readonly Guid RunId = Guid.Parse("11111111-2222-3333-4444-555555555555");
@@ -59,11 +58,7 @@ public sealed class NoteCommandTests
 
         Assert.Equal(0, exit);
         Assert.StartsWith($"Cleared the note of run {RunId}.", output, StringComparison.Ordinal);
-        Assert.EndsWith( /*lang=json,strict*/
-            "{\"note\":null}",
-            Assert.Single(api.Requests),
-            StringComparison.Ordinal
-        );
+        Assert.EndsWith("{\"note\":null}", Assert.Single(api.Requests), StringComparison.Ordinal);
     }
 
     [Theory]
@@ -120,11 +115,7 @@ public sealed class NoteCommandTests
         );
         var request = Assert.Single(api.Requests);
         Assert.StartsWith("PUT /eval/agents/example-agent/run-groups/sweep-1/note ", request, StringComparison.Ordinal);
-        Assert.EndsWith( /*lang=json,strict*/
-            "{\"note\":\"three models\"}",
-            request,
-            StringComparison.Ordinal
-        );
+        Assert.EndsWith("{\"note\":\"three models\"}", request, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -134,11 +125,7 @@ public sealed class NoteCommandTests
 
         Assert.Equal(0, exit);
         Assert.StartsWith("Cleared the note of group sweep-1.", output, StringComparison.Ordinal);
-        Assert.EndsWith( /*lang=json,strict*/
-            "{\"note\":null}",
-            Assert.Single(api.Requests),
-            StringComparison.Ordinal
-        );
+        Assert.EndsWith("{\"note\":null}", Assert.Single(api.Requests), StringComparison.Ordinal);
     }
 
     [Fact]

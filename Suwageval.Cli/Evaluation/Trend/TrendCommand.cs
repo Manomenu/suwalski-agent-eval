@@ -4,15 +4,8 @@ using Suwageval.Cli.Server;
 
 namespace Suwageval.Cli.Evaluation.Trend;
 
-/// <summary>
-/// <c>suwageval trend</c>: the pass-rate trend of the agent named in <c>suwageval/agent.yaml</c> — one line per finished run, oldest first: run,
-/// date, version, pass rate, median and 95th percentile turn time, pass rate per tag; the runs started in a group (<c>run --group</c>) are experiments and not in it. <c>--json</c> prints the records the web's chart draws.
-/// Exits 0, or 2 when the agent file or the server is wrong.
-/// </summary>
 internal static class TrendCommand
 {
-    /// <param name="http">The client to the API; none means one is made from <c>--server</c> or <c>SUWAGEVAL_URL</c> (the tests pass their own).</param>
-    /// <param name="openBrowser">Opens a page for <c>--open</c>; none means the system's default browser (the tests record the page instead).</param>
     public static Command Create(HttpClient? http = null, Action<Uri>? openBrowser = null)
     {
         var json = CommandOptions.Json("Print the trend's points as JSON.");

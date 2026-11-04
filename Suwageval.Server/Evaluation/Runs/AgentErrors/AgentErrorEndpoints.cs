@@ -5,7 +5,6 @@ using Suwageval.Server.Problems;
 
 namespace Suwageval.Server.Evaluation.Runs.AgentErrors;
 
-/// <summary>The route of the open agent errors of an agent.</summary>
 internal static class AgentErrorEndpoints
 {
     public static IEndpointRouteBuilder MapAgentErrors(this IEndpointRouteBuilder app)
@@ -15,11 +14,6 @@ internal static class AgentErrorEndpoints
         return app;
     }
 
-    /// <summary>
-    /// Where the agent gave no answer and no newer version has run the scenario without it (<see cref="OpenAgentErrors"/>): per agent
-    /// version and scenario, the errors over the samples asked, the newest run and error text, worst first. The same runs and considered
-    /// versions as the unstable checks, the same <c>dataVersion</c> filter (a re-check does not call the agent, so it is not counted). 404: no such agent.
-    /// </summary>
     private static async Task<IResult> ListAsync(
         string agent,
         [FromQuery] Guid[]? version,
@@ -50,6 +44,7 @@ internal static class AgentErrorEndpoints
                     VersionLabel = labels.GetValueOrDefault(row.AgentVersionId),
                     Errors = row.Errors,
                     Samples = row.Samples,
+                    // Why: only rows with at least one agent error are listed, so the newest error run exists
                     NewestErrorRunId = row.NewestErrorRunId!.Value,
                     NewestError = row.NewestError ?? "",
                 })

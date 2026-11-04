@@ -6,9 +6,6 @@ public sealed class ScriptsTests
 {
     private static readonly string[] NotForCalling = ["checkout-env.sh", "hook-guard-edit.sh", "hook-stop.sh"];
 
-    // Why: its --help goes to the pinned vdoc.py, so the word never stands in the script itself
-    private const string AnswersThroughItsTool = "criteria.sh";
-
     public static TheoryData<string> Scripts()
     {
         var data = new TheoryData<string>();
@@ -35,9 +32,7 @@ public sealed class ScriptsTests
     {
         var text = RepositoryFiles.Read(script);
         Assert.True(
-            Path.GetFileName(script) == AnswersThroughItsTool
-                || text.Contains("--help", StringComparison.Ordinal)
-                || text.Contains("usage:", StringComparison.Ordinal),
+            text.Contains("--help", StringComparison.Ordinal) || text.Contains("usage:", StringComparison.Ordinal),
             $"{script} would run for real on --help: AGENTS.md sends agents to --help instead of describing the commands; print what it does and how to call it on --help"
         );
 

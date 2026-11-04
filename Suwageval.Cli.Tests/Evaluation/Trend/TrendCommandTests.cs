@@ -6,7 +6,6 @@ using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Cli.Tests.Evaluation.Trend;
 
-/// <summary>The command against a stand-in for the API.</summary>
 public sealed class TrendCommandTests
 {
     private static string Sample => Path.Combine(AppContext.BaseDirectory, "Sample", "suwageval");
@@ -14,7 +13,6 @@ public sealed class TrendCommandTests
     private static readonly Guid Newer = Guid.Parse("aaaaaaaa-0000-0000-0000-000000000002");
     private static readonly Guid Older = Guid.Parse("aaaaaaaa-0000-0000-0000-000000000001");
 
-    // Newest first, the way the server sends it.
     private static readonly RunPassRates[] Points =
     [
         new()

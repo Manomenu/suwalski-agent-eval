@@ -5,20 +5,10 @@ using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Cli.Evaluation.Note;
 
-/// <summary>
-/// <c>suwageval note &lt;runId&gt; &lt;text&gt;</c> sets the note of a run (why it was started), <c>--clear</c> removes it. Works for a run in
-/// any status and changes no verdict. Prints the run's page; exits 0, 2 for an unknown run or a server that does not answer, and
-/// refuses a note the rules (<see cref="NoteRules"/>) do not allow before calling the server.
-/// <c>suwageval note --group &lt;name&gt; &lt;text&gt;</c> (or <c>--clear</c>) sets the note of a run group of the agent of
-/// <c>suwageval/agent.yaml</c> instead (what the experiment is about; the comparison of the group shows it); a run id and <c>--group</c>
-/// exclude each other. Prints the group's compare page.
-/// </summary>
 internal static class NoteCommand
 {
-    /// <param name="http">The client to the API; none means one is made from <c>--server</c> or <c>SUWAGEVAL_URL</c> (the tests pass their own).</param>
     public static Command Create(HttpClient? http = null)
     {
-        // Both are plain words for the parser: with --group the one argument is the text, which then lands in the first.
         var runId = new Argument<string?>("runId")
         {
             Description = "The run, as `suwageval run` printed it (with --group there is no run id: give only the text).",
@@ -97,6 +87,7 @@ internal static class NoteCommand
                         var cleared = parsed.GetValue(clear);
                         if (groupName is not null)
                         {
+                            // Why: agent is non-null here: a null agent with a group name returned exit 2 above
                             await client.SetGroupNoteAsync(agent!, groupName, cleared ? null : parsed.GetValue(runId), cancellationToken);
                             await output.WriteLineAsync(
                                 cleared ? $"Cleared the note of group {groupName}." : $"Set the note of group {groupName}."
@@ -104,6 +95,7 @@ internal static class NoteCommand
                             await output.WriteLineAsync(ServerAddress.ComparePage(site, [], groupName, agent, null).ToString());
                             return 0;
                         }
+                        // Why: runId is a required argument on this path, so its value is present
                         var id = Guid.Parse(parsed.GetRequiredValue(runId)!);
                         await client.SetNoteAsync(id, cleared ? null : parsed.GetValue(text), cancellationToken);
                         await output.WriteLineAsync(cleared ? $"Cleared the note of run {id}." : $"Set the note of run {id}.");

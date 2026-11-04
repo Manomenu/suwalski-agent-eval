@@ -5,14 +5,8 @@ using Suwageval.Cli.Server;
 
 namespace Suwageval.Cli.Agents;
 
-/// <summary>
-/// <c>suwageval agents</c>: every agent on the server — name, endpoint, creation time; <c>--json</c> prints the records. It needs no
-/// <c>agent.yaml</c>: it is how an agent is found when the repository does not say which one to look at. Exits 0, or 2 when the server is wrong.
-/// </summary>
 internal static class AgentsCommand
 {
-    /// <param name="http">The client to the API; none means one is made from <c>--server</c> or <c>SUWAGEVAL_URL</c> (the tests pass their own).</param>
-    /// <param name="openBrowser">Opens a page for <c>--open</c>; none means the system's default browser (the tests record the page instead).</param>
     public static Command Create(HttpClient? http = null, Action<Uri>? openBrowser = null)
     {
         var json = CommandOptions.Json("Print the agents as JSON.");

@@ -16,7 +16,6 @@ using Suwageval.Server.Tests.Evaluation.Runs;
 
 namespace Suwageval.Server.Tests.AgentSdk.Monitoring;
 
-/// <summary>The SDK's monitoring as an agent uses it: turns recorded in the agent reach the server in process, in the background.</summary>
 public sealed class SuwagevalMonitoringTests(TestDatabase database) : IAsyncDisposable
 {
     private readonly WebApplicationFactory<Program> app = RunTestApp.Create();
@@ -25,7 +24,7 @@ public sealed class SuwagevalMonitoringTests(TestDatabase database) : IAsyncDisp
 
     public ValueTask DisposeAsync() => app.DisposeAsync();
 
-    /// <summary>What the edge (nginx, the vite proxy) does in front of the server: the API's <c>/api</c> prefix comes off.</summary>
+    // Why: nginx and the vite proxy strip the /api prefix in front of the server, so the in-process test must do the same
     private sealed class EdgeHandler : DelegatingHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -41,7 +40,6 @@ public sealed class SuwagevalMonitoringTests(TestDatabase database) : IAsyncDisp
         public Task<AgentContract> GetContractAsync(CancellationToken cancellationToken) => Task.FromResult(contract);
     }
 
-    /// <summary>The services of an agent with monitoring set up, sending to the server in process.</summary>
     private ServiceProvider Agent(string name)
     {
         var configuration = new ConfigurationBuilder()

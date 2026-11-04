@@ -1,10 +1,5 @@
 namespace Suwageval.Cli.Files;
 
-/// <summary>
-/// The files of an agent's <c>suwageval/</c> folder, read as text: <c>agent.yaml</c>, <c>scenarios/*.yaml</c> and
-/// <c>monitoring-checks.yaml</c> (null: there is none).
-/// </summary>
-/// <remarks>AgentFile is the name of the agent file, for the problem when AgentText (null: the file does not exist) is missing.</remarks>
 internal sealed record AgentFolder(
     string AgentFile,
     string? AgentText,
@@ -12,10 +7,8 @@ internal sealed record AgentFolder(
     SourceText? MonitoringChecks = null
 )
 {
-    /// <summary>The file of the checks run on every monitored conversation of the agent.</summary>
     public const string MonitoringChecksFile = "monitoring-checks.yaml";
 
-    /// <summary>Where a command looks for the agent's files when it is not told.</summary>
     public const string DefaultDir = "suwageval";
 
     public static AgentFolder Read(string dir)

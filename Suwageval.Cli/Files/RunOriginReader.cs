@@ -4,12 +4,6 @@ using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Cli.Files;
 
-/// <summary>
-/// Reads where the agent's repository stands (<see cref="RunOrigin"/>): from the CI's environment when there is one (GitHub Actions, GitLab CI),
-/// otherwise by running <c>git</c> in the agent's folder. It never fails a run: no git, no repository or a git that cannot answer is no origin.
-/// </summary>
-/// <param name="git">Runs <c>git</c> with the arguments in a folder; null when it cannot be started.</param>
-/// <param name="environment">Reads an environment variable.</param>
 internal sealed class RunOriginReader(
     Func<string, IReadOnlyList<string>, RunOriginReader.GitAnswer?> git,
     Func<string, string?> environment
@@ -17,14 +11,10 @@ internal sealed class RunOriginReader(
 {
     private static readonly TimeSpan GitTimeout = TimeSpan.FromSeconds(10);
 
-    /// <summary>The real thing: the <c>git</c> on the PATH and the process's environment.</summary>
     public static RunOriginReader System { get; } = new(RunGit, Environment.GetEnvironmentVariable);
 
-    /// <summary>What a <c>git</c> command printed and how it ended.</summary>
     internal sealed record GitAnswer(int ExitCode, string Output);
 
-    /// <param name="dir">The agent's folder (inside the repository).</param>
-    /// <param name="compareWith">The branch given with <c>--ref</c>, if any: it goes into the origin even when there is no repository.</param>
     public RunOrigin? Read(string dir, string? compareWith)
     {
         var origin = FromCi(dir) ?? FromRepository(dir);
@@ -74,7 +64,6 @@ internal sealed class RunOriginReader(
         var branch = Output(dir, "rev-parse", "--abbrev-ref", "HEAD");
         if (branch == "HEAD")
         {
-            // Detached: no branch.
             branch = null;
         }
         var clean = Output(dir, "status", "--porcelain") is "";
@@ -95,7 +84,6 @@ internal sealed class RunOriginReader(
         return head is not null && head.StartsWith("origin/", StringComparison.Ordinal) ? head["origin/".Length..] : head;
     }
 
-    /// <summary>What the command printed (trimmed) when it succeeded; null when it failed or could not run.</summary>
     private string? Output(string dir, params string[] arguments) =>
         git(dir, arguments) is { ExitCode: 0 } answer ? answer.Output.Trim() : null;
 
@@ -125,7 +113,7 @@ internal sealed class RunOriginReader(
                 return null;
             }
             var output = process.StandardOutput.ReadToEndAsync();
-            // Drained so a chatty git cannot block on a full pipe.
+            // Why: drained so a chatty git cannot block on a full pipe
             _ = process.StandardError.ReadToEndAsync();
             if (!process.WaitForExit(GitTimeout))
             {
@@ -136,7 +124,6 @@ internal sealed class RunOriginReader(
         }
         catch (Exception e) when (e is Win32Exception or InvalidOperationException or IOException)
         {
-            // git is not installed or the folder does not exist: there is no origin.
             return null;
         }
     }

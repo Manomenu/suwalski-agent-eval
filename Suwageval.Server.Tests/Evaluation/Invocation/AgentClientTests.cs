@@ -58,17 +58,13 @@ public sealed class AgentClientTests
         var (result, stub) = await CallAsync(_ =>
             Task.FromResult(
                 Ok(
-                    /*lang=json,strict*/
                     """{"items":[{"kind":"ToolCall","id":"1","name":"get_order","arguments":{"order_id":"A-17"}},{"kind":"AssistantMessage","text":"ok"}]}"""
                 )
             )
         );
 
         Assert.Equal(new Uri("http://agent.test/base/suwageval/turn"), stub.RequestUri);
-        Assert.Equal( /*lang=json,strict*/
-            """{"conversation":[{"kind":"UserMessage","text":"hi"}],"conversationId":"conv-1"}""",
-            stub.RequestBody
-        );
+        Assert.Equal("""{"conversation":[{"kind":"UserMessage","text":"hi"}],"conversationId":"conv-1"}""", stub.RequestBody);
         Assert.Null(result.Error);
         Assert.Equal(2, result.Items?.Count);
         Assert.Equal("get_order", Assert.IsType<ToolCall>(result.Items?[0]).Name);
@@ -78,13 +74,7 @@ public sealed class AgentClientTests
     [Fact]
     public async Task Does_not_send_null_fields_the_agent_may_not_know()
     {
-        using var stub = new Stub(_ =>
-            Task.FromResult(
-                Ok( /*lang=json,strict*/
-                    """{"items":[]}"""
-                )
-            )
-        );
+        using var stub = new Stub(_ => Task.FromResult(Ok("""{"items":[]}""")));
         using var http = new HttpClient(stub, disposeHandler: false);
 
         await new AgentClient(http).TurnAsync(Agent, [new AssistantMessage { Text = "a" }], Context, Cancellation);
@@ -95,19 +85,9 @@ public sealed class AgentClientTests
     [Fact]
     public async Task Sends_the_fixtures_verbatim_and_the_correlation_headers_on_every_call()
     {
-        using var stub = new Stub(_ =>
-            Task.FromResult(
-                Ok( /*lang=json,strict*/
-                    """{"items":[]}"""
-                )
-            )
-        );
+        using var stub = new Stub(_ => Task.FromResult(Ok("""{"items":[]}""")));
         using var http = new HttpClient(stub, disposeHandler: false);
-        var fixtures = JsonDocument
-            .Parse( /*lang=json,strict*/
-                """{"pinnedResources":["plans"],"n":1.50}"""
-            )
-            .RootElement.Clone();
+        var fixtures = JsonDocument.Parse("""{"pinnedResources":["plans"],"n":1.50}""").RootElement.Clone();
 
         await new AgentClient(http).TurnAsync(Agent, [new UserMessage { Text = "hi" }], Context with { Fixtures = fixtures }, Cancellation);
 
@@ -136,13 +116,7 @@ public sealed class AgentClientTests
     [Fact]
     public async Task Leaves_the_fixtures_out_when_the_scenario_has_none()
     {
-        var (_, stub) = await CallAsync(_ =>
-            Task.FromResult(
-                Ok( /*lang=json,strict*/
-                    """{"items":[]}"""
-                )
-            )
-        );
+        var (_, stub) = await CallAsync(_ => Task.FromResult(Ok("""{"items":[]}""")));
 
         Assert.DoesNotContain("fixtures", stub.RequestBody, StringComparison.Ordinal);
     }
@@ -153,9 +127,7 @@ public sealed class AgentClientTests
         var (answered, _) = await CallAsync(async _ =>
         {
             await Task.Delay(60, Cancellation);
-            return Ok( /*lang=json,strict*/
-                """{"items":[]}"""
-            );
+            return Ok("""{"items":[]}""");
         });
         var (failed, _) = await CallAsync(async _ =>
         {
@@ -182,18 +154,10 @@ public sealed class AgentClientTests
 
     [Theory]
     [InlineData("not json")]
-    [InlineData( /*lang=json,strict*/
-        """{"items":[{"kind":"Nope"}]}"""
-    )]
-    [InlineData( /*lang=json,strict*/
-        """{"items":"x"}"""
-    )]
-    [InlineData( /*lang=json,strict*/
-        """{"items":[],"extra":1}"""
-    )]
-    [InlineData( /*lang=json,strict*/
-        """{"items":[{"kind":"AssistantMessage"}]}"""
-    )]
+    [InlineData("""{"items":[{"kind":"Nope"}]}""")]
+    [InlineData("""{"items":"x"}""")]
+    [InlineData("""{"items":[],"extra":1}""")]
+    [InlineData("""{"items":[{"kind":"AssistantMessage"}]}""")]
     [InlineData("null")]
     public async Task An_unreadable_answer_is_a_failed_result(string body)
     {
@@ -247,8 +211,7 @@ public sealed class AgentClientTests
         Assert.Contains("did not answer within", result.Error, StringComparison.Ordinal);
     }
 
-    private const string ContractBody = /*lang=json,strict*/
-        """
+    private const string ContractBody = """
         {"label":"abc1234","agents":[{"name":"main","model":{"name":"m","parameters":{"temperature":0}},"config":"Be helpful.",
          "tools":[{"name":"get_order","description":"d","parameters":{"type":"object"}}]}],"otherConfig":"retries: 2",
          "context":{"usesRetrieval":false,"events":[{"type":"state.changed","dataSchema":{"type":"object"}}]}}
@@ -279,12 +242,8 @@ public sealed class AgentClientTests
     [Theory]
     [InlineData("not json")]
     [InlineData("null")]
-    [InlineData( /*lang=json,strict*/
-        """{"otherConfig":"p"}"""
-    )]
-    [InlineData( /*lang=json,strict*/
-        """{"agents":[],"colour":"red"}"""
-    )]
+    [InlineData("""{"otherConfig":"p"}""")]
+    [InlineData("""{"agents":[],"colour":"red"}""")]
     public async Task An_unreadable_contract_is_a_failed_result_naming_the_url(string body)
     {
         var (result, _) = await ContractAsync(_ => Task.FromResult(Ok(body)));
@@ -321,13 +280,7 @@ public sealed class AgentClientTests
     {
         using var cancelled = new CancellationTokenSource();
         await cancelled.CancelAsync();
-        using var stub = new Stub(_ =>
-            Task.FromResult(
-                Ok( /*lang=json,strict*/
-                    """{"items":[]}"""
-                )
-            )
-        );
+        using var stub = new Stub(_ => Task.FromResult(Ok("""{"items":[]}""")));
         using var http = new HttpClient(stub, disposeHandler: false);
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>

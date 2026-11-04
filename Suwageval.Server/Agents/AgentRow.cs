@@ -4,7 +4,6 @@ using Suwageval.Contracts.Agents;
 
 namespace Suwageval.Server.Agents;
 
-/// <summary>A row of <c>agents</c>.</summary>
 internal sealed record AgentRow(
     Guid Id,
     string Name,
@@ -18,7 +17,6 @@ internal sealed record AgentRow(
     int? AcGuardrailRetryLimit = null
 )
 {
-    /// <summary>The areas the agent was pushed with: evaluation on unless switched off, monitoring with its settings or off.</summary>
     public AgentFeatures Features =>
         new()
         {
@@ -26,7 +24,6 @@ internal sealed record AgentRow(
             Monitoring = Monitoring is null ? null : JsonSerializer.Deserialize<MonitoringSettings>(Monitoring, ContractJson.Options),
         };
 
-    /// <summary>The regression settings the agent was pushed with (the branches arrive as a JSON array); none when it names neither branches nor a history.</summary>
     public RegressionSettings? Regression =>
         RegressionBranches is null && RegressionHistory is null
             ? null

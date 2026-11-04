@@ -4,10 +4,6 @@ using Suwageval.Server.Problems;
 
 namespace Suwageval.Server.Evaluation.Checks;
 
-/// <summary>
-/// What a request about checks must satisfy, checked where it enters: the rules every check obeys (<see cref="CheckRules"/>, the
-/// same ones <c>suwageval validate</c> applies) and what only a request can break — keys used twice, the scenario key.
-/// </summary>
 internal static class CheckValidation
 {
     public static List<FieldError> Validate(IReadOnlyList<CheckInput> checks)

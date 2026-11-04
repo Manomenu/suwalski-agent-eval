@@ -15,14 +15,7 @@ public sealed class VersionStoreTests(TestDatabase database)
         var store = new AgentStore(database.Pool);
         var versions = new VersionStore(database.Pool);
         var agent = (await store.CreateAsync(AgentStoreTests.UniqueName(), "http://one.test", Cancellation)).Agent;
-        var version = (
-            await store.RegisterVersionAsync(
-                agent.Id, /*lang=json,strict*/
-                """{"model":"m1"}""",
-                null,
-                cancellationToken: Cancellation
-            )
-        ).Version;
+        var version = (await store.RegisterVersionAsync(agent.Id, """{"model":"m1"}""", null, cancellationToken: Cancellation)).Version;
         await versions.ArchiveVersionsAsync(agent.Id, [version.Id], archived: true, Cancellation);
         var firstTime = (await store.GetVersionAsync(version.Id, Cancellation))?.ArchivedAt;
 
@@ -33,13 +26,8 @@ public sealed class VersionStoreTests(TestDatabase database)
         Assert.Equal([missing], await versions.UnknownVersionsAsync(agent.Id, [version.Id, missing], Cancellation));
     }
 
-    /// <summary>The ids of the four versions <see cref="SeedGroupRunsAsync"/> makes.</summary>
     internal sealed record GroupedVersions(Guid AgentId, Guid GroupOnly, Guid Mixed, Guid RecheckOfGroup, Guid NoRuns);
 
-    /// <summary>
-    /// One agent with a version whose only run is in a group, one with a run in a group and one in none, one whose only run is a re-check
-    /// of a run in a group, and one with no run.
-    /// </summary>
     internal static async Task<(string Name, GroupedVersions Versions)> SeedGroupRunsAsync(TestDatabase database)
     {
         var store = new AgentStore(database.Pool);

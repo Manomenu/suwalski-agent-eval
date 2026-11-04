@@ -3,16 +3,8 @@ using Suwageval.Cli.Server;
 
 namespace Suwageval.Cli.Evaluation.Scenarios;
 
-/// <summary>
-/// <c>suwageval scenario from-conversation &lt;id&gt;</c>: a monitored conversation drafted as a scenario file, copied to its end or, with
-/// <c>--up-to-user N</c> / <c>--up-to-agent N</c>, up to its N-th user or agent message (included); the monitoring checks it failed come
-/// below as comments. With <c>--simulate</c> (and a cut) the rest is simulated: a model describes the user from the whole conversation,
-/// for <c>--turns</c> turns (by default as many as the real conversation had after the cut). Prints the YAML; with <c>--write</c> writes it to <c>&lt;dir&gt;/scenarios/&lt;key&gt;.yaml</c>, never over a file that
-/// is there. Exits 0; 1 when the file exists; 2 when the server is wrong (no such message too).
-/// </summary>
 internal static class FromConversationCommand
 {
-    /// <param name="http">The client to the API; none means one is made from <c>--server</c> or <c>SUWAGEVAL_URL</c> (the tests pass their own).</param>
     public static Command Create(HttpClient? http = null)
     {
         var id = new Argument<Guid>("id") { Description = "The conversation's id, as `monitoring conversations` lists it." };
@@ -100,6 +92,7 @@ internal static class FromConversationCommand
                             );
                             return 1;
                         }
+                        // Why: file is a path with a directory part, built from the folder and scenario key
                         Directory.CreateDirectory(Path.GetDirectoryName(file)!);
                         await File.WriteAllTextAsync(file, draft.Yaml, cancellationToken);
                         await output.WriteLineAsync($"wrote {file}: review it, add the checks it must keep, then validate and push.");
@@ -111,7 +104,6 @@ internal static class FromConversationCommand
         return command;
     }
 
-    /// <summary>The option naming the <paramref name="who"/> message (from 1) the copy ends at.</summary>
     private static Option<int?> MessageOption(string name, string who)
     {
         var option = new Option<int?>(name) { Description = $"Copy up to the conversation's N-th {who} message (from 1), included." };

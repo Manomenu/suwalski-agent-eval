@@ -2,11 +2,7 @@ import { useEffect } from "react";
 
 import { printRequested, searchWithoutPrint } from "./printOnLoad";
 
-/**
- * Opens the print dialog once when `ready` (the data is on the page) and the address has `print=1`. The one-off part runs in the timer
- * the effect starts, and StrictMode's second run of the effect cancels the first timer: the dialog opens once, and the parameter is taken
- * out of the address first so a reload does not open it again.
- */
+// Why: StrictMode's second effect run cancels the first timer so the dialog opens once, and the parameter is removed first so a reload does not reopen it
 export function usePrintOnLoad(ready: boolean): void {
     useEffect(() => {
         if (!ready || !printRequested(window.location.search)) return;

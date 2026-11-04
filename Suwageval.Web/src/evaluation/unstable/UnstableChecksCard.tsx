@@ -12,10 +12,6 @@ import { UNSTABLE_CARD_PAGE_SIZE } from "./stability";
 
 const HEADING_HELP_WIDTH = 340;
 
-/**
- * The checks that passed in some runs of one version and failed in others, so a failure there may be noise. Nothing at all
- * when there are none. Each row opens the newest run that failed the check.
- */
 export function UnstableChecksCard({ checks }: { checks: UnstableCheck[] }) {
     const [requestedPage, setRequestedPage] = usePageParam("unstablePage");
     if (checks.length === 0) return null;
@@ -23,7 +19,6 @@ export function UnstableChecksCard({ checks }: { checks: UnstableCheck[] }) {
     return (
         <Paper withBorder p="md">
             <Stack gap="sm">
-                {/* The heading and its icon explain on hover what an unstable check is and when a row is listed. */}
                 <Tooltip
                     label={
                         <Stack gap="xs">

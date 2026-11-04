@@ -1,5 +1,3 @@
-// What a check's state against its history means for the pages (the server decides the state): labels, colours, the order the run
-// page lists them in and the links to follow.
 import type { CheckRegression, CheckRunResult, RegressionState, RegressionSummary, RunResults } from "./api";
 import { compareHref, runHref } from "../../routes/links";
 import { shortId } from "../../format/names";
@@ -25,7 +23,6 @@ export function stateLabel(state: RegressionState): string {
     }
 }
 
-/** What the state means, for someone who meets it for the first time (the tooltip of its badge). */
 export function stateExplanation(state: RegressionState): string {
     switch (state) {
         case "Passed":
@@ -47,7 +44,6 @@ export function stateExplanation(state: RegressionState): string {
     }
 }
 
-/** A Mantine theme colour of the state. */
 export function stateColor(state: RegressionState): string {
     switch (state) {
         case "Passed":
@@ -69,27 +65,20 @@ export function stateColor(state: RegressionState): string {
     }
 }
 
-/** "Compared with master" / "Compared with every run of the agent" (a run without git). */
 export function comparedWithHeading(summary: RegressionSummary): string {
     return summary.comparedWith == null ? "Compared with every run of the agent" : `Compared with ${summary.comparedWith}`;
 }
 
-/** The history in words: "last 5 reference runs" (or "last 5 runs" without git). */
 export function historyText(summary: RegressionSummary): string {
     const runs = summary.comparedWith == null ? "runs" : "reference runs";
-    // The state reads up to twice that many runs (a failure after a steady pass needs both), and so does the history strip.
+    // Why: the state reads up to twice the history (a failure after a steady pass needs both), and so does the history strip
     return `${summary.history} ${runs} make a steady pass; the history shows up to ${summary.history * 2}`;
 }
 
-/** The compare page of the last run the check passed in and this one, or null when it never passed in the history. */
 export function regressionCompareHref(runId: string, lastPassedRun: string | null | undefined): string | null {
     return lastPassedRun == null ? null : compareHref([lastPassedRun, runId], lastPassedRun);
 }
 
-/**
- * The link under a check of a run: Fixed compares with the last run the check failed in, the other states with the last run it
- * passed in (an already broken check has none: it was not this run that broke it). Null when there is no such run.
- */
 export function compareLink(runId: string, regression: CheckRegression | null | undefined): { label: string; href: string } | null {
     if (regression == null || regression.state === "AlreadyBroken") return null;
     if (regression.state === "Fixed") {
@@ -102,29 +91,23 @@ export function compareLink(runId: string, regression: CheckRegression | null | 
     return href === null ? null : { label: "Compare with the last passing run", href };
 }
 
-/** "17/10 00:03" in the viewer's time zone. */
 export function historyTime(iso: string): string {
     const time = new Date(iso);
     const two = (value: number) => String(value).padStart(2, "0");
     return `${two(time.getDate())}/${two(time.getMonth() + 1)} ${two(time.getHours())}:${two(time.getMinutes())}`;
 }
 
-/** What the strip of marks is and how to read it, for someone who meets it for the first time. */
 export const CHECK_HISTORY_EXPLANATION =
     "This check's verdict in the newest reference runs it is compared with, oldest first; the last mark is this run. Its state (regression, already broken, fixed, unstable…) follows from this pattern. Click a mark to open that run.";
 
-/** One dot of a check's history strip. A mark without `href` is the run being shown. */
 export interface HistoryMark {
     key: string;
     outcome: "passed" | "failed" | "agentError";
-    /** What a screen reader says: "run 725c66c4: passed" / "this run: failed". */
     label: string;
-    /** The tooltip's first line: "17/10 00:03 · run 725c66c4 · passed" / "this run · failed". */
     tooltip: string;
     href: string | null;
 }
 
-/** The marks of a check's history oldest first and then this run's; none when the check has no history. */
 export function historyMarks(check: Pick<CheckRunResult, "passed" | "regression">): HistoryMark[] {
     const history = check.regression?.history ?? [];
     if (history.length === 0) return [];
@@ -151,14 +134,12 @@ export function historyMarks(check: Pick<CheckRunResult, "passed" | "regression"
     ];
 }
 
-/** One check of the run with the scenario it belongs to. */
 export interface StatedCheck {
     scenarioKey: string;
     check: CheckRunResult;
     state: RegressionState;
 }
 
-/** Every check of the run that has a state other than Passed. */
 export function statedChecks(results: RunResults): StatedCheck[] {
     return results.scenarios.flatMap((scenario) =>
         scenario.checks.flatMap((check) =>
@@ -171,7 +152,6 @@ export function statedChecks(results: RunResults): StatedCheck[] {
 
 const LISTED_ORDER: readonly RegressionState[] = ["Regression", "New", "AgentError", "AlreadyBroken", "Fixed", "Unstable"];
 
-/** What the run page lists: a group per state in the page's order (Regression, New, Agent error, Already broken, Fixed, Unstable; empty ones left out), known failures apart. */
 export function groupChecks(checks: readonly StatedCheck[]): {
     groups: { state: RegressionState; checks: StatedCheck[] }[];
     known: StatedCheck[];
@@ -184,11 +164,9 @@ export function groupChecks(checks: readonly StatedCheck[]): {
     };
 }
 
-/** What the "data changed" mark says on hover. */
 export const DATA_CHANGED_HELP =
     "This run was on other retrieval data (dataVersion) than the last run the check passed in: the failure may come from the data, not from the agent.";
 
-/** Whether a check's failure is marked "data changed": it failed, and the last run it passed in was on other retrieval data. */
 export function failedOnOtherData(check: Pick<CheckRunResult, "passed" | "regression">): boolean {
     return !check.passed && check.regression?.dataChanged === true;
 }

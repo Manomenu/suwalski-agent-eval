@@ -7,7 +7,6 @@ using Suwageval.Contracts.Agents;
 
 namespace Suwageval.Cli.Tests.Versions;
 
-/// <summary>The commands against a stand-in for the API.</summary>
 public sealed class VersionsCommandTests
 {
     private static string Sample => Path.Combine(AppContext.BaseDirectory, "Sample", "suwageval");
@@ -32,7 +31,6 @@ public sealed class VersionsCommandTests
         }
     }
 
-    /// <summary>One version of each usage: in evaluation, in both, only in groups (<see cref="Active"/>), unused and archived (with runs).</summary>
     private static HttpResponseMessage UsageVersions()
     {
         static AgentVersion Version(Guid id, int runs, int groupRuns, DateTimeOffset? archivedAt = null)
@@ -184,7 +182,6 @@ public sealed class VersionsCommandTests
         Assert.Empty(api.Calls);
     }
 
-    /// <summary>A version that answers the deployed agent's conversations in production and has no run.</summary>
     private static HttpResponseMessage MonitoredVersion() =>
         new(HttpStatusCode.OK)
         {
@@ -301,7 +298,6 @@ public sealed class VersionsCommandTests
             _ => new HttpResponseMessage(HttpStatusCode.NotFound)
             {
                 Content = new StringContent(
-                    /*lang=json,strict*/
                     """{"title":"Version not found","detail":"There is no version 'x'."}""",
                     Encoding.UTF8,
                     "application/problem+json"
@@ -702,7 +698,6 @@ public sealed class VersionsCommandTests
             _ => new HttpResponseMessage(HttpStatusCode.Conflict)
             {
                 Content = new StringContent(
-                    /*lang=json,strict*/
                     """{"title":"Version not archived","detail":"Only an archived version can be deleted: archive it first."}""",
                     Encoding.UTF8,
                     "application/problem+json"

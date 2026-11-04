@@ -1,11 +1,4 @@
 #!/usr/bin/env bash
-# Which guardrails keep each acceptance criterion of the specs true? Runs `vdoc.py criteria` of the suwagent plugin,
-# pinned by commit and SHA-256, so the answer is the same on every machine and in CI. This project's kinds of
-# guardrail (name, path globs, how the id is written) are in criteria.json.
-#   criteria.sh                    every criterion: id, kind, file:line; exit 1, with the fix, on a problem
-#   criteria.sh AC-<feature>-<n>   one criterion
-#   criteria.sh --fetch            only download the pinned tool into the cache (exit 3: it cannot be downloaded)
-#   criteria.sh --update           move the pin to the plugin's newest master (`just criteria-update`)
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 SELF="$ROOT/Suwageval.Gate/scripts/criteria.sh"
@@ -33,6 +26,18 @@ fetch() {
 }
 
 case "${1:-}" in
+    --help)
+        cat <<'HELP'
+Which guardrails keep each acceptance criterion of the specs true? Runs `vdoc.py criteria` of the suwagent plugin,
+pinned by commit and SHA-256, so the answer is the same on every machine and in CI. This project's kinds of
+guardrail (name, path globs, how the id is written) are in criteria.json.
+
+  criteria.sh                    every criterion: id, kind, file:line; exit 1, with the fix, on a problem
+  criteria.sh AC-<feature>-<n>   one criterion
+  criteria.sh --fetch            only download the pinned tool into the cache (exit 3: it cannot be downloaded)
+  criteria.sh --update           move the pin to the plugin's newest master (`just criteria-update`)
+HELP
+        ;;
     --fetch)
         fetch
         ;;

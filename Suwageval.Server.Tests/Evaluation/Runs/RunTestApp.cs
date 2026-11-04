@@ -6,10 +6,7 @@ using Suwageval.Server.Monitoring.Conversations;
 
 namespace Suwageval.Server.Tests.Evaluation.Runs;
 
-/// <summary>
-/// The server in process, on the test database, without its workers: the tests share one database, and a worker would take their queued
-/// runs (or close their conversations).
-/// </summary>
+// Why: the workers are left out because they would take the queued runs of tests sharing the database or close their conversations
 internal static class RunTestApp
 {
     [SuppressMessage(

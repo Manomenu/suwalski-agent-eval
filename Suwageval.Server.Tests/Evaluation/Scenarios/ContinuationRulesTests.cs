@@ -4,7 +4,6 @@ using Suwageval.Contracts.Scenarios;
 
 namespace Suwageval.Server.Tests.Evaluation.Scenarios;
 
-/// <summary>The shared rules of a scenario's <c>continuation</c> (<c>Suwageval.Contracts/Scenarios</c>), tested here because Contracts has no test project.</summary>
 public sealed class ContinuationRulesTests
 {
     private static ScenarioInput Scenario(int turns = 1, string? simulatedUser = null, params ConversationItem[] conversation) =>

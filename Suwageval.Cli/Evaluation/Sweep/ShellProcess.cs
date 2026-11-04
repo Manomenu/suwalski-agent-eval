@@ -3,10 +3,8 @@ using System.Diagnostics;
 
 namespace Suwageval.Cli.Evaluation.Sweep;
 
-/// <summary>The real <see cref="ShellCommand"/>: the line goes to <c>sh -c</c> (<c>cmd /c</c> on Windows), in the current folder.</summary>
 internal static class ShellProcess
 {
-    /// <summary>The exit code <see cref="RunAsync"/> gives a command that could not be started.</summary>
     public const int NotStarted = 127;
 
     public static async Task<int> RunAsync(string commandLine, TextWriter output, CancellationToken cancellationToken)

@@ -6,7 +6,6 @@ using Suwageval.Server.Database;
 
 namespace Suwageval.Server.Evaluation.Runs;
 
-/// <summary>Runs, their queue and their results. Plain SQL, mapped by Dapper.</summary>
 internal sealed class RunStore(Pool pool)
 {
     private const string RunSelect = """
@@ -40,7 +39,6 @@ internal sealed class RunStore(Pool pool)
         ) check_totals
         """;
 
-    /// <summary>Puts a run in the queue.</summary>
     public async Task<Guid> EnqueueAsync(
         Guid agentId,
         Guid agentVersionId,
@@ -60,7 +58,7 @@ internal sealed class RunStore(Pool pool)
     {
         await using var connection = await pool.OpenAsync(cancellationToken);
         await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
-        // A run started in an archived group puts the group back in use.
+        // Why: a run started in an archived group puts the group back in use
         await connection.ExecuteAsync(
             new CommandDefinition(
                 "DELETE FROM archived_run_groups WHERE agent_id = @agentId AND name = @runGroup::text",
@@ -112,7 +110,6 @@ internal sealed class RunStore(Pool pool)
         );
     }
 
-    /// <summary>The runs of one agent, newest first.</summary>
     public async Task<IReadOnlyList<RunRow>> ListAsync(Guid agentId, CancellationToken cancellationToken = default)
     {
         await using var connection = await pool.OpenAsync(cancellationToken);
@@ -137,14 +134,6 @@ internal sealed class RunStore(Pool pool)
           AND (cardinality(@tags::text[]) = 0 OR cardinality(r.tags) = 0 OR r.tags && @tags::text[])
         """;
 
-    /// <summary>
-    /// A page of runs, newest first (<c>created_at</c> descending, then <c>id</c>): at most <paramref name="limit"/> of them after
-    /// the first <paramref name="offset"/>, only those of the given agent versions when <paramref name="versionIds"/> is not empty,
-    /// only those of <paramref name="runGroup"/> when one is given, only those in no group or in some group as <paramref name="grouping"/> says (never a gate run: its verdict is read by <c>suwageval gate</c>, not from a list)
-    /// (a re-check counts as in the group of the run it was made from),
-    /// only those that ran the scenarios of any of <paramref name="tags"/> when some are given: limited to tags including one of them, or not limited at all,
-    /// only those on one of <paramref name="dataVersions"/> (the retrieval data the run started with) when some are given.
-    /// </summary>
     public async Task<IReadOnlyList<RunRow>> ListPageAsync(
         Guid? agentId,
         IReadOnlyCollection<Guid> versionIds,
@@ -183,7 +172,6 @@ internal sealed class RunStore(Pool pool)
         return [.. rows];
     }
 
-    /// <summary>How many runs <see cref="ListPageAsync"/> pages through with the same filters.</summary>
     public async Task<int> CountAsync(
         Guid? agentId,
         IReadOnlyCollection<Guid> versionIds,
@@ -212,11 +200,7 @@ internal sealed class RunStore(Pool pool)
         );
     }
 
-    /// <summary>
-    /// Takes the oldest queued run and marks it running — in one statement, with <c>FOR UPDATE SKIP LOCKED</c>, so
-    /// two workers never get the same run. Null when the queue is empty. <paramref name="agentId"/> narrows the queue to
-    /// one agent's runs (the tests share a database; the worker passes none).
-    /// </summary>
+    // Why: FOR UPDATE SKIP LOCKED in one statement so that two workers never claim the same run
     public async Task<RunRow?> ClaimNextAsync(Guid? agentId = null, CancellationToken cancellationToken = default)
     {
         Guid? id;
@@ -240,7 +224,7 @@ internal sealed class RunStore(Pool pool)
                 )
             );
         }
-        // After the claiming connection is back in the pool: holding two at once could exhaust a small pool.
+        // Why: read after the claiming connection is back in the pool, because holding two at once could exhaust a small pool
         return id is { } claimed ? await GetAsync(claimed, cancellationToken) : null;
     }
 
@@ -256,7 +240,6 @@ internal sealed class RunStore(Pool pool)
         );
     }
 
-    /// <summary>Records the scenarios a re-check left out.</summary>
     public async Task SetSkippedAsync(Guid id, IReadOnlyList<SkippedScenario> skipped, CancellationToken cancellationToken = default)
     {
         await using var connection = await pool.OpenAsync(cancellationToken);
@@ -269,7 +252,6 @@ internal sealed class RunStore(Pool pool)
         );
     }
 
-    /// <summary>The note of a run group of the agent; null when it has none.</summary>
     public async Task<string?> GetGroupNoteAsync(Guid agentId, string name, CancellationToken cancellationToken = default)
     {
         await using var connection = await pool.OpenAsync(cancellationToken);
@@ -282,7 +264,6 @@ internal sealed class RunStore(Pool pool)
         );
     }
 
-    /// <summary>Sets the note of a run in any status (null clears it); false for an unknown run.</summary>
     public async Task<bool> SetNoteAsync(Guid id, string? note, CancellationToken cancellationToken = default)
     {
         await using var connection = await pool.OpenAsync(cancellationToken);
@@ -291,10 +272,6 @@ internal sealed class RunStore(Pool pool)
             ) > 0;
     }
 
-    /// <summary>
-    /// Asks a run to stop: a queued one is cancelled at once, a running one when the worker next looks (before the next
-    /// sample). A finished run stays as it is.
-    /// </summary>
     public async Task RequestCancelAsync(Guid id, CancellationToken cancellationToken = default)
     {
         await using var connection = await pool.OpenAsync(cancellationToken);
@@ -313,7 +290,6 @@ internal sealed class RunStore(Pool pool)
         );
     }
 
-    /// <summary>Records that the agent's contract changed while the run was going.</summary>
     public async Task MarkContractChangedAsync(Guid id, CancellationToken cancellationToken = default)
     {
         await using var connection = await pool.OpenAsync(cancellationToken);
@@ -351,12 +327,7 @@ internal sealed class RunStore(Pool pool)
         );
     }
 
-    /// <summary>
-    /// Marks every run still <c>Running</c> as <c>Interrupted</c> (finished now, with the reason in its error) and says how many there
-    /// were. Called when the worker starts: the chart and compose run one server (<c>replicas: 1</c>), so after a start no other process
-    /// can hold a run — with more replicas a worker heartbeat would be needed instead. <paramref name="agentId"/> narrows it to one
-    /// agent's runs (the tests share a database; the worker passes none).
-    /// </summary>
+    // Why: the chart and compose run one server (replicas: 1), so after a start no other process can hold a run; more replicas would need a worker heartbeat
     public async Task<int> InterruptRunningAsync(Guid? agentId = null, CancellationToken cancellationToken = default)
     {
         await using var connection = await pool.OpenAsync(cancellationToken);
@@ -375,7 +346,6 @@ internal sealed class RunStore(Pool pool)
 
     public const string InterruptedError = "Interrupted: the server stopped during the run; start a new run.";
 
-    /// <summary>Stores a finished sample and the verdicts of its checks, all or nothing.</summary>
     public async Task AddSampleAsync(Guid runId, NewSample sample, CancellationToken cancellationToken = default)
     {
         await using var connection = await pool.OpenAsync(cancellationToken);
@@ -434,7 +404,6 @@ internal sealed class RunStore(Pool pool)
         await transaction.CommitAsync(cancellationToken);
     }
 
-    /// <summary>The samples stored so far, by scenario key and sample number.</summary>
     public async Task<IReadOnlyList<ScenarioResultRow>> ListScenarioResultsAsync(Guid runId, CancellationToken cancellationToken = default)
     {
         await using var connection = await pool.OpenAsync(cancellationToken);
@@ -459,15 +428,6 @@ internal sealed class RunStore(Pool pool)
         return [.. rows];
     }
 
-    /// <summary>
-    /// The history of every check of run <paramref name="runId"/>, in one query: per check (and scenario) the newest <paramref name="limit"/>
-    /// runs it has a verdict in, oldest first, each with its samples, the passed ones and the threshold of the check revision that ran.
-    /// The runs are those that called the agent (never a re-check), finished and created before <paramref name="anchorRunId"/> (the run
-    /// that called the agent, when <paramref name="runId"/> is a re-check of it), of the same agent; when <paramref name="comparedWith"/> is
-    /// set only reference runs of that branch, otherwise every such run. A run's newest finished re-check supplies the verdicts that
-    /// count (<see cref="EffectiveRuns"/>). Samples where the agent gave no answer (status <c>Failed</c>) are left out: a run whose samples all
-    /// failed is no point of the history, and a partly failed one is counted over its other samples. Only verdicts of the same check revision in the same scenario revision as the run's own count.
-    /// </summary>
     public async Task<IReadOnlyList<RegressionHistoryRow>> ListCheckHistoriesAsync(
         Guid runId,
         Guid anchorRunId,
@@ -532,7 +492,6 @@ internal sealed class RunStore(Pool pool)
         return [.. rows];
     }
 
-    /// <summary>The verdicts stored so far. The threshold is the one of the check revision that ran.</summary>
     public async Task<IReadOnlyList<CheckResultRow>> ListCheckResultsAsync(Guid runId, CancellationToken cancellationToken = default)
     {
         await using var connection = await pool.OpenAsync(cancellationToken);

@@ -2,7 +2,6 @@ using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Server.Evaluation.Runs;
 
-/// <summary>One finished sample of a scenario, with the verdict of every check on it, ready to be stored.</summary>
 internal sealed record NewSample(
     Guid ScenarioId,
     int ScenarioRevision,

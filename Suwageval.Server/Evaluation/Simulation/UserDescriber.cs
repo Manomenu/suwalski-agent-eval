@@ -5,12 +5,6 @@ using Suwageval.Server.LanguageModel;
 
 namespace Suwageval.Server.Evaluation.Simulation;
 
-/// <summary>
-/// Drafts <c>continuation.simulatedUser</c> from a real conversation, for a scenario that copies its start and simulates the rest: a
-/// model reads the whole conversation as the user saw it and describes that user, so the simulation can go the way the real one went. A
-/// person reviews the text before it goes into a scenario. When no model can write it, the draft is the user's own messages with a line
-/// to rewrite, never an error.
-/// </summary>
 internal sealed class UserDescriber(ModelClients models)
 {
     private const string Instructions = """
@@ -24,10 +18,8 @@ internal sealed class UserDescriber(ModelClients models)
 
     private const string DescriberEntry = "describer";
 
-    /// <summary>The entry under <c>Models</c> that describes the user: <c>describer</c> when configured, else <c>fallback</c>; null when neither is.</summary>
     public string? ModelEntry => models.EntryFor(DescriberEntry);
 
-    /// <summary>Whether a model of its own is configured (<c>Models:describer</c>), not the fallback.</summary>
     public bool HasOwnModel => models.Has(DescriberEntry);
 
     [SuppressMessage(
@@ -67,7 +59,6 @@ internal sealed class UserDescriber(ModelClients models)
             : Fallback(conversation, $"the model's answer is not the JSON asked for ({ModelQuestion.Shorten(text)})");
     }
 
-    /// <summary>The conversation as the user saw it: their messages and the agent's text, one line each (<c>\n</c> on every system).</summary>
     public static string Prompt(IReadOnlyList<ConversationItem> conversation)
     {
         ArgumentNullException.ThrowIfNull(conversation);
@@ -89,7 +80,6 @@ internal sealed class UserDescriber(ModelClients models)
         return prompt.Append("\nDescribe the user.").ToString();
     }
 
-    /// <summary>The draft without a model: the user's messages, for the person to turn into a description.</summary>
     public static UserDescription Fallback(IReadOnlyList<ConversationItem> conversation, string why)
     {
         ArgumentNullException.ThrowIfNull(conversation);

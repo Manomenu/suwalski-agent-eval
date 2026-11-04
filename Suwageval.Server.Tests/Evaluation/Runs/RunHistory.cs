@@ -8,12 +8,10 @@ using Suwageval.Server.Evaluation.Scenarios;
 
 namespace Suwageval.Server.Tests.Evaluation.Runs;
 
-/// <summary>Versions and finished runs added to a seeded agent, for the tests of what the newest runs say (unstable checks, agent errors).</summary>
 internal static class RunHistory
 {
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
 
-    /// <summary>Registers another version of the agent (newer than the ones before) and returns its id.</summary>
     public static async Task<Guid> NewerVersionAsync(IServiceProvider services, SeededAgent agent, string prompt)
     {
         var registration = await services
@@ -22,7 +20,6 @@ internal static class RunHistory
         return registration.Version.Id;
     }
 
-    /// <summary>A finished run of a version with one sample of "refund": the check passed or failed, or the agent gave no answer.</summary>
     public static async Task AddRunAsync(IServiceProvider services, SeededAgent agent, Guid versionId, bool? passed)
     {
         var store = services.GetRequiredService<RunStore>();

@@ -6,7 +6,6 @@ using Suwageval.Contracts.Scenarios;
 
 namespace Suwageval.Cli.Tests.Evaluation.Scenarios;
 
-/// <summary><c>suwageval scenario from-conversation</c> against a stand-in for the API.</summary>
 public sealed class FromConversationCommandTests : IDisposable
 {
     private static readonly Guid Id = Guid.Parse("cccccccc-0000-0000-0000-000000000001");

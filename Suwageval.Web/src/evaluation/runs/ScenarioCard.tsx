@@ -45,7 +45,6 @@ function SampleRowLabel({ scenario, sample }: { scenario: ScenarioRunResult; sam
     );
 }
 
-/** One scenario: its checks with verdicts, the warnings of its samples, and what the agent produced. */
 export function ScenarioCard({
     scenario,
     versionId,
@@ -53,14 +52,11 @@ export function ScenarioCard({
     hidePassed,
 }: {
     scenario: ScenarioRunResult;
-    /** The agent version the run is of, and the agent's unstable checks: a check unstable in that version is marked. */
     versionId: string;
     unstable: UnstableCheck[];
-    /** Passed checks are left out of the list (the samples below stay). */
     hidePassed: boolean;
 }) {
     const [openSamples, setOpenSamples] = useState<string[]>([]);
-    // A link to one of this scenario's checks (`#check-…`) opens the outputs it is about, so the answer is right below.
     useEffect(() => {
         const openFromHash = () => {
             const target = scenario.checks.find((check) => `#${checkAnchor(scenario.key, check.key)}` === window.location.hash);
@@ -136,7 +132,6 @@ export function ScenarioCard({
                                     </Text>
                                     <Text c="dimmed">{checkSummary(check)}</Text>
                                 </Group>
-                                {/* The marks and the definition sit at the right edge, apart from the check's text. */}
                                 <Group gap={4} wrap="nowrap">
                                     {check.judgedByModel && (
                                         <OnPaper text="model-judged">
@@ -171,7 +166,7 @@ export function ScenarioCard({
                     );
                 })}
 
-                {/* Folded panels stay mounted as display:none, so print.css can open them all on paper. */}
+                {/* Why: folded panels stay mounted as display:none, so print.css can open them all on paper */}
                 <Accordion multiple variant="contained" value={openSamples} onChange={setOpenSamples} keepMountedMode="display-none">
                     {scenario.samples.map((sample) => (
                         <Accordion.Item key={sample.sample} value={String(sample.sample)}>
@@ -179,7 +174,6 @@ export function ScenarioCard({
                                 <SampleRowLabel scenario={scenario} sample={sample} />
                             </Accordion.Control>
                             <Accordion.Panel>
-                                {/* On paper the control (a button) is gone: its title and verdict stand here. */}
                                 <Box className="print-only" fw={600} mb="xs">
                                     <SampleRowLabel scenario={scenario} sample={sample} />
                                 </Box>

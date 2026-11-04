@@ -9,7 +9,6 @@ using static Suwageval.Server.Tests.Evaluation.Checks.Items;
 
 namespace Suwageval.Server.Tests.Evaluation.Simulation;
 
-/// <summary>The simulated user against recorded answers of its model — the gate never calls a model.</summary>
 [SuppressMessage(
     "Reliability",
     "CA2000:Dispose objects before losing scope",
@@ -24,10 +23,7 @@ public sealed class UserSimulatorTests
     private static readonly ConversationItem[] Conversation =
     [
         new UserMessage { Text = "My kettle arrived broken." },
-        Call(
-            "get_order", /*lang=json,strict*/
-            """{"order_id":"A-17"}"""
-        ),
+        Call("get_order", """{"order_id":"A-17"}"""),
         new ToolResult { CallId = "c1", Content = "secret tool output" },
         Emit("state.changed"),
         new AssistantMessage { Text = "Sorry to hear that. Shall I refund it?" },
@@ -155,14 +151,7 @@ public sealed class UserSimulatorTests
     {
         var prompt = UserSimulator.Prompt(
             Anna,
-            [
-                new UserMessage { Text = "Refund it." },
-                Call(
-                    "refund_order", /*lang=json,strict*/
-                    """{"order_id":"A-17"}"""
-                ),
-                new UserMessage { Text = "Hello?" },
-            ]
+            [new UserMessage { Text = "Refund it." }, Call("refund_order", """{"order_id":"A-17"}"""), new UserMessage { Text = "Hello?" }]
         );
 
         Assert.Contains(

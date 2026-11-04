@@ -5,16 +5,10 @@ using Suwageval.AgentSdk.Agents;
 
 namespace Suwageval.Cli.Server;
 
-/// <summary>
-/// Reads the contract the running agent serves (<c>GET {endpointUrl}/suwageval/contract</c>), so that tool and event
-/// names in the files can be checked against what the agent really has.
-/// </summary>
 internal static class ContractFetcher
 {
-    /// <summary>How long <c>validate</c> waits for the agent: it is a check at the keyboard, not a run.</summary>
     public static readonly TimeSpan Timeout = TimeSpan.FromSeconds(5);
 
-    /// <summary>The contract, or in <c>Failure</c> why there is none, as the end of "names not checked: …".</summary>
     public static async Task<(AgentContract? Contract, string? Failure)> FetchAsync(
         HttpClient http,
         Uri endpoint,

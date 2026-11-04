@@ -10,17 +10,12 @@ using Suwageval.Server.Tests.Api;
 
 namespace Suwageval.Server.Tests.Evaluation.Runs.Compare;
 
-/// <summary>
-/// The compare view over runs stored in the real database: its columns, tags and scenario cells, the baseline that adds the changes, and
-/// what it refuses.
-/// </summary>
 public sealed class CompareEndpointsTests(TestDatabase database) : IAsyncDisposable
 {
     private readonly WebApplicationFactory<Program> app = RunTestApp.Create();
 
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
 
-    /// <summary>One stored sample: the scenario, its number, the duration and the verdicts (check key, passed, judge model).</summary>
     private sealed record Sample(
         string Scenario,
         int Number,
@@ -75,7 +70,6 @@ public sealed class CompareEndpointsTests(TestDatabase database) : IAsyncDisposa
 
     private Task<Guid> RunAsync(SeededAgent agent, params Sample[] samples) => RunAsync(agent, null, samples);
 
-    /// <summary>A run with one sample of "refund" (the verdicts given) and, unless <paramref name="onlyRefund"/>, one of "plain" that passes.</summary>
     private Task<Guid> VariantAsync(SeededAgent agent, string? group, bool refundCalled, bool refundEvent, bool onlyRefund = false) =>
         RunAsync(
             agent,

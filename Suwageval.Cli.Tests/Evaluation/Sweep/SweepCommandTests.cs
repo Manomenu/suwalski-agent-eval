@@ -9,7 +9,6 @@ using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Cli.Tests.Evaluation.Sweep;
 
-/// <summary>The command against a stand-in for the server, the agent and the shell.</summary>
 public sealed class SweepCommandTests : IDisposable
 {
     private const string Section =

@@ -4,7 +4,6 @@ using Suwageval.Server.Database;
 
 namespace Suwageval.Server.Evaluation.Checks;
 
-/// <summary>Checks and their revisions. Plain SQL, mapped by Dapper.</summary>
 internal sealed class CheckStore(Pool pool)
 {
     private const string LatestRevision = """
@@ -18,22 +17,12 @@ internal sealed class CheckStore(Pool pool)
         WHERE c.agent_id = @agentId AND c.deleted_at IS NULL
         """;
 
-    /// <summary>
-    /// Makes the agent's checks the given ones, in one transaction: <see cref="UpsertAsync"/>, and a live check not in the list is deleted
-    /// (its revisions and its verdicts in past runs stay) — unless an item named an unknown scenario. One result per given check, in order,
-    /// then one per deleted check.
-    /// </summary>
     public Task<IReadOnlyList<CheckUpsertResult>> ReplaceAsync(
         Guid agentId,
         IReadOnlyList<CheckItem> items,
         CancellationToken cancellationToken = default
     ) => WriteAsync(agentId, items, deleteMissing: true, cancellationToken);
 
-    /// <summary>
-    /// Writes the checks in one transaction; keys not in the list are untouched. A new revision exists when the
-    /// content or the scenario changed (or the check comes back from deletion). An item naming a scenario that
-    /// is not there is reported as <see cref="CheckOutcome.UnknownScenario"/> and writes nothing.
-    /// </summary>
     public Task<IReadOnlyList<CheckUpsertResult>> UpsertAsync(
         Guid agentId,
         IReadOnlyList<CheckItem> items,
@@ -147,7 +136,6 @@ internal sealed class CheckStore(Pool pool)
         return results;
     }
 
-    /// <summary>The live checks with their latest revision, optionally only those of one scenario.</summary>
     public async Task<IReadOnlyList<CheckRow>> ListAsync(
         Guid agentId,
         string? scenarioKey = null,
@@ -165,7 +153,6 @@ internal sealed class CheckStore(Pool pool)
         return [.. rows];
     }
 
-    /// <summary>Soft delete: the check disappears from lists, its revisions stay. False when there was nothing to delete.</summary>
     public async Task<bool> DeleteAsync(Guid agentId, string key, CancellationToken cancellationToken = default)
     {
         await using var connection = await pool.OpenAsync(cancellationToken);

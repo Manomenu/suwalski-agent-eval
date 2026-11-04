@@ -11,12 +11,6 @@ using Suwageval.Server.Judges;
 
 namespace Suwageval.Server.Evaluation.Runs;
 
-/// <summary>
-/// Carries out one claimed re-check: the stored samples of the source run (the answers of its agent) are copied into the re-check
-/// and judged again by the scenario's current checks — the agent is not called. A check whose revision is the one that judged the
-/// source gets that verdict copied (no new model call, no noise from a judge); a changed or new check is evaluated on the stored output
-/// the way a run does. Scenarios that changed or were deleted since the source are skipped (<see cref="RecheckScope"/>).
-/// </summary>
 internal sealed partial class RunRechecker(
     RunStore runs,
     ScenarioStore scenarios,
@@ -41,7 +35,7 @@ internal sealed partial class RunRechecker(
             {
                 var sourceId = run.RecheckOf ?? throw new InvalidOperationException("The run is not a re-check.");
                 var sourceSamples = await runs.ListScenarioResultsAsync(sourceId, cancellationToken);
-                // Unchanged verdicts come from the run the person looked at (an earlier re-check has the same answers, already judged).
+                // Why: unchanged verdicts come from the run the person looked at, because an earlier re-check has the same answers already judged
                 var verdictsId = run.VerdictsFrom ?? sourceId;
                 var verdictSamples =
                     verdictsId == sourceId ? sourceSamples : await runs.ListScenarioResultsAsync(verdictsId, cancellationToken);

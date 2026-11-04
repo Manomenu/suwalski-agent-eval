@@ -2,21 +2,10 @@ using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Server.Evaluation.Runs.Unstable;
 
-/// <summary>
-/// Which checks are open unstable ones: the rule, over rows already read. A check (scenario, check key, revision) is unstable in a version
-/// when it passed in some of the version's finished runs and failed in others (at least 2 runs). It is open, and listed, only while it is
-/// unstable in the newest considered version that ran it in at least 2 runs: a newer version that ran it once proves nothing yet, one that
-/// ran it twice or more without the problem closes it. A newer revision of the check, run at least twice in some version, closes the
-/// older revisions.
-/// </summary>
 internal static class UnstableChecks
 {
     private sealed record Tested(RunCheckVerdictRow First, int Rank, int Runs, int Passed, Guid NewestFailedRunId);
 
-    /// <summary>
-    /// The open unstable checks among the rows of finished runs, the share of failed runs first, then by keys. <paramref name="versionsNewestFirst"/>
-    /// are the considered versions, newest first: their order decides which version is newer; rows of other versions are ignored.
-    /// </summary>
     public static IReadOnlyList<UnstableCheck> Find(IEnumerable<RunCheckVerdictRow> rows, IReadOnlyList<Guid> versionsNewestFirst)
     {
         ArgumentNullException.ThrowIfNull(rows);
@@ -47,6 +36,7 @@ internal static class UnstableChecks
                 .Select(check =>
                 {
                     var latestRevision = check.Max(item => item.First.CheckRevision);
+                    // Why: the group holds at least the item of the latest revision it was filtered by
                     return check.Where(item => item.First.CheckRevision == latestRevision).MinBy(item => item.Rank)!;
                 })
                 .Where(item => item.Passed > 0 && item.Passed < item.Runs)

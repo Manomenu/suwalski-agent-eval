@@ -9,24 +9,17 @@ using Suwageval.AgentSdk.Invocation;
 
 namespace Suwageval.Server.Evaluation.Invocation;
 
-/// <summary>
-/// Calls the agent under test (contract v0, docs/scenario-format.md): <c>GET {endpointUrl}/suwageval/contract</c>, answered
-/// by what the agent is (its version), and <c>POST {endpointUrl}/suwageval/turn</c> with the conversation, answered by the
-/// items the agent produced in that turn. Whatever goes wrong — the agent is down, slow, answers an error
-/// or something unreadable — is returned as a failed <see cref="TurnResult"/>: it belongs to that sample's result and must
-/// never stop a run.
-/// </summary>
+// Why: whatever goes wrong with the agent is returned as a failed result, because it belongs to that sample and must never stop a run
 internal sealed class AgentClient(HttpClient http)
 {
     private const int BodyExcerptLength = 300;
 
-    /// <summary>The contract's JSON, without nulls on the way out: an agent that does not know a field must not be sent it.</summary>
+    // Why: nulls are left out because an agent that does not know a field must not be sent it
     private static readonly JsonSerializerOptions Request = new(ContractJson.Options)
     {
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
 
-    /// <summary>The agent's contract: its prompt, model, tools and context as it runs now. Never throws for what the agent does.</summary>
     public Task<ContractResult> GetContractAsync(Uri endpointUrl, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(endpointUrl);
@@ -47,10 +40,6 @@ internal sealed class AgentClient(HttpClient http)
         );
     }
 
-    /// <summary>
-    /// One turn: the conversation and the scenario's fixtures in, the items the agent produced out. The result carries the
-    /// wall-clock time of the call, whether it succeeded or not.
-    /// </summary>
     public async Task<TurnResult> TurnAsync(
         Uri endpointUrl,
         IReadOnlyList<ConversationItem> conversation,
@@ -63,7 +52,6 @@ internal sealed class AgentClient(HttpClient http)
         return result with { DurationMs = (int)clock.ElapsedMilliseconds };
     }
 
-    /// <summary>The <c>baggage</c> header's value: the keys of <see cref="SuwagevalBaggage"/>, a list or group left out when empty.</summary>
     internal static string Baggage(TurnContext context)
     {
         var members = new List<KeyValuePair<string, string>> { new(SuwagevalBaggage.RunId, context.RunId.ToString()) };
@@ -129,10 +117,6 @@ internal sealed class AgentClient(HttpClient http)
         );
     }
 
-    /// <summary>
-    /// Sends the request and reads the answer as <typeparamref name="T"/>; whatever goes wrong becomes <paramref name="failed"/>
-    /// with the sentence from <paramref name="messages"/>.
-    /// </summary>
     private async Task<TResult> SendAsync<T, TResult>(
         HttpRequestMessage request,
         Messages messages,
@@ -171,6 +155,5 @@ internal sealed class AgentClient(HttpClient http)
         }
     }
 
-    /// <summary>The sentences of the failures; a message that continues with the cause or a number ends where that begins.</summary>
     private sealed record Messages(string Answered, string Empty, string Unreachable, string NoAnswer, string Unreadable);
 }

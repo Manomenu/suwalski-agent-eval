@@ -11,10 +11,6 @@ using Suwageval.Server.Problems;
 
 namespace Suwageval.Server.ScenarioDrafts;
 
-/// <summary>
-/// The one way from Monitoring to Evaluation: a monitored conversation drafted as a scenario file. It composes both areas, so it stands
-/// above them, like <c>Api</c>.
-/// </summary>
 internal static class ScenarioDraftEndpoints
 {
     public static IEndpointRouteBuilder MapScenarioDrafts(this IEndpointRouteBuilder app)
@@ -23,14 +19,6 @@ internal static class ScenarioDraftEndpoints
         return app;
     }
 
-    /// <summary>
-    /// The conversation as a scenario file (<see cref="ScenarioDraftWriter"/>): to its end, or up to its <c>upToUserMessage</c>-th user
-    /// message or <c>upToAgentMessage</c>-th agent message (from 1, included), with the monitoring checks it failed as comments. With
-    /// <c>simulate</c> the rest is simulated: a model describes the user from the whole conversation (<see cref="UserDescriber"/>), for
-    /// <c>turns</c> turns, by default as many as the real conversation had after the cut (<see cref="DraftTurns"/>). 404: no such
-    /// conversation; 422: both cuts, a message the conversation does not have, <c>simulate</c> without a cut or with nothing left after
-    /// it, <c>turns</c> without <c>simulate</c> or out of 1 to 20.
-    /// </summary>
     private static async Task<IResult> DraftAsync(
         Guid id,
         [FromQuery] int? upToUserMessage,

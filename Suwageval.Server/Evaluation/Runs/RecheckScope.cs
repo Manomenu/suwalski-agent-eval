@@ -3,14 +3,8 @@ using Suwageval.Server.Evaluation.Scenarios;
 
 namespace Suwageval.Server.Evaluation.Runs;
 
-/// <summary>
-/// Which scenarios of a source run a re-check evaluates: those whose latest revision is the one the source ran, so that its stored
-/// answers still answer the scenario's conversation. A scenario that changed or was deleted since is skipped, with the reason.
-/// </summary>
 internal sealed record RecheckScope(IReadOnlyList<ScenarioRow> Kept, IReadOnlyList<SkippedScenario> Skipped)
 {
-    /// <param name="samples">The source run's samples.</param>
-    /// <param name="live">The agent's live scenarios with their latest revision.</param>
     public static RecheckScope Of(IReadOnlyList<ScenarioResultRow> samples, IReadOnlyList<ScenarioRow> live)
     {
         ArgumentNullException.ThrowIfNull(samples);

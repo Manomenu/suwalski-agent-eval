@@ -6,7 +6,6 @@ using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Cli.Tests.Evaluation.Groups;
 
-/// <summary>The commands against a stand-in for the API.</summary>
 public sealed class GroupsCommandTests
 {
     private static string Sample => Path.Combine(AppContext.BaseDirectory, "Sample", "suwageval");

@@ -1,5 +1,3 @@
-// "Cancel run" on a run that is going. The agent holds its answers until the test lets them go, so the run is running, with
-// samples in flight, for exactly as long as the test wants: no timing race.
 import { expect, test } from "@playwright/test";
 
 import { createAgent, serveAgent, startRun } from "../../../e2e/helpers";
@@ -19,7 +17,6 @@ test("Cancel run asks first, then the run ends as cancelled", async ({ page, req
     });
     try {
         const name = `e2e-cancel-${String(Date.now())}`;
-        // More samples than the worker runs at once: the ones waiting never start once the run is cancelled.
         const scenario = { key: "greets", samples: 6, conversation: [{ kind: "UserMessage", text: "Hello" }] };
         await createAgent(request, { name, endpointUrl: agentServer.endpointUrl, scenarios: [scenario] });
         const runId = await startRun(request, { agent: name });

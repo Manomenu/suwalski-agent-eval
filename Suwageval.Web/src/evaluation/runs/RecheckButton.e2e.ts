@@ -1,5 +1,3 @@
-// "Re-check" on a finished run: the dialog says what would be evaluated again (nothing, while no check changed), and starting it
-// opens the page of a run that says whose answers it holds.
 import { expect, test } from "@playwright/test";
 
 import { createAgent, runToEnd, serveAgent } from "../../../e2e/helpers";

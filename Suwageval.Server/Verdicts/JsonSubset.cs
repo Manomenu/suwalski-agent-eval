@@ -3,21 +3,12 @@ using System.Text.RegularExpressions;
 
 namespace Suwageval.Server.Verdicts;
 
-/// <summary>"Is this JSON a subset of that one" — how a check's <c>args</c>, <c>data</c> and <c>result</c> are matched.</summary>
 internal static class JsonSubset
 {
     private const string PatternProperty = "$pattern";
     private static readonly TimeSpan PatternTimeout = TimeSpan.FromSeconds(1);
 
-    /// <summary>
-    /// True when <paramref name="actual"/> contains <paramref name="expected"/>: an object has every property of the expected one
-    /// (extra properties are fine, values matched the same way, recursively); an array has the same length and each element
-    /// contains the expected element at that position; strings, numbers (by value, so 1 equals 1.0), booleans and null are equal.
-    /// An expected object whose only property is <c>$pattern</c> (a string) is a matcher: it is satisfied by an actual string
-    /// the regular expression matches (a pattern that is invalid or takes over a second matches nothing).
-    /// A <see cref="JudgeMatcher"/> node only needs a value to be there (any JSON): a model decides the rest, later.
-    /// Both matchers need to be the ONLY property of their object; an object with both is neither (validation rejects it).
-    /// </summary>
+    // Why: a pattern that is invalid or takes over a second matches nothing, and an object with both $pattern and $judge is neither matcher
     public static bool Contains(JsonElement actual, JsonElement expected) =>
         expected.ValueKind switch
         {
@@ -38,7 +29,6 @@ internal static class JsonSubset
             _ => actual.ValueKind == expected.ValueKind,
         };
 
-    /// <summary>The regular expression of a <c>{ "$pattern": "..." }</c> matcher; null when the object is anything else.</summary>
     public static string? PatternOf(JsonElement expected)
     {
         if (expected.ValueKind != JsonValueKind.Object)
@@ -62,10 +52,6 @@ internal static class JsonSubset
         }
     }
 
-    /// <summary>
-    /// The <c>$judge</c> nodes of <paramref name="expected"/> with the values <paramref name="actual"/> has there, in document order;
-    /// <paramref name="path"/> names the root (<c>args</c>). Call it only when <see cref="Contains"/> is true.
-    /// </summary>
     public static List<PendingJudgement> Judgements(JsonElement actual, JsonElement expected, string path)
     {
         var found = new List<PendingJudgement>();
@@ -106,7 +92,6 @@ internal static class JsonSubset
         }
     }
 
-    /// <summary>By value; numbers too large for a decimal fall back to double.</summary>
     private static bool SameNumber(JsonElement actual, JsonElement expected) =>
         actual.TryGetDecimal(out var a) && expected.TryGetDecimal(out var e) ? a == e : actual.GetDouble().Equals(expected.GetDouble());
 }

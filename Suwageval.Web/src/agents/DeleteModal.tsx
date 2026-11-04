@@ -4,10 +4,6 @@ import { useState } from "react";
 import { confirmsDeletion } from "./deletion";
 import { useRequest } from "../api/useRequest";
 
-/**
- * Deleting an agent, or an archived version or run group: says what goes with it (the server counts, `summary` words it), and the
- * button waits until its id or name is typed. The server's refusal (a run still queued or running) is shown in the modal.
- */
 export function DeleteModal<Preview>({
     noun,
     title,
@@ -21,22 +17,16 @@ export function DeleteModal<Preview>({
     onClose,
     onDeleted,
 }: {
-    /** "agent", "version" or "run group": names what is deleted in the messages. */
     noun: string;
     title: string;
-    /** What the first line calls the thing: its label, id or name. */
     subject: string;
-    /** Said after the first line, when the thing needs more than that. */
     note?: string;
     typedLabel: string;
-    /** What must be typed to confirm. */
     expected: string;
     loadPreview: (signal: AbortSignal) => Promise<Preview>;
-    /** What goes with it, as the preview counts it (without the closing full stop). */
     summary: (preview: Preview) => string;
     remove: () => Promise<void>;
     onClose: () => void;
-    /** Called once the server deleted it. */
     onDeleted: () => void;
 }) {
     const [typed, setTyped] = useState("");

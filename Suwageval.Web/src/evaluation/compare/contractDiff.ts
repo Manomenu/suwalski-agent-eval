@@ -1,19 +1,14 @@
-// "What differs" of the comparison: which fields of the contract are not the same in the versions the columns ran, and the retrieval
-// data their runs were on. A plain function over the contracts the server stored; the line diff of the whole contract is the server's
-// (`GET /agents/<name>/versions/diff`).
 import { shortDataVersion } from "../../dataVersion/shortDataVersion";
 import type { AgentVersionDetail } from "../../agents/api";
 
 type Contract = AgentVersionDetail["content"];
 
-/** A column's contract with the version it came from, and the retrieval data its run was on (not part of the version). */
 export interface ColumnContract {
     versionId: string;
     contract: Contract;
     dataVersion?: string | null;
 }
 
-/** One cell of a difference row: the value, or null where the column has nothing (no such agent, no retrieval). `changed`: it differs from the first column's. */
 interface DifferenceCell {
     text: string | null;
     changed: boolean;
@@ -22,7 +17,6 @@ interface DifferenceCell {
 export interface Difference {
     label: string;
     cells: DifferenceCell[];
-    /** A prompt (an agent's `config`): its cells say "changed" and the page offers the diff against the first column's version. */
     isPrompt: boolean;
 }
 
@@ -33,7 +27,6 @@ const CHANGED = "changed";
 
 const json = (value: unknown): string => JSON.stringify(value);
 
-/** The keys and values of a model's parameters when they are an object, else the whole value under one key. */
 function parameterEntries(parameters: unknown): [string, string][] {
     if (parameters == null) return [];
     if (typeof parameters === "object" && !Array.isArray(parameters)) {
@@ -48,10 +41,6 @@ const lines = (text: string | null | undefined): string[] =>
         .map((line) => line.trim())
         .filter((line) => line !== "");
 
-/**
- * A row of the values that differ, shown only when the columns do not all have the same one; a cell is changed when it differs from
- * the `reference` column's. `show` writes a value for its cell (the comparison is on the whole value).
- */
 function valueRow(
     reference: number,
     label: string,
@@ -71,7 +60,6 @@ function valueRow(
     ];
 }
 
-/** A row of "present"/"absent" for a member the columns do not all have; changed against the `reference` column. */
 function presenceRow(reference: number, label: string, has: boolean[]): Difference[] {
     if (has.every((value) => value === has[0])) return [];
     return [
@@ -88,12 +76,6 @@ function presenceRow(reference: number, label: string, has: boolean[]): Differen
 
 const unique = (names: string[]) => [...new Set(names)];
 
-/**
- * The contract fields that differ between the columns, each read against the `reference` column (the baseline when one is picked,
- * else the first column): per LLM agent its
- * model, each model parameter, its tools (added, removed, changed) and its prompt (just "changed"); the lines of `otherConfig` that
- * not every column has; the retrieval data version of the runs. Nothing for runs of one version on the same data.
- */
 export function contractDifferences(columns: readonly ColumnContract[], reference = 0): Difference[] {
     const contracts = columns.map((column) => column.contract);
     const differences: Difference[] = [];

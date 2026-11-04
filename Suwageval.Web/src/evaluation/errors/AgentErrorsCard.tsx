@@ -11,10 +11,6 @@ import { type AgentError } from "./api";
 
 const ERROR_TOOLTIP_WIDTH = 340;
 
-/**
- * The scenarios where the agent gave no answer in some samples, per version, worst first. Nothing at all when there are none. Each
- * row opens the newest run in which the scenario had an error and shows that error (the full text on hover).
- */
 export function AgentErrorsCard({ errors }: { errors: AgentError[] }) {
     const [requestedPage, setRequestedPage] = usePageParam("errorsPage");
     if (errors.length === 0) return null;

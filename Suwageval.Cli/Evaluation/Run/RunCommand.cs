@@ -6,18 +6,8 @@ using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Cli.Evaluation.Run;
 
-/// <summary>
-/// <c>suwageval run</c>: starts a run of the agent named in <c>suwageval/agent.yaml</c> on the server, which reads the
-/// agent's contract (<c>--group</c> puts the run in a group, for comparing variants) and runs against that version (the output says which, and whether it is new). With <c>--wait</c> it prints
-/// one line of totals and the link to the run's page (the results are read there, or with <c>--json</c>), and exits 0 unless a check regressed or is new and failing
-/// (<c>--strict</c>: 1 when any check missed its threshold; a run in a group has no regression comparison, so it always exits like <c>--strict</c>), 2 when the run could not be started, failed, was interrupted by a server restart or was cancelled. Ctrl+C while
-/// waiting asks whether to cancel the run on the server too (<see cref="RunOutput"/>); left running, the exit code is 130.
-/// </summary>
 internal static class RunCommand
 {
-    /// <param name="terminal">Where Ctrl+C during <c>--wait</c> asks whether to cancel the run too.</param>
-    /// <param name="http">The client to the API; none means one is made from <c>--server</c> or <c>SUWAGEVAL_URL</c> (the tests pass their own).</param>
-    /// <param name="origins">Reads where the agent's repository stands; none means the real one and the CI environment (the tests pass their own).</param>
     public static Command Create(Terminal terminal, HttpClient? http = null, RunOriginReader? origins = null)
     {
         var tag = new Option<string[]>("--tag")

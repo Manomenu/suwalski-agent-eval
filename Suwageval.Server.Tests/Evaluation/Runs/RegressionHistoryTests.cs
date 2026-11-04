@@ -12,7 +12,6 @@ using Suwageval.Server.Evaluation.Scenarios;
 
 namespace Suwageval.Server.Tests.Evaluation.Runs;
 
-/// <summary>The history of a check and the states it leads to, against a real PostgreSQL: runs are written straight into the store.</summary>
 public sealed class RegressionHistoryTests(TestDatabase database) : IAsyncDisposable
 {
     private readonly WebApplicationFactory<Program> app = RunTestApp.Create();

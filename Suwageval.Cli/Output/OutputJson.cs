@@ -5,7 +5,6 @@ using Suwageval.Cli.Files;
 
 namespace Suwageval.Cli.Output;
 
-/// <summary>What <c>--json</c> prints: the contract's own JSON, indented, in ASCII (see <see cref="AsciiJson"/>).</summary>
 internal static class OutputJson
 {
     private static readonly JsonSerializerOptions Options = new(ContractJson.Options)

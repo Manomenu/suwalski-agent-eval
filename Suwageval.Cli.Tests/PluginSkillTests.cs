@@ -2,10 +2,6 @@ using Suwageval.Cli.Output;
 
 namespace Suwageval.Cli.Tests;
 
-/// <summary>
-/// The Claude Code plugin's skill (<c>claude-plugin/skills/suwageval/SKILL.md</c>) is how Claude learns the CLI: a command it
-/// does not mention is one Claude will not use (AGENTS.md, section 5: anything the CLI can do, the plugin knows).
-/// </summary>
 public sealed class PluginSkillTests
 {
     [Fact]
@@ -18,7 +14,6 @@ public sealed class PluginSkillTests
         Assert.True(missing.Count == 0, $"add to claude-plugin/skills/suwageval/SKILL.md: {string.Join(", ", missing)}");
     }
 
-    /// <summary>The top-level commands.</summary>
     private static List<string> Commands() =>
         [
             .. CliApp

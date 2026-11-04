@@ -3,13 +3,10 @@ using Suwageval.Server.Database;
 
 namespace Suwageval.Server.Monitoring.Checking;
 
-/// <summary>What the monitoring worker reads and writes: the conversations to check, the checks to run, the verdicts. Plain SQL, mapped by Dapper.</summary>
 internal sealed class CheckingStore(Pool pool)
 {
-    /// <summary>A live monitoring check with its latest revision (the check as pushed, JSON).</summary>
     internal sealed record CheckToRun(Guid Id, int Revision, string Content);
 
-    /// <summary>One verdict to store.</summary>
     internal sealed record Verdict(
         Guid CheckId,
         int Revision,
@@ -20,7 +17,6 @@ internal sealed class CheckingStore(Pool pool)
         string? JudgeModel
     );
 
-    /// <summary>The closed conversations no check ran on yet, the longest closed first: (conversation, agent).</summary>
     public async Task<IReadOnlyList<(Guid Id, Guid AgentId)>> UncheckedAsync(int limit, CancellationToken cancellationToken = default)
     {
         await using var connection = await pool.OpenAsync(cancellationToken);
@@ -41,7 +37,6 @@ internal sealed class CheckingStore(Pool pool)
         ];
     }
 
-    /// <summary>The agent's live monitoring checks, by key.</summary>
     public async Task<IReadOnlyList<CheckToRun>> ChecksAsync(Guid agentId, CancellationToken cancellationToken = default)
     {
         await using var connection = await pool.OpenAsync(cancellationToken);
@@ -65,7 +60,6 @@ internal sealed class CheckingStore(Pool pool)
         ];
     }
 
-    /// <summary>The definitions of the monitoring checks the conversation failed (not those not judged), in the revision that failed, by key.</summary>
     public async Task<IReadOnlyList<string>> FailedChecksAsync(Guid conversationId, CancellationToken cancellationToken = default)
     {
         await using var connection = await pool.OpenAsync(cancellationToken);
@@ -88,10 +82,7 @@ internal sealed class CheckingStore(Pool pool)
         ];
     }
 
-    /// <summary>
-    /// Stores the verdicts as the conversation's, replacing those it had, and marks it checked — unless a turn opened it again meanwhile
-    /// (then nothing is stored: it is checked when it closes again). True when stored.
-    /// </summary>
+    // Why: nothing is stored when a turn opened the conversation again meanwhile, because it is checked when it closes again
     public async Task<bool> StoreAsync(Guid conversationId, IReadOnlyList<Verdict> verdicts, CancellationToken cancellationToken = default)
     {
         await using var connection = await pool.OpenAsync(cancellationToken);

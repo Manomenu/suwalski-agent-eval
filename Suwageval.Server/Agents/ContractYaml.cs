@@ -9,14 +9,8 @@ using YamlDotNet.RepresentationModel;
 
 namespace Suwageval.Server.Agents;
 
-/// <summary>
-/// A contract written as YAML, to be compared line by line: in the contract's own key order, an unset field left out (a null inside a
-/// schema stays), nothing folded, and a multi-line text such as a prompt as a block scalar (<c>|</c>) so that a change inside it is
-/// a change of its own lines.
-/// </summary>
 internal static partial class ContractYaml
 {
-    /// <summary>The shape the API sends: camelCase, nulls absent.</summary>
     private static readonly JsonSerializerOptions Shape = new(ContractJson.Options)
     {
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
@@ -37,7 +31,7 @@ internal static partial class ContractYaml
             EmitterSettings.Default.WithBestIndent(2).WithBestWidth(int.MaxValue).WithMaxSimpleKeyLength(1024).WithNewLine("\n")
         );
         new YamlStream(new YamlDocument(root)).Save(emitter, assignAnchors: false);
-        // The emitter closes a document that ends in an open scalar with "...": not part of the text compared.
+        // Why: the emitter closes a document that ends in an open scalar with '...', which is not part of the compared text
         var yaml = writer.ToString();
         return yaml.EndsWith("\n...\n", StringComparison.Ordinal) ? yaml[..^4] : yaml;
     }
@@ -79,7 +73,6 @@ internal static partial class ContractYaml
                 : ScalarStyle.Plain,
         };
 
-    /// <summary>A text a reader of YAML would take for something else: empty, null, a boolean, a number.</summary>
     [GeneratedRegex(
         @"^(|~|[nN]ull|NULL|[tT]rue|TRUE|[fF]alse|FALSE|[-+]?(\.[0-9]+|[0-9]+(\.[0-9]*)?)([eE][-+]?[0-9]+)?|0x[0-9a-fA-F]+|0o[0-7]+|[-+]?\.(inf|Inf|INF)|\.(nan|NaN|NAN))$"
     )]

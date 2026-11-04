@@ -13,10 +13,8 @@ using static Suwageval.Server.Tests.Evaluation.Checks.Items;
 
 namespace Suwageval.Server.Tests.Evaluation.Runs;
 
-/// <summary>An agent with a version, scenarios and checks in the test database, written the way the contracts say the slices store them.</summary>
 internal sealed record SeededAgent(Guid Id, string Name, Guid VersionId, string EndpointUrl)
 {
-    /// <summary>The tools and event of the example agent.</summary>
     public static AgentContract ExampleVersion { get; } =
         new()
         {
@@ -33,56 +31,35 @@ internal sealed record SeededAgent(Guid Id, string Name, Guid VersionId, string 
                         {
                             Name = "get_order",
                             Description = "Look an order up.",
-                            Parameters = Json( /*lang=json,strict*/
-                                """{"type":"object"}"""
-                            ),
+                            Parameters = Json("""{"type":"object"}"""),
                         },
                         new ToolDefinition
                         {
                             Name = "refund_order",
                             Description = "Refund an order.",
-                            Parameters = Json( /*lang=json,strict*/
-                                """{"type":"object"}"""
-                            ),
+                            Parameters = Json("""{"type":"object"}"""),
                         },
                     ],
                 },
             ],
             Context = new ContextDefinition
             {
-                Events =
-                [
-                    new EventDeclaration
-                    {
-                        Type = "state.changed",
-                        DataSchema = Json( /*lang=json,strict*/
-                            """{"type":"object"}"""
-                        ),
-                    },
-                ],
+                Events = [new EventDeclaration { Type = "state.changed", DataSchema = Json("""{"type":"object"}""") }],
             },
         };
 
-    /// <summary>The example agent redeployed with another config: another version.</summary>
     public static AgentContract ExampleVersionConfigured(string config) =>
         ExampleVersion with
         {
             Agents = [ExampleVersion.Agents[0] with { Config = config }],
         };
 
-    /// <summary>A contract as an agent serves it.</summary>
     public static string Serialized(AgentContract contract) => JsonSerializer.Serialize(contract, ContractJson.Options);
 
-    /// <summary>The example agent, now declaring that it accepts fixtures.</summary>
     public static AgentContract ExampleVersionWithFixtures { get; } =
         ExampleVersion with
         {
-            Context = ExampleVersion.Context with
-            {
-                FixturesSchema = Json( /*lang=json,strict*/
-                    """{"type":"object"}"""
-                ),
-            },
+            Context = ExampleVersion.Context with { FixturesSchema = Json("""{"type":"object"}""") },
         };
 
     public static ScenarioInput Scenario(
@@ -110,9 +87,7 @@ internal sealed record SeededAgent(Guid Id, string Name, Guid VersionId, string 
             Key = key,
             ScenarioKey = scenarioKey,
             Tool = "refund_order",
-            Args = Json( /*lang=json,strict*/
-                """{"order_id":"A-17"}"""
-            ),
+            Args = Json("""{"order_id":"A-17"}"""),
             Where = new CheckWhere { After = "get_order" },
             PassThreshold = passThreshold,
         };
@@ -123,9 +98,7 @@ internal sealed record SeededAgent(Guid Id, string Name, Guid VersionId, string 
             Key = key,
             ScenarioKey = scenarioKey,
             Event = "state.changed",
-            Data = Json( /*lang=json,strict*/
-                """{"node":"refunded"}"""
-            ),
+            Data = Json("""{"node":"refunded"}"""),
         };
 
     public static async Task<SeededAgent> CreateAsync(

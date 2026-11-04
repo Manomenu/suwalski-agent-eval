@@ -9,7 +9,6 @@ namespace Suwageval.Cli.Tests.Validation;
 
 public sealed class ValidatorTests
 {
-    /// <summary>The scenario against the agent file and the contract the running agent serves (none: names are not checked).</summary>
     private static ValidationResult Validate(string scenario, AgentContract? contract = null, bool offline = false) =>
         Validator.Validate(
             "agent.yaml",
@@ -525,7 +524,6 @@ public sealed class ValidatorTests
             "does not give: customer"
         );
         Assert.True(Validate("key: k\nfixtures:\n  orders: {}\n  customer: x\nconversation:\n  - user: hi\n", requiring).IsValid);
-        // A schema that requires nothing: a scenario that needs no fixtures stays valid.
         Assert.True(Validate("key: k\nconversation:\n  - user: hi\n", TestAgent.WithFixtures).IsValid);
     }
 

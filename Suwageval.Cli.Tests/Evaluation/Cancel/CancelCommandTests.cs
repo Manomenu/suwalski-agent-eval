@@ -6,7 +6,6 @@ using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Cli.Tests.Evaluation.Cancel;
 
-/// <summary>The command against a stand-in for the API.</summary>
 public sealed class CancelCommandTests
 {
     private static readonly Guid RunId = Guid.Parse("11111111-2222-3333-4444-555555555555");

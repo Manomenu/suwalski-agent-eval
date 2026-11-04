@@ -1,8 +1,6 @@
 using Suwageval.Cli;
 
-// The entry point only hands over the process's streams and Ctrl+C; what the CLI is lives in CliApp.cs.
-// The first Ctrl+C cancels what the command is doing (run --wait then asks whether to cancel the run too); a second one, while
-// the question waits, ends the process at once, as Ctrl+C always does.
+// Why: a second Ctrl+C while the cancel question waits must end the process at once, as Ctrl+C always does
 using var interrupt = new CancellationTokenSource();
 Console.CancelKeyPress += (_, press) =>
 {

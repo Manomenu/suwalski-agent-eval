@@ -3,21 +3,12 @@ using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Cli.Output;
 
-/// <summary>What <c>run</c> and <c>recheck</c> print once the server has queued a run, and the exit code they give; <c>gate</c> waits the same way.</summary>
 internal static class RunOutput
 {
-    /// <summary>The exit code of a wait interrupted with Ctrl+C while the run goes on on the server (128 + SIGINT, as shells report it).</summary>
     public const int Interrupted = 130;
 
-    /// <summary>How long the request to cancel the run may take once the waiting was interrupted.</summary>
     private static readonly TimeSpan CancelTimeout = TimeSpan.FromSeconds(10);
 
-    /// <summary>
-    /// Prints the version and, without <paramref name="wait"/>, the run's id; with it, waits for the end and prints the totals.
-    /// <paramref name="strict"/> gives the old exit code (1 for any failed check) instead of failing only on regressions and new failures.
-    /// <paramref name="cancellationToken"/> is cancelled by Ctrl+C: while waiting, that stops the waiting and asks on
-    /// <paramref name="terminal"/> whether to cancel the run too.
-    /// </summary>
     public static async Task<int> ReportAsync(
         ServerClient client,
         RunCreated created,
@@ -33,7 +24,6 @@ internal static class RunOutput
     {
         if (!json)
         {
-            // The version is what the agent served just now; "new" means its contract differs from every earlier one.
             await output.WriteLineAsync($"version {created.AgentVersionId}: {(created.VersionCreated ? "new" : "existing")}");
         }
         if (!wait)
@@ -63,10 +53,6 @@ internal static class RunOutput
         return RunVerdict.ExitCode(results, strict);
     }
 
-    /// <summary>
-    /// Waits for the run's end and reads its results; Ctrl+C (<paramref name="cancellationToken"/>) stops the waiting and asks whether to
-    /// cancel the run too, and then there are no results, only the exit code.
-    /// </summary>
     public static async Task<(RunResults? Results, int ExitCode)> WaitAsync(
         ServerClient client,
         Guid runId,
@@ -88,13 +74,6 @@ internal static class RunOutput
         }
     }
 
-    /// <summary>
-    /// Runs <paramref name="action"/>, which starts a run; Ctrl+C before it ends leaves the run as it is (it may exist on the server already).
-    /// </summary>
-    /// <param name="action">Starts the run and reports on it; its exit code.</param>
-    /// <param name="error">Where the interruption is said.</param>
-    /// <param name="what">What was being started: "run" or "re-check".</param>
-    /// <param name="cancellationToken">Cancelled by Ctrl+C.</param>
     public static async Task<int> GuardAsync(Func<Task<int>> action, TextWriter error, string what, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(action);
@@ -110,11 +89,7 @@ internal static class RunOutput
         }
     }
 
-    /// <summary>
-    /// Ctrl+C stopped the waiting, not the run: the server would go on with nobody watching. A person is asked whether to cancel it
-    /// too; without anyone to ask (a CI job being stopped), it is cancelled, since nobody would read its results. Everything goes to
-    /// the error stream, so <c>--json</c> output stays JSON.
-    /// </summary>
+    // Why: without a person to ask (a CI job being stopped) the run is cancelled, since nobody would read its results
     private static async Task<int> InterruptedAsync(ServerClient client, Guid runId, Uri site, TextWriter error, Terminal terminal)
     {
         await error.WriteLineAsync();

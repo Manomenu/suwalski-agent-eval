@@ -3,16 +3,8 @@ using Suwageval.Contracts.Checks;
 
 namespace Suwageval.Server.Verdicts;
 
-/// <summary>The part of a trace a check looks at, after its <c>where</c> was applied, and a phrase telling which part that was.</summary>
 internal sealed record CheckScope(IReadOnlyList<ConversationItem> Items, string Description)
 {
-    /// <summary>
-    /// Applies <paramref name="where"/> to the trace. The turn selector picks the turns (all, the last, or number n; a turn that
-    /// was not produced leaves nothing); the turns' items are then laid out in one sequence in the order produced. Then:
-    /// <c>after</c> keeps what follows the FIRST item that is a tool call named so or an event of that type, and <c>before</c>
-    /// what precedes the LAST such item — "after / before at least one occurrence". The anchor itself is never kept.
-    /// An anchor that does not occur leaves nothing.
-    /// </summary>
     public static CheckScope Of(Trace trace, CheckWhere? where)
     {
         ArgumentNullException.ThrowIfNull(trace);

@@ -1,5 +1,3 @@
-// A run that does not exist says so; "Run again" leads to a new run of the same agent. (Rendering of real results is
-// covered by the unit tests of results.ts.) The agent is a tiny HTTP server that serves its contract.
 import { expect, test } from "@playwright/test";
 
 import { createAgent, runToEnd, serveAgent, startRun } from "../../../e2e/helpers";

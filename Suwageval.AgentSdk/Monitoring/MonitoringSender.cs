@@ -47,7 +47,7 @@ internal sealed partial class MonitoringSender(
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
-            // The agent stops: send what is queued, once, within a short time.
+            // Why: the agent stops: send what is queued, once, within a short time
             using var flush = new CancellationTokenSource(Flush);
             try
             {
@@ -91,7 +91,7 @@ internal sealed partial class MonitoringSender(
             }
             catch (TaskCanceledException error) when (!cancellationToken.IsCancellationRequested)
             {
-                LogRetry(error.Message); // the request's own timeout
+                LogRetry(error.Message);
             }
             await Task.Delay(wait, time, cancellationToken);
             wait = wait * 2 > LastRetry ? LastRetry : wait * 2;

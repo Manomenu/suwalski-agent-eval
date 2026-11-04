@@ -3,19 +3,12 @@ using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Server.Evaluation.Runs;
 
-/// <summary>Puts the regression states of a finished run's checks into its results.</summary>
 internal static class RegressionReport
 {
-    /// <summary>How many of the newest reference runs a check's history is made of (N) for an agent with these settings.</summary>
     public static int HistoryOf(RegressionSettings? settings) => settings?.History ?? RegressionSettings.DefaultHistory;
 
-    /// <summary>How many runs of history the query asks for: N to judge the last N runs plus N more to tell a failure that began from one that is old.</summary>
     public static int RowsNeeded(int n) => 2 * n;
 
-    /// <summary>
-    /// True when the check fails, but its samples with an answer alone would reach the pass threshold (or there are none): only the samples
-    /// where the agent gave no answer made it fail.
-    /// </summary>
     private static bool OnlyAgentErrors(CheckRunResult check, HashSet<int> errored)
     {
         if (check.Passed || errored.Count == 0)
@@ -26,10 +19,6 @@ internal static class RegressionReport
         return evaluated.Count == 0 || RunReport.Reaches(evaluated.Count(sample => sample.Passed), evaluated.Count, check.PassThreshold);
     }
 
-    /// <summary>
-    /// <paramref name="results"/> with <see cref="CheckRunResult.Regression"/> on every check and <see cref="RunResults.Regression"/>.
-    /// <paramref name="history"/> comes from <see cref="RunStore.ListCheckHistoriesAsync"/> for the same run.
-    /// </summary>
     public static RunResults Apply(
         RunResults results,
         IReadOnlyList<ScenarioResultRow> samples,
@@ -83,6 +72,7 @@ internal static class RegressionReport
             })
             .ToList();
 
+        // Why: Apply has just set Regression on every check of the results
         var states = scenarios.SelectMany(scenario => scenario.Checks).Select(check => check.Regression!.State).ToList();
         var count = states.GroupBy(state => state).ToDictionary(group => group.Key, group => group.Count());
         int Count(RegressionState state)

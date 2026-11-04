@@ -6,11 +6,7 @@ using CompareCommand = Cli::Suwageval.Cli.Evaluation.Compare.CompareCommand;
 
 namespace Suwageval.Server.Tests.EndToEnd;
 
-/// <summary>
-/// One limit of runs in a comparison: the server's (<c>RunComparisonReport.MaxRuns</c>), the CLI's (<c>CompareCommand.MaxRuns</c>), the web's
-/// <c>COMPARE_MAX_RUNS</c> (<c>Suwageval.Web/src/routes/links.ts</c>) and its <c>PRINT_MAX_RUNS</c> (<c>Suwageval.Web/src/evaluation/compare/layout.ts</c>,
-/// derived there from the printed column widths). They are literals in three languages, and this is what keeps them one.
-/// </summary>
+// Why: the comparison limit is a literal in three languages and this test is what keeps the server, CLI and web values equal
 public sealed partial class PrintMaxRunsTests
 {
     [Fact]

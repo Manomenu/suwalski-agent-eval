@@ -7,7 +7,6 @@ using ScenarioFileReader = Cli::Suwageval.Cli.Files.ScenarioFileReader;
 
 namespace Suwageval.Server.Tests.EndToEnd;
 
-/// <summary>The YAML the run page shows is a scenario file: the CLI reads it back into the same scenario, without its samples and checks.</summary>
 public sealed class ScenarioYamlRoundTripTests
 {
     [Fact]
@@ -58,7 +57,6 @@ public sealed class ScenarioYamlRoundTripTests
         Assert.Equal("conversation-chat-81", read.Scenario.Key);
         Assert.Equal(id, read.Scenario.Origin?.MonitoringConversation);
         Assert.IsType<Suwageval.AgentSdk.Conversations.UserMessage>(read.Scenario.Conversation[^1]);
-        // The failed monitoring checks are comments: none is read as a check of the scenario.
         Assert.Empty(read.Checks);
     }
 

@@ -4,7 +4,6 @@ using Suwageval.Server.Problems;
 
 namespace Suwageval.Server.Evaluation.Runs.Groups;
 
-/// <summary>The routes of run groups: list them, archive or restore them, delete an archived one with its runs.</summary>
 internal static class RunGroupEndpoints
 {
     public static IEndpointRouteBuilder MapRunGroups(this IEndpointRouteBuilder app)
@@ -18,7 +17,6 @@ internal static class RunGroupEndpoints
         return app;
     }
 
-    /// <summary>The groups of the agent's runs (run --group), archived ones too, the one with the newest run first. 404: no such agent.</summary>
     private static async Task<IResult> ListAsync(string agent, AgentStore agents, RunGroupStore groups, CancellationToken cancellationToken)
     {
         var found = await agents.GetAsync(agent, cancellationToken);
@@ -40,7 +38,6 @@ internal static class RunGroupEndpoints
         );
     }
 
-    /// <summary>Archives or restores groups; one unknown name changes nothing. 404: no such agent or group.</summary>
     private static async Task<IResult> ArchiveAsync(
         string agent,
         ArchiveRunGroupsRequest request,
@@ -63,7 +60,6 @@ internal static class RunGroupEndpoints
         return Results.NoContent();
     }
 
-    /// <summary>204 once the note of the group is set (none or blank clears it). 404: no such agent or no run of it in the group; 422: a bad group name or note.</summary>
     private static async Task<IResult> SetNoteAsync(
         string agent,
         string name,
@@ -107,7 +103,6 @@ internal static class RunGroupEndpoints
         CancellationToken cancellationToken
     ) => RunDeletionAsync(agent, name, dryRun: false, agents, groups, cancellationToken);
 
-    // The preview answers exactly what a deletion would: the same refusals, then what would go.
     private static async Task<IResult> RunDeletionAsync(
         string agent,
         string name,

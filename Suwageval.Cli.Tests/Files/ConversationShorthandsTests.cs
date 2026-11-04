@@ -14,33 +14,21 @@ public sealed class ConversationShorthandsTests
     }
 
     [Theory]
-    [InlineData(
-        "user: Hello", /*lang=json,strict*/
-        """{"kind":"UserMessage","text":"Hello"}"""
-    )]
-    [InlineData(
-        "assistant: Hi there", /*lang=json,strict*/
-        """{"kind":"AssistantMessage","text":"Hi there"}"""
-    )]
+    [InlineData("user: Hello", """{"kind":"UserMessage","text":"Hello"}""")]
+    [InlineData("assistant: Hi there", """{"kind":"AssistantMessage","text":"Hi there"}""")]
     [InlineData(
         "tool_call: { id: c1, name: get_order, arguments: { order_id: A-17 } }",
-        /*lang=json,strict*/
         """{"kind":"ToolCall","id":"c1","name":"get_order","arguments":{"order_id":"A-17"}}"""
     )]
     [InlineData(
         "tool_call: { id: c1, name: get_order, arguments: {}, agent: support-agent }",
-        /*lang=json,strict*/
         """{"kind":"ToolCall","id":"c1","name":"get_order","arguments":{},"agent":"support-agent"}"""
     )]
     [InlineData(
         "tool_result: { call_id: c1, content: ok, isError: true }",
-        /*lang=json,strict*/
         """{"kind":"ToolResult","callId":"c1","content":"ok","isError":true}"""
     )]
-    [InlineData(
-        "event: { type: state.changed, data: { n: 1 } }", /*lang=json,strict*/
-        """{"kind":"Event","type":"state.changed","data":{"n":1}}"""
-    )]
+    [InlineData("event: { type: state.changed, data: { n: 1 } }", """{"kind":"Event","type":"state.changed","data":{"n":1}}""")]
     public void A_shorthand_becomes_the_full_form(string yamlItem, string expectedJson)
     {
         var (expanded, problems) = Expand(yamlItem);
@@ -55,10 +43,7 @@ public sealed class ConversationShorthandsTests
         var (expanded, problems) = Expand("{ kind: UserMessage, text: Hello }");
 
         Assert.Empty(problems);
-        Assert.Equal( /*lang=json,strict*/
-            """{"kind":"UserMessage","text":"Hello"}""",
-            expanded?.ToJsonString()
-        );
+        Assert.Equal("""{"kind":"UserMessage","text":"Hello"}""", expanded?.ToJsonString());
     }
 
     [Theory]

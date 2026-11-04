@@ -1,5 +1,3 @@
-// Comparing two versions: tick two on the agent page, open the comparison, read the line diff.
-// A version only comes from a run, and a run reads the contract the agent serves, so the test is that agent: a tiny HTTP server.
 import { expect, test } from "@playwright/test";
 
 import { createAgent, runToEnd, serveAgent } from "../../e2e/helpers";
@@ -42,7 +40,6 @@ test("two ticked versions open a comparison with a line diff", async ({ page, re
         await expect(page.locator(".line-diff-row-removed").getByText("Be brief.", { exact: true })).toBeVisible();
         await expect(page.locator(".line-diff-row-added").getByText("Be kind.", { exact: true })).toBeVisible();
 
-        // The long unchanged tail is folded; opening it shows the lines.
         await expect(page.getByText("description: Finds an order.", { exact: true })).toHaveCount(0);
         await page.getByRole("button", { name: /unchanged lines$/ }).click();
         await expect(page.getByText("description: Finds an order.", { exact: true })).toBeVisible();

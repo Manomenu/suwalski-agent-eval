@@ -11,7 +11,6 @@ using Suwageval.Server.Tests.Evaluation.Runs;
 
 namespace Suwageval.Server.Tests.Agents;
 
-/// <summary>Deleting a whole agent: the refusals, the preview and the cascade through runs, samples and verdicts — on a real PostgreSQL.</summary>
 public sealed class DeletionTests(TestDatabase database) : IAsyncDisposable
 {
     private readonly TestServer server = new(database);
@@ -40,7 +39,6 @@ public sealed class DeletionTests(TestDatabase database) : IAsyncDisposable
             .Version
             .Id;
 
-    /// <summary>A finished run of the version with <paramref name="samples"/> samples, each with one verdict; a re-check when <paramref name="recheckOf"/> is given.</summary>
     internal static async Task<Guid> FinishedRunAsync(
         TestDatabase database,
         SeededAgent agent,
@@ -70,7 +68,6 @@ public sealed class DeletionTests(TestDatabase database) : IAsyncDisposable
                     scenario.Revision,
                     sample,
                     SampleStatus.Done,
-                    /*lang=json,strict*/
                     """[{"kind":"AssistantMessage","text":"hi"}]""",
                     null,
                     10,

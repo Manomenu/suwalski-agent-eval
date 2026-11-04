@@ -4,7 +4,6 @@ namespace Suwageval.Server.Evaluation.Simulation;
 
 internal static class SimulationServiceCollectionExtensions
 {
-    /// <summary>The user simulator, the user describer and their settings (with the models they need); a malformed setting stops the server at start.</summary>
     public static IServiceCollection AddSimulation(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddModels(configuration);

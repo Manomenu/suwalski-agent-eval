@@ -57,6 +57,7 @@ public static class SuwagevalMonitoring
             (provider, client) =>
             {
                 var options = provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<MonitoringOptions>>().Value;
+                // Why: this registration runs only with Suwageval:Url set, and validation on start refuses a bad one
                 client.BaseAddress = new Uri($"{options.Url!.TrimEnd('/')}/api/");
                 client.Timeout = TimeSpan.FromSeconds(10);
                 if (!string.IsNullOrEmpty(options.AccessClientId))

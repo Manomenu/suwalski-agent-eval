@@ -6,7 +6,6 @@ using Suwageval.Server.Problems;
 
 namespace Suwageval.Server.Monitoring.Checking;
 
-/// <summary>The route of what the checks found over time: the Monitoring page's charts.</summary>
 internal static class CheckingEndpoints
 {
     public const int DefaultDays = 30;
@@ -19,10 +18,6 @@ internal static class CheckingEndpoints
         return app;
     }
 
-    /// <summary>
-    /// The agent's monitored conversations and verdicts day by day over the last <c>days</c> (1 to 365, default 30), of one
-    /// <c>environment</c> when given (<see cref="MonitoringTrend"/>). 404: no such agent; 422: days out of range.
-    /// </summary>
     private static async Task<IResult> TrendAsync(
         string agent,
         [FromQuery] int? days,

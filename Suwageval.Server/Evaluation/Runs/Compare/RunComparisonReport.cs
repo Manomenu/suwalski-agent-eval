@@ -3,10 +3,9 @@ using Suwageval.Server.Evaluation.Scenarios;
 
 namespace Suwageval.Server.Evaluation.Runs.Compare;
 
-/// <summary>The compare view of runs, as a pure function over their results: the checks and tags are counted by the rules of <see cref="RunComparer"/>.</summary>
 internal static class RunComparisonReport
 {
-    /// <summary>The most runs a comparison holds: the same as the web's print limit (<c>PRINT_MAX_RUNS</c>) and the CLI's (<c>CompareCommand.MaxRuns</c>); a test compares them.</summary>
+    // Why: the same limit as the web print limit and the CLI's, and a test compares them
     public const int MaxRuns = 7;
 
     public static RunComparison Build(

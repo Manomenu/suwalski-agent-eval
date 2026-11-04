@@ -10,9 +10,7 @@ import { useRequest } from "../api/useRequest";
 import { VersionsSection } from "./VersionsSection";
 import { useVersionFilter } from "./useVersionFilter";
 
-/** `/agents/<name>/versions`: the agent's versions, to archive, restore, delete and compare. */
 export function VersionsPage({ name }: { name: string }) {
-    // Bumped after versions are archived or restored: the list is loaded again (the page stays until the new one arrives).
     const [reload, setReload] = useState(0);
     const [deleting, setDeleting] = useState(false);
     const filter = useVersionFilter();

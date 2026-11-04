@@ -1,4 +1,3 @@
-// The runs table pages by number: the server cuts the pages, the page is in the address, and a page past the last shows the last.
 import { expect, test } from "@playwright/test";
 
 import { createAgent, serveAgent, startRun } from "../../../e2e/helpers";

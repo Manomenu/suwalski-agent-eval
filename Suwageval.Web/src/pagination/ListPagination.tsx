@@ -2,7 +2,6 @@ import { Pagination } from "@mantine/core";
 
 import { clampPage, DEFAULT_PAGE_SIZE, pageCountOf } from "./pages";
 
-/** The numbered pages under a list; nothing when the list fits one page. */
 export function ListPagination({
     totalCount,
     page,

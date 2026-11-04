@@ -7,14 +7,8 @@ using Suwageval.Server.Database;
 
 namespace Suwageval.Server.Monitoring.Checks;
 
-/// <summary>The agent's monitoring checks and their revisions. Plain SQL, mapped by Dapper.</summary>
 internal sealed class MonitoringCheckStore(Pool pool)
 {
-    /// <summary>
-    /// Makes the agent's monitoring checks the given ones, in one transaction: a new or changed check gets a revision, an unchanged one
-    /// none, and a live check not in the list is deleted (its revisions and results stay). One result per given check, in order, then one
-    /// per deleted check.
-    /// </summary>
     public async Task<IReadOnlyList<CheckResult>> ReplaceAsync(
         Guid agentId,
         IReadOnlyList<CheckInput> checks,
@@ -95,10 +89,6 @@ internal sealed class MonitoringCheckStore(Pool pool)
         return results;
     }
 
-    /// <summary>
-    /// The agent's live monitoring checks with their latest revision, by key, and their verdicts over the conversations whose last turn came
-    /// in the last 7 and 30 days before <paramref name="now"/>, those of <paramref name="environment"/> only when one is given.
-    /// </summary>
     public async Task<IReadOnlyList<MonitoringCheckRow>> ListAsync(
         Guid agentId,
         DateTimeOffset now,

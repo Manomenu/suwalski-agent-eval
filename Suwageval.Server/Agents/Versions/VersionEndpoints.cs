@@ -5,7 +5,6 @@ using Suwageval.Server.Problems;
 
 namespace Suwageval.Server.Agents.Versions;
 
-/// <summary>The routes of the history of an agent's versions (a version is registered when a run starts, from the contract the agent serves): list, archive, compare, read, delete.</summary>
 internal static class VersionEndpoints
 {
     public static IEndpointRouteBuilder MapVersions(this IEndpointRouteBuilder app)
@@ -20,7 +19,6 @@ internal static class VersionEndpoints
         return app;
     }
 
-    /// <summary>The agent's versions, newest first, each with where it is used (runs, group runs, monitoring): the clients filter by usage.</summary>
     private static async Task<IResult> ListVersionsAsync(
         string agent,
         AgentStore store,
@@ -60,7 +58,7 @@ internal static class VersionEndpoints
         {
             return ProblemResults.NotFound("Agent", agent);
         }
-        // Looked up first, so that one unknown id changes nothing at all.
+        // Why: looked up first so that one unknown id changes nothing at all
         var unknown = await versions.UnknownVersionsAsync(row.Id, request.VersionIds, cancellationToken);
         if (unknown.Count > 0)
         {
@@ -94,13 +92,8 @@ internal static class VersionEndpoints
         );
     }
 
-    /// <summary>The contract of a version with its label, which is kept beside the content.</summary>
     private static AgentContract ContentOf(AgentVersionRow version) => ContractContent.Read(version.Content) with { Label = version.Label };
 
-    /// <summary>
-    /// What changed between two versions of an agent (<c>from</c> and <c>to</c>, version ids): both contracts as YAML, compared by
-    /// lines, the older version first. 404: no such agent or version; 422: a missing or equal id, or a version of another agent.
-    /// </summary>
     private static async Task<IResult> DiffVersionsAsync(
         string agent,
         [FromQuery] Guid? from,
@@ -141,7 +134,7 @@ internal static class VersionEndpoints
         {
             return ProblemResults.Invalid(first.AgentId != row.Id ? "from" : "to", $"The version is not one of agent '{agent}'.");
         }
-        // The older one is the base; versions made at the same time stay in the order asked for.
+        // Why: the older version is the base; versions made at the same time keep the order asked for
         var (older, newer) = second.CreatedAt < first.CreatedAt ? (second, first) : (first, second);
         var counts = await versions.RunCountsAsync(row.Id, cancellationToken);
         var data = await versions.DataAsync(row.Id, cancellationToken);
@@ -174,7 +167,6 @@ internal static class VersionEndpoints
         CancellationToken cancellationToken
     ) => DeleteAsync(agent, versionId, dryRun: false, store, versions, cancellationToken);
 
-    // The preview answers exactly what a deletion would: the same refusals, then what would go.
     private static async Task<IResult> DeleteAsync(
         string agent,
         Guid versionId,

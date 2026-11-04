@@ -6,7 +6,6 @@ using Suwageval.Server.Problems;
 
 namespace Suwageval.Server.Evaluation.Runs.Compare;
 
-/// <summary>The route of the compare view: runs of one agent side by side, picked one by one or by their group.</summary>
 internal static class CompareEndpoints
 {
     public static IEndpointRouteBuilder MapCompare(this IEndpointRouteBuilder app)
@@ -16,13 +15,6 @@ internal static class CompareEndpoints
         return app;
     }
 
-    /// <summary>
-    /// The runs of one agent side by side (<see cref="RunComparisonReport"/>): either <c>runs</c> (repeatable run ids, each once, in that
-    /// order) or <c>group</c> (every run started in that group, oldest first; <c>agent</c> names the agent when the group has runs of
-    /// several). 404: no such run, group or agent; 422: both or neither of runs and group, more than <see cref="RunComparisonReport.MaxRuns"/>
-    /// runs, runs of different agents, a bad group, a baseline that is not one of the runs or the only run.
-    /// <c>baseline</c> (a run id among the shown runs) adds how the others stand against it.
-    /// </summary>
     private static async Task<IResult> CompareAsync(
         [FromQuery] Guid[]? runs,
         [FromQuery] string? group,
@@ -86,6 +78,7 @@ internal static class CompareEndpoints
             );
             if (newestFirst.Count == 0)
             {
+                // Why: request validation allows exactly one of runs and group, and this is the branch without runs, so group is set
                 return ProblemResults.NotFound("Run group", group!);
             }
             if (newestFirst.Count > RunComparisonReport.MaxRuns)

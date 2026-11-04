@@ -1,5 +1,3 @@
-// Which runs the agent page's runs table shows by group: none in a group (the default), any group, all runs, or one group by name.
-// It lives in the address (`?group=<name>`, `?runs=any`, `?runs=all`) so the view can be shared; no parameter means no group.
 export type GroupFilter = { kind: "none" } | { kind: "any" } | { kind: "all" } | { kind: "group"; name: string };
 
 const NO_GROUP_FILTER: GroupFilter = { kind: "none" };
@@ -8,7 +6,6 @@ const GROUP_PARAM = "group";
 const RUNS_PARAM = "runs";
 const SELECT_GROUP_PREFIX = "group:";
 
-/** The filter an address asks for; a group name wins over `runs`, anything unknown is the default. */
 export function groupFilterOf(search: string): GroupFilter {
     const query = new URLSearchParams(search);
     const name = query.get(GROUP_PARAM);
@@ -17,7 +14,6 @@ export function groupFilterOf(search: string): GroupFilter {
     return runs === "any" ? { kind: "any" } : runs === "all" ? { kind: "all" } : NO_GROUP_FILTER;
 }
 
-/** The query with the filter's parameters replaced; every other parameter stays. Empty when nothing is left. */
 export function searchWithGroupFilter(search: string, filter: GroupFilter): string {
     const query = new URLSearchParams(search);
     query.delete(GROUP_PARAM);
@@ -28,7 +24,6 @@ export function searchWithGroupFilter(search: string, filter: GroupFilter): stri
     return text === "" ? "" : `?${text}`;
 }
 
-/** What the server is asked: a group by name, or only runs in no group or in some group; nothing for all runs. */
 export function groupQuery(filter: GroupFilter): { group: string | null; grouping: "None" | "Any" | null } {
     switch (filter.kind) {
         case "group":
@@ -42,7 +37,7 @@ export function groupQuery(filter: GroupFilter): { group: string | null; groupin
     }
 }
 
-/** The value of the select's option for a filter, and back (a group is prefixed, so one named like a filter is not mistaken for it). */
+// Why: a group is prefixed so one named like a filter is not mistaken for it
 export function filterValue(filter: GroupFilter): string {
     return filter.kind === "group" ? `${SELECT_GROUP_PREFIX}${filter.name}` : filter.kind;
 }
@@ -52,7 +47,6 @@ export function filterOfValue(value: string | null): GroupFilter {
     return value === "any" ? { kind: "any" } : value === "all" ? { kind: "all" } : NO_GROUP_FILTER;
 }
 
-/** "No group", "Any group", "All runs", then every group by name (a selected archived group stays so it can be unselected). */
 export function filterOptions(groups: readonly { name: string; archivedAt?: string | null }[], selected: GroupFilter) {
     const names = new Set(
         groups

@@ -25,12 +25,8 @@ public sealed class CheckStoreTests(TestDatabase database)
         return agent;
     }
 
-    private static CheckItem Item(
-        string key,
-        string scenarioKey,
-        string content = /*lang=json,strict*/
-            """{"type":"contains"}"""
-    ) => new(key, scenarioKey, content);
+    private static CheckItem Item(string key, string scenarioKey, string content = """{"type":"contains"}""") =>
+        new(key, scenarioKey, content);
 
     [Fact]
     public async Task Upsert_creates_then_leaves_identical_content_unchanged()
@@ -52,39 +48,14 @@ public sealed class CheckStoreTests(TestDatabase database)
     {
         var store = Store();
         var agent = await NewAgentWithScenariosAsync("s1");
-        await store.UpsertAsync(
-            agent,
-            [
-                Item(
-                    "c1",
-                    "s1", /*lang=json,strict*/
-                    """{"v":1}"""
-                ),
-            ],
-            Cancellation
-        );
+        await store.UpsertAsync(agent, [Item("c1", "s1", """{"v":1}""")], Cancellation);
 
-        var result = await store.UpsertAsync(
-            agent,
-            [
-                Item(
-                    "c1",
-                    "s1", /*lang=json,strict*/
-                    """{"v":2}"""
-                ),
-            ],
-            Cancellation
-        );
+        var result = await store.UpsertAsync(agent, [Item("c1", "s1", """{"v":2}""")], Cancellation);
 
         Assert.Equal(CheckOutcome.Updated, Assert.Single(result).Outcome);
         var row = Assert.Single(await store.ListAsync(agent, cancellationToken: Cancellation));
         Assert.Equal(2, row.Revision);
-        Assert.Equal(
-            ContentHash.Of( /*lang=json,strict*/
-                """{"v":2}"""
-            ),
-            row.ContentHash
-        );
+        Assert.Equal(ContentHash.Of("""{"v":2}"""), row.ContentHash);
     }
 
     [Fact]
@@ -131,17 +102,7 @@ public sealed class CheckStoreTests(TestDatabase database)
         var store = Store();
         var agent = await NewAgentWithScenariosAsync("s1", "s2");
         await store.UpsertAsync(agent, [Item("a", "s1"), Item("b", "s2")], Cancellation);
-        await store.UpsertAsync(
-            agent,
-            [
-                Item(
-                    "a",
-                    "s1", /*lang=json,strict*/
-                    """{"v":2}"""
-                ),
-            ],
-            Cancellation
-        );
+        await store.UpsertAsync(agent, [Item("a", "s1", """{"v":2}""")], Cancellation);
 
         Assert.Equal(["a", "b"], (await store.ListAsync(agent, cancellationToken: Cancellation)).Select(row => row.Key));
         Assert.Equal(["b"], (await store.ListAsync(agent, "s2", Cancellation)).Select(row => row.Key));

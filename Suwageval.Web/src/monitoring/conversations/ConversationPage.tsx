@@ -15,7 +15,6 @@ import { failedEvidence, verdictOf } from "../../verdict/verdict";
 import { VerdictBadge } from "../../verdict/VerdictBadge";
 import { VerdictMessage } from "../../verdict/VerdictMessage";
 
-/** `/conversations/<id>`: one monitored conversation, its turns one under another with what the agent did in each. */
 export function ConversationPage({ conversationId }: { conversationId: string }) {
     const state = useRequest(conversationId, (signal) => fetchConversation(conversationId, signal));
     useReportAgent(state.kind === "loaded" ? state.value.conversation.agent : null);
@@ -28,7 +27,6 @@ export function ConversationPage({ conversationId }: { conversationId: string })
 
 function View({ detail }: { detail: ConversationDetail }) {
     const { conversation, turns } = detail;
-    // What failed checks point at is marked in the turns, as on a run's page.
     const evidence = failedEvidence(detail.checks ?? []);
     return (
         <Stack gap="md">

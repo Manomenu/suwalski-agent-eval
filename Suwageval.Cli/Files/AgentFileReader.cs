@@ -3,17 +3,11 @@ using Suwageval.Contracts.Agents;
 
 namespace Suwageval.Cli.Files;
 
-/// <summary>
-/// Reads <c>agent.yaml</c>: the <see cref="AgentDefinition"/> fields, <c>name</c>, <c>endpointUrl</c> and the optional <c>regression</c>, and
-/// the CLI's own <c>suwagevalUrl</c>, which is taken out before the contract reads the rest, so the record the API shares stays as it is.
-/// What the agent is (prompt, model, tools) is not in the file: the running agent serves it at <c>/suwageval/contract</c>.
-/// </summary>
 internal static class AgentFileReader
 {
     public const string SuwagevalUrlField = "suwagevalUrl";
     public const string SweepField = "sweep";
 
-    /// <summary>The file's <c>suwagevalUrl</c> when it is a valid address, else null; problems are not reported (the file may be broken otherwise).</summary>
     public static string? SuwagevalUrl(string file, string text)
     {
         var source = YamlSource.Read(file, text, []);
@@ -26,7 +20,6 @@ internal static class AgentFileReader
             : null;
     }
 
-    /// <summary>The agent, or null when anything in the file is a problem (they are all added to <paramref name="problems"/>).</summary>
     public static LoadedAgent? Read(string file, string text, List<Problem> problems)
     {
         var source = YamlSource.Read(file, text, problems);

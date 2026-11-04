@@ -29,13 +29,7 @@ public sealed class RunCompatibilityTests
     [Fact]
     public void Fixtures_need_a_version_that_declares_a_fixtures_schema()
     {
-        var withFixtures = new ScenarioContent
-        {
-            Conversation = [new UserMessage { Text = "hi" }],
-            Fixtures = Json( /*lang=json,strict*/
-                """{"pinned":[]}"""
-            ),
-        };
+        var withFixtures = new ScenarioContent { Conversation = [new UserMessage { Text = "hi" }], Fixtures = Json("""{"pinned":[]}""") };
 
         var one = Assert.Single(Mismatches([("s", withFixtures)], []));
 

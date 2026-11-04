@@ -3,10 +3,6 @@ using Npgsql;
 
 namespace Suwageval.Server.Database;
 
-/// <summary>
-/// The connection pool every part of the server uses (and the tests, so they test the same thing). The only
-/// way to a connection: features take a <see cref="Pool"/>, never the data source underneath.
-/// </summary>
 internal sealed class Pool(NpgsqlDataSource dataSource, int maxSize) : IAsyncDisposable
 {
     [SuppressMessage(
@@ -20,12 +16,7 @@ internal sealed class Pool(NpgsqlDataSource dataSource, int maxSize) : IAsyncDis
         return new(NpgsqlDataSource.Create(builder), maxSize);
     }
 
-    /// <summary>
-    /// A pooled connection, tried before it is handed out. Without the check, the first request after the
-    /// database restarted (a new image, a node reboot) gets a dead connection from the pool and fails with
-    /// 57P01 — a 500 for whoever opens the page first. A dead one is dropped by Npgsql and the next is tried;
-    /// at worst every idle connection in the pool is dead, so that many tries plus a fresh one.
-    /// </summary>
+    // Why: a connection is tried before it is handed out, or the first request after a database restart gets a dead one and fails with 57P01
     public async Task<NpgsqlConnection> OpenAsync(CancellationToken cancellationToken = default)
     {
         for (var attempt = 0; ; attempt++)

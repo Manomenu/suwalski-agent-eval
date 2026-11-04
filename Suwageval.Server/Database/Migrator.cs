@@ -4,26 +4,14 @@ using grate.postgresql.DependencyInjection;
 
 namespace Suwageval.Server.Database;
 
-/// <summary>
-/// The schema migrations, run by grate: SQL scripts in <c>Database/Migrations/up/</c> (named
-/// <c>NNNN_what_it_does.sql</c>), each run once, in name order, and recorded with a hash of its text.
-/// A script is never edited after it ran somewhere: the change goes into a new file. An edited one stops
-/// the migration (grate's default for one-time scripts), because databases that ran the old text and
-/// databases that would run the new one would quietly differ.
-/// </summary>
+// Why: a migration script is never edited after it ran somewhere, because databases with the old text and the new text would quietly differ
 internal static class Migrator
 {
-    /// <summary>Copied next to the binary by the build (Suwageval.Server.csproj).</summary>
     public static string DefaultDirectory => Path.Combine(AppContext.BaseDirectory, "Database", "Migrations");
 
-    /// <summary>
-    /// Runs the scripts that have not run yet, all in one transaction: a failing script leaves nothing behind.
-    /// The database itself must exist — it comes from whoever runs PostgreSQL, never from the server.
-    /// Nothing grate writes to disk outlives the call; returns the temporary folders of grate's own scripts it deleted.
-    /// </summary>
     public static async Task<IReadOnlyList<string>> MigrateAsync(string connectionString, string directory)
     {
-        // grate writes copies of what it ran here; the working directory (/app) is not writable in the image.
+        // Why: grate writes copies of what it ran here, and the working directory (/app) is not writable in the image
         var output = Directory.CreateTempSubdirectory("suwageval-grate-");
         using var temporaryFolders = new GrateTemporaryFolders(directory);
         IReadOnlyList<string> deleted;

@@ -5,11 +5,6 @@ using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Cli.Evaluation.Results;
 
-/// <summary>
-/// What <c>suwageval results</c> prints for a run: a header (status, version, tags, branch), what <c>run --wait</c> prints (the regression
-/// summary, else the totals), every failing check with the reason of its first failing sample, and the turn times. With
-/// <c>failedOnly</c> the failing checks give way to everything that did not pass (see <c>PassedFully</c> on the scenario and the check results) and a line of how much was left out.
-/// </summary>
 internal static class ResultsText
 {
     public static string Describe(RunResults results, Uri page, bool failedOnly = false)

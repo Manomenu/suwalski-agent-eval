@@ -35,7 +35,6 @@ public sealed class ServerClientTests
     public async Task A_newer_servers_extra_field_does_not_break_the_cli()
     {
         var created = await Create(
-            /*lang=json,strict*/
             """{"runId":"0b7d4a52-8a6e-4f7e-9a51-0d3c6a0e2f10","agentVersionId":"5f1c2d3e-4b5a-6978-8a9b-0c1d2e3f4a5b","versionCreated":false,"queuePosition":3}""",
             "9.9.9+abc"
         );
@@ -46,12 +45,7 @@ public sealed class ServerClientTests
     [Fact]
     public async Task An_answer_it_cannot_read_names_both_builds_and_the_update()
     {
-        var failure = await Assert.ThrowsAsync<ServerClientException>(() =>
-            Create( /*lang=json,strict*/
-                """{"runId":"not a guid"}""",
-                "9.9.9+abc"
-            )
-        );
+        var failure = await Assert.ThrowsAsync<ServerClientException>(() => Create("""{"runId":"not a guid"}""", "9.9.9+abc"));
 
         Assert.Contains("9.9.9+abc", failure.Message, StringComparison.Ordinal);
         Assert.Contains(ServerAnswers.CliVersion, failure.Message, StringComparison.Ordinal);

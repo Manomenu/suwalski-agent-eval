@@ -1,9 +1,7 @@
-// The Monitoring page lists the conversations a deployed agent sent, and one opens with its turns.
 import { expect, test, type APIRequestContext } from "@playwright/test";
 
 const CONTRACT = { agents: [{ name: "support", model: { name: "test-model" }, config: "Be helpful." }] };
 
-/** Sends turns as a deployed agent does; the hash it must name comes from the server's answer to a wrong one. */
 async function sendTurns(request: APIRequestContext, agent: string, turns: object[], environment = "production"): Promise<void> {
     const batch = { agent, environment, contractHash: "unknown", contract: CONTRACT, turns };
     const refused = await request.post("/api/monitoring/turns", { data: batch });
@@ -97,7 +95,6 @@ test("a conversation drafts as a scenario, whole, up to a chosen message, or wit
     await expect(yaml).not.toContainText("About Where is A-17?");
     await expect(yaml).not.toContainText("And B-2?");
 
-    // The rest simulated: as long as the real conversation went on after the cut (the answer to message 1, then message 2), on a click.
     await page.locator("label", { hasText: /^Simulate the rest$/ }).click();
     await expect(page.getByRole("textbox", { name: "Turns", exact: true })).toHaveValue("2");
     await expect(yaml).toHaveCount(0);

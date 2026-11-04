@@ -1,5 +1,3 @@
-// The "Pass rate" and "Turn time" sections of the agent page: a hint until two runs have finished, then the charts, whose tag lines
-// are picked in one field above them.
 import { expect, test } from "@playwright/test";
 
 import { createAgent, runToEnd, serveAgent } from "../../../e2e/helpers";

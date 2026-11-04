@@ -3,14 +3,8 @@ using Suwageval.Contracts.Checks;
 
 namespace Suwageval.Cli.Files;
 
-/// <summary>
-/// Reads <c>suwageval/monitoring-checks.yaml</c>: <c>checks:</c>, a list of checks as in a scenario file, with
-/// no scenario (they run on every monitored conversation of the agent). The rules of such a check are <c>MonitoringCheckRules</c>, applied
-/// by the validator.
-/// </summary>
 internal static class MonitoringChecksFileReader
 {
-    /// <summary>The checks, or null when the file cannot be read as one (the problems are added to <paramref name="problems"/>).</summary>
     public static (YamlSource Source, List<CheckInput> Checks)? Read(string file, string text, List<Problem> problems)
     {
         var source = YamlSource.Read(file, text, problems);

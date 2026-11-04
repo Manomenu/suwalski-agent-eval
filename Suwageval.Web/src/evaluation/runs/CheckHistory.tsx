@@ -5,10 +5,8 @@ import { CHECK_HISTORY_EXPLANATION, historyMarks, type HistoryMark } from "./reg
 
 const TOOLTIP_WIDTH = 340;
 
-/** The size of a mark, in pixels: small enough to sit in a line of text. */
 const MARK_SIZE = 12;
 
-/** A passed check is a filled green dot, a failed one a red cross, an agent error a grey dash: told apart by shape, not only by colour. */
 function Glyph({ outcome }: { outcome: HistoryMark["outcome"] }) {
     switch (outcome) {
         case "passed":
@@ -57,7 +55,6 @@ function Mark({ mark }: { mark: HistoryMark }) {
     );
 }
 
-/** A check's verdicts over its history, oldest first, and this run's verdict last. Nothing for a check without history. */
 export function CheckHistory({ check }: { check: Pick<CheckRunResult, "passed" | "regression"> }) {
     const marks = historyMarks(check);
     if (marks.length === 0) return null;

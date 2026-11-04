@@ -7,7 +7,6 @@ using CliApp = Cli::Suwageval.Cli.CliApp;
 
 namespace Suwageval.Server.Tests.EndToEnd;
 
-/// <summary><c>suwageval push</c> from the CLI through the server in process to the test database and back.</summary>
 public sealed class PushCommandEndToEndTests(TestDatabase database) : IAsyncDisposable
 {
     private readonly WebApplicationFactory<Program> app = RunTestApp.Create();
@@ -21,14 +20,12 @@ public sealed class PushCommandEndToEndTests(TestDatabase database) : IAsyncDisp
         Directory.Delete(work, recursive: true);
     }
 
-    /// <summary>A client on the in-process server — or the test is skipped (failed in CI) without a database.</summary>
     private HttpClient Client()
     {
         _ = database.Pool;
         return app.CreateClient();
     }
 
-    /// <summary>The sample agent folder, copied, under a name of its own so tests do not meet in the shared database.</summary>
     private string Folder()
     {
         var dir = Path.Combine(work, Guid.NewGuid().ToString("N"));
@@ -67,7 +64,6 @@ public sealed class PushCommandEndToEndTests(TestDatabase database) : IAsyncDisp
 
         Assert.Equal(0, firstExit);
         Assert.Empty(firstError);
-        // The agent, three scenarios, five checks; no version: that comes from the running agent when a run starts.
         Assert.Equal(9, Count(firstOut, ": created"));
         Assert.DoesNotContain("version", firstOut, StringComparison.Ordinal);
         Assert.Equal(0, secondExit);

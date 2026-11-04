@@ -3,13 +3,8 @@ using Suwageval.AgentSdk.Conversations;
 
 namespace Suwageval.Server.Evaluation.Runs;
 
-/// <summary>
-/// What an agent produced beyond what its version declares: a tool call to a tool no agent has (or the named agent lacks), an unknown agent, an event of a
-/// type it does not declare. A warning on the sample, never a failure by itself — the agent may simply have changed.
-/// </summary>
 internal static class UndeclaredOutput
 {
-    /// <summary>One sentence per distinct tool and event type, in the order they first appear.</summary>
     public static IReadOnlyList<string> Of(IReadOnlyList<ConversationItem> produced, AgentContract version)
     {
         ArgumentNullException.ThrowIfNull(produced);

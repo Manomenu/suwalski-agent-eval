@@ -9,7 +9,6 @@ interface Filter {
     environment: string | null;
 }
 
-/** The Versions page's filter, kept in the address (`?usage=…&version=…&environment=…`) so the view can be shared; changing it does not reload the page. */
 export function useVersionFilter(): Filter & {
     setUsage: (usage: VersionUsage[]) => void;
     removeVersion: (id: string) => void;

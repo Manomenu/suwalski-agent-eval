@@ -74,8 +74,6 @@ import { fetchRunGroups, type RunGroupSummary } from "../groups/api";
 import { AgentErrorsCard } from "../errors/AgentErrorsCard";
 import { useAgentErrors } from "../errors/useAgentErrors";
 
-// The chart library is the largest part of the app: it loads only when an agent's page is opened.
-/** What the filters and the runs table's columns mean, said on hover over their labels. */
 const MODEL_HELP =
     "Show only runs of agent versions that use these models (any of the system's LLM agents). The chart, the unstable checks and the agent errors follow the filter.";
 const DATA_VERSION_HELP =
@@ -94,9 +92,7 @@ const Trends = lazy(() => import("../trend/Trends").then((module) => ({ default:
 const MODEL_FILTER_MIN_WIDTH = 260;
 const RUNS_TABLE_MIN_WIDTH = 1100;
 
-/** `/agents/<name>/evaluation` (also `/agents/<name>`): the agent, its runs (newest first), run groups, trends and problem cards. */
 export function EvaluationPage({ name }: { name: string }) {
-    // Bumped after versions are archived or restored: the lists are loaded again (the page stays until the new ones arrive).
     const [reload, setReload] = useState(0);
     const state = useRequest(`${name}/${reload}`, async (signal) => {
         const [agent, versions, passRates, groups, tags] = await Promise.all([
@@ -115,7 +111,7 @@ export function EvaluationPage({ name }: { name: string }) {
                 !areaOn(agent.features, "evaluation") ? (
                     <AreaOff area="evaluation" />
                 ) : (
-                    // Around the whole view, not the charts alone: they stand above the filters, so arriving later they would push an open list off the screen.
+                    // Why: wraps the whole view, not the charts alone: they stand above the filters, so arriving later they would push an open list off the screen
                     <Suspense fallback={<Loader aria-label="Loading the charts" />}>
                         <AgentView
                             agent={agent}
@@ -156,14 +152,12 @@ function AgentView({
     onChanged: () => void;
 }) {
     const [showArchived, setShowArchived] = useArchivedParam(ARCHIVED_RUNS_PARAM);
-    // The model filter (empty: every model) and the runs ticked for comparison.
     const [models, setModels] = useState<string[]>([]);
     const [dataVersions, setDataVersions] = useState<string[]>([]);
     const [versionFilter, setVersionFilter] = useState<string[]>([]);
     const [groupFilter, setGroupFilter] = useGroupFilter();
     const [tagFilter, setTagFilter] = useTagFilter();
     const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
-    // The server pages the runs, so the filters reach it as the versions they allow (none sent: every version) and the data versions chosen.
     const versionIds = allowedVersionIds(versions, showArchived, models, dataVersions, versionFilter);
     const [requestedPage, setRequestedPage] = usePageParam("runsPage");
     const { runs, totalCount, page, loading, error } = useRuns(
@@ -176,18 +170,16 @@ function AgentView({
         tagFilter,
         dataVersions,
     );
-    // A filter changes which runs there are, so the list starts again from its first page.
     const filtered = <Value,>(change: (value: Value) => void) => {
         return (value: Value) => {
             change(value);
             setRequestedPage(1);
         };
     };
-    // The filters offer the versions the runs table's group filter lets show: a model used only in sweeps is not offered while the table lists runs in no group.
+    // Why: a model used only in sweeps is not offered while the runs table lists runs in no group
     const offered = offeredVersions(versions, versionGroupingFor(groupFilter), models, dataVersions, versionFilter);
-    // Only what is listed counts: a run the filter hides is not compared.
     const toCompare = runsToCompare(runs, selected);
-    // The problem cards decide over the versions the filters show: a newer version the filters hide closes nothing. With none shown, nothing is asked.
+    // Why: a newer version the filters hide must not close problems of the shown ones; with none shown, nothing is asked
     const considered = consideredVersionIds(versions, showArchived, models, dataVersions, versionFilter);
     const problemsAgent = considered.length === 0 ? null : agent.name;
     const unstable = useUnstableChecks(problemsAgent, considered, false, dataVersions);
@@ -196,7 +188,6 @@ function AgentView({
     return (
         <Stack gap="lg">
             <Anchor href="/">← Agents</Anchor>
-            {/* Wide screens: the agent and its runs on the left, the analytics beside them (app.css). */}
             <div className="agent-layout">
                 <div className="agent-layout-header">
                     <Paper withBorder p="md">
@@ -217,7 +208,6 @@ function AgentView({
 
                 <div className="agent-layout-analytics">
                     <Stack gap="lg">
-                        {/* First, so it is never missed below the charts: these failures may be noise. */}
                         {(unstable.length > 0 || errors.length > 0) && (
                             <Stack gap="sm">
                                 <Title order={3}>

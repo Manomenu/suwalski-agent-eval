@@ -5,7 +5,6 @@ using Suwageval.Server.Problems;
 
 namespace Suwageval.Server.Evaluation.Runs.Trend;
 
-/// <summary>The route of the pass-rate trend of an agent.</summary>
 internal static class TrendEndpoints
 {
     public static IEndpointRouteBuilder MapTrend(this IEndpointRouteBuilder app)
@@ -15,10 +14,6 @@ internal static class TrendEndpoints
         return app;
     }
 
-    /// <summary>
-    /// The pass-rate trend of an agent: its finished runs that called the agent (the newest <see cref="PassRateTrend.MaxRuns"/>, oldest first) with
-    /// the rate over all checks and per tag and the turn time (median, p95) over the same samples. A run has a rate for a tag only when it ran every scenario of the tag (<see cref="TagCoverage"/>); a run with no check is left out. 404: no such agent.
-    /// </summary>
     private static async Task<IResult> ListAsync(
         string agent,
         AgentStore agents,

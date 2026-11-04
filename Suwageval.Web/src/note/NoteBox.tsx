@@ -4,24 +4,16 @@ import { useEffect, useEffectEvent, useRef, useState } from "react";
 
 import { NOTE_MAX_LENGTH, normalizeNote, noteProblem } from "./note";
 
-/** How long typing pauses before the note is saved in the background. */
 const NOTE_SAVE_DELAY_MS = 800;
 
 type SaveState = { kind: "saved" } | { kind: "saving" } | { kind: "failed"; message: string };
 
-/**
- * A note, in the header of a run or a comparison: an info box with the text (it prints), edited in that same box — the pencil turns the text into
- * a textarea in its place. Typing never waits for the network: the note is saved a moment after the last keystroke, one request at
- * a time, and a small status says where it stands. A failure is shown with the server's words and the save is tried again with the
- * next change. Without a note only an "Add note" button shows (not on paper).
- */
 export function NoteBox({
     initial,
     save,
     placeholder,
 }: {
     initial: string | null | undefined;
-    /** Stores the note (null: none); rejects with an `Error` carrying the server's words. */
     save: (note: string | null) => Promise<void>;
     placeholder: string;
 }) {
@@ -35,7 +27,7 @@ export function NoteBox({
     const wanted = normalizeNote(draft);
     const problem = noteProblem(draft);
 
-    // The latest save, without making the debounce restart whenever the parent renders a new callback.
+    // Why: useEffectEvent gives the latest save without restarting the debounce whenever the parent renders a new callback
     const saveNow = useEffectEvent((note: string | null) => save(note));
 
     useEffect(() => {

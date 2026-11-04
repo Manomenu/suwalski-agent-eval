@@ -13,7 +13,6 @@ using Suwageval.Server.Verdicts;
 
 namespace Suwageval.Server.Evaluation.Runs;
 
-/// <summary>The routes of runs: start one or repeat one, follow it, read its results, cancel it.</summary>
 internal static class RunEndpoints
 {
     private const int DefaultPageSize = 20;
@@ -33,13 +32,6 @@ internal static class RunEndpoints
         return app;
     }
 
-    /// <summary>
-    /// 202 with the run's id and its version once it is queued: the version is the contract the agent serves at that moment,
-    /// registered here. 404: no such agent; 422: the request or what it selects is not runnable (a bad endpoint, no scenario
-    /// with the tag); 502: the agent's contract could not be read or is not valid; 409: the version does not fit the scenarios
-    /// and checks — the mismatches are listed and nothing is queued; 409 also when a judge check or a <c>$judge</c> argument matcher is
-    /// picked and no judge model is configured, or a simulated scenario and no simulator model.
-    /// </summary>
     private static async Task<IResult> CreateAsync(
         RunRequest request,
         AgentStore agents,
@@ -108,8 +100,7 @@ internal static class RunEndpoints
             );
         }
 
-        // The version is what the agent says it is right now: read its contract, register it (the same content is the same
-        // version), and run against that. Nothing is queued when the agent cannot say.
+        // Why: the version is what the agent says it is right now, so its contract is read and registered first and nothing is queued when the agent cannot say
         var endpoint = request.EndpointUrl ?? agent.EndpointUrl;
         var served = await client.GetContractAsync(new Uri(endpoint), cancellationToken);
         if (served.Contract is not { } contract)
@@ -201,10 +192,6 @@ internal static class RunEndpoints
         );
     }
 
-    /// <summary>
-    /// Why a gate cannot start over <paramref name="guardrails"/> (the agent's scenarios with an <c>acGuardrail</c>): there are none, one
-    /// has no check (it would pass on any answer), or two guard one criterion (a scenario no file has any more still on the server). Null when it can.
-    /// </summary>
     private static async Task<IResult?> GateProblemAsync(
         IReadOnlyList<ScenarioRow> guardrails,
         Guid agentId,
@@ -224,6 +211,7 @@ internal static class RunEndpoints
             return ProblemResults.Invalid("gate", $"The scenario '{withoutChecks.Key}': {AcGuardrailRules.NoChecks}");
         }
         var duplicate = guardrails
+            // Why: only scenarios with an acGuardrail are grouped, so it is set
             .GroupBy(scenario => StoredContent.Scenario(scenario.Content).AcGuardrail!.Id, StringComparer.Ordinal)
             .FirstOrDefault(group => group.Count() > 1);
         return duplicate is null
@@ -234,7 +222,6 @@ internal static class RunEndpoints
             );
     }
 
-    /// <summary>What a re-check of the run would do and whether it can start (read-only). 404 for an unknown run.</summary>
     private static async Task<IResult> RecheckPlanAsync(
         Guid id,
         AgentStore agents,
@@ -251,11 +238,6 @@ internal static class RunEndpoints
             : Results.Ok(planned.Plan with { JudgeModel = judge.ModelName });
     }
 
-    /// <summary>
-    /// Queues a re-check: the stored answers of run <paramref name="id"/> (of the run that called the agent, when that is itself a
-    /// re-check) judged again by the current checks, without calling the agent. 404 for an unknown run; 409 with the reason (and the
-    /// mismatches) when the plan says it cannot start.
-    /// </summary>
     private static async Task<IResult> RecheckAsync(
         Guid id,
         AgentStore agents,
@@ -326,7 +308,7 @@ internal static class RunEndpoints
         {
             return null;
         }
-        // A re-check has the answers of the run it was made from: that one is what is re-checked again.
+        // Why: a re-check has the answers of the run it was made from, so that run is what is re-checked again
         var original = shown.RecheckOf is { } originalId ? await runs.GetAsync(originalId, cancellationToken) ?? shown : shown;
         if (original.Gate)
         {
@@ -347,13 +329,6 @@ internal static class RunEndpoints
         return new PlannedRecheck(shown, original, plan);
     }
 
-    /// <summary>
-    /// A page of runs, newest first, with how many runs match. <c>page</c> (1-based, default 1; past the last page gives the last one),
-    /// <c>pageSize</c> (default 20, 1 to 100), <c>version</c> (repeatable agent version ids: only their runs), <c>group</c> (only the runs started in that group), <c>grouping</c> (<c>None</c>: only runs in no group,
-    /// <c>Any</c>: only runs in some group; a re-check counts as in the group of the run it was made from; default <c>All</c>). 404: no such agent; 422: a bad page or page size,
-    /// or both a group and a grouping other than <c>All</c>. <c>tag</c> (repeatable): only the runs that ran the scenarios of any of these tags, i.e. limited
-    /// to tags including one of them, or not limited at all. <c>dataVersion</c> (repeatable): only the runs on one of these retrieval data versions.
-    /// </summary>
     private static async Task<IResult> ListAsync(
         [FromQuery] string? agent,
         [FromQuery] int? page,
@@ -430,11 +405,6 @@ internal static class RunEndpoints
         return run is null ? ProblemResults.NotFound("Run", id.ToString()) : Results.Ok(RunReport.Summary(run));
     }
 
-    /// <summary>
-    /// The results so far — a run that is still going has some, a queued one none. Once the run is done every check also carries its
-    /// <see cref="CheckRunResult.Regression"/> state against its history, and the results the summary of them — except a run started in a
-    /// group (or a re-check of one) and a gate run: an experiment has no regression states, and a gate run's results are its verdict.
-    /// </summary>
     private static async Task<IResult> ResultsAsync(Guid id, RunStore runs, AgentStore agents, CancellationToken cancellationToken)
     {
         var run = await runs.GetAsync(id, cancellationToken);
@@ -455,7 +425,7 @@ internal static class RunEndpoints
             return Results.Ok(results);
         }
         var n = RegressionReport.HistoryOf((await agents.GetAsync(run.AgentId.ToString(), cancellationToken))?.Regression);
-        // A re-check stands where the run it was made from stood: the history is what came before that run.
+        // Why: a re-check stands where its original stood, so the history is what came before that run
         var history = await runs.ListCheckHistoriesAsync(
             id,
             run.RecheckOf ?? id,
@@ -466,7 +436,6 @@ internal static class RunEndpoints
         return Results.Ok(RegressionReport.Apply(results, samples, verdicts, history, n));
     }
 
-    /// <summary>202 for any known run: a queued one is cancelled at once, a running one before its next sample, a finished one stays.</summary>
     private static async Task<IResult> CancelAsync(Guid id, RunStore runs, CancellationToken cancellationToken)
     {
         if (await runs.GetAsync(id, cancellationToken) is null)
@@ -477,7 +446,6 @@ internal static class RunEndpoints
         return Results.Accepted($"/eval/runs/{id}");
     }
 
-    /// <summary>204 once the note of run <paramref name="id"/> is set (none or blank clears it), in any status. 404: no such run; 422: a note that is too long.</summary>
     private static async Task<IResult> SetNoteAsync(Guid id, NoteRequest request, RunStore runs, CancellationToken cancellationToken)
     {
         if (NoteRules.Problem(request.Note) is { } problem)

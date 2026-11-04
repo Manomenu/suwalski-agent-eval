@@ -6,7 +6,6 @@ using Suwageval.Server.Database;
 
 namespace Suwageval.Server.Agents;
 
-/// <summary>Agents and their versions. Plain SQL, mapped by Dapper.</summary>
 internal sealed class AgentStore(Pool pool)
 {
     private const string AgentColumns =
@@ -51,7 +50,6 @@ internal sealed class AgentStore(Pool pool)
         );
     }
 
-    /// <summary>Stores the agent's default samples, regression settings, features and gate attempts; none puts the defaults back.</summary>
     public async Task<AgentRow> SetSettingsAsync(
         Guid id,
         int? samples,
@@ -101,7 +99,6 @@ internal sealed class AgentStore(Pool pool)
         );
     }
 
-    /// <summary>The agent by its name or its id.</summary>
     public async Task<AgentRow?> GetAsync(string nameOrId, CancellationToken cancellationToken = default)
     {
         await using var connection = await pool.OpenAsync(cancellationToken);
@@ -123,7 +120,6 @@ internal sealed class AgentStore(Pool pool)
         return [.. rows];
     }
 
-    /// <summary>Registers a version; content seen before (same hash) gives the existing version back.</summary>
     public async Task<AgentVersionRegistration> RegisterVersionAsync(
         Guid agentId,
         string contentJson,
@@ -155,7 +151,7 @@ internal sealed class AgentStore(Pool pool)
         {
             return new AgentVersionRegistration(created, Created: true);
         }
-        // An archived version the agent serves again is back in use.
+        // Why: an archived version that the agent serves again is back in use
         var existing = await connection.QuerySingleAsync<AgentVersionRow>(
             new CommandDefinition(
                 $"UPDATE agent_versions SET archived_at = NULL WHERE agent_id = @agentId AND content_hash = @hash RETURNING {VersionColumns}",
@@ -166,7 +162,6 @@ internal sealed class AgentStore(Pool pool)
         return new AgentVersionRegistration(existing, Created: false);
     }
 
-    /// <summary>Newest first.</summary>
     public async Task<IReadOnlyList<AgentVersionRow>> ListVersionsAsync(Guid agentId, CancellationToken cancellationToken = default)
     {
         await using var connection = await pool.OpenAsync(cancellationToken);
@@ -180,10 +175,6 @@ internal sealed class AgentStore(Pool pool)
         return [.. rows];
     }
 
-    /// <summary>
-    /// Deletes the agent with everything that belongs to it (the foreign keys cascade), unless one of its runs is queued or running;
-    /// <paramref name="dryRun"/> only decides and counts. The agent's row is locked, so no run is queued for it in between.
-    /// </summary>
     public async Task<DeletionResult<AgentDeletion>> DeleteAgentAsync(
         Guid agentId,
         bool dryRun,
@@ -277,7 +268,6 @@ internal sealed class AgentStore(Pool pool)
         );
     }
 
-    /// <summary>The agent's version with this content hash (<see cref="AgentSdk.Agents.AgentContractHash"/>), or null.</summary>
     public async Task<AgentVersionRow?> FindVersionAsync(Guid agentId, string contentHash, CancellationToken cancellationToken = default)
     {
         await using var connection = await pool.OpenAsync(cancellationToken);

@@ -1,7 +1,6 @@
 namespace Suwageval.Server.Evaluation.Scenarios;
 
-/// <summary>A scenario with its latest revision.</summary>
-/// <remarks>Properties, not a constructor: Dapper cannot match a constructor to a <c>text[]</c> column.</remarks>
+// Why: properties, not a constructor, because Dapper cannot match a constructor to a text[] column
 internal sealed record ScenarioRow
 {
     public required Guid Id { get; init; }

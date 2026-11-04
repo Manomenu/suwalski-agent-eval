@@ -56,14 +56,8 @@ import { ToggleChip } from "../../toggle/ToggleChip";
 const BEST_BACKGROUND = "var(--mantine-color-green-light)";
 const HELP_WIDTH = 280;
 
-/**
- * `/compare`: runs of one agent side by side, one column per run. The runs come as `?runs=<id>,<id>,…` or as the
- * `?group=<name>[&agent=<name>]` they were started in; `?baseline=<id>` (one of them) reads the others against that run. The parameters
- * are the query as it came, this checks them.
- */
 export function ComparePage({ runs, group, agent, baseline }: { runs: string; group: string; agent: string; baseline: string }) {
     const selection = selectionOf(runs, group, agent);
-    // A wrong query asks for nothing: no request is made.
     return selection.kind === "error" ? (
         <Problem message={selection.message} />
     ) : (
@@ -72,7 +66,6 @@ export function ComparePage({ runs, group, agent, baseline }: { runs: string; gr
 }
 
 function Comparison({ selection, baseline }: { selection: ValidSelection; baseline: string | null }) {
-    // The baseline is in the address so the view can be shared; changing it asks the server again but does not reload the page.
     const [baselineId, setBaselineId] = useState(baseline);
     const chooseBaseline = (runId: string) => {
         const next = toggledBaseline(baselineId, runId);
@@ -133,7 +126,6 @@ function View({
     differences: Difference[];
     onBaseline: (runId: string) => void;
 }) {
-    // Runs picked one by one are read for what changed, so rows that came out the same are hidden; a group lists every scenario.
     const [onlyDifferences, setOnlyDifferences] = useState(selection.kind === "runs");
     const [byTag, setByTag] = useState(false);
     const [selectedTags, selectTags] = useTagFilter();
@@ -149,7 +141,6 @@ function View({
     const compared = baseline?.runs ?? null;
     const comparedTags = baseline == null ? null : selectedTagRows(baseline.tags, selectedTags);
     const baselineColumn = baseline == null ? -1 : variants.runs.findIndex((variant) => variant.run.id === baseline.runId);
-    // The totals a column's summary shows: the run's own, or over the scenarios left by the tag filter.
     const totalsOf = (column: number) => (filtered ? columnTotals(scenarios, column) : variants.runs[column]?.run);
     const summaryChange = (column: number, change: typeof checksChange | typeof samplesChange): Change | null => {
         const own = totalsOf(column);
@@ -178,7 +169,6 @@ function View({
                     placeholder="What is this experiment about?"
                 />
             )}
-            {/* The filters stay applied on paper; the print-only line says which. */}
             <Text className="print-only print-line">
                 {comparePrintLine({
                     agent: variants.agent,
@@ -317,7 +307,6 @@ function View({
                         <Table.Tbody>
                             <SectionRow columns={columns} title="Pass rate per tag" help={TAG_RATE_HELP} />
                             {tagRows.map((row) => {
-                                // With a baseline every cell is read by its change; without one the best column of the row is marked.
                                 const best = baseline == null ? bestColumns(row.rates.map(({ passRate }) => passRate)) : new Set<number>();
                                 const changes = comparedTags?.find((candidate) => candidate.tag === row.tag);
                                 return (
@@ -420,12 +409,10 @@ function View({
     );
 }
 
-/** The judge of the baseline's own column: what the "≠ baseline" mark of the others is measured against. */
 function baselineJudgeModel({ baseline }: RunComparison): string | null {
     return baseline?.runs.find((compared) => compared.run.id === baseline.runId)?.judgeModel ?? null;
 }
 
-/** The turn time changes of a run against the baseline's, as the server computed them: median and p95. Nothing on the baseline itself. */
 function TimeChanges({ compared }: { compared: ComparedRun | undefined }) {
     if (compared === undefined) return null;
     const changes = [
@@ -446,10 +433,7 @@ function TimeChanges({ compared }: { compared: ComparedRun | undefined }) {
     );
 }
 
-/**
- * The model that judged a run's model-judged checks. Against a baseline judged by another model it is marked "≠ baseline" — in grey,
- * not as better or worse: it says a different verdict may come from the judge, not the agent.
- */
+// Why: the judge differing from the baseline's is marked grey, not better or worse: a different verdict may come from the judge, not the agent
 function Judge({ model, changed, baselineModel }: { model: string | null | undefined; changed: boolean; baselineModel: string | null }) {
     if (model == null) return <Text size="sm">—</Text>;
     return (

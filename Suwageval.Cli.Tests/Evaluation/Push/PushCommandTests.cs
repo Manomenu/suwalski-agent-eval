@@ -2,7 +2,6 @@ using System.Net;
 
 namespace Suwageval.Cli.Tests.Evaluation.Push;
 
-/// <summary>The push command without a server: what it does before it asks, and when it cannot reach one. The rest is the end-to-end tests'.</summary>
 public sealed class PushCommandTests
 {
     private static string Sample => Path.Combine(AppContext.BaseDirectory, "Sample", "suwageval");

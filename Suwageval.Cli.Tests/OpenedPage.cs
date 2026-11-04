@@ -3,7 +3,6 @@ using System.Text;
 
 namespace Suwageval.Cli.Tests;
 
-/// <summary>Runs a command with <c>--open</c> against a stand-in API that answers every request with one JSON body, recording the pages the browser was asked to open.</summary>
 internal static class OpenedPage
 {
     public const string Site = "https://eval.example/";
@@ -21,8 +20,6 @@ internal static class OpenedPage
         }
     }
 
-    /// <param name="json">The body every request is answered with.</param>
-    /// <param name="args">The command and its arguments; <c>--open</c> and <c>--server</c> are added.</param>
     public static (int Exit, string Output, string Error, List<Uri> Opened, List<string> Paths) Run(string json, params string[] args)
     {
         var paths = new List<string>();

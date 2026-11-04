@@ -7,7 +7,6 @@ using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Cli.Tests.Evaluation.Compare;
 
-/// <summary>The command against a stand-in for the API, with the browser recorded instead of opened.</summary>
 public sealed class CompareCommandTests
 {
     private static readonly Guid First = Guid.Parse("11111111-2222-3333-4444-555555555551");

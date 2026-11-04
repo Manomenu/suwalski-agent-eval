@@ -2,46 +2,37 @@ import { seriesColor as chartSeriesColor, type ChartChange } from "../../charts/
 import { percentValue, seconds } from "../../format/numbers";
 import { type RunPassRates } from "./api";
 
-/** The series of every run's rate over all checks. */
 export const ALL_SERIES = "All";
 
-/** Said in the help of every trend chart: what its dashed lines mark. */
 export const CHANGE_MARKS_HELP = "A dashed line marks the run that started a new agent version or new retrieval data.";
 
-/** The trend needs this many points to be a line. */
 export const TREND_MIN_RUNS = 2;
 
-/** Keys of a chart row beside the series: a tag is never named like these (they start with `$`). */
+// Why: a tag is never named like these keys, because they start with a dollar sign
 export const RUN_KEY = "$run";
 export const LABEL_KEY = "$label";
 export const DETAILS_KEY = "$details";
-/** The run whose re-check the point shows; null when it shows the run's own results. */
 export const RECHECK_KEY = "$recheck";
 
-/** A point of the chart: the run, its short date, its version and model, and a percentage per series (`null`: no check with that tag). */
 export type TrendRow = Record<string, string | number | null>;
 
 const pad = (value: number) => String(value).padStart(2, "0");
 
-/** `16/10 14:05`, in the browser's time zone. */
 function shortDate(iso: string): string {
     const date = new Date(iso);
     return `${pad(date.getDate())}/${pad(date.getMonth() + 1)} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-/** What a chart reads from a point or from one of its tags (`RunPassRates` and `TagPassRate` both have these). */
 interface Reading {
     passRate: number;
     medianMs?: number | null;
     p95Ms?: number | null;
 }
 
-/** The number a chart plots from a reading, in the chart's own unit; null when the reading has none. */
 export type Measure = (reading: Reading) => number | null;
 
 const passRateMeasure: Measure = (reading) => percentValue(reading.passRate);
 
-/** Which turn time a chart shows. */
 export type TurnTimeStat = "median" | "p95";
 
 export function turnTimeMeasure(stat: TurnTimeStat): Measure {
@@ -51,12 +42,10 @@ export function turnTimeMeasure(stat: TurnTimeStat): Measure {
     };
 }
 
-/** The runs that made a call: only they have a turn time. */
 export function withTurnTimes(points: RunPassRates[]): RunPassRates[] {
     return points.filter((point) => point.medianMs != null);
 }
 
-/** "All" first, then every tag any run has, sorted. */
 export function trendSeries(points: RunPassRates[]): string[] {
     const tags = new Set(points.flatMap((point) => point.tags.map((tag) => tag.tag)));
     return [ALL_SERIES, ...[...tags].sort((a, b) => a.localeCompare(b))];
@@ -80,7 +69,7 @@ export function trendRows(points: RunPassRates[], measure: Measure = passRateMea
             [RECHECK_KEY]: point.recheckedBy ?? null,
         };
         for (const name of series) {
-            // A run limited to one tag says nothing about all checks: "All" comes only from runs of every scenario.
+            // Why: a run limited to one tag says nothing about all checks, so All comes only from runs of every scenario
             const reading: Reading | undefined =
                 name === ALL_SERIES ? (limitedTo(point).length === 0 ? point : undefined) : point.tags.find((tag) => tag.tag === name);
             row[name] = reading === undefined ? null : measure(reading);
@@ -89,20 +78,16 @@ export function trendRows(points: RunPassRates[], measure: Measure = passRateMea
     });
 }
 
-/** The row behind a tooltip's payload, or null when it is not one of ours. */
 export function asTrendRow(value: unknown): TrendRow | null {
     return typeof value === "object" && value !== null && RUN_KEY in value ? (value as TrendRow) : null;
 }
 
-/** A series' colour: "All" the main one, each tag an accent by its place among the series, so a line keeps its colour whatever is picked. */
 export function seriesColor(name: string, series: string[]): string {
     return name === ALL_SERIES ? chartSeriesColor(0) : chartSeriesColor(Math.max(series.indexOf(name), 1));
 }
 
-/** How many tags the charts draw beside "All" while none is picked. */
 export const DEFAULT_TAG_LINES = 10;
 
-/** The tags used most recently, newest first, at most `limit`: walks the points from the newest and takes each tag that has a reading there. */
 export function recentTags(points: readonly RunPassRates[], limit: number): string[] {
     const recent = new Set<string>();
     for (const point of [...points].reverse()) {
@@ -114,31 +99,23 @@ export function recentTags(points: readonly RunPassRates[], limit: number): stri
     return [...recent];
 }
 
-/** The series a chart draws: "All" always, then the picked tags it has, or the `recent` ones when none is picked. */
 export function shownSeries(series: readonly string[], picked: readonly string[], recent: readonly string[]): string[] {
     const tags = picked.length === 0 ? recent : picked;
     return series.filter((name) => name === ALL_SERIES || tags.includes(name));
 }
 
-/** The tags the charts can draw: every series but "All". */
 export function seriesTags(points: RunPassRates[]): string[] {
     return trendSeries(points).filter((name) => name !== ALL_SERIES);
 }
 
-/** Some point shows the results of a re-check, not of its own run: the chart says so. */
 export function hasRechecks(points: readonly RunPassRates[]): boolean {
     return points.some((point) => point.recheckedBy != null);
 }
 
-/** The series a run measured, in the legend's order: a line passing over a run that did not measure it shows no value there. */
 export function measuredSeries(row: TrendRow, series: readonly string[]): string[] {
     return series.filter((name) => typeof row[name] === "number");
 }
 
-/**
- * The charted runs (oldest first) that start a new agent version or new retrieval data, as the chart's changes keyed by run; none for
- * the first run. Data is compared with the last run that had any, so a run without retrieval neither starts nor breaks a change.
- */
 export function runChanges(points: readonly RunPassRates[], rows: readonly TrendRow[]): ChartChange[] {
     const charted = new Set(rows.map((row) => row[RUN_KEY]));
     const shown = points.filter((point) => charted.has(point.runId));

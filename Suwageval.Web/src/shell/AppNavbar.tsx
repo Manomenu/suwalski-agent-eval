@@ -5,14 +5,9 @@ import { useAgentFeatures } from "../agents/useAgentFeatures";
 import { agentEvaluationHref, agentHref, agentMonitoringHref, agentVersionsHref } from "../routes/links";
 import type { Navigation } from "./navigation";
 
-/**
- * The sidebar: the list of agents, and below it the agent whose pages are open, with its Versions and the areas it uses (Evaluation
- * unless switched off, Monitoring once switched on: `features:` in its agent.yaml). The nesting is drawn, not a NavLink with children:
- * Mantine turns the click on a NavLink with children into a toggle, and these are all links.
- */
+// Why: nesting is drawn by hand, not as a NavLink with children, because Mantine turns a click on such a NavLink into a toggle and these are all links
 export function AppNavbar({ agentName, active }: Navigation) {
     const features = useAgentFeatures(agentName);
-    // Until the agent is read, the defaults: Evaluation on, Monitoring off.
     const evaluation = features === null || areaOn(features, "evaluation");
     const monitoring = features !== null && areaOn(features, "monitoring");
     return (

@@ -176,7 +176,6 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         fake.ServeContract(SeededAgent.ExampleVersion);
         var back = await StartAsync(client, new RunRequest { Agent = agent.Name });
 
-        // The seeded version has the example agent's content, so the first run finds it.
         Assert.Equal((agent.VersionId, false), (first.AgentVersionId, first.VersionCreated));
         Assert.Equal((first.AgentVersionId, false), (second.AgentVersionId, second.VersionCreated));
         Assert.NotEqual(first.AgentVersionId, third.AgentVersionId);
@@ -327,12 +326,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         await AssertBadGatewayAsync(await Post(client, new RunRequest { Agent = agent.Name }), "404");
         fake.ServeContract(_ => Results.Text("<html>", "text/html"));
         await AssertBadGatewayAsync(await Post(client, new RunRequest { Agent = agent.Name }), "suwageval/contract");
-        fake.ServeContract(_ =>
-            Results.Text( /*lang=json,strict*/
-                """{"agents":"p"}""",
-                "application/json"
-            )
-        );
+        fake.ServeContract(_ => Results.Text("""{"agents":"p"}""", "application/json"));
         await AssertBadGatewayAsync(await Post(client, new RunRequest { Agent = agent.Name }), "does not match the contract");
         fake.ServeContract(SeededAgent.ExampleVersion with { Agents = [] });
         await AssertBadGatewayAsync(await Post(client, new RunRequest { Agent = agent.Name }), "agents: there is at least one agent");
@@ -427,11 +421,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
                     Key = "reason-fits",
                     ScenarioKey = "refund",
                     Tool = "refund_order",
-                    Args = JsonDocument
-                        .Parse( /*lang=json,strict*/
-                            """{"reason":{"$judge":{"description":"damaged"}}}"""
-                        )
-                        .RootElement.Clone(),
+                    Args = JsonDocument.Parse("""{"reason":{"$judge":{"description":"damaged"}}}""").RootElement.Clone(),
                 },
             ]
         );

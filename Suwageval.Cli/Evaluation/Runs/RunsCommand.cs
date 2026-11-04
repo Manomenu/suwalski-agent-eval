@@ -6,19 +6,10 @@ using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Cli.Evaluation.Runs;
 
-/// <summary>
-/// <c>suwageval runs</c>: the runs of the agent named in <c>suwageval/agent.yaml</c>, newest first — id, status, tags, version, checks
-/// passed of all, creation time, branch and a "reference" mark; <c>--limit</c> keeps the newest ones (default 10), <c>--version</c> (repeatable)
-/// those of the given agent versions, <c>--reference</c> only reference runs, <c>--tag</c> (repeatable) only the runs that ran the scenarios of any of the tags (limited to tags including one, or not limited), <c>--group</c> only the runs of a group, <c>--any-group</c> only the runs in some group, <c>--all-runs</c> grouped or not (the default is the runs in no group,
-/// like the web: group runs are experiments), <c>--groups</c> lists the groups instead (<c>--archived</c>: the archived ones too), <c>--json</c> prints the run summaries. It is how a
-/// run to compare with is found (<c>suwageval compare</c>). Exits 0, or 2 when the agent file or the server is wrong.
-/// </summary>
 internal static class RunsCommand
 {
     private const int DefaultLimit = 10;
 
-    /// <param name="http">The client to the API; none means one is made from <c>--server</c> or <c>SUWAGEVAL_URL</c> (the tests pass their own).</param>
-    /// <param name="openBrowser">Opens a page for <c>--open</c>; none means the system's default browser (the tests record the page instead).</param>
     public static Command Create(HttpClient? http = null, Action<Uri>? openBrowser = null)
     {
         var limit = new Option<int>("--limit")

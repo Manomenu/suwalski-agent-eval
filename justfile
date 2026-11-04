@@ -114,6 +114,11 @@ logs service="":
 criteria *args:
     @./Suwageval.Gate/scripts/criteria.sh "$@"
 
+# Move the pinned vdoc.py of the acceptance criteria check to the suwagent plugin's newest master
+[group('maintenance')]
+criteria-update:
+    @./Suwageval.Gate/scripts/criteria.sh --update
+
 # Browser tests of the whole app against a real server and database (also run by CI)
 [group('maintenance')]
 e2e *args:

@@ -4,14 +4,8 @@ using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Cli.Output;
 
-/// <summary>
-/// What <c>run --wait</c> prints about a run that has a regression summary: what it was compared with, then the checks that need attention
-/// (regressions, new failures and agent errors first, then already broken, fixed and unstable ones), known failures only as a count, and the totals.
-/// A failed check whose last passing run was on other retrieval data says "data changed": the failure may come from the data.
-/// </summary>
 internal static class RegressionText
 {
-    /// <summary>The width a section's heading is padded to when a note or a label follows it on the same line.</summary>
     private const int HeadingWidth = 36;
 
     public static string Describe(RunResults results)
@@ -99,7 +93,6 @@ internal static class RegressionText
         }
         var items = checks.Where(item => item.Check.Regression?.State == state).ToList();
         var heading = string.Create(CultureInfo.InvariantCulture, $"{mark} {count} {(count == 1 ? singular : plural)}");
-        // A section of one check with nothing to explain is one line: easier to read than a heading with a list under it.
         if (items.Count == 1 && !withMessage && detail is null)
         {
             text.AppendLine(
@@ -120,17 +113,12 @@ internal static class RegressionText
         }
     }
 
-    /// <summary>One check of a section: the label padded to the section's widest, so the strips line up, then the strip and the reason.</summary>
     private static string Line(string label, int width, string strip, string? why)
     {
         var line = strip.Length == 0 && why is null ? $"  {label}" : $"  {label.PadRight(width)}{strip}";
         return why is null ? line : $"{line}  {why}";
     }
 
-    /// <summary>
-    /// The check's history oldest first, then this run after an arrow: <c>✓✓✓✗ → ✗</c> (✓ passed, ✗ failed, – the agent gave no answer in this run). Empty, with no prefix,
-    /// when the check has no history.
-    /// </summary>
     internal static string Strip(CheckRunResult check, string prefix = "")
     {
         var history = check.Regression?.History ?? [];

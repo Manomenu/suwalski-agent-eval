@@ -7,7 +7,6 @@ using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Cli.Tests.Evaluation.Recheck;
 
-/// <summary>The command against a stand-in for the server: the plan it asks for first, what it starts, prints and exits with.</summary>
 public sealed class RecheckCommandTests
 {
     private static readonly Guid SourceId = Guid.Parse("aaaaaaaa-2222-3333-4444-555555555555");

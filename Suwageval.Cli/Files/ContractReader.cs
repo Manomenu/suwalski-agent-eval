@@ -6,7 +6,6 @@ using Suwageval.Contracts.Checks;
 
 namespace Suwageval.Cli.Files;
 
-/// <summary>Deserializes a part of a file into a contract record; what the contract rejects becomes a problem at its place in the file.</summary>
 internal static partial class ContractReader
 {
     public static T? Read<T>(YamlSource source, JsonNode? node, string path, List<Problem> problems)
@@ -29,7 +28,7 @@ internal static partial class ContractReader
         }
         catch (NotSupportedException e) when (e.Message.Contains("type discriminator", StringComparison.Ordinal))
         {
-            // System.Text.Json throws this, not a JsonException, when a polymorphic payload has no discriminator.
+            // Why: System.Text.Json throws this exception, not a JsonException, when a polymorphic payload has no discriminator
             problems.Add(
                 source.Problem(
                     path,

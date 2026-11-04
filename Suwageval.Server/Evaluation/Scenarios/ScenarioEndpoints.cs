@@ -7,7 +7,6 @@ using Suwageval.Server.Problems;
 
 namespace Suwageval.Server.Evaluation.Scenarios;
 
-/// <summary>The routes of scenarios, their revisions and tags.</summary>
 internal static class ScenarioEndpoints
 {
     public static void MapScenarios(this IEndpointRouteBuilder app)
@@ -44,7 +43,7 @@ internal static class ScenarioEndpoints
             return ProblemResults.Invalid(errors);
         }
 
-        // Tags are metadata: they stay out of the content, so changing them makes no new revision.
+        // Why: tags are metadata and stay out of the content, so changing them makes no new revision
         var items = request
             .Scenarios.Select(scenario => new ScenarioItem(
                 scenario.Key,
@@ -160,7 +159,7 @@ internal static class ScenarioEndpoints
         {
             return ProblemResults.Invalid(errors);
         }
-        // Looked up first, so that one unknown key changes nothing at all.
+        // Why: looked up first so that one unknown key changes nothing at all
         var live = (await store.ListAsync(row.Id, cancellationToken: cancellationToken)).Select(scenario => scenario.Key).ToHashSet();
         var unknown = request.ScenarioKeys.Distinct().Where(key => !live.Contains(key)).ToList();
         if (unknown.Count > 0)

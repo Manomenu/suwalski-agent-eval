@@ -1,7 +1,6 @@
 namespace Suwageval.Server.Evaluation.Scenarios;
 
-/// <summary>What an upsert needs to know about a scenario already stored: its latest revision and whether it is deleted.</summary>
-/// <remarks>Properties, not a constructor: Dapper cannot match a constructor to a <c>text[]</c> column.</remarks>
+// Why: properties, not a constructor, because Dapper cannot match a constructor to a text[] column
 internal sealed record ExistingScenario
 {
     public required Guid Id { get; init; }

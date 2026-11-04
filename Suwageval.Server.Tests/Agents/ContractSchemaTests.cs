@@ -18,7 +18,6 @@ public sealed class ContractSchemaTests
         var schema = ContractSchema.ObjectSchema(new JsonObject { ["mode"] = ContractSchema.EnumSchema<Mode>() }, "mode");
 
         Assert.Equal(
-            /*lang=json,strict*/
             """{"type":"object","properties":{"mode":{"type":"string","enum":["Fast","Slow"]}},"required":["mode"],"additionalProperties":false}""",
             JsonSerializer.Serialize(schema)
         );

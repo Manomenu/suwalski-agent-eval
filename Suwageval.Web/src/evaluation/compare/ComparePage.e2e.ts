@@ -1,6 +1,3 @@
-// The comparison page, from both of its entries: runs ticked on the agent page and a group opened from the Groups section (the same
-// page). It shows absolute values; a baseline is picked by a column's header and lives in the address. The agent is a tiny HTTP server; the runs come in two rounds, "before" (its first answer fails one check) and "after" (it
-// passes both), each round once outside a group and once in one.
 import { expect, test, type APIRequestContext } from "@playwright/test";
 
 import { createAgent, runToEnd, serveAgent, type RunningAgent, type ServedAgent } from "../../../e2e/helpers";
@@ -172,8 +169,6 @@ test("the comparison takes the whole width of a wide screen, and its table scrol
 });
 
 test("a prompt's diff reads from the baseline's version, whichever column the baseline is", async ({ page, request }) => {
-    // Three versions, oldest first; the baseline is the third and newest, so the server (which puts the older version first) gives
-    // each diff the other way round, and the page turns it back.
     const served: ServedAgent = { label: "p1", config: "Prompt one.", reply: "Hello." };
     const agentServer = await serveAgent(served);
     try {
@@ -188,7 +183,6 @@ test("a prompt's diff reads from the baseline's version, whichever column the ba
         const third = await runToEnd(request, { agent: name });
 
         await page.goto(`/compare?runs=${first},${second},${third}&baseline=${third}`);
-        // "What differs" is folded on the first view, says how many rows it holds, and stays as the person left it.
         const section = page.getByRole("button", { name: /^What differs · \d+$/ });
         const promptButton = page.getByRole("button", { name: "Prompt changed in p1: show the diff", exact: true });
         await expect(section).toHaveAttribute("aria-expanded", "false");
@@ -198,7 +192,6 @@ test("a prompt's diff reads from the baseline's version, whichever column the ba
         await expect(section).toHaveAttribute("aria-expanded", "true");
         await promptButton.click();
 
-        // The diff of p1's column only (p2's is in the page too, folded until it is opened or printed).
         const diff = page.getByRole("row").filter({ hasText: "Contract diff: p3 → p1" });
         await expect(diff).toBeVisible();
         await expect(diff.locator(".line-diff-row-removed", { hasText: "Prompt three." })).toBeVisible();

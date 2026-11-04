@@ -5,7 +5,6 @@ using Suwageval.Server.Problems;
 
 namespace Suwageval.Server.Agents;
 
-/// <summary>The routes of agents.</summary>
 internal static class AgentEndpoints
 {
     public static void MapAgents(this IEndpointRouteBuilder app)
@@ -40,7 +39,7 @@ internal static class AgentEndpoints
         {
             agent = await store.SetEndpointUrlAsync(agent.Id, definition.EndpointUrl, cancellationToken);
         }
-        // The pushed definition is the source of truth: leaving samples:, acGuardrailRetryLimit:, regression: or features: out puts the defaults back.
+        // Why: the pushed definition is the source of truth, so a setting left out of the push puts its default back
         var features = definition.Features ?? new AgentFeatures();
         if (
             agent.Samples != definition.Samples
@@ -106,7 +105,6 @@ internal static class AgentEndpoints
     private static Task<IResult> DeleteAgentAsync(string agent, AgentStore store, CancellationToken cancellationToken) =>
         RunAgentDeletionAsync(agent, dryRun: false, store, cancellationToken);
 
-    // The preview answers exactly what a deletion would: the same refusals, then what would go.
     private static async Task<IResult> RunAgentDeletionAsync(
         string agent,
         bool dryRun,

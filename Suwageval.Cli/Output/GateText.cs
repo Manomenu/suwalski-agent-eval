@@ -4,16 +4,10 @@ using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Cli.Output;
 
-/// <summary>
-/// What <c>suwageval gate</c> prints for a finished gate run, and the exit code it gives. Quiet: a gate that passed is one line; a gate
-/// that failed says, for each acceptance criterion that failed, every attempt's failed checks with the verdict's message and what the
-/// agent did in the last attempt, so the output alone tells what broke.
-/// </summary>
 internal static class GateText
 {
     private const string Indent = "  ";
 
-    /// <summary>0 when the gate passed, 1 when an acceptance criterion used up its attempts, 2 when the run did not finish.</summary>
     public static int ExitCode(RunResults results)
     {
         ArgumentNullException.ThrowIfNull(results);
@@ -30,6 +24,7 @@ internal static class GateText
             return [RunVerdict.Line(results)];
         }
         var guarded = results.Scenarios.Where(scenario => scenario.AcGuardrail is not null).ToList();
+        // Why: guarded holds only scenarios whose AcGuardrail is not null
         var passed = guarded.Count(scenario => scenario.AcGuardrail!.Passed == true);
         if (gate.Passed)
         {
@@ -37,10 +32,12 @@ internal static class GateText
         }
 
         var lines = new List<string>();
+        // Why: guarded holds only scenarios whose AcGuardrail is not null
         foreach (var scenario in guarded.Where(scenario => scenario.AcGuardrail!.Passed == false))
         {
             lines.AddRange(Failure(scenario));
         }
+        // Why: guarded holds only scenarios whose AcGuardrail is not null
         var stopped = guarded.Where(scenario => scenario.AcGuardrail!.Passed is null).Select(scenario => scenario.AcGuardrail!.Id).ToList();
         if (stopped.Count > 0)
         {
@@ -59,9 +56,9 @@ internal static class GateText
         return lines;
     }
 
-    /// <summary>A failed criterion: its line, each attempt's failed checks (or the agent's error), and what the agent did in the last one.</summary>
     private static IEnumerable<string> Failure(ScenarioRunResult scenario)
     {
+        // Why: only guarded scenarios reach this method, so AcGuardrail is not null
         var guardrail = scenario.AcGuardrail!;
         yield return string.Create(
             CultureInfo.InvariantCulture,
@@ -88,7 +85,7 @@ internal static class GateText
             yield return $"{Indent}what the agent did in the last attempt:";
             foreach (var item in output)
             {
-                // A model's answer often starts or ends with blank lines; in a log they only push the reason apart.
+                // Why: a model's answer often starts or ends with blank lines that only push the reason apart in a log
                 var shown = item is AssistantMessage message ? message with { Text = message.Text.Trim() } : item;
                 yield return $"{Indent}{Indent}{ConversationText.Item(shown)}";
             }

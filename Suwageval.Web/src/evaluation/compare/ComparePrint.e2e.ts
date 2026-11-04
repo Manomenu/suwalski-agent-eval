@@ -1,6 +1,3 @@
-// Printing the comparison: the same page on paper (print media, A4 landscape), PRINT_MAX_RUNS run columns inside the paper at their
-// printed width, every scenario row open, no control. The agent is a tiny HTTP server; the
-// runs are PRINT_MAX_RUNS of one group.
 import { expect, test, type Page } from "@playwright/test";
 
 import {
@@ -38,7 +35,6 @@ test.beforeAll(async ({ request }) => {
         { type: "text", key: "refund-mentioned", scenarioKey: "refunds", contains: "refund" },
     ];
     await createAgent(request, { name, endpointUrl: agentServer.endpointUrl, scenarios, checks });
-    // The first run's answer lacks the refund, the others have it: both scenarios differ between the columns.
     const first = await runToEnd(request, { agent: name, group });
     served.reply = "Hello, your refund is on its way.";
     const others = await Promise.all(Array.from({ length: PRINT_MAX_RUNS - 1 }, () => runToEnd(request, { agent: name, group })));
@@ -73,14 +69,12 @@ test("on paper PRINT_MAX_RUNS columns fit the paper at their printed width, ever
     await openForPaper(page, fitting());
 
     const table = page.getByRole("table").first();
-    // One pass in the page's own coordinates: the table's box and every header of its first row.
     const { box, heads, scrolls, pageOverflow } = await table.evaluate((element) => {
         const rect = element.getBoundingClientRect();
         const ths = Array.from(element.querySelectorAll(":scope > thead > tr > th")).map((th) => {
             const r = th.getBoundingClientRect();
             return { left: r.left, right: r.right, width: r.width };
         });
-        // Nothing is cut: neither the table's scroll container nor the page scrolls sideways.
         const container = element.closest(".mantine-Table-scrollContainer");
         return {
             box: { x: rect.left, width: rect.width },

@@ -3,15 +3,10 @@ import { formatSeconds } from "../../format/numbers";
 
 type SampleResult = ScenarioRunResult["samples"][number];
 
-/** A sample of a simulated scenario: only those carry the time of each turn. */
 export function isSimulated(sample: SampleResult): boolean {
     return sample.turnDurationsMs != null;
 }
 
-/**
- * A simulation's output turn by turn, as the server splits it: every user message (the simulated user's — the agent never produces one)
- * opens a turn, and what comes before the first one is the turn the agent started.
- */
 export function simulationTurns(items: ConversationItem[]): ConversationItem[][] {
     const turns: ConversationItem[][] = [];
     let turn: ConversationItem[] = [];
@@ -26,7 +21,6 @@ export function simulationTurns(items: ConversationItem[]): ConversationItem[][]
     return turns;
 }
 
-/** The title of a sample's output: "Agent output, sample 2 · 1.2 s", or for a simulation "Conversation, sample 2 · 3 turns · ended by the user · 4.0 s". */
 export function sampleTitle(sample: SampleResult): string {
     const parts = [isSimulated(sample) ? `Conversation, sample ${String(sample.sample)}` : `Agent output, sample ${String(sample.sample)}`];
     const turns = sample.turnDurationsMs?.length;

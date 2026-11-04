@@ -9,15 +9,7 @@ using Suwageval.Server.Verdicts;
 
 namespace Suwageval.Server.Judges;
 
-/// <summary>
-/// The verdict of a <c>judge</c> check (docs/scenario-format.md): a model reads the conversation, the part of the agent's output
-/// the check looks at and the criteria, and answers <c>{ "passed", "reason" }</c>. The reason is the check's message.
-/// </summary>
-/// <remarks>
-/// A judge that cannot judge — the model is unreachable or too slow, or its answer is not the JSON asked for — is never an
-/// exception: the verdict is "failed" and <see cref="CheckVerdict.NotJudged"/>, so the run goes on and the result says
-/// the sample was not judged, which is not the same as judged failed. Calls go through the model's shared, limited client.
-/// </remarks>
+// Why: a judge that cannot judge is never an exception: the verdict is failed and flagged not judged, which is not the same as judged failed
 internal sealed class Judge(ModelClients models, IOptions<JudgeOptions> options)
 {
     private const string Instructions = """
@@ -33,10 +25,8 @@ internal sealed class Judge(ModelClients models, IOptions<JudgeOptions> options)
 
     private static readonly JsonSerializerOptions Json = ContractJson.Options;
 
-    /// <summary>The entry under <c>Models</c> that gives the verdicts: the one <c>Judge:Model</c> names, else the fallback; null when neither is configured.</summary>
     private string? Entry => EntryOf(models, options.Value);
 
-    /// <summary>The entry the judges call: the one <c>Judge:Model</c> names when configured, else the fallback; null when neither is.</summary>
     public static string? EntryOf(ModelClients models, JudgeOptions options)
     {
         ArgumentNullException.ThrowIfNull(models);
@@ -44,10 +34,8 @@ internal sealed class Judge(ModelClients models, IOptions<JudgeOptions> options)
         return models.EntryFor(string.IsNullOrWhiteSpace(options.Model) ? ModelClients.FallbackEntry : options.Model.Trim());
     }
 
-    /// <summary>Whether judge checks can run: a model for them is configured (its own or the fallback).</summary>
     public bool IsConfigured => Entry is not null;
 
-    /// <summary>The name of the model that gives the verdicts (its <c>Model</c> setting); null when none is configured.</summary>
     public string? ModelName => Entry is { } entry ? models.ModelNameOf(entry) : null;
 
     [SuppressMessage(

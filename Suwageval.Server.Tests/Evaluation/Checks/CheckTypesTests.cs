@@ -6,15 +6,10 @@ using static Suwageval.Server.Tests.Evaluation.Checks.Items;
 
 namespace Suwageval.Server.Tests.Evaluation.Checks;
 
-/// <summary>
-/// Every kind of check (a subtype of <see cref="CheckInput"/>) is handled everywhere: documented, validated by the shared rules,
-/// evaluated by the server and shown by the web. Adding a subtype fails these until each place knows it — the failure names the type.
-/// </summary>
 public sealed class CheckTypesTests
 {
     private static readonly string RepoRoot = FindRepoRoot();
 
-    /// <summary>One valid check of each type; the test below makes sure none is missing.</summary>
     private static readonly Dictionary<Type, CheckInput> Samples = new CheckInput[]
     {
         new ToolCalledCheck

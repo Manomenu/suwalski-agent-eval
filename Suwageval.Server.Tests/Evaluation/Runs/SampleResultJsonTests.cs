@@ -5,10 +5,9 @@ using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Server.Tests.Evaluation.Runs;
 
-/// <summary>A client older than simulations refuses unknown fields, so a sample of one turn carries none of theirs.</summary>
+// Why: a client older than simulations refuses unknown fields, so a one-turn sample must carry none of theirs
 public sealed class SampleResultJsonTests
 {
-    // The server's response options (Api/ServerApp.cs): the contract's rules, an unset field absent.
     private static readonly JsonSerializerOptions Response = new(ContractJson.Options)
     {
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,

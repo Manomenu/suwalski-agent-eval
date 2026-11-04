@@ -25,15 +25,8 @@ using Suwageval.Cli.Versions;
 
 namespace Suwageval.Cli;
 
-/// <summary>The command tree. Streams come in as arguments so the tests can talk to it without the console.</summary>
 internal static class CliApp
 {
-    // http: the client the commands reach the outside with (the API for push, run and results, the agent for validate); null makes their own.
-    // openBrowser: how results, compare, versions and the list commands open a page; null is the system's browser.
-    // interactive: whether a person answers on input; without one, nothing is asked.
-    // origins: how run reads the repository and the CI environment; null is the real ones.
-    // shell, labelPollInterval: how sweep runs its command lines and how often it reads the agent's label; null is the real shell and 2 s.
-    // interrupt: Ctrl+C (Program.cs). It cancels what a command does; run --wait asks then whether to cancel the run too.
     public static int Run(
         string[] args,
         TextReader input,
@@ -49,8 +42,7 @@ internal static class CliApp
     )
     {
         var root = Create(new Terminal(input, interactive), input, http, openBrowser, origins, shell, labelPollInterval);
-        // No termination timeout: System.CommandLine would otherwise handle Ctrl+C itself and end the process two seconds later,
-        // in the middle of the question run --wait asks. Ctrl+C reaches the commands through interrupt instead.
+        // Why: System.CommandLine would otherwise end the process two seconds after Ctrl+C, in the middle of the question run --wait asks
         return root.Parse(args)
             .InvokeAsync(
                 new InvocationConfiguration
@@ -65,7 +57,6 @@ internal static class CliApp
             .GetResult();
     }
 
-    /// <summary>The command tree, its help listed by section; <see cref="Run"/> parses and invokes it.</summary>
     public static RootCommand Create(
         Terminal terminal,
         TextReader input,

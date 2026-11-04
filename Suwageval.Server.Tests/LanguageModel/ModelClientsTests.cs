@@ -11,7 +11,6 @@ using Suwageval.Server.Tests.Judges;
 
 namespace Suwageval.Server.Tests.LanguageModel;
 
-/// <summary>The pool of calls per model: its limit, its time limit, that it is one per model, and the configuration that makes it.</summary>
 [SuppressMessage(
     "Reliability",
     "CA2000:Dispose objects before losing scope",
@@ -23,7 +22,6 @@ public sealed class ModelClientsTests
 
     private static readonly ChatMessage[] Question = [new(ChatRole.User, "?")];
 
-    /// <summary>A model that counts its calls in flight and holds each one for a moment.</summary>
     private sealed class Counting
     {
         private int inFlight;
@@ -66,7 +64,6 @@ public sealed class ModelClientsTests
 
         Assert.Same(clients.Get("fallback"), clients.Get("FALLBACK"));
 
-        // Two judges (two runs, say) on the same clients compete for the same three slots.
         var options = Options.Create(new JudgeOptions { Model = "judge" });
         var first = new Judge(clients, options);
         var second = new Judge(clients, options);
@@ -113,7 +110,6 @@ public sealed class ModelClientsTests
         using var limited = new LimitedChatClient(model, 1, TimeSpan.FromMilliseconds(50));
 
         var first = await Assert.ThrowsAsync<TimeoutException>(() => limited.GetResponseAsync(Question, cancellationToken: Cancellation));
-        // The one slot is free again: a second call is let in (and times out the same way) instead of waiting forever.
         await Assert.ThrowsAsync<TimeoutException>(() => limited.GetResponseAsync(Question, cancellationToken: Cancellation));
 
         Assert.Contains("did not answer", first.Message, StringComparison.Ordinal);

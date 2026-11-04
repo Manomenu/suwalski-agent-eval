@@ -65,7 +65,7 @@ public static class SuwagevalBaggage
         return encoded.ToString();
     }
 
-    // baggage-octet = %x21 / %x23-2B / %x2D-3A / %x3C-5B / %x5D-7E, minus % itself, which starts an escape
+    // Why: baggage-octet = %x21 / %x23-2B / %x2D-3A / %x3C-5B / %x5D-7E, minus % itself, which starts an escape
     private static bool IsBaggageOctet(byte octet) =>
         octet
             is 0x21

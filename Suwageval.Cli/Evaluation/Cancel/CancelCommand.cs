@@ -4,14 +4,8 @@ using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Cli.Evaluation.Cancel;
 
-/// <summary>
-/// <c>suwageval cancel &lt;runId&gt;</c>: asks the server to stop a run. A queued run is cancelled at once, a running one finishes the
-/// samples in flight and stops before the next. A run that is already over is left as it is and said so. Prints the run's page; exits 0,
-/// or 2 for an unknown run or a server that does not answer.
-/// </summary>
 internal static class CancelCommand
 {
-    /// <param name="http">The client to the API; none means one is made from <c>--server</c> or <c>SUWAGEVAL_URL</c> (the tests pass their own).</param>
     public static Command Create(HttpClient? http = null)
     {
         var runId = new Argument<Guid>("runId") { Description = "The run to stop, as `suwageval run` printed it." };

@@ -6,16 +6,10 @@ using static ArchUnitNET.Fluent.ArchRuleDefinition;
 
 namespace Suwageval.Server.Tests;
 
-/// <summary>
-/// The import contracts of <c>Suwageval.AgentSdk</c> (AGENTS.md, section 4), the same rule as the server's. <c>"."</c> is the
-/// root namespace (<c>ContractJson</c>). EVERY namespace of the SDK has a place in <see cref="Layers"/>. It has no test project of
-/// its own, so its tests live here.
-/// </summary>
 public sealed class AgentSdkContractsTests
 {
     private const string Root = "Suwageval.AgentSdk";
 
-    /// <summary>Top to bottom: the monitoring sends what the agent records, named by its contract; the endpoints use the contract and the log items, which use only the JSON options.</summary>
     private static readonly string[] Layers = ["Monitoring", "Invocation", "Agents | Conversations", "."];
 
     private static readonly Architecture Sdk = new ArchLoader().LoadAssemblies(typeof(ContractJson).Assembly).Build();

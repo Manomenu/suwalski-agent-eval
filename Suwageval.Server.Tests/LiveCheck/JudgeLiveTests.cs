@@ -9,12 +9,6 @@ using static Suwageval.Server.Tests.Evaluation.Checks.Items;
 
 namespace Suwageval.Server.Tests.LiveCheck;
 
-/// <summary>
-/// The judge against the REAL model — left out of the gate (<c>check.sh</c> filters the trait), run by
-/// <c>scripts/.internal/live-check.sh</c>: the model can change its answer without a commit here (AGENTS.md, section 3,
-/// "An outside service"). The model comes from the server's own configuration (<c>appsettings.json</c>, copied to the test output:
-/// <c>Judge:Model</c>) with the environment on top (<c>Models__fallback__BaseUrl</c>, <c>Models__fallback__Model</c>, from <c>.env</c>).
-/// </summary>
 public sealed class JudgeLiveTests
 {
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
@@ -78,7 +72,6 @@ public sealed class JudgeLiveTests
         ScenarioKey = "s",
         Tool = "refund_order",
         Args = Json(
-            /*lang=json,strict*/
             """
             {"order_id":"A-17","reason":{"$judge":{"description":"Says the item arrived damaged or broken","examples":["kettle arrived broken","damaged on delivery"]}}}
             """

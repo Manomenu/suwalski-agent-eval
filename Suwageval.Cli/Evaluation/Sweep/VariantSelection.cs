@@ -2,16 +2,11 @@ using System.Globalization;
 
 namespace Suwageval.Cli.Evaluation.Sweep;
 
-/// <summary>The numbered list <c>suwageval sweep --select</c> shows and the reading of the answer to it.</summary>
 internal static class VariantSelection
 {
     public static string Menu(IReadOnlyList<string> variants) =>
         string.Join(Environment.NewLine, variants.Select((variant, index) => $"  {index + 1}) {variant}"));
 
-    /// <summary>
-    /// The variants an answer picks, in the list's order and without repeats: <c>all</c>, or numbers and ranges (<c>1,3</c>, <c>2-4</c>)
-    /// separated by commas or spaces. Null with <paramref name="problem"/> when the answer picks nothing or something not in the list.
-    /// </summary>
     public static List<string>? Parse(string answer, IReadOnlyList<string> variants, out string problem)
     {
         problem = "";

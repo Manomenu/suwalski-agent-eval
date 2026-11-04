@@ -8,19 +8,12 @@ import { versionInUseHref, compareGroupHref, runHref } from "../../routes/links"
 import { formatTime } from "../../format/time";
 import { shortId } from "../../format/names";
 
-/**
- * The button that makes a column the baseline (or, on the baseline itself, takes it back). The changes against the baseline are in the
- * table's rows, never here: the header keeps its height, so the button stays where it was clicked.
- */
+// Why: the header keeps its height whatever the baseline changes are, so the button stays where it was clicked
 export interface BaselineInfo {
     isBaseline: boolean;
     onToggleBaseline: () => void;
 }
 
-/**
- * The header of one run's column. Every line says what it is — label, version, run, models, tags, group, date — and a link's text says
- * where it leads: the version's page, the run's page, the group's page.
- */
 export function ColumnHeader({ agent, variant, baseline }: { agent: string; variant: VariantRun; baseline: BaselineInfo | null }) {
     const { run } = variant;
     const labelled = run.label?.trim() ? true : false;
@@ -49,7 +42,7 @@ export function ColumnHeader({ agent, variant, baseline }: { agent: string; vari
             )}
             {run.note?.trim() && (
                 <>
-                    {/* One line on the screen, the whole note in its tooltip; on paper the whole note, wrapped. */}
+                    {/* Why: one line on screen with the whole note in its tooltip, but on paper the whole note wrapped */}
                     <Tooltip label={run.note} multiline maw={360} style={{ whiteSpace: "pre-wrap" }}>
                         <Text size="xs" fw="normal" lineClamp={1} className="no-print">
                             Note: {run.note}
@@ -75,7 +68,6 @@ export function ColumnHeader({ agent, variant, baseline }: { agent: string; vari
 
 function BaselineButton({ baseline, runId }: { baseline: BaselineInfo; runId: string }) {
     const { isBaseline } = baseline;
-    // On paper the baseline is named, and the button that picks one is gone.
     return (
         <>
             {isBaseline && (

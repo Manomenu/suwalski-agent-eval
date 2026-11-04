@@ -9,14 +9,12 @@ using Suwageval.Server.Evaluation.Scenarios;
 
 namespace Suwageval.Server.Tests.Evaluation.Runs.Trend;
 
-/// <summary>The pass-rate trend endpoint over a realistic history: its numbers are pinned, whatever way they are computed.</summary>
 public sealed class PassRatesEndpointTests(TestDatabase database) : IAsyncDisposable
 {
     private readonly WebApplicationFactory<Program> app = RunTestApp.Create();
 
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
 
-    /// <summary>One stored sample: the scenario, its number, the duration (null: the agent made no call) and the verdicts by check key.</summary>
     private sealed record Sample(string Scenario, int Number, int? DurationMs, params (string Check, bool Passed)[] Verdicts);
 
     private async Task<Guid> RunAsync(

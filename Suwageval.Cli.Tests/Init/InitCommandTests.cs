@@ -1,6 +1,5 @@
 namespace Suwageval.Cli.Tests.Init;
 
-/// <summary>The command on a real temporary folder; it never calls a server.</summary>
 public sealed class InitCommandTests : IDisposable
 {
     private readonly string repo = Directory.CreateTempSubdirectory("suwageval-init-").FullName;

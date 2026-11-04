@@ -9,10 +9,6 @@ import { createRoot } from "react-dom/client";
 
 import { App } from "./App";
 
-// Catppuccin Mocha (https://catppuccin.com/palette), the dark flavour, and only that one: the app is always dark.
-// `dark` carries Mocha's surfaces and text, lightest first (Mantine's order): text, subtext 1 and 0, overlay 1, surface 2, 1, 0,
-// base (the page), mantle, crust. Each accent is a tuple around Mocha's colour at shade 5 (lighter towards white, darker towards
-// crust), so Mantine's named colours — red failed, green passed, yellow not judged — are Mocha's.
 const dark: MantineColorsTuple = [
     "#cdd6f4",
     "#bac2de",
@@ -139,7 +135,7 @@ const theme = createTheme({
     colors: { dark, gray, mauve, red, green, yellow, blue, orange, teal, pink },
     primaryColor: "mauve",
     primaryShade: 5,
-    // Mocha's accents are pastel: text on a filled one is dark, picked by Mantine.
+    // Why: Mocha's accents are pastel, so text on a filled one must be dark, which Mantine picks
     autoContrast: true,
     black: "#11111b",
     defaultRadius: "md",

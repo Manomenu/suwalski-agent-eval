@@ -38,10 +38,7 @@ public sealed class CheckEvaluatorTests
     [Fact]
     public void Tool_called_passes_with_the_call_as_evidence()
     {
-        var call = Call(
-            "get_order", /*lang=json,strict*/
-            """{"order_id":"A-17"}"""
-        );
+        var call = Call("get_order", """{"order_id":"A-17"}""");
 
         var verdict = Run(Called("get_order"), Turn(call, Say("hi")));
 
@@ -62,37 +59,17 @@ public sealed class CheckEvaluatorTests
     [Fact]
     public void Tool_called_matches_args_as_a_subset()
     {
-        var call = Call(
-            "refund_order", /*lang=json,strict*/
-            """{"order_id":"A-17","reason":"broken"}"""
-        );
+        var call = Call("refund_order", """{"order_id":"A-17","reason":"broken"}""");
 
-        Assert.True(
-            Run(
-                Called(
-                    "refund_order", /*lang=json,strict*/
-                    """{"order_id":"A-17"}"""
-                ),
-                Turn(call)
-            ).Passed
-        );
+        Assert.True(Run(Called("refund_order", """{"order_id":"A-17"}"""), Turn(call)).Passed);
     }
 
     [Fact]
     public void Tool_called_with_other_args_fails_and_shows_the_near_miss()
     {
-        var call = Call(
-            "refund_order", /*lang=json,strict*/
-            """{"order_id":"A-18"}"""
-        );
+        var call = Call("refund_order", """{"order_id":"A-18"}""");
 
-        var verdict = Run(
-            Called(
-                "refund_order", /*lang=json,strict*/
-                """{"order_id":"A-17"}"""
-            ),
-            Turn(call)
-        );
+        var verdict = Run(Called("refund_order", """{"order_id":"A-17"}"""), Turn(call));
 
         Assert.False(verdict.Passed);
         Assert.Equal([call], verdict.Evidence);
@@ -102,24 +79,10 @@ public sealed class CheckEvaluatorTests
     [Fact]
     public void Tool_called_passes_when_any_of_several_calls_matches()
     {
-        var wrong = Call(
-            "get_order", /*lang=json,strict*/
-            """{"order_id":"A-1"}""",
-            "1"
-        );
-        var right = Call(
-            "get_order", /*lang=json,strict*/
-            """{"order_id":"A-17"}""",
-            "2"
-        );
+        var wrong = Call("get_order", """{"order_id":"A-1"}""", "1");
+        var right = Call("get_order", """{"order_id":"A-17"}""", "2");
 
-        var verdict = Run(
-            Called(
-                "get_order", /*lang=json,strict*/
-                """{"order_id":"A-17"}"""
-            ),
-            Turn(wrong, right)
-        );
+        var verdict = Run(Called("get_order", """{"order_id":"A-17"}"""), Turn(wrong, right));
 
         Assert.True(verdict.Passed);
         Assert.Equal([right], verdict.Evidence);
@@ -217,20 +180,11 @@ public sealed class CheckEvaluatorTests
     [Fact]
     public void Event_passes_on_the_type_and_on_a_data_subset()
     {
-        var emitted = Emit(
-            "state.changed", /*lang=json,strict*/
-            """{"node":"refunded","orderId":"A-17"}"""
-        );
+        var emitted = Emit("state.changed", """{"node":"refunded","orderId":"A-17"}""");
         var trace = Turn(emitted);
 
         Assert.True(Run(EventOf("state.changed"), trace).Passed);
-        var verdict = Run(
-            EventOf(
-                "state.changed", /*lang=json,strict*/
-                """{"node":"refunded"}"""
-            ),
-            trace
-        );
+        var verdict = Run(EventOf("state.changed", """{"node":"refunded"}"""), trace);
         Assert.True(verdict.Passed);
         Assert.Equal([emitted], verdict.Evidence);
     }
@@ -238,19 +192,10 @@ public sealed class CheckEvaluatorTests
     [Fact]
     public void Event_fails_for_another_type_other_data_or_no_event()
     {
-        var emitted = Emit(
-            "state.changed", /*lang=json,strict*/
-            """{"node":"open"}"""
-        );
+        var emitted = Emit("state.changed", """{"node":"open"}""");
 
         Assert.False(Run(EventOf("other"), Turn(emitted)).Passed);
-        var wrongData = Run(
-            EventOf(
-                "state.changed", /*lang=json,strict*/
-                """{"node":"refunded"}"""
-            ),
-            Turn(emitted)
-        );
+        var wrongData = Run(EventOf("state.changed", """{"node":"refunded"}"""), Turn(emitted));
         Assert.False(wrongData.Passed);
         Assert.Equal([emitted], wrongData.Evidence);
         Assert.False(Run(EventOf("state.changed"), Turn(Say("x"))).Passed);
@@ -414,30 +359,13 @@ public sealed class CheckEvaluatorTests
     public void Tool_called_with_a_result_needs_the_result_of_that_call_to_contain_it()
     {
         var call = Call("get_order", id: "c1");
-        var answer = Result(
-            "c1", /*lang=json,strict*/
-            """{"status":"delivered","total":12}"""
-        );
+        var answer = Result("c1", """{"status":"delivered","total":12}""");
 
-        var verdict = Run(
-            CalledWithResult(
-                "get_order", /*lang=json,strict*/
-                """{"status":"delivered"}"""
-            ),
-            Turn(call, answer)
-        );
+        var verdict = Run(CalledWithResult("get_order", """{"status":"delivered"}"""), Turn(call, answer));
 
         Assert.True(verdict.Passed);
         Assert.Equal<ConversationItem>([call, answer], verdict.Evidence);
-        Assert.False(
-            Run(
-                CalledWithResult(
-                    "get_order", /*lang=json,strict*/
-                    """{"status":"lost"}"""
-                ),
-                Turn(call, answer)
-            ).Passed
-        );
+        Assert.False(Run(CalledWithResult("get_order", """{"status":"lost"}"""), Turn(call, answer)).Passed);
     }
 
     [Fact]
@@ -445,13 +373,7 @@ public sealed class CheckEvaluatorTests
     {
         var call = Call("get_order", id: "c1");
 
-        var verdict = Run(
-            CalledWithResult(
-                "get_order", /*lang=json,strict*/
-                """{"status":"delivered"}"""
-            ),
-            Turn(call, Result("other"))
-        );
+        var verdict = Run(CalledWithResult("get_order", """{"status":"delivered"}"""), Turn(call, Result("other")));
 
         Assert.False(verdict.Passed);
         Assert.Equal<ConversationItem>([call], verdict.Evidence);
@@ -462,18 +384,9 @@ public sealed class CheckEvaluatorTests
     public void A_result_that_does_not_match_is_said_so_with_the_result_as_evidence()
     {
         var call = Call("get_order", id: "c1");
-        var answer = Result(
-            "c1", /*lang=json,strict*/
-            """{"status":"delivered"}"""
-        );
+        var answer = Result("c1", """{"status":"delivered"}""");
 
-        var verdict = Run(
-            CalledWithResult(
-                "get_order", /*lang=json,strict*/
-                """{"status":"lost"}"""
-            ),
-            Turn(call, answer)
-        );
+        var verdict = Run(CalledWithResult("get_order", """{"status":"lost"}"""), Turn(call, answer));
 
         Assert.Equal<ConversationItem>([call, answer], verdict.Evidence);
         Assert.Contains("not with a result containing", verdict.Message, StringComparison.Ordinal);
@@ -486,50 +399,17 @@ public sealed class CheckEvaluatorTests
         var plain = Turn(call, Result("c1", "order not found"));
 
         Assert.True(Run(CalledWithResult("get_order", "\"order not found\""), plain).Passed);
-        Assert.True(
-            Run(
-                CalledWithResult(
-                    "get_order", /*lang=json,strict*/
-                    """{"$pattern":"not found$"}"""
-                ),
-                plain
-            ).Passed
-        );
-        Assert.False(
-            Run(
-                CalledWithResult(
-                    "get_order", /*lang=json,strict*/
-                    """{"status":"x"}"""
-                ),
-                plain
-            ).Passed
-        );
+        Assert.True(Run(CalledWithResult("get_order", """{"$pattern":"not found$"}"""), plain).Passed);
+        Assert.False(Run(CalledWithResult("get_order", """{"status":"x"}"""), plain).Passed);
     }
 
     [Fact]
     public void The_result_is_looked_for_in_the_whole_trace_not_only_in_the_scope()
     {
         var call = Call("get_order", id: "c1");
-        var check = CalledWithResult(
-            "get_order", /*lang=json,strict*/
-            """{"ok":true}"""
-        ) with
-        {
-            Where = new CheckWhere { After = "start" },
-        };
+        var check = CalledWithResult("get_order", """{"ok":true}""") with { Where = new CheckWhere { After = "start" } };
 
-        var verdict = Run(
-            check,
-            Turn(
-                Emit("start"),
-                call,
-                Emit("end"),
-                Result(
-                    "c1", /*lang=json,strict*/
-                    """{"ok":true}"""
-                )
-            )
-        );
+        var verdict = Run(check, Turn(Emit("start"), call, Emit("end"), Result("c1", """{"ok":true}""")));
 
         Assert.True(verdict.Passed);
     }
@@ -537,94 +417,23 @@ public sealed class CheckEvaluatorTests
     [Fact]
     public void The_result_expectation_applies_to_the_calls_that_match_the_arguments()
     {
-        var wrong = Call(
-            "get_order", /*lang=json,strict*/
-            """{"order_id":"B"}""",
-            id: "c1"
-        );
-        var right = Call(
-            "get_order", /*lang=json,strict*/
-            """{"order_id":"A"}""",
-            id: "c2"
-        );
-        var trace = Turn(
-            wrong,
-            right,
-            Result(
-                "c1", /*lang=json,strict*/
-                """{"ok":true}"""
-            ),
-            Result(
-                "c2", /*lang=json,strict*/
-                """{"ok":false}"""
-            )
-        );
-        var okTrue = /*lang=json,strict*/
-            """{"ok":true}""";
+        var wrong = Call("get_order", """{"order_id":"B"}""", id: "c1");
+        var right = Call("get_order", """{"order_id":"A"}""", id: "c2");
+        var trace = Turn(wrong, right, Result("c1", """{"ok":true}"""), Result("c2", """{"ok":false}"""));
+        var okTrue = """{"ok":true}""";
 
-        Assert.False(
-            Run(
-                CalledWithResult(
-                    "get_order",
-                    okTrue, /*lang=json,strict*/
-                    """{"order_id":"A"}"""
-                ),
-                trace
-            ).Passed
-        );
-        Assert.True(
-            Run(
-                CalledWithResult(
-                    "get_order",
-                    okTrue, /*lang=json,strict*/
-                    """{"order_id":"B"}"""
-                ),
-                trace
-            ).Passed
-        );
+        Assert.False(Run(CalledWithResult("get_order", okTrue, """{"order_id":"A"}"""), trace).Passed);
+        Assert.True(Run(CalledWithResult("get_order", okTrue, """{"order_id":"B"}"""), trace).Passed);
     }
 
     [Fact]
     public void A_pattern_in_the_arguments_matches_a_string_by_regular_expression()
     {
-        var check = Called(
-            "lookup", /*lang=json,strict*/
-            """{"zip":{"$pattern":"(?i)^\\s*12345\\s*$"}}"""
-        );
+        var check = Called("lookup", """{"zip":{"$pattern":"(?i)^\\s*12345\\s*$"}}""");
 
-        Assert.True(
-            Run(
-                check,
-                Turn(
-                    Call(
-                        "lookup", /*lang=json,strict*/
-                        """{"zip":" 12345 "}"""
-                    )
-                )
-            ).Passed
-        );
-        Assert.False(
-            Run(
-                check,
-                Turn(
-                    Call(
-                        "lookup", /*lang=json,strict*/
-                        """{"zip":"12346"}"""
-                    )
-                )
-            ).Passed
-        );
-        Assert.False(
-            Run(
-                check,
-                Turn(
-                    Call(
-                        "lookup", /*lang=json,strict*/
-                        """{"zip":12345}"""
-                    )
-                )
-            ).Passed
-        );
+        Assert.True(Run(check, Turn(Call("lookup", """{"zip":" 12345 "}"""))).Passed);
+        Assert.False(Run(check, Turn(Call("lookup", """{"zip":"12346"}"""))).Passed);
+        Assert.False(Run(check, Turn(Call("lookup", """{"zip":12345}"""))).Passed);
     }
 
     private static EventNotEmittedCheck NotEmitted(string type, string? data = null, CheckWhere? where = null) =>
@@ -650,10 +459,7 @@ public sealed class CheckEvaluatorTests
     [Fact]
     public void Event_not_emitted_fails_with_the_events_as_evidence()
     {
-        var emitted = Emit(
-            "procedure.started", /*lang=json,strict*/
-            """{"name":"refund"}"""
-        );
+        var emitted = Emit("procedure.started", """{"name":"refund"}""");
 
         var verdict = Run(NotEmitted("procedure.started"), Turn(emitted));
 
@@ -664,28 +470,11 @@ public sealed class CheckEvaluatorTests
     [Fact]
     public void Event_not_emitted_with_data_only_counts_events_whose_data_contains_it()
     {
-        var other = Emit(
-            "procedure.started", /*lang=json,strict*/
-            """{"name":"cancel"}"""
-        );
-        var check = NotEmitted(
-            "procedure.started", /*lang=json,strict*/
-            """{"name":"refund"}"""
-        );
+        var other = Emit("procedure.started", """{"name":"cancel"}""");
+        var check = NotEmitted("procedure.started", """{"name":"refund"}""");
 
         Assert.True(Run(check, Turn(other)).Passed);
-        Assert.False(
-            Run(
-                check,
-                Turn(
-                    other,
-                    Emit(
-                        "procedure.started", /*lang=json,strict*/
-                        """{"name":"refund","x":1}"""
-                    )
-                )
-            ).Passed
-        );
+        Assert.False(Run(check, Turn(other, Emit("procedure.started", """{"name":"refund","x":1}"""))).Passed);
     }
 
     [Fact]
@@ -747,8 +536,7 @@ public sealed class CheckEvaluatorTests
         Assert.True(Run(check, Turns([Say("b")], [cited])).Passed);
     }
 
-    private const string ReasonMatcher = /*lang=json,strict*/
-        """{"order_id":"A-17","reason":{"$judge":{"description":"damaged"}}}""";
+    private const string ReasonMatcher = """{"order_id":"A-17","reason":{"$judge":{"description":"damaged"}}}""";
 
     [Fact]
     public void A_check_with_a_judge_matcher_is_not_evaluated_here_because_a_model_has_the_last_word()
@@ -763,47 +551,19 @@ public sealed class CheckEvaluatorTests
     public void Only_tool_called_and_event_checks_with_a_matcher_use_the_judge()
     {
         Assert.False(CheckEvaluator.UsesJudge(Called("refund_order")));
-        Assert.False(
-            CheckEvaluator.UsesJudge(
-                Called(
-                    "refund_order", /*lang=json,strict*/
-                    """{"order_id":"A-17"}"""
-                )
-            )
-        );
+        Assert.False(CheckEvaluator.UsesJudge(Called("refund_order", """{"order_id":"A-17"}""")));
         Assert.False(CheckEvaluator.UsesJudge(TextOf(contains: "x")));
-        Assert.True(
-            CheckEvaluator.UsesJudge(
-                EventOf(
-                    "state.changed", /*lang=json,strict*/
-                    """{"x":[{"$judge":{"description":"d"}}]}"""
-                )
-            )
-        );
+        Assert.True(CheckEvaluator.UsesJudge(EventOf("state.changed", """{"x":[{"$judge":{"description":"d"}}]}""")));
         Assert.Null(CheckEvaluator.Search(Called("refund_order"), Turn(Call("refund_order"))));
     }
 
     [Fact]
     public void Search_keeps_as_candidates_the_calls_whose_literals_match_in_order_with_their_pending_judgements()
     {
-        var wrongOrder = Call(
-            "refund_order", /*lang=json,strict*/
-            """{"order_id":"B-1","reason":"x"}"""
-        );
-        var noReason = Call(
-            "refund_order", /*lang=json,strict*/
-            """{"order_id":"A-17"}"""
-        );
-        var first = Call(
-            "refund_order", /*lang=json,strict*/
-            """{"order_id":"A-17","reason":"cracked"}""",
-            "first"
-        );
-        var second = Call(
-            "refund_order", /*lang=json,strict*/
-            """{"order_id":"A-17","reason":"late"}""",
-            "second"
-        );
+        var wrongOrder = Call("refund_order", """{"order_id":"B-1","reason":"x"}""");
+        var noReason = Call("refund_order", """{"order_id":"A-17"}""");
+        var first = Call("refund_order", """{"order_id":"A-17","reason":"cracked"}""", "first");
+        var second = Call("refund_order", """{"order_id":"A-17","reason":"late"}""", "second");
 
         var search = CheckEvaluator.Search(
             Called("refund_order", ReasonMatcher),
@@ -822,10 +582,7 @@ public sealed class CheckEvaluatorTests
     [Fact]
     public void Search_says_why_when_there_is_no_candidate()
     {
-        var noReason = Call(
-            "refund_order", /*lang=json,strict*/
-            """{"order_id":"A-17"}"""
-        );
+        var noReason = Call("refund_order", """{"order_id":"A-17"}""");
 
         var withCalls = CheckEvaluator.Search(Called("refund_order", ReasonMatcher), Turn(noReason));
         var withoutCalls = CheckEvaluator.Search(Called("refund_order", ReasonMatcher), Turn(Say("hi")));
@@ -840,22 +597,12 @@ public sealed class CheckEvaluatorTests
     [Fact]
     public void Search_respects_where_and_covers_events()
     {
-        var early = Emit(
-            "state.changed", /*lang=json,strict*/
-            """{"x":"early"}"""
-        );
-        var late = Emit(
-            "state.changed", /*lang=json,strict*/
-            """{"x":"late"}"""
-        );
+        var early = Emit("state.changed", """{"x":"early"}""");
+        var late = Emit("state.changed", """{"x":"late"}""");
         var where = new CheckWhere { Turn = new TurnSelector(TurnSelectorKind.Last) };
 
         var search = CheckEvaluator.Search(
-            EventOf(
-                "state.changed", /*lang=json,strict*/
-                """{"x":{"$judge":{"description":"d"}}}""",
-                where
-            ),
+            EventOf("state.changed", """{"x":{"$judge":{"description":"d"}}}""", where),
             Turns([early], [late])
         );
 
@@ -869,21 +616,11 @@ public sealed class CheckEvaluatorTests
     public void A_judge_matcher_in_a_result_is_judged_on_the_parsed_content_of_the_calls_result()
     {
         var call = Call("get_order", id: "c1");
-        var check = CalledWithResult(
-            "get_order", /*lang=json,strict*/
-            """{"status":{"$pattern":"^ok"},"note":{"$judge":{"description":"d"}}}"""
-        );
+        var check = CalledWithResult("get_order", """{"status":{"$pattern":"^ok"},"note":{"$judge":{"description":"d"}}}""");
 
         var search = CheckEvaluator.Search(
             check,
-            Turn(
-                call,
-                Call("get_order", id: "c2"),
-                Result(
-                    "c1", /*lang=json,strict*/
-                    """{"status":"ok","note":"late"}"""
-                )
-            )
+            Turn(call, Call("get_order", id: "c2"), Result("c1", """{"status":"ok","note":"late"}"""))
         );
 
         Assert.True(CheckEvaluator.UsesJudge(check));
@@ -896,21 +633,9 @@ public sealed class CheckEvaluatorTests
     [Fact]
     public void A_result_that_misses_a_literal_is_not_a_candidate()
     {
-        var check = CalledWithResult(
-            "get_order", /*lang=json,strict*/
-            """{"status":"ok","note":{"$judge":{"description":"d"}}}"""
-        );
+        var check = CalledWithResult("get_order", """{"status":"ok","note":{"$judge":{"description":"d"}}}""");
 
-        var search = CheckEvaluator.Search(
-            check,
-            Turn(
-                Call("get_order", id: "c1"),
-                Result(
-                    "c1", /*lang=json,strict*/
-                    """{"status":"bad","note":"x"}"""
-                )
-            )
-        );
+        var search = CheckEvaluator.Search(check, Turn(Call("get_order", id: "c1"), Result("c1", """{"status":"bad","note":"x"}""")));
 
         Assert.Empty(search!.Candidates);
         Assert.Contains("not with a result containing", search.WhenNoCandidate.Message, StringComparison.Ordinal);
@@ -919,30 +644,10 @@ public sealed class CheckEvaluatorTests
     [Fact]
     public void A_call_by_another_agent_is_never_a_candidate_for_a_by_check()
     {
-        var mine = Call(
-            "refund_order", /*lang=json,strict*/
-            """{"reason":"cracked"}""",
-            "mine",
-            "billing"
-        );
-        var theirs = Call(
-            "refund_order", /*lang=json,strict*/
-            """{"reason":"cracked"}""",
-            "theirs",
-            "support"
-        );
-        var anonymous = Call(
-            "refund_order", /*lang=json,strict*/
-            """{"reason":"cracked"}""",
-            "none"
-        );
-        var check = Called(
-            "refund_order", /*lang=json,strict*/
-            """{"reason":{"$judge":{"description":"d"}}}"""
-        ) with
-        {
-            By = "billing",
-        };
+        var mine = Call("refund_order", """{"reason":"cracked"}""", "mine", "billing");
+        var theirs = Call("refund_order", """{"reason":"cracked"}""", "theirs", "support");
+        var anonymous = Call("refund_order", """{"reason":"cracked"}""", "none");
+        var check = Called("refund_order", """{"reason":{"$judge":{"description":"d"}}}""") with { By = "billing" };
 
         var search = CheckEvaluator.Search(check, Turn(theirs, anonymous, mine));
         var onlyOthers = CheckEvaluator.Search(check, Turn(theirs, anonymous));
@@ -954,15 +659,6 @@ public sealed class CheckEvaluatorTests
     }
 
     [Fact]
-    public void An_event_not_emitted_check_never_uses_the_judge()
-    {
-        Assert.False(
-            CheckEvaluator.UsesJudge(
-                NotEmitted(
-                    "state.changed", /*lang=json,strict*/
-                    """{"x":{"$judge":{"description":"d"}}}"""
-                )
-            )
-        );
-    }
+    public void An_event_not_emitted_check_never_uses_the_judge() =>
+        Assert.False(CheckEvaluator.UsesJudge(NotEmitted("state.changed", """{"x":{"$judge":{"description":"d"}}}""")));
 }

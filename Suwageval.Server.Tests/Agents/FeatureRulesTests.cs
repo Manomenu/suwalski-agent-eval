@@ -2,7 +2,6 @@ using Suwageval.Contracts.Agents;
 
 namespace Suwageval.Server.Tests.Agents;
 
-/// <summary><see cref="FeatureRules"/>, shared by the CLI's <c>validate</c> and the server's push.</summary>
 public sealed class FeatureRulesTests
 {
     private static IReadOnlyList<string> Paths(MonitoringSettings monitoring) =>

@@ -5,10 +5,6 @@ using Suwageval.Contracts.Checks;
 
 namespace Suwageval.Server.Verdicts;
 
-/// <summary>
-/// The deterministic checks (docs/scenario-format.md, "Checks"): pure functions of a check and a trace, no I/O, no model.
-/// Every verdict says in one sentence why, and carries the items that decided it.
-/// </summary>
 internal static class CheckEvaluator
 {
     private static readonly TimeSpan PatternTimeout = TimeSpan.FromSeconds(1);
@@ -33,10 +29,6 @@ internal static class CheckEvaluator
         };
     }
 
-    /// <summary>
-    /// Whether the check's <c>args</c> / <c>result</c> / <c>data</c> hold a <c>$judge</c> matcher, so a model has the last word on it.
-    /// (<c>event-not-emitted</c> never does: validation rejects it there.)
-    /// </summary>
     public static bool UsesJudge(CheckInput check) =>
         check switch
         {
@@ -45,16 +37,10 @@ internal static class CheckEvaluator
             _ => false,
         };
 
-    /// <summary>Whether a model gives the verdict of the check: a <c>judge</c> check, or one with a <c>$judge</c> matcher (<see cref="UsesJudge"/>).</summary>
     public static bool JudgedByModel(CheckInput check) => check is JudgeCheck || UsesJudge(check);
 
     private static bool IsJudged(JsonElement? expected) => expected is { } json && CheckRules.HoldsJudge(json);
 
-    /// <summary>
-    /// The deterministic part of a check that <see cref="UsesJudge"/>: every literal and <c>$pattern</c> must match as in
-    /// <see cref="Evaluate"/>, a <c>$judge</c> node only needs its path to exist (in <c>args</c> / <c>data</c>, or in the parsed
-    /// <c>result</c> of the call). What passed are the candidates a model then judges; null for any other check.
-    /// </summary>
     public static ArgumentSearch? Search(CheckInput check, Trace trace)
     {
         ArgumentNullException.ThrowIfNull(check);
@@ -67,7 +53,7 @@ internal static class CheckEvaluator
         switch (check)
         {
             case ToolCalledCheck called:
-                // A call made by another agent is never a candidate for a `by` check.
+                // Why: a call made by another agent is never a candidate for a by check
                 var calls = scope.Items.OfType<ToolCall>().Where(call => call.Name == called.Tool && MadeBy(call, called.By)).ToList();
                 return new ArgumentSearch(
                     $"{ToolLabel(called.Tool, called.By)} was called{scope.Description}",
@@ -107,7 +93,6 @@ internal static class CheckEvaluator
         }
     }
 
-    /// <summary>The deterministic part of a <c>tool-called</c> check for one call: its arguments, and the result when one is asked for.</summary>
     private static bool Satisfies(ToolCalledCheck check, ToolCall call, JsonElement? result)
     {
         var argsMatch = check.Args is not { } args || JsonSubset.Contains(call.Arguments, args);
@@ -148,11 +133,9 @@ internal static class CheckEvaluator
         );
     }
 
-    /// <summary>The call's answer: the first tool result with its id, looked for in the whole trace, not only the scope.</summary>
     private static ToolResult? ResultOf(ToolCall call, Trace trace) =>
         trace.Turns.SelectMany(turn => turn).OfType<ToolResult>().FirstOrDefault(result => result.CallId == call.Id);
 
-    /// <summary>The result's content as JSON; content that is not JSON is the JSON string of itself. Null when there is no result.</summary>
     private static JsonElement? ResultJson(ToolResult? result)
     {
         if (result is null)
@@ -173,7 +156,6 @@ internal static class CheckEvaluator
     private static bool ResultMatches(ToolResult? result, JsonElement expected) =>
         ResultJson(result) is { } actual && JsonSubset.Contains(actual, expected);
 
-    /// <summary>With a <c>result</c> in the check, the evidence of a call includes the result that answered it.</summary>
     private static List<ConversationItem> WithResults(List<ToolCall> calls, ToolCalledCheck check, Trace trace) =>
         [
             .. calls.SelectMany(call =>
@@ -181,7 +163,6 @@ internal static class CheckEvaluator
             ),
         ];
 
-    /// <summary>With <c>by</c>, only a call that names that agent counts; a call with no agent never does.</summary>
     private static bool MadeBy(ToolCall call, string? by) => by is null || call.Agent == by;
 
     private static string ToolLabel(string tool, string? by) => by is null ? tool : $"{tool} (by {by})";
@@ -222,7 +203,6 @@ internal static class CheckEvaluator
             : new CheckVerdict(true, [], $"{what} was not emitted{scope.Description}.");
     }
 
-    /// <summary>Every listed source must appear in the <c>sources</c> of some assistant message in scope.</summary>
     private static CheckVerdict Cited(CitedCheck check, CheckScope scope)
     {
         var messages = scope.Items.OfType<AssistantMessage>().ToList();
@@ -234,7 +214,6 @@ internal static class CheckEvaluator
             : new CheckVerdict(false, citing, $"The answer{scope.Description} does not cite {string.Join(", ", missing)}.");
     }
 
-    /// <summary>The assistant messages in scope, joined by a newline, are "the answer"; every condition given must hold.</summary>
     private static CheckVerdict Text(TextCheck check, CheckScope scope)
     {
         var messages = scope.Items.OfType<AssistantMessage>().ToList();
@@ -258,7 +237,6 @@ internal static class CheckEvaluator
             : new CheckVerdict(false, messages, $"{subject} {string.Join(" and ", failures)}.");
     }
 
-    /// <summary>What a passing <c>text</c> check found, condition by condition: <c>contains "Hello" and matches /(?i)hi/</c>.</summary>
     private static IEnumerable<string> TextConditions(TextCheck check)
     {
         if (check.Contains is { } contains)

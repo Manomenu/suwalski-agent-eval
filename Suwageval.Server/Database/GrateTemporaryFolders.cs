@@ -2,17 +2,11 @@ using System.Collections.Concurrent;
 
 namespace Suwageval.Server.Database;
 
-/// <summary>
-/// The temporary folders grate writes its own scripts to and never deletes: on every migration it copies the scripts of its bookkeeping
-/// tables into new folders (<c>Path.GetTempFileName</c>) and names them only in its log ("Looking in {UpFolder} for scripts to run.").
-/// Read from that log, so <see cref="Migrator"/> can delete them — otherwise every start of the server leaves folders in the temporary
-/// directory until it runs out of space.
-/// </summary>
+// Why: grate never deletes the folders in the OS temp directory it copies its scripts to and names them only in its log, so they are read from there and removed
 internal sealed class GrateTemporaryFolders(string scriptsDirectory) : ILoggerProvider, ILogger
 {
     private readonly ConcurrentQueue<string> folders = new();
 
-    /// <summary>Deletes the folders seen so far — only those inside the temporary directory, never the migrations' own — and lists them.</summary>
     public IReadOnlyList<string> Delete()
     {
         var temporary = Path.GetFullPath(Path.GetTempPath());

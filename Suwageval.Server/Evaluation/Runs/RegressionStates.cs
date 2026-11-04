@@ -2,10 +2,6 @@ using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Server.Evaluation.Runs;
 
-/// <summary>
-/// A check's verdict in a run against its history: the history is the baseline, nobody marks one. The state follows from the check's
-/// outcomes over the newest reference runs (oldest first) and whether it passed now.
-/// </summary>
 internal static class RegressionStates
 {
     private enum Baseline
@@ -17,14 +13,6 @@ internal static class RegressionStates
         Mixed,
     }
 
-    /// <summary>
-    /// The state of a check that <paramref name="passed"/> now, with <paramref name="history"/> (oldest first, at most the newest 2N) and a
-    /// history of <paramref name="n"/> runs: a steady pass that fails now is a <see cref="RegressionState.Regression"/>; a failure in a row
-    /// for N runs is known, a shorter one after N passes is already broken; a mixed past is unstable; with too little history a failure is new.
-    /// A failure that <paramref name="onlyAgentErrors"/> caused (the samples with an answer alone would pass) is an
-    /// <see cref="RegressionState.AgentError"/>, whatever the history. The run was on <paramref name="dataVersion"/>: when the last run that
-    /// passed was on other data, <see cref="CheckRegression.DataChanged"/> says so.
-    /// </summary>
     public static CheckRegression Of(
         IReadOnlyList<CheckHistoryPoint> history,
         int n,

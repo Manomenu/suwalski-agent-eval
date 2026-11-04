@@ -22,7 +22,6 @@ import {
     type ConversationFilter,
 } from "./conversations";
 
-/** The agent's monitored conversations: a table, newest turn first, in the page's environment, narrowed by state, a page at a time. */
 export function ConversationsSection({ agent, environment }: { agent: string; environment: string | null }) {
     const [narrowed, setFilter] = useState<ConversationFilter>(() => initialFilter(window.location.search));
     const filter = { ...narrowed, environment };
@@ -125,7 +124,6 @@ export function ConversationsSection({ agent, environment }: { agent: string; en
     );
 }
 
-/** The Checks column: the conversation's verdict in the shared colours, grey until its checks ran. */
 function ChecksCell({ conversation }: { conversation: ConversationList["conversations"][number] }) {
     const verdict = checksVerdict(conversation);
     return verdict === null ? (

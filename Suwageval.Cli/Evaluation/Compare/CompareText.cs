@@ -6,11 +6,6 @@ using RunTrend = Suwageval.Contracts.Runs.Trend;
 
 namespace Suwageval.Cli.Evaluation.Compare;
 
-/// <summary>
-/// What <c>suwageval compare</c> prints: a lettered header per run, the pass rate per tag and a line per scenario with its checks per run
-/// and the failed ones. With a baseline also the changes against it: the judge, the pass rate and the turn times of each run, the
-/// changes of the pass rates and the checks whose outcome differs between the runs, with a count of the ones that do not.
-/// </summary>
 internal static class CompareText
 {
     private const string Better = "▲";
@@ -91,7 +86,6 @@ internal static class CompareText
         return text.ToString();
     }
 
-    /// <summary>A failed check's key, marked when a model judged it: its verdict may vary from run to run.</summary>
     private static string FailedCheck(VariantCell cell, string key) =>
         cell.Checks.Any(check => check.Key == key && check.JudgedByModel) ? $"{key} (model-judged)" : key;
 
@@ -161,7 +155,6 @@ internal static class CompareText
             ? string.Create(CultureInfo.InvariantCulture, $" ({value.Milliseconds / 1000:+0.0;-0.0;0.0}s{Speed(value.Trend)})")
             : "";
 
-    /// <summary>A turn time is better when lower, so it says faster or slower: an arrow would point the other way than for a pass rate.</summary>
     private static string Speed(RunTrend trend) =>
         trend switch
         {

@@ -6,7 +6,6 @@ using Suwageval.Server.Database;
 
 namespace Suwageval.Server.Monitoring.Conversations;
 
-/// <summary>The conversations of monitored agents and their turns. Plain SQL, mapped by Dapper.</summary>
 internal sealed class ConversationStore(Pool pool)
 {
     private const string ConversationSelect = """
@@ -30,10 +29,6 @@ internal sealed class ConversationStore(Pool pool)
                 WHERE r.conversation_id = c.id AND k.key = @failedCheck AND NOT r.passed AND NOT r.not_judged))
         """;
 
-    /// <summary>
-    /// Stores the turns, answered by <paramref name="versionId"/>, in their conversations (made when new, opened again when closed), oldest
-    /// first; a turn whose id is known already is skipped. Returns how many turns were new. One transaction: all or nothing.
-    /// </summary>
     public async Task<int> AddTurnsAsync(
         Guid agentId,
         string environment,
@@ -115,7 +110,6 @@ internal sealed class ConversationStore(Pool pool)
         return stored;
     }
 
-    /// <summary>Closes the agent's open conversations whose last turn arrived before <paramref name="idleSince"/>; how many it closed.</summary>
     public async Task<int> CloseIdleAsync(Guid agentId, DateTimeOffset idleSince, CancellationToken cancellationToken = default)
     {
         await using var connection = await pool.OpenAsync(cancellationToken);
@@ -131,7 +125,6 @@ internal sealed class ConversationStore(Pool pool)
         );
     }
 
-    /// <summary>The agents that have an open conversation.</summary>
     public async Task<IReadOnlyList<Guid>> AgentsWithOpenAsync(CancellationToken cancellationToken = default)
     {
         await using var connection = await pool.OpenAsync(cancellationToken);
@@ -146,7 +139,6 @@ internal sealed class ConversationStore(Pool pool)
         ];
     }
 
-    /// <summary>How many of the agent's conversations <see cref="ListAsync"/> pages through with the same filters.</summary>
     public async Task<int> CountAsync(
         Guid agentId,
         string? environment,
@@ -173,11 +165,6 @@ internal sealed class ConversationStore(Pool pool)
         );
     }
 
-    /// <summary>
-    /// A page of the agent's conversations, the newest last turn first, only those of <paramref name="environment"/>, of
-    /// <paramref name="versionIds"/> (the version of their last turn), in <paramref name="state"/> and failing the check <paramref name="failedCheck"/>
-    /// (its key) when given.
-    /// </summary>
     public async Task<IReadOnlyList<ConversationRow>> ListAsync(
         Guid agentId,
         string? environment,
@@ -215,7 +202,6 @@ internal sealed class ConversationStore(Pool pool)
         return [.. rows];
     }
 
-    /// <summary>The environments the agent's conversations came from, sorted.</summary>
     public async Task<IReadOnlyList<string>> EnvironmentsAsync(Guid agentId, CancellationToken cancellationToken = default)
     {
         await using var connection = await pool.OpenAsync(cancellationToken);
@@ -239,7 +225,6 @@ internal sealed class ConversationStore(Pool pool)
         );
     }
 
-    /// <summary>The conversation's turns, oldest first.</summary>
     public async Task<IReadOnlyList<TurnRow>> TurnsAsync(Guid conversationId, CancellationToken cancellationToken = default)
     {
         await using var connection = await pool.OpenAsync(cancellationToken);
@@ -258,7 +243,6 @@ internal sealed class ConversationStore(Pool pool)
         ];
     }
 
-    /// <summary>The verdicts of the agent's monitoring checks on the conversation, by key.</summary>
     public async Task<IReadOnlyList<ConversationResultRow>> ResultsAsync(Guid conversationId, CancellationToken cancellationToken = default)
     {
         await using var connection = await pool.OpenAsync(cancellationToken);

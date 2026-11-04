@@ -5,7 +5,6 @@ using Suwageval.Server.Problems;
 
 namespace Suwageval.Server.Evaluation.Scenarios;
 
-/// <summary>What a request about scenarios must satisfy, checked where it enters. The rules <c>suwageval validate</c> applies to the same fields.</summary>
 internal static class ScenarioValidation
 {
     public static List<FieldError> Validate(IReadOnlyList<ScenarioInput> scenarios)

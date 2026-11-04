@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import type { CheckDefinition } from "./api";
 import { definitionSummary, definitionYaml, revisionNote } from "./definition";
 
-// `where.turn` is typed `unknown` by the API schema; the JSON carries a number, "last" or "any".
 const toolCalled: CheckDefinition = {
     passThreshold: 1,
     where: { turn: 1, after: "get_order" },

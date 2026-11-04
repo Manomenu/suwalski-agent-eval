@@ -4,7 +4,6 @@ using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Server.Evaluation.Runs;
 
-/// <summary>A row of <c>runs</c> with the counts of its results so far.</summary>
 internal sealed record RunRow(
     Guid Id,
     Guid AgentId,
@@ -39,10 +38,8 @@ internal sealed record RunRow(
     int? GateRetryLimit = null
 )
 {
-    /// <summary>A gate run (<c>suwageval gate</c>): <see cref="GateRetryLimit"/> is the agent's default number of attempts when it started.</summary>
     public bool Gate => GateRetryLimit is not null;
 
-    /// <summary>What a re-check of this run inherits.</summary>
     public RunPlacement Placement =>
         new(Origin is null ? null : JsonSerializer.Deserialize<RunOrigin>(Origin, ContractJson.Options), Reference, ComparedWith);
 

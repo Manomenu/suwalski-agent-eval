@@ -6,17 +6,10 @@ using Suwageval.Contracts.Monitoring;
 
 namespace Suwageval.Cli.Monitoring.Conversations;
 
-/// <summary>
-/// <c>suwageval monitoring conversations</c>: the newest conversations the deployed agent named in <c>suwageval/agent.yaml</c> sent, one line
-/// each (id, environment, state, turns, version, last turn, the agent's id of it); <c>--json</c> prints the page. <c>monitoring
-/// conversation &lt;id&gt;</c> prints one with its turns. Exit 0, or 2 when the agent file or the server is wrong (monitoring off too).
-/// </summary>
 internal static class ConversationsCommand
 {
     private const int DefaultLimit = 20;
 
-    /// <param name="http">The client to the API; none means one is made from <c>--server</c> or <c>SUWAGEVAL_URL</c> (the tests pass their own).</param>
-    /// <param name="openBrowser">Opens a page for <c>--open</c>; none means the system's default browser (the tests record the page instead).</param>
     public static Command List(HttpClient? http = null, Action<Uri>? openBrowser = null)
     {
         var limit = new Option<int>("--limit")
@@ -163,7 +156,6 @@ internal static class ConversationsCommand
             $"{conversation.Id}  {conversation.Environment}  {conversation.State}  {conversation.Turns} turns  version {conversation.AgentVersionId}{RunLabelText.Suffix(conversation.VersionLabel)}{(conversation.VersionChanged ? " (changed during it)" : "")}  last {conversation.LastTurnAt.UtcDateTime:yyyy-MM-dd HH:mm}Z  {Checks(conversation)}  conversation {conversation.ConversationId}"
         );
 
-    /// <summary>"2 checks failed", "checks passed", "1 check not judged" (the judge's model did not answer), or "not checked" while it was not.</summary>
     private static string Checks(ConversationSummary conversation)
     {
         if (conversation.CheckedAt is null)

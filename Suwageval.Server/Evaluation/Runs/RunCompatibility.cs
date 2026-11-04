@@ -5,16 +5,8 @@ using Suwageval.Contracts.Scenarios;
 
 namespace Suwageval.Server.Evaluation.Runs;
 
-/// <summary>
-/// Whether an agent version can be run against scenarios and checks written for it: every tool call and tool a check names
-/// must be a tool of the version, every event a type its context declares, a retrieval needs a version that retrieves and
-/// fixtures need a version that declares a fixtures schema. A check of a simulated scenario never picks a turn by its number (a rule of
-/// the files, checked here too because the scenario may have become a simulation after the check was pushed).
-/// A run that fails these only after the agent was called would waste the call and say nothing useful.
-/// </summary>
 internal static class RunCompatibility
 {
-    /// <summary>What does not fit, one sentence each; empty when the version can run it all.</summary>
     public static IReadOnlyList<string> Mismatches(
         AgentContract version,
         IReadOnlyList<(string Key, ScenarioContent Content)> scenarios,
@@ -84,7 +76,6 @@ internal static class RunCompatibility
         return [.. mismatches.Distinct()];
     }
 
-    /// <summary>Why the tool cannot be had from that agent (or from any agent, when none is named); null when it can.</summary>
     private static string? ToolProblem(Dictionary<string, HashSet<string>> agents, string tool, string? agent)
     {
         if (agent is null)

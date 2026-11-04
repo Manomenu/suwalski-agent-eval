@@ -11,10 +11,6 @@ using CliApp = Cli::Suwageval.Cli.CliApp;
 
 namespace Suwageval.Server.Tests.EndToEnd;
 
-/// <summary>
-/// <c>suwageval run --wait</c> from the CLI through the server in process to a fake agent over HTTP and back — the MVP's path
-/// without a model. The test plays the worker: it takes the agent's queued runs, as the server's own worker would.
-/// </summary>
 public sealed class RunCommandEndToEndTests(TestDatabase database) : IAsyncDisposable
 {
     private readonly WebApplicationFactory<Program> app = RunTestApp.Create();

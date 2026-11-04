@@ -1,4 +1,3 @@
-// Rules live in plain modules with a test beside them; components only wire them to React.
 import type { Health } from "./api";
 
 export type ServerStatus = { kind: "checking" } | { kind: "up" } | { kind: "down"; reason: string };

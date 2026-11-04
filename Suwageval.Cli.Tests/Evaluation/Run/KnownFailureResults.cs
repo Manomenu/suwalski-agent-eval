@@ -3,7 +3,6 @@ using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Cli.Tests.Evaluation.Run;
 
-/// <summary>Results of a finished run whose one failing check is a known failure: not a regression, so only <c>--strict</c> fails the run.</summary>
 internal static class KnownFailureResults
 {
     public static RunResults Create(RunSummary run) =>

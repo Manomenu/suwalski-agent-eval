@@ -7,7 +7,6 @@ using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Cli.Tests.Evaluation.Results;
 
-/// <summary>The command against a stand-in for the API, with the browser recorded instead of opened.</summary>
 public sealed class ResultsCommandTests
 {
     private static readonly Guid RunId = Guid.Parse("11111111-2222-3333-4444-555555555555");
@@ -83,7 +82,6 @@ public sealed class ResultsCommandTests
             ],
         };
 
-    // The run is still going on the first ask, done on the next ones.
     private static Func<HttpRequestMessage, HttpResponseMessage> Api()
     {
         var asks = 0;

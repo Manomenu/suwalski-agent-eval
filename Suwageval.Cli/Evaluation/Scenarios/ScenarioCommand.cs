@@ -4,14 +4,8 @@ using Suwageval.Cli.Server;
 
 namespace Suwageval.Cli.Evaluation.Scenarios;
 
-/// <summary>
-/// <c>suwageval scenario &lt;key&gt;</c>: one scenario of the agent named in <c>suwageval/agent.yaml</c> as the server stores it — the
-/// conversation, every check with its definition, the revisions and the tags; <c>--json</c> prints the same as one JSON object
-/// (<c>scenario</c>, <c>checks</c>, <c>revisions</c>). Exits 0, or 2 when the agent file or the server is wrong or the scenario is unknown.
-/// </summary>
 internal static class ScenarioCommand
 {
-    /// <param name="http">The client to the API; none means one is made from <c>--server</c> or <c>SUWAGEVAL_URL</c> (the tests pass their own).</param>
     public static Command Create(HttpClient? http = null)
     {
         var key = new Argument<string>("key") { Description = "The scenario's key." };

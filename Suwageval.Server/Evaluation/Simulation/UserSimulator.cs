@@ -6,15 +6,7 @@ using Suwageval.Server.LanguageModel;
 
 namespace Suwageval.Server.Evaluation.Simulation;
 
-/// <summary>
-/// The simulated user of a simulated scenario (docs/scenario-format.md, "Simulation"): a model plays the user the scenario describes and
-/// writes the message that starts the next turn, or ends the conversation. It sees only what such a user sees — the messages, never
-/// the agent's tool calls, events, retrievals or the fixtures. What it writes is never judged.
-/// </summary>
-/// <remarks>
-/// A model that cannot be asked, or an answer that is not the JSON asked for, is never an exception: the turn says why the user could not
-/// be played, and the sample ends as "not simulated". Calls go through the model's shared, limited client.
-/// </remarks>
+// Why: the simulated user sees only the messages, never tool calls, events, retrievals or fixtures, and what it writes is never judged
 internal sealed class UserSimulator(ModelClients models, IOptions<SimulationOptions> options)
 {
     private const string Instructions = """
@@ -31,10 +23,8 @@ internal sealed class UserSimulator(ModelClients models, IOptions<SimulationOpti
 
     private const string SimulatorEntry = "simulator";
 
-    /// <summary>The entry under <c>Models</c> that plays the user: <c>simulator</c> when configured, else <c>fallback</c>; null when neither is.</summary>
     public string? ModelEntry => models.EntryFor(SimulatorEntry);
 
-    /// <summary>Whether simulated scenarios can run: <c>Models:simulator</c> or, failing that, <c>Models:fallback</c> is configured.</summary>
     public bool IsConfigured => ModelEntry is not null;
 
     [SuppressMessage(
@@ -83,10 +73,6 @@ internal sealed class UserSimulator(ModelClients models, IOptions<SimulationOpti
         };
     }
 
-    /// <summary>
-    /// The description and the conversation as the user saw it, one line per message: their own as "User", the agent's as "Agent".
-    /// A turn in which the agent wrote nothing shows that it wrote nothing, so the user can react to it.
-    /// </summary>
     public static string Prompt(string simulatedUser, IReadOnlyList<ConversationItem> conversation)
     {
         ArgumentNullException.ThrowIfNull(simulatedUser);

@@ -7,7 +7,6 @@ using Suwageval.Server.Problems;
 
 namespace Suwageval.Server.Monitoring.Checks;
 
-/// <summary>The routes of the agent's monitoring checks: pushed whole from <c>suwageval/monitoring-checks.yaml</c>, read with their rates.</summary>
 internal static class MonitoringCheckEndpoints
 {
     public static IEndpointRouteBuilder MapMonitoringChecks(this IEndpointRouteBuilder app)
@@ -17,10 +16,6 @@ internal static class MonitoringCheckEndpoints
         return app;
     }
 
-    /// <summary>
-    /// Makes the agent's monitoring checks the ones sent (<see cref="MonitoringCheckStore.ReplaceAsync"/>). 404: no such agent; 409: its
-    /// monitoring is off (with <c>feature</c>); 422: the problems of <see cref="MonitoringCheckRules"/>.
-    /// </summary>
     private static async Task<IResult> PutAsync(
         string agent,
         PutChecksRequest request,
@@ -46,7 +41,6 @@ internal static class MonitoringCheckEndpoints
         return Results.Ok(new PutChecksResponse(await checks.ReplaceAsync(row.Id, request.Checks, cancellationToken)));
     }
 
-    /// <summary>The agent's monitoring checks with their 7- and 30-day pass rates; <c>environment</c>: over that environment's conversations only.</summary>
     private static async Task<IResult> ListAsync(
         string agent,
         [FromQuery] string? environment,

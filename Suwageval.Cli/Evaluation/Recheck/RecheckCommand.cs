@@ -5,15 +5,8 @@ using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Cli.Evaluation.Recheck;
 
-/// <summary>
-/// <c>suwageval recheck</c>: judges the stored answers of a finished run again with the current checks, without calling the agent.
-/// It asks the server for the plan first: nothing is started when no check changed (exit 0, there is nothing to do) or when the run
-/// cannot be re-checked (exit 2); <c>--dry-run</c> only prints the plan. Output and exit codes of a started re-check are those of <c>suwageval run</c>.
-/// </summary>
 internal static class RecheckCommand
 {
-    /// <param name="terminal">Where Ctrl+C during <c>--wait</c> asks whether to cancel the run too.</param>
-    /// <param name="http">The client to the API; none means one is made from <c>--server</c> or <c>SUWAGEVAL_URL</c> (the tests pass their own).</param>
     public static Command Create(Terminal terminal, HttpClient? http = null)
     {
         var runId = new Argument<Guid>("runId") { Description = "The finished run whose answers to judge again." };

@@ -3,10 +3,6 @@ using Suwageval.Server.Agents;
 
 namespace Suwageval.Server.Monitoring.Conversations;
 
-/// <summary>
-/// Closes the conversations no turn came to for their agent's <c>features.monitoring.closeAfter</c> (30 minutes by default; the default too
-/// for an agent whose monitoring was switched off since). A hosted service of the server, like the run worker: no component of its own.
-/// </summary>
 internal sealed partial class ConversationCloser(
     ConversationStore conversations,
     AgentStore agents,
@@ -14,7 +10,6 @@ internal sealed partial class ConversationCloser(
     ILogger<ConversationCloser> logger
 ) : BackgroundService
 {
-    /// <summary>How often the open conversations are looked at.</summary>
     public static readonly TimeSpan Interval = TimeSpan.FromSeconds(30);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -33,7 +28,6 @@ internal sealed partial class ConversationCloser(
         } while (await timer.WaitForNextTickAsync(stoppingToken));
     }
 
-    /// <summary>One look: every agent with an open conversation, each with its own closeAfter.</summary>
     public async Task CloseIdleAsync(CancellationToken cancellationToken)
     {
         foreach (var agentId in await conversations.AgentsWithOpenAsync(cancellationToken))

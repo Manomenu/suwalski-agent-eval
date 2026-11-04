@@ -9,14 +9,8 @@ using Suwageval.Server.Verdicts;
 
 namespace Suwageval.Server.Evaluation.Runs;
 
-/// <summary>
-/// Decides what a re-check of a run would do and whether it may start — for the preview and for the request that starts it.
-/// Pure: everything it needs is passed in. A re-check copies the verdict of every check whose revision judged the run, so it only
-/// changes something when a check changed, was added or was removed in the scenarios that are re-checked.
-/// </summary>
 internal static class RecheckPlanner
 {
-    /// <summary>The plan of a gate run: never possible, its attempts stopped at the first success or failure, so the gate is run again instead.</summary>
     public static RecheckPlan GateRun() =>
         Blocked(
             RecheckBlocker.GateRun,
@@ -27,13 +21,6 @@ internal static class RecheckPlanner
             []
         );
 
-    /// <param name="status">The status of the run the person looked at.</param>
-    /// <param name="originalSamples">The samples of the run that called the agent: its answers are what is re-checked.</param>
-    /// <param name="shownSamples">The samples of the run the person looked at (the same, unless that is a re-check).</param>
-    /// <param name="shownVerdicts">The verdicts of that run: what "changed since" is measured against.</param>
-    /// <param name="scenarios">The agent's live scenarios.</param>
-    /// <param name="checks">The agent's live checks.</param>
-    /// <param name="version">The version the run was under test.</param>
     public static RecheckPlan Of(
         RunStatus status,
         IReadOnlyList<ScenarioResultRow> originalSamples,
@@ -133,10 +120,6 @@ internal static class RecheckPlanner
     private static int JudgedCount(IReadOnlyList<ChangedCheck> changed) =>
         changed.Count(change => change.Change != CheckChange.Removed && change.After is { } after && CheckEvaluator.JudgedByModel(after));
 
-    /// <summary>
-    /// The checks of the re-checked scenarios (those the shown run has samples of) that differ from the verdicts of the shown run:
-    /// another revision, no verdict yet, or a verdict of a check that is not live any more.
-    /// </summary>
     private static List<ChangedCheck> Changes(
         IReadOnlyList<ScenarioResultRow> shownSamples,
         IReadOnlyList<CheckResultRow> shownVerdicts,
@@ -189,5 +172,6 @@ internal static class RecheckPlanner
         };
 
     private static CheckInput Definition(CheckResultRow verdict) =>
+        // Why: the verdict's definition was serialized by the server when the check ran, so it is valid JSON
         JsonSerializer.Deserialize<CheckInput>(verdict.Definition, ContractJson.Options)!;
 }

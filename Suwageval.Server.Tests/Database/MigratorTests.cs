@@ -3,7 +3,6 @@ using Suwageval.Server.Database;
 
 namespace Suwageval.Server.Tests.Database;
 
-/// <summary>Each test migrates into a scratch database of its own, dropped afterwards.</summary>
 public sealed class MigratorTests(TestDatabase database) : IAsyncLifetime
 {
     private readonly string connectionString = new NpgsqlConnectionStringBuilder(TestDatabase.ConnectionString)
@@ -14,7 +13,7 @@ public sealed class MigratorTests(TestDatabase database) : IAsyncLifetime
 
     public async ValueTask InitializeAsync()
     {
-        _ = database.Pool; // skips (fails in CI) without PostgreSQL
+        _ = database.Pool;
         await TestDatabase.RecreateAsync(connectionString);
         Directory.CreateDirectory(Path.Combine(directory.FullName, "up"));
     }

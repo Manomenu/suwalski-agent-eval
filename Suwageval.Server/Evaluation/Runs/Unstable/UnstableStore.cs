@@ -3,14 +3,8 @@ using Suwageval.Server.Database;
 
 namespace Suwageval.Server.Evaluation.Runs.Unstable;
 
-/// <summary>What the unstable checks read of the runs' results. Plain SQL, mapped by Dapper.</summary>
 internal sealed class UnstableStore(Pool pool)
 {
-    /// <summary>
-    /// Per check, scenario and run the samples with a verdict and the passed ones, for the given effective runs. A row carries the
-    /// original run's id, time and version and the verdicts of the run it shows (<see cref="EffectiveRuns.Point.Shown"/>). The threshold
-    /// is the one of the check revision that ran. Samples where the agent gave no answer (status <c>Failed</c>) are left out.
-    /// </summary>
     public async Task<IReadOnlyList<RunCheckVerdictRow>> ListRunCheckVerdictsAsync(
         IReadOnlyCollection<EffectiveRuns.Point> points,
         CancellationToken cancellationToken = default

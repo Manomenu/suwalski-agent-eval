@@ -5,13 +5,8 @@ using Suwageval.Cli.Server;
 
 namespace Suwageval.Cli.Evaluation.Scenarios;
 
-/// <summary>
-/// <c>suwageval scenarios</c>: the scenarios of the agent named in <c>suwageval/agent.yaml</c> — key, revision, number of checks, tags;
-/// <c>--tag</c> keeps those with the tag, <c>--json</c> prints the scenario summaries. Exits 0, or 2 when the agent file or the server is wrong.
-/// </summary>
 internal static class ScenariosCommand
 {
-    /// <param name="http">The client to the API; none means one is made from <c>--server</c> or <c>SUWAGEVAL_URL</c> (the tests pass their own).</param>
     public static Command Create(HttpClient? http = null)
     {
         var tag = new Option<string?>("--tag") { Description = "Only the scenarios with this tag." };

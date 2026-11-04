@@ -3,10 +3,6 @@ using Microsoft.Extensions.Options;
 
 namespace Suwageval.Server.Evaluation.Runs;
 
-/// <summary>
-/// The queue's consumer, inside the server: takes the oldest queued run, carries it out, looks again; sleeps for
-/// <see cref="RunOptions.PollInterval"/> when there is nothing to do. One run at a time per server — a run already fills its own degree of parallelism.
-/// </summary>
 internal sealed partial class RunWorker(
     RunStore runs,
     RunExecutor executor,

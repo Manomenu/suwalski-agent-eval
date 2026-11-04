@@ -1,6 +1,3 @@
-// Archiving versions: select one, archive it (it disappears, and so do its runs), see it again with the Archived usage chip, restore it.
-// Deleting: an archived version goes with its runs, after its id is typed in the confirmation.
-// A version only comes from a run, and a run reads the contract the agent serves, so the test is that agent: a tiny HTTP server.
 import { expect, test } from "@playwright/test";
 
 import { createAgent, runToEnd, serveAgent } from "../../e2e/helpers";
@@ -36,7 +33,6 @@ test("versions are archived, shown again on request, restored and deleted with t
         await expect(garbageVersion).toHaveCount(0);
         await expect(keptVersion).toBeVisible();
 
-        // The runs of an archived version are hidden on the agent's Evaluation page too, unless the Archived chip is on.
         await page.goto(`/agents/${name}/evaluation`);
         await expect(runRows).toHaveCount(1);
         const chip = page.locator("label", { hasText: /^Archived$/ });

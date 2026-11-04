@@ -2,10 +2,6 @@ using Suwageval.Cli.Files;
 
 namespace Suwageval.Cli.Server;
 
-/// <summary>
-/// Where Suwageval is: the web app's address, the one a browser opens. The API is under its <c>/api</c>, the way the browser reaches
-/// it (nginx in the image, Vite's proxy on a laptop), so one address serves the commands and the links they print.
-/// </summary>
 internal static class ServerAddress
 {
     public const string Variable = "SUWAGEVAL_URL";
@@ -14,14 +10,9 @@ internal static class ServerAddress
     public static string OptionDescription =>
         $"Suwageval's address (the web app; the API is under /api). Default: ${Variable}, else suwagevalUrl in suwageval/agent.yaml, else {Default}.";
 
-    /// <summary>
-    /// From <c>--server</c>, else <see cref="Variable"/>, else the <c>suwagevalUrl</c> of the agent.yaml in <paramref name="agentDir"/> (when it is there),
-    /// else <see cref="Default"/>; with a trailing slash, so relative paths stay under it.
-    /// </summary>
     public static Uri Site(string? option, string agentDir = AgentFolder.DefaultDir) =>
         Site(option, Environment.GetEnvironmentVariable(Variable), () => AgentReader.SuwagevalUrl(agentDir));
 
-    /// <summary>The precedence itself; <paramref name="fromFile"/> is only asked when the option and the variable say nothing.</summary>
     public static Uri Site(string? option, string? variable, Func<string?> fromFile)
     {
         ArgumentNullException.ThrowIfNull(fromFile);
@@ -32,17 +23,8 @@ internal static class ServerAddress
 
     public static Uri Api(Uri site) => new(site, "api/");
 
-    /// <summary>
-    /// The web page of a run; with <paramref name="print"/> the page opens the browser's print dialog once it shows the results
-    /// (<c>print=1</c>).
-    /// </summary>
     public static Uri RunPage(Uri site, Guid runId, bool print = false) => new(site, $"runs/{runId}{(print ? "?print=1" : "")}");
 
-    /// <summary>
-    /// The compare page of runs named one by one, or of the runs of a group (of <paramref name="agent"/>, when known); with
-    /// <paramref name="baseline"/> it also shows the changes against that run, with <paramref name="print"/> it opens the browser's print
-    /// dialog once it shows the comparison (<c>print=1</c>).
-    /// </summary>
     public static Uri ComparePage(
         Uri site,
         IReadOnlyCollection<Guid> runIds,
@@ -62,13 +44,8 @@ internal static class ServerAddress
                 + (print ? "&print=1" : "")
         );
 
-    /// <summary>The agents list: the web's start page.</summary>
     public static Uri AgentsPage(Uri site) => new(site, "");
 
-    /// <summary>
-    /// The Versions page of an agent (<c>agents/&lt;name&gt;</c>). Each filter the web reads from the address (<c>usage</c>, <c>version</c>,
-    /// <c>environment</c>) is added when given; no usage is the page's default.
-    /// </summary>
     public static Uri VersionsPage(
         Uri site,
         string agent,
@@ -86,17 +63,11 @@ internal static class ServerAddress
                 )
         );
 
-    /// <summary>The page of one version of an agent.</summary>
     public static Uri VersionPage(Uri site, string agent, Guid versionId) =>
         new(site, $"agents/{Uri.EscapeDataString(agent)}/versions/{versionId}");
 
-    /// <summary>The Evaluation page of an agent: its runs, trends and problems.</summary>
     public static Uri EvaluationPage(Uri site, string agent) => new(site, $"agents/{Uri.EscapeDataString(agent)}/evaluation");
 
-    /// <summary>
-    /// The Monitoring page of an agent, narrowed to an environment and, for its conversations, to those that failed a check (<c>failedCheck</c>,
-    /// with the <c>#conversations</c> anchor) when given.
-    /// </summary>
     public static Uri MonitoringPage(Uri site, string agent, string? environment = null, string? failedCheck = null) =>
         new(
             site,
@@ -105,20 +76,19 @@ internal static class ServerAddress
                 + (failedCheck is null ? "" : "#conversations")
         );
 
-    /// <summary>The page of one monitored conversation.</summary>
     public static Uri ConversationPage(Uri site, Guid id) => new(site, $"conversations/{id}");
 
-    // Commas stay readable, like the web's own addresses.
+    // Why: commas stay unescaped to match the web's own addresses
     private static string Query(params (string Name, string? Value)[] parameters)
     {
         var parts = parameters
             .Where(p => !string.IsNullOrWhiteSpace(p.Value))
+            // Why: parts were filtered by IsNullOrWhiteSpace above, so Value is not null
             .Select(p => $"{p.Name}={Uri.EscapeDataString(p.Value!).Replace("%2C", ",", StringComparison.Ordinal)}")
             .ToList();
         return parts.Count == 0 ? "" : "?" + string.Join('&', parts);
     }
 
-    /// <summary>The web page showing what changed between two versions of an agent.</summary>
     public static Uri VersionComparePage(Uri site, string agent, Guid a, Guid b) =>
         new(site, $"agents/{Uri.EscapeDataString(agent)}/versions/compare?a={a}&b={b}");
 }

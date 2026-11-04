@@ -1,6 +1,5 @@
 import { TagSelect } from "../tagSelect/TagSelect";
 
-/** The tag filter above a view's tables: a picked tag narrows the rows to the scenarios that carry it, any picked tag is enough. */
 export function TagFilter({
     tags,
     selected,

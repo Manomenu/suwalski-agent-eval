@@ -4,7 +4,6 @@ using Suwageval.Server.Verdicts;
 
 namespace Suwageval.Server.Tests.Evaluation.Checks;
 
-/// <summary>Short ways to write the items and traces the check tests are made of.</summary>
 internal static class Items
 {
     public static JsonElement Json(string json) => JsonDocument.Parse(json).RootElement.Clone();
@@ -24,9 +23,7 @@ internal static class Items
 
     public static AssistantMessage Say(string text) => new() { Text = text };
 
-    /// <summary>A trace with one turn per argument.</summary>
     public static Trace Turns(params ConversationItem[][] turns) => new([.. turns.Select(turn => (IReadOnlyList<ConversationItem>)turn)]);
 
-    /// <summary>A trace of a single turn.</summary>
     public static Trace Turn(params ConversationItem[] items) => Turns(items);
 }

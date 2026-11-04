@@ -10,10 +10,6 @@ using Suwageval.Contracts.Scenarios;
 
 namespace Suwageval.Cli.Validation;
 
-/// <summary>
-/// Everything that can be said about an agent's files: they match the contract, and what they
-/// say about each other holds (keys, tool results; tools and events too, once the agent's own contract is at hand).
-/// </summary>
 internal static class Validator
 {
     public static ValidationResult Validate(AgentFolder folder, AgentContract? contract = null)
@@ -38,10 +34,6 @@ internal static class Validator
         return result with { Problems = [.. result.Problems, .. problems], MonitoringChecks = read?.Checks ?? [] };
     }
 
-    /// <param name="agentFile">Name of the agent file, for the problem when <paramref name="agent"/> is missing.</param>
-    /// <param name="agent">The agent file, or null when it does not exist.</param>
-    /// <param name="scenarioFiles">The scenario files to check, each by its name and content.</param>
-    /// <param name="contract">What the running agent serves: with it tool and event names are checked, without it they are not.</param>
     public static ValidationResult Validate(
         string agentFile,
         string? agent,
@@ -148,7 +140,6 @@ internal static class Validator
         }
     }
 
-    /// <summary>The scenario's <c>acGuardrail</c>: a valid id and limit, an id no other scenario of the agent guards, and checks to guard it with.</summary>
     private static void CheckGuardrail(LoadedScenario loaded, Dictionary<string, string> guardrailIds, List<Problem> problems)
     {
         if (loaded.Scenario.AcGuardrail is not { } guardrail)
@@ -213,7 +204,6 @@ internal static class Validator
         CheckNames(source, check, path, contract, problems);
     }
 
-    /// <summary>With the agent's contract at hand: the tools, events and anchors the check names are the agent's.</summary>
     private static void CheckNames(YamlSource source, CheckInput check, string path, AgentContract? contract, List<Problem> problems)
     {
         if (contract is not null)
@@ -264,7 +254,6 @@ internal static class Validator
         }
     }
 
-    /// <summary>The tool must exist: on the named agent, or, with none named, on some agent.</summary>
     private static void CheckTool(
         YamlSource source,
         string path,
@@ -328,10 +317,6 @@ internal static class Validator
         return $"The agent does not declare the event type '{type}' in its contract (declared: {(known.Length == 0 ? "none" : known)}).";
     }
 
-    /// <summary>
-    /// The keys the agent's <c>fixturesSchema</c> lists in its top-level <c>required</c> that <paramref name="fixtures"/> does not have (all
-    /// of them when there are none). Only the top level: the rest of the schema is not checked yet.
-    /// </summary>
     private static List<string> MissingFixtures(JsonElement schema, JsonElement? fixtures)
     {
         if (

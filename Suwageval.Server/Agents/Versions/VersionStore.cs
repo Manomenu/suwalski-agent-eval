@@ -4,14 +4,8 @@ using Suwageval.Server.Database;
 
 namespace Suwageval.Server.Agents.Versions;
 
-/// <summary>Archiving and deleting the versions of an agent. Plain SQL, mapped by Dapper.</summary>
 internal sealed class VersionStore(Pool pool)
 {
-    /// <summary>
-    /// How many runs each of the agent's versions has, outside a group and in one (a re-check counts as in the group of the run it was made from,
-    /// as in the runs list); gate runs (<c>suwageval gate</c>) are not counted: a verdict on the acceptance criteria is not an evaluation.
-    /// One query for all versions. A version with no run is not among the keys.
-    /// </summary>
     public async Task<IReadOnlyDictionary<Guid, VersionRunCounts>> RunCountsAsync(
         Guid agentId,
         CancellationToken cancellationToken = default
@@ -35,10 +29,6 @@ internal sealed class VersionStore(Pool pool)
         return rows.ToDictionary(row => row.VersionId, row => new VersionRunCounts(row.Runs, row.GroupRuns));
     }
 
-    /// <summary>
-    /// The retrieval data each of the agent's versions ran on (runs keep the data version they started with), newest first; a version whose
-    /// runs carried none is not among the keys.
-    /// </summary>
     public async Task<IReadOnlyDictionary<Guid, IReadOnlyList<RetrievalData>>> DataAsync(
         Guid agentId,
         CancellationToken cancellationToken = default
@@ -65,10 +55,6 @@ internal sealed class VersionStore(Pool pool)
             );
     }
 
-    /// <summary>
-    /// Where each of the agent's versions answered monitored conversations, per environment (the monitoring tables, read as the run counts
-    /// read the runs): a version that answered none is not among the keys. <paramref name="since"/> starts the window of the conversation count.
-    /// </summary>
     public async Task<IReadOnlyDictionary<Guid, IReadOnlyList<VersionMonitoring>>> MonitoringAsync(
         Guid agentId,
         DateTimeOffset since,
@@ -124,7 +110,6 @@ internal sealed class VersionStore(Pool pool)
             );
     }
 
-    /// <summary>The ids among <paramref name="versionIds"/> that are not versions of the agent.</summary>
     public async Task<IReadOnlyList<Guid>> UnknownVersionsAsync(
         Guid agentId,
         IReadOnlyList<Guid> versionIds,
@@ -142,7 +127,6 @@ internal sealed class VersionStore(Pool pool)
         return [.. versionIds.Distinct().Except(known)];
     }
 
-    /// <summary>Archives or restores versions of the agent in one statement; an already archived version keeps its first time.</summary>
     public async Task ArchiveVersionsAsync(
         Guid agentId,
         IReadOnlyList<Guid> versionIds,
@@ -169,11 +153,6 @@ internal sealed class VersionStore(Pool pool)
         );
     }
 
-    /// <summary>
-    /// Deletes an archived version of the agent, with its runs, samples and verdicts (the foreign keys cascade) and the monitored conversations
-    /// it answered a turn of, unless one of those runs is
-    /// queued or running; <paramref name="dryRun"/> only decides and counts. The version's row is locked, so no run is queued for it in between.
-    /// </summary>
     public async Task<DeletionResult<VersionDeletion>> DeleteVersionAsync(
         Guid agentId,
         Guid versionId,
@@ -195,7 +174,6 @@ internal sealed class VersionStore(Pool pool)
         {
             return new DeletionResult<VersionDeletion>(DeletionOutcome.NotFound, null);
         }
-        // The runs that go: those of the version and, however far the chain goes, the re-checks and verdict copies of them.
         var counts = await connection.QuerySingleAsync<VersionDeletionCounts>(
             new CommandDefinition(
                 """
@@ -231,7 +209,7 @@ internal sealed class VersionStore(Pool pool)
         {
             return new DeletionResult<VersionDeletion>(DeletionOutcome.Allowed, contents);
         }
-        // A conversation the version answered a turn of goes whole: the cascade alone would leave one with a gap.
+        // Why: a conversation the version answered a turn of goes whole, because the cascade alone would leave one with a gap
         await connection.ExecuteAsync(
             new CommandDefinition(
                 """

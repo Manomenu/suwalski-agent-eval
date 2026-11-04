@@ -8,7 +8,6 @@ using Suwageval.Server.Tests.Api;
 
 namespace Suwageval.Server.Tests.Evaluation.Runs.Groups;
 
-/// <summary>Archiving, restoring and deleting run groups, and listing runs by whether they are in a group — on a real PostgreSQL.</summary>
 public sealed class RunGroupEndpointsTests(TestDatabase database) : IAsyncDisposable
 {
     private readonly TestServer server = new(database);
@@ -25,7 +24,6 @@ public sealed class RunGroupEndpointsTests(TestDatabase database) : IAsyncDispos
             [SeededAgent.RefundAfterLookup("refund-called", "refund")]
         );
 
-    /// <summary>A finished run with <paramref name="samples"/> samples, each with one verdict; a re-check when <paramref name="recheckOf"/> is given.</summary>
     private async Task<Guid> FinishedRunAsync(SeededAgent agent, string? group, int samples = 1, Guid? recheckOf = null)
     {
         var store = new RunStore(database.Pool);
@@ -50,7 +48,6 @@ public sealed class RunGroupEndpointsTests(TestDatabase database) : IAsyncDispos
                     scenario.Revision,
                     sample,
                     SampleStatus.Done,
-                    /*lang=json,strict*/
                     """[{"kind":"AssistantMessage","text":"hi"}]""",
                     null,
                     10,

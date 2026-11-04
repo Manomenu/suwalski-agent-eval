@@ -1,4 +1,3 @@
-// The sidebar leads from the agents list into an agent's pages and back, and lights the page that is open.
 import { expect, test } from "@playwright/test";
 
 import { openAgentsListAt } from "../../e2e/helpers";

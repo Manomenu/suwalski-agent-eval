@@ -8,7 +8,6 @@ import { agentHref } from "../routes/links";
 import { formatTime } from "../format/time";
 import { versionTitle } from "../format/names";
 
-/** `/agents/<name>/versions/<id>`: the contract the agent served in that version. */
 export function VersionPage({ name, versionId }: { name: string; versionId: string }) {
     const state = useRequest(`${name}/${versionId}`, (signal) => fetchVersion(name, versionId, signal));
 

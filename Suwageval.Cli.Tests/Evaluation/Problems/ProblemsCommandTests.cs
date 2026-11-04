@@ -7,7 +7,6 @@ using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Cli.Tests.Evaluation.Problems;
 
-/// <summary>The command against a stand-in for the API that answers the unstable checks and the agent errors.</summary>
 public sealed class ProblemsCommandTests
 {
     private static string Sample => Path.Combine(AppContext.BaseDirectory, "Sample", "suwageval");

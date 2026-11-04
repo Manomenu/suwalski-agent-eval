@@ -4,18 +4,6 @@ using Suwageval.Cli.Files;
 
 namespace Suwageval.Cli.Evaluation.Sweep;
 
-/// <summary>
-/// Runs the agent's scenarios once per variant: reconfigures the agent, waits until its contract's label is the variant's name, runs.
-/// A variant that could not be run is a row of the result and the sweep goes on; <c>after</c> follows every variant that was attempted and
-/// <c>restore</c> the end of the sweep, also after Ctrl+C.
-/// </summary>
-/// <param name="settings">The commands to run.</param>
-/// <param name="shell">Runs the command lines.</param>
-/// <param name="readLabel">The label of the contract the agent serves now; null when it cannot be read.</param>
-/// <param name="runScenarios">Runs the scenarios on the server and waits for the end; reports on the run instead of throwing for what the server answers.</param>
-/// <param name="output">Where the variants are announced and the commands' output goes.</param>
-/// <param name="labelWait">How long the label may take to show the variant's name.</param>
-/// <param name="pollInterval">How often the label is read while waiting.</param>
 internal sealed class VariantSweep(
     SweepSettings settings,
     ShellCommand shell,
@@ -84,7 +72,6 @@ internal sealed class VariantSweep(
         return new SweepResult(outcomes, interrupted, restoreFailed);
     }
 
-    /// <returns>The outcome and whether the agent was reconfigured (so <c>restore</c> is due).</returns>
     private async Task<(VariantOutcome Outcome, bool Touched)> TryAsync(string variant, string group, CancellationToken cancellationToken)
     {
         if (settings.Before is { } before)

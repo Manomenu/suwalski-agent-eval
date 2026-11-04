@@ -20,17 +20,10 @@ using Suwageval.Server.ScenarioDrafts;
 
 namespace Suwageval.Server.Api;
 
-/// <summary>Puts the server together: configuration, the database, the routes.</summary>
-/// <remarks>
-/// Routes are declared without an /api prefix. The prefix belongs to the edge — the vite proxy
-/// in development, nginx in the image — which strips it before the request lands here.
-/// </remarks>
+// Why: routes have no /api prefix because the edge (vite proxy, nginx) strips it before the request lands here
 internal static class ServerApp
 {
-    /// <summary>
-    /// The build writes the OpenAPI document (scripts/.internal/api-types.sh) by starting the app inside
-    /// its GetDocument tool. Only the routes matter then, so the database is not touched.
-    /// </summary>
+    // Why: the build writes the OpenAPI document by starting the app inside its GetDocument tool, so the database must not be touched
     private static bool WritingOpenApiDocument => Assembly.GetEntryAssembly()?.GetName().Name == "GetDocument.Insider";
 
     public static WebApplication Build(string[] args)
@@ -49,7 +42,7 @@ internal static class ServerApp
         builder.Services.ConfigureHttpJsonOptions(options =>
         {
             ContractJson.Configure(options.SerializerOptions);
-            // An unset field is absent from a response, not null. (Not in ContractJson.Options: it also serializes what is hashed.)
+            // Why: an unset field is absent from a response, and this is not in ContractJson.Options because that also serializes what is hashed
             options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
         });
         builder.Services.AddProblemDetails();
@@ -60,7 +53,7 @@ internal static class ServerApp
         builder.Services.AddOpenApi();
 
         var app = builder.Build();
-        // Every answer says which build sent it: the CLI names it when it cannot read an answer (ServerVersion).
+        // Why: every answer says which build sent it, because the CLI names it when it cannot read an answer
         var build = ServerVersion.Of(typeof(ServerApp).Assembly);
         app.Use(
             (context, next) =>
@@ -72,10 +65,9 @@ internal static class ServerApp
         app.UseStatusCodePages();
         app.MapOpenApi();
 
-        // Touches nothing outside the process, so it doubles as the cluster's liveness probe.
+        // Why: touches nothing outside the process, so it doubles as the cluster's liveness probe
         app.MapGet("/health", () => new Health("ok"));
 
-        // Features map their routes here: app.MapAgents(), the Evaluation area's in MapEvaluation — and get a layer in Suwageval.Gate/layers.json.
         app.MapAgents();
         app.MapVersions();
         MapEvaluation(app.MapGroup("/eval"));
@@ -87,7 +79,6 @@ internal static class ServerApp
         return app;
     }
 
-    /// <summary>The routes of the Evaluation area, under the prefix the group gives them.</summary>
     private static void MapEvaluation(IEndpointRouteBuilder evaluation)
     {
         evaluation.MapScenarios();

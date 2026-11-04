@@ -2,11 +2,7 @@ import { Chip, Tooltip } from "@mantine/core";
 
 const HELP_WIDTH = 320;
 
-/**
- * The one on/off control of the app: a chip with its label (a filter such as "Archived", a view such as "Hide passed checks", an option
- * such as "Simulate the rest"). `help`, when given, says on hover what it does; the chip sits in a span so the tooltip has an element to
- * hang on.
- */
+// Why: the chip sits in a span so the tooltip has an element to hang on
 export function ToggleChip({
     label,
     checked,

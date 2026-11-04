@@ -7,7 +7,6 @@ using Suwageval.Server.Tests.Evaluation.Runs;
 
 namespace Suwageval.Server.Tests.Agents.Versions;
 
-/// <summary>Deleting an archived version: the refusals, the preview and the cascade through runs, samples and verdicts — on a real PostgreSQL.</summary>
 public sealed class VersionDeletionTests(TestDatabase database) : IAsyncDisposable
 {
     private readonly TestServer server = new(database);

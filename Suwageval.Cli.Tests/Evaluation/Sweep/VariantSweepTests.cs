@@ -22,7 +22,6 @@ public sealed class VariantSweepTests
 
         public List<string> Log { get; } = [];
 
-        /// <summary>The label the agent serves after a reconfigure; a variant missing here keeps the previous label.</summary>
         public Dictionary<string, string> Labels { get; } = [];
 
         public string? Label { get; set; } = "default";

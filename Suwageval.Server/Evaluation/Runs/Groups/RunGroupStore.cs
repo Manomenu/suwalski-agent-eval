@@ -5,10 +5,8 @@ using Suwageval.Server.Database;
 
 namespace Suwageval.Server.Evaluation.Runs.Groups;
 
-/// <summary>The groups of an agent's runs: listing, archiving and deleting them. Plain SQL, mapped by Dapper.</summary>
 internal sealed class RunGroupStore(Pool pool)
 {
-    /// <summary>The groups of an agent's runs, archived ones too, the one with the newest run first.</summary>
     public async Task<IReadOnlyList<RunGroupRow>> ListAsync(Guid agentId, CancellationToken cancellationToken = default)
     {
         await using var connection = await pool.OpenAsync(cancellationToken);
@@ -30,7 +28,6 @@ internal sealed class RunGroupStore(Pool pool)
         return [.. rows];
     }
 
-    /// <summary>Sets the note of a group of the agent (null deletes it); false when no run of the agent was started in the group.</summary>
     public async Task<bool> SetNoteAsync(Guid agentId, string name, string? note, CancellationToken cancellationToken = default)
     {
         await using var connection = await pool.OpenAsync(cancellationToken);
@@ -66,7 +63,6 @@ internal sealed class RunGroupStore(Pool pool)
         return true;
     }
 
-    /// <summary>The names among <paramref name="names"/> that no run of the agent was started in.</summary>
     public async Task<IReadOnlyList<string>> UnknownAsync(
         Guid agentId,
         IReadOnlyList<string> names,
@@ -84,7 +80,6 @@ internal sealed class RunGroupStore(Pool pool)
         return [.. names.Distinct().Except(known)];
     }
 
-    /// <summary>Archives or restores groups of the agent in one statement; an already archived group keeps its first time.</summary>
     public async Task ArchiveAsync(Guid agentId, IReadOnlyList<string> names, bool archived, CancellationToken cancellationToken = default)
     {
         await using var connection = await pool.OpenAsync(cancellationToken);
@@ -103,11 +98,7 @@ internal sealed class RunGroupStore(Pool pool)
         );
     }
 
-    /// <summary>
-    /// Deletes an archived group of the agent with its runs, samples and verdicts (the foreign keys cascade), unless one of those runs is queued
-    /// or running; <paramref name="dryRun"/> only decides and counts. The group's archive row is locked, so no run is queued in it in between
-    /// (starting one would put the group back in use).
-    /// </summary>
+    // Why: the group's archive row is locked so that no run is queued in it while deciding, because starting one would put the group back in use
     public async Task<DeletionResult<RunGroupDeletion>> DeleteAsync(
         Guid agentId,
         string name,
@@ -125,7 +116,6 @@ internal sealed class RunGroupStore(Pool pool)
                 cancellationToken: cancellationToken
             )
         );
-        // The runs that go: those started in the group and, however far the chain goes, the re-checks and verdict copies of them.
         var counts = await connection.QuerySingleAsync<RunGroupDeletionCounts>(
             new CommandDefinition(
                 """

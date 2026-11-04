@@ -1,5 +1,3 @@
-// Printing the run page: the same page on paper (print media, A4 landscape), without controls, with every sample open and the filters
-// applied; the Print button; `print=1` in the address opens the print dialog once. The agent is a tiny HTTP server.
 import { expect, test } from "@playwright/test";
 
 import {
@@ -55,7 +53,6 @@ test("on paper: no control, header or navbar, every sample open, the line at the
     await page.setViewportSize(PAPER);
     await page.goto(`/runs/${runId}`);
     await expect(page.getByText("says-hello", { exact: true })).toBeVisible();
-    // On the screen a sample's conversation is folded.
     await expect(page.getByText("Hello there.", { exact: true }).first()).toBeHidden();
 
     await page.emulateMedia({ media: "print" });

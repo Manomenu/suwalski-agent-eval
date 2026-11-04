@@ -8,7 +8,6 @@ using Suwageval.Server.Problems;
 
 namespace Suwageval.Server.Evaluation.Checks;
 
-/// <summary>The routes of checks.</summary>
 internal static class CheckEndpoints
 {
     public static void MapChecks(this IEndpointRouteBuilder app)
@@ -39,7 +38,7 @@ internal static class CheckEndpoints
         var errors = CheckValidation.Validate(request.Checks);
         if (errors.Count == 0)
         {
-            // Looked up first, so that a check naming a missing scenario writes nothing — and no other check of the request either.
+            // Why: looked up first so that a check naming a missing scenario writes nothing, and no other check of the request either
             var live = (await scenarios.ListAsync(row.Id, cancellationToken: cancellationToken))
                 .Select(scenario => scenario.Key)
                 .ToHashSet();
@@ -65,7 +64,6 @@ internal static class CheckEndpoints
         var missing = results.Where(result => result.Outcome == CheckOutcome.UnknownScenario).ToList();
         if (missing.Count > 0)
         {
-            // The scenario was deleted between the lookup and the write.
             return ProblemResults.Invalid(
                 missing.Select(result => new FieldError("checks", $"The scenario of check '{result.Key}' is gone."))
             );

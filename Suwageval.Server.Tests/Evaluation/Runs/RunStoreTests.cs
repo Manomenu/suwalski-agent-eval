@@ -161,7 +161,6 @@ public sealed class RunStoreTests(TestDatabase database)
                 scenario.Revision,
                 1,
                 SampleStatus.Done,
-                /*lang=json,strict*/
                 """[{"kind":"AssistantMessage","text":"hi"}]""",
                 null,
                 1234,
@@ -177,10 +176,7 @@ public sealed class RunStoreTests(TestDatabase database)
         Assert.Equal(("refund", scenario.Revision, 1, "Done"), (sample.ScenarioKey, sample.ScenarioRevision, sample.Sample, sample.Status));
         Assert.Contains("hi", sample.Output, StringComparison.Ordinal);
         Assert.Equal(1234, sample.DurationMs);
-        Assert.Equal( /*lang=json,strict*/
-            """["tool 'cancel_order'"]""",
-            sample.Undeclared
-        );
+        Assert.Equal("""["tool 'cancel_order'"]""", sample.Undeclared);
         var verdict = Assert.Single(await store.ListCheckResultsAsync(id, Cancellation));
         Assert.Equal(
             ("refund-called", 0.8, false, "refund_order was not called."),
@@ -190,7 +186,6 @@ public sealed class RunStoreTests(TestDatabase database)
         Assert.Equal(1, verdict.LatestRevision);
         Assert.Contains("\"tool\": \"refund_order\"", verdict.Definition, StringComparison.Ordinal);
 
-        // The check changes after the run: the run keeps the revision it used and its definition, the latest moves on.
         var changed = SeededAgent.RefundAfterLookup("refund-called", "refund", 0.5);
         await new CheckStore(database.Pool).UpsertAsync(
             agent.Id,
@@ -341,7 +336,7 @@ public sealed class RunStoreTests(TestDatabase database)
         {
             ids.Add(await EnqueueAsync(store, agent));
         }
-        // Three runs created at the very same moment (ties go by id), one older.
+        // Why: runs created at the same moment tie on time and are ordered by id
         foreach (var id in ids.Take(3))
         {
             await SetCreatedAtAsync(id, moment);

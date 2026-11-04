@@ -21,7 +21,6 @@ using static Suwageval.Server.Tests.Evaluation.Checks.Items;
 
 namespace Suwageval.Server.Tests.Evaluation.Runs;
 
-/// <summary>A re-check end to end: a finished run, a changed check, the stored answers judged again — against a real PostgreSQL, no model.</summary>
 public sealed class RunRecheckTests(TestDatabase database) : IAsyncDisposable
 {
     private readonly WebApplicationFactory<Program> app = RunTestApp.Create();
@@ -39,9 +38,7 @@ public sealed class RunRecheckTests(TestDatabase database) : IAsyncDisposable
     private static ToolCalledCheck Changed(string key, string scenarioKey) =>
         SeededAgent.RefundAfterLookup(key, scenarioKey) with
         {
-            Args = Json( /*lang=json,strict*/
-                """{"order_id":"B-99"}"""
-            ),
+            Args = Json("""{"order_id":"B-99"}"""),
         };
 
     private static JudgeCheck Polite(string key, string scenarioKey, string criteria = "The assistant is polite.") =>
@@ -228,7 +225,6 @@ public sealed class RunRecheckTests(TestDatabase database) : IAsyncDisposable
         Assert.Contains("did not refuse", copied.Message, StringComparison.Ordinal);
         Assert.True(scenarios["other"].Checks.Single().Passed);
         Assert.Single(model.Requests);
-        // The model's name is stored with the verdict, copied with an unchanged one and never given to a deterministic check.
         Assert.Equal("recorded", scenarios["refund"].Checks.Single(check => check.Key == "polite").JudgeModel);
         Assert.Equal("recorded", scenarios["other"].Checks.Single().JudgeModel);
         Assert.Null(scenarios["refund"].Checks.Single(check => check.Key == "refund-event").JudgeModel);
@@ -337,7 +333,7 @@ public sealed class RunRecheckTests(TestDatabase database) : IAsyncDisposable
             plan.ChangedChecks.Select(change => (change.CheckKey, change.Change))
         );
         Assert.Equal(1, plan.JudgedChecks);
-        Assert.Null(plan.JudgeModel); // the test server has no judge model configured
+        Assert.Null(plan.JudgeModel);
         Assert.Equal(
             [("polite", true), ("refund-called", false), ("refund-event", false)],
             plan.ChangedChecks.Select(change => (change.CheckKey, change.AfterJudgedByModel))
@@ -379,9 +375,7 @@ public sealed class RunRecheckTests(TestDatabase database) : IAsyncDisposable
             agent,
             SeededAgent.RefundedEvent("refund-event", "refund") with
             {
-                Data = Json( /*lang=json,strict*/
-                    """{"node":"refunded","orderId":"A-17"}"""
-                ),
+                Data = Json("""{"node":"refunded","orderId":"A-17"}"""),
             }
         );
 

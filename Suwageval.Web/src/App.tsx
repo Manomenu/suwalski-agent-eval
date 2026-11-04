@@ -17,14 +17,12 @@ import { ReportAgentContext } from "./shell/reportAgent";
 import { VersionPage } from "./versions/VersionPage";
 import { VersionsPage } from "./versions/VersionsPage";
 
-// The diff library is needed only here: the page loads when a comparison of versions is opened.
+// Why: the diff library is needed only here, so the page loads when a comparison of versions is opened
 const VersionComparePage = lazy(() => import("./versions/VersionComparePage").then((module) => ({ default: module.VersionComparePage })));
 
-/** Puts the page together from features: the shell (header, sidebar), then the page the path opens. */
 export function App() {
     const page = pageOf(window.location.pathname, window.location.search);
     const [navbarOpened, { toggle }] = useDisclosure(false);
-    // The agent of a page whose address does not name it (a run, a comparison): the page reports it once it has loaded.
     const [agentOfPage, setAgentOfPage] = useState<string | null>(null);
 
     return (
@@ -39,7 +37,6 @@ export function App() {
                         <Burger opened={navbarOpened} onClick={toggle} hiddenFrom="sm" size="sm" aria-label="Menu" />
                         <Anchor href="/" underline="never" c="inherit">
                             <Group gap="xs" wrap="nowrap">
-                                {/* The app icon, decorative: the name beside it is the link's text. */}
                                 <Image src="/favicon.svg" alt="" w={LOGO_SIZE} h={LOGO_SIZE} />
                                 <Title order={4} component="span">
                                     suwageval

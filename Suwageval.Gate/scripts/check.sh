@@ -77,6 +77,8 @@ web_prettier() { cd "$ROOT/Suwageval.Web" && pnpm exec prettier --check .; }
 
 web_knip() { cd "$ROOT/Suwageval.Web" && pnpm exec knip; }
 
+web_comments() { node "$ROOT/Suwageval.Gate/scripts/web-comments.mjs"; }
+
 api_types() { "$ROOT/scripts/.internal/api-types.sh" --check; }
 
 helm_chart() {
@@ -113,7 +115,7 @@ secrets_in_git() {
 }
 
 export ROOT
-export -f build_server format_server local_database test_server web_typecheck web_eslint web_vitest web_prettier web_knip \
+export -f build_server format_server local_database test_server web_typecheck web_eslint web_vitest web_prettier web_knip web_comments \
     api_types helm_chart compose_file shell_scripts untracked_files_have_no_secrets secrets_in_git
 
 declare_step build "build server (compiler, nullable, analyzers, NuGet audit)" 420
@@ -126,6 +128,7 @@ declare_step vitest "test Suwageval.Web (vitest)" 300
 if [ "$QUICK" -eq 0 ]; then
     declare_step prettier "format Suwageval.Web (prettier --check)" 180
     declare_step knip "dead code Suwageval.Web (knip)" 240
+    declare_step comments "comments of Suwageval.Web (web-comments.mjs)" 120
     declare_step apitypes "API types up to date (api-types.sh --check)" 420
     declare_step helm "helm chart (lint + template)" 120
     declare_step shellcheck "shell scripts (shellcheck)" 120
@@ -165,6 +168,7 @@ launch vitest web_vitest
 if [ "$QUICK" -eq 0 ]; then
     launch prettier web_prettier
     launch knip web_knip
+    launch comments web_comments
     launch helm helm_chart
     launch shellcheck shell_scripts
     launch gitleaks secrets_in_git

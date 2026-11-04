@@ -26,7 +26,6 @@ public sealed class AgentEndpointsTests(TestDatabase database) : IAsyncDisposabl
             ],
         };
 
-    /// <summary>What a run does when it starts: registers the contract the agent serves. The endpoint for it is gone.</summary>
     internal static async Task<AgentVersion> RegisterAsync(TestDatabase database, string agentName, AgentContract contract)
     {
         var store = new AgentStore(database.Pool);
@@ -244,10 +243,7 @@ public sealed class AgentEndpointsTests(TestDatabase database) : IAsyncDisposabl
     [Fact]
     public async Task A_body_with_an_unknown_field_is_a_400_problem()
     {
-        var response = await server.PostRaw(
-            "/agents", /*lang=json,strict*/
-            """{"name":"a","endpointUrl":"http://a.test","colour":"red"}"""
-        );
+        var response = await server.PostRaw("/agents", """{"name":"a","endpointUrl":"http://a.test","colour":"red"}""");
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);

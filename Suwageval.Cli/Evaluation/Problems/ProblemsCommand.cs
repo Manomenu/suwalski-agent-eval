@@ -6,21 +6,10 @@ using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Cli.Evaluation.Problems;
 
-/// <summary>
-/// <c>suwageval problems</c>: what is wrong with the agent named in <c>suwageval/agent.yaml</c> beyond one run — the web's "Problems". Its
-/// unstable checks (passed in some finished runs of one version and failed in others, so a failure there may be noise) and its agent
-/// errors (scenarios where the agent gave no answer: an HTTP error, a timeout, an unreadable answer), each open as long as the newest
-/// version that ran it (among <c>--version</c>, else every version not archived) is the one with the problem. Runs started in a group are
-/// not counted. One line per problem under its heading; <c>--json</c> prints <c>{ unstableChecks, agentErrors }</c>. Exits 0, or 2 when the
-/// agent file or the server is wrong.
-/// </summary>
 internal static class ProblemsCommand
 {
-    /// <summary>What <c>--json</c> prints.</summary>
     internal sealed record Found(IReadOnlyList<UnstableCheck> UnstableChecks, IReadOnlyList<AgentError> AgentErrors);
 
-    /// <param name="http">The client to the API; none means one is made from <c>--server</c> or <c>SUWAGEVAL_URL</c> (the tests pass their own).</param>
-    /// <param name="openBrowser">Opens a page for <c>--open</c>; none means the system's default browser (the tests record the page instead).</param>
     public static Command Create(HttpClient? http = null, Action<Uri>? openBrowser = null)
     {
         var json = CommandOptions.Json("Print the unstable checks and the agent errors as JSON.");

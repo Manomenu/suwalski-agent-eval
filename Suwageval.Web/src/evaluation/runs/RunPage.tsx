@@ -36,12 +36,10 @@ import { runPrintLine } from "./printLine";
 import { useReportAgent } from "../../shell/reportAgent";
 import { ToggleChip } from "../../toggle/ToggleChip";
 
-/** One run's results at `/runs/<id>`: the header, then a card per scenario. */
 export function RunPage({ runId }: { runId: string }) {
     const state = useRunResults(runId);
     const [selectedTags, selectTags] = useTagFilter();
     const [hidePassed, setHidePassed] = useHidePassed();
-    // Asked once the run is known: the agent's unstable checks of this run's version.
     const loadedRun = state.kind === "loaded" ? state.results.run : null;
     const unstable = useUnstableChecks(loadedRun?.agent ?? null, loadedRun === null ? [] : [loadedRun.agentVersionId]);
     useReportAgent(loadedRun?.agent ?? null);
@@ -126,7 +124,6 @@ export function RunPage({ runId }: { runId: string }) {
                     <RecheckButton run={run} />
                     <CancelButton run={run} />
                 </Group>
-                {/* The filters stay applied on paper; the print-only line says which. */}
                 <Text className="print-only print-line">{runPrintLine(run, selectedTags, hidePassed)}</Text>
                 <Box className="no-print">
                     <TagFilter

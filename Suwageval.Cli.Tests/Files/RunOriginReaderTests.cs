@@ -3,7 +3,6 @@ using Suwageval.Cli.Files;
 
 namespace Suwageval.Cli.Tests.Files;
 
-/// <summary>The facts a run carries about the repository: from the CI's environment, from the repository's own answers, and never an error.</summary>
 public sealed class RunOriginReaderTests
 {
     private static RunOriginReader Reader(
@@ -172,7 +171,6 @@ public sealed class RunOriginReaderTests
         Assert.True(origin.Pushed);
     }
 
-    /// <summary>The real git against a real repository with a bare remote: what the CLI reads for a clean, pushed commit, then for a changed tree and a new local commit.</summary>
     [Fact]
     public void A_real_repository_is_read_with_the_real_git()
     {
@@ -195,7 +193,7 @@ public sealed class RunOriginReaderTests
             Assert.True(Run(work, "push", "-u", "origin", "main"));
             Assert.True(Run(work, "remote", "set-head", "origin", "main"));
             var agentDir = Path.Combine(work, "suwageval");
-            // The real git, but no CI's environment: under GitHub Actions the reader would take the CI's branch instead.
+            // Why: under GitHub Actions the reader would take the CI's branch instead of git's
             var reader = new RunOriginReader(RunOriginReader.RunGit, _ => null);
 
             var pushed = reader.Read(agentDir, null);
@@ -263,7 +261,7 @@ public sealed class RunOriginReaderTests
         {
             return;
         }
-        // git marks its object files read-only, which Directory.Delete refuses on Windows.
+        // Why: git marks its object files read-only, which Directory.Delete refuses on Windows
         foreach (var file in Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories))
         {
             File.SetAttributes(file, FileAttributes.Normal);

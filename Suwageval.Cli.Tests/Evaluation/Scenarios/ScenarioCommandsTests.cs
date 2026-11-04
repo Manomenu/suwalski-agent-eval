@@ -8,7 +8,6 @@ using Suwageval.Contracts.Scenarios;
 
 namespace Suwageval.Cli.Tests.Evaluation.Scenarios;
 
-/// <summary>The <c>scenarios</c> and <c>scenario</c> commands against a stand-in for the API.</summary>
 public sealed class ScenarioCommandsTests
 {
     private static string Sample => Path.Combine(AppContext.BaseDirectory, "Sample", "suwageval");

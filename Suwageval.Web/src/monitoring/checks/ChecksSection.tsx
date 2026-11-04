@@ -5,7 +5,6 @@ import { useRequest } from "../../api/useRequest";
 import { percentText, seriesColor } from "../../charts/chartStyle";
 import { LineTrend } from "../../charts/LineTrend";
 
-/** The line of all conversations stands out from the environments' ones, as "All" does in the evaluation's trend. */
 const MAIN_STROKE_WIDTH = 4;
 import { HeaderHelp } from "../../help/HeaderHelp";
 import { ListPagination } from "../../pagination/ListPagination";
@@ -31,17 +30,12 @@ import {
     type TrendDays,
 } from "./monitoring";
 
-/**
- * The agent's monitoring checks: the environment filter over the whole page (all by default), a table of the checks' 7- and 30-day
- * pass rates, and the charts of the last days, all in the chosen environment.
- */
 export function ChecksSection({
     agent,
     environment,
     onEnvironmentChange,
 }: {
     agent: string;
-    /** The environment the page shows; null: all of them. */
     environment: string | null;
     onEnvironmentChange: (environment: string | null) => void;
 }) {

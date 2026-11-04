@@ -103,9 +103,7 @@ public sealed class CheckEndpointsTests(TestDatabase database) : IAsyncDisposabl
             },
             Called("with-result", "s") with
             {
-                Result = Items.Json( /*lang=json,strict*/
-                    """{"status":{"$pattern":"deliv"}}"""
-                ),
+                Result = Items.Json("""{"status":{"$pattern":"deliv"}}"""),
             },
             new JudgeCheck
             {
@@ -198,7 +196,7 @@ public sealed class CheckEndpointsTests(TestDatabase database) : IAsyncDisposabl
             Key = "bad",
             ScenarioKey = "s",
             Tool = "get_order",
-            Args = Items.Json( /*lang=json,strict*/
+            Args = Items.Json(
                 """
                 {"a":{"$judge":{}},"b":{"$judge":{"description":" "}},"c":{"$judge":{"examples":[]}},
                  "d":{"$judge":{"description":"x","hint":1}},"e":{"$judge":{"description":"x"},"f":1},"g":[{"$judge":"text"}]}
@@ -210,9 +208,7 @@ public sealed class CheckEndpointsTests(TestDatabase database) : IAsyncDisposabl
             Key = "bad-event",
             ScenarioKey = "s",
             Event = "state.changed",
-            Data = Items.Json( /*lang=json,strict*/
-                """{"x":{"$judge":{"examples":"no"}}}"""
-            ),
+            Data = Items.Json("""{"x":{"$judge":{"examples":"no"}}}"""),
         };
 
         var response = await server.Put($"/eval/agents/{agent}/checks", new PutChecksRequest([bad, badEvent]));
@@ -241,9 +237,7 @@ public sealed class CheckEndpointsTests(TestDatabase database) : IAsyncDisposabl
             Key = "reason-fits",
             ScenarioKey = "s",
             Tool = "get_order",
-            Args = Items.Json( /*lang=json,strict*/
-                """{"reason":{"$judge":{"description":"Says it arrived damaged","examples":["kettle arrived broken"]}}}"""
-            ),
+            Args = Items.Json("""{"reason":{"$judge":{"description":"Says it arrived damaged","examples":["kettle arrived broken"]}}}"""),
         };
 
         var response = await server.Put($"/eval/agents/{agent}/checks", new PutChecksRequest([check]));
@@ -290,27 +284,21 @@ public sealed class CheckEndpointsTests(TestDatabase database) : IAsyncDisposabl
             Key = "bad-result",
             ScenarioKey = "s",
             Tool = "get_order",
-            Result = Items.Json( /*lang=json,strict*/
-                """{"note":{"$judge":{}}}"""
-            ),
+            Result = Items.Json("""{"note":{"$judge":{}}}"""),
         };
         var mixed = new ToolCalledCheck
         {
             Key = "mixed",
             ScenarioKey = "s",
             Tool = "get_order",
-            Args = Items.Json( /*lang=json,strict*/
-                """{"reason":{"$judge":{"description":"d"},"$pattern":"x"}}"""
-            ),
+            Args = Items.Json("""{"reason":{"$judge":{"description":"d"},"$pattern":"x"}}"""),
         };
         var inverted = new EventNotEmittedCheck
         {
             Key = "inverted",
             ScenarioKey = "s",
             Event = "state.changed",
-            Data = Items.Json( /*lang=json,strict*/
-                """{"x":{"$judge":{"description":"d"}}}"""
-            ),
+            Data = Items.Json("""{"x":{"$judge":{"description":"d"}}}"""),
         };
 
         var response = await server.Put($"/eval/agents/{agent}/checks", new PutChecksRequest([badResult, mixed, inverted]));

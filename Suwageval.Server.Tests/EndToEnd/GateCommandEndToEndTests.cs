@@ -13,10 +13,6 @@ using CliApp = Cli::Suwageval.Cli.CliApp;
 
 namespace Suwageval.Server.Tests.EndToEnd;
 
-/// <summary>
-/// <c>suwageval gate</c> from the CLI through the server in process to a fake agent over HTTP and back. The test plays the worker: it
-/// takes the agent's queued runs, as the server's own worker would.
-/// </summary>
 public sealed class GateCommandEndToEndTests(TestDatabase database) : IAsyncDisposable
 {
     private readonly WebApplicationFactory<Program> app = RunTestApp.Create();

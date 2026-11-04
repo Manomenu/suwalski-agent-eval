@@ -4,7 +4,6 @@ using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Cli.Evaluation.Recheck;
 
-/// <summary>A re-check plan in words: what would be evaluated again, what is left out, or why nothing can start.</summary>
 internal static class RecheckText
 {
     public static string Describe(Guid runId, RecheckPlan plan)

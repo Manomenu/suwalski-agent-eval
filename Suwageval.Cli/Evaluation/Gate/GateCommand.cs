@@ -6,19 +6,8 @@ using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Cli.Evaluation.Gate;
 
-/// <summary>
-/// <c>suwageval gate</c>: starts a gate run of the agent named in <c>suwageval/agent.yaml</c> on the server: every scenario with an
-/// <c>acGuardrail</c>, each until its first attempt in which every check passes, stopped at the first acceptance criterion whose attempts
-/// run out. It always waits and is quiet (<see cref="GateText"/>): one line when every criterion passed (exit 0), the failures in full when
-/// one failed (exit 1), the reason when the gate could not start or finish (exit 2); Ctrl+C asks whether to cancel the run too (130 when
-/// left running). The gate run is read here only: no list or page of the web shows it. It pushes nothing: <c>suwageval push</c> first,
-/// as before <c>run</c>.
-/// </summary>
 internal static class GateCommand
 {
-    /// <param name="terminal">Where Ctrl+C asks whether to cancel the run too.</param>
-    /// <param name="http">The client to the API; none means one is made from <c>--server</c> or <c>SUWAGEVAL_URL</c> (the tests pass their own).</param>
-    /// <param name="origins">Reads where the agent's repository stands; none means the real one (the tests pass their own).</param>
     public static Command Create(Terminal terminal, HttpClient? http = null, RunOriginReader? origins = null)
     {
         var endpoint = new Option<string?>("--endpoint")

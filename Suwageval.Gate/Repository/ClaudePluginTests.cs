@@ -26,7 +26,7 @@ public sealed class ClaudePluginTests
     {
         var skills = Directory.GetFiles(Path.Combine(RepoRoot, "claude-plugin", "skills"), "SKILL.md", SearchOption.AllDirectories);
         Assert.NotEmpty(skills);
-        // Commands are skills now (Claude Code merged them): a commands/ folder would be a second place for the same thing.
+        // Why: commands are skills now: a commands folder would be a second place for the same thing
         Assert.False(
             Directory.Exists(Path.Combine(RepoRoot, "claude-plugin", "commands")),
             "claude-plugin/commands/: write a skill instead"

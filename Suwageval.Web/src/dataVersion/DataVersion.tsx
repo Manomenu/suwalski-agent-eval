@@ -3,14 +3,8 @@ import { IconCheck, IconCopy } from "@tabler/icons-react";
 
 import { shortDataVersion } from "./shortDataVersion";
 
-/** How many lines a data description takes before it is cut (the whole text is on hover). */
 const DESCRIPTION_LINES = 2;
 
-/**
- * A run's retrieval data: its data version by its start (the whole value on hover, and a button that copies it — to look it up
- * in the agent's index) and its description cut to a couple of lines. Its size never depends on how long either is, so a header of
- * many columns keeps one height.
- */
 export function DataVersion({
     dataVersion,
     description,
@@ -49,7 +43,7 @@ export function DataVersion({
                     )}
                 </CopyButton>
             </Group>
-            {/* As wide as its text, not the column: the tooltip is placed against it, so it shows up next to the words. */}
+            {/* Why: as wide as its text, not the column, so the tooltip is placed next to the words */}
             {text ? (
                 <Tooltip label={text} multiline maw={360}>
                     <Text size={size} fw="normal" c="dimmed" lineClamp={DESCRIPTION_LINES} w="fit-content" maw="100%">

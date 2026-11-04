@@ -5,14 +5,6 @@ using YamlDotNet.RepresentationModel;
 
 namespace Suwageval.Cli.Files;
 
-/// <summary>
-/// A YAML file read into a JSON tree (what the contracts are deserialized from) that remembers where in the file each
-/// value came from, so a problem found later is reported with its line and column.
-/// </summary>
-/// <remarks>
-/// Paths look like <c>conversation[0].text</c>. A path in the JSON tree may differ from the one in the file where a
-/// shorthand was expanded; <see cref="AddAlias"/> says which file path it stands for.
-/// </remarks>
 internal sealed partial class YamlSource
 {
     private readonly Dictionary<string, (long Line, long Column)> marks = [];
@@ -29,7 +21,6 @@ internal sealed partial class YamlSource
 
     public JsonNode? Root { get; private set; }
 
-    /// <summary>Reads the text; a file that is not YAML, is empty or holds several documents is a problem and returns null.</summary>
     public static YamlSource? Read(string file, string text, List<Problem> problems)
     {
         var source = new YamlSource(file, problems);
@@ -58,7 +49,6 @@ internal sealed partial class YamlSource
         return source;
     }
 
-    /// <summary>Tells that the value at <paramref name="expanded"/> in the tree is what the file has at <paramref name="original"/>.</summary>
     public void AddAlias(string expanded, string original) => aliases[expanded] = original;
 
     public Problem Problem(string path, string message)
@@ -140,7 +130,6 @@ internal sealed partial class YamlSource
         }
     }
 
-    /// <summary>Quoted text stays text; a plain scalar is read as YAML's core schema does: null, boolean, number, else text.</summary>
     private static JsonValue? Scalar(YamlScalarNode scalar)
     {
         var text = scalar.Value ?? "";

@@ -3,10 +3,6 @@ using static Suwageval.Server.Tests.Evaluation.Checks.Items;
 
 namespace Suwageval.Server.Tests.Evaluation.Checks;
 
-/// <summary>
-/// The shared rules (<c>Suwageval.Contracts/Checks/CheckRules.cs</c>), tested here because Contracts has no test project of its
-/// own. The CLI's <c>ValidatorTests</c> and <see cref="CheckValidationTests"/> show that each side reports their problems.
-/// </summary>
 public sealed class CheckRulesTests
 {
     private static string[] Paths(CheckInput check) => [.. CheckRules.Problems(check, "checks[0]").Select(problem => problem.Path)];
@@ -25,14 +21,7 @@ public sealed class CheckRulesTests
     public void Valid_patterns_and_judges_in_args_data_and_result_are_fine()
     {
         Assert.Empty(
-            Paths(
-                Tool(
-                    /*lang=json,strict*/
-                    """{"zip":{"$pattern":"^[0-9]+$"},"why":{"$judge":{"description":"d"}}}""",
-                    /*lang=json,strict*/
-                    """{"x":{"$pattern":"ok"}}"""
-                )
-            )
+            Paths(Tool("""{"zip":{"$pattern":"^[0-9]+$"},"why":{"$judge":{"description":"d"}}}""", """{"x":{"$pattern":"ok"}}"""))
         );
         Assert.Empty(
             Paths(
@@ -41,9 +30,7 @@ public sealed class CheckRulesTests
                     Key = "b",
                     ScenarioKey = "s",
                     Event = "e",
-                    Data = Json( /*lang=json,strict*/
-                        """{"n":{"$pattern":"x"}}"""
-                    ),
+                    Data = Json("""{"n":{"$pattern":"x"}}"""),
                 }
             )
         );
@@ -54,14 +41,7 @@ public sealed class CheckRulesTests
     {
         Assert.Equal(
             ["checks[0].args.zip.$pattern", "checks[0].result.items[0].$pattern"],
-            Paths(
-                Tool(
-                    /*lang=json,strict*/
-                    """{"zip":{"$pattern":"("}}""",
-                    /*lang=json,strict*/
-                    """{"items":[{"$pattern":"[a"}]}"""
-                )
-            )
+            Paths(Tool("""{"zip":{"$pattern":"("}}""", """{"items":[{"$pattern":"[a"}]}"""))
         );
         Assert.Equal(
             ["checks[0].data.n.$pattern"],
@@ -71,9 +51,7 @@ public sealed class CheckRulesTests
                     Key = "b",
                     ScenarioKey = "s",
                     Event = "e",
-                    Data = Json( /*lang=json,strict*/
-                        """{"n":{"$pattern":"*"}}"""
-                    ),
+                    Data = Json("""{"n":{"$pattern":"*"}}"""),
                 }
             )
         );
@@ -85,9 +63,7 @@ public sealed class CheckRulesTests
                     Key = "c",
                     ScenarioKey = "s",
                     Event = "e",
-                    Data = Json( /*lang=json,strict*/
-                        """{"$pattern":"("}"""
-                    ),
+                    Data = Json("""{"$pattern":"("}"""),
                 }
             )
         );
@@ -100,7 +76,6 @@ public sealed class CheckRulesTests
             ["checks[0].args.a", "checks[0].args.b.$judge", "checks[0].args.c.$judge.description", "checks[0].args.d.$judge.examples"],
             Paths(
                 Tool(
-                    /*lang=json,strict*/
                     """{"a":{"$judge":{"description":"d"},"$pattern":"x"},"b":{"$judge":{}},"c":{"$judge":{"description":" "}},"d":{"$judge":{"examples":[]}}}"""
                 )
             )
@@ -117,9 +92,7 @@ public sealed class CheckRulesTests
                     Key = "c",
                     ScenarioKey = "s",
                     Event = "e",
-                    Data = Json( /*lang=json,strict*/
-                        """{"n":{"$judge":{"description":"d"}}}"""
-                    ),
+                    Data = Json("""{"n":{"$judge":{"description":"d"}}}"""),
                 },
                 "checks[0]"
             )

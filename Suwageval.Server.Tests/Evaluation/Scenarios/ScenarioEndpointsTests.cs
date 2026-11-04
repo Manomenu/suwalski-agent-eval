@@ -60,22 +60,8 @@ public sealed class ScenarioEndpointsTests(TestDatabase database) : IAsyncDispos
     {
         var agent = await server.NewAgent();
         var plain = Scenario("a");
-        var pinned = plain with
-        {
-            Fixtures = System
-                .Text.Json.JsonDocument.Parse( /*lang=json,strict*/
-                    """{"pinned":["plans"]}"""
-                )
-                .RootElement.Clone(),
-        };
-        var other = plain with
-        {
-            Fixtures = System
-                .Text.Json.JsonDocument.Parse( /*lang=json,strict*/
-                    """{"pinned":["faq"]}"""
-                )
-                .RootElement.Clone(),
-        };
+        var pinned = plain with { Fixtures = System.Text.Json.JsonDocument.Parse("""{"pinned":["plans"]}""").RootElement.Clone() };
+        var other = plain with { Fixtures = System.Text.Json.JsonDocument.Parse("""{"pinned":["faq"]}""").RootElement.Clone() };
 
         var first = await Put(agent, plain);
         var withFixtures = await Put(agent, pinned);
@@ -87,10 +73,7 @@ public sealed class ScenarioEndpointsTests(TestDatabase database) : IAsyncDispos
         Assert.Equal(UpsertOutcome.Unchanged, again.Results[0].Outcome);
         Assert.Equal(UpsertOutcome.Updated, changed.Results[0].Outcome);
         var detail = await TestServer.Read<ScenarioDetail>(await server.Get($"/eval/agents/{agent}/scenarios/a"));
-        Assert.Equal( /*lang=json,strict*/
-            """{"pinned":["faq"]}""",
-            detail.Scenario.Fixtures?.GetRawText()
-        );
+        Assert.Equal("""{"pinned":["faq"]}""", detail.Scenario.Fixtures?.GetRawText());
     }
 
     [Fact]

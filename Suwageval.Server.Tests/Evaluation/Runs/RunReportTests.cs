@@ -5,8 +5,6 @@ using Suwageval.Server.Evaluation.Runs;
 
 namespace Suwageval.Server.Tests.Evaluation.Runs;
 
-/// <summary>What a run's results say about a check or a scenario that "passed fully": the one place the run page's "Hide passed
-/// checks" and <c>results --failed-only</c> take it from.</summary>
 public sealed class RunReportTests
 {
     private static readonly Guid RunId = Guid.NewGuid();

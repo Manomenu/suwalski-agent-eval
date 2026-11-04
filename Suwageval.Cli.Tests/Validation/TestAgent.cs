@@ -8,7 +8,6 @@ using Suwageval.Cli.Files;
 
 namespace Suwageval.Cli.Tests.Validation;
 
-/// <summary>A small agent the validation tests check scenarios against, and a way to read what they report.</summary>
 internal static class TestAgent
 {
     public const string Yaml = """
@@ -16,7 +15,6 @@ internal static class TestAgent
         endpointUrl: http://localhost:7010
         """;
 
-    /// <summary>What the running agent serves for <see cref="Yaml"/>: two agents with three tools, and one event.</summary>
     public static AgentContract Contract { get; } =
         new()
         {
@@ -62,7 +60,6 @@ internal static class TestAgent
             Context = new ContextDefinition { Events = [new EventDeclaration { Type = "state.changed", DataSchema = Schema }] },
         };
 
-    /// <summary>The same agent, now declaring that it accepts fixtures.</summary>
     public static AgentContract WithFixtures { get; } = Contract with { Context = Contract.Context with { FixturesSchema = Schema } };
 
     public static AgentContract WithRetrieval { get; } =
@@ -97,10 +94,8 @@ internal static class TestAgent
 
     private static JsonElement Schema => JsonDocument.Parse("""{"type":"object"}""").RootElement.Clone();
 
-    /// <summary>Each problem as <c>path: message</c>, in the order found.</summary>
     public static string[] Lines(IEnumerable<Problem> problems) => [.. problems.Select(p => $"{p.Path}: {p.Message}")];
 
-    /// <summary>A stand-in for the running agent: answers <c>GET …/suwageval/contract</c> with the contract, or as the handler says.</summary>
     public static HttpClient AgentServing(AgentContract contract, List<Uri>? requested = null) =>
         Agent(request =>
         {

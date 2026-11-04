@@ -32,18 +32,12 @@ import {
     type DraftCut,
 } from "./conversations";
 
-/**
- * "Scenario YAML": the conversation as a scenario file to copy into the agent's repository, with the file's path. Filled red when a
- * monitoring check failed on the conversation: a failure is what is most worth keeping as a scenario. Copied up to a message, the rest
- * can be simulated ("Simulate the rest"): a model describes the customer, so the draft is generated on a click, never on every change.
- */
 export function ScenarioDraftButton({
     conversationId,
     items,
     failed,
 }: {
     conversationId: string;
-    /** The conversation's items over all its turns, oldest first: the messages to copy up to are picked from them. */
     items: ConversationItem[];
     failed: boolean;
 }) {
@@ -52,10 +46,8 @@ export function ScenarioDraftButton({
     const [ordinal, setOrdinal] = useState<string | null>(null);
     const [simulate, setSimulate] = useState(false);
     const [turns, setTurns] = useState<number | null>(null);
-    // The request generated last, by the button: null until clicked, and again after anything it was made of changes.
     const [generated, setGenerated] = useState<number | null>(null);
     const options = cut === "end" ? [] : messageOptions(items, cut);
-    // The last message of the chosen side until one is picked.
     const picked = ordinal ?? options.at(-1)?.value ?? "1";
     const turnsLeft = cut === "end" ? 0 : draftTurns(items, cut, Number(picked));
     const simulating = simulate && turnsLeft > 0;
@@ -158,7 +150,6 @@ export function ScenarioDraftButton({
     );
 }
 
-/** The draft, asked once per what it is made of; `run` asks a generated one again (the model may answer differently). */
 function Draft({
     conversationId,
     cut,
@@ -169,7 +160,6 @@ function Draft({
     conversationId: string;
     cut: DraftCut;
     ordinal: number;
-    /** The simulated rest's turns; null, copied only. */
     turns: number | null;
     run: number;
 }) {

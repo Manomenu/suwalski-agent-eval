@@ -5,15 +5,11 @@ import { POLL_INTERVAL_MS, isActive, needsFullResults } from "./results";
 
 export type RunResultsState = { kind: "loading" } | { kind: "error"; error: Error } | { kind: "loaded"; results: RunResults };
 
-/**
- * A run's results. While the run goes on only its small summary is asked for every few seconds; the full results are fetched
- * again when the summary shows something new (`needsFullResults`), which includes the final status.
- */
 export function useRunResults(runId: string): RunResultsState {
     const [state, setState] = useState<RunResultsState>({ kind: "loading" });
 
     useEffect(() => {
-        // StrictMode runs effects twice in development: abort the first loop, ignore its results.
+        // Why: StrictMode runs effects twice in development, so the first loop is aborted and its results ignored
         const controller = new AbortController();
         let timer: ReturnType<typeof setTimeout> | undefined;
         const fail = (e: unknown) => {

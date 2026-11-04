@@ -5,21 +5,10 @@ using Suwageval.Cli.Server;
 
 namespace Suwageval.Cli.Evaluation.Compare;
 
-/// <summary>
-/// <c>suwageval compare &lt;runId&gt;…</c> or <c>--group &lt;name&gt;</c>: prints the runs of one agent side by side — a column per run
-/// (its version's label and models, checks passed, samples answered, turn times), the pass rate per tag and a cell per scenario with the
-/// failed checks. With <c>--baseline &lt;runId&gt;</c> (one of the runs) it also prints how the others stand against that run: changes in
-/// pass rates and turn times, the judge, the checks that differ. <c>--json</c> prints the record, <c>--open</c> opens the same view on the
-/// web (with <c>--print</c> the page also opens the browser's print dialog, <c>--print</c> without <c>--open</c> exits 2). A group is looked up for the agent of <c>suwageval/agent.yaml</c>. An unknown run or group, runs of different agents and a web
-/// that does not answer exit 2.
-/// </summary>
 internal static class CompareCommand
 {
-    // How many runs a comparison holds, printed or not (see ComparisonLimit).
     internal const int MaxRuns = ComparisonLimit.MaxRuns;
 
-    /// <param name="http">The client to the API; none means one is made from <c>--server</c> or <c>SUWAGEVAL_URL</c> (the tests pass their own).</param>
-    /// <param name="openBrowser">Opens a page; none means the system's default browser (the tests record the page instead).</param>
     public static Command Create(HttpClient? http, Action<Uri>? openBrowser)
     {
         var runIds = new Argument<Guid[]>("runId")
@@ -64,7 +53,7 @@ internal static class CompareCommand
         };
         command.Validators.Add(result =>
         {
-            // The tokens, not the parsed values: a token that is no id already is an error of its own, and reading its value would throw.
+            // Why: read the tokens, not the parsed values: a token that is no id is an error of its own and reading its value would throw
             var ids = (result.GetResult(runIds)?.Tokens ?? [])
                 .Select(token => Guid.TryParse(token.Value, out var id) ? id : (Guid?)null)
                 .Distinct()
@@ -93,7 +82,6 @@ internal static class CompareCommand
             (parsed, cancellationToken) =>
             {
                 var error = parsed.InvocationConfiguration.Error;
-                // Refused before anything is asked, with exit 2 like the other things a command understands but will not do.
                 if (parsed.GetValue(print) && !parsed.GetValue(open))
                 {
                     return CommandOptions.RefuseAsync(error, "--print needs --open: it opens the page's print dialog.");

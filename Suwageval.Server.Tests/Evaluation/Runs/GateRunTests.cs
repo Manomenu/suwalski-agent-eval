@@ -14,7 +14,6 @@ using Suwageval.Server.Tests.Judges;
 
 namespace Suwageval.Server.Tests.Evaluation.Runs;
 
-/// <summary>A gate run (<c>suwageval gate</c>) end to end in the worker, against a real PostgreSQL and a fake agent over real HTTP.</summary>
 public sealed class GateRunTests(TestDatabase database)
 {
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
@@ -25,7 +24,6 @@ public sealed class GateRunTests(TestDatabase database)
             AcGuardrail = new AcGuardrail { Id = id, RetryLimit = retryLimit },
         };
 
-    /// <summary>An agent that refunds (passes the refund check) only on the given calls, else answers plainly.</summary>
     private static Task<FakeAgent> RefundingOnAsync(params int[] calls) =>
         FakeAgent.StartAsync(
             (_, call) => Results.Text(calls.Contains(call) ? FakeAgent.RefundTurn : FakeAgent.PlainTurn, "application/json")

@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import type { CheckRunResult, ScenarioRunResult } from "./api";
 import { hiddenCounts, hiddenLine, hidePassedOf, searchWithHidePassed, visibleChecks, visibleScenarios } from "./hidePassed";
 
-// "Passed fully" is the server's (RunReportTests); here it is given, and the tests check what the page does with it.
 function check(key: string, passedFully: boolean): CheckRunResult {
     return {
         key,

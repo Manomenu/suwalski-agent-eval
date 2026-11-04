@@ -9,14 +9,7 @@ using Suwageval.Server.Verdicts;
 
 namespace Suwageval.Server.LiveCheck;
 
-/// <summary>
-/// The daily check from production's network (<c>Suwageval.Server live-check</c>, the chart's CronJob): calls with fixed tiny
-/// cases — one <c>judge</c> check, one <c>$judge</c> argument and, when one is configured, the simulated user
-/// (<see cref="SimulatorLiveCheck"/>, through <c>Models:simulator</c> or else <c>Models:fallback</c>) and, with a model of its own, the user
-/// describer (<see cref="DescriberLiveCheck"/>) — through the production registration of the models, the judges and the simulator. The model is not ours, so it can change
-/// its answer without a commit here; this is what notices. A problem is logged, posted to the Discord alerts channel when a
-/// webhook is configured, and makes the process exit non-zero. It writes nothing anywhere, so there is nothing to roll back.
-/// </summary>
+// Why: the model is not ours and can change its answer without a commit here, so this daily check is what notices
 internal static class JudgeLiveCheck
 {
     private const string Criteria = "The assistant greets the user politely.";
@@ -34,7 +27,6 @@ internal static class JudgeLiveCheck
         ScenarioKey = "live-check",
         Tool = "send_message",
         Args = JsonSerializer.Deserialize<JsonElement>(
-            /*lang=json,strict*/
             """{"text":{"$judge":{"description":"A polite greeting","examples":["Hello! How can I help you today?"]}}}"""
         ),
     };
@@ -45,10 +37,7 @@ internal static class JudgeLiveCheck
             {
                 Id = "live-check-call",
                 Name = "send_message",
-                Arguments = JsonSerializer.Deserialize<JsonElement>(
-                    /*lang=json,strict*/
-                    """{"text":"Hello! It is nice to hear from you."}"""
-                ),
+                Arguments = JsonSerializer.Deserialize<JsonElement>("""{"text":"Hello! It is nice to hear from you."}"""),
             },
         ],
     ]);
@@ -59,7 +48,6 @@ internal static class JudgeLiveCheck
         [new AssistantMessage { Text = "Hello! It is nice to hear from you. How can I help?" }],
     ]);
 
-    /// <summary>What is wrong with the judges right now, in a sentence, or null when both judged their fixed case as expected (passed).</summary>
     public static async Task<string?> ProblemAsync(Judge judge, ArgumentJudge argumentJudge, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(judge);
@@ -90,7 +78,8 @@ internal static class JudgeLiveCheck
         builder.Services.AddOptions<LiveCheckOptions>().Bind(builder.Configuration.GetSection(LiveCheckOptions.Section)).ValidateOnStart();
         builder.Services.AddSingleton<IValidateOptions<LiveCheckOptions>, LiveCheckOptions.LiveCheckOptionsValidator>();
         using var host = builder.Build();
-        await host.StartAsync(); // validates the options (ValidateOnStart) and runs no service of ours
+        // Why: validates the options (ValidateOnStart) without running a service of ours
+        await host.StartAsync();
 
         var problem =
             await ProblemAsync(

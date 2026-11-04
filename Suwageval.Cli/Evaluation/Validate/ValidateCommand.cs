@@ -5,16 +5,10 @@ using Suwageval.Cli.Validation;
 
 namespace Suwageval.Cli.Evaluation.Validate;
 
-/// <summary>
-/// <c>suwageval validate [path]</c>: checks an agent's files. The structure needs no server and no agent; tool and event
-/// names are checked against the contract the running agent serves, when it can be reached.
-/// </summary>
 internal static class ValidateCommand
 {
     private const string StdinName = "<stdin>";
 
-    /// <param name="input">Where a scenario read from stdin comes from.</param>
-    /// <param name="http">The client to reach the agent with; null makes one with a short timeout (tests pass a stub).</param>
     public static Command Create(TextReader input, HttpClient? http = null)
     {
         var path = new Argument<string>("path")
@@ -98,7 +92,6 @@ internal static class ValidateCommand
         }
         else if (Directory.Exists(path))
         {
-            // The whole folder: its monitoring checks too.
             folder = AgentFolder.Read(path);
             (agentFile, agentText, scenarios) = (folder.AgentFile, folder.AgentText, folder.Scenarios);
         }
@@ -119,6 +112,7 @@ internal static class ValidateCommand
         }
 
         var source = new List<Problem>();
+        // Why: agentText is present here: a missing agent file already made the structure invalid and returned above
         var url = AgentEndpoint.Override(endpoint) ?? AgentFileReader.Read(agentFile, agentText!, source)?.Definition.EndpointUrl;
         if (url is null || !Uri.TryCreate(url, UriKind.Absolute, out var address) || address.Scheme is not ("http" or "https"))
         {

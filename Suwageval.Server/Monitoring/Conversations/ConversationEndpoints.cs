@@ -10,17 +10,14 @@ using Suwageval.Server.Problems;
 
 namespace Suwageval.Server.Monitoring.Conversations;
 
-/// <summary>The routes of monitored conversations: a deployed agent sends its turns; people and the CLI read the conversations.</summary>
 internal static class ConversationEndpoints
 {
     private const int DefaultPageSize = 20;
 
     public const int MaxPageSize = 100;
 
-    /// <summary>How many turns one request may carry.</summary>
     public const int MaxTurns = 500;
 
-    /// <summary>How long an agent's id of a conversation may be.</summary>
     public const int MaxConversationIdLength = 200;
 
     public static IEndpointRouteBuilder MapConversations(this IEndpointRouteBuilder app)
@@ -31,11 +28,6 @@ internal static class ConversationEndpoints
         return app;
     }
 
-    /// <summary>
-    /// Stores turns of a monitored agent (<see cref="TurnBatch"/>). 404: no such agent; 409: its monitoring is off (with <c>feature</c>), or
-    /// the environment is not one it takes; 422: a bad environment name, turn or contract. An unknown contract hash without the contract
-    /// stores nothing and answers <see cref="TurnBatchAnswer.SendContract"/>; with the contract, the version is registered as a run does.
-    /// </summary>
     private static async Task<IResult> TakeTurnsAsync(
         TurnBatch batch,
         AgentStore agents,
@@ -81,7 +73,7 @@ internal static class ConversationEndpoints
             {
                 return ProblemResults.Invalid(contractProblems.Select(problem => new FieldError("contract", problem)));
             }
-            // The hash it should be is in the message: an agent written in another language finds its mistake by comparing.
+            // Why: the expected hash is in the message so that an agent written in another language finds its mistake by comparing
             if (AgentContractHash.Of(contract) is var hash && hash != batch.ContractHash)
             {
                 return ProblemResults.Invalid(
@@ -123,11 +115,6 @@ internal static class ConversationEndpoints
         return errors;
     }
 
-    /// <summary>
-    /// A page of the agent's monitored conversations, the newest last turn first. <c>environment</c>, <c>version</c> (repeatable: the
-    /// version of the last turn), <c>state</c> and <c>failedCheck</c> (the key of a monitoring check they failed) filter them; <c>page</c> (1-based) and <c>pageSize</c> (1 to 100, default 20) as for runs.
-    /// 404: no such agent; 422: a bad page or page size.
-    /// </summary>
     private static async Task<IResult> ListAsync(
         string agent,
         [FromQuery] string? environment,

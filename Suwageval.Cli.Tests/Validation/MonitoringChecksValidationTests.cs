@@ -3,7 +3,6 @@ using Suwageval.Cli.Validation;
 
 namespace Suwageval.Cli.Tests.Validation;
 
-/// <summary>The monitoring checks of <c>monitoring-checks.yaml</c>, validated with the rest of the agent's folder.</summary>
 public sealed class MonitoringChecksValidationTests
 {
     private static ValidationResult Validate(string checks) =>

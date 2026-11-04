@@ -2,11 +2,6 @@ using System.Text.Json.Nodes;
 
 namespace Suwageval.Cli.Files;
 
-/// <summary>
-/// The one place where the log shorthands of a scenario file become the contract's full form:
-/// <c>- user: "…"</c>, <c>- assistant: "…"</c>, <c>- tool_call: {…}</c>, <c>- tool_result: {…}</c>, <c>- event: {…}</c>.
-/// An item with <c>kind:</c> is already the full form and passes through.
-/// </summary>
 internal static class ConversationShorthands
 {
     private const string Expected =
@@ -22,7 +17,6 @@ internal static class ConversationShorthands
         ["event"] = "Event",
     };
 
-    /// <summary>The item in the contract's full form, or null (with a problem) when it is neither form.</summary>
     public static JsonNode? Expand(JsonNode? item, string path, YamlSource source, List<Problem> problems)
     {
         if (item is not JsonObject obj)

@@ -9,21 +9,10 @@ using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Cli.Evaluation.Sweep;
 
-/// <summary>
-/// <c>suwageval sweep [variant…]</c>: runs the scenarios of the agent of <c>suwageval/agent.yaml</c> once per variant, as the file's
-/// <c>sweep:</c> section says (<see cref="SweepSettings"/>), all in one run group, then prints a row per variant and the link to the
-/// group's compare page. It exits 0 when every variant was run to its end (failing checks are results, not failures), 2 when one could
-/// not be (reconfiguring, the label, the run) or <c>restore</c> failed, 130 after Ctrl+C. The files are not pushed: run <c>push</c> first.
-/// </summary>
 internal static partial class SweepCommand
 {
     private static readonly TimeSpan CancelTimeout = TimeSpan.FromSeconds(10);
 
-    /// <param name="terminal">Where <c>--select</c> asks which variants to run.</param>
-    /// <param name="http">The client to the API and the agent; none means one for each (the tests pass their own).</param>
-    /// <param name="origins">Reads where the agent's repository stands; none means the real one and the CI environment (the tests pass their own).</param>
-    /// <param name="shell">Runs the command lines; none means the real shell (the tests pass their own).</param>
-    /// <param name="pollInterval">How often the label is read while waiting for it; none means every 2 s.</param>
     public static Command Create(
         Terminal terminal,
         HttpClient? http = null,
@@ -195,7 +184,7 @@ internal static partial class SweepCommand
             error,
             async (client, site) =>
             {
-                // A group exists once it has a run, so its note is set right after the first run is created.
+                // Why: a group exists only once it has a run, so its note can be set only after the first run is created
                 var noteSet = arguments.Note is null;
                 async Task onFirstRun(CancellationToken token)
                 {
@@ -216,7 +205,11 @@ internal static partial class SweepCommand
                 var sweep = new VariantSweep(
                     settings,
                     shell,
-                    async token => (await ContractFetcher.FetchAsync(http ?? agentHttp!, endpoint, token)).Contract?.Label,
+                    async token =>
+                        // Why: agentHttp is created whenever no http client was injected, so one of the two is set
+                        (await ContractFetcher.FetchAsync(http ?? agentHttp!, endpoint, token))
+                            .Contract
+                            ?.Label,
                     token => StartRunAsync(client, agent.Definition.Name, arguments, group, origins, onFirstRun, token),
                     output,
                     TimeSpan.FromSeconds(settings.WaitSeconds),
@@ -278,7 +271,6 @@ internal static partial class SweepCommand
         }
     }
 
-    /// <summary>Lists the variants and reads the answer, asking again until it is valid; null when the input ends first.</summary>
     private static async Task<List<string>?> SelectAsync(
         List<string> available,
         Terminal terminal,
@@ -311,7 +303,6 @@ internal static partial class SweepCommand
     private static string DefaultGroup(string agent) =>
         $"sweep-{DateTime.Now.ToString("yyyyMMdd-HHmm", CultureInfo.InvariantCulture)}-{agent}";
 
-    /// <summary>The variants to run: the named ones, or every file of the folder; null with <paramref name="problem"/> when that is not possible.</summary>
     private static List<string>? ChooseVariants(string variantsDir, string[] named, string group, out string problem)
     {
         problem = "";
@@ -325,6 +316,7 @@ internal static partial class SweepCommand
                 .EnumerateFiles(variantsDir)
                 .Select(Path.GetFileNameWithoutExtension)
                 .Where(name => !string.IsNullOrEmpty(name))
+                // Why: empty and null names are filtered out by the Where just above
                 .Select(name => name!)
                 .Distinct(StringComparer.Ordinal)
                 .Order(StringComparer.Ordinal)
@@ -335,7 +327,7 @@ internal static partial class SweepCommand
             problem = $"No variants: {variantsDir} is missing or has no files.";
             return null;
         }
-        // A name goes into command lines, so it is a plain word.
+        // Why: a variant name goes into shell command lines, so it must be a plain word
         if (available.FirstOrDefault(name => !VariantName().IsMatch(name)) is { } odd)
         {
             problem = $"'{odd}' in {variantsDir} cannot be a variant: use letters, digits, '.', '_' and '-'.";

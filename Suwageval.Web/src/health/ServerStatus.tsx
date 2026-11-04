@@ -4,7 +4,6 @@ import { useRequest } from "../api/useRequest";
 import { fetchHealth } from "./api";
 import { describe, statusOf, type ServerStatus as Status } from "./status";
 
-/** Whether the API answers — a badge. The template's only feature; delete it when it is in the way. */
 export function ServerStatus() {
     const health = useRequest("health", fetchHealth);
     const status: Status =

@@ -7,12 +7,7 @@ import { DEFINITION_THEME, loadHighlighter } from "./highlighter";
 const PRE_STYLE =
     "margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font-family:var(--mantine-font-family-monospace);padding:var(--mantine-spacing-sm);border-radius:var(--mantine-radius-sm);font-size:var(--mantine-font-size-sm)";
 
-/**
- * YAML in the theme's own colours, never scrolled sideways: a long line wraps and hangs under the start of its value
- * (`hangingIndents`), one block per line, as YAML would indent it. While the highlighter loads the plain text shows in a code block. The HTML comes from
- * shiki, which escapes the text it is given; it is set with `dangerouslySetInnerHTML` because turning shiki's tree into
- * React elements would need another package for no gain.
- */
+// Why: dangerouslySetInnerHTML is safe because shiki escapes its input, and turning its tree into React elements would need another package for no gain
 export function HighlightedYaml({ yaml }: { yaml: string }) {
     const [highlighted, setHighlighted] = useState<{ yaml: string; html: string } | null>(null);
     const [failed, setFailed] = useState(false);
@@ -34,7 +29,7 @@ export function HighlightedYaml({ yaml }: { yaml: string }) {
                                     node.properties.style = `${String(node.properties.style)};${PRE_STYLE}`;
                                 },
                                 code(node) {
-                                    // The lines become blocks; the newlines between them would add empty lines.
+                                    // Why: each line is a block, so the newline text nodes between them would add empty lines
                                     node.children = node.children.filter((child) => child.type !== "text");
                                 },
                                 line(node, line) {

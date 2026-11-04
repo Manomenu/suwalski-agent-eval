@@ -1,5 +1,3 @@
-// The pages of the app and the paths that open them. No router library: the entry point reads
-// the pathname once, and links are plain `<a href>` (a full page load, so the back button works).
 const GUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 const RUN_PATH = new RegExp(`^/runs/(${GUID})/?$`, "i");
 const CONVERSATION_PATH = new RegExp(`^/conversations/(${GUID})/?$`, "i");
@@ -30,13 +28,6 @@ function decode(segment: string): string | null {
     }
 }
 
-/**
- * The page a path opens: `/`, `/agents/<name>` (the agent's Versions page, also at `/agents/<name>/versions`), `/agents/<name>/evaluation`, `/agents/<name>/monitoring`, `/agents/<name>/versions/<guid>`, `/runs/<guid>` (which `suwageval results` opens), `/conversations/<guid>` (a monitored conversation)
- * `/agents/<name>/versions/compare?a=<guid>&b=<guid>` (what changed between two versions; `suwageval versions diff` opens it),
- * or `/compare?runs=<guid>,<guid>,…` / `/compare?group=<name>[&agent=<name>]` (runs side by side; `suwageval compare` and `suwageval sweep`
- * open it), each with an optional `&baseline=<guid>` (one of the runs: the others are read against it). The queries are passed on as
- * they are, the page checks them.
- */
 export function pageOf(pathname: string, search = ""): Page {
     if (pathname === "/") return { kind: "agents" };
     if (pathname === "/compare" || pathname === "/compare/") {

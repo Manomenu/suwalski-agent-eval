@@ -7,7 +7,6 @@ import { HighlightedYaml } from "./HighlightedYaml";
 
 const DEFINITION_DRAWER_WIDTH = 640;
 
-/** A `{ }` button that opens the check's definition, as the run used it, in a drawer. Nothing shows until it is clicked. */
 export function CheckDefinitionButton({
     definition,
     revision,

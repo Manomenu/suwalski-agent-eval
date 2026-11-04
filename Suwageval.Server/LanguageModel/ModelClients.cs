@@ -4,11 +4,7 @@ using OpenAI;
 
 namespace Suwageval.Server.LanguageModel;
 
-/// <summary>
-/// The chat client of every configured model, built once: the same instance — and so the same pool of slots — for everyone
-/// who asks for a model by name.
-/// </summary>
-/// <remarks><paramref name="create"/> makes the unlimited client of one model; the tests hand in one that answers from recorded text.</remarks>
+// Why: one instance per model, so everyone who names a model shares its pool of slots
 internal sealed class ModelClients(ModelsOptions options, Func<ModelOptions, IChatClient> create) : IDisposable
 {
     private readonly Dictionary<string, LimitedChatClient> clients = options.ToDictionary(
@@ -17,18 +13,15 @@ internal sealed class ModelClients(ModelsOptions options, Func<ModelOptions, ICh
         StringComparer.OrdinalIgnoreCase
     );
 
-    /// <summary>The entry under <c>Models</c> that every role without an entry of its own uses.</summary>
     public const string FallbackEntry = "fallback";
 
     public bool Has(string name) => clients.ContainsKey(name);
 
-    /// <summary>The entry a role calls: its own (<c>Models:&lt;role&gt;</c>) when configured, else <c>Models:fallback</c>; null when neither is.</summary>
     public string? EntryFor(string role) =>
         Has(role) ? role
         : Has(FallbackEntry) ? FallbackEntry
         : null;
 
-    /// <summary>The model's own name on its server (<see cref="ModelOptions.Model"/>) of the model called <paramref name="name"/>; null when it is not configured.</summary>
     public string? ModelNameOf(string name) => options.TryGetValue(name, out var model) ? model.Model : null;
 
     public IChatClient Get(string name) =>
@@ -42,11 +35,10 @@ internal sealed class ModelClients(ModelsOptions options, Func<ModelOptions, ICh
         }
     }
 
-    /// <summary>The client of an OpenAI-compatible server.</summary>
     public static IChatClient OpenAiCompatible(ModelOptions model)
     {
         ArgumentNullException.ThrowIfNull(model);
-        // The OpenAI client wants a key to build, so a server that asks for none gets a placeholder.
+        // Why: the OpenAI client wants a key to build, so a server that asks for none gets a placeholder
         var apiKey = string.IsNullOrEmpty(model.ApiKey) ? "none" : model.ApiKey;
         var openAi = new OpenAIClient(new ApiKeyCredential(apiKey), new OpenAIClientOptions { Endpoint = new Uri(model.BaseUrl) });
         return openAi.GetChatClient(model.Model).AsIChatClient();

@@ -3,20 +3,14 @@ import type { ReactNode } from "react";
 
 import { ToggleChip } from "../toggle/ToggleChip";
 
-/** The texts that differ between the lists that are archived (versions, run groups). */
 export interface ArchiveLabels {
     archive: string;
     unarchive: string;
     remove: string;
-    /** Why "Delete" is disabled. */
     removeHint: string;
     errorTitle: string;
 }
 
-/**
- * The toolbar above an archivable list: archive and restore the ticked rows, delete one archived row, the "Archived" chip (unless the list has its own control for it), and the notice
- * or error of the last change. `extra` is a button of the list itself, placed after "Archive".
- */
 export function ArchiveControls({
     labels,
     toArchive,
@@ -42,7 +36,6 @@ export function ArchiveControls({
     extra?: ReactNode;
     onChange: (keys: string[], archived: boolean) => void;
     onDelete: () => void;
-    /** The "Archived" chip: `help` says what archived means in this list. Absent when the list has its own way to show archived rows (the Versions page's Archived usage chip). */
     archivedChip?: { help: string; onChange: (show: boolean) => void };
 }) {
     return (

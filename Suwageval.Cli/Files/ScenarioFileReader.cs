@@ -5,10 +5,8 @@ using Suwageval.Contracts.Scenarios;
 
 namespace Suwageval.Cli.Files;
 
-/// <summary>Reads one scenario file: the <see cref="ScenarioInput"/> fields plus <c>checks:</c>, whose items lack <c>scenarioKey</c>.</summary>
 internal static class ScenarioFileReader
 {
-    /// <summary>The scenario with its checks, or null when anything in the file is a problem (all are added to <paramref name="problems"/>).</summary>
     public static LoadedScenario? Read(string file, string text, List<Problem> problems)
     {
         var source = YamlSource.Read(file, text, problems);
