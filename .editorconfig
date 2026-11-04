@@ -73,3 +73,11 @@ dotnet_diagnostic.CA1054.severity = none
 [{Suwageval.Contracts,Suwageval.AgentSdk}/**.cs]
 dotnet_diagnostic.CA1716.severity = none
 dotnet_diagnostic.CA1056.severity = none
+
+# Generated code (xUnit's entry point blocks on the task once) is not ours to change.
+[**/obj/**.cs]
+dotnet_diagnostic.RS0030.severity = none
+
+# The entry point of the CLI is its one door to the console: it hands the console on as a reader and writers.
+[Suwageval.Cli/Program.cs]
+dotnet_diagnostic.RS0030.severity = none

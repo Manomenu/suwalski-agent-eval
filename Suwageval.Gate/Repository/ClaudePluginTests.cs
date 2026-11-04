@@ -58,6 +58,33 @@ public sealed class ClaudePluginTests
     }
 
     [Fact]
+    [Trait("criterion", "AC-product-simplification-3")]
+    public void The_plugin_the_front_doors_and_the_readme_name_no_rerun_command()
+    {
+        var documents = Directory
+            .EnumerateFiles(Path.Combine(RepoRoot, "claude-plugin"), "*", SearchOption.AllDirectories)
+            .Append(Path.Combine(RepoRoot, "docs", "front-doors.md"))
+            .Append(Path.Combine(RepoRoot, "README.md"));
+
+        foreach (var document in documents)
+        {
+            var text = File.ReadAllText(document);
+            Assert.DoesNotContain("suwageval rerun", text, StringComparison.Ordinal);
+            Assert.DoesNotContain("/suwageval:rerun", text, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    [Trait("criterion", "AC-simpler-models-and-checks-11")]
+    public void The_update_skill_reports_the_version_before_and_after_and_recommends_auto_update()
+    {
+        var skill = File.ReadAllText(Path.Combine(RepoRoot, "claude-plugin", "skills", "update", "SKILL.md"));
+
+        Assert.Contains("the version before and after", skill, StringComparison.Ordinal);
+        Assert.Contains("**Enable auto-update**", skill, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void The_session_hook_runs_a_script_of_the_plugin_whose_context_file_is_there()
     {
         var plugin = Path.Combine(RepoRoot, "claude-plugin");

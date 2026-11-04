@@ -1,6 +1,12 @@
 {
   "specs": "docs/visual/spec",
-  "prose": ["docs/**", "**/*.md"],
+  "prose": [
+    "docs/**",
+    "**/*.md",
+    "Suwageval.Contracts/Scenarios/AcGuardrailRules.cs",
+    "Suwageval.Server.Tests/Evaluation/Scenarios/ExampleCriteria.cs",
+    "Suwageval.Cli.Tests/Validation/ExampleCriterion.cs"
+  ],
   "kinds": [
     { "kind": "server test (xunit)", "paths": ["Suwageval.Server.Tests/**/*.cs"], "how": "[Trait(\"criterion\", \"<id>\")] on the test" },
     { "kind": "cli test (xunit)", "paths": ["Suwageval.Cli.Tests/**/*.cs"], "how": "[Trait(\"criterion\", \"<id>\")] on the test" },

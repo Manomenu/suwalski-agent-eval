@@ -12,7 +12,7 @@ if [ "${ALLOW_GATE_EDIT:-}" != "1" ]; then
         # Why: which layer may use which changes with every new feature; it is data, and its diff is one readable line
         */Suwageval.Gate/layers.json) ;;
         */Suwageval.Gate/* | */.claude/settings.json | */.github/workflows/* | */.editorconfig | */eslint.config.js | \
-            */Directory.Build.props | */tsconfig*.json)
+            */Directory.Build.props | */BannedSymbols.txt | */tsconfig*.json)
             echo "Blocked: $path is part of the gate (a check, a hook or a lint config), which an agent does not change on its own." >&2
             echo "Do not work around it: ask the user to start a session with ALLOW_GATE_EDIT=1 claude and give them the exact change to make there (the file, what to change, why)." >&2
             exit 2

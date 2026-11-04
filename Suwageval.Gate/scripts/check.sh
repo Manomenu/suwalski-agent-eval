@@ -5,14 +5,18 @@ usage() {
     cat <<'HELP'
 The quality gate. CI runs exactly this script; humans run `just check`, the Stop hook runs --quick.
 
-  check.sh --quick   build with analyzers, csharpier, the tests against the real database, tsc, eslint, vitest
-  check.sh           quick, plus prettier, knip, comments of the web app, API types, the chart, compose,
-                     shellcheck and gitleaks
+  check.sh --quick   build with analyzers, csharpier, the CLI's tests and the repository guards, tsc, vitest
+  check.sh           quick, plus the server's tests against the real database, eslint, prettier, knip, comments of the web app, API types, acceptance criteria guarded,
+                     the chart, compose, shellcheck and gitleaks
 
 A green gate prints one line. Otherwise it prints the tail of each failed step's log and lists the failed and
 skipped steps. A step that cannot run because a tool is missing is SKIP, never PASS: with CI set a SKIP fails the
 gate, locally the report ends with NOT VERIFIED: <steps>. Every step has a ceiling (CHECK_STEP_LIMIT overrides it);
-a step above it is killed and fails as hung. A quick gate above CHECK_QUICK_WARN seconds (default 120) warns.
+a step above it is killed and fails as hung. The quick gate has a time budget, CHECK_QUICK_LIMIT seconds (default 60):
+the Stop hook runs it after every turn of an agent, and a gate that takes minutes gets switched off. Above the budget
+it fails and says so: move the slow step to the full gate or speed it up; raise the budget only on a machine that is
+slow across the board. Acceptance criteria are not in --quick: a criterion written into a spec before its guardrail,
+or one the owner must first decide on, would block the agent from stopping to ask.
 Tests marked [Trait("live", "true")] call a real model and are left out: scripts/.internal/live-check.sh runs them.
 HELP
 }
@@ -34,6 +38,14 @@ esac
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 # shellcheck source=scripts/.internal/checkout-env.sh
 source "$ROOT/scripts/.internal/checkout-env.sh"
+
+QUICK_LIMIT="${CHECK_QUICK_LIMIT:-60}"
+case "$QUICK_LIMIT" in
+    '' | *[!0-9]*)
+        echo "check.sh: CHECK_QUICK_LIMIT must be a whole number of seconds, not '$QUICK_LIMIT'" >&2
+        exit 2
+        ;;
+esac
 
 LOGS="$(mktemp -d)"
 trap 'rm -rf "$LOGS"' EXIT
@@ -65,6 +77,12 @@ format_server() { cd "$ROOT" && dotnet tool restore >/dev/null && dotnet csharpi
 
 local_database() { "$ROOT/scripts/.internal/db.sh" up >/dev/null; }
 
+# Why: --no-build runs what the build step just produced; these two need no database and leave the slowest project to the full gate
+test_quick() {
+    cd "$ROOT" && dotnet test --project Suwageval.Gate --no-build --no-progress --filter-not-trait "live=true" &&
+        dotnet test --project Suwageval.Cli.Tests --no-build --no-progress --filter-not-trait "live=true"
+}
+
 test_server() { cd "$ROOT" && dotnet test --solution Suwageval.slnx --no-build --no-progress --filter-not-trait "live=true"; }
 
 web_typecheck() { cd "$ROOT/Suwageval.Web" && pnpm exec tsc --noEmit -p tsconfig.app.json && pnpm exec tsc --noEmit -p tsconfig.node.json; }
@@ -80,6 +98,8 @@ web_knip() { cd "$ROOT/Suwageval.Web" && pnpm exec knip; }
 web_comments() { node "$ROOT/Suwageval.Gate/scripts/web-comments.mjs"; }
 
 api_types() { "$ROOT/scripts/.internal/api-types.sh" --check; }
+
+acceptance_criteria() { "$ROOT/Suwageval.Gate/scripts/criteria.sh"; }
 
 helm_chart() {
     cd "$ROOT"
@@ -115,21 +135,26 @@ secrets_in_git() {
 }
 
 export ROOT
-export -f build_server format_server local_database test_server web_typecheck web_eslint web_vitest web_prettier web_knip web_comments \
-    api_types helm_chart compose_file shell_scripts untracked_files_have_no_secrets secrets_in_git
+export -f build_server format_server local_database test_quick test_server web_typecheck web_eslint web_vitest web_prettier web_knip web_comments \
+    api_types acceptance_criteria helm_chart compose_file shell_scripts untracked_files_have_no_secrets secrets_in_git
 
 declare_step build "build server (compiler, nullable, analyzers, NuGet audit)" 420
 declare_step format "format server (csharpier check)" 180
-if [ -z "${CI:-}" ]; then declare_step postgres "postgres for tests (db.sh up)" 120; fi
-declare_step test "test server (xunit, repository guards, real PostgreSQL)" 900
+if [ "$QUICK" -eq 1 ]; then
+    declare_step test "test the CLI and the repository guards (xunit, no database)" 300
+else
+    if [ -z "${CI:-}" ]; then declare_step postgres "postgres for tests (db.sh up)" 120; fi
+    declare_step test "test server (xunit, repository guards, real PostgreSQL)" 900
+fi
 declare_step tsc "typecheck Suwageval.Web (tsc: app, e2e tests, config)" 300
-declare_step eslint "lint Suwageval.Web (eslint strict + import contracts, no warnings)" 420
 declare_step vitest "test Suwageval.Web (vitest)" 300
 if [ "$QUICK" -eq 0 ]; then
+    declare_step eslint "lint Suwageval.Web (eslint strict + import contracts, no warnings)" 420
     declare_step prettier "format Suwageval.Web (prettier --check)" 180
     declare_step knip "dead code Suwageval.Web (knip)" 240
     declare_step comments "comments of Suwageval.Web (web-comments.mjs)" 120
     declare_step apitypes "API types up to date (api-types.sh --check)" 420
+    declare_step criteria "acceptance criteria guarded (criteria.sh)" 60
     declare_step helm "helm chart (lint + template)" 120
     declare_step shellcheck "shell scripts (shellcheck)" 120
     declare_step gitleaks "secrets in git (gitleaks)" 420
@@ -139,6 +164,14 @@ if [ "$QUICK" -eq 0 ]; then
     command -v shellcheck >/dev/null 2>&1 || SKIPPED[shellcheck]="shellcheck not installed"
     command -v gitleaks >/dev/null 2>&1 || SKIPPED[gitleaks]="gitleaks not installed"
     docker compose version >/dev/null 2>&1 || SKIPPED[compose]="docker compose not installed"
+    if ! command -v python3 >/dev/null 2>&1; then
+        SKIPPED[criteria]="python3 not installed"
+    else
+        fetched=0
+        "$ROOT/Suwageval.Gate/scripts/criteria.sh" --fetch >/dev/null 2>&1 || fetched=$?
+        # Why: only a missing download is a SKIP; a checksum mismatch runs the step, which fails and says why
+        if [ "$fetched" -eq 3 ]; then SKIPPED[criteria]="the pinned vdoc.py cannot be downloaded (no network?)"; fi
+    fi
 fi
 
 # Why: installed once, before the web steps start, so they do not install side by side
@@ -149,9 +182,13 @@ PIDS=()
 # Why: sequential, because the tests run on what the build produced and the API types step builds the same project
 (
     run_step build build_server
-    if [ -z "${CI:-}" ]; then run_step postgres local_database; fi
-    run_step test test_server
-    if [ "$QUICK" -eq 0 ]; then run_step apitypes api_types; fi
+    if [ "$QUICK" -eq 1 ]; then
+        run_step test test_quick
+    else
+        if [ -z "${CI:-}" ]; then run_step postgres local_database; fi
+        run_step test test_server
+        run_step apitypes api_types
+    fi
 ) &
 PIDS+=($!)
 launch() {
@@ -163,12 +200,13 @@ launch() {
 }
 launch format format_server
 launch tsc web_typecheck
-launch eslint web_eslint
 launch vitest web_vitest
 if [ "$QUICK" -eq 0 ]; then
+    launch eslint web_eslint
     launch prettier web_prettier
     launch knip web_knip
     launch comments web_comments
+    launch criteria acceptance_criteria
     launch helm helm_chart
     launch shellcheck shell_scripts
     launch gitleaks secrets_in_git
@@ -176,6 +214,9 @@ if [ "$QUICK" -eq 0 ]; then
 fi
 for pid in "${PIDS[@]}"; do wait "$pid" || true; done
 TOTAL=$((SECONDS - GATE_START))
+# Why: the budget is decided before the summary, so a green run over budget never prints PASS
+OVER_BUDGET=0
+if [ "$QUICK" -eq 1 ] && [ "$TOTAL" -gt "$QUICK_LIMIT" ]; then OVER_BUDGET=1; fi
 
 FAILED=0
 PASSED=0
@@ -202,6 +243,10 @@ for key in "${ORDER[@]}"; do
         FAILED=1
     fi
 done
+if [ "$OVER_BUDGET" -eq 1 ]; then
+    REPORT+=("FAIL ${TOTAL}s  the quick gate is over its budget of ${QUICK_LIMIT}s: move the slow step to the full gate or speed it up; a first run after a reboot or on a fresh checkout may exceed it once; a machine that is slow across the board runs with CHECK_QUICK_LIMIT=<seconds>")
+    FAILED=1
+fi
 
 for ((i = 0; i < ${#FAILURES[@]}; i += 2)); do
     echo
@@ -220,9 +265,5 @@ else
 fi
 if [ ${#NOT_VERIFIED[@]} -gt 0 ]; then
     echo "NOT VERIFIED: ${NOT_VERIFIED[*]}"
-fi
-# Why: wall-clock time on a machine shared with other agents is load, not a failure, so it warns instead of failing
-if [ "$QUICK" -eq 1 ] && [ "$TOTAL" -gt "${CHECK_QUICK_WARN:-120}" ]; then
-    echo "WARN the quick gate took ${TOTAL}s: move the slow step to the full gate or speed it up"
 fi
 exit "$FAILED"

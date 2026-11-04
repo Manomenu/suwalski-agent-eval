@@ -40,6 +40,7 @@ public sealed class HookGuardEditTests
     [InlineData("Suwageval.Web/eslint.config.js")]
     [InlineData("Suwageval.Web/tsconfig.app.json")]
     [InlineData("Directory.Build.props")]
+    [InlineData("BannedSymbols.txt")]
     public void An_agent_cannot_edit_the_gate_and_is_told_to_ask_the_owner(string path)
     {
         var (exitCode, errors) = Run(path);
