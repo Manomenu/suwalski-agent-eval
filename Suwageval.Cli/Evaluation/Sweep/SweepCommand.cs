@@ -301,7 +301,7 @@ internal static partial class SweepCommand
     }
 
     private static string DefaultGroup(string agent) =>
-        $"sweep-{DateTime.Now.ToString("yyyyMMdd-HHmm", CultureInfo.InvariantCulture)}-{agent}";
+        $"sweep-{TimeProvider.System.GetLocalNow().ToString("yyyyMMdd-HHmm", CultureInfo.InvariantCulture)}-{agent}";
 
     private static List<string>? ChooseVariants(string variantsDir, string[] named, string group, out string problem)
     {

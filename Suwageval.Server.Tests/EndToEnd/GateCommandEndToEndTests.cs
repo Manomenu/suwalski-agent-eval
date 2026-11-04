@@ -9,6 +9,7 @@ using Suwageval.Contracts.Runs;
 using Suwageval.Contracts.Scenarios;
 using Suwageval.Server.Evaluation.Runs;
 using Suwageval.Server.Tests.Evaluation.Runs;
+using Suwageval.Server.Tests.Evaluation.Scenarios;
 using CliApp = Cli::Suwageval.Cli.CliApp;
 
 namespace Suwageval.Server.Tests.EndToEnd;
@@ -89,7 +90,7 @@ public sealed class GateCommandEndToEndTests(TestDatabase database) : IAsyncDisp
         await using var fake = await FakeAgent.StartAsync(
             (_, call) => Results.Text(call == 1 ? FakeAgent.PlainTurn : FakeAgent.RefundTurn, "application/json")
         );
-        var agent = await SeedAsync(fake.Url.AbsoluteUri, Guarded("refund", "AC-refunds-1"));
+        var agent = await SeedAsync(fake.Url.AbsoluteUri, Guarded("refund", ExampleCriteria.Refunds1));
 
         var (exit, output, error) = await GateAsync(agent);
 
@@ -104,19 +105,19 @@ public sealed class GateCommandEndToEndTests(TestDatabase database) : IAsyncDisp
     public async Task A_failed_criterion_exits_1_with_every_attempts_failed_checks_and_what_the_agent_did_last()
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.PlainTurn);
-        var agent = await SeedAsync(fake.Url.AbsoluteUri, Guarded("a-refund", "AC-refunds-1", retryLimit: 2));
+        var agent = await SeedAsync(fake.Url.AbsoluteUri, Guarded("a-refund", ExampleCriteria.Refunds1, retryLimit: 2));
 
         var (exit, output, _) = await GateAsync(agent);
 
         Assert.Equal(1, exit);
         var lines = output.ReplaceLineEndings("\n").Split('\n', StringSplitOptions.RemoveEmptyEntries);
-        Assert.Equal("FAILED AC-refunds-1 (scenario a-refund): 2 of 2 attempts failed", lines[0]);
+        Assert.Equal($"FAILED {ExampleCriteria.Refunds1} (scenario a-refund): 2 of 2 attempts failed", lines[0]);
         Assert.StartsWith("  attempt 1: a-refund-refunded: ", lines[1], StringComparison.Ordinal);
         Assert.StartsWith("  attempt 2: a-refund-refunded: ", lines[2], StringComparison.Ordinal);
         Assert.Equal("  what the agent did in the last attempt:", lines[3]);
         Assert.Contains(lines, line => line.StartsWith("    assistant: ", StringComparison.Ordinal));
         Assert.StartsWith(
-            "FAILED AC-refunds-1 (0 of 1 acceptance criteria passed); everything: suwageval results ",
+            $"FAILED {ExampleCriteria.Refunds1} (0 of 1 acceptance criteria passed); everything: suwageval results ",
             lines[^1],
             StringComparison.Ordinal
         );
@@ -131,7 +132,7 @@ public sealed class GateCommandEndToEndTests(TestDatabase database) : IAsyncDisp
     public async Task With_json_the_results_carry_the_verdict()
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
-        var agent = await SeedAsync(fake.Url.AbsoluteUri, Guarded("refund", "AC-refunds-1"));
+        var agent = await SeedAsync(fake.Url.AbsoluteUri, Guarded("refund", ExampleCriteria.Refunds1));
 
         var (exit, output, _) = await GateAsync(agent, "--json");
 

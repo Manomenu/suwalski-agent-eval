@@ -123,6 +123,26 @@ public sealed class EveryEndpointHasACliCommandTests(TestDatabase database) : IA
     }
 
     [Fact]
+    [Trait("criterion", "AC-product-simplification-2")]
+    public void The_server_maps_no_rerun_route_and_the_cli_has_no_rerun_command()
+    {
+        Assert.DoesNotContain(Mapped(), route => route.Contains("rerun", StringComparison.OrdinalIgnoreCase));
+
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        var exit = CliApp.Run(
+            ["rerun", Guid.NewGuid().ToString()],
+            new StringReader(""),
+            output,
+            error,
+            interrupt: TestContext.Current.CancellationToken
+        );
+
+        Assert.NotEqual(0, exit);
+        Assert.Contains("rerun", error.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void The_table_lists_no_route_the_server_does_not_map()
     {
         var mapped = Mapped().ToHashSet();

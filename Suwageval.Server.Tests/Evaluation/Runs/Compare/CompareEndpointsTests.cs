@@ -234,6 +234,7 @@ public sealed class CompareEndpointsTests(TestDatabase database) : IAsyncDisposa
     }
 
     [Fact]
+    [Trait("criterion", "AC-product-simplification-6")]
     public async Task Seven_runs_can_be_compared_but_not_eight()
     {
         var agent = await AgentAsync(database);

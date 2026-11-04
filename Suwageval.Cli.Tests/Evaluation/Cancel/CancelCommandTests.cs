@@ -37,7 +37,7 @@ public sealed class CancelCommandTests
                         SamplesDone = 0,
                         ChecksPassed = 0,
                         ChecksFailed = 0,
-                        CreatedAt = DateTime.UtcNow,
+                        CreatedAt = TimeProvider.System.GetUtcNow().UtcDateTime,
                     },
                     ContractJson.Options
                 ),

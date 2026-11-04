@@ -121,13 +121,14 @@ public sealed class ArgumentJudgeTests
         Assert.Equal([Letter], verdict.Evidence);
     }
 
+    public static TheoryData<Exception> ModelFailures =>
+        [new HttpRequestException("boom"), new TimeoutException("boom"), new InvalidOperationException("boom")];
+
     [Theory]
-    [InlineData(typeof(HttpRequestException))]
-    [InlineData(typeof(TimeoutException))]
-    [InlineData(typeof(InvalidOperationException))]
-    public async Task A_model_that_cannot_be_asked_is_not_judged_and_nothing_is_thrown(Type error)
+    [MemberData(nameof(ModelFailures))]
+    public async Task A_model_that_cannot_be_asked_is_not_judged_and_nothing_is_thrown(Exception error)
     {
-        var judge = RecordedModel.Failing((Exception)Activator.CreateInstance(error, "boom")!).ArgumentJudge();
+        var judge = RecordedModel.Failing(error).ArgumentJudge();
 
         var verdict = await judge.JudgeAsync(Reason, Turn(Refund("broken")), Cancellation);
 

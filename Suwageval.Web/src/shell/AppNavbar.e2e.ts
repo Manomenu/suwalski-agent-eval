@@ -2,7 +2,10 @@ import { expect, test } from "@playwright/test";
 
 import { openAgentsListAt } from "../../e2e/helpers";
 
-test("an agent opens on Versions, Evaluation is one click away, and Agents leads back to the list", async ({ page, request }) => {
+test("the server answers, an agent opens on Versions, Evaluation is one click away, and Agents leads back to the list", async ({
+    page,
+    request,
+}) => {
     const name = `e2e-navbar-${String(Date.now())}`;
     expect((await request.post("/api/agents", { data: { name, endpointUrl: "http://localhost:9/" } })).ok()).toBe(true);
     const navbar = page.getByRole("navigation");
@@ -10,6 +13,8 @@ test("an agent opens on Versions, Evaluation is one click away, and Agents leads
     const evaluation = navbar.getByRole("link", { name: "Evaluation", exact: true });
 
     await openAgentsListAt(page, request, name);
+    // Why: exact, because a substring match would also pass on the down text
+    await expect(page.getByText("server: up", { exact: true })).toBeVisible();
     await page.getByRole("main").getByRole("link", { name, exact: true }).click();
     await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();
     await expect(versions).toHaveAttribute("data-active", "true");

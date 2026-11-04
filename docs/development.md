@@ -29,7 +29,7 @@ just web             # web app on :3230, proxies /api to the server
 just up              # the whole stack in containers on :8093 — no cluster needed
 just build-images    # only build suwageval-server:local and suwageval-web:local, for another repository's compose stack
 just check           # the quality gate, exactly what CI runs
-just check-quick     # the gate while working: build, csharpier, tests, tsc, eslint, vitest
+just check-quick     # the gate while working: build, csharpier, CLI tests and repository guards, tsc, vitest; no database
 just cli validate DIR  # the suwageval CLI from source; `just cli-install` installs it globally
 just tmux-dev start  # tmux layout: server, web, the example agent suwexag (from source with `dotnet watch`, else its `suwexag:local` image), spare shell, CLI shell (SUWAGEVAL_AGENT_DIR sets the agent folder)
 just tmux-dev start --restart  # the same, after killing the old session and everything running in it
@@ -40,7 +40,7 @@ just agent-publish VERSION  # release Suwageval.AgentSdk to nuget.org through it
 just agent-publish-local VERSION  # the fallback, with a key from .env: a first release the workflow cannot make, or another feed
 ```
 
-The scripts behind these answer `--help`. Plain `dotnet` works too: `dotnet build Suwageval.slnx`, `dotnet test --solution Suwageval.slnx`.
+The quick gate has a budget of 60 s and fails above it, so what is slow runs only in the full gate: the server's tests and eslint. `CHECK_QUICK_LIMIT=<seconds>` raises the budget on a machine that is slow across the board. The scripts behind these answer `--help`. Plain `dotnet` works too: `dotnet build Suwageval.slnx`, `dotnet test --solution Suwageval.slnx`.
 
 New human-facing commands go into the matching group of the `justfile`; a family of related commands becomes a module in `.just/`, starting with `set working-directory := ".."`, so its recipes run from the repository root.
 

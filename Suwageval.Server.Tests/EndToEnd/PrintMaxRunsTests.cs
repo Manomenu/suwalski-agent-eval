@@ -10,8 +10,10 @@ namespace Suwageval.Server.Tests.EndToEnd;
 public sealed partial class PrintMaxRunsTests
 {
     [Fact]
+    [Trait("criterion", "AC-product-simplification-6")]
     public void The_server_the_CLI_and_the_web_page_hold_the_same_number_of_runs_in_a_comparison()
     {
+        Assert.Equal(7, RunComparisonReport.MaxRuns);
         Assert.Equal(RunComparisonReport.MaxRuns, CompareCommand.MaxRuns);
         Assert.Equal(RunComparisonReport.MaxRuns, WebConstant("src/evaluation/compare/layout.ts", PrintMaxRunsConstant()));
         Assert.Equal(RunComparisonReport.MaxRuns, WebConstant("src/routes/links.ts", CompareMaxRunsConstant()));

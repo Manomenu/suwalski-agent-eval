@@ -114,7 +114,7 @@ public sealed class MonitoringChecksTests(TestDatabase database) : IAsyncDisposa
                     {
                         Id = Guid.NewGuid(),
                         ConversationId = conversation,
-                        At = DateTimeOffset.UtcNow,
+                        At = TimeProvider.System.GetUtcNow(),
                         Items = items,
                     },
                 ],
@@ -128,7 +128,7 @@ public sealed class MonitoringChecksTests(TestDatabase database) : IAsyncDisposa
     private async Task CloseAndCheckAsync(string agent)
     {
         var agentId = (await new AgentStore(database.Pool).GetAsync(agent, Cancellation))!.Id;
-        await new ConversationStore(database.Pool).CloseIdleAsync(agentId, DateTimeOffset.UtcNow.AddMinutes(1), Cancellation);
+        await new ConversationStore(database.Pool).CloseIdleAsync(agentId, TimeProvider.System.GetUtcNow().AddMinutes(1), Cancellation);
         var checking = app.Services.GetRequiredService<CheckingStore>();
         var checker = app.Services.GetRequiredService<ConversationChecker>();
         foreach (var (conversationId, ofAgent) in await checking.UncheckedAsync(1000, Cancellation))
@@ -163,6 +163,20 @@ public sealed class MonitoringChecksTests(TestDatabase database) : IAsyncDisposa
             ("no-refund", 1, "Never refunds on its own"),
             (listed.Single().Check.Key, listed[0].Revision, listed[0].Check.Description)
         );
+    }
+
+    [Fact]
+    [Trait("criterion", "AC-simpler-models-and-checks-7")]
+    public async Task A_check_without_a_description_is_pushed_and_listed()
+    {
+        var client = Client();
+        var agent = await MonitoredAgent(client);
+
+        var pushed = await PutChecks(client, agent, NoRefund with { Description = null });
+
+        pushed.EnsureSuccessStatusCode();
+        var listed = await Get<MonitoringCheck[]>(client, $"/monitoring/agents/{agent}/checks");
+        Assert.Null(listed.Single().Check.Description);
     }
 
     [Fact]
@@ -248,7 +262,7 @@ public sealed class MonitoringChecksTests(TestDatabase database) : IAsyncDisposa
         Assert.Equal(new CheckRate(1, 2), checks.Single(check => check.Check.Key == "no-refund").Last7Days);
         Assert.Equal(new CheckRate(0, 0), checks.Single(check => check.Check.Key == "is-polite").Last30Days);
         var trend = await Get<MonitoringTrend>(client, $"/monitoring/agents/{agent}/trend?days=7");
-        var today = DateTime.UtcNow.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+        var today = TimeProvider.System.GetUtcNow().UtcDateTime.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
         Assert.Equal(new MonitoringDay(today, "production", 2, 2), Assert.Single(trend.Days));
         Assert.Equal(["production"], trend.Environments);
         var elsewhere = await Get<MonitoringCheck[]>(client, $"/monitoring/agents/{agent}/checks?environment=staging");

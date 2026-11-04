@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Text;
 using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Cli.Files;
@@ -112,15 +113,25 @@ internal sealed class RunOriginReader(
             {
                 return null;
             }
-            var output = process.StandardOutput.ReadToEndAsync();
+            var output = new StringBuilder();
+            process.OutputDataReceived += (_, line) =>
+            {
+                if (line.Data is not null)
+                {
+                    output.Append(line.Data).Append('\n');
+                }
+            };
+            process.BeginOutputReadLine();
             // Why: drained so a chatty git cannot block on a full pipe
-            _ = process.StandardError.ReadToEndAsync();
+            process.BeginErrorReadLine();
             if (!process.WaitForExit(GitTimeout))
             {
                 process.Kill(entireProcessTree: true);
                 return null;
             }
-            return new GitAnswer(process.ExitCode, output.GetAwaiter().GetResult());
+            // Why: without a timeout this second wait is the one that lets the last output lines arrive
+            process.WaitForExit();
+            return new GitAnswer(process.ExitCode, output.ToString());
         }
         catch (Exception e) when (e is Win32Exception or InvalidOperationException or IOException)
         {

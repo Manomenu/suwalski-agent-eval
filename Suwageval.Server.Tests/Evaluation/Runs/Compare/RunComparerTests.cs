@@ -69,7 +69,7 @@ public sealed class RunComparerTests
                 SamplesDone = 0,
                 ChecksPassed = 0,
                 ChecksFailed = 0,
-                CreatedAt = DateTime.UtcNow,
+                CreatedAt = TimeProvider.System.GetUtcNow().UtcDateTime,
             },
             Scenarios = scenarios,
             MedianMs = medianMs,

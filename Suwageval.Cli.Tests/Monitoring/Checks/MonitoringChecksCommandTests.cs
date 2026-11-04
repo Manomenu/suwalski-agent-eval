@@ -68,6 +68,28 @@ public sealed class MonitoringChecksCommandTests
     }
 
     [Fact]
+    [Trait("criterion", "AC-simpler-models-and-checks-7")]
+    public void A_check_without_a_description_is_listed_without_an_error()
+    {
+        MonitoringCheck[] checks =
+        [
+            new()
+            {
+                Revision = 1,
+                CreatedAt = DateTimeOffset.UnixEpoch,
+                Check = new ToolNotCalledCheck { Key = "no-refund", Tool = "refund" },
+                Last7Days = new CheckRate(4, 5),
+                Last30Days = new CheckRate(0, 0),
+            },
+        ];
+
+        var (exit, output, _) = Run(checks, "checks");
+
+        Assert.Equal(0, exit);
+        Assert.Equal("no-refund  7 days 80% (4/5)  30 days -", output.Trim());
+    }
+
+    [Fact]
     public void The_environment_goes_to_the_server()
     {
         var (_, _, paths) = Run(Array.Empty<MonitoringCheck>(), "checks", "--environment", "production");

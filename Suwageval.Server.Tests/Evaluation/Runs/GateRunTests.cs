@@ -10,6 +10,7 @@ using Suwageval.Server.Evaluation.Checks;
 using Suwageval.Server.Evaluation.Invocation;
 using Suwageval.Server.Evaluation.Runs;
 using Suwageval.Server.Evaluation.Scenarios;
+using Suwageval.Server.Tests.Evaluation.Scenarios;
 using Suwageval.Server.Tests.Judges;
 
 namespace Suwageval.Server.Tests.Evaluation.Runs;
@@ -76,7 +77,7 @@ public sealed class GateRunTests(TestDatabase database)
         var agent = await SeededAgent.CreateAsync(
             database.Pool,
             fake.Url.AbsoluteUri,
-            [Guarded("refund", "AC-refunds-1"), SeededAgent.Scenario("not-guarded", samples: 1)],
+            [Guarded("refund", ExampleCriteria.Refunds1), SeededAgent.Scenario("not-guarded", samples: 1)],
             [SeededAgent.RefundAfterLookup("refund-called", "refund"), SeededAgent.RefundAfterLookup("other-called", "not-guarded")]
         );
 
@@ -88,7 +89,7 @@ public sealed class GateRunTests(TestDatabase database)
         Assert.Equal(
             new ScenarioGuardrailResult
             {
-                Id = "AC-refunds-1",
+                Id = ExampleCriteria.Refunds1,
                 RetryLimit = 5,
                 Attempts = 2,
                 Passed = true,
@@ -109,7 +110,7 @@ public sealed class GateRunTests(TestDatabase database)
         var agent = await SeededAgent.CreateAsync(
             database.Pool,
             fake.Url.AbsoluteUri,
-            [Guarded("own-limit", "AC-refunds-2", retryLimit: 2)],
+            [Guarded("own-limit", ExampleCriteria.Refunds2, retryLimit: 2)],
             [SeededAgent.RefundAfterLookup("refund-called", "own-limit")]
         );
 
@@ -119,14 +120,14 @@ public sealed class GateRunTests(TestDatabase database)
         Assert.Equal(
             new ScenarioGuardrailResult
             {
-                Id = "AC-refunds-2",
+                Id = ExampleCriteria.Refunds2,
                 RetryLimit = 2,
                 Attempts = 2,
                 Passed = false,
             },
             scenario.AcGuardrail
         );
-        Assert.Equal(new GateResult { Passed = false, FailedGuardrail = "AC-refunds-2" }, results.Gate);
+        Assert.Equal(new GateResult { Passed = false, FailedGuardrail = ExampleCriteria.Refunds2 }, results.Gate);
         Assert.Equal(2, fake.Requests.Count);
     }
 
@@ -138,7 +139,7 @@ public sealed class GateRunTests(TestDatabase database)
         var agent = await SeededAgent.CreateAsync(
             database.Pool,
             fake.Url.AbsoluteUri,
-            [Guarded("agent-limit", "AC-refunds-3")],
+            [Guarded("agent-limit", ExampleCriteria.Refunds3)],
             [SeededAgent.RefundAfterLookup("refund-called", "agent-limit")]
         );
 
@@ -156,7 +157,7 @@ public sealed class GateRunTests(TestDatabase database)
         var agent = await SeededAgent.CreateAsync(
             database.Pool,
             fake.Url.AbsoluteUri,
-            [Guarded("a-fails", "AC-refunds-1", retryLimit: 1), Guarded("b-never-runs", "AC-refunds-2")],
+            [Guarded("a-fails", ExampleCriteria.Refunds1, retryLimit: 1), Guarded("b-never-runs", ExampleCriteria.Refunds2)],
             [SeededAgent.RefundAfterLookup("a-called", "a-fails"), SeededAgent.RefundAfterLookup("b-called", "b-never-runs")]
         );
 
@@ -165,8 +166,8 @@ public sealed class GateRunTests(TestDatabase database)
         Assert.Equal(RunStatus.Done, results.Run.Status);
         Assert.Equal("a-fails", Assert.Single(results.Scenarios).Key);
         var skipped = Assert.Single(results.Run.SkippedScenarios);
-        Assert.Equal(("b-never-runs", "Not run: the gate stopped at AC-refunds-1."), (skipped.Key, skipped.Reason));
-        Assert.Equal(new GateResult { Passed = false, FailedGuardrail = "AC-refunds-1" }, results.Gate);
+        Assert.Equal(("b-never-runs", $"Not run: the gate stopped at {ExampleCriteria.Refunds1}."), (skipped.Key, skipped.Reason));
+        Assert.Equal(new GateResult { Passed = false, FailedGuardrail = ExampleCriteria.Refunds1 }, results.Gate);
         Assert.Single(fake.Requests);
     }
 
@@ -178,7 +179,7 @@ public sealed class GateRunTests(TestDatabase database)
         var agent = await SeededAgent.CreateAsync(
             database.Pool,
             fake.Url.AbsoluteUri,
-            [Guarded("refund", "AC-refunds-1")],
+            [Guarded("refund", ExampleCriteria.Refunds1)],
             [SeededAgent.RefundAfterLookup("refund-called", "refund")]
         );
         await GateAsync(agent);
@@ -201,7 +202,7 @@ public sealed class GateRunTests(TestDatabase database)
         var agent = await SeededAgent.CreateAsync(
             database.Pool,
             fake.Url.AbsoluteUri,
-            [Guarded("refund", "AC-refunds-1"), SeededAgent.Scenario("plain", samples: 1)],
+            [Guarded("refund", ExampleCriteria.Refunds1), SeededAgent.Scenario("plain", samples: 1)],
             [SeededAgent.RefundAfterLookup("refund-called", "refund")]
         );
 
@@ -209,7 +210,7 @@ public sealed class GateRunTests(TestDatabase database)
 
         Assert.Null(results.Gate);
         Assert.Equal(
-            new ScenarioGuardrailResult { Id = "AC-refunds-1" },
+            new ScenarioGuardrailResult { Id = ExampleCriteria.Refunds1 },
             results.Scenarios.Single(scenario => scenario.Key == "refund").AcGuardrail
         );
         Assert.Null(results.Scenarios.Single(scenario => scenario.Key == "plain").AcGuardrail);

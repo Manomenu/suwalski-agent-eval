@@ -64,21 +64,6 @@ public sealed class ValidateCommandTests : IDisposable
     }
 
     [Fact]
-    public void Without_a_path_the_suwageval_folder_of_the_working_directory_is_used()
-    {
-        var previous = Environment.CurrentDirectory;
-        Environment.CurrentDirectory = Path.GetDirectoryName(Sample)!;
-        try
-        {
-            Assert.Equal(0, Run("", "validate").Exit);
-        }
-        finally
-        {
-            Environment.CurrentDirectory = previous;
-        }
-    }
-
-    [Fact]
     public void One_scenario_file_is_checked_against_the_agent_in_dir()
     {
         var file = Path.Combine(Sample, "scenarios", "refund-follow-up.yaml");

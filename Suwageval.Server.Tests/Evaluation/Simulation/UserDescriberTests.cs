@@ -26,6 +26,7 @@ public sealed class UserDescriberTests
     ];
 
     [Fact]
+    [Trait("criterion", "AC-simpler-models-and-checks-1")]
     public async Task The_model_describes_the_user_from_what_the_user_saw_through_the_fallback()
     {
         var model = RecordedModel.Answering("described-user.json");

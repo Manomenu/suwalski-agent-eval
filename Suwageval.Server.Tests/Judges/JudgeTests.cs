@@ -68,13 +68,14 @@ public sealed class JudgeTests
         Assert.StartsWith("Not judged: the judge model's answer is not the JSON asked for", verdict.Message, StringComparison.Ordinal);
     }
 
+    public static TheoryData<Exception> ModelFailures =>
+        [new HttpRequestException("boom"), new TimeoutException("boom"), new InvalidOperationException("boom")];
+
     [Theory]
-    [InlineData(typeof(HttpRequestException))]
-    [InlineData(typeof(TimeoutException))]
-    [InlineData(typeof(InvalidOperationException))]
-    public async Task A_model_that_cannot_be_asked_is_not_judged_and_nothing_is_thrown(Type error)
+    [MemberData(nameof(ModelFailures))]
+    public async Task A_model_that_cannot_be_asked_is_not_judged_and_nothing_is_thrown(Exception error)
     {
-        var verdict = await JudgeAsync(RecordedModel.Failing((Exception)Activator.CreateInstance(error, "boom")!));
+        var verdict = await JudgeAsync(RecordedModel.Failing(error));
 
         Assert.False(verdict.Passed);
         Assert.True(verdict.NotJudged);

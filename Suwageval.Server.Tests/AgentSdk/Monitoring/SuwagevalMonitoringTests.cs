@@ -84,7 +84,7 @@ public sealed class SuwagevalMonitoringTests(TestDatabase database) : IAsyncDisp
     private async Task<ConversationList> WaitForConversationsAsync(string name, int count)
     {
         using var client = app.CreateClient();
-        var deadline = DateTime.UtcNow.AddSeconds(20);
+        var deadline = TimeProvider.System.GetUtcNow().UtcDateTime.AddSeconds(20);
         while (true)
         {
             var list = await client.GetFromJsonAsync<ConversationList>(
@@ -92,7 +92,7 @@ public sealed class SuwagevalMonitoringTests(TestDatabase database) : IAsyncDisp
                 ContractJson.Options,
                 Cancellation
             );
-            if (list!.Conversations.Count >= count || DateTime.UtcNow > deadline)
+            if (list!.Conversations.Count >= count || TimeProvider.System.GetUtcNow().UtcDateTime > deadline)
             {
                 return list;
             }

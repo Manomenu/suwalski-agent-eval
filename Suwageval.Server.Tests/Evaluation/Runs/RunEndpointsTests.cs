@@ -12,6 +12,7 @@ using Suwageval.Contracts.Checks;
 using Suwageval.Contracts.Runs;
 using Suwageval.Contracts.Scenarios;
 using Suwageval.Server.Evaluation.Runs;
+using Suwageval.Server.Tests.Evaluation.Scenarios;
 
 namespace Suwageval.Server.Tests.Evaluation.Runs;
 
@@ -248,7 +249,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         var agent = await SeededAgent.CreateAsync(
             database.Pool,
             "http://127.0.0.1:1",
-            [SeededAgent.Scenario("unchecked") with { AcGuardrail = new AcGuardrail { Id = "AC-refunds-1" } }],
+            [SeededAgent.Scenario("unchecked") with { AcGuardrail = new AcGuardrail { Id = ExampleCriteria.Refunds1 } }],
             []
         );
 
@@ -266,7 +267,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         var agent = await SeededAgent.CreateAsync(
             database.Pool,
             fake.Url.AbsoluteUri,
-            [SeededAgent.Scenario("refund") with { AcGuardrail = new AcGuardrail { Id = "AC-refunds-1" } }],
+            [SeededAgent.Scenario("refund") with { AcGuardrail = new AcGuardrail { Id = ExampleCriteria.Refunds1 } }],
             [SeededAgent.RefundAfterLookup("refund-called", "refund")]
         );
 
@@ -379,6 +380,7 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
     }
 
     [Fact]
+    [Trait("criterion", "AC-simpler-models-and-checks-3")]
     public async Task A_judge_check_without_a_configured_judge_model_is_409_and_nothing_is_queued()
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
@@ -401,8 +403,40 @@ public sealed class RunEndpointsTests(TestDatabase database) : IAsyncDisposable
         var response = await Post(client, new RunRequest { Agent = agent.Name });
 
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
-        Assert.Contains("No judge model is configured", await response.Content.ReadAsStringAsync(Cancellation), StringComparison.Ordinal);
+        var body = await response.Content.ReadAsStringAsync(Cancellation);
+        Assert.Contains("No judge model is configured", body, StringComparison.Ordinal);
+        Assert.Contains("Models:fallback", body, StringComparison.Ordinal);
         Assert.Empty((await GetAsync<RunList>(client, $"/eval/runs?agent={agent.Name}")).Runs);
+    }
+
+    [Fact]
+    [Trait("criterion", "AC-simpler-models-and-checks-1")]
+    public async Task With_only_the_fallback_model_a_judge_check_and_a_simulated_user_are_accepted()
+    {
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
+        await using var onlyFallback = app.WithWebHostBuilder(host =>
+        {
+            host.UseSetting("Models:fallback:BaseUrl", "http://fallback.example/v");
+            host.UseSetting("Models:fallback:Model", "small");
+        });
+        var client = onlyFallback.CreateClient();
+        var agent = await SeededAgent.CreateAsync(
+            database.Pool,
+            fake.Url.AbsoluteUri,
+            [SeededAgent.Scenario("refund"), SeededAgent.Scenario("simulated", turns: 3, simulatedUser: "Anna")],
+            [
+                new JudgeCheck
+                {
+                    Key = "polite",
+                    ScenarioKey = "refund",
+                    Criteria = "The assistant is polite.",
+                },
+            ]
+        );
+
+        var response = await Post(client, new RunRequest { Agent = agent.Name });
+
+        Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
     }
 
     [Fact]

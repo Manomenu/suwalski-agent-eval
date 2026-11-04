@@ -81,7 +81,9 @@ test("a note is dark text on a light box on paper", async ({ page, request }) =>
     }
 });
 
-test("the filters stay applied on paper and are named in the line, without the Hide passed chip and the tag field", async ({ page }) => {
+test("the filters stay applied on paper and are named in the line, without the Hide passed chip and the tag field; only a selected tag's scenarios are printed", async ({
+    page,
+}) => {
     await page.setViewportSize(PAPER);
     await page.goto(`/runs/${runId}?tag=billing&hide=passed`);
     await expect(page.getByRole("checkbox", { name: "Hide passed checks", exact: true })).toBeChecked();
@@ -96,13 +98,8 @@ test("the filters stay applied on paper and are named in the line, without the H
     await expect(page.getByRole("textbox", { name: "Filter by tag" })).toBeHidden();
     await expect(page.getByText("Hidden:", { exact: false })).toBeHidden();
     expect(await visibleOnPaperButNotWanted(page)).toEqual([]);
-});
 
-test("a tag selected on the screen: only its scenarios are printed", async ({ page }) => {
-    await page.setViewportSize(PAPER);
     await page.goto(`/runs/${runId}?tag=smoke`);
-    await page.emulateMedia({ media: "print" });
-
     await expect(page.getByText(`Run ${runId} of ${name} · scenarios with tags: smoke`, { exact: true })).toBeVisible();
     await expect(page.getByRole("heading", { name: "greets", exact: true })).toBeVisible();
     await expect(page.getByRole("heading", { name: "refunds", exact: true })).toHaveCount(0);

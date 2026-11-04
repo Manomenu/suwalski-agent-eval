@@ -35,7 +35,7 @@ One line per top-level path (at most 300 characters each). `RepositoryLayoutTest
 - `.config/` — `dotnet-tools.json`: the pinned CSharpier.
 - `.artifacts/` — everything generated (e2e reports, renders), outside git and the images.
 
-Files at the root: `Directory.Build.props` (strict compiler and analyzers), `Directory.Build.rsp` (no idle MSBuild workers), `Directory.Packages.props` (every package version, once), `.editorconfig` (every disabled rule has its reason), `.csharpierrc.json`, `.gitattributes` (a new binary or generated file type gets its line), `global.json`, `nuget.config`.
+Files at the root: `Directory.Build.props` (strict compiler and analyzers), `Directory.Build.rsp` (no idle MSBuild workers), `Directory.Packages.props` (every package version, once), `BannedSymbols.txt` (APIs the build refuses, each with what to use instead), `.editorconfig` (every disabled rule has its reason), `.csharpierrc.json`, `.gitattributes` (a new binary or generated file type gets its line), `global.json`, `nuget.config`.
 
 ## The gate
 
@@ -63,6 +63,8 @@ Each line is a build rule or a test; its message says the fix. Rules live as low
 - Packages (`PackagesTests`): no MediatR, AutoMapper, Mapster, Scrutor, mocking libraries, FluentAssertions, Newtonsoft.Json or Entity Framework; every versioned package is referenced.
 - Interfaces (`InterfacesTests`): at least two implementations, apart from those an agent implements.
 - Deleting (`SubtractTests`): nothing `[Obsolete]`, no unused non-public server type.
+- Banned APIs (`BannedSymbols.txt`, the build refuses them with what to use instead): `DateTime.Now`/`UtcNow`, blocking on tasks, `Thread.Sleep`, `Console`, `Activator`, reflection discovery, `Type.GetType(string)`, Newtonsoft.Json.
+- Acceptance criteria (`criteria.sh`): every criterion of a spec has an id and a guardrail that names it, and nothing else names an id.
 - Escape hatches (`EscapeHatchTests`, `NoPragmaTests`): no `dynamic`, no `#pragma warning disable`; a `!` outside tests needs a `// Why:`.
 - Comments (`CommentsTests`, `web-comments.mjs`): only one-line Why comments and tool markers in C#, TypeScript and shell; XML documentation only in the SDK and the contracts.
 - Settings (`AppSettingsTests`): every section of appsettings is read by an options class.
@@ -72,7 +74,7 @@ Each line is a build rule or a test; its message says the fix. Rules live as low
 - Docs (`AgentsFileTests`, `DocsPathsTests`, `RepositoryLayoutTests`): AGENTS.md at most 100 lines, no tree drawings, no capitals shouting, CLAUDE.md is `@AGENTS.md`, a path the docs name exists, every top-level folder is in the map.
 - Editor (`VsCodeSettingsTests`): no style keys in the settings; recommended extension ids are well formed.
 - Hooks (`HookGuardEditTests`): the gate, migrations and generated files are refused with the fix.
-- The gate itself (`check.sh`): a ceiling per step; a SKIP fails in CI and is `NOT VERIFIED` locally.
+- The gate itself (`check.sh`): a ceiling per step; a SKIP fails in CI and is `NOT VERIFIED` locally; the quick gate fails above its time budget (`CHECK_QUICK_LIMIT`).
 
 ## Import contracts: which part may use which
 

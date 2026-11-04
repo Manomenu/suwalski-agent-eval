@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
 
 namespace Suwageval.Server.Tests.AgentSdk;
@@ -6,6 +7,11 @@ namespace Suwageval.Server.Tests.AgentSdk;
 public sealed partial class AgentSdkWorkflowTests
 {
     [Fact]
+    [SuppressMessage(
+        "ApiDesign",
+        "RS0030:Do not use banned APIs",
+        Justification = "This guard has to see every test class of the assembly."
+    )]
     public void Every_test_class_the_release_workflow_names_exists()
     {
         var workflow = File.ReadAllText(Path.Combine(RepositoryRoot(), ".github", "workflows", "agent-sdk.yml"));

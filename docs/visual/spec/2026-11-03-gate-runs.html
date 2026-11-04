@@ -371,7 +371,7 @@ pre.out { font: 12px/1.5 var(--mono); background: var(--code-bg); border: 1px so
 
 <section data-role="tldr">
   <h2>TL;DR</h2>
-  <div class="tldr"><p>Scenariusz może być <b>guardrailem kryterium akceptacji</b>: sekcja <code>acGuardrail: { id: AC-refunds-1 }</code> w jego YAML-u. Komenda <code>suwageval gate</code> uruchamia wszystkie takie scenariusze agenta, a każdy zalicza <b>pierwsza udana próba</b> (domyślnie do 5 prób). Wynikiem nie jest raport z pass rate'ami, tylko odpowiedź tak/nie w CLI: przy sukcesie jedna linia, przy porażce pełny opis tego, co padło. Bramka zatrzymuje się na pierwszym AC, które wyczerpie próby, i kończy kodem ≠ 0. Bramka jest częścią <b>lokalnego pełnego gate'u</b> repo agenta (w przykładowym agencie <code>just check</code>) i narzędziem agenta w Claude Code. <b>CI jej nie puszcza.</b> Web jej nie pokazuje.</p></div>
+  <div class="tldr"><p>Scenariusz może być <b>guardrailem kryterium akceptacji</b>: sekcja <code>acGuardrail: { id: AC-refunds-&lt;n&gt; }</code> w jego YAML-u. Komenda <code>suwageval gate</code> uruchamia wszystkie takie scenariusze agenta, a każdy zalicza <b>pierwsza udana próba</b> (domyślnie do 5 prób). Wynikiem nie jest raport z pass rate'ami, tylko odpowiedź tak/nie w CLI: przy sukcesie jedna linia, przy porażce pełny opis tego, co padło. Bramka zatrzymuje się na pierwszym AC, które wyczerpie próby, i kończy kodem ≠ 0. Bramka jest częścią <b>lokalnego pełnego gate'u</b> repo agenta (w przykładowym agencie <code>just check</code>) i narzędziem agenta w Claude Code. <b>CI jej nie puszcza.</b> Web jej nie pokazuje.</p></div>
   <div class="stats">
     <div><b>3</b><span>nowe pola YAML</span></div>
     <div><b>1</b><span>nowa komenda</span></div>
@@ -413,23 +413,23 @@ pre.out { font: 12px/1.5 var(--mono); background: var(--code-bg); border: 1px so
 <section data-role="scenarios">
   <h2>Scenariusze</h2>
   <h3>1. Pełny lokalny gate suwexag po zmianie promptu: wszystko przechodzi</h3>
-  <p>Agent ma 13 scenariuszy, z czego 5 ma <code>acGuardrail</code> (<code>AC-refunds-1…5</code>). <code>agent.yaml</code> nie ustawia limitu, więc domyślny wynosi 5.</p>
+  <p>Agent ma 13 scenariuszy, z czego 5 ma <code>acGuardrail</code> (<code>AC-refunds-&lt;n&gt;</code>). <code>agent.yaml</code> nie ustawia limitu, więc domyślny wynosi 5.</p>
   <div class="term"><span class="dim">$</span> just check      <span class="dim"># build, testy, format, potem validate, push, gate</span>
 PASSED 5 of 5 acceptance criteria
 <span class="dim">$</span> echo $?
 0</div>
 
   <h3>2. Ta sama bramka, AC pada</h3>
-  <p><code>AC-refunds-2</code> (<code>retryLimit: 2</code>) nie przechodzi w żadnej z prób. Wyjście bramki mówi, co padło w każdej próbie i co agent zrobił w ostatniej.</p>
+  <p><code>AC-refunds-&lt;n&gt;</code> (<code>retryLimit: 2</code>) nie przechodzi w żadnej z prób. Wyjście bramki mówi, co padło w każdej próbie i co agent zrobił w ostatniej.</p>
   <div class="term"><span class="dim">$</span> suwageval gate
-FAILED AC-refunds-2 (scenario refund-not-delivered): 2 of 2 attempts failed
+FAILED AC-refunds-<n> (scenario refund-not-delivered): 2 of 2 attempts failed
   attempt 1: no-refund-when-shipped: refund_order (by support) was not called in turn 1.
   attempt 2: no-refund-when-shipped: refund_order (by support) was not called in turn 1.
   what the agent did in the last attempt:
     tool call get_order {"order_id":"A-18"}
     tool result: {"orderId":"A-18","status":"shipped",…}
     assistant: Sorry — order A-18 is still shipped, not delivered yet, so I can't refund it…
-FAILED AC-refunds-2 (4 of 5 acceptance criteria passed); everything: suwageval results 243d…
+FAILED AC-refunds-<n> (4 of 5 acceptance criteria passed); everything: suwageval results 243d…
 <span class="dim">$</span> echo $?
 1</div>
 
@@ -437,7 +437,7 @@ FAILED AC-refunds-2 (4 of 5 acceptance criteria passed); everything: suwageval r
   <p>Claude zmienił narzędzie refundów w repo agenta. Plugin podpowiada mu <code>suwageval push</code> i <code>suwageval gate --json</code>. Z <code>gate.failedGuardrail</code> i komunikatów checków agent odczytuje, co padło, poprawia kod i puszcza bramkę jeszcze raz.</p>
 
   <h3>4. Błędne id w scenariuszu</h3>
-  <p>Autor wpisał <code>acGuardrail: { id: refunds-1 }</code> i drugi scenariusz z tym samym <code>AC-refunds-1</code>. <code>suwageval validate</code> zgłasza oba problemy przy plikach. Push odrzuca te same błędy na serwerze tą samą regułą.</p>
+  <p>Autor wpisał <code>acGuardrail: { id: refunds-1 }</code> i drugi scenariusz z tym samym <code>AC-refunds-&lt;n&gt;</code>. <code>suwageval validate</code> zgłasza oba problemy przy plikach. Push odrzuca te same błędy na serwerze tą samą regułą.</p>
 </section>
 
 <section data-role="behaviour">
@@ -497,7 +497,7 @@ flowchart TB
 key: refund-over-limit
 tags: [refunds]
 acGuardrail:
-  id: AC-refunds-2
+  id: AC-refunds-<n>
   retryLimit: 2
 conversation: …
 checks: …
@@ -515,7 +515,7 @@ checks: …
   <h2>Web</h2>
   <p>Runów bramkowych web nie pokazuje. Jedyna widoczna zmiana: karta scenariusza na stronie zwykłego runu ma chip z id AC, jeśli scenariusz pilnuje kryterium.</p>
   <div class="wire after"><span class="wf-label">Strona runu: karta scenariusza</span>
-    <div class="wf-bar"><b>refund-not-delivered</b><span class="wf-grow"></span><span class="wf-btn wf-new">AC-refunds-2</span></div>
+    <div class="wf-bar"><b>refund-not-delivered</b><span class="wf-grow"></span><span class="wf-btn wf-new">AC-refunds-&lt;n&gt;</span></div>
     <div class="wf-body"><div class="wf-card wf-row"><span class="wf-grow">checki i sample jak dotąd</span></div></div>
   </div>
 </section>

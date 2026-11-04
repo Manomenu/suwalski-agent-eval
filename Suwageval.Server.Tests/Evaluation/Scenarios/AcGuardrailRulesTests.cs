@@ -7,9 +7,9 @@ public sealed class AcGuardrailRulesTests
 {
     [Theory]
     [Trait("criterion", "AC-gate-runs-1")]
-    [InlineData("AC-refunds-1")]
-    [InlineData("AC-gate-runs-12")]
-    [InlineData("AC-x2-30")]
+    [InlineData(ExampleCriteria.Refunds1)]
+    [InlineData(ExampleCriteria.TwoWordFeature)]
+    [InlineData(ExampleCriteria.DigitInFeature)]
     public void An_id_of_the_form_ac_feature_number_is_fine(string id) =>
         Assert.Empty(AcGuardrailRules.Problems(new AcGuardrail { Id = id, RetryLimit = 2 }));
 
@@ -19,8 +19,8 @@ public sealed class AcGuardrailRulesTests
     [InlineData("ac-refunds-1")]
     [InlineData("AC-refunds")]
     [InlineData("AC-Refunds-1")]
-    [InlineData("AC-refunds-0")]
-    [InlineData("AC-refunds-01")]
+    [InlineData(ExampleCriteria.NumberZero)]
+    [InlineData(ExampleCriteria.LeadingZero)]
     [InlineData("AC--1")]
     [InlineData("")]
     public void Any_other_id_is_a_problem_at_its_path(string id) =>
@@ -33,7 +33,7 @@ public sealed class AcGuardrailRulesTests
     public void A_retry_limit_outside_one_to_twenty_is_a_problem(int retryLimit) =>
         Assert.Equal(
             [("acGuardrail.retryLimit", "acGuardrail.retryLimit is from 1 to 20 (the default is 5).")],
-            AcGuardrailRules.Problems(new AcGuardrail { Id = "AC-refunds-1", RetryLimit = retryLimit })
+            AcGuardrailRules.Problems(new AcGuardrail { Id = ExampleCriteria.Refunds1, RetryLimit = retryLimit })
         );
 
     [Theory]

@@ -46,7 +46,10 @@ internal sealed class FakeAgent : IAsyncDisposable
 
     public int MaxConcurrency => Volatile.Read(ref maxInFlight);
 
-    public static async Task<FakeAgent> StartAsync(Func<string, int, IResult> answer, TimeSpan? delay = null)
+    public static Task<FakeAgent> StartAsync(Func<string, int, IResult> answer, TimeSpan? delay = null) =>
+        StartAsync((body, call) => Task.FromResult(answer(body, call)), delay);
+
+    public static async Task<FakeAgent> StartAsync(Func<string, int, Task<IResult>> answer, TimeSpan? delay = null)
     {
         var builder = WebApplication.CreateSlimBuilder();
         builder.Logging.ClearProviders();
@@ -76,7 +79,7 @@ internal sealed class FakeAgent : IAsyncDisposable
                     {
                         await Task.Delay(wait);
                     }
-                    return answer(body, agent.requests.Count);
+                    return await answer(body, agent.requests.Count);
                 }
                 finally
                 {

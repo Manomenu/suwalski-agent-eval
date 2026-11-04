@@ -34,7 +34,7 @@ describe("selectionOf", () => {
         expect(selectionOf("", "sweep-1", "bot")).toEqual({ kind: "group", group: "sweep-1", agent: "bot" });
     });
 
-    it("refuses both, neither, a word that is no run id and too many runs", () => {
+    it("AC-product-simplification-6: refuses both, neither, a word that is no run id and too many runs", () => {
         expect(selectionOf(ID, "sweep-1", "").kind).toBe("error");
         expect(selectionOf("", "", "").kind).toBe("error");
         expect(selectionOf("nope", "", "")).toEqual({ kind: "error", message: '"nope" is not a run id.' });

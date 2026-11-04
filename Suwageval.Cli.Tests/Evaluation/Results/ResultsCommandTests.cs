@@ -40,7 +40,7 @@ public sealed class ResultsCommandTests
             SamplesDone = 1,
             ChecksPassed = 0,
             ChecksFailed = 1,
-            CreatedAt = DateTime.UtcNow,
+            CreatedAt = TimeProvider.System.GetUtcNow().UtcDateTime,
         };
 
     private static RunResults Failing(RunStatus status) =>

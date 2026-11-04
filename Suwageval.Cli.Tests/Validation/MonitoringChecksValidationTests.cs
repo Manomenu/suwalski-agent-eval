@@ -39,6 +39,7 @@ public sealed class MonitoringChecksValidationTests
     }
 
     [Fact]
+    [Trait("criterion", "AC-simpler-models-and-checks-7")]
     public void A_check_without_a_description_is_valid_but_one_with_a_scenarios_options_is_a_problem()
     {
         var problems = Problems(

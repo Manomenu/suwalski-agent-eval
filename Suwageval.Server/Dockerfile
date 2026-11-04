@@ -18,7 +18,7 @@ COPY Suwageval.Server/Suwageval.Server.csproj Suwageval.Server/packages.lock.jso
 RUN dotnet restore Suwageval.Server --locked-mode
 
 # Then the sources, which change every commit.
-COPY .editorconfig ./
+COPY .editorconfig BannedSymbols.txt ./
 COPY Suwageval.AgentSdk/ Suwageval.AgentSdk/
 COPY Suwageval.Contracts/ Suwageval.Contracts/
 COPY Suwageval.Server/ Suwageval.Server/

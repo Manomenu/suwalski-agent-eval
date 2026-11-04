@@ -20,6 +20,7 @@ public sealed class UserSimulatorLiveTests
     }
 
     [Fact]
+    [Trait("criterion", "AC-simpler-models-and-checks-6")]
     [Trait("live", "true")]
     public async Task The_real_model_plays_the_fixed_case_the_daily_check_uses()
     {

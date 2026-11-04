@@ -48,7 +48,7 @@ public sealed class RunCommandTests
             SamplesDone = 1,
             ChecksPassed = 0,
             ChecksFailed = 0,
-            CreatedAt = DateTime.UtcNow,
+            CreatedAt = TimeProvider.System.GetUtcNow().UtcDateTime,
         };
 
     private static CheckRunResult Check(

@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Text.Json.Serialization;
 using Suwageval.Contracts.Checks;
@@ -56,6 +57,7 @@ public sealed class CheckTypesTests
         },
     }.ToDictionary(check => check.GetType());
 
+    [SuppressMessage("ApiDesign", "RS0030:Do not use banned APIs", Justification = "This guard has to see a check type nobody listed yet.")]
     private static Type[] CheckTypes() =>
         [.. typeof(CheckInput).Assembly.GetTypes().Where(type => type is { IsAbstract: false } && type.IsSubclassOf(typeof(CheckInput)))];
 

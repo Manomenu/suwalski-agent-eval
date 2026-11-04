@@ -34,8 +34,6 @@ To do in that change:
 
 ## Practices of the template not yet in place
 
-- **Acceptance criteria in the gate.** `Suwageval.Gate/scripts/criteria.sh` runs by hand (`just criteria`) and is not a gate step yet: 19 criteria of the two October specs have no id, and 42 findings name `AC-refunds-*`, the example ids of the gate-runs spec and of `ValidatorTests`. Give the old specs ids and guardrails or close them, rename the examples, then add the step.
-- **Banned APIs at build level.** The template's `BannedSymbols.txt` with the analyzer in `Directory.Build.props`: about 4 sites in the code use a banned clock or block on a thread; an owner session makes the change.
 - **A `!` in tests.** `EscapeHatchTests` leaves tests out: about 120 of them, on values the test just asserted.
 
 ## Later, after the MVP

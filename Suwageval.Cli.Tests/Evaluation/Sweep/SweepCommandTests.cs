@@ -63,7 +63,7 @@ public sealed class SweepCommandTests : IDisposable
             SamplesDone = 0,
             ChecksPassed = 0,
             ChecksFailed = 0,
-            CreatedAt = DateTime.UtcNow,
+            CreatedAt = TimeProvider.System.GetUtcNow().UtcDateTime,
         };
         return (request.Method.Method, request.RequestUri?.AbsolutePath) switch
         {
@@ -99,7 +99,8 @@ public sealed class SweepCommandTests : IDisposable
 
     private HttpResponseMessage RecordNote(string path, HttpRequestMessage request)
     {
-        notes.Add($"{path} {request.Content?.ReadAsStringAsync().GetAwaiter().GetResult()}");
+        using var body = new StreamReader(request.Content?.ReadAsStream() ?? Stream.Null);
+        notes.Add($"{path} {body.ReadToEnd()}");
         return new HttpResponseMessage(HttpStatusCode.NoContent);
     }
 
@@ -175,6 +176,7 @@ public sealed class SweepCommandTests : IDisposable
     }
 
     [Fact]
+    [Trait("criterion", "AC-product-simplification-7")]
     public void More_variants_than_one_comparison_holds_are_refused_before_anything_runs()
     {
         var names = Enumerable.Range(1, ComparisonLimit.MaxRuns + 1).Select(n => $"v{n}").ToArray();

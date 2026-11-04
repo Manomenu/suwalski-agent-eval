@@ -1,6 +1,7 @@
 using System.CommandLine;
 using System.CommandLine.Help;
 using System.CommandLine.Invocation;
+using System.Diagnostics.CodeAnalysis;
 using Suwageval.Cli.Files;
 using Suwageval.Contracts.Agents;
 
@@ -105,6 +106,11 @@ internal static class HelpSections
         return (left, string.Join(" ", new[] { command.Description ?? "" }.Concat(defaults)));
     }
 
+    [SuppressMessage(
+        "ApiDesign",
+        "RS0030:Do not use banned APIs",
+        Justification = "The help wraps to the width of the terminal it is printed on."
+    )]
     private static void WriteSection(TextWriter output, string title, IEnumerable<(string Left, string Right)> rows)
     {
         var all = rows.ToArray();

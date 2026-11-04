@@ -41,10 +41,10 @@ public sealed class ValidatorTests
     public void A_scenario_without_checks_is_valid() =>
         Assert.True(Validate("key: only-a-conversation\nconversation:\n  - user: hi\n").IsValid);
 
-    private const string Guarded = """
+    private const string Guarded = $"""
         key: refund-over-limit
         acGuardrail:
-          id: AC-refunds-2
+          id: {ExampleCriterion.Refunds2}
           retryLimit: 2
         conversation:
           - user: "Refund A-17, please."
@@ -66,14 +66,17 @@ public sealed class ValidatorTests
         );
 
         Assert.Empty(result.Problems);
-        Assert.Equal(new AcGuardrail { Id = "AC-refunds-2", RetryLimit = 2 }, Assert.Single(result.LoadedScenarios).Scenario.AcGuardrail);
+        Assert.Equal(
+            new AcGuardrail { Id = ExampleCriterion.Refunds2, RetryLimit = 2 },
+            Assert.Single(result.LoadedScenarios).Scenario.AcGuardrail
+        );
         Assert.Equal(3, result.Agent?.Definition.AcGuardrailRetryLimit);
     }
 
     [Theory]
     [Trait("criterion", "AC-gate-runs-1")]
-    [InlineData("id: AC-refunds-2", "id: refunds-2", "acGuardrail.id", "is not AC-<feature>-<n>")]
-    [InlineData("  id: AC-refunds-2\n", "", "acGuardrail", "Missing required field: id")]
+    [InlineData($"id: {ExampleCriterion.Refunds2}", "id: refunds-2", "acGuardrail.id", "is not AC-<feature>-<n>")]
+    [InlineData($"  id: {ExampleCriterion.Refunds2}\n", "", "acGuardrail", "Missing required field: id")]
     [InlineData("retryLimit: 2", "retryLimit: 21", "acGuardrail.retryLimit", "from 1 to 20")]
     public void A_bad_acceptance_criterion_is_a_problem(string replaced, string with, string path, string messagePart) =>
         AssertProblem(Validate(Guarded.Replace(replaced, with, StringComparison.Ordinal)), path, messagePart);
@@ -503,6 +506,8 @@ public sealed class ValidatorTests
     }
 
     [Fact]
+    [Trait("criterion", "AC-simpler-models-and-checks-9")]
+    [Trait("criterion", "AC-simpler-models-and-checks-8")]
     public void Fixtures_the_agent_requires_at_the_top_level_must_be_given()
     {
         var requiring = TestAgent.WithFixtures with

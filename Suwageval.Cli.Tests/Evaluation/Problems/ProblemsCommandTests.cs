@@ -73,6 +73,7 @@ public sealed class ProblemsCommandTests
     }
 
     [Fact]
+    [Trait("criterion", "AC-product-simplification-5")]
     public void It_lists_the_unstable_checks_and_the_agent_errors_under_their_headings()
     {
         var (exit, output, error, paths) = Problems(Unstable, Errors);
@@ -137,6 +138,7 @@ public sealed class ProblemsCommandTests
     }
 
     [Fact]
+    [Trait("criterion", "AC-product-simplification-5")]
     public void Json_prints_both_lists()
     {
         var (_, output, _, _) = Problems(Unstable, Errors, "--json");

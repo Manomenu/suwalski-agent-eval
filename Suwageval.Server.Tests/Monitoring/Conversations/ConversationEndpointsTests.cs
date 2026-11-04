@@ -134,7 +134,7 @@ public sealed class ConversationEndpointsTests(TestDatabase database) : IAsyncDi
     public async Task The_versions_list_says_where_each_version_answered_and_which_answers_now()
     {
         var name = await MonitoredAgent();
-        var now = DateTimeOffset.UtcNow;
+        var now = TimeProvider.System.GetUtcNow();
         await Send(
             Batch(name, Contract(), withContract: true, Turn("old", "Long ago", now.AddDays(-40)), Turn("c-1", "Hi", now.AddHours(-2)))
         );
@@ -221,8 +221,16 @@ public sealed class ConversationEndpointsTests(TestDatabase database) : IAsyncDi
         var store = new ConversationStore(database.Pool);
         var agent = (await new AgentStore(database.Pool).GetAsync(name, TestContext.Current.CancellationToken))!;
 
-        var notYet = await store.CloseIdleAsync(agent.Id, DateTimeOffset.UtcNow.AddMinutes(-1), TestContext.Current.CancellationToken);
-        var closed = await store.CloseIdleAsync(agent.Id, DateTimeOffset.UtcNow.AddMinutes(1), TestContext.Current.CancellationToken);
+        var notYet = await store.CloseIdleAsync(
+            agent.Id,
+            TimeProvider.System.GetUtcNow().AddMinutes(-1),
+            TestContext.Current.CancellationToken
+        );
+        var closed = await store.CloseIdleAsync(
+            agent.Id,
+            TimeProvider.System.GetUtcNow().AddMinutes(1),
+            TestContext.Current.CancellationToken
+        );
         var whenClosed = (
             await TestServer.Read<ConversationList>(await server.Get($"/monitoring/agents/{name}/conversations?state=Closed"))
         ).Conversations;

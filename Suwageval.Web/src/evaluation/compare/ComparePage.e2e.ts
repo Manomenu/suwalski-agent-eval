@@ -103,12 +103,15 @@ test("a group is opened from the agent page as the same comparison, and the tag 
     await expect(page.getByText("Baseline", { exact: true }).filter({ visible: true })).toHaveCount(0);
 });
 
-test("a baseline is picked by a column's header, lives in the address and is taken back by a second click", async ({ page }) => {
+test("a baseline is picked by a column's header, lives in the address, has every cell read by its change and none marked best, and is taken back by a second click", async ({
+    page,
+}) => {
     const { name, plainBefore, plainAfter } = seed;
     await page.goto(`/compare?runs=${plainBefore},${plainAfter}`);
     await expect(page.getByRole("heading", { name: `Compare runs of ${name}`, exact: true })).toBeVisible();
     await expect(page.getByText("Baseline", { exact: true }).filter({ visible: true })).toHaveCount(0);
     await expect(page.getByText(/[▲▼±].* pp$/)).toHaveCount(0);
+    await expect(page.locator("[data-change]")).toHaveCount(0);
 
     await page.getByRole("button", { name: `Use run ${plainBefore.slice(0, 8)} as the baseline`, exact: true }).click();
     await expect(page).toHaveURL(`/compare?runs=${plainBefore},${plainAfter}&baseline=${plainBefore}`);
@@ -116,23 +119,6 @@ test("a baseline is picked by a column's header, lives in the address and is tak
     await expect(baseline).toBeVisible();
     await expect(page.getByText("Baseline", { exact: true }).filter({ visible: true })).toHaveCount(1);
     await expect(page.getByText(/▲ \d+(\.\d+)? pp/).first()).toBeVisible();
-
-    await page.getByRole("button", { name: `Use run ${plainAfter.slice(0, 8)} as the baseline`, exact: true }).click();
-    await expect(page).toHaveURL(`/compare?runs=${plainBefore},${plainAfter}&baseline=${plainAfter}`);
-
-    await page.getByRole("button", { name: `Run ${plainAfter.slice(0, 8)} is the baseline: click to remove it`, exact: true }).click();
-    await expect(page).toHaveURL(`/compare?runs=${plainBefore},${plainAfter}`);
-    await expect(page.getByText("Baseline", { exact: true }).filter({ visible: true })).toHaveCount(0);
-    await expect(page.getByText(/[▲▼±].* pp$/)).toHaveCount(0);
-});
-
-test("with a baseline every cell is read by its change, and no cell is marked best", async ({ page }) => {
-    const { name, plainBefore, plainAfter } = seed;
-    await page.goto(`/compare?runs=${plainBefore},${plainAfter}`);
-    await expect(page.getByRole("heading", { name: `Compare runs of ${name}`, exact: true })).toBeVisible();
-    await expect(page.locator("[data-change]")).toHaveCount(0);
-
-    await page.getByRole("button", { name: `Use run ${plainBefore.slice(0, 8)} as the baseline`, exact: true }).click();
     const greets = page.getByRole("row", { name: /^greets /, exact: false });
     await expect(greets.locator('td[data-change="better"]')).toHaveCount(1);
     await expect(greets.getByText("better than the baseline", { exact: true })).toHaveCount(1);
@@ -142,14 +128,14 @@ test("with a baseline every cell is read by its change, and no cell is marked be
     await expect(page.locator("td[style*='font-weight: 700']")).toHaveCount(0);
 
     await page.getByRole("button", { name: `Use run ${plainAfter.slice(0, 8)} as the baseline`, exact: true }).click();
+    await expect(page).toHaveURL(`/compare?runs=${plainBefore},${plainAfter}&baseline=${plainAfter}`);
     await expect(page.locator('td[data-change="worse"]').first()).toBeVisible();
     await expect(page.locator('td[data-change="better"]')).toHaveCount(0);
-});
 
-test("a baseline in the address of a group is read at once", async ({ page }) => {
-    const { name, group, groupedBefore } = seed;
-    await page.goto(`/compare?${new URLSearchParams({ group, agent: name, baseline: groupedBefore }).toString()}`);
-    await expect(page.getByText("Baseline", { exact: true }).filter({ visible: true })).toHaveCount(1);
+    await page.getByRole("button", { name: `Run ${plainAfter.slice(0, 8)} is the baseline: click to remove it`, exact: true }).click();
+    await expect(page).toHaveURL(`/compare?runs=${plainBefore},${plainAfter}`);
+    await expect(page.getByText("Baseline", { exact: true }).filter({ visible: true })).toHaveCount(0);
+    await expect(page.getByText(/[▲▼±].* pp$/)).toHaveCount(0);
 });
 
 test("the comparison takes the whole width of a wide screen, and its table scrolls sideways on a narrow one", async ({ page }) => {

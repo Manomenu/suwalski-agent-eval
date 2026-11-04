@@ -11,7 +11,7 @@ test("an unknown run shows that it was not found", async ({ page }) => {
     await expect(page.getByText(`There is no run ${MISSING}.`, { exact: true })).toBeVisible();
 });
 
-test("Run again starts a new run of the same agent and opens its page", async ({ page, request }) => {
+test("AC-product-simplification-1: Run again starts a new run of the same agent and opens its page", async ({ page, request }) => {
     const agentServer = await serveAgent({ label: "e2e-rerun" });
     try {
         const name = `e2e-rerun-${String(Date.now())}`;

@@ -10,6 +10,7 @@ public sealed class UserDescriberLiveTests
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
 
     [Fact]
+    [Trait("criterion", "AC-simpler-models-and-checks-6")]
     [Trait("live", "true")]
     public async Task The_real_model_describes_the_user_of_a_short_conversation_in_the_second_person()
     {

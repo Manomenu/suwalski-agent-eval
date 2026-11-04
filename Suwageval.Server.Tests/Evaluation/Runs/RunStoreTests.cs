@@ -330,7 +330,7 @@ public sealed class RunStoreTests(TestDatabase database)
     {
         var store = Store();
         var agent = await NewAgentAsync();
-        var moment = DateTime.UtcNow.AddDays(-1);
+        var moment = TimeProvider.System.GetUtcNow().UtcDateTime.AddDays(-1);
         var ids = new List<Guid>();
         for (var index = 0; index < 4; index++)
         {

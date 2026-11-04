@@ -5,6 +5,7 @@ import { describe, statusOf } from "./status";
 group("statusOf", () => {
     it("is up when the server says ok", () => {
         expect(statusOf({ status: "ok" })).toEqual({ kind: "up" });
+        expect(describe(statusOf({ status: "ok" }))).toBe("up");
     });
 
     it("is down with the reason when the request failed", () => {

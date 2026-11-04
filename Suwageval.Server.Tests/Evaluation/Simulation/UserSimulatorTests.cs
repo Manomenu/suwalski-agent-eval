@@ -56,6 +56,7 @@ public sealed class UserSimulatorTests
     }
 
     [Fact]
+    [Trait("criterion", "AC-simpler-models-and-checks-1")]
     public async Task Without_a_simulator_entry_the_fallback_plays_the_user()
     {
         var judge = RecordedModel.Answering("simulated-message.json");

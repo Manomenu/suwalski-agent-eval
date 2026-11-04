@@ -129,7 +129,7 @@ e2e *args:
 check:
     @./Suwageval.Gate/scripts/check.sh
 
-# The quick gate while working: build, csharpier, tests, tsc, eslint, vitest
+# The quick gate while working: build, csharpier, CLI tests and repository guards, tsc, vitest
 [group('maintenance')]
 check-quick:
     @./Suwageval.Gate/scripts/check.sh --quick

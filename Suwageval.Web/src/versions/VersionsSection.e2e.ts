@@ -83,36 +83,6 @@ test("versions are archived, shown again on request, restored and deleted with t
     }
 });
 
-test("a version whose runs are all in a group is hidden by default and listed with the Groups usage (kept in the address)", async ({
-    page,
-    request,
-}) => {
-    const served = { label: "e2e-main", config: "Be helpful." };
-    const agentServer = await serveAgent(served);
-    try {
-        const suffix = String(Date.now());
-        const name = `e2e-version-groups-${suffix}`;
-        await createAgent(request, { name, endpointUrl: agentServer.endpointUrl });
-        await runToEnd(request, { agent: name });
-        Object.assign(served, { label: "e2e-sweep", config: "Be brief." });
-        await runToEnd(request, { agent: name, group: `e2e-sweep-${suffix}` });
-        const mainVersion = page.getByRole("checkbox", { name: "Select version e2e-main", exact: true });
-        const sweepVersion = page.getByRole("checkbox", { name: "Select version e2e-sweep", exact: true });
-
-        await page.goto(`/agents/${name}`);
-        await expect(mainVersion).toBeVisible();
-        await expect(sweepVersion).toHaveCount(0);
-
-        await page.getByText("Groups", { exact: true }).click();
-        await expect(page.getByRole("checkbox", { name: "Groups", exact: true })).toBeChecked();
-        await expect(sweepVersion).toBeVisible();
-        await expect(mainVersion).toBeVisible();
-        expect(page.url()).toContain("usage=evaluation,groups");
-    } finally {
-        agentServer.close();
-    }
-});
-
 test("a version linked from the Evaluation page opens the Versions list narrowed to it; removing the chip lists the evaluation versions, Groups adds the group-only one", async ({
     page,
     request,
@@ -145,9 +115,15 @@ test("a version linked from the Evaluation page opens the Versions list narrowed
         await expect(sweepVersion).toHaveCount(0);
         expect(page.url()).not.toContain("version=");
 
+        await page.goto(`/agents/${name}`);
+        await expect(mainVersion).toBeVisible();
+        await expect(sweepVersion).toHaveCount(0);
+
         await page.getByText("Groups", { exact: true }).click();
         await expect(page.getByRole("checkbox", { name: "Groups", exact: true })).toBeChecked();
         await expect(sweepVersion).toBeVisible();
+        await expect(mainVersion).toBeVisible();
+        expect(page.url()).toContain("usage=evaluation,groups");
     } finally {
         agentServer.close();
     }

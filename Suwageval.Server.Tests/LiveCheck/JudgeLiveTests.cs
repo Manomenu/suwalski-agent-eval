@@ -23,6 +23,7 @@ public sealed class JudgeLiveTests
     }
 
     [Fact]
+    [Trait("criterion", "AC-simpler-models-and-checks-6")]
     [Trait("live", "true")]
     public async Task The_real_judge_model_judges_the_fixed_cases_the_daily_check_uses()
     {

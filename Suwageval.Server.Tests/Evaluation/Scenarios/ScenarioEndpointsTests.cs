@@ -192,7 +192,7 @@ public sealed class ScenarioEndpointsTests(TestDatabase database) : IAsyncDispos
             new PutScenariosRequest([
                 Scenario("a") with
                 {
-                    AcGuardrail = Guardrail("AC-refunds-1"),
+                    AcGuardrail = Guardrail(ExampleCriteria.Refunds1),
                 },
                 Scenario("b") with
                 {
@@ -200,7 +200,7 @@ public sealed class ScenarioEndpointsTests(TestDatabase database) : IAsyncDispos
                 },
                 Scenario("c") with
                 {
-                    AcGuardrail = Guardrail("AC-refunds-1"),
+                    AcGuardrail = Guardrail(ExampleCriteria.Refunds1),
                 },
             ])
         );
@@ -214,7 +214,7 @@ public sealed class ScenarioEndpointsTests(TestDatabase database) : IAsyncDispos
             await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)
         );
         Assert.Equal(
-            AcGuardrailRules.Duplicate("AC-refunds-1", "a"),
+            AcGuardrailRules.Duplicate(ExampleCriteria.Refunds1, "a"),
             problem.RootElement.GetProperty("errors").GetProperty("scenarios[2].acGuardrail.id")[0].GetString()
         );
         Assert.Empty(await TestServer.Read<ScenarioSummary[]>(await server.Get($"/eval/agents/{agent}/scenarios")));
@@ -226,11 +226,11 @@ public sealed class ScenarioEndpointsTests(TestDatabase database) : IAsyncDispos
         var agent = await server.NewAgent();
 
         await Put(agent, Scenario("a"));
-        var guarded = await Put(agent, Scenario("a") with { AcGuardrail = new AcGuardrail { Id = "AC-refunds-1" } });
+        var guarded = await Put(agent, Scenario("a") with { AcGuardrail = new AcGuardrail { Id = ExampleCriteria.Refunds1 } });
         var detail = await TestServer.Read<ScenarioDetail>(await server.Get($"/eval/agents/{agent}/scenarios/a"));
 
         Assert.Equal(UpsertOutcome.Updated, guarded.Results[0].Outcome);
-        Assert.Equal("AC-refunds-1", detail.Scenario.AcGuardrail?.Id);
+        Assert.Equal(ExampleCriteria.Refunds1, detail.Scenario.AcGuardrail?.Id);
     }
 
     [Fact]

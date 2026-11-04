@@ -25,6 +25,13 @@ describe("pageOf", () => {
             baseline: "",
         });
         expect(pageOf("/compare", "?runs=a,b&baseline=b")).toEqual({ kind: "compare", runs: "a,b", group: "", agent: "", baseline: "b" });
+        expect(pageOf("/compare", "?group=g&agent=a&baseline=b")).toEqual({
+            kind: "compare",
+            runs: "",
+            group: "g",
+            agent: "a",
+            baseline: "b",
+        });
         expect(pageOf("/compare")).toEqual({ kind: "compare", runs: "", group: "", agent: "", baseline: "" });
     });
 

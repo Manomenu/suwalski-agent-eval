@@ -7,8 +7,10 @@ _git_dir="$(git -C "$_checkout_root" rev-parse --absolute-git-dir)"
 _common_dir="$(git -C "$_checkout_root" rev-parse --path-format=absolute --git-common-dir)"
 if [ -z "${CI:-}" ] && [ "$_git_dir" != "$_common_dir" ]; then
     _name="$(basename "$_checkout_root")"
-    _suffix="$(printf '%s' "$_name" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9_' '_' | cut -c1-20)"
-    _base=$((20000 + $(printf '%s' "$_name" | cksum | cut -d' ' -f1) % 5000 * 2))
+    _hash="$(printf '%s' "$_name" | cksum | cut -d' ' -f1)"
+    # Why: worktrees of one repository share a long prefix, so the hash keeps their databases apart; 30 + 11 characters stay under PostgreSQL's 63
+    _suffix="$(printf '%s' "$_name" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9_' '_' | cut -c1-30)_$_hash"
+    _base=$((20000 + _hash % 5000 * 2))
     export E2E_DATABASE="${E2E_DATABASE:-suwageval_e2e_$_suffix}"
     export TEST_CONNECTION_STRING="${TEST_CONNECTION_STRING:-Host=localhost;Port=5463;Database=suwageval_test_$_suffix;Username=suwageval;Password=suwageval}"
     export E2E_SERVER_PORT="${E2E_SERVER_PORT:-$_base}"
@@ -18,4 +20,4 @@ fi
 export E2E_DATABASE="${E2E_DATABASE:-suwageval_e2e}"
 export E2E_SERVER_PORT="${E2E_SERVER_PORT:-6231}"
 export E2E_WEB_PORT="${E2E_WEB_PORT:-3231}"
-unset _checkout_root _git_dir _common_dir _name _suffix _base
+unset _checkout_root _git_dir _common_dir _name _hash _suffix _base

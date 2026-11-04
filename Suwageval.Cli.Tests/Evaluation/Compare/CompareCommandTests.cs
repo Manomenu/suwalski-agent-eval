@@ -3,6 +3,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using Suwageval.AgentSdk;
+using Suwageval.Cli.Server;
 using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Cli.Tests.Evaluation.Compare;
@@ -40,7 +41,7 @@ public sealed class CompareCommandTests
             SamplesFailed = 1,
             ChecksPassed = checksPassed,
             ChecksFailed = checksFailed,
-            CreatedAt = DateTime.UtcNow,
+            CreatedAt = TimeProvider.System.GetUtcNow().UtcDateTime,
             Label = label,
         };
 
@@ -436,9 +437,10 @@ public sealed class CompareCommandTests
     }
 
     [Fact]
-    public void More_than_twenty_runs_are_refused_before_any_request()
+    [Trait("criterion", "AC-product-simplification-6")]
+    public void More_runs_than_one_comparison_holds_are_refused_before_any_request()
     {
-        var ids = Enumerable.Range(0, 21).Select(_ => Guid.NewGuid().ToString()).ToArray();
+        var ids = Enumerable.Range(0, ComparisonLimit.MaxRuns + 1).Select(_ => Guid.NewGuid().ToString()).ToArray();
 
         var (exit, _, _, api, _) = Print(ids);
 

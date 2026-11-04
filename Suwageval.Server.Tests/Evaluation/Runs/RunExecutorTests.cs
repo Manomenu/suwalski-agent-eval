@@ -675,11 +675,11 @@ public sealed class RunExecutorTests(TestDatabase database)
         RunStore? store = null;
         var runId = Guid.Empty;
         await using var fake = await FakeAgent.StartAsync(
-            (_, call) =>
+            async (_, call) =>
             {
-                if (call == 1)
+                if (call == 1 && store is not null)
                 {
-                    store?.RequestCancelAsync(runId, Cancellation).GetAwaiter().GetResult();
+                    await store.RequestCancelAsync(runId, Cancellation);
                 }
                 return Results.Text(FakeAgent.PlainTurn, "application/json");
             }

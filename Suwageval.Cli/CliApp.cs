@@ -1,4 +1,5 @@
 using System.CommandLine;
+using System.Diagnostics.CodeAnalysis;
 using Suwageval.Cli.AgentDelete;
 using Suwageval.Cli.Agents;
 using Suwageval.Cli.Evaluation.Cancel;
@@ -27,6 +28,11 @@ namespace Suwageval.Cli;
 
 internal static class CliApp
 {
+    [SuppressMessage(
+        "ApiDesign",
+        "RS0030:Do not use banned APIs",
+        Justification = "The one synchronous root of a console application: Main and the tests call it, and nothing runs above it."
+    )]
     public static int Run(
         string[] args,
         TextReader input,

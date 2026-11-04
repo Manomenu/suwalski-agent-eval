@@ -8,6 +8,10 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
+  <ItemGroup Label="build">
+    <!-- refuses the APIs listed in BannedSymbols.txt, in every project -->
+    <PackageVersion Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="4.14.0" />
+  </ItemGroup>
   <ItemGroup Label="server">
     <!-- the OpenAPI document the web client is typed from -->
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.12" />

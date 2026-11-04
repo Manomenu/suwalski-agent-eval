@@ -163,6 +163,7 @@ public sealed class ModelClientsTests
     }
 
     [Fact]
+    [Trait("criterion", "AC-simpler-models-and-checks-2")]
     public void Every_role_without_a_model_of_its_own_takes_the_fallback()
     {
         var configuration = new ConfigurationBuilder()

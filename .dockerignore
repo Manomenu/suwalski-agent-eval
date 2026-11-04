@@ -6,6 +6,7 @@
 
 !global.json
 !Directory.Build.props
+!BannedSymbols.txt
 !Directory.Packages.props
 !.editorconfig
 !Suwageval.AgentSdk/

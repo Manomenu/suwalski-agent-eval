@@ -1,0 +1,23 @@
+P:System.DateTime.Now;Use an injected TimeProvider (timeProvider.GetUtcNow()): the clock must be replaceable in tests.
+P:System.DateTime.UtcNow;Use an injected TimeProvider (timeProvider.GetUtcNow()): the clock must be replaceable in tests.
+P:System.DateTime.Today;Use an injected TimeProvider (timeProvider.GetLocalNow().Date): the clock must be replaceable in tests.
+P:System.DateTimeOffset.Now;Use an injected TimeProvider (timeProvider.GetLocalNow()): the clock must be replaceable in tests.
+P:System.DateTimeOffset.UtcNow;Use an injected TimeProvider (timeProvider.GetUtcNow()): the clock must be replaceable in tests.
+P:System.Threading.Tasks.Task`1.Result;Do not block on a task: make the caller async and use await.
+M:System.Threading.Tasks.Task.Wait;Do not block on a task: make the caller async and use await.
+M:System.Threading.Tasks.Task.WaitAll(System.Threading.Tasks.Task[]);Do not block on tasks: use await Task.WhenAll(...).
+M:System.Runtime.CompilerServices.TaskAwaiter.GetResult;Do not block on a task (GetAwaiter().GetResult()): make the caller async and use await.
+M:System.Runtime.CompilerServices.TaskAwaiter`1.GetResult;Do not block on a task (GetAwaiter().GetResult()): make the caller async and use await.
+M:System.Threading.Thread.Sleep(System.Int32);Do not block a thread: use await Task.Delay(...) (with the TimeProvider in code that waits).
+M:System.Threading.Thread.Sleep(System.TimeSpan);Do not block a thread: use await Task.Delay(...) (with the TimeProvider in code that waits).
+N:Newtonsoft.Json;Use System.Text.Json: it is the serializer ASP.NET Core is configured with.
+M:System.Reflection.Assembly.GetTypes;Wire it explicitly so grep finds the call: list the types by hand instead of discovering them.
+M:System.Reflection.Assembly.GetExportedTypes;Wire it explicitly so grep finds the call: list the types by hand instead of discovering them.
+M:System.Type.GetType(System.String);Wire it explicitly so grep finds the call: refer to the type with typeof(X) instead of its name.
+M:System.Type.GetType(System.String,System.Boolean);Wire it explicitly so grep finds the call: refer to the type with typeof(X) instead of its name.
+M:System.Type.GetType(System.String,System.Boolean,System.Boolean);Wire it explicitly so grep finds the call: refer to the type with typeof(X) instead of its name.
+M:System.AppDomain.GetAssemblies;Wire it explicitly so grep finds the call: name the assembly with typeof(X).Assembly.
+T:System.Console;Do not write to the console: inject ILogger<T> and log through it (tests: ITestOutputHelper).
+T:System.Activator;Wire it explicitly (new X(), or register it in ServiceCollection) so grep finds the call.
+M:System.Threading.Tasks.Task.Wait(System.Int32);Do not block on a task: make the caller async and use await.
+M:System.Threading.Tasks.Task.Wait(System.TimeSpan);Do not block on a task: make the caller async and use await.

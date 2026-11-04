@@ -25,7 +25,7 @@ public sealed class RunReportTests
             0,
             false,
             false,
-            DateTime.UtcNow,
+            TimeProvider.System.GetUtcNow().UtcDateTime,
             null,
             null
         );

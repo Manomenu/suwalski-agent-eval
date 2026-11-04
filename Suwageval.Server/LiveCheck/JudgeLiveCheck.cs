@@ -70,6 +70,11 @@ internal static class JudgeLiveCheck
         };
 
     [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Whatever goes wrong is the check's result.")]
+    [SuppressMessage(
+        "ApiDesign",
+        "RS0030:Do not use banned APIs",
+        Justification = "A one-shot command of the CronJob: what it prints is its report, read as it is in the job's log."
+    )]
     public static async Task<int> RunAsync(string[] args)
     {
         var builder = Host.CreateApplicationBuilder(args);
