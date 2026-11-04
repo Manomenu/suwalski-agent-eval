@@ -1,5 +1,5 @@
 # `just db <recipe>` — the local PostgreSQL for development and tests.
-# The logic is in scripts/.internal/db.sh, which check.sh also calls.
+# The logic is in scripts/.internal/db.sh, which the gate also calls.
 
 set shell := ["bash", "-euo", "pipefail", "-c"]
 # Recipes run from the repo root, like the ones in the main justfile.

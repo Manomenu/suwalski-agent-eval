@@ -1,7 +1,6 @@
 # TODO
 
-Decided, not built yet: each item is done in the change that first needs it (AGENTS.md,
-section 0).
+Decided, not built yet: each item is done in the change that first needs it (AGENTS.md).
 
 ## Secrets — with the first real secret (the model provider's API key, roadmap step 4)
 
@@ -31,19 +30,17 @@ To do in that change:
       writes it with mode 600 and keeps a differing file unless `--force`.
 - [ ] Chart: the Secret's name as a value, `envFrom` on the server; the prompt in the
       platform repo's `setup.sh`; tell the owner to run it and `just secrets backup` there.
-- [ ] AGENTS.md, section 7: replace the `.env` description with the above.
+- [ ] docs/deployment.md, "Secrets": replace the `.env` description with the above.
+
+## Practices of the template not yet in place
+
+- **Acceptance criteria in the gate.** `Suwageval.Gate/scripts/criteria.sh` runs by hand (`just criteria`) and is not a gate step yet: 19 criteria of the two October specs have no id, and 42 findings name `AC-refunds-*`, the example ids of the gate-runs spec and of `ValidatorTests`. Give the old specs ids and guardrails or close them, rename the examples, then add the step.
+- **Banned APIs at build level.** The template's `BannedSymbols.txt` with the analyzer in `Directory.Build.props`: about 4 sites in the code use a banned clock or block on a thread; an owner session makes the change.
+- **A `!` in tests.** `EscapeHatchTests` leaves tests out: about 120 of them, on values the test just asserted.
 
 ## Later, after the MVP
 
-- **Monitoring (live traffic) — built on `epic/monitoring-tab`**, following [the plan](https://claude.ai/artifact/Y7FDEQtqn36YaaCUwA4p2e):
-  `features` in `agent.yaml`, `dataVersion` out of the version's hash, the evaluation API under `/api/eval/…` (the old addresses
-  removed), conversations sent by a deployed agent (`POST /api/monitoring/turns`, the .NET SDK's `IConversationRecorder`), the
-  Monitoring page, `suwageval/monitoring-checks.yaml` run on every closed conversation by `MonitoringWorker` with 7/30-day rates and
-  daily charts, Versions' `monitoring` usage (Current, Not evaluated, `?environment=`), a scenario drafted from a conversation (whole or up to a
-  chosen message, the failed monitoring checks as comments), and the old version filters gone (`versions --archived`, `--any-group`,
-  `--all-versions`, the API's `grouping` of versions, `GroupRunsOnly`, the web's `?versions=`). The example agent sends its `/chat`
-  conversations. **Before merging:** announce the breaking change (an installed CLI from before the epic calls the old addresses and
-  flags), and update the bots to the new CLI. What is left, not in the first version:
+- **Monitoring, what is left, not in the first version:**
   - **Show where a scenario came from.** A scenario drafted from a monitored conversation stores `origin: { monitoringConversation:
     <id> }`, but nothing shows it yet: a link "From conversation …" on the run page's scenario card and in `suwageval scenario <key>`,
     so a regression in evaluation leads straight back to the real conversation it came from.
@@ -222,7 +219,7 @@ To do in that change:
   a page are compared in smaller sets); the answer above it is 422, the CLI refuses before asking. The plugin lists it, and Claude
   saves a report only when asked. Build it when a report is wanted in CI.
 - **Later, only if this proves useful:** Suwageval sending its verdicts to Langfuse as scores per trace (an outside service, so a
-  live test, the daily check and a secret, AGENTS.md section 3); Suwageval reading traces back; a `traceparent` header so the
+  live test, the daily check and a secret, docs/development.md); Suwageval reading traces back; a `traceparent` header so the
   agent's spans join a trace Suwageval starts.
 - **`MSBUILDDISABLENODEREUSE=1` in the owner's environment — unsure, probably not needed.** `Directory.Build.rsp` (`-nodeReuse:false`)
   already stops the idle MSBuild nodes of every command-line build in this repository (the agents' builds, `dotnet watch`, the

@@ -93,7 +93,7 @@ regression:
 
 - `branches` — the branches whose runs make the history of a check (the main one first). When given, the list is not empty,
   each name is non-empty without whitespace, and none is named twice. Left out, it is the repository's default branch
-  (`origin/HEAD`, read by the CLI).
+  (the remote HEAD, read by the CLI).
 - `history` — how many of the newest reference runs make a check's history: an integer from 1 to 20 (default 5).
 
 `suwageval validate` and `push` check both (the server answers 422 for the same problems).

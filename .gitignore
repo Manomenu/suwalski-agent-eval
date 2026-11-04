@@ -1,4 +1,4 @@
-# Secrets and machine-local settings: the real values never enter git (AGENTS.md, "Secrets").
+# Secrets and machine-local settings: the real values never enter git (docs/deployment.md).
 **/.env
 **/.env.local
 .secrets/

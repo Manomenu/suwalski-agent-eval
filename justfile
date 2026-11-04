@@ -58,12 +58,12 @@ cli-install:
 agent-pack:
     dotnet pack Suwageval.AgentSdk -c Release -o .artifacts/nupkg
 
-# Release Suwageval.AgentSdk as <version>: runs the agent-sdk workflow on master, which pushes to nuget.org (AGENTS.md, section 12)
+# Release Suwageval.AgentSdk as <version>: runs the agent-sdk workflow on master, which pushes to nuget.org (docs/release.md)
 [group('dev')]
 agent-publish version:
     @./scripts/.internal/agent-publish.sh {{ version }}
 
-# The fallback: pack and push from this machine with a key from .env, for a first release the workflow cannot make or another feed (AGENTS.md, section 12)
+# The fallback: pack and push from this machine with a key from .env, for a first release the workflow cannot make or another feed (docs/release.md)
 [group('dev')]
 agent-publish-local version:
     @./scripts/.internal/agent-publish-local.sh {{ version }}

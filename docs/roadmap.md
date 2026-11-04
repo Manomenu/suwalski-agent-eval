@@ -13,7 +13,7 @@ in [TODO.md](../TODO.md).
 
 Decided along the way: the scenario format is our own YAML, contract v1 ([scenario-format.md](scenario-format.md), why it looks
 the way it does: [universal-approach.md](universal-approach.md)); an import of real conversations comes with live traffic. Models
-are configured by name (`Models:<name>`, AGENTS.md section 1), the judge and the user simulator share their pools.
+are configured by name (`Models:<name>`), the judge and the user simulator share their pools.
 
 ## Roadmap
 
@@ -34,5 +34,5 @@ are configured by name (`Models:<name>`, AGENTS.md section 1), the judge and the
    and version, and a conversation becomes a scenario in two clicks. Plan, stages and open questions:
    [Suwageval: rozmowy z produkcji i checks na żywym ruchu — plan](https://claude.ai/artifact/Y7FDEQtqn36YaaCUwA4p2e).
 
-Microsoft Agent Framework came in with the judge, the first code that uses it ([AGENTS.md](../AGENTS.md), section 0), together
+Microsoft Agent Framework came in with the judge, the first code that uses it , together
 with its live test (`scripts/.internal/live-check.sh`) and the recorded answers the gate uses instead of a model.

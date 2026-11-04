@@ -15,7 +15,7 @@ The server has one interface, its HTTP API. Three users reach it:
   agent: `name`, `endpointUrl` and optionally Suwageval's own address `suwagevalUrl`; `suwageval init` writes it) and
   `scenarios/*.yaml` (a scenario with its checks inside; `user:` / `assistant:` shorthands for
   the log). Suwageval's address is the web app's, the API is under its `/api`: `--server`, else `SUWAGEVAL_URL`, else
-  `suwagevalUrl` in `./suwageval/agent.yaml` (or the command's `--dir`), else `http://localhost:3230`
+  `suwagevalUrl` in `suwageval/agent.yaml` (or the command's `--dir`), else `http://localhost:3230`
   (so on a laptop the CLI needs `just web` running too). The agent's address for `validate` and `run` is `--endpoint`, else
   `SUWAGEVAL_ENDPOINT_URL`, else `endpointUrl` in `agent.yaml` (`run`: else the registered endpoint).
 - **The results are read on the web, and on stdout.** `suwageval run --wait` prints what was compared with, the regressions and new failing
@@ -126,7 +126,7 @@ The server has one interface, its HTTP API. Three users reach it:
   a version hides its rows. `suwageval problems` prints them in its "Unstable checks" section (`--version <id>`, repeatable, limits the versions considered); the cure is usually more `samples` (the agent's in `agent.yaml`, a scenario's or a check's; 3 by default).
 - **Agent errors are listed apart.** A sample where the agent gave no answer (an HTTP error, a timeout, an unreadable
   answer) does not count against any check, so it would otherwise go unseen. The agent's Evaluation page "Agent errors" card (in the same "Problems" section)
-  lists, per version and scenario, the samples without an answer out of the samples asked (`3/12`), over the same newest
+  lists, per version and scenario, the samples without an answer out of the samples asked (3/12), over the same newest
   200 finished runs as the unstable checks (re-checks do not call the agent, so they are not counted), worst first, with
   the newest error. An error is open while the **newest** version (among those the filters show; by default every
   version not archived) that ran the scenario has agent errors in it: one clean run of a newer version closes it. The

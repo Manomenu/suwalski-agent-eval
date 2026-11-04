@@ -5,19 +5,41 @@ namespace Suwageval.Gate.Repository;
 
 public sealed partial class RepositoryLayoutTests
 {
+    private const string Map = "docs/architecture.md";
+    private const int MaxMapLineLength = 300;
+
     [Fact]
-    public void Every_top_level_folder_is_described_in_agents_md()
+    public void Every_top_level_folder_is_in_the_map_of_architecture_md()
     {
         var folders = RepositoryFiles
             .Paths()
             .Where(path => path.Contains('/', StringComparison.Ordinal))
             .Select(path => path.Split('/')[0])
             .ToHashSet();
-        var described = DescribedPaths(RepositoryFiles.Read("AGENTS.md"));
+        var described = MapLines()
+            .SelectMany(line => BacktickedPath().Matches(line.Split(" — ")[0]))
+            .Select(match => match.Groups[1].Value.Split('/')[0])
+            .ToHashSet();
 
-        var missing = folders.Where(folder => !described.Contains(folder)).Order(StringComparer.Ordinal).ToList();
+        var missing = folders.Except(described).Order(StringComparer.Ordinal).ToList();
+        var stale = described
+            .Where(entry => !folders.Contains(entry) && !File.Exists(Path.Combine(RepositoryFiles.Root, entry)))
+            .Order(StringComparer.Ordinal)
+            .ToList();
 
-        Assert.True(missing.Count == 0, $"add a row to AGENTS.md, section 1 (\"What lives where\"), for: {string.Join(", ", missing)}");
+        Assert.True(missing.Count == 0, $"add a line to the map in {Map} (- `Folder/` — what it holds) for: {string.Join(", ", missing)}");
+        Assert.True(stale.Count == 0, $"the map in {Map} names paths that do not exist: delete the lines for {string.Join(", ", stale)}");
+    }
+
+    [Fact]
+    public void Every_line_of_the_map_is_short()
+    {
+        var tooLong = MapLines().Where(line => line.Length > MaxMapLineLength).Select(line => line[..40]).ToList();
+
+        Assert.True(
+            tooLong.Count == 0,
+            $"shorten these lines of the map in {Map} to {MaxMapLineLength} characters: {string.Join("; ", tooLong)}"
+        );
     }
 
     [Fact]
@@ -56,20 +78,6 @@ public sealed partial class RepositoryLayoutTests
         );
     }
 
-    private static HashSet<string> DescribedPaths(string agents)
-    {
-        var section = agents[agents.IndexOf("## 1. What lives where", StringComparison.Ordinal)..];
-        section = section[..section.IndexOf("\n## 2.", StringComparison.Ordinal)];
-        return
-        [
-            .. section
-                .Split('\n')
-                .Where(line => line.StartsWith("| `", StringComparison.Ordinal))
-                .SelectMany(line => BacktickedPath().Matches(line.Split('|')[1]))
-                .Select(match => match.Groups[1].Value.Split('/')[0]),
-        ];
-    }
-
     [Fact]
     public void Every_shell_script_is_executable_in_git()
     {
@@ -90,6 +98,15 @@ public sealed partial class RepositoryLayoutTests
 
         Assert.True(notExecutable.Count == 0, $"make them executable: git update-index --chmod=+x {string.Join(" ", notExecutable)}");
     }
+
+    private static string[] MapLines() =>
+        [
+            .. RepositoryFiles
+                .Lines(Map)
+                .SkipWhile(line => line != "## The map")
+                .TakeWhile(line => line != "## The gate")
+                .Where(line => line.StartsWith("- `", StringComparison.Ordinal)),
+        ];
 
     [GeneratedRegex("`([^`]+)`")]
     private static partial Regex BacktickedPath();
