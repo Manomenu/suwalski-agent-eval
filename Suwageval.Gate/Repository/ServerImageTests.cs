@@ -1,29 +1,11 @@
 using System.Xml.Linq;
 
-namespace Suwageval.Server.Tests;
+namespace Suwageval.Gate.Repository;
 
-/// <summary>
-/// The server's image builds from the projects it references: each of them is copied into the build stage (project file
-/// and lockfile for the restore, then its sources) and none is kept out of the build context. The gate does not build the
-/// image, so without this a new reference fails only in CI's image job. A repo-content test: it reads the Dockerfile.
-/// </summary>
 public sealed class ServerImageTests
 {
-    private static readonly string RepoRoot = FindRepoRoot();
+    private static readonly string RepoRoot = RepositoryFiles.Root;
 
-    private static string FindRepoRoot()
-    {
-        for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
-        {
-            if (File.Exists(Path.Combine(dir.FullName, "Suwageval.slnx")))
-            {
-                return dir.FullName;
-            }
-        }
-        throw new InvalidOperationException("Suwageval.slnx not found above " + AppContext.BaseDirectory);
-    }
-
-    /// <summary>The server and every project it references, directly or through another.</summary>
     private static List<string> ServerProjects()
     {
         var found = new List<string>();

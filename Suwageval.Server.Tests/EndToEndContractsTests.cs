@@ -8,7 +8,7 @@ namespace Suwageval.Server.Tests;
 
 /// <summary>
 /// Where the CLI meets the server (AGENTS.md, section 4): only the end-to-end tests may use the CLI, and nothing else
-/// may use them. Read from the compiled assemblies, like <see cref="ContractsTests"/>.
+/// may use them. Read from the compiled assemblies.
 /// </summary>
 public sealed class EndToEndContractsTests
 {

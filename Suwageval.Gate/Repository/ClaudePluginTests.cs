@@ -1,26 +1,10 @@
 using System.Text.Json;
 
-namespace Suwageval.Server.Tests;
+namespace Suwageval.Gate.Repository;
 
-/// <summary>
-/// The Claude Code plugin (<c>.claude-plugin/marketplace.json</c> and <c>claude-plugin/</c>) is only text, so nothing else in the gate
-/// would notice a broken manifest or a skill without its description: Claude Code would just skip it. A repo-content test.
-/// </summary>
 public sealed class ClaudePluginTests
 {
-    private static readonly string RepoRoot = FindRepoRoot();
-
-    private static string FindRepoRoot()
-    {
-        for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
-        {
-            if (File.Exists(Path.Combine(dir.FullName, "Suwageval.slnx")))
-            {
-                return dir.FullName;
-            }
-        }
-        throw new InvalidOperationException("Suwageval.slnx not found above " + AppContext.BaseDirectory);
-    }
+    private static readonly string RepoRoot = RepositoryFiles.Root;
 
     [Fact]
     public void Every_plugin_of_the_marketplace_has_its_folder_and_manifest()
@@ -99,7 +83,6 @@ public sealed class ClaudePluginTests
         }
     }
 
-    /// <summary>The top-level <c>key: value</c> lines between the opening and closing <c>---</c>.</summary>
     private static Dictionary<string, string> Frontmatter(string file)
     {
         var lines = File.ReadAllLines(file);

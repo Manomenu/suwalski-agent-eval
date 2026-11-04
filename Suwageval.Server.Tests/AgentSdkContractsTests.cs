@@ -60,7 +60,10 @@ public sealed class AgentSdkContractsTests
             .Select(name => name[(Root.Length + 1)..].Split('.')[0])
             .ToHashSet();
 
-        Assert.True(parts.IsSubsetOf(layered), $"add to Layers in ContractsTests.cs: {string.Join(", ", parts.Except(layered).Order())}");
+        Assert.True(
+            parts.IsSubsetOf(layered),
+            $"add to Layers in AgentSdkContractsTests.cs: {string.Join(", ", parts.Except(layered).Order())}"
+        );
     }
 
     private static string Pattern(string part) => part == "." ? $"^{Root}$" : $@"^{Root}\.{part}(\..+)?$";

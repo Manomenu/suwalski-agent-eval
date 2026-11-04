@@ -75,7 +75,7 @@ internal static class ServerApp
         // Touches nothing outside the process, so it doubles as the cluster's liveness probe.
         app.MapGet("/health", () => new Health("ok"));
 
-        // Features map their routes here: app.MapAgents(), the Evaluation area's in MapEvaluation — and get a layer in ContractsTests.cs.
+        // Features map their routes here: app.MapAgents(), the Evaluation area's in MapEvaluation — and get a layer in Suwageval.Gate/layers.json.
         app.MapAgents();
         app.MapVersions();
         MapEvaluation(app.MapGroup("/eval"));

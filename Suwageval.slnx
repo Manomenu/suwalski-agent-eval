@@ -10,6 +10,9 @@
   <Folder Name="/Suwageval.AgentSdk/">
     <Project Path="Suwageval.AgentSdk/Suwageval.AgentSdk.csproj" />
   </Folder>
+  <Folder Name="/Suwageval.Gate/">
+    <Project Path="Suwageval.Gate/Suwageval.Gate.csproj" />
+  </Folder>
   <Folder Name="/Suwageval.Contracts/">
     <Project Path="Suwageval.Contracts/Suwageval.Contracts.csproj" />
   </Folder>

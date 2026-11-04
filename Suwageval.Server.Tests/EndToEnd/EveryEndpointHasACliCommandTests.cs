@@ -127,7 +127,7 @@ public sealed class EveryEndpointHasACliCommandTests(TestDatabase database) : IA
         Assert.True(
             missing.Count == 0,
             $"These routes have no CLI command: {string.Join("; ", missing)}. Anything the web can do, the CLI can do (AGENTS.md, section 5): "
-                + "add the `suwageval` command for it (with its tests, its layer in Suwageval.Cli.Tests/ContractsTests.cs, the plugin's SKILL.md and "
+                + "add the `suwageval` command for it (with its tests, its layer in Suwageval.Gate/layers.json, the plugin's SKILL.md and "
                 + "docs/front-doors.md) and list the route in this table; or list it as NotForCli with the reason."
         );
     }

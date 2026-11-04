@@ -1,5 +1,5 @@
 # Entry point for humans: `just` lists every recipe, grouped. Logic longer than a line or
-# two lives in scripts/.internal/, which is also what CI and agents call directly.
+# two lives in scripts/.internal/ or Suwageval.Gate/scripts/, which is also what CI and agents call directly.
 
 set shell := ["bash", "-euo", "pipefail", "-c"]
 
@@ -116,7 +116,12 @@ e2e *args:
 # Lint, types, tests, import contracts, dead code, the chart and compose — the same gate CI runs
 [group('maintenance')]
 check:
-    @./scripts/.internal/check.sh
+    @./Suwageval.Gate/scripts/check.sh
+
+# The quick gate while working: build, csharpier, tests, tsc, eslint, vitest
+[group('maintenance')]
+check-quick:
+    @./Suwageval.Gate/scripts/check.sh --quick
 
 # Apply autofixes and formatting: analyzer fixes and csharpier for C#, eslint and prettier for the web app
 [group('maintenance')]

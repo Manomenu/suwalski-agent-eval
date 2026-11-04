@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>Suwageval.Gate</RootNamespace>
+    <!-- Tests: names are sentences, xUnit needs public classes. -->
+    <NoWarn>$(NoWarn);CA1707;CA1515</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+    <PackageReference Include="TngTech.ArchUnitNET.xUnitV3" />
+    <PackageReference Include="xunit.v3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Suwageval.Server/Suwageval.Server.csproj" />
+    <!-- Aliased: the CLI has a top-level Program of its own, like the server. -->
+    <ProjectReference Include="../Suwageval.Cli/Suwageval.Cli.csproj" Aliases="Cli" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Suwageval.Gate.Design" />
+    <Using Include="Suwageval.Gate.Repository" />
+    <Using Include="Xunit" />
+  </ItemGroup>
+</Project>
