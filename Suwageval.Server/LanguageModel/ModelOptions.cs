@@ -1,4 +1,4 @@
-namespace Suwageval.Server.LanguageModels;
+namespace Suwageval.Server.LanguageModel;
 
 /// <summary>One model Suwageval itself calls: <c>Models:&lt;name&gt;</c> in the configuration.</summary>
 internal sealed class ModelOptions

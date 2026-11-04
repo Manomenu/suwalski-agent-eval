@@ -5,9 +5,6 @@ using Suwageval.Cli.Files;
 
 namespace Suwageval.Cli.Init;
 
-/// <summary>One top-level field of <c>agent.yaml</c> that <c>init</c> sets, and what it was (null: not in the file).</summary>
-internal sealed record FieldChange(string Field, string? Old, string New);
-
 /// <summary>
 /// Sets top-level fields of <c>agent.yaml</c> on the lines of the text, never through a YAML round trip, which would lose the comments and the
 /// formatting of everything else: a field that is there gets its line replaced (an end-of-line comment stays), one that is not is appended.

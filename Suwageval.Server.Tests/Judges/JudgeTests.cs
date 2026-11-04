@@ -4,7 +4,7 @@ using Microsoft.Extensions.Options;
 using Suwageval.AgentSdk.Conversations;
 using Suwageval.Contracts.Checks;
 using Suwageval.Server.Judges;
-using Suwageval.Server.LanguageModels;
+using Suwageval.Server.LanguageModel;
 using Suwageval.Server.Verdicts;
 using static Suwageval.Server.Tests.Evaluation.Checks.Items;
 

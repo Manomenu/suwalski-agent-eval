@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
-# Says whether <version> is a release version of Suwageval.AgentSdk: the one rule, for both ways of publishing and the workflow.
-# Leading zeros are refused because nuget.org normalizes them away, so the package file would not carry the version asked for.
 set -euo pipefail
+if [ "${1:-}" = "--help" ]; then
+    cat <<'HELP'
+Says whether <version> is a release version of Suwageval.AgentSdk: the one rule, for both ways of publishing and the workflow.
+Leading zeros are refused because nuget.org normalizes them away, so the package file would not carry the version asked for.
+HELP
+    exit 0
+fi
 
 if [[ $# -ne 1 ]]; then
   echo "usage: agent-sdk-version.sh <version>" >&2

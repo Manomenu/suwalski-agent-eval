@@ -7,7 +7,7 @@ The quality gate. CI runs exactly this script; humans run `just check`, the Stop
 
   check.sh --quick   build with analyzers, csharpier, the tests against the real database, tsc, eslint, vitest
   check.sh           quick, plus prettier, knip, comments of the web app, API types, the chart, compose,
-                     acceptance criteria, shellcheck and gitleaks
+                     shellcheck and gitleaks
 
 A green gate prints one line. Otherwise it prints the tail of each failed step's log and lists the failed and
 skipped steps. A step that cannot run because a tool is missing is SKIP, never PASS: with CI set a SKIP fails the
@@ -79,8 +79,6 @@ web_knip() { cd "$ROOT/Suwageval.Web" && pnpm exec knip; }
 
 api_types() { "$ROOT/scripts/.internal/api-types.sh" --check; }
 
-acceptance_criteria() { "$ROOT/Suwageval.Gate/scripts/criteria.sh"; }
-
 helm_chart() {
     cd "$ROOT"
     helm lint deploy/chart --set image.tag=sha-lint --quiet
@@ -116,7 +114,7 @@ secrets_in_git() {
 
 export ROOT
 export -f build_server format_server local_database test_server web_typecheck web_eslint web_vitest web_prettier web_knip \
-    api_types acceptance_criteria helm_chart compose_file shell_scripts untracked_files_have_no_secrets secrets_in_git
+    api_types helm_chart compose_file shell_scripts untracked_files_have_no_secrets secrets_in_git
 
 declare_step build "build server (compiler, nullable, analyzers, NuGet audit)" 420
 declare_step format "format server (csharpier check)" 180

@@ -2,7 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using Microsoft.Extensions.Options;
 using Suwageval.AgentSdk.Conversations;
-using Suwageval.Server.LanguageModels;
+using Suwageval.Server.LanguageModel;
 
 namespace Suwageval.Server.Evaluation.Simulation;
 

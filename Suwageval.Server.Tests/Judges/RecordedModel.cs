@@ -3,7 +3,7 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Options;
 using Suwageval.Server.Evaluation.Simulation;
 using Suwageval.Server.Judges;
-using Suwageval.Server.LanguageModels;
+using Suwageval.Server.LanguageModel;
 
 namespace Suwageval.Server.Tests.Judges;
 

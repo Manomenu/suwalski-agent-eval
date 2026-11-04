@@ -4,20 +4,6 @@ using Suwageval.Cli.Files;
 
 namespace Suwageval.Cli.Evaluation.Sweep;
 
-/// <summary>Runs a command line of agent.yaml's <c>sweep:</c> section, its output going to <paramref name="output"/>; the exit code.</summary>
-internal delegate Task<int> ShellCommand(string commandLine, TextWriter output, CancellationToken cancellationToken);
-
-/// <summary>What happened to one variant: its run (if one was started) and one line about it.</summary>
-internal sealed record VariantOutcome(string Variant, Guid? RunId, string Summary, bool Failed);
-
-/// <param name="Outcomes">One per variant that was attempted, in order.</param>
-/// <param name="Interrupted">Ctrl+C stopped the sweep: the variants after the interrupted one were not run.</param>
-/// <param name="RestoreFailed">The <c>restore</c> command failed: the agent may still serve the last variant.</param>
-internal sealed record SweepResult(IReadOnlyList<VariantOutcome> Outcomes, bool Interrupted, bool RestoreFailed)
-{
-    public bool Failed => Interrupted || RestoreFailed || Outcomes.Any(outcome => outcome.Failed);
-}
-
 /// <summary>
 /// Runs the agent's scenarios once per variant: reconfigures the agent, waits until its contract's label is the variant's name, runs.
 /// A variant that could not be run is a row of the result and the sweep goes on; <c>after</c> follows every variant that was attempted and

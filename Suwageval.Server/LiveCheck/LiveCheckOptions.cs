@@ -10,7 +10,7 @@ internal sealed class LiveCheckOptions
     /// <summary>A Discord webhook for alerts (a secret, from the environment: <c>LiveCheck__DiscordWebhookUrl</c>); unset means the check only logs and fails.</summary>
     public string? DiscordWebhookUrl { get; set; }
 
-    internal sealed class Validator : IValidateOptions<LiveCheckOptions>
+    internal sealed class LiveCheckOptionsValidator : IValidateOptions<LiveCheckOptions>
     {
         public ValidateOptionsResult Validate(string? name, LiveCheckOptions options)
         {

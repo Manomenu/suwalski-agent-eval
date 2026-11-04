@@ -1,4 +1,4 @@
-using Suwageval.Server.LanguageModels;
+using Suwageval.Server.LanguageModel;
 
 namespace Suwageval.Server.Evaluation.Simulation;
 

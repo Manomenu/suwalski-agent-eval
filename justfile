@@ -108,6 +108,12 @@ logs service="":
 # maintenance — quality gate and housekeeping
 # ---------------------------------------------------------------------------------------
 
+# Which guardrails keep each acceptance criterion of the specs true: id, kind, file:line (or one: just criteria AC-<feature>-<n>)
+[group('maintenance')]
+[positional-arguments]
+criteria *args:
+    @./Suwageval.Gate/scripts/criteria.sh "$@"
+
 # Browser tests of the whole app against a real server and database (also run by CI)
 [group('maintenance')]
 e2e *args:

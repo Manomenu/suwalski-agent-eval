@@ -126,7 +126,7 @@ internal sealed class RunGroupStore(Pool pool)
             )
         );
         // The runs that go: those started in the group and, however far the chain goes, the re-checks and verdict copies of them.
-        var counts = await connection.QuerySingleAsync<DeletionCounts>(
+        var counts = await connection.QuerySingleAsync<RunGroupDeletionCounts>(
             new CommandDefinition(
                 """
                 WITH RECURSIVE doomed AS (
@@ -197,5 +197,5 @@ internal sealed class RunGroupStore(Pool pool)
         return new DeletionResult<RunGroupDeletion>(DeletionOutcome.Deleted, contents);
     }
 
-    private sealed record DeletionCounts(int Runs, int Active, int Samples, int Verdicts);
+    private sealed record RunGroupDeletionCounts(int Runs, int Active, int Samples, int Verdicts);
 }

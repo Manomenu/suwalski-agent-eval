@@ -21,7 +21,7 @@ public sealed class ServerImageTests
                 var reference in XDocument
                     .Load(Path.Combine(RepoRoot, project, project + ".csproj"))
                     .Descendants("ProjectReference")
-                    .Select(item => Path.GetFileNameWithoutExtension(((string)item.Attribute("Include")!).Replace('\\', '/')))
+                    .Select(item => Path.GetFileNameWithoutExtension(((string?)item.Attribute("Include") ?? "").Replace('\\', '/')))
             )
             {
                 queue.Enqueue(reference);

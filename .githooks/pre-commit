@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
-# Before a commit leaves this laptop: no secret in what is being committed. `just check` and
-# CI run gitleaks too, but a secret found after the push is already on GitHub (and in every
-# clone). Enabled by `just sync` (git config core.hooksPath .githooks).
+# Why: a secret found after the push is already on GitHub and in every clone, so it is caught before the commit leaves this laptop
 set -euo pipefail
 
 command -v gitleaks >/dev/null || {

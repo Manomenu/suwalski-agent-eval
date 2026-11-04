@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Options;
 
-namespace Suwageval.Server.LanguageModels;
+namespace Suwageval.Server.LanguageModel;
 
 internal static class ModelsServiceCollectionExtensions
 {
@@ -15,7 +15,7 @@ internal static class ModelsServiceCollectionExtensions
             return services;
         }
         services.AddOptions<ModelsOptions>().Bind(configuration.GetSection(ModelsOptions.Section)).ValidateOnStart();
-        services.AddSingleton<IValidateOptions<ModelsOptions>, ModelsOptions.Validator>();
+        services.AddSingleton<IValidateOptions<ModelsOptions>, ModelsOptions.ModelsOptionsValidator>();
         services.AddSingleton(provider => new ModelClients(
             provider.GetRequiredService<IOptions<ModelsOptions>>().Value,
             ModelClients.OpenAiCompatible

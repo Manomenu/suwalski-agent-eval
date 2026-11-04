@@ -1,6 +1,6 @@
 using Microsoft.Extensions.AI;
 
-namespace Suwageval.Server.LanguageModels;
+namespace Suwageval.Server.LanguageModel;
 
 /// <summary>
 /// A chat client that lets only so many calls through at once and gives each a time limit. One per configured model and

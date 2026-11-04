@@ -1,6 +1,5 @@
 #!/bin/sh
-# SessionStart hook: in an agent's repository (suwageval/agent.yaml at the project's root), prints how to work with Suwageval there,
-# which Claude Code adds to the context. Anywhere else it prints nothing.
+# Why: a SessionStart hook: Claude Code adds what this prints to the context, so outside an agent's repository it prints nothing
 project="${CLAUDE_PROJECT_DIR:-$PWD}"
 [ -f "$project/suwageval/agent.yaml" ] || exit 0
 cat "$(dirname "$0")/../hooks/context/agent-loop.md"

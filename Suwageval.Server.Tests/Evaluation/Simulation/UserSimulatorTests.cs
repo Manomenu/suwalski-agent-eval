@@ -3,7 +3,7 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Options;
 using Suwageval.AgentSdk.Conversations;
 using Suwageval.Server.Evaluation.Simulation;
-using Suwageval.Server.LanguageModels;
+using Suwageval.Server.LanguageModel;
 using Suwageval.Server.Tests.Judges;
 using static Suwageval.Server.Tests.Evaluation.Checks.Items;
 

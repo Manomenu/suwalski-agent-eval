@@ -1,14 +1,5 @@
 #!/usr/bin/env bash
-# Sourced by check.sh and e2e.sh: gives a linked git worktree its own test databases and e2e ports,
-# so checkouts that run the gate or the browser tests at the same time on one machine do not collide.
-# The main checkout and CI keep the plain names and ports (suwageval_test, suwageval_e2e, 6231/3231).
-# A linked worktree takes a suffix from its directory name (lower-case [a-z0-9_], at most 20 chars) for
-# the database names and a port pair (20000-29999) from a stable hash of that name. Nothing is cleaned
-# up afterwards: a worktree's databases stay until you drop them. A value already in the environment wins.
-#
-# The builds leave nothing running behind them: by default MSBuild keeps worker processes (node reuse) and its server
-# alive for the next build. The gate, the e2e run and every agent worktree each started their own set, and a day of
-# them held gigabytes of RAM doing nothing. A build of the gate is a few seconds slower without them.
+# Why: sourced by check.sh and e2e.sh: a linked worktree gets its own test databases and e2e ports (a stable hash of its directory name), so checkouts running at once do not collide; a value already in the environment wins
 export MSBUILDDISABLENODEREUSE=1
 export DOTNET_CLI_USE_MSBUILD_SERVER=0
 _checkout_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"

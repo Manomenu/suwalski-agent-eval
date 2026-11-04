@@ -88,7 +88,7 @@ internal static class JudgeLiveCheck
         builder.Services.AddJudges(builder.Configuration);
         builder.Services.AddSimulation(builder.Configuration);
         builder.Services.AddOptions<LiveCheckOptions>().Bind(builder.Configuration.GetSection(LiveCheckOptions.Section)).ValidateOnStart();
-        builder.Services.AddSingleton<IValidateOptions<LiveCheckOptions>, LiveCheckOptions.Validator>();
+        builder.Services.AddSingleton<IValidateOptions<LiveCheckOptions>, LiveCheckOptions.LiveCheckOptionsValidator>();
         using var host = builder.Build();
         await host.StartAsync(); // validates the options (ValidateOnStart) and runs no service of ours
 

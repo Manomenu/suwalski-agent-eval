@@ -4,8 +4,6 @@ using Suwageval.AgentSdk.Invocation;
 
 namespace Suwageval.Server.Tests.Evaluation.Invocation;
 
-public sealed record PinnedFixtures(IReadOnlyList<string>? PinnedResources);
-
 public sealed class TurnRequestTests
 {
     private static readonly JsonElement NoArguments = JsonSerializer.SerializeToElement(new { });

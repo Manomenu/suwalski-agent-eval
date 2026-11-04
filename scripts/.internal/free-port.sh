@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
-# `just server` / `just web`: when something already listens on the port, show it and offer to stop it.
-# Stops the listener's whole process group (e.g. `dotnet watch` with its server, `pnpm` with Vite), so a watcher
-# does not start it again. Without a terminal to ask on, it only reports and fails.
 set -euo pipefail
+if [ "${1:-}" = "--help" ]; then
+    cat <<'HELP'
+`just server` / `just web`: when something already listens on the port, show it and offer to stop it.
+Stops the listener's whole process group (e.g. `dotnet watch` with its server, `pnpm` with Vite), so a watcher
+does not start it again. Without a terminal to ask on, it only reports and fails.
+HELP
+    exit 0
+fi
 
 port="$1"
 pid=$(ss -ltnpH "sport = :$port" 2>/dev/null | grep -oP 'pid=\K[0-9]+' | head -1 || true)

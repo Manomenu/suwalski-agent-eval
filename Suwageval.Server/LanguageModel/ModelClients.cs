@@ -2,7 +2,7 @@ using System.ClientModel;
 using Microsoft.Extensions.AI;
 using OpenAI;
 
-namespace Suwageval.Server.LanguageModels;
+namespace Suwageval.Server.LanguageModel;
 
 /// <summary>
 /// The chat client of every configured model, built once: the same instance — and so the same pool of slots — for everyone

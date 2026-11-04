@@ -20,6 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Using Include="Suwageval.Gate.Code" />
     <Using Include="Suwageval.Gate.Design" />
     <Using Include="Suwageval.Gate.Repository" />
     <Using Include="Xunit" />

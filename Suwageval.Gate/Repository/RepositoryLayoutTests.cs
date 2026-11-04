@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.RegularExpressions;
 
 namespace Suwageval.Gate.Repository;
@@ -67,6 +68,27 @@ public sealed partial class RepositoryLayoutTests
                 .SelectMany(line => BacktickedPath().Matches(line.Split('|')[1]))
                 .Select(match => match.Groups[1].Value.Split('/')[0]),
         ];
+    }
+
+    [Fact]
+    public void Every_shell_script_is_executable_in_git()
+    {
+        // Why: the index, not the file system: a checkout with core.fileMode=false has no exec bit to read
+        var git = new ProcessStartInfo("git", "ls-files --stage -- *.sh")
+        {
+            WorkingDirectory = RepositoryFiles.Root,
+            RedirectStandardOutput = true,
+        };
+        using var process = Process.Start(git) ?? throw new InvalidOperationException("git did not start");
+        var notExecutable = process
+            .StandardOutput.ReadToEnd()
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries)
+            .Where(line => !line.StartsWith("100755", StringComparison.Ordinal))
+            .Select(line => line.Split('\t')[1].TrimEnd('\r'))
+            .ToList();
+        process.WaitForExit();
+
+        Assert.True(notExecutable.Count == 0, $"make them executable: git update-index --chmod=+x {string.Join(" ", notExecutable)}");
     }
 
     [GeneratedRegex("`([^`]+)`")]

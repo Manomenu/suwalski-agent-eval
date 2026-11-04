@@ -15,7 +15,7 @@ public sealed class ClaudePluginTests
 
         foreach (var plugin in plugins)
         {
-            var folder = Path.Combine(RepoRoot, plugin.GetProperty("source").GetString()!);
+            var folder = Path.Combine(RepoRoot, plugin.GetProperty("source").GetString() ?? "");
             using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(folder, ".claude-plugin", "plugin.json")));
             Assert.Equal(plugin.GetProperty("name").GetString(), manifest.RootElement.GetProperty("name").GetString());
         }
@@ -36,7 +36,7 @@ public sealed class ClaudePluginTests
         {
             var frontmatter = Frontmatter(skill);
             Assert.True(frontmatter.TryGetValue("description", out var description) && description.Length > 0, $"{skill}: no description");
-            Assert.Equal(new DirectoryInfo(Path.GetDirectoryName(skill)!).Name, frontmatter.GetValueOrDefault("name"));
+            Assert.Equal(new FileInfo(skill).Directory?.Name, frontmatter.GetValueOrDefault("name"));
         }
     }
 
@@ -69,7 +69,7 @@ public sealed class ClaudePluginTests
                 .EnumerateArray()
                 .SelectMany(entry => entry.GetProperty("hooks").EnumerateArray())
         );
-        var script = Assert.Single(command.GetProperty("args").EnumerateArray()).GetString()!;
+        var script = Assert.Single(command.GetProperty("args").EnumerateArray()).GetString() ?? "";
         Assert.StartsWith("${CLAUDE_PLUGIN_ROOT}/", script, StringComparison.Ordinal);
         var path = Path.Combine(plugin, script["${CLAUDE_PLUGIN_ROOT}/".Length..]);
         Assert.True(File.Exists(path), $"{path}: missing");

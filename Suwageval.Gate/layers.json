@@ -1,6 +1,6 @@
 {
   "server": {
-    "layers": ["Api", "LiveCheck | ScenarioDrafts", "Evaluation | Monitoring", "Judges", "Verdicts | LanguageModels", "Agents", "Database | Problems"],
+    "layers": ["Api", "LiveCheck | ScenarioDrafts", "Evaluation | Monitoring", "Judges", "Verdicts | LanguageModel", "Agents", "Database | Problems"],
     "areas": {
       "Evaluation": ["Runs", "Simulation", "Checks | Invocation", "Scenarios"],
       "Monitoring": ["Checking", "Checks | Conversations"]

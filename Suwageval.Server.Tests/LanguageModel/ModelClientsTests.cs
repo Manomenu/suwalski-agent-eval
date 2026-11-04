@@ -5,11 +5,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Suwageval.Server.Evaluation.Simulation;
 using Suwageval.Server.Judges;
-using Suwageval.Server.LanguageModels;
+using Suwageval.Server.LanguageModel;
 using Suwageval.Server.Tests.Evaluation.Checks;
 using Suwageval.Server.Tests.Judges;
 
-namespace Suwageval.Server.Tests.LanguageModels;
+namespace Suwageval.Server.Tests.LanguageModel;
 
 /// <summary>The pool of calls per model: its limit, its time limit, that it is one per model, and the configuration that makes it.</summary>
 [SuppressMessage(

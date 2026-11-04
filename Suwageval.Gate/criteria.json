@@ -1,0 +1,12 @@
+{
+  "specs": "docs/visual/spec",
+  "prose": ["docs/**", "**/*.md"],
+  "kinds": [
+    { "kind": "server test (xunit)", "paths": ["Suwageval.Server.Tests/**/*.cs"], "how": "[Trait(\"criterion\", \"<id>\")] on the test" },
+    { "kind": "cli test (xunit)", "paths": ["Suwageval.Cli.Tests/**/*.cs"], "how": "[Trait(\"criterion\", \"<id>\")] on the test" },
+    { "kind": "architecture test (xunit)", "paths": ["Suwageval.Gate/**/*.cs"], "how": "[Trait(\"criterion\", \"<id>\")] on the test" },
+    { "kind": "e2e test (playwright)", "paths": ["Suwageval.Web/src/**/*.e2e.ts"], "how": "the id in the title: test(\"<id>: …\")" },
+    { "kind": "web test (vitest)", "paths": ["Suwageval.Web/src/**/*.test.ts", "Suwageval.Web/src/**/*.test.tsx"], "how": "the id in the title: it(\"<id>: …\")" },
+    { "kind": "lint (eslint)", "paths": ["Suwageval.Web/eslint.config.js"], "how": "// <id> on the line above the rule" }
+  ]
+}

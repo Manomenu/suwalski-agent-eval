@@ -1,15 +1,20 @@
 #!/usr/bin/env bash
-# A copy of this repo's local .env files in Bitwarden, and back — the development values
-# (a test API key, a local password) that a lost laptop would otherwise take with it.
-# Cluster secrets are not here: the platform repo owns them and backs them up the same way
-# (its `just secrets`). AGENTS.md, "Secrets".
-#
-#   secrets.sh backup              .env and <project>/.env → Secure Notes in folder "Homelab"
-#   secrets.sh restore [--force]   those notes → the files (a differing file is kept unless --force)
-#
-# One note per file, named "suwageval/<path>". Values travel through pipes and files only —
-# never as arguments, never on screen.
 set -euo pipefail
+if [ "${1:-}" = "--help" ]; then
+    cat <<'HELP'
+A copy of this repo's local .env files in Bitwarden, and back — the development values
+(a test API key, a local password) that a lost laptop would otherwise take with it.
+Cluster secrets are not here: the platform repo owns them and backs them up the same way
+(its `just secrets`).
+
+  secrets.sh backup              .env and <project>/.env → Secure Notes in folder "Homelab"
+  secrets.sh restore [--force]   those notes → the files (a differing file is kept unless --force)
+
+One note per file, named "suwageval/<path>". Values travel through pipes and files only —
+never as arguments, never on screen.
+HELP
+    exit 0
+fi
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 FOLDER_NAME="Homelab"
@@ -23,14 +28,11 @@ for tool in bw jq; do
     }
 done
 
-# The files this covers: .env at the root and in each project directory. Nothing else.
+# Why: the files this covers: .env at the root and in each project directory. Nothing else
 env_files() {
     (cd "$ROOT" && for f in .env */.env; do [ -f "$f" ] && printf '%s\n' "$f"; done) || true
 }
 
-# ── session ───────────────────────────────────────────────────────────────────
-# Logging in is the owner's (master password, 2FA); unlocking asks for the master password
-# here, and the session lives only in this process.
 case "$(bw status | jq -r .status)" in
     unauthenticated)
         echo "not logged in to Bitwarden — once, in a terminal:" >&2
@@ -85,7 +87,7 @@ restore() {
     }
     while IFS=$'\t' read -r id name; do
         path="${name#"$PREFIX"}"
-        # Only .env or <existing directory>/.env: a note name must not steer a write elsewhere.
+        # Why: only .env or <existing directory>/.env: a note name must not steer a write elsewhere
         if ! [[ "$path" == .env || ("$path" =~ ^[A-Za-z0-9_-]+/\.env$ && -d "$ROOT/${path%/.env}") ]]; then
             echo "  $name: skipped (not a .env of this repo)" >&2
             continue

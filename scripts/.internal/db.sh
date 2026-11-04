@@ -1,15 +1,20 @@
 #!/usr/bin/env bash
-# Local PostgreSQL for development and tests: one container whose data lives in a named
-# volume, so it survives `down` and only `reset` wipes it. Humans call this through
-# `just db <command>`; check.sh calls `up` before the tests. This repo works with docker
-# (on Fedora: podman behind the docker command, AGENTS.md section 2).
 set -euo pipefail
+if [ "${1:-}" = "--help" ]; then
+    cat <<'HELP'
+Local PostgreSQL for development and tests: one container whose data lives in a named
+volume, so it survives `down` and only `reset` wipes it. Humans call this through
+`just db <command>`; check.sh calls `up` before the tests. This repo works with docker
+(on Fedora: podman behind the docker command).
+HELP
+    exit 0
+fi
 
 ENGINE=docker
 
 NAME=suwageval-postgres
 VOLUME=suwageval-postgres
-# The major version the cluster runs (CloudNativePG); the minor is pinned like every image here.
+# Why: the major version the cluster runs (CloudNativePG); the minor is pinned like every image here
 IMAGE=docker.io/library/postgres:17.11
 PORT=5463
 USER=suwageval
@@ -17,8 +22,7 @@ DB=suwageval
 
 wait_ready() {
     for _ in $(seq 1 30); do
-        # Over TCP: on a fresh volume the image first runs a temporary, socket-only server for
-        # its init scripts, and a socket check would call that one ready.
+        # Why: over TCP: on a fresh volume the image first runs a temporary, socket-only server for its init scripts, and a socket check would call that one ready
         "$ENGINE" exec "$NAME" pg_isready -q -h 127.0.0.1 -U "$USER" -d "$DB" && return 0
         sleep 1
     done
@@ -29,17 +33,14 @@ wait_ready() {
 case "${1:-}" in
     up)
         if "$ENGINE" container inspect "$NAME" >/dev/null 2>&1; then
-            # A container keeps the image it was created from; after a change of IMAGE the old
-            # one would start silently (e.g. without an extension) and fail the migrations instead.
-            # IDs, not names: the engine may store a digest reference in its own spelling. An IMAGE not
-            # pulled yet has no ID here, which counts as a change too.
+            # Why: a container keeps the image it was created from; after a change of IMAGE the old one would start silently (e.g. without an extension) and fail the migrations instead. IDs, not names: the engine may store a digest reference in its own spelling. An IMAGE not pulled yet has no ID here, which counts as a change too
             if [ "$("$ENGINE" container inspect --format '{{.Image}}' "$NAME")" != "$("$ENGINE" image inspect --format '{{.Id}}' "$IMAGE" 2>/dev/null)" ]; then
                 echo "$NAME runs another image than $IMAGE — \`just db reset\`, then \`just db up\`" >&2
                 exit 1
             fi
             "$ENGINE" start "$NAME" >/dev/null
         else
-            # Published on the loopback only: the password is a development one.
+            # Why: published on the loopback only: the password is a development one
             "$ENGINE" run -d --name "$NAME" \
                 -p "127.0.0.1:$PORT:5432" \
                 -v "$VOLUME:/var/lib/postgresql/data" \
@@ -61,7 +62,7 @@ case "${1:-}" in
         ;;
     psql)
         shift
-        # A terminal only when there is one, so `just db psql -c …` also works from scripts.
+        # Why: a terminal only when there is one, so `just db psql -c …` also works from scripts
         tty=(); [ -t 0 ] && tty=(-t)
         "$ENGINE" exec -i "${tty[@]}" "$NAME" psql -U "$USER" -d "$DB" "$@"
         ;;

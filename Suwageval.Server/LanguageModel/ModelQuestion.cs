@@ -3,7 +3,7 @@ using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Suwageval.AgentSdk;
 
-namespace Suwageval.Server.LanguageModels;
+namespace Suwageval.Server.LanguageModel;
 
 /// <summary>
 /// One question to a model with its answer as JSON — what the judges, the simulated user and the user describer share: the call, reading

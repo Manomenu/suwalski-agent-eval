@@ -196,7 +196,7 @@ internal sealed class VersionStore(Pool pool)
             return new DeletionResult<VersionDeletion>(DeletionOutcome.NotFound, null);
         }
         // The runs that go: those of the version and, however far the chain goes, the re-checks and verdict copies of them.
-        var counts = await connection.QuerySingleAsync<DeletionCounts>(
+        var counts = await connection.QuerySingleAsync<VersionDeletionCounts>(
             new CommandDefinition(
                 """
                 WITH RECURSIVE doomed AS (
@@ -257,5 +257,5 @@ internal sealed class VersionStore(Pool pool)
 
     private sealed record VersionToDelete(string? Label, bool Archived);
 
-    private sealed record DeletionCounts(int Runs, int Active, int Samples, int Verdicts, int Conversations);
+    private sealed record VersionDeletionCounts(int Runs, int Active, int Samples, int Verdicts, int Conversations);
 }

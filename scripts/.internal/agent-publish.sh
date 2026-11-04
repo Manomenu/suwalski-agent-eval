@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
-# Starts the release of Suwageval.AgentSdk: runs .github/workflows/agent-sdk.yml on master, which tests, packs and pushes
-# to nuget.org (AGENTS.md, section 12). Nothing is packed here and no key is used.
-# Not for agents: a version on nuget.org cannot be deleted.
 set -euo pipefail
+if [ "${1:-}" = "--help" ]; then
+    cat <<'HELP'
+Starts the release of Suwageval.AgentSdk: runs .github/workflows/agent-sdk.yml on master, which tests, packs and pushes
+to nuget.org. Nothing is packed here and no key is used.
+Not for agents: a version on nuget.org cannot be deleted.
+HELP
+    exit 0
+fi
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 
 if [[ $# -ne 1 || "$1" == -* ]]; then
@@ -18,7 +23,7 @@ if ! command -v gh >/dev/null 2>&1; then
   exit 1
 fi
 
-# The workflow builds origin/master, so these three make what is released the same as what is in front of the owner.
+# Why: the workflow builds origin/master, so these three make what is released the same as what is in front of the owner
 branch="$(git branch --show-current)"
 if [[ "$branch" != "master" ]]; then
   echo "on '${branch:-a detached HEAD}', and a release comes from master: run this in a checkout of master, after merging. Nothing was started." >&2
