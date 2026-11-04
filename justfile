@@ -58,10 +58,15 @@ cli-install:
 agent-pack:
     dotnet pack Suwageval.AgentSdk -c Release -o .artifacts/nupkg
 
-# Pack Suwageval.AgentSdk as <version> and push it to nuget.org, or to the feed .env overrides it with (AGENTS.md, section 12)
+# Release Suwageval.AgentSdk as <version>: runs the agent-sdk workflow on master, which pushes to nuget.org (AGENTS.md, section 12)
 [group('dev')]
 agent-publish version:
     @./scripts/.internal/agent-publish.sh {{ version }}
+
+# The fallback: pack and push from this machine with a key from .env, for a first release the workflow cannot make or another feed (AGENTS.md, section 12)
+[group('dev')]
+agent-publish-local version:
+    @./scripts/.internal/agent-publish-local.sh {{ version }}
 
 # ---------------------------------------------------------------------------------------
 # infra — the containerised stack: the same images the cluster runs, wired the same way

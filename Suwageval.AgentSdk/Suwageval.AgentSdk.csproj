@@ -4,7 +4,7 @@
     <TargetFrameworks>net9.0;net10.0</TargetFrameworks>
     <TargetFramework />
     <RootNamespace>Suwageval.AgentSdk</RootNamespace>
-    <!-- A release passes its version (just agent-publish, -p:Version=); a local pack is plainly not one. -->
+    <!-- A release passes its version (agent-sdk.yml or just agent-publish-local, -p:Version=); a local pack is plainly not one. -->
     <Version>0.0.0-local</Version>
     <PackageId>Suwageval.AgentSdk</PackageId>
     <Authors>Piotr Gugnowski</Authors>

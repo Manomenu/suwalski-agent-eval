@@ -75,7 +75,7 @@ app keeps its tests beside its code, so those folders would only split the .NET 
 | `Suwageval.Server/Dockerfile`, `Suwageval.Web/Dockerfile` | the two images; build context is the repo root |
 | `justfile`, `.just/` | commands for humans: the main recipes and the `just <module>` families (section 10) |
 | `scripts/.internal/` | everything the gate, CI and `just` run (section 10) |
-| `.github/workflows/ci.yml` | CI: the gate, the browser tests, then the images |
+| `.github/workflows/ci.yml`, `.github/workflows/agent-sdk.yml` | CI: the gate, the browser tests, then the images; the second releases `Suwageval.AgentSdk` to nuget.org when started by hand (section 12) |
 | `docs/claude-artifacts/README.md` | links to the design documents kept as Claude artifacts, each with what it holds in a sentence or two. A new artifact about this project gets its row in the same change |
 | `.githooks/` | the git hooks `just sync` enables: `pre-commit` runs gitleaks on what is being committed |
 | `.vscode/` | the editor's settings: recommended extensions, file nesting, formatters, the launch configurations |
@@ -575,7 +575,7 @@ Two vocabularies, chosen word by word:
 ## 10. Commands: `justfile` vs `scripts/.internal/`
 
 - **`justfile` is for humans.** `just` lists every recipe, grouped: `run` (dev servers),
-  `dev` (code generation, `just cli …` to run the CLI from source, `just cli-install` to install it as the global `suwageval`, `just agent-pack` / `just agent-publish <version>` for `Suwageval.AgentSdk` (section 12)), `infra` (the container stack; `just build-images` builds the `suwageval-server:local` and `suwageval-web:local` images that another repository's stack, e.g. an agent repo running Suwageval in its own compose, runs), `maintenance` (check, e2e, fmt,
+  `dev` (code generation, `just cli …` to run the CLI from source, `just cli-install` to install it as the global `suwageval`, `just agent-pack` / `just agent-publish <version>` / `just agent-publish-local <version>` for `Suwageval.AgentSdk` (section 12)), `infra` (the container stack; `just build-images` builds the `suwageval-server:local` and `suwageval-web:local` images that another repository's stack, e.g. an agent repo running Suwageval in its own compose, runs), `maintenance` (check, e2e, fmt,
   sync), plus modules in `.just/`: `db` (`.just/db.just`: the local PostgreSQL),
   `secrets` (`.just/secrets.just`: the `.env` files in Bitwarden) and `tmux-dev` (`.just/tmux-dev.just`: `start [--restart]` and
   `stop` of the interactive tmux layout of the local stack, the example agent suwexag from its source, else its `suwexag:local`
@@ -596,7 +596,7 @@ Two vocabularies, chosen word by word:
   | `scripts/.internal/db.sh up\|down\|status\|psql` | the local PostgreSQL on `localhost:5463` (docker container `suwageval-postgres`). `check.sh` runs `up` itself; tests create their own `suwageval_test` database |
   | `scripts/.internal/api-types.sh [--check]` | regenerate `Suwageval.Web/src/api/openapi.d.ts` after changing a record the API exposes. Never edit that file by hand |
   | `scripts/.internal/secrets.sh backup\|restore` | **not for agents** — the owner's copy of the `.env` files in Bitwarden (`just secrets`, section 7); it asks for the master password |
-  | `scripts/.internal/agent-publish.sh <version>` | **not for agents** — the owner's release of `Suwageval.AgentSdk` (`just agent-publish`, section 12); a version on nuget.org cannot be deleted |
+  | `scripts/.internal/agent-publish.sh <version>`, `scripts/.internal/agent-publish-local.sh <version>` | **not for agents** — the owner's release of `Suwageval.AgentSdk` (`just agent-publish`, and its fallback `just agent-publish-local`, section 12); a version on nuget.org cannot be deleted |
   | `scripts/.internal/infra-status.sh` | what of the compose stack is up and on which ports (needs `jq`) |
 
   A new helper an agent should reach for goes here too, with a row in this table.
@@ -636,12 +636,27 @@ means: a clear goal, the files it touches are known, and a check says when it is
 
 ## 12. Releasing `Suwageval.AgentSdk`
 
-The owner releases it by hand, from a commit whose CI is green: `just agent-publish 0.1.0` packs that version (`-p:Version=`,
-built with `ContinuousIntegrationBuild`, so the symbols hold no local paths) and pushes it with its `.snupkg` to nuget.org, with
-the key in `AGENT_SDK_NUGET_API_KEY` from the gitignored `.env`; without the key it stops before packing. A version on nuget.org can
-never be deleted, only unlisted, so a bad release is followed by the next version, never replaced. The key comes from nuget.org,
-API Keys, Create: scope Push (new packages and package versions), glob `Suwageval.AgentSdk`; back it up with `just secrets backup`.
+The owner releases it, from a commit of `master` whose CI is green: `just agent-publish 0.1.0` runs `.github/workflows/agent-sdk.yml` on
+`master` (`gh workflow run`) and says how to follow the run; it stops first on a bad version, another branch, uncommitted changes or a
+`master` that differs from `origin/master`. The workflow refuses anything but `master`, runs the tests that protect the SDK (the classes
+it names, with a PostgreSQL for the one that needs it: the whole gate already ran on that commit in `ci.yml`, and `AgentSdkWorkflowTests`
+fails for a class that no longer exists), packs that version (`-p:Version=`, built with `ContinuousIntegrationBuild`, so the symbols hold no local paths)
+and pushes it with its `.snupkg` to nuget.org. A version on nuget.org can never be deleted, only unlisted, so a bad release is followed by
+the next version, never replaced. The csproj says `0.0.0-local`, which is what `just agent-pack` produces. Agents never publish.
 
-To publish to another feed instead, set both `AGENT_SDK_FEED_URL` and `AGENT_SDK_FEED_API_KEY` in `.env` (section 7: a private feed's
-address is the owner's infrastructure); that push leaves the symbols out. The csproj says `0.0.0-local`, which is what `just agent-pack`
-produces. Agents never publish.
+**Why in CI, with no key.** Trusted Publishing is how nuget.org gives a key to a CI job instead of to a person: the job's OIDC token is
+exchanged (`NuGet/login`) for a key that lives one hour, so the repository holds no key to leak or rotate, and only the job that pushes,
+which runs no code of the repository, can ask for one. It can only work from a workflow, which is why publishing is in CI again; an
+earlier workflow was removed in `b61ef9a`, when the releases went to a feed named in `.env` rather than to nuget.org.
+
+**One-time setup.** On nuget.org, *Trusted Publishing*: a policy with publisher GitHub Actions, owner `Manomenu`, repository
+`suwalski-agent-eval`, workflow file `agent-sdk.yml` (the file's name, so renaming the file breaks releases), no environment, scope to push
+new packages and package versions, glob `Suwageval.AgentSdk`. In this repository, the secret `NUGET_USER`: the nuget.org profile name of
+the policy's package owner, which is not the GitHub owner and not an email address.
+
+**The fallback, `just agent-publish-local <version>`,** packs and pushes from the machine with a key from the gitignored `.env`, and is not
+the normal way. It stays for two cases. If nuget.org refuses the workflow's first push of the package (its documentation mentions a
+scope for new packages but does not plainly say a first publish works), set `AGENT_SDK_NUGET_API_KEY` to a key from nuget.org, API Keys,
+Create: scope Push (new packages and package versions), glob `Suwageval.AgentSdk`, and remove the key once that release is out. And to
+publish to another feed, set both `AGENT_SDK_FEED_URL` and `AGENT_SDK_FEED_API_KEY` in `.env` (section 7: a private feed's address is the
+owner's infrastructure); that push leaves the symbols out. Run it on a clean `master` too: it does not check that for you.

@@ -1,0 +1,112 @@
+name: agent-sdk
+
+# Releases Suwageval.AgentSdk to nuget.org: started by `just agent-publish <version>`, never by a push, because a version
+# there cannot be deleted. nuget.org's Trusted Publishing policy names this file, so it cannot be renamed alone (AGENTS.md, section 12).
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "The version to release, like 0.1.0 or 0.2.0-rc.1"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: "1"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  # Through the environment, never written into a script: the input is free text.
+  VERSION: ${{ inputs.version }}
+
+jobs:
+  pack:
+    runs-on: ubuntu-latest
+    # One SDK test records turns into a real server. Without a database it would skip, quietly and green.
+    services:
+      postgres:
+        image: docker.io/library/postgres:17.11
+        env:
+          POSTGRES_USER: suwageval
+          POSTGRES_PASSWORD: suwageval
+          POSTGRES_DB: suwageval
+        ports:
+          - 5463:5432
+        options: >-
+          --health-cmd "pg_isready -h 127.0.0.1 -U suwageval"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - name: Refuse anything but master
+        run: |
+          if [[ "$GITHUB_REF" != "refs/heads/master" ]]; then
+            echo "::error::a release comes from master, this run is on $GITHUB_REF: merge the change, then run just agent-publish <version> on master."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+
+      - name: Check the version
+        run: ./scripts/.internal/agent-sdk-version.sh "$VERSION"
+
+      # The same SDK band as ci.yml.
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0.x"
+          cache: true
+          cache-dependency-path: "**/packages.lock.json"
+
+      # The tests of the SDK's own code. The whole gate already ran on this commit in ci.yml, so a release does not repeat it.
+      # AgentSdkWorkflowTests fails the gate for a class named here that no longer exists.
+      - name: Test the SDK
+        run: >
+          dotnet test --project Suwageval.Server.Tests --configuration Release --no-progress
+          --filter-class "*AgentSdkContractsTests"
+          --filter-class "*AgentContractRulesTests"
+          --filter-class "*AgentContractHashTests"
+          --filter-class "*SuwagevalAgentEndpointsTests"
+          --filter-class "*SuwagevalBaggageTests"
+          --filter-class "*TurnRequestTests"
+          --filter-class "*SuwagevalMonitoringTests"
+
+      # The flags of scripts/.internal/agent-publish-local.sh. The csproj holds the metadata, Source Link and the snupkg.
+      - name: Pack
+        run: dotnet pack Suwageval.AgentSdk -c Release -o nupkg -p:Version="$VERSION" -p:ContinuousIntegrationBuild=true
+
+      # The folder, not only the .nupkg: the push finds the .snupkg beside it.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nupkg
+          path: nupkg/
+          if-no-files-found: error
+
+  publish:
+    needs: pack
+    runs-on: ubuntu-latest
+    # The only job that can get a key, and it runs no code of the repository: no checkout.
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: nupkg
+          path: nupkg
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0.x"
+
+      # Exchanges the job's OIDC token for a nuget.org key that lives one hour, so it comes right before the push.
+      # NUGET_USER is the nuget.org profile name of the policy's owner, not the GitHub owner.
+      - uses: NuGet/login@v1
+        id: login
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
+      # No --skip-duplicate: a version already there is a mistake to see, not a green run that released nothing.
+      - name: Push
+        env:
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
+        run: dotnet nuget push "nupkg/Suwageval.AgentSdk.$VERSION.nupkg" --source https://api.nuget.org/v3/index.json --api-key "$NUGET_API_KEY"
