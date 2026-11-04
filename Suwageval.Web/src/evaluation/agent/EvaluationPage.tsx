@@ -115,17 +115,20 @@ export function EvaluationPage({ name }: { name: string }) {
                 !areaOn(agent.features, "evaluation") ? (
                     <AreaOff area="evaluation" />
                 ) : (
-                    <AgentView
-                        agent={agent}
-                        versions={versions}
-                        passRates={passRates}
-                        groups={groups}
-                        tags={tags}
-                        reload={reload}
-                        onChanged={() => {
-                            setReload(reload + 1);
-                        }}
-                    />
+                    // Around the whole view, not the charts alone: they stand above the filters, so arriving later they would push an open list off the screen.
+                    <Suspense fallback={<Loader aria-label="Loading the charts" />}>
+                        <AgentView
+                            agent={agent}
+                            versions={versions}
+                            passRates={passRates}
+                            groups={groups}
+                            tags={tags}
+                            reload={reload}
+                            onChanged={() => {
+                                setReload(reload + 1);
+                            }}
+                        />
+                    </Suspense>
                 )
             }
         </Page>
@@ -226,9 +229,7 @@ function AgentView({
                                 </div>
                             </Stack>
                         )}
-                        <Suspense fallback={null}>
-                            <Trends points={trendPoints} />
-                        </Suspense>
+                        <Trends points={trendPoints} />
                     </Stack>
                 </div>
 
