@@ -306,4 +306,31 @@ public sealed class CheckEndpointsTests(TestDatabase database) : IAsyncDisposabl
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
         Assert.Equal(["checks[0].result.note.$judge", "checks[1].args.reason", "checks[2].data"], await TestServer.ErrorFields(response));
     }
+
+    [Fact]
+    [Trait("criterion", "AC-message-count-check-5")]
+    public async Task A_message_count_check_is_stored_with_its_bounds_and_a_push_refuses_a_broken_one()
+    {
+        var agent = await AgentWithScenariosAsync("s");
+        await Put(
+            agent,
+            new MessageCountCheck
+            {
+                Key = "only-one-reply",
+                ScenarioKey = "s",
+                Role = MessageRole.Assistant,
+                Max = 1,
+                Where = new CheckWhere { Turn = new TurnSelector(TurnSelectorKind.Last) },
+            }
+        );
+
+        var listed = await TestServer.Read<CheckDetail[]>(await server.Get($"/eval/agents/{agent}/checks"));
+        var noBound = new MessageCountCheck { Key = "no-bound", ScenarioKey = "s" };
+        var refused = await server.Put($"/eval/agents/{agent}/checks", new PutChecksRequest([noBound]));
+
+        var stored = Assert.IsType<MessageCountCheck>(Assert.Single(listed).Check);
+        Assert.Equal((MessageRole.Assistant, 1, TurnSelectorKind.Last), (stored.Role, stored.Max, stored.Where?.Turn.Kind));
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, refused.StatusCode);
+        Assert.Equal(["checks[0]"], await TestServer.ErrorFields(refused));
+    }
 }

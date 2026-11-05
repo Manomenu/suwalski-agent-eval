@@ -547,6 +547,41 @@ public sealed class ValidatorTests
         Assert.True(Validate(undeclared, offline: true).IsValid);
     }
 
+    [Theory]
+    [Trait("criterion", "AC-message-count-check-1")]
+    [InlineData("role: assistant, max: 1")]
+    [InlineData("role: user, min: 1, max: 2")]
+    [InlineData("exactly: 0")]
+    [InlineData("max: 1, where: { turn: last, before: state.changed }")]
+    public void A_message_count_check_with_a_sensible_bound_is_valid(string fields)
+    {
+        var result = Validate($"key: k\nconversation:\n  - user: hi\nchecks:\n  - {{ key: c, type: message-count, {fields} }}\n");
+
+        Assert.Empty(result.Problems);
+    }
+
+    [Theory]
+    [Trait("criterion", "AC-message-count-check-1")]
+    [InlineData("role: assistant", "checks[0]", "at least one of")]
+    [InlineData("exactly: 1\n    max: 2", "checks[0].exactly", "stands alone")]
+    [InlineData("min: 0", "checks[0].min", "from 1 to 1000")]
+    [InlineData("min: 1001", "checks[0].min", "from 1 to 1000")]
+    [InlineData("max: -1", "checks[0].max", "from 0 to 1000")]
+    [InlineData("exactly: 1001", "checks[0].exactly", "from 0 to 1000")]
+    [InlineData("min: 3\n    max: 2", "checks[0].min", "above max")]
+    [InlineData("role: bot\n    max: 1", "checks[0].role", "user or assistant")]
+    [InlineData("role: 1\n    max: 1", "checks[0].role", "user or assistant")]
+    [InlineData("max: 1\n    equals: 1", "checks[0].equals", "Unknown field")]
+    public void A_broken_message_count_check_is_a_problem_with_file_line_and_path(string fields, string path, string message)
+    {
+        var result = Validate($"key: k\nconversation:\n  - user: hi\nchecks:\n  - key: c\n    type: message-count\n    {fields}\n");
+
+        AssertProblem(result, path, message);
+        var problem = result.Problems.First(found => found.Path == path);
+        Assert.Equal("s.yaml", problem.File);
+        Assert.True(problem.Line >= 5, $"line {problem.Line}");
+    }
+
     [Fact]
     public void A_cited_check_needs_sources_and_none_empty()
     {

@@ -483,6 +483,7 @@ scenario's, see "Samples"). The scenario is the file the check sits in.
 | `event-not-emitted` | `event`, `data` (optional) | no event of that type was emitted (with `data`: none whose data contains it; a `$pattern` may be used there, a `$judge` may not) |
 | `cited` | `sources` (a list of ids, at least one, none empty) | every listed source appears in the `sources` of some assistant message |
 | `text` | `contains`, `notContains`, `pattern` (at least one) | the answer contains the text, does not contain the text, matches the regular expression |
+| `message-count` | `role` (optional, `user` or `assistant`), `min`, `max`, `exactly` (at least one) | the number of messages in scope is within the bounds (below) |
 | `judge` | `criteria` (required, plain words) | a model judges that what the agent produced satisfies the criteria (below) |
 
 A `tool` must be a tool of some agent (of the agent named by `by`, when given; `by` must be an agent of the contract) and an `event` one of its declared event types (checked
@@ -501,7 +502,7 @@ How a check is evaluated (the server's `Verdicts/`; no model involved, except fo
 
 - **A turn** is the items one `POST {endpointUrl}/suwageval/turn` returned, in the order the agent produced them; turns
   are numbered from 1. A scenario has one turn, a simulation up to `continuation.turns`; in a simulation a turn opens with the
-  simulated user's `UserMessage` (see "Simulation"), which no check but `judge` reads.
+  simulated user's `UserMessage` (see "Simulation"), which only `judge` and `message-count` read.
 - **`turn`** picks the turns whose items are looked at: a number, the last one, or all (`any`). A turn that was not produced
   leaves nothing to look at.
 - **`after: X`** keeps the items that come after the *first* tool call named `X` or event of type `X` among the selected
@@ -531,6 +532,14 @@ How a check is evaluated (the server's `Verdicts/`; no model involved, except fo
   evidence is the messages that cite any of the listed sources, and its message names the missing ones. **`text`** reads the assistant messages in scope,
   joined by a newline; `contains` and `notContains` are case-sensitive (use `(?i)` in `pattern` otherwise); every condition
   given must hold. An invalid `pattern` fails the check with a message.
+- **`message-count`** counts the `UserMessage` and `AssistantMessage` items in scope, each as one, whatever its text: an empty or
+  an interrupted one counts too. `role` narrows it to one of the two; without it both count. Because a turn is what one
+  `POST /suwageval/turn` returned, in a plain scenario a turn holds no user message (the scripted ones are its log, never
+  counted, so `role: user` counts 0), and in a simulation it opens with the simulated user's one. `where` narrows it like any check: a
+  turn that was not produced counts 0, so `max` passes there, and `after` / `before` count what lies past the anchor. Use `exactly`
+  alone, or `min` (from 1: at least 0 always holds) and / or `max` (from 0), up to 1000, `min` not above `max`; `validate` and a push
+  report anything else. Its evidence is the counted messages. Example, the agent must not answer in two messages:
+  `{ key: only-one-reply, type: message-count, role: assistant, max: 1, where: { turn: last } }`.
 - **The pass rate** of a check is the share of the samples it is judged on that passed (its first N, N being its `samples`, see
   "Samples"); the check passes the run when the rate reaches `passThreshold`. A sample the agent did not answer (down, timeout, unreadable answer) counts as failed for every check.
 
@@ -655,7 +664,7 @@ checks:
   write in. It is part of the scenario's content: a changed description is a new revision, whose checks start a new history.
 - **Checks look at the whole conversation.** The default `where: { turn: any }` takes every turn: `tool-called`, `event`, `cited`
   and `text` with `contains` / `pattern` pass when it happened at some point, `tool-not-called`, `event-not-emitted` and `text` with
-  `notContains` when it never did. `turn: last` is the last turn; a turn by number is an error (`validate` reports it, and a run
+  `notContains` when it never did; `message-count` counts over the whole conversation, so use `turn: last` for one turn. `turn: last` is the last turn; a turn by number is an error (`validate` reports it, and a run
   with such a check is refused with 409), because every sample goes another way. `after` / `before` work across
   turns. A `judge` check judges the agent over the whole conversation; the simulated user's messages are context to it, never judged.
   Simulations vary more than one turn: use several `samples`, a `passThreshold` below 1 for what depends on the course of the

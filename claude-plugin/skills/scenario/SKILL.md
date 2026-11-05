@@ -24,7 +24,7 @@ last user message is the one the agent answers next.
    `{endpointUrl}/suwageval/contract`, `endpointUrl` from `agent.yaml`). Never invent one. If
    the agent is not reachable, use `suwageval validate --offline` and say the names are unchecked.
    Prefer deterministic checks (`tool-called` with `by` / `result`, `tool-not-called`, `event`,
-   `event-not-emitted`, `cited`, `text`; `$pattern` for loosely written values, anchored). Add a `type: judge` check (`criteria:` — one concrete, checkable
+   `event-not-emitted`, `cited`, `text`, `message-count`; `$pattern` for loosely written values, anchored). Add a `type: judge` check (`criteria:` — one concrete, checkable
    statement, one thing per check, `where` to narrow it) only for what needs reading, like tone or
    whether a refusal was explained. In `args` / `result` / `data` use the exact value when it is known; for
    a value written loosely but checkable (a zip code with stray spaces, a date format) use

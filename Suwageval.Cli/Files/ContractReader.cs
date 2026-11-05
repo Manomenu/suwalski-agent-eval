@@ -33,7 +33,7 @@ internal static partial class ContractReader
                 source.Problem(
                     path,
                     typeof(T) == typeof(CheckInput)
-                        ? "A check needs a 'type' (tool-called, tool-not-called, event, event-not-emitted, cited, text)."
+                        ? "A check needs a 'type' (tool-called, tool-not-called, event, event-not-emitted, cited, text, message-count, judge)."
                         : "A conversation item needs a 'kind'."
                 )
             );
@@ -80,9 +80,13 @@ internal static partial class ContractReader
             return target == typeof(CheckInput)
                 ? (
                     path,
-                    $"Unknown check type '{value}' (the types: tool-called, tool-not-called, event, event-not-emitted, cited, text; judge checks come later)."
+                    $"Unknown check type '{value}' (the types: tool-called, tool-not-called, event, event-not-emitted, cited, text, message-count, judge)."
                 )
                 : (path, $"Unknown kind '{value}' (the kinds: UserMessage, AssistantMessage, ToolCall, ToolResult, Retrieval, Event).");
+        }
+        if (message.Contains(nameof(MessageRole), StringComparison.Ordinal))
+        {
+            return (path, "role is user or assistant.");
         }
         return (path, message);
     }

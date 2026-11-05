@@ -144,6 +144,11 @@ The negative of `event`, as `tool-not-called` is the negative of `tool-called`. 
 through a tool that happens to start procedures. That couples the check to one way of starting
 them.
 
+### `message-count`
+
+Whether the agent sent one message or two cannot be read from the `text` check, which joins a turn's assistant messages. A bot
+that answers twice is a bug of its own, so the count is a check, with `where` choosing the turn as for any other.
+
 ### `cited`
 
 Checks `sources` (above). It needs no JSON matching rules: a list of ids, each of which must

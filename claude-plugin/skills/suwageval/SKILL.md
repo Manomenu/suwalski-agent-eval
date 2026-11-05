@@ -204,6 +204,9 @@ the spec above, "The agent contract"), these decisions are yours:
   returned (a refund for the id that `get_order` really returned).
 - **`event-not-emitted`** is the negative of `event`; **`cited`** asserts that a grounded answer lists
   the given `sources`.
+- **`message-count`** counts the messages in scope, not their words: `role` (`user` or `assistant`, not set: both) with
+  `min`, `max` or `exactly`, and `where` for the turn (`where: { turn: last }`). Use it for "the agent answers in one
+  message" instead of a pattern over `text`, which reads a turn's messages joined. A plain scenario's turn holds no user message; a simulation's opens with the simulated user's.
 - **`{ $pattern: ... }`** inside `args`, `data` or `result` instead of exact equality for values a model
   writes loosely (case, spaces, abbreviations). Anchor it (`^...$`), `(?i)` for case. Exact equality for
   ids and numbers.
@@ -231,7 +234,7 @@ agent's fault, run again. Format: the "Simulation" section of the scenario forma
 
 ## Judge or deterministic check?
 
-Prefer a deterministic check (`tool-called`, `tool-not-called`, `event`, `event-not-emitted`, `cited`, `text`) whenever one can
+Prefer a deterministic check (`tool-called`, `tool-not-called`, `event`, `event-not-emitted`, `cited`, `text`, `message-count`) whenever one can
 say it: exact, free, repeatable. Use `type: judge` with `criteria:` only for what needs reading —
 tone, completeness, whether a refusal was explained. Write the criteria as one concrete, checkable
 statement about the output ("states the 14-day refund period", not "is helpful"), one thing per

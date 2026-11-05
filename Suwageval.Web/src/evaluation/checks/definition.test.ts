@@ -110,6 +110,26 @@ describe("definitionSummary", () => {
     });
 });
 
+describe("a message-count check", () => {
+    it("AC-message-count-check-6: names the role and the bounds, and the turn as for any check", () => {
+        expect(
+            definitionSummary({ type: "message-count", key: "m", scenarioKey: "s", role: "assistant", max: 1, where: { turn: "last" } }),
+        ).toBe("message-count assistant at most 1 · turn last");
+        expect(definitionSummary({ type: "message-count", key: "m", scenarioKey: "s", min: 1, max: 2 })).toBe(
+            "message-count at least 1 at most 2",
+        );
+        expect(definitionSummary({ type: "message-count", key: "m", scenarioKey: "s", role: "user", exactly: 0 })).toBe(
+            "message-count user exactly 0",
+        );
+    });
+
+    it("AC-message-count-check-6: shows its fields in the YAML of the check", () => {
+        expect(definitionYaml({ type: "message-count", key: "m", scenarioKey: "s", role: "assistant", max: 1 })).toBe(
+            "key: m\ntype: message-count\nrole: assistant\nmax: 1\n",
+        );
+    });
+});
+
 describe("revisionNote", () => {
     it("is null while the run saw the latest revision", () => {
         expect(revisionNote(2, 2)).toBeNull();

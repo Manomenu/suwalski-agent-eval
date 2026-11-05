@@ -18,6 +18,7 @@ public static class CheckRules
     private const string PatternKey = "$pattern";
     private const string Description = "description";
     private const string Examples = "examples";
+    private const int MostMessagesCounted = 1000;
     private static readonly TimeSpan PatternTimeout = TimeSpan.FromSeconds(1);
 
     /// <summary>Everything wrong with the check itself, each problem with its path under <paramref name="path"/>.</summary>
@@ -69,6 +70,9 @@ public static class CheckRules
                 break;
             case TextCheck text:
                 AddTextProblems(problems, text, path);
+                break;
+            case MessageCountCheck count:
+                AddMessageCountProblems(problems, count, path);
                 break;
             case JudgeCheck judge:
                 if (string.IsNullOrWhiteSpace(judge.Criteria))
@@ -266,6 +270,36 @@ public static class CheckRules
         if (text.Pattern is not null && CompileError(text.Pattern) is { } error)
         {
             problems.Add(new CheckProblem($"{path}.pattern", $"The pattern is not a valid regular expression: {error}"));
+        }
+    }
+
+    private static void AddMessageCountProblems(List<CheckProblem> problems, MessageCountCheck count, string path)
+    {
+        if (count.Min is null && count.Max is null && count.Exactly is null)
+        {
+            problems.Add(new CheckProblem(path, "A message-count check needs at least one of 'min', 'max', 'exactly'."));
+        }
+        if (count.Exactly is not null && (count.Min is not null || count.Max is not null))
+        {
+            problems.Add(new CheckProblem($"{path}.exactly", "'exactly' stands alone: leave out 'min' and 'max'."));
+        }
+        if (count.Min is < 1 or > MostMessagesCounted)
+        {
+            problems.Add(
+                new CheckProblem($"{path}.min", $"min is from 1 to {MostMessagesCounted}; at least 0 always holds, so leave it out.")
+            );
+        }
+        if (count.Max is < 0 or > MostMessagesCounted)
+        {
+            problems.Add(new CheckProblem($"{path}.max", $"max is from 0 to {MostMessagesCounted}."));
+        }
+        if (count.Exactly is < 0 or > MostMessagesCounted)
+        {
+            problems.Add(new CheckProblem($"{path}.exactly", $"exactly is from 0 to {MostMessagesCounted}."));
+        }
+        if (count.Min > count.Max)
+        {
+            problems.Add(new CheckProblem($"{path}.min", "min is above max, so no count can pass."));
         }
     }
 

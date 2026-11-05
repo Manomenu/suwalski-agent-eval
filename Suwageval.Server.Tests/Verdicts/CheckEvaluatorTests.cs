@@ -436,6 +436,81 @@ public sealed class CheckEvaluatorTests
         Assert.False(Run(check, Turn(Call("lookup", """{"zip":12345}"""))).Passed);
     }
 
+    private static MessageCountCheck Count(
+        MessageRole? role = MessageRole.Assistant,
+        int? min = null,
+        int? max = null,
+        int? exactly = null,
+        CheckWhere? where = null
+    ) =>
+        new()
+        {
+            Key = "c",
+            ScenarioKey = "s",
+            Role = role,
+            Min = min,
+            Max = max,
+            Exactly = exactly,
+            Where = where,
+        };
+
+    [Fact]
+    [Trait("criterion", "AC-message-count-check-2")]
+    public void Message_count_applies_its_bounds_and_gives_the_counted_messages_as_evidence()
+    {
+        var first = Say("Hello.");
+        var second = Say("Hello.");
+        var two = Turn(first, Emit("state.changed"), second);
+
+        Assert.True(Run(Count(max: 2), two).Passed);
+        Assert.True(Run(Count(min: 2), two).Passed);
+        Assert.True(Run(Count(exactly: 2), two).Passed);
+        Assert.False(Run(Count(min: 3), two).Passed);
+        Assert.False(Run(Count(exactly: 1), two).Passed);
+        Assert.False(Run(Count(min: 1, max: 1), two).Passed);
+        var verdict = Run(Count(max: 1), two);
+        Assert.False(verdict.Passed);
+        Assert.Equal<ConversationItem>([first, second], verdict.Evidence);
+        Assert.Equal("2 assistant messages, expected at most 1.", verdict.Message);
+    }
+
+    [Fact]
+    [Trait("criterion", "AC-message-count-check-2")]
+    public void Message_count_counts_the_messages_of_the_role_and_without_one_both()
+    {
+        var simulated = Trace.Of([new UserMessage { Text = "Hi." }, Say("Hello."), Say("Again.")]);
+
+        Assert.True(Run(Count(MessageRole.User, exactly: 1), simulated).Passed);
+        Assert.True(Run(Count(MessageRole.Assistant, exactly: 2), simulated).Passed);
+        Assert.True(Run(Count(role: null, exactly: 3), simulated).Passed);
+    }
+
+    [Fact]
+    [Trait("criterion", "AC-message-count-check-3")]
+    public void Message_count_looks_at_the_chosen_turn_and_a_turn_not_produced_counts_none()
+    {
+        var turns = Turns([new UserMessage { Text = "Hi." }, Say("One.")], [new UserMessage { Text = "And?" }, Say("Two."), Say("Three.")]);
+
+        Assert.True(Run(Count(exactly: 3), turns).Passed);
+        Assert.True(Run(Count(exactly: 1, where: new CheckWhere { Turn = new TurnSelector(TurnSelectorKind.Number, 1) }), turns).Passed);
+        var last = Run(Count(max: 1, where: new CheckWhere { Turn = new TurnSelector(TurnSelectorKind.Last) }), turns);
+        Assert.False(last.Passed);
+        Assert.Equal("2 assistant messages in the last turn, expected at most 1.", last.Message);
+        Assert.True(Run(Count(exactly: 0, where: new CheckWhere { Turn = new TurnSelector(TurnSelectorKind.Number, 9) }), turns).Passed);
+    }
+
+    [Fact]
+    [Trait("criterion", "AC-message-count-check-4")]
+    public void Message_count_is_narrowed_by_after_and_before()
+    {
+        var turn = Turn(Say("One."), Call("get_order"), Say("Two."), Say("Three."), Emit("state.changed"), Say("Four."));
+
+        Assert.True(Run(Count(exactly: 3, where: new CheckWhere { After = "get_order" }), turn).Passed);
+        Assert.True(Run(Count(exactly: 3, where: new CheckWhere { Before = "state.changed" }), turn).Passed);
+        Assert.True(Run(Count(exactly: 2, where: new CheckWhere { After = "get_order", Before = "state.changed" }), turn).Passed);
+        Assert.True(Run(Count(exactly: 0, where: new CheckWhere { After = "never" }), turn).Passed);
+    }
+
     private static EventNotEmittedCheck NotEmitted(string type, string? data = null, CheckWhere? where = null) =>
         new()
         {

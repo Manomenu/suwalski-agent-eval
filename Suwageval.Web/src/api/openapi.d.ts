@@ -1848,7 +1848,7 @@ export interface components {
          * @description A test on what the agent produced, told apart by `type`: for a scenario (in a run), or for every monitored conversation of the
          *     agent (a monitoring check, `suwageval/monitoring-checks.yaml`: no scenario, a description).
          */
-        CheckInput: components["schemas"]["CheckInputToolCalledCheck"] | components["schemas"]["CheckInputToolNotCalledCheck"] | components["schemas"]["CheckInputEventCheck"] | components["schemas"]["CheckInputEventNotEmittedCheck"] | components["schemas"]["CheckInputCitedCheck"] | components["schemas"]["CheckInputTextCheck"] | components["schemas"]["CheckInputJudgeCheck"];
+        CheckInput: components["schemas"]["CheckInputToolCalledCheck"] | components["schemas"]["CheckInputToolNotCalledCheck"] | components["schemas"]["CheckInputEventCheck"] | components["schemas"]["CheckInputEventNotEmittedCheck"] | components["schemas"]["CheckInputCitedCheck"] | components["schemas"]["CheckInputTextCheck"] | components["schemas"]["CheckInputMessageCountCheck"] | components["schemas"]["CheckInputJudgeCheck"];
         CheckInputCitedCheck: {
             /** @enum {string} */
             type?: "cited";
@@ -1929,6 +1929,45 @@ export interface components {
             type?: "judge";
             /** @description What the agent's output must satisfy, in one or a few sentences; the judge answers whether it does. */
             criteria: string;
+            /** @description Lowercase kebab-case, unique within the agent. */
+            key: string;
+            /** @description The scenario the check belongs to; empty for a monitoring check, which belongs to the agent. */
+            scenarioKey?: string;
+            /** @description What the check makes sure of, in plain words: required of a monitoring check, a note for a scenario's. */
+            description?: null | string;
+            where?: null | components["schemas"]["CheckWhere"];
+            /**
+             * Format: double
+             * @description The share of samples that must pass, from above 0 to 1.
+             */
+            passThreshold?: number;
+            /**
+             * Format: int32
+             * @description How many of its scenario's samples the check is judged on (the first ones, 1 to 20), and the number its pass rate and threshold
+             *     count over. Not set: the scenario's samples.
+             */
+            samples?: null | number;
+        };
+        /** @description On how many messages are in scope: at least one bound is given, all given must hold. */
+        CheckInputMessageCountCheck: {
+            /** @enum {string} */
+            type?: "message-count";
+            role?: null | components["schemas"]["MessageRole"];
+            /**
+             * Format: int32
+             * @description At least this many, from 1: at least 0 always holds.
+             */
+            min?: null | number;
+            /**
+             * Format: int32
+             * @description At most this many, from 0.
+             */
+            max?: null | number;
+            /**
+             * Format: int32
+             * @description Exactly this many, from 0; stands alone, without int? MessageCountCheck.Min and int? MessageCountCheck.Max.
+             */
+            exactly?: null | number;
             /** @description Lowercase kebab-case, unique within the agent. */
             key: string;
             /** @description The scenario the check belongs to; empty for a monitoring check, which belongs to the agent. */
@@ -2443,6 +2482,8 @@ export interface components {
             /** @description The tools this agent may call. */
             tools?: components["schemas"]["ToolDefinition"][];
         };
+        /** @enum {unknown} */
+        MessageRole: "user" | "assistant" | null;
         ModelDefinition: {
             name: string;
             parameters?: null | components["schemas"]["JsonElement"];

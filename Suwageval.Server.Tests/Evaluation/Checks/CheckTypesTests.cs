@@ -49,6 +49,12 @@ public sealed class CheckTypesTests
             ScenarioKey = "s",
             Contains = "x",
         },
+        new MessageCountCheck
+        {
+            Key = "a",
+            ScenarioKey = "s",
+            Max = 1,
+        },
         new JudgeCheck
         {
             Key = "a",
@@ -83,6 +89,7 @@ public sealed class CheckTypesTests
     }
 
     [Theory]
+    [Trait("criterion", "AC-message-count-check-7")]
     [MemberData(nameof(TypeNames))]
     public void The_scenario_format_documents_the_type(string typeName)
     {
@@ -90,6 +97,17 @@ public sealed class CheckTypesTests
         var doc = File.ReadAllText(Path.Combine(RepoRoot, "docs", "scenario-format.md"));
 
         Assert.Contains($"| `{discriminator}` |", doc, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [Trait("criterion", "AC-message-count-check-7")]
+    [MemberData(nameof(TypeNames))]
+    public void The_plugin_reference_skill_names_the_type(string typeName)
+    {
+        var discriminator = Discriminators()[TypeNamed(typeName)];
+        var skill = File.ReadAllText(Path.Combine(RepoRoot, "claude-plugin", "skills", "suwageval", "SKILL.md"));
+
+        Assert.Contains($"`{discriminator}`", skill, StringComparison.Ordinal);
     }
 
     [Theory]

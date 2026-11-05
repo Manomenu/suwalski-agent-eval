@@ -36,6 +36,15 @@ function subject(definition: CheckDefinition): string {
             ];
             return ["text", ...parts.filter((part) => part !== null)].join(" ");
         }
+        case "message-count": {
+            const parts = [
+                definition.role,
+                definition.exactly == null ? null : `exactly ${String(definition.exactly)}`,
+                definition.min == null ? null : `at least ${String(definition.min)}`,
+                definition.max == null ? null : `at most ${String(definition.max)}`,
+            ];
+            return ["message-count", ...parts.filter((part) => part != null)].join(" ");
+        }
         case "judge":
             return "judge";
         case undefined:

@@ -25,6 +25,7 @@ internal static class CheckEvaluator
             EventNotEmittedCheck notEmitted => EventNotEmitted(notEmitted, scope),
             CitedCheck cited => Cited(cited, scope),
             TextCheck text => Text(text, scope),
+            MessageCountCheck count => MessageCount(count, scope),
             _ => throw new ArgumentException($"No evaluator for {check.GetType().Name}.", nameof(check)),
         };
     }
@@ -235,6 +236,52 @@ internal static class CheckEvaluator
         return failures.Count == 0
             ? new CheckVerdict(true, messages, $"{subject} {string.Join(" and ", TextConditions(check))}.")
             : new CheckVerdict(false, messages, $"{subject} {string.Join(" and ", failures)}.");
+    }
+
+    private static CheckVerdict MessageCount(MessageCountCheck check, CheckScope scope)
+    {
+        var messages = scope.Items.Where(item => IsMessageOf(item, check.Role)).ToList();
+        var count = messages.Count;
+        var passed =
+            (check.Exactly is not { } exactly || count == exactly)
+            && (check.Min is not { } min || count >= min)
+            && (check.Max is not { } max || count <= max);
+        var role = check.Role switch
+        {
+            MessageRole.User => "user ",
+            MessageRole.Assistant => "assistant ",
+            _ => "",
+        };
+        var noun = count == 1 ? "message" : "messages";
+        return new CheckVerdict(
+            passed,
+            messages,
+            $"{count} {role}{noun}{scope.Description}, expected {string.Join(" and ", Bounds(check))}."
+        );
+    }
+
+    private static bool IsMessageOf(ConversationItem item, MessageRole? role) =>
+        item switch
+        {
+            UserMessage => role is null or MessageRole.User,
+            AssistantMessage => role is null or MessageRole.Assistant,
+            _ => false,
+        };
+
+    private static IEnumerable<string> Bounds(MessageCountCheck check)
+    {
+        if (check.Exactly is { } exactly)
+        {
+            yield return $"exactly {exactly}";
+        }
+        if (check.Min is { } min)
+        {
+            yield return $"at least {min}";
+        }
+        if (check.Max is { } max)
+        {
+            yield return $"at most {max}";
+        }
     }
 
     private static IEnumerable<string> TextConditions(TextCheck check)

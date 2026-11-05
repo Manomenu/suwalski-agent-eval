@@ -137,6 +137,37 @@ public sealed class RunRecheckTests(TestDatabase database) : IAsyncDisposable
         return (await response.Content.ReadFromJsonAsync<RunCreated>(Cancellation))!.RunId;
     }
 
+    private static MessageCountCheck AtMost(int max) =>
+        new()
+        {
+            Key = "only-one-reply",
+            ScenarioKey = "plain",
+            Role = MessageRole.Assistant,
+            Max = max,
+        };
+
+    [Fact]
+    [Trait("criterion", "AC-message-count-check-5")]
+    public async Task A_message_count_check_gets_its_verdict_in_a_run_and_again_in_a_recheck_of_the_same_answers()
+    {
+        const string TwoMessages =
+            """{"items":[{"kind":"AssistantMessage","text":"Hello."},{"kind":"AssistantMessage","text":"Hello."}]}""";
+        await using var fake = await FakeAgent.AlwaysAsync(TwoMessages);
+        var agent = await SeededAgent.CreateAsync(database.Pool, fake.Url.AbsoluteUri, [SeededAgent.Scenario("plain")], [AtMost(1)]);
+
+        var source = await FinishedRunAsync(agent);
+        await UpsertCheckAsync(agent, AtMost(2));
+        var recheckId = await RecheckAsync(Client(), source);
+        await ExecuteNextAsync(agent);
+
+        var failed = Assert.Single(Assert.Single((await ResultsAsync(source)).Scenarios).Checks);
+        var passed = Assert.Single(Assert.Single((await ResultsAsync(recheckId)).Scenarios).Checks);
+        Assert.False(failed.Passed);
+        Assert.Equal(2, failed.Samples[0].Evidence?.Count);
+        Assert.True(passed.Passed);
+        Assert.Equal(2, passed.Revision);
+    }
+
     [Fact]
     public async Task A_recheck_copies_the_answers_judges_a_changed_check_again_and_copies_the_verdict_of_an_unchanged_one()
     {
