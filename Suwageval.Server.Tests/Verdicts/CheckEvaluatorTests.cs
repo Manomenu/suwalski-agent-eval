@@ -29,8 +29,8 @@ public sealed class CheckEvaluatorTests
         {
             Key = "c",
             ScenarioKey = "s",
-            Contains = contains,
-            NotContains = notContains,
+            Contains = contains is null ? null : [contains],
+            NotContains = notContains is null ? null : [notContains],
             Pattern = pattern,
             Where = where,
         };
@@ -208,6 +208,106 @@ public sealed class CheckEvaluatorTests
 
         Assert.True(Run(EventOf("state.changed", where: where), Turn(Call("refund_order"), Emit("state.changed"))).Passed);
         Assert.False(Run(EventOf("state.changed", where: where), Turn(Emit("state.changed"), Call("refund_order"))).Passed);
+    }
+
+    private static EventCheck Counted(string type, int? min = null, int? max = null, int? exactly = null, string? data = null) =>
+        EventOf(type, data) with
+        {
+            Min = min,
+            Max = max,
+            Exactly = exactly,
+        };
+
+    private static EventCheck LastOf(string type, string data, CheckWhere? where = null) => EventOf(type, data, where) with { Last = true };
+
+    [Fact]
+    [Trait("criterion", "AC-check-options-4")]
+    public void An_event_check_with_bounds_counts_the_matching_events()
+    {
+        var started = Emit("procedure.started", """{"procedure":"a"}""");
+        var again = Emit("procedure.started", """{"procedure":"a"}""");
+        var other = Emit("procedure.started", """{"procedure":"b"}""");
+        var twice = Turn(started, other, again);
+
+        Assert.False(Run(Counted("procedure.started", max: 2), twice).Passed);
+        Assert.True(Run(Counted("procedure.started", max: 2, data: """{"procedure":"a"}"""), twice).Passed);
+        Assert.True(Run(Counted("procedure.started", exactly: 3), twice).Passed);
+        Assert.True(Run(Counted("procedure.started", min: 3), twice).Passed);
+        Assert.False(Run(Counted("procedure.started", min: 4), twice).Passed);
+        var counted = Run(Counted("procedure.started", exactly: 1, data: """{"procedure":"a"}"""), twice);
+        Assert.False(counted.Passed);
+        Assert.Equal([started, again], counted.Evidence);
+        Assert.Contains("2 ×", counted.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    [Trait("criterion", "AC-check-options-4")]
+    public void Only_max_also_needs_one_event_and_min_zero_allows_none()
+    {
+        var none = Turn(Say("hi"));
+
+        Assert.False(Run(Counted("procedure.started", max: 1), none).Passed);
+        Assert.True(Run(Counted("procedure.started", min: 0, max: 1), none).Passed);
+        Assert.True(Run(Counted("procedure.started", max: 1), Turn(Emit("procedure.started"))).Passed);
+    }
+
+    [Fact]
+    [Trait("criterion", "AC-check-options-4")]
+    public void An_event_count_looks_only_at_its_scope()
+    {
+        var trace = Turns([Emit("procedure.started")], [Emit("procedure.started")]);
+        var lastTurn = new CheckWhere { Turn = new TurnSelector(TurnSelectorKind.Last) };
+
+        Assert.False(Run(Counted("procedure.started", max: 1), trace).Passed);
+        Assert.True(Run(Counted("procedure.started", max: 1) with { Where = lastTurn }, trace).Passed);
+    }
+
+    [Fact]
+    [Trait("criterion", "AC-check-options-5")]
+    public void Last_compares_only_the_last_event_of_the_type()
+    {
+        var early = Emit("state.changed", """{"facts":{"age":60}}""");
+        var late = Emit("state.changed", """{"facts":{}}""");
+
+        var overwritten = Run(LastOf("state.changed", """{"facts":{"age":60}}"""), Turn(early, Emit("other"), late));
+        var kept = Run(LastOf("state.changed", """{"facts":{"age":60}}"""), Turn(late, early));
+
+        Assert.False(overwritten.Passed);
+        Assert.Equal([late], overwritten.Evidence);
+        Assert.True(kept.Passed);
+        Assert.Equal([early], kept.Evidence);
+        Assert.False(Run(LastOf("state.changed", """{"facts":{}}"""), Turn(Say("x"))).Passed);
+    }
+
+    [Fact]
+    [Trait("criterion", "AC-check-options-5")]
+    public void Last_with_a_judge_matcher_gives_the_model_only_the_last_event()
+    {
+        var early = Emit("state.changed", """{"x":"early"}""");
+        var late = Emit("state.changed", """{"x":"late"}""");
+
+        var search = CheckEvaluator.Search(LastOf("state.changed", """{"x":{"$judge":{"description":"d"}}}"""), Turn(early, late));
+
+        Assert.Same(late, Assert.Single(search!.Candidates).Item);
+    }
+
+    [Fact]
+    [Trait("criterion", "AC-check-options-2")]
+    public void A_text_check_needs_every_text_of_contains_and_none_of_not_contains()
+    {
+        var trace = Turn(Say("Your refund for order A-17 is on its way."));
+        static TextCheck Texts(string[]? contains = null, string[]? notContains = null)
+        {
+            return TextOf() with { Contains = contains, NotContains = notContains };
+        }
+
+        Assert.True(Run(Texts(contains: ["refund", "A-17"], notContains: ["sorry", "lastRenovationYear"]), trace).Passed);
+        var failed = Run(Texts(contains: ["refund", "invoice"], notContains: ["sorry", "order", "way"]), trace);
+        Assert.False(failed.Passed);
+        Assert.Contains("does not contain \"invoice\"", failed.Message, StringComparison.Ordinal);
+        Assert.Contains("contains \"order\"", failed.Message, StringComparison.Ordinal);
+        Assert.Contains("contains \"way\"", failed.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"refund\"", failed.Message, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -745,7 +745,7 @@ public sealed class RunExecutorTests(TestDatabase database)
                 {
                     Key = "greets",
                     ScenarioKey = "angry",
-                    Contains = "how can I help",
+                    Contains = ["how can I help"],
                 },
             ]
         );
@@ -859,7 +859,7 @@ public sealed class RunExecutorTests(TestDatabase database)
                 {
                     Key = "greets-anyway",
                     ScenarioKey = "broken-model",
-                    Contains = "Hello",
+                    Contains = ["Hello"],
                 },
             ]
         );

@@ -19,7 +19,7 @@ public sealed class ContinuationRulesTests
         {
             Key = "c",
             ScenarioKey = "s",
-            Contains = "x",
+            Contains = ["x"],
             Where = new CheckWhere { Turn = turn },
         };
 

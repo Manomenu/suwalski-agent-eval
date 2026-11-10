@@ -147,6 +147,67 @@ public sealed class RunRecheckTests(TestDatabase database) : IAsyncDisposable
         };
 
     [Fact]
+    [Trait("criterion", "AC-check-options-6")]
+    public async Task A_run_gives_its_verdicts_with_the_new_options()
+    {
+        const string TwoStates = """
+            {"items":[
+              {"kind":"Event","type":"state.changed","data":{"facts":{"age":60}}},
+              {"kind":"Event","type":"state.changed","data":{"facts":{}}},
+              {"kind":"AssistantMessage","text":"Your quoteRequest is on its way."}
+            ]}
+            """;
+        await using var fake = await FakeAgent.AlwaysAsync(TwoStates);
+        CheckInput[] checks =
+        [
+            new EventCheck
+            {
+                Key = "changed-at-most-once",
+                ScenarioKey = "plain",
+                Event = "state.changed",
+                Max = 1,
+            },
+            new EventCheck
+            {
+                Key = "ended-with-the-age",
+                ScenarioKey = "plain",
+                Event = "state.changed",
+                Last = true,
+                Data = Suwageval.Server.Tests.Evaluation.Checks.Items.Json("""{"facts":{"age":60}}"""),
+            },
+            new EventCheck
+            {
+                Key = "ended-without-facts",
+                ScenarioKey = "plain",
+                Event = "state.changed",
+                Last = true,
+                Data = Suwageval.Server.Tests.Evaluation.Checks.Items.Json("""{"facts":{}}"""),
+            },
+            new TextCheck
+            {
+                Key = "no-technical-word",
+                ScenarioKey = "plain",
+                NotContains = ["otherType", "quoteRequest"],
+            },
+        ];
+        var agent = await SeededAgent.CreateAsync(database.Pool, fake.Url.AbsoluteUri, [SeededAgent.Scenario("plain")], checks);
+
+        var run = await FinishedRunAsync(agent);
+
+        var verdicts = Assert.Single((await ResultsAsync(run)).Scenarios).Checks.ToDictionary(check => check.Key, check => check.Passed);
+        Assert.Equal(
+            new Dictionary<string, bool>
+            {
+                ["changed-at-most-once"] = false,
+                ["ended-with-the-age"] = false,
+                ["ended-without-facts"] = true,
+                ["no-technical-word"] = false,
+            },
+            verdicts
+        );
+    }
+
+    [Fact]
     [Trait("criterion", "AC-message-count-check-5")]
     public async Task A_message_count_check_gets_its_verdict_in_a_run_and_again_in_a_recheck_of_the_same_answers()
     {

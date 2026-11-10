@@ -1873,12 +1873,37 @@ export interface components {
              */
             samples?: null | number;
         };
+        /**
+         * @description An event the agent emitted: by default at least one whose data contains JsonElement? EventCheck.Data. With a bound it counts those events;
+         *     with bool? EventCheck.Last it compares only the last event of the type. The optional members are left out when not set, so a
+         *     check written before them keeps its content hash.
+         */
         CheckInputEventCheck: {
             /** @enum {string} */
             type?: "event";
             /** @description The event's type, one the agent declares. */
             event: string;
             data?: null | components["schemas"]["JsonElement"];
+            /**
+             * Format: int32
+             * @description At least this many matching events, from 0; with only int? EventCheck.Max given it is 1.
+             */
+            min?: null | number;
+            /**
+             * Format: int32
+             * @description At most this many matching events, from 1: none at all is an `event-not-emitted` check.
+             */
+            max?: null | number;
+            /**
+             * Format: int32
+             * @description Exactly this many matching events, from 1; stands alone, without int? EventCheck.Min and int? EventCheck.Max.
+             */
+            exactly?: null | number;
+            /**
+             * @description True: only the last event of the type in scope is compared with JsonElement? EventCheck.Data, e.g. an agent's state event read as where
+             *     the conversation ended up.
+             */
+            last?: null | boolean;
             /** @description Lowercase kebab-case, unique within the agent. */
             key: string;
             /** @description The scenario the check belongs to; empty for a monitoring check, which belongs to the agent. */
@@ -1991,8 +2016,10 @@ export interface components {
         CheckInputTextCheck: {
             /** @enum {string} */
             type?: "text";
-            contains?: null | string;
-            notContains?: null | string;
+            /** @description A text, or a list of texts, each of which the answer contains. */
+            contains?: null | string[];
+            /** @description A text, or a list of texts, none of which the answer contains. */
+            notContains?: null | string[];
             /** @description A regular expression the text must match. */
             pattern?: null | string;
             /** @description Lowercase kebab-case, unique within the agent. */

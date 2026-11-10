@@ -94,7 +94,7 @@ describe("definitionSummary", () => {
 
     it("names an event and the parts of a text check", () => {
         expect(definitionSummary({ type: "event", key: "e", scenarioKey: "s", event: "state.changed" })).toBe("event state.changed");
-        expect(definitionSummary({ type: "text", key: "t", scenarioKey: "s", contains: "refund", pattern: "^Hi" })).toBe(
+        expect(definitionSummary({ type: "text", key: "t", scenarioKey: "s", contains: ["refund"], pattern: "^Hi" })).toBe(
             'text contains "refund" pattern "^Hi"',
         );
     });
@@ -127,6 +127,31 @@ describe("a message-count check", () => {
         expect(definitionYaml({ type: "message-count", key: "m", scenarioKey: "s", role: "assistant", max: 1 })).toBe(
             "key: m\ntype: message-count\nrole: assistant\nmax: 1\n",
         );
+    });
+});
+
+describe("the event and text check options", () => {
+    it("AC-check-options-7: an event check shows last and its bounds", () => {
+        expect(definitionSummary({ type: "event", key: "e", scenarioKey: "s", event: "procedure.started", max: 1 })).toBe(
+            "event procedure.started at most 1",
+        );
+        expect(definitionSummary({ type: "event", key: "e", scenarioKey: "s", event: "procedure.started", min: 0, max: 2 })).toBe(
+            "event procedure.started at least 0 at most 2",
+        );
+        expect(definitionSummary({ type: "event", key: "e", scenarioKey: "s", event: "state.changed", last: true, data: {} })).toBe(
+            "event state.changed last",
+        );
+        expect(definitionSummary({ type: "event", key: "e", scenarioKey: "s", event: "x", exactly: 2 })).toBe("event x exactly 2");
+    });
+
+    it("AC-check-options-7: a text check shows every text, one stored as a plain string too", () => {
+        expect(definitionSummary({ type: "text", key: "t", scenarioKey: "s", notContains: ["otherType", "quoteRequest"] })).toBe(
+            'text not contains "otherType", "quoteRequest"',
+        );
+        const stored = { type: "text", key: "t", scenarioKey: "s", contains: "refund" } as unknown as Parameters<
+            typeof definitionSummary
+        >[0];
+        expect(definitionSummary(stored)).toBe('text contains "refund"');
     });
 });
 

@@ -112,7 +112,7 @@ public sealed class RunCompatibilityTests
         {
             Key = "a",
             ScenarioKey = "s",
-            Contains = "x",
+            Contains = ["x"],
             Where = new CheckWhere { After = "get_order", Before = "state.changed" },
         };
         var nope = fits with
@@ -155,7 +155,7 @@ public sealed class RunCompatibilityTests
                 {
                     Key = "d",
                     ScenarioKey = "s",
-                    Contains = "x",
+                    Contains = ["x"],
                 },
             ]
         );

@@ -65,7 +65,7 @@ public sealed class ScenarioCommandsTests
             {
                 Key = "other",
                 ScenarioKey = "other-scenario",
-                Contains = "x",
+                Contains = ["x"],
             }
         ),
     ];

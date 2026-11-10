@@ -69,7 +69,7 @@ public sealed class ResultsCommandTests
                             {
                                 Key = "refund-called",
                                 ScenarioKey = "refund",
-                                Contains = "x",
+                                Contains = ["x"],
                             },
                             Passed = false,
                             PassedFully = false,
@@ -243,7 +243,7 @@ public sealed class ResultsCommandTests
             {
                 Key = key,
                 ScenarioKey = "s",
-                Contains = "x",
+                Contains = ["x"],
             },
             Passed = passed,
             PassedFully = passed && !notJudged,

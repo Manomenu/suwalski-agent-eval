@@ -77,7 +77,9 @@ internal static class CheckEvaluator
                     ToolCalled(called, scope, trace)
                 );
             case EventCheck { Data: { } data } emitted:
-                var events = scope.Items.OfType<Event>().Where(item => item.Type == emitted.Event).ToList();
+                var ofType = scope.Items.OfType<Event>().Where(item => item.Type == emitted.Event).ToList();
+                // Why: with last, the only candidate a model may accept is the last event of the type
+                var events = emitted.Last is true && ofType.Count > 0 ? [ofType[^1]] : ofType;
                 return new ArgumentSearch(
                     $"Event {emitted.Event} was emitted{scope.Description}",
                     $"event {emitted.Event}",
@@ -180,7 +182,15 @@ internal static class CheckEvaluator
     private static CheckVerdict EventEmitted(EventCheck check, CheckScope scope)
     {
         var events = scope.Items.OfType<Event>().Where(emitted => emitted.Type == check.Event).ToList();
+        if (check.Last is true)
+        {
+            return LastEvent(check, events, scope);
+        }
         var matching = check.Data is { } data ? events.FindAll(emitted => JsonSubset.Contains(emitted.Data, data)) : events;
+        if (check.Min is not null || check.Max is not null || check.Exactly is not null)
+        {
+            return EventCount(check, events, matching, scope);
+        }
         if (matching.Count > 0)
         {
             return new CheckVerdict(true, matching, $"Event {check.Event} was emitted{scope.Description}.");
@@ -192,6 +202,43 @@ internal static class CheckEvaluator
                 $"Event {check.Event} was emitted{scope.Description}, but not with data containing {check.Data}."
             )
             : new CheckVerdict(false, [], $"Event {check.Event} was not emitted{scope.Description}.");
+    }
+
+    private static CheckVerdict LastEvent(EventCheck check, List<Event> events, CheckScope scope)
+    {
+        if (events.Count == 0)
+        {
+            return new CheckVerdict(false, [], $"Event {check.Event} was not emitted{scope.Description}.");
+        }
+        var last = events[^1];
+        return check.Data is not { } data || JsonSubset.Contains(last.Data, data)
+            ? new CheckVerdict(true, [last], $"The last event {check.Event}{scope.Description} has data containing {check.Data}.")
+            : new CheckVerdict(
+                false,
+                [last],
+                $"The last event {check.Event}{scope.Description} does not have data containing {check.Data}."
+            );
+    }
+
+    private static CheckVerdict EventCount(EventCheck check, List<Event> events, List<Event> matching, CheckScope scope)
+    {
+        var count = matching.Count;
+        var min = check.Min ?? (check.Exactly is null ? 1 : null);
+        var passed =
+            (check.Exactly is not { } exactly || count == exactly)
+            && (min is not { } least || count >= least)
+            && (check.Max is not { } most || count <= most);
+        var what = check.Data is null ? $"event {check.Event}" : $"event {check.Event} with data containing {check.Data}";
+        var bounds = string.Join(
+            " and ",
+            new[]
+            {
+                check.Exactly is { } many ? $"exactly {many}" : null,
+                min is { } atLeast ? $"at least {atLeast}" : null,
+                check.Max is { } atMost ? $"at most {atMost}" : null,
+            }.OfType<string>()
+        );
+        return new CheckVerdict(passed, count > 0 ? matching : events, $"{count} × {what}{scope.Description}, expected {bounds}.");
     }
 
     private static CheckVerdict EventNotEmitted(EventNotEmittedCheck check, CheckScope scope)
@@ -220,13 +267,13 @@ internal static class CheckEvaluator
         var messages = scope.Items.OfType<AssistantMessage>().ToList();
         var answer = string.Join('\n', messages.Select(message => message.Text));
         var failures = new List<string>();
-        if (check.Contains is { } contains && !answer.Contains(contains, StringComparison.Ordinal))
+        foreach (var missing in (check.Contains ?? []).Where(text => !answer.Contains(text, StringComparison.Ordinal)))
         {
-            failures.Add($"does not contain \"{contains}\"");
+            failures.Add($"does not contain \"{missing}\"");
         }
-        if (check.NotContains is { } notContains && answer.Contains(notContains, StringComparison.Ordinal))
+        foreach (var present in (check.NotContains ?? []).Where(text => answer.Contains(text, StringComparison.Ordinal)))
         {
-            failures.Add($"contains \"{notContains}\"");
+            failures.Add($"contains \"{present}\"");
         }
         if (check.Pattern is { } pattern && !Matches(answer, pattern, out var problem))
         {
@@ -286,13 +333,13 @@ internal static class CheckEvaluator
 
     private static IEnumerable<string> TextConditions(TextCheck check)
     {
-        if (check.Contains is { } contains)
+        foreach (var text in check.Contains ?? [])
         {
-            yield return $"contains \"{contains}\"";
+            yield return $"contains \"{text}\"";
         }
-        if (check.NotContains is { } notContains)
+        foreach (var text in check.NotContains ?? [])
         {
-            yield return $"does not contain \"{notContains}\"";
+            yield return $"does not contain \"{text}\"";
         }
         if (check.Pattern is { } pattern)
         {
