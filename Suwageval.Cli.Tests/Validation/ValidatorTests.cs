@@ -582,6 +582,71 @@ public sealed class ValidatorTests
         Assert.True(problem.Line >= 5, $"line {problem.Line}");
     }
 
+    [Theory]
+    [Trait("criterion", "AC-check-options-1")]
+    [InlineData("notContains: secret")]
+    [InlineData("notContains: [otherType, lastRenovationYear]")]
+    [InlineData("contains: [Hello, order]\n    notContains: [refund]")]
+    public void A_text_check_takes_one_text_or_a_list_of_texts(string fields)
+    {
+        var result = Validate($"key: k\nconversation:\n  - user: hi\nchecks:\n  - key: c\n    type: text\n    {fields}\n");
+
+        Assert.Empty(result.Problems);
+    }
+
+    [Theory]
+    [Trait("criterion", "AC-check-options-1")]
+    [InlineData("notContains: []", "checks[0].notContains", "at least one text")]
+    [InlineData("contains: []", "checks[0].contains", "at least one text")]
+    [InlineData("notContains: [a, [b]]", "checks[0].notContains", "a text or a list of texts")]
+    [InlineData("contains: { a: b }", "checks[0].contains", "a text or a list of texts")]
+    public void A_broken_list_of_texts_is_a_problem_with_file_line_and_path(string fields, string path, string message)
+    {
+        var result = Validate($"key: k\nconversation:\n  - user: hi\nchecks:\n  - key: c\n    type: text\n    {fields}\n");
+
+        AssertProblem(result, path, message);
+        var problem = result.Problems.First(found => found.Path == path);
+        Assert.Equal("s.yaml", problem.File);
+        Assert.True(problem.Line >= 5, $"line {problem.Line}");
+    }
+
+    [Theory]
+    [Trait("criterion", "AC-check-options-3")]
+    [InlineData("max: 1")]
+    [InlineData("min: 0, max: 1")]
+    [InlineData("min: 2")]
+    [InlineData("exactly: 1, data: { step: a }")]
+    [InlineData("last: true, data: { facts: { age: 60 } }")]
+    [InlineData("last: true, data: { step: { $judge: { description: d } } }")]
+    public void An_event_check_with_sensible_bounds_or_last_is_valid(string fields)
+    {
+        var result = Validate(
+            $"key: k\nconversation:\n  - user: hi\nchecks:\n  - {{ key: c, type: event, event: state.changed, {fields} }}\n"
+        );
+
+        Assert.Empty(result.Problems);
+    }
+
+    [Theory]
+    [Trait("criterion", "AC-check-options-3")]
+    [InlineData("exactly: 1\n    max: 2", "checks[0].exactly", "stands alone")]
+    [InlineData("exactly: 0", "checks[0].exactly", "event-not-emitted")]
+    [InlineData("max: 0", "checks[0].max", "event-not-emitted")]
+    [InlineData("min: 1001", "checks[0].min", "from 0 to 1000")]
+    [InlineData("min: 0", "checks[0].min", "alone always holds")]
+    [InlineData("min: 3\n    max: 2", "checks[0].min", "above max")]
+    [InlineData("last: true\n    max: 1\n    data: { a: 1 }", "checks[0].last", "compares one event")]
+    [InlineData("last: true", "checks[0].last", "give the data")]
+    [InlineData("max: 1\n    data: { a: { $judge: { description: d } } }", "checks[0].data", "cannot be counted")]
+    public void A_broken_event_check_option_is_a_problem_with_its_path(string fields, string path, string message)
+    {
+        var result = Validate(
+            $"key: k\nconversation:\n  - user: hi\nchecks:\n  - key: c\n    type: event\n    event: state.changed\n    {fields}\n"
+        );
+
+        AssertProblem(result, path, message);
+    }
+
     [Fact]
     public void A_cited_check_needs_sources_and_none_empty()
     {

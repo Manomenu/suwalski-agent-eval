@@ -31,7 +31,7 @@ internal static class KnownFailureResults
                             {
                                 Key = "old",
                                 ScenarioKey = "refund",
-                                Contains = "x",
+                                Contains = ["x"],
                             },
                             Passed = false,
                             PassedFully = false,

@@ -42,7 +42,7 @@ public sealed class SampleRulesTests
                     {
                         Key = "c",
                         ScenarioKey = "s",
-                        Contains = "x",
+                        Contains = ["x"],
                         Samples = 0,
                     },
                     "checks[2]"

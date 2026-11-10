@@ -45,7 +45,7 @@ public sealed class MonitoringChecksTests(TestDatabase database) : IAsyncDisposa
     {
         Key = "says-hello",
         Description = "Greets the customer",
-        Contains = "Hello",
+        Contains = ["Hello"],
     };
 
     private static async Task<string> MonitoredAgent(HttpClient client)

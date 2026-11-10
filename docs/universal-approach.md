@@ -149,6 +149,13 @@ them.
 Whether the agent sent one message or two cannot be read from the `text` check, which joins a turn's assistant messages. A bot
 that answers twice is a bug of its own, so the count is a check, with `where` choosing the turn as for any other.
 
+### Counting events, the last event, lists of texts
+
+"A procedure starts at most once" and "the conversation ended with the age known" are questions about how many events and about
+the last one. Suwageval still knows nothing of procedures or state: it counts events of a type whose data contains a subset, and
+reads the last of them, so an agent that emits its state as an event has its end state checked without a field of its own in the
+contract. A list of texts the answer must not contain replaces a regular expression nobody can read by eye.
+
 ### `cited`
 
 Checks `sources` (above). It needs no JSON matching rules: a list of ids, each of which must

@@ -69,7 +69,7 @@ public sealed class RunCommandTests
             {
                 Key = key,
                 ScenarioKey = "s",
-                Contains = "x",
+                Contains = ["x"],
             },
             Passed = passed,
             PassedFully = passed && !notJudged,

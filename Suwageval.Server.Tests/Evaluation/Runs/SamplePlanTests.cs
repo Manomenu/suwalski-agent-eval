@@ -16,7 +16,7 @@ public sealed class SamplePlanTests
             {
                 Key = key,
                 ScenarioKey = "s",
-                Contains = "x",
+                Contains = ["x"],
                 Samples = samples,
             }
         );

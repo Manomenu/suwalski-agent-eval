@@ -23,15 +23,23 @@ function subject(definition: CheckDefinition): string {
             return [definition.type, definition.tool, definition.by == null ? null : `by ${definition.by}`]
                 .filter((part) => part !== null)
                 .join(" ");
-        case "event":
+        case "event": {
+            const parts = [
+                definition.last === true ? "last" : null,
+                definition.exactly == null ? null : `exactly ${String(definition.exactly)}`,
+                definition.min == null ? null : `at least ${String(definition.min)}`,
+                definition.max == null ? null : `at most ${String(definition.max)}`,
+            ];
+            return ["event", definition.event, ...parts.filter((part) => part != null)].join(" ");
+        }
         case "event-not-emitted":
             return `${definition.type} ${definition.event}`;
         case "cited":
             return `cited ${definition.sources.join(", ")}`;
         case "text": {
             const parts = [
-                definition.contains == null ? null : `contains ${JSON.stringify(definition.contains)}`,
-                definition.notContains == null ? null : `not contains ${JSON.stringify(definition.notContains)}`,
+                definition.contains == null ? null : `contains ${quotedTexts(definition.contains)}`,
+                definition.notContains == null ? null : `not contains ${quotedTexts(definition.notContains)}`,
                 definition.pattern == null ? null : `pattern ${JSON.stringify(definition.pattern)}`,
             ];
             return ["text", ...parts.filter((part) => part !== null)].join(" ");
@@ -51,6 +59,11 @@ function subject(definition: CheckDefinition): string {
             break;
     }
     return "check";
+}
+
+// Why: the server writes one text as a plain string, so a check stored before lists keeps its form, though the schema names a list
+function quotedTexts(texts: string | readonly string[]): string {
+    return (typeof texts === "string" ? [texts] : texts).map((text) => JSON.stringify(text)).join(", ");
 }
 
 function turnPart(turn: unknown): string | null {

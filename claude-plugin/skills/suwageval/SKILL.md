@@ -207,6 +207,10 @@ the spec above, "The agent contract"), these decisions are yours:
 - **`message-count`** counts the messages in scope, not their words: `role` (`user` or `assistant`, not set: both) with
   `min`, `max` or `exactly`, and `where` for the turn (`where: { turn: last }`). Use it for "the agent answers in one
   message" instead of a pattern over `text`, which reads a turn's messages joined. A plain scenario's turn holds no user message; a simulation's opens with the simulated user's.
+- **`event` options:** `max: 1` (also `min`, `exactly`) counts the matching events: "a procedure starts at most once". `last: true`
+  with `data` compares only the last event of the type: an agent's state event read as where the conversation ended up, instead of a
+  check for every step that led there.
+- **`text` lists:** `notContains: [a, b, c]` (and `contains`) instead of a regular expression with a negative lookahead.
 - **`{ $pattern: ... }`** inside `args`, `data` or `result` instead of exact equality for values a model
   writes loosely (case, spaces, abbreviations). Anchor it (`^...$`), `(?i)` for case. Exact equality for
   ids and numbers.

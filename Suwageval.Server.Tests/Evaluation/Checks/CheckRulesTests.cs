@@ -124,7 +124,7 @@ public sealed class CheckRulesTests
 
         Assert.Equal(["checks[0]"], Paths(empty));
         Assert.Equal(["checks[0].pattern"], Paths(empty with { Pattern = "(" }));
-        Assert.Empty(Paths(empty with { Contains = "x" }));
+        Assert.Empty(Paths(empty with { Contains = ["x"] }));
     }
 
     [Fact]

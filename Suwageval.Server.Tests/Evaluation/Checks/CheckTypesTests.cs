@@ -47,7 +47,7 @@ public sealed class CheckTypesTests
         {
             Key = "a",
             ScenarioKey = "s",
-            Contains = "x",
+            Contains = ["x"],
         },
         new MessageCountCheck
         {
@@ -108,6 +108,19 @@ public sealed class CheckTypesTests
         var skill = File.ReadAllText(Path.Combine(RepoRoot, "claude-plugin", "skills", "suwageval", "SKILL.md"));
 
         Assert.Contains($"`{discriminator}`", skill, StringComparison.Ordinal);
+    }
+
+    private static readonly string[] CheckOptions = ["max: 1", "last: true", "notContains: ["];
+
+    [Theory]
+    [Trait("criterion", "AC-check-options-8")]
+    [InlineData("docs/scenario-format.md")]
+    [InlineData("claude-plugin/skills/suwageval/SKILL.md")]
+    public void The_docs_name_the_event_and_text_check_options(string path)
+    {
+        var text = File.ReadAllText(Path.Combine(RepoRoot, path));
+
+        Assert.All(CheckOptions, option => Assert.Contains(option, text, StringComparison.Ordinal));
     }
 
     [Theory]

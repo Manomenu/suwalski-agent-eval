@@ -86,7 +86,7 @@ public sealed class CheckEndpointsTests(TestDatabase database) : IAsyncDisposabl
             {
                 Key = "text",
                 ScenarioKey = "s",
-                Contains = "refund",
+                Contains = ["refund"],
                 PassThreshold = 0.8,
             },
             new EventNotEmittedCheck
@@ -332,5 +332,116 @@ public sealed class CheckEndpointsTests(TestDatabase database) : IAsyncDisposabl
         Assert.Equal((MessageRole.Assistant, 1, TurnSelectorKind.Last), (stored.Role, stored.Max, stored.Where?.Turn.Kind));
         Assert.Equal(HttpStatusCode.UnprocessableEntity, refused.StatusCode);
         Assert.Equal(["checks[0]"], await TestServer.ErrorFields(refused));
+    }
+
+    [Fact]
+    [Trait("criterion", "AC-check-options-6")]
+    public async Task The_new_options_are_stored_and_a_push_refuses_a_broken_one()
+    {
+        var agent = await AgentWithScenariosAsync("s");
+        await Put(
+            agent,
+            new EventCheck
+            {
+                Key = "started-once",
+                ScenarioKey = "s",
+                Event = "procedure.started",
+                Max = 1,
+            },
+            new EventCheck
+            {
+                Key = "ended-known",
+                ScenarioKey = "s",
+                Event = "state.changed",
+                Last = true,
+                Data = Items.Json("""{"facts":{"age":60}}"""),
+            },
+            new TextCheck
+            {
+                Key = "no-technical-word",
+                ScenarioKey = "s",
+                NotContains = ["otherType", "quoteRequest"],
+            }
+        );
+
+        var listed = (await TestServer.Read<CheckDetail[]>(await server.Get($"/eval/agents/{agent}/checks"))).ToDictionary(
+            detail => detail.Check.Key,
+            detail => detail.Check
+        );
+        var refused = await server.Put(
+            $"/eval/agents/{agent}/checks",
+            new PutChecksRequest([
+                new EventCheck
+                {
+                    Key = "broken",
+                    ScenarioKey = "s",
+                    Event = "state.changed",
+                    Last = true,
+                },
+            ])
+        );
+
+        Assert.Equal(1, Assert.IsType<EventCheck>(listed["started-once"]).Max);
+        Assert.True(Assert.IsType<EventCheck>(listed["ended-known"]).Last);
+        Assert.Equal(["otherType", "quoteRequest"], Assert.IsType<TextCheck>(listed["no-technical-word"]).NotContains);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, refused.StatusCode);
+        Assert.Equal(["checks[0].last"], await TestServer.ErrorFields(refused));
+    }
+
+    [Fact]
+    [Trait("criterion", "AC-check-options-6")]
+    public async Task A_check_written_before_the_options_is_unchanged_when_pushed_again()
+    {
+        var agent = await AgentWithScenariosAsync("s");
+        // Why: the body an older CLI sends, with one text as a plain string and no event bounds
+        using var older = System.Text.Json.JsonDocument.Parse(
+            """
+            {"checks":[
+              {"type":"text","key":"t","scenarioKey":"s","notContains":"secret"},
+              {"type":"event","key":"e","scenarioKey":"s","event":"state.changed","data":{"node":"open"}}
+            ]}
+            """
+        );
+        (await server.Put($"/eval/agents/{agent}/checks", older.RootElement)).EnsureSuccessStatusCode();
+
+        var again = await Put(
+            agent,
+            new TextCheck
+            {
+                Key = "t",
+                ScenarioKey = "s",
+                NotContains = ["secret"],
+            },
+            new EventCheck
+            {
+                Key = "e",
+                ScenarioKey = "s",
+                Event = "state.changed",
+                Data = Items.Json("""{"node":"open"}"""),
+            }
+        );
+        var stored = System.Text.Json.JsonSerializer.Serialize<CheckInput>(
+            new TextCheck
+            {
+                Key = "t",
+                ScenarioKey = "s",
+                NotContains = ["secret"],
+            },
+            Suwageval.AgentSdk.ContractJson.Options
+        );
+
+        Assert.All(again.Results, result => Assert.Equal(UpsertOutcome.Unchanged, result.Outcome));
+        Assert.Contains("\"notContains\":\"secret\"", stored, StringComparison.Ordinal);
+        var storedEvent = System.Text.Json.JsonSerializer.Serialize<CheckInput>(
+            new EventCheck
+            {
+                Key = "e",
+                ScenarioKey = "s",
+                Event = "state.changed",
+            },
+            Suwageval.AgentSdk.ContractJson.Options
+        );
+        Assert.DoesNotContain("\"last\"", storedEvent, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"max\"", storedEvent, StringComparison.Ordinal);
     }
 }

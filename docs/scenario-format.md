@@ -479,12 +479,28 @@ scenario's, see "Samples"). The scenario is the file the check sits in.
 | --- | --- | --- |
 | `tool-called` | `tool`, `by` (optional), `args` (optional), `result` (optional) | the agent called the tool; `by`, when given, names the LLM agent that must have made the call (a call that names no agent never satisfies it); `args`, when given, is a subset of the call's arguments; `result`, when given, is a subset of the call's result (a value may be a `$pattern` or `$judge` matcher, below) |
 | `tool-not-called` | `tool`, `by` (optional) | the agent did not call the tool; with `by`, only calls made by that LLM agent count |
-| `event` | `event` (the type), `data` (optional) | the agent emitted the event; `data`, when given, is a subset of its data (a value may be a `$pattern` or `$judge` matcher, below) |
+| `event` | `event` (the type), `data` (optional), `min`, `max`, `exactly` or `last` (optional) | the agent emitted the event; `data`, when given, is a subset of its data (a value may be a `$pattern` or `$judge` matcher, below). With a bound, the matching events are counted; with `last: true`, only the last event of the type is compared (below) |
 | `event-not-emitted` | `event`, `data` (optional) | no event of that type was emitted (with `data`: none whose data contains it; a `$pattern` may be used there, a `$judge` may not) |
 | `cited` | `sources` (a list of ids, at least one, none empty) | every listed source appears in the `sources` of some assistant message |
-| `text` | `contains`, `notContains`, `pattern` (at least one) | the answer contains the text, does not contain the text, matches the regular expression |
+| `text` | `contains`, `notContains`, `pattern` (at least one) | the answer contains the text (each of a list), does not contain the text (none of a list), matches the regular expression |
 | `message-count` | `role` (optional, `user` or `assistant`), `min`, `max`, `exactly` (at least one) | the number of messages in scope is within the bounds (below) |
 | `judge` | `criteria` (required, plain words) | a model judges that what the agent produced satisfies the criteria (below) |
+
+**Counting events, and the last one.** On an `event` check, `min` (from 0, only beside `max`), `max` (from 1) and `exactly`
+(from 1, alone) count the events of the type whose data contains `data`, within `where`; with only `max` given the check still
+needs one. None at all is an `event-not-emitted` check. `last: true` compares only the last event of the type in scope with
+`data` (required with it, no bounds beside it): an agent that emits its state as an event every turn has its end state checked
+this way, and an earlier event that matched does not pass it. A `$judge` matcher cannot be counted; with `last` the last event is
+the one candidate. A check without these fields is stored as before.
+
+```yaml
+- { key: started-once, type: event, event: procedure.started, max: 1 }
+- { key: ended-with-the-age-known, type: event, event: state.changed, last: true, data: { facts: { property.age: 60 } } }
+- { key: no-technical-word, type: text, notContains: [otherType, lastRenovationYear, quoteRequest] }
+```
+
+`contains` and `notContains` take one text or a list of texts: the answer contains every text of `contains` and none of
+`notContains`, and a failed verdict names each one that failed. One text is stored as a plain string, as before.
 
 A `tool` must be a tool of some agent (of the agent named by `by`, when given; `by` must be an agent of the contract) and an `event` one of its declared event types (checked
 by `validate` against the agent's contract, and by the server when a run starts).

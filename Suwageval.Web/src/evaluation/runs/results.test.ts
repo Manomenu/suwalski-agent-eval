@@ -34,7 +34,7 @@ function check(samples: CheckRunResult["samples"]): CheckRunResult {
         revision: 1,
         latestRevision: 1,
         judgedByModel: false,
-        definition: { type: "text", key: "c", scenarioKey: "s", contains: "x" },
+        definition: { type: "text", key: "c", scenarioKey: "s", contains: ["x"] },
         passed: false,
         passRate: 0.5,
         passThreshold: 1,

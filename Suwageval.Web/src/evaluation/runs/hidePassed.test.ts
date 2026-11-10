@@ -9,7 +9,7 @@ function check(key: string, passedFully: boolean): CheckRunResult {
         revision: 1,
         latestRevision: 1,
         judgedByModel: false,
-        definition: { type: "text", key, scenarioKey: "s", contains: "x" },
+        definition: { type: "text", key, scenarioKey: "s", contains: ["x"] },
         passed: passedFully,
         passedFully,
         passRate: passedFully ? 1 : 0,

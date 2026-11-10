@@ -19,6 +19,7 @@ public static class CheckRules
     private const string Description = "description";
     private const string Examples = "examples";
     private const int MostMessagesCounted = 1000;
+    private const int MostEventsCounted = 1000;
     private static readonly TimeSpan PatternTimeout = TimeSpan.FromSeconds(1);
 
     /// <summary>Everything wrong with the check itself, each problem with its path under <paramref name="path"/>.</summary>
@@ -51,6 +52,7 @@ public static class CheckRules
                 break;
             case EventCheck emitted:
                 AddMatcherProblems(problems, emitted.Data, $"{path}.data");
+                AddEventProblems(problems, emitted, path);
                 break;
             case EventNotEmittedCheck notEmitted:
                 AddMatcherProblems(problems, notEmitted.Data, $"{path}.data");
@@ -267,9 +269,73 @@ public static class CheckRules
         {
             problems.Add(new CheckProblem(path, "A text check needs at least one of 'contains', 'notContains', 'pattern'."));
         }
+        if (text.Contains is { Count: 0 })
+        {
+            problems.Add(new CheckProblem($"{path}.contains", "contains is a text or a list of at least one text; leave it out instead."));
+        }
+        if (text.NotContains is { Count: 0 })
+        {
+            problems.Add(
+                new CheckProblem($"{path}.notContains", "notContains is a text or a list of at least one text; leave it out instead.")
+            );
+        }
         if (text.Pattern is not null && CompileError(text.Pattern) is { } error)
         {
             problems.Add(new CheckProblem($"{path}.pattern", $"The pattern is not a valid regular expression: {error}"));
+        }
+    }
+
+    private static void AddEventProblems(List<CheckProblem> problems, EventCheck emitted, string path)
+    {
+        var bounded = emitted.Min is not null || emitted.Max is not null || emitted.Exactly is not null;
+        if (emitted.Last is true && bounded)
+        {
+            problems.Add(new CheckProblem($"{path}.last", "'last' compares one event: leave out 'min', 'max' and 'exactly'."));
+        }
+        if (emitted.Last is true && emitted.Data is null)
+        {
+            problems.Add(new CheckProblem($"{path}.last", "'last' compares the last event with 'data': give the data it must contain."));
+        }
+        if (bounded && emitted.Data is { } data && HoldsJudge(data))
+        {
+            // Why: a count needs a yes or no for every event, and a model is asked about one candidate at a time
+            problems.Add(
+                new CheckProblem(
+                    $"{path}.data",
+                    $"'{JudgeKey}' cannot be counted: leave out the bounds, or use a $pattern or a literal value."
+                )
+            );
+        }
+        if (emitted.Exactly is not null && (emitted.Min is not null || emitted.Max is not null))
+        {
+            problems.Add(new CheckProblem($"{path}.exactly", "'exactly' stands alone: leave out 'min' and 'max'."));
+        }
+        if (emitted.Exactly is < 1 or > MostEventsCounted)
+        {
+            problems.Add(
+                new CheckProblem(
+                    $"{path}.exactly",
+                    $"exactly is from 1 to {MostEventsCounted}; for none, write an event-not-emitted check."
+                )
+            );
+        }
+        if (emitted.Min is < 0 or > MostEventsCounted)
+        {
+            problems.Add(new CheckProblem($"{path}.min", $"min is from 0 to {MostEventsCounted}."));
+        }
+        if (emitted.Min is 0 && emitted.Max is null)
+        {
+            problems.Add(new CheckProblem($"{path}.min", "min 0 alone always holds: give 'max' too, or leave the check out."));
+        }
+        if (emitted.Max is < 1 or > MostEventsCounted)
+        {
+            problems.Add(
+                new CheckProblem($"{path}.max", $"max is from 1 to {MostEventsCounted}; for none, write an event-not-emitted check.")
+            );
+        }
+        if (emitted.Min > emitted.Max)
+        {
+            problems.Add(new CheckProblem($"{path}.min", "min is above max, so no count can pass."));
         }
     }
 
