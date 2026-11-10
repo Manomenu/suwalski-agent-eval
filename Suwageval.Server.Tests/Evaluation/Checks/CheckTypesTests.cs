@@ -110,17 +110,20 @@ public sealed class CheckTypesTests
         Assert.Contains($"`{discriminator}`", skill, StringComparison.Ordinal);
     }
 
-    private static readonly string[] CheckOptions = ["max: 1", "last: true", "notContains: ["];
-
     [Theory]
     [Trait("criterion", "AC-check-options-8")]
-    [InlineData("docs/scenario-format.md")]
-    [InlineData("claude-plugin/skills/suwageval/SKILL.md")]
-    public void The_docs_name_the_event_and_text_check_options(string path)
+    [InlineData("docs/scenario-format.md", "`min` (from 0, only beside `max`)")]
+    [InlineData("docs/scenario-format.md", "`exactly`\n(from 1, alone)")]
+    [InlineData("docs/scenario-format.md", "`last: true` compares only the last event")]
+    [InlineData("docs/scenario-format.md", "`contains` and `notContains` take one text or a list of texts")]
+    [InlineData("claude-plugin/skills/suwageval/SKILL.md", "`max: 1` (also `min`, `exactly`) counts the matching events")]
+    [InlineData("claude-plugin/skills/suwageval/SKILL.md", "`last: true`\n  with `data` compares only the last event")]
+    [InlineData("claude-plugin/skills/suwageval/SKILL.md", "`notContains: [a, b, c]` (and `contains`)")]
+    public void The_docs_name_the_event_and_text_check_options(string path, string option)
     {
-        var text = File.ReadAllText(Path.Combine(RepoRoot, path));
+        var text = File.ReadAllText(Path.Combine(RepoRoot, path)).ReplaceLineEndings("\n");
 
-        Assert.All(CheckOptions, option => Assert.Contains(option, text, StringComparison.Ordinal));
+        Assert.Contains(option, text, StringComparison.Ordinal);
     }
 
     [Theory]

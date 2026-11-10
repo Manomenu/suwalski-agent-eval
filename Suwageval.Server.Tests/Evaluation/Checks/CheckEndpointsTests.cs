@@ -420,28 +420,26 @@ public sealed class CheckEndpointsTests(TestDatabase database) : IAsyncDisposabl
                 Data = Items.Json("""{"node":"open"}"""),
             }
         );
-        var stored = System.Text.Json.JsonSerializer.Serialize<CheckInput>(
-            new TextCheck
-            {
-                Key = "t",
-                ScenarioKey = "s",
-                NotContains = ["secret"],
-            },
-            Suwageval.AgentSdk.ContractJson.Options
-        );
-
         Assert.All(again.Results, result => Assert.Equal(UpsertOutcome.Unchanged, result.Outcome));
-        Assert.Contains("\"notContains\":\"secret\"", stored, StringComparison.Ordinal);
-        var storedEvent = System.Text.Json.JsonSerializer.Serialize<CheckInput>(
-            new EventCheck
-            {
-                Key = "e",
-                ScenarioKey = "s",
-                Event = "state.changed",
-            },
-            Suwageval.AgentSdk.ContractJson.Options
-        );
-        Assert.DoesNotContain("\"last\"", storedEvent, StringComparison.Ordinal);
-        Assert.DoesNotContain("\"max\"", storedEvent, StringComparison.Ordinal);
+    }
+
+    // Why: the forms the server stored before the options, read back from a real database; a check keeps its revision only while its JSON is these bytes
+    [Theory]
+    [Trait("criterion", "AC-check-options-6")]
+    [InlineData(
+        """{"type":"text","contains":null,"notContains":"secret","pattern":null,"key":"t","scenarioKey":"s","where":null,"passThreshold":1}"""
+    )]
+    [InlineData(
+        """{"type":"text","contains":null,"notContains":null,"pattern":"^Hi","key":"t","scenarioKey":"s","where":null,"passThreshold":1}"""
+    )]
+    [InlineData(
+        """{"type":"event","event":"procedure.started","data":{"procedure":"quoteRequest"},"key":"e","scenarioKey":"s","where":null,"passThreshold":1}"""
+    )]
+    [InlineData("""{"type":"event","event":"procedure.started","data":null,"key":"e","scenarioKey":"s","where":null,"passThreshold":1}""")]
+    public void A_check_written_before_the_options_is_stored_in_the_same_bytes(string stored)
+    {
+        var check = System.Text.Json.JsonSerializer.Deserialize<CheckInput>(stored, Suwageval.AgentSdk.ContractJson.Options);
+
+        Assert.Equal(stored, System.Text.Json.JsonSerializer.Serialize(check, Suwageval.AgentSdk.ContractJson.Options));
     }
 }
