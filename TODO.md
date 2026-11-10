@@ -216,6 +216,14 @@ To do in that change:
   that says what it is). The comparison keeps the cap of the print (the chunks of columns were dropped in its favour: more runs than fit
   a page are compared in smaller sets); the answer above it is 422, the CLI refuses before asking. The plugin lists it, and Claude
   saves a report only when asked. Build it when a report is wanted in CI.
+- **"Open in Langfuse" on a sample and on a monitored conversation.** A button with Langfuse's icon on a run's sample and on a
+  monitored conversation's page opens its traces, so "what happened" (Suwageval) leads in one click to "why" (each model call, its
+  prompt and answer). Nothing new is needed from the agent: the scenario-format's mapping already makes the Langfuse session the
+  `conversationId` Suwageval sends for every sample, and a monitored conversation carries the agent's own id. The link is
+  `{url}/project/{projectId}/sessions/{conversationId}`. Switched on by configuration only, off without it: `Langfuse:Url` and
+  `Langfuse:ProjectId` (`Langfuse__Url`, `Langfuse__ProjectId` in `.env`, compose and the chart); no key, as Suwageval never calls
+  Langfuse, it only links to it. Per agent later, if two agents report to different projects. The CLI prints the same link
+  (`results`, `monitoring conversation`), and the plugin knows it.
 - **Later, only if this proves useful:** Suwageval sending its verdicts to Langfuse as scores per trace (an outside service, so a
   live test, the daily check and a secret, docs/development.md); Suwageval reading traces back; a `traceparent` header so the
   agent's spans join a trace Suwageval starts.
