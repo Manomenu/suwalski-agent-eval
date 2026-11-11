@@ -173,7 +173,7 @@ public sealed class RunRecheckTests(TestDatabase database, ClassServer server) :
                 ScenarioKey = "plain",
                 Event = "state.changed",
                 Last = true,
-                Data = Suwageval.Server.Tests.Evaluation.Checks.Items.Json("""{"facts":{"age":60}}"""),
+                Data = Json("""{"facts":{"age":60}}"""),
             },
             new EventCheck
             {
@@ -181,7 +181,7 @@ public sealed class RunRecheckTests(TestDatabase database, ClassServer server) :
                 ScenarioKey = "plain",
                 Event = "state.changed",
                 Last = true,
-                Data = Suwageval.Server.Tests.Evaluation.Checks.Items.Json("""{"facts":{}}"""),
+                Data = Json("""{"facts":{}}"""),
             },
             new TextCheck
             {
