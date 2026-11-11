@@ -7,9 +7,12 @@ namespace Suwageval.Server.Tests;
 
 public sealed class TestDatabase : IAsyncLifetime
 {
-    public static readonly string ConnectionString =
-        Environment.GetEnvironmentVariable("TEST_CONNECTION_STRING")
-        ?? "Host=localhost;Port=5463;Database=suwageval_test;Username=suwageval;Password=suwageval";
+    private const string MainCheckoutConnectionString =
+        "Host=localhost;Port=5463;Database=suwageval_test;Username=suwageval;Password=suwageval";
+
+    private static readonly string? FromEnvironment = Environment.GetEnvironmentVariable("TEST_CONNECTION_STRING");
+
+    public static readonly string ConnectionString = FromEnvironment ?? MainCheckoutConnectionString;
 
     private string? unavailable;
     private Pool? pool;
@@ -28,6 +31,7 @@ public sealed class TestDatabase : IAsyncLifetime
 
     public async ValueTask InitializeAsync()
     {
+        RefuseMainCheckoutDatabaseInLinkedWorktree(FromEnvironment, AppContext.BaseDirectory);
         try
         {
             await RecreateAsync(ConnectionString);
@@ -39,6 +43,38 @@ public sealed class TestDatabase : IAsyncLifetime
         }
         pool = Pool.Create(ConnectionString, maxSize: 4);
         await Migrator.MigrateAsync(ConnectionString, Migrator.DefaultDirectory);
+    }
+
+    // Why: the fixture drops and recreates its database, so a worktree on the main checkout's name wipes the tests running there
+    internal static void RefuseMainCheckoutDatabaseInLinkedWorktree(string? fromEnvironment, string testDirectory)
+    {
+        if (fromEnvironment is not null || !IsInLinkedWorktree(testDirectory))
+        {
+            return;
+        }
+        throw new InvalidOperationException(
+            "TEST_CONNECTION_STRING is not set, and this is a linked git worktree, so the tests would use the main checkout's "
+                + "database suwageval_test: run them after 'source scripts/.internal/checkout-env.sh' (bash or zsh), "
+                + "or run Suwageval.Gate/scripts/check.sh"
+        );
+    }
+
+    // Why: a linked worktree has a .git file pointing into the main repository's .git/worktrees/, the main checkout a .git directory
+    private static bool IsInLinkedWorktree(string directory)
+    {
+        for (var current = new DirectoryInfo(directory); current is not null; current = current.Parent)
+        {
+            var git = Path.Combine(current.FullName, ".git");
+            if (Directory.Exists(git))
+            {
+                return false;
+            }
+            if (File.Exists(git))
+            {
+                return File.ReadAllText(git).Replace('\\', '/').Contains("/worktrees/", StringComparison.Ordinal);
+            }
+        }
+        return false;
     }
 
     public static async Task RecreateAsync(string connectionString)
