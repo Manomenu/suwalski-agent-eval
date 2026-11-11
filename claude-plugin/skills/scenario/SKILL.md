@@ -21,7 +21,8 @@ last user message is the one the agent answers next.
    https://raw.githubusercontent.com/Manomenu/suwalski-agent-eval/master/docs/scenario-format.md,
    if you have not read it in this conversation.
 2. Get the agent's real tool and event names from its contract (`curl` of
-   `{endpointUrl}/suwageval/contract`, `endpointUrl` from `agent.yaml`). Never invent one. If
+   `{endpointUrl}/suwageval/contract`, `endpointUrl` from `agent.yaml`): the agents' `tools` and
+   `context.tools`, which the system's own code calls (no `by` for those). Never invent one. If
    the agent is not reachable, use `suwageval validate --offline` and say the names are unchecked.
    Prefer deterministic checks (`tool-called` with `by` / `result`, `tool-not-called`, `event`,
    `event-not-emitted`, `cited`, `text`, `message-count`; `$pattern` for loosely written values, anchored). Add a `type: judge` check (`criteria:` — one concrete, checkable

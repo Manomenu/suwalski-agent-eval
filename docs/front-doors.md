@@ -133,7 +133,7 @@ The server has one interface, its HTTP API. Three users reach it:
   card shows nothing when none is open. `suwageval problems` prints them in its "Agent errors" section (same options).
 - **A version is never written in a file: the running agent serves it.** `GET
   {endpointUrl}/suwageval/contract` returns its LLM agents (each with model, config and tools, with argument
-  schemas), other system-wide config, the events (with data schemas), and a label. `suwageval run` makes the server read it,
+  schemas), other system-wide config, the events (with data schemas), the tools the system's own code calls (owned by no agent), and a label. `suwageval run` makes the server read it,
   register it (same content, same version; changed, a new one) and run against it — so a run
   always records what really ran, and says whether the version is `new` or `existing`.
   `suwageval validate` reads it too, to check tool and event names (`--offline` skips that; an

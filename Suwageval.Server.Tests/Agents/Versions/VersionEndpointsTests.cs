@@ -113,6 +113,40 @@ public sealed class VersionEndpointsTests(TestDatabase database, ClassServer cla
     }
 
     [Fact]
+    [Trait("criterion", "AC-system-tools-7")]
+    public async Task A_context_tool_added_is_a_diff_of_added_lines_only()
+    {
+        var name = await server.NewAgent();
+        var older = await AgentEndpointsTests.RegisterAsync(database, name, AgentEndpointsTests.Version());
+        var newer = await AgentEndpointsTests.RegisterAsync(
+            database,
+            name,
+            AgentEndpointsTests.Version() with
+            {
+                Context = new ContextDefinition
+                {
+                    Tools =
+                    [
+                        new ToolDefinition
+                        {
+                            Name = "book_visit",
+                            Description = "Book the visit.",
+                            Parameters = System.Text.Json.JsonDocument.Parse("""{"type":"object"}""").RootElement,
+                        },
+                    ],
+                },
+            }
+        );
+
+        var diff = await TestServer.Read<VersionDiff>(await server.Get($"/agents/{name}/versions/diff?from={older.Id}&to={newer.Id}"));
+
+        Assert.Equal(0, diff.Removed);
+        var added = diff.Blocks.SelectMany(block => block.Rows).Where(row => row.Kind == DiffKind.Added).Select(row => row.Text.Trim());
+        Assert.Contains("tools:", added);
+        Assert.Contains("- name: book_visit", added);
+    }
+
+    [Fact]
     public async Task Diffing_refuses_what_cannot_be_compared()
     {
         var name = await server.NewAgent();

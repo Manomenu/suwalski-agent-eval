@@ -3399,6 +3399,13 @@
                 "$ref": "#/components/schemas/JsonElement"
               }
             ]
+          },
+          "tools": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ToolDefinition"
+            },
+            "description": "The tools the system's own code calls, with no LLM agent choosing them (a deterministic step that books a visit, say). No\nagent owns them, so a `ToolCall` of one names no `Agent`; a name is either here or an agent's\ntool, never both (AgentContractRules). Part of the content hash; an agent may leave it out when empty, and an\nempty list is not hashed, so a contract without them is the version it was before they existed."
           }
         },
         "additionalProperties": false,
@@ -3640,7 +3647,7 @@
               "null",
               "string"
             ],
-            "description": "The name of the LLM agent (from the contract's agents) that made the call."
+            "description": "The name of the LLM agent (from the contract's agents) that made the call; left out when the system's own code made it (a\ntool of the contract's `context.tools`)."
           }
         },
         "additionalProperties": false

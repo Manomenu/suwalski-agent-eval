@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 
 namespace Suwageval.AgentSdk;
 
@@ -8,7 +9,9 @@ public static class ContractJson
 {
     /// <summary>
     /// Unknown fields, missing required ones and nulls in non-nullable members are errors, so a typo in a scenario file
-    /// is reported instead of silently ignored, and a number is a JSON number, never a string holding one. Read-only: share it, do not change it.
+    /// is reported instead of silently ignored, and a number is a JSON number, never a string holding one. A list added to the
+    /// contract later (<see cref="Agents.ContextDefinition.Tools"/>) is left out while empty, so a contract that does not use it hashes
+    /// as before and an older reader still reads it. Read-only: share it, do not change it.
     /// </summary>
     public static JsonSerializerOptions Options { get; } = Create();
 
@@ -26,9 +29,23 @@ public static class ContractJson
 
     private static JsonSerializerOptions Create()
     {
-        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web)
+        {
+            TypeInfoResolver = new DefaultJsonTypeInfoResolver { Modifiers = { OmitEmptyLists } },
+        };
         Configure(options);
         options.MakeReadOnly(populateMissingResolver: true);
         return options;
+    }
+
+    private static void OmitEmptyLists(JsonTypeInfo type)
+    {
+        foreach (var property in type.Properties)
+        {
+            if (property.AttributeProvider?.IsDefined(typeof(OmittedWhenEmptyAttribute), inherit: false) == true)
+            {
+                property.ShouldSerialize = static (_, value) => value is IReadOnlyCollection<object> { Count: > 0 };
+            }
+        }
     }
 }

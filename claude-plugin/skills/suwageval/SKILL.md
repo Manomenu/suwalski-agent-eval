@@ -174,6 +174,9 @@ the spec above, "The agent contract"), these decisions are yours:
 - **Set `label`** as **Names** says: the git SHA of the agent's code, or the variant's name under a sweep.
 - **Report `agent` on every tool call** of a multi-agent system, the name from `agents`. Without it
   `by:` checks cannot pass and the results cannot say who acted.
+- **A tool the system's own code calls** (a deterministic step books a visit; no model chose it) goes to
+  `context.tools`, never under an LLM agent: same shape as an agent's tool, owned by no agent, so its calls
+  carry no `agent` and its checks no `by:`. One name is either a context tool or an agent's tool, not both.
 - **`fixtures` only for what a scenario must fix explicitly** (for example the documents a retrieval
   is pinned to). The agent declares them in `context.fixturesSchema`; it never reads a hidden header
   or an environment switch instead.
@@ -199,7 +202,7 @@ the spec above, "The agent contract"), these decisions are yours:
 ## Choosing checks
 
 - **`by:`** on `tool-called` / `tool-not-called` when the right tool from the wrong LLM agent would be
-  a bug. A call that names no agent never satisfies `by`.
+  a bug. A call that names no agent never satisfies `by`, and a tool of `context.tools` takes no `by`.
 - **`result:`** on `tool-called` when an argument is only right in the light of what the tool
   returned (a refund for the id that `get_order` really returned).
 - **`event-not-emitted`** is the negative of `event`; **`cited`** asserts that a grounded answer lists

@@ -22,4 +22,18 @@ public sealed class ContractContentTests
                 new AgentContract { Agents = [Agent("a", model: "large"), Agent("b", model: "small"), Agent("c", model: "large")] }
             )
         );
+
+    [Fact]
+    [Trait("criterion", "AC-system-tools-6")]
+    public void A_stored_version_from_before_context_tools_reads_as_one_without_them() =>
+        Assert.Empty(
+            ContractContent
+                .Read(
+                    """
+                    {"label":null,"agents":[{"name":"a","model":{"name":"m","parameters":null},"config":"c","tools":[]}],"otherConfig":null,
+                     "context":{"usesRetrieval":false,"retrieval":null,"events":[],"fixturesSchema":null}}
+                    """
+                )
+                .Context.Tools
+        );
 }

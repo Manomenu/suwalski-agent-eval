@@ -269,4 +269,52 @@ public sealed class RunCompatibilityTests
             StringComparison.Ordinal
         );
     }
+
+    [Fact]
+    [Trait("criterion", "AC-system-tools-4")]
+    public void A_context_tool_fits_without_an_agent_and_is_a_mismatch_with_one()
+    {
+        var called = new ToolCalledCheck
+        {
+            Key = "a",
+            ScenarioKey = "s",
+            Tool = "book_visit",
+        };
+        var notCalled = new ToolNotCalledCheck
+        {
+            Key = "b",
+            ScenarioKey = "s",
+            Tool = "book_visit",
+        };
+        var anchored = new TextCheck
+        {
+            Key = "c",
+            ScenarioKey = "s",
+            Contains = ["booked"],
+            Where = new CheckWhere { After = "book_visit" },
+        };
+        var version = SeededAgent.ExampleVersionWithSystemTool;
+
+        Assert.Empty(Mismatches([("s", Content(Call("book_visit"), Result("call-book_visit")))], [called, notCalled, anchored], version));
+
+        var mismatches = Mismatches(
+            [("s", Content(Call("book_visit", agent: "support-agent")))],
+            [called with { By = "support-agent" }, notCalled with { By = "support-agent" }],
+            version
+        );
+
+        Assert.Equal(3, mismatches.Count);
+        Assert.Equal(
+            "scenario 's': the conversation calls tool 'book_visit', by agent 'support-agent', but the system's code calls it "
+                + "(context.tools), not an agent: remove 'agent'",
+            mismatches[0]
+        );
+        Assert.Equal(
+            "check 'a': it names tool 'book_visit', by agent 'support-agent', but the system's code calls it (context.tools), "
+                + "not an agent: remove 'by'",
+            mismatches[1]
+        );
+        Assert.StartsWith("check 'b'", mismatches[2], StringComparison.Ordinal);
+        Assert.Single(Mismatches([], [called], SeededAgent.ExampleVersion));
+    }
 }

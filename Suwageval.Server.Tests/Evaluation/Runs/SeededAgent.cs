@@ -62,6 +62,23 @@ internal sealed record SeededAgent(Guid Id, string Name, Guid VersionId, string 
             Context = ExampleVersion.Context with { FixturesSchema = Json("""{"type":"object"}""") },
         };
 
+    public static AgentContract ExampleVersionWithSystemTool { get; } =
+        ExampleVersion with
+        {
+            Context = ExampleVersion.Context with
+            {
+                Tools =
+                [
+                    new ToolDefinition
+                    {
+                        Name = "book_visit",
+                        Description = "Book the visit the procedure arranged.",
+                        Parameters = Json("""{"type":"object"}"""),
+                    },
+                ],
+            },
+        };
+
     public static ScenarioInput Scenario(
         string key,
         string[]? tags = null,

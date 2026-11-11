@@ -22,7 +22,8 @@ Describing only the main agent hides the others, and then a change to one of the
 
 - A version records what really ran, and a change to any agent's prompt or model is a new
   version (the content hash covers all of it).
-- Tools belong to the agent that may call them. This is what makes `by:` (below) checkable.
+- Tools belong to the agent that may call them. This is what makes `by:` (below) checkable. A tool no model
+  chooses belongs to the system's own code instead (`context.tools`, below).
 
 `config` is **free text**, not a structure. Real systems define an agent with very different
 things (instructions, a scope policy, phases, YAML of their own). Structure would have to guess
@@ -75,6 +76,21 @@ is declared in the contract, like event types, so that `validate` and the 409 at
 can refuse a scenario with fixtures for an agent that would silently ignore them. It is **not
 validated** against yet, just like `dataSchema` of events. JSON Schema validation needs a package
 and stays in TODO.md "Later".
+
+### `context.tools`: tools no agent owns
+
+Not every tool call is a model's choice. A system often runs a deterministic step of a procedure from its own code: it books
+the visit with typed arguments and reads a typed result, and no LLM agent decided to. Tied to an agent, such a tool says a model
+can call it when it cannot, and `by:` would check something false; left undeclared, its calls are reported as undeclared and no
+check may name it. So the context, which already holds what belongs to the system rather than to one agent, declares the
+tools the system's code calls, in the shape of an agent's tool.
+
+- **Owned by no agent.** A call of one names no `agent`, and a check of one takes no `by:`: there is no agent to name.
+- **One name, one owner.** A name is either a context tool or an agent's tool, never both; otherwise a call that names no agent
+  could be either, and `undeclared` could not tell.
+- **Part of the version.** A changed context tool is a new version, as a changed agent tool is. An empty list is not written,
+  so a contract from before the field keeps its hash and its version, and readers that predate the field still read it: the
+  field is an addition to contract v1, not a v2.
 
 ### `label` stays out of the hash
 

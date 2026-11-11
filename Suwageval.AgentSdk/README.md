@@ -14,6 +14,9 @@ app.MapSuwagevalAgent();   // GET /suwageval/contract, POST /suwageval/turn
 
 - the contract types (`AgentContract`, `TurnRequest`, `TurnResponse`, the `ConversationItem`s) and `ContractJson.Options`,
   the JSON options the server reads them with;
+- `ContextDefinition.Tools` (`context.tools` in the JSON): the tools your own code calls, with no LLM agent choosing them; record
+  their calls as a `ToolCall` without `Agent`. A name is either there or an agent's tool, never both. Empty by default, and an
+  empty list is not written, so a contract without them is the version it was.
 - `AgentContractRules.Problems(contract)`: what the server would reject in your contract, for a unit test.
 - `AgentContractHash.Of(contract)`: the hash the server knows your version by (the same function the server registers it with).
 - `request.Correlation` (`RunId`, `Scenario`, `Sample`): the `Suwageval-*` headers of the turn, for traces and logs; a member is null when its header is absent.

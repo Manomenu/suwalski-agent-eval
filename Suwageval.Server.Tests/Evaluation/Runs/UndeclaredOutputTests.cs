@@ -61,4 +61,12 @@ public sealed class UndeclaredOutputTests
         Assert.Equal(["tool 'get_order' of agent 'billing'"], UndeclaredOutput.Of([Call("get_order", "billing")], version));
         Assert.Empty(UndeclaredOutput.Of([Call("get_order")], version));
     }
+
+    [Fact]
+    [Trait("criterion", "AC-system-tools-3")]
+    public void A_call_of_a_context_tool_is_declared_without_an_agent_and_undeclared_for_an_agent() =>
+        Assert.Equal(
+            ["tool 'book_visit' of agent 'support-agent'"],
+            UndeclaredOutput.Of([Call("book_visit"), Call("book_visit", "support-agent")], SeededAgent.ExampleVersionWithSystemTool)
+        );
 }
