@@ -56,6 +56,12 @@ jobs:
             tar -xz -C "$HOME/.local/bin" gitleaks
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
+      # oasdiff (in check.sh) fails a change of the API contract its version does not say; pinned like gitleaks.
+      - name: Install oasdiff
+        run: |
+          curl -fsSL "https://github.com/oasdiff/oasdiff/releases/download/v1.37.0/oasdiff_1.37.0_linux_amd64.tar.gz" |
+            tar -xz -C "$HOME/.local/bin" oasdiff
+
       # The SDK band global.json allows (rollForward latestFeature); the runtime image runs
       # the same major version.
       - uses: actions/setup-dotnet@v5
