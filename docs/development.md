@@ -16,6 +16,7 @@ sudo dnf install dotnet-sdk-10.0 nodejs nodejs-corepack podman podman-docker jus
 # docker compose: the official Compose v2 plugin (not podman-compose), talking to podman's socket
 corepack enable --install-directory ~/.local/bin   # pnpm, in the version package.json pins
 # gitleaks: the binary from https://github.com/gitleaks/gitleaks/releases, the version CI pins (8.30.1)
+# oasdiff: the binary from https://github.com/oasdiff/oasdiff/releases, the version CI pins (1.37.0)
 ```
 
 ## Everyday commands
@@ -50,7 +51,24 @@ A linked git worktree gets its own test and e2e databases and its own e2e ports,
 
 ## Claude Code hooks
 
-The committed Claude Code settings run the quick gate when Claude stops and blocks the stop while it fails, once per turn. Edits to the gate, existing migrations, lockfiles and `openapi.d.ts` are refused with a message saying what to do; `ALLOW_GATE_EDIT=1 claude` lifts the gate's part for one session.
+The committed Claude Code settings run the quick gate when Claude stops and blocks the stop while it fails, once per turn. The quick gate costs what the change since master costs: with no .NET file changed it builds and tests only the repository guards, and the web steps run only for changed web code. A turn that left HEAD, the changes and the untracked files as they were at the last green run does not run it at all. Edits to the gate, existing migrations, lockfiles, `openapi.d.ts` and `contract/openapi.json` are refused with a message saying what to do; `ALLOW_GATE_EDIT=1 claude` lifts the gate's part for one session.
+
+## Guardrails of acceptance criteria
+
+Where each kind of guardrail lives and how it names the id (the kinds are `Suwageval.Gate/criteria.json`). Pick the lightest kind that can fail for the criterion.
+
+| Kind | Where | How it names the id |
+| --- | --- | --- |
+| `server test (xunit)` | `Suwageval.Server.Tests/` | `[Trait("criterion", "AC-<feature>-<n>")]` on the test |
+| `cli test (xunit)` | `Suwageval.Cli.Tests/` | the same `Trait` |
+| `architecture test (xunit)` | `Suwageval.Gate/`: the repository guards | the same `Trait` |
+| `web test (vitest)` | `Suwageval.Web/src/**/*.test.ts(x)` | in the title: `it("AC-<feature>-<n>: …", …)` |
+| `e2e test (playwright)` | `Suwageval.Web/src/**/*.e2e.ts` | in the title: `test("AC-<feature>-<n>: …", …)` |
+| `lint (eslint)` | `Suwageval.Web/eslint.config.js` | a comment `// AC-<feature>-<n>` on the line above the rule |
+| `type check (tsc)` | `Suwageval.Web/tsconfig*.json` | a comment `// AC-<feature>-<n>` above the option |
+| `lint (.NET analyzer)` | `.editorconfig` | `# AC-<feature>-<n>` on its own line above `dotnet_diagnostic.….severity = error` |
+| `banned API` | `BannedSymbols.txt` | in the message, so it shows in the build error: `P:System.DateTime.Now;AC-<feature>-<n> use TimeProvider` |
+| `build rule` | `Directory.Build.props` | an XML comment `<!-- AC-<feature>-<n> -->` above the property |
 
 ## A new feature brings its checks along
 
@@ -75,8 +93,10 @@ through the list and add what fits — or say in the change why something does n
 - **Database:** schema changes go into a new numbered script in `Database/Migrations/up/`
   (`NNNN_what_it_does`), never an edited one — grate refuses to start on a script that
   changed after it ran; the queries get tests against the real PostgreSQL.
-- **API:** after changing a record the API sends or receives, regenerate `openapi.d.ts`
-  (`just api-types`).
+- **API:** after changing a record the API sends or receives, regenerate `contract/openapi.json`
+  and `openapi.d.ts` (`just api-types`) and raise the version in `contract/package.json`: minor
+  for an addition, major for a break. Installed CLIs lag behind the server, so `just api-diff`
+  (oasdiff) fails a break the version does not say.
 - **An outside service** (a model provider behind Microsoft Agent Framework, an API, a public
   dataset — anything not ours): the gate tests the code against a recorded answer, but the
   service can change its answer without a commit here. So the first feature that calls one

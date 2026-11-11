@@ -14,9 +14,9 @@ using CliApp = Cli::Suwageval.Cli.CliApp;
 
 namespace Suwageval.Server.Tests.EndToEnd;
 
-public sealed class GateCommandEndToEndTests(TestDatabase database) : IAsyncDisposable
+public sealed class GateCommandEndToEndTests(TestDatabase database, ClassServer server) : IClassFixture<ClassServer>, IDisposable
 {
-    private readonly WebApplicationFactory<Program> app = RunTestApp.Create();
+    private WebApplicationFactory<Program> App => server.App;
     private readonly string work = Directory.CreateTempSubdirectory("suwageval-gate-").FullName;
 
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
@@ -42,13 +42,13 @@ public sealed class GateCommandEndToEndTests(TestDatabase database) : IAsyncDisp
             $"name: {agent.Name}\nendpointUrl: {agent.EndpointUrl}\n",
             Cancellation
         );
-        using var http = app.CreateClient();
+        using var http = App.CreateClient();
         using var stop = CancellationTokenSource.CreateLinkedTokenSource(Cancellation);
         var worker = Task.Run(
             async () =>
             {
-                var runs = app.Services.GetRequiredService<RunStore>();
-                var executor = app.Services.GetRequiredService<RunExecutor>();
+                var runs = App.Services.GetRequiredService<RunStore>();
+                var executor = App.Services.GetRequiredService<RunExecutor>();
                 while (!stop.IsCancellationRequested)
                 {
                     var run = await runs.ClaimNextAsync(agent.Id, stop.Token);
@@ -155,9 +155,5 @@ public sealed class GateCommandEndToEndTests(TestDatabase database) : IAsyncDisp
         Assert.Contains("no scenario with an acGuardrail", error, StringComparison.Ordinal);
     }
 
-    public async ValueTask DisposeAsync()
-    {
-        await app.DisposeAsync();
-        Directory.Delete(work, recursive: true);
-    }
+    public void Dispose() => Directory.Delete(work, recursive: true);
 }

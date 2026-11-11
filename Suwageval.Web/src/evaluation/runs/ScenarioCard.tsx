@@ -31,7 +31,12 @@ function SampleRowLabel({ scenario, sample }: { scenario: ScenarioRunResult; sam
                     no output
                 </Badge>
             )}
-            {verdict.kind !== "unchecked" && verdict.kind !== "no output" && (
+            {verdict.kind === "not simulated" && (
+                <Badge color="orange" variant="light">
+                    not simulated
+                </Badge>
+            )}
+            {verdict.kind !== "unchecked" && verdict.kind !== "no output" && verdict.kind !== "not simulated" && (
                 <VerdictBadge
                     verdict={verdict.kind}
                     label={

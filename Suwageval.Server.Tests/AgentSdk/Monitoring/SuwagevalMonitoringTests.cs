@@ -12,17 +12,14 @@ using Suwageval.AgentSdk.Monitoring;
 using Suwageval.Contracts.Agents;
 using Suwageval.Contracts.Monitoring;
 using Suwageval.Server.Tests.Agents;
-using Suwageval.Server.Tests.Evaluation.Runs;
 
 namespace Suwageval.Server.Tests.AgentSdk.Monitoring;
 
-public sealed class SuwagevalMonitoringTests(TestDatabase database) : IAsyncDisposable
+public sealed class SuwagevalMonitoringTests(TestDatabase database, ClassServer server) : IClassFixture<ClassServer>
 {
-    private readonly WebApplicationFactory<Program> app = RunTestApp.Create();
+    private readonly WebApplicationFactory<Program> app = server.App;
 
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
-
-    public ValueTask DisposeAsync() => app.DisposeAsync();
 
     // Why: nginx and the vite proxy strip the /api prefix in front of the server, so the in-process test must do the same
     private sealed class EdgeHandler : DelegatingHandler

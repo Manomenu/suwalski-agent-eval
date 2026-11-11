@@ -231,6 +231,19 @@ describe("sampleVerdict", () => {
         expect(sampleVerdict(refund, 3)).toEqual({ kind: "not judged", failedChecks: 0 });
     });
 
+    it("names a sample without an answer for its status, not for the checks that could not run on it", () => {
+        const refund = {
+            key: "refund",
+            samples: [
+                { sample: 1, status: "Failed" },
+                { sample: 2, status: "NotSimulated" },
+            ],
+            checks: [{ samples: [checkSample(1, false), checkSample(2, false)] }],
+        } as unknown as ScenarioRunResult;
+        expect(sampleVerdict(refund, 1)).toEqual({ kind: "no output", failedChecks: 0 });
+        expect(sampleVerdict(refund, 2)).toEqual({ kind: "not simulated", failedChecks: 0 });
+    });
+
     it("says nothing of a sample no check looked at", () => {
         expect(sampleVerdict(scenario([]), 1).kind).toBe("unchecked");
     });

@@ -9,9 +9,9 @@ using Suwageval.Server.Evaluation.Scenarios;
 
 namespace Suwageval.Server.Tests.Evaluation.Runs.Trend;
 
-public sealed class PassRatesEndpointTests(TestDatabase database) : IAsyncDisposable
+public sealed class PassRatesEndpointTests(TestDatabase database, ClassServer server) : IClassFixture<ClassServer>
 {
-    private readonly WebApplicationFactory<Program> app = RunTestApp.Create();
+    private readonly WebApplicationFactory<Program> app = server.App;
 
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
 
@@ -162,6 +162,4 @@ public sealed class PassRatesEndpointTests(TestDatabase database) : IAsyncDispos
         _ = database.Pool;
         return app.CreateClient();
     }
-
-    public ValueTask DisposeAsync() => app.DisposeAsync();
 }

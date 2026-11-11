@@ -10,9 +10,9 @@ using Suwageval.Server.Tests.Api;
 
 namespace Suwageval.Server.Tests.Evaluation.Runs.Compare;
 
-public sealed class CompareEndpointsTests(TestDatabase database) : IAsyncDisposable
+public sealed class CompareEndpointsTests(TestDatabase database, ClassServer server) : IClassFixture<ClassServer>
 {
-    private readonly WebApplicationFactory<Program> app = RunTestApp.Create();
+    private readonly WebApplicationFactory<Program> app = server.App;
 
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
 
@@ -296,6 +296,4 @@ public sealed class CompareEndpointsTests(TestDatabase database) : IAsyncDisposa
         Assert.Empty(none.JudgeModels);
         Assert.Equal(["alpha", "zeta"], listed.Runs.Single(run => run.Id == judged).JudgeModels);
     }
-
-    public ValueTask DisposeAsync() => app.DisposeAsync();
 }

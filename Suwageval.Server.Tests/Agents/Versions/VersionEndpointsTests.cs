@@ -5,11 +5,9 @@ using Suwageval.Server.Tests.Api;
 
 namespace Suwageval.Server.Tests.Agents.Versions;
 
-public sealed class VersionEndpointsTests(TestDatabase database) : IAsyncDisposable
+public sealed class VersionEndpointsTests(TestDatabase database, ClassServer classServer) : IClassFixture<ClassServer>
 {
-    private readonly TestServer server = new(database);
-
-    public ValueTask DisposeAsync() => server.DisposeAsync();
+    private readonly TestServer server = new(database, classServer);
 
     [Fact]
     public async Task A_version_cannot_be_posted_because_it_comes_from_the_agent_when_a_run_starts()

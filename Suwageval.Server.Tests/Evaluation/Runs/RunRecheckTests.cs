@@ -21,9 +21,9 @@ using static Suwageval.Server.Tests.Evaluation.Checks.Items;
 
 namespace Suwageval.Server.Tests.Evaluation.Runs;
 
-public sealed class RunRecheckTests(TestDatabase database) : IAsyncDisposable
+public sealed class RunRecheckTests(TestDatabase database, ClassServer server) : IClassFixture<ClassServer>
 {
-    private readonly WebApplicationFactory<Program> app = RunTestApp.Create();
+    private readonly WebApplicationFactory<Program> app = server.App;
 
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
 
@@ -554,6 +554,4 @@ public sealed class RunRecheckTests(TestDatabase database) : IAsyncDisposable
         var unknown = await client.GetAsync(new Uri($"/eval/runs/{Guid.NewGuid()}/recheck", UriKind.Relative), Cancellation);
         Assert.Equal(HttpStatusCode.NotFound, unknown.StatusCode);
     }
-
-    public ValueTask DisposeAsync() => app.DisposeAsync();
 }

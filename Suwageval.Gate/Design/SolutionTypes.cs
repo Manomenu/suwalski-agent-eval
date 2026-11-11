@@ -5,7 +5,7 @@ namespace Suwageval.Gate.Design;
 
 internal static class SolutionTypes
 {
-    private static readonly Assembly[] Assemblies =
+    internal static readonly Assembly[] Assemblies =
     [
         ServerContractsTests.ServerAssembly,
         CliContractsTests.CliAssembly,

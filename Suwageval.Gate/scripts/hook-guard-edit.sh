@@ -36,7 +36,7 @@ case "$path" in
         echo "Blocked: $path is a generated lockfile. Change package.json and run: pnpm install" >&2
         exit 2
         ;;
-    */openapi.d.ts)
+    */openapi.d.ts | */contract/openapi.json)
         echo "Blocked: $path is generated from the server's endpoints. Regenerate it with scripts/.internal/api-types.sh (just api-types) instead of editing it." >&2
         exit 2
         ;;

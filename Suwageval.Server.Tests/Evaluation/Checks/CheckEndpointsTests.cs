@@ -7,11 +7,9 @@ using Suwageval.Server.Tests.Api;
 
 namespace Suwageval.Server.Tests.Evaluation.Checks;
 
-public sealed class CheckEndpointsTests(TestDatabase database) : IAsyncDisposable
+public sealed class CheckEndpointsTests(TestDatabase database, ClassServer classServer) : IClassFixture<ClassServer>
 {
-    private readonly TestServer server = new(database);
-
-    public ValueTask DisposeAsync() => server.DisposeAsync();
+    private readonly TestServer server = new(database, classServer);
 
     private async Task<string> AgentWithScenariosAsync(params string[] keys)
     {

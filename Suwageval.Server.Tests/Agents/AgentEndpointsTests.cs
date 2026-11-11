@@ -6,11 +6,9 @@ using Suwageval.Server.Tests.Api;
 
 namespace Suwageval.Server.Tests.Agents;
 
-public sealed class AgentEndpointsTests(TestDatabase database) : IAsyncDisposable
+public sealed class AgentEndpointsTests(TestDatabase database, ClassServer classServer) : IClassFixture<ClassServer>
 {
-    private readonly TestServer server = new(database);
-
-    public ValueTask DisposeAsync() => server.DisposeAsync();
+    private readonly TestServer server = new(database, classServer);
 
     internal static AgentContract Version(string prompt = "Be helpful.") =>
         new()

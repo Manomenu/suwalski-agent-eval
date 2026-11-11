@@ -3,14 +3,13 @@ using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Suwageval.Contracts;
 using Suwageval.Server.Api;
-using Suwageval.Server.Tests.Evaluation.Runs;
 
 namespace Suwageval.Server.Tests.Api;
 
-public sealed class ServerAppTests(TestDatabase database) : IAsyncDisposable
+public sealed class ServerAppTests(TestDatabase database, ClassServer server) : IClassFixture<ClassServer>
 {
     // Why: the run worker is left out because it would take the queued runs of other tests sharing the database
-    private readonly WebApplicationFactory<Program> app = RunTestApp.Create();
+    private readonly WebApplicationFactory<Program> app = server.App;
 
     private HttpClient Client()
     {
@@ -57,6 +56,4 @@ public sealed class ServerAppTests(TestDatabase database) : IAsyncDisposable
         Assert.Equal(HttpStatusCode.UnprocessableEntity, current.StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, old.StatusCode);
     }
-
-    public ValueTask DisposeAsync() => app.DisposeAsync();
 }
