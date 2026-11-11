@@ -3,14 +3,13 @@ extern alias Cli;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
-using Suwageval.Server.Tests.Evaluation.Runs;
 using CliApp = Cli::Suwageval.Cli.CliApp;
 
 namespace Suwageval.Server.Tests.EndToEnd;
 
-public sealed class EveryEndpointHasACliCommandTests(TestDatabase database) : IAsyncDisposable
+public sealed class EveryEndpointHasACliCommandTests(TestDatabase database, ClassServer server) : IClassFixture<ClassServer>
 {
-    private readonly WebApplicationFactory<Program> app = RunTestApp.Create();
+    private readonly WebApplicationFactory<Program> app = server.App;
 
     private sealed record Coverage(string? Command, string? Reason = null);
 
@@ -73,8 +72,6 @@ public sealed class EveryEndpointHasACliCommandTests(TestDatabase database) : IA
         ["GET /monitoring/agents/{agent}/checks"] = Cli("monitoring checks"),
         ["GET /monitoring/agents/{agent}/trend"] = Cli("monitoring trend"),
     };
-
-    public ValueTask DisposeAsync() => app.DisposeAsync();
 
     private List<string> Mapped()
     {

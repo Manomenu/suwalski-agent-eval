@@ -9,9 +9,9 @@ using Suwageval.Server.Evaluation.Scenarios;
 
 namespace Suwageval.Server.Tests.Evaluation.Runs.AgentErrors;
 
-public sealed class AgentErrorEndpointsTests(TestDatabase database) : IAsyncDisposable
+public sealed class AgentErrorEndpointsTests(TestDatabase database, ClassServer server) : IClassFixture<ClassServer>
 {
-    private readonly WebApplicationFactory<Program> app = RunTestApp.Create();
+    private readonly WebApplicationFactory<Program> app = server.App;
 
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
 
@@ -90,6 +90,4 @@ public sealed class AgentErrorEndpointsTests(TestDatabase database) : IAsyncDisp
         Assert.Empty(await GetAsync<List<AgentError>>(client, url));
         Assert.Single(await GetAsync<List<AgentError>>(client, $"{url}?version={agent.VersionId}"));
     }
-
-    public ValueTask DisposeAsync() => app.DisposeAsync();
 }

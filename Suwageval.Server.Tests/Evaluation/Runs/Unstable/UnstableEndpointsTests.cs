@@ -11,9 +11,9 @@ using Suwageval.Server.Evaluation.Scenarios;
 
 namespace Suwageval.Server.Tests.Evaluation.Runs.Unstable;
 
-public sealed class UnstableEndpointsTests(TestDatabase database) : IAsyncDisposable
+public sealed class UnstableEndpointsTests(TestDatabase database, ClassServer server) : IClassFixture<ClassServer>
 {
-    private readonly WebApplicationFactory<Program> app = RunTestApp.Create();
+    private readonly WebApplicationFactory<Program> app = server.App;
 
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
 
@@ -122,6 +122,4 @@ public sealed class UnstableEndpointsTests(TestDatabase database) : IAsyncDispos
         Assert.Empty(await GetAsync<List<UnstableCheck>>(client, url));
         Assert.Single(await GetAsync<List<UnstableCheck>>(client, $"{url}?version={agent.VersionId}"));
     }
-
-    public ValueTask DisposeAsync() => app.DisposeAsync();
 }

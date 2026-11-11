@@ -2,28 +2,23 @@ extern alias Cli;
 
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Suwageval.Server.Tests.Evaluation.Runs;
 using CliApp = Cli::Suwageval.Cli.CliApp;
 
 namespace Suwageval.Server.Tests.EndToEnd;
 
-public sealed class PushCommandEndToEndTests(TestDatabase database) : IAsyncDisposable
+public sealed class PushCommandEndToEndTests(TestDatabase database, ClassServer server) : IClassFixture<ClassServer>, IDisposable
 {
-    private readonly WebApplicationFactory<Program> app = RunTestApp.Create();
+    private WebApplicationFactory<Program> App => server.App;
     private readonly string work = Directory.CreateTempSubdirectory("suwageval-push-").FullName;
 
     private static string Sample => Path.Combine(AppContext.BaseDirectory, "Sample", "suwageval");
 
-    public async ValueTask DisposeAsync()
-    {
-        await app.DisposeAsync();
-        Directory.Delete(work, recursive: true);
-    }
+    public void Dispose() => Directory.Delete(work, recursive: true);
 
     private HttpClient Client()
     {
         _ = database.Pool;
-        return app.CreateClient();
+        return App.CreateClient();
     }
 
     private string Folder()

@@ -136,16 +136,19 @@ export function failedEvidenceKeys(scenario: ScenarioRunResult, sample: number):
 }
 
 export interface SampleVerdict {
-    kind: "passed" | "failed" | "not judged" | "no output" | "unchecked";
+    kind: "passed" | "failed" | "not judged" | "no output" | "not simulated" | "unchecked";
     failedChecks: number;
 }
 
 export function sampleVerdict(scenario: ScenarioRunResult, sample: number): SampleVerdict {
+    // Why: a sample without an answer stores its checks as not passed, so its status has to win over the count of failed checks
+    const status = scenario.samples.find((candidate) => candidate.sample === sample)?.status;
+    if (status === "Failed") return { kind: "no output", failedChecks: 0 };
+    if (status === "NotSimulated") return { kind: "not simulated", failedChecks: 0 };
     const verdicts = scenario.checks.flatMap((check) => check.samples.filter((checkSample) => checkSample.sample === sample));
     const failedChecks = verdicts.filter((verdict) => !verdict.passed && !verdict.notJudged).length;
     if (failedChecks > 0) return { kind: "failed", failedChecks };
     if (verdicts.some((verdict) => verdict.notJudged)) return { kind: "not judged", failedChecks };
-    if (scenario.samples.find((candidate) => candidate.sample === sample)?.status === "Failed") return { kind: "no output", failedChecks };
     return { kind: verdicts.length > 0 ? "passed" : "unchecked", failedChecks };
 }
 

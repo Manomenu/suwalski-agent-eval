@@ -11,13 +11,11 @@ using Suwageval.Server.Tests.Evaluation.Runs;
 
 namespace Suwageval.Server.Tests.Agents;
 
-public sealed class DeletionTests(TestDatabase database) : IAsyncDisposable
+public sealed class DeletionTests(TestDatabase database, ClassServer classServer) : IClassFixture<ClassServer>
 {
-    private readonly TestServer server = new(database);
+    private readonly TestServer server = new(database, classServer);
 
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
-
-    public ValueTask DisposeAsync() => server.DisposeAsync();
 
     internal static Task<SeededAgent> SeedAsync(TestDatabase database) =>
         SeededAgent.CreateAsync(

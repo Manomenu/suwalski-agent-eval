@@ -41,6 +41,11 @@ web *args:
 api-types:
     @./scripts/.internal/api-types.sh
 
+# Does the server's API contract break its consumers, and does its version say so? Compares contract/openapi.json with master (or the given ref) with oasdiff
+[group('dev')]
+api-diff *args:
+    @./scripts/.internal/api-diff.sh {{ args }}
+
 # Run the suwageval CLI from source, e.g. `just cli validate ../my-agent/suwageval`
 [group('dev')]
 cli *args:

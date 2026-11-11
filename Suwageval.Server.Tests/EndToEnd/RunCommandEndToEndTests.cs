@@ -11,9 +11,9 @@ using CliApp = Cli::Suwageval.Cli.CliApp;
 
 namespace Suwageval.Server.Tests.EndToEnd;
 
-public sealed class RunCommandEndToEndTests(TestDatabase database) : IAsyncDisposable
+public sealed class RunCommandEndToEndTests(TestDatabase database, ClassServer server) : IClassFixture<ClassServer>, IDisposable
 {
-    private readonly WebApplicationFactory<Program> app = RunTestApp.Create();
+    private WebApplicationFactory<Program> App => server.App;
     private readonly string work = Directory.CreateTempSubdirectory("suwageval-run-").FullName;
 
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
@@ -28,13 +28,13 @@ public sealed class RunCommandEndToEndTests(TestDatabase database) : IAsyncDispo
             $"name: {agent.Name}\nendpointUrl: {agent.EndpointUrl}\n",
             Cancellation
         );
-        using var http = app.CreateClient();
+        using var http = App.CreateClient();
         using var stop = CancellationTokenSource.CreateLinkedTokenSource(Cancellation);
         var worker = Task.Run(
             async () =>
             {
-                var runs = app.Services.GetRequiredService<RunStore>();
-                var executor = app.Services.GetRequiredService<RunExecutor>();
+                var runs = App.Services.GetRequiredService<RunStore>();
+                var executor = App.Services.GetRequiredService<RunExecutor>();
                 while (!stop.IsCancellationRequested)
                 {
                     var run = await runs.ClaimNextAsync(agent.Id, stop.Token);
@@ -192,9 +192,5 @@ public sealed class RunCommandEndToEndTests(TestDatabase database) : IAsyncDispo
         Assert.Empty(fake.Requests);
     }
 
-    public async ValueTask DisposeAsync()
-    {
-        await app.DisposeAsync();
-        Directory.Delete(work, recursive: true);
-    }
+    public void Dispose() => Directory.Delete(work, recursive: true);
 }

@@ -59,7 +59,7 @@ services:
     environment:
       API_UPSTREAM: http://server:6230
     ports:
-      - "8093:8080"
+      - "127.0.0.1:8093:8080"
     depends_on:
       server:
         condition: service_healthy

@@ -85,6 +85,15 @@ internal sealed class ConversationStore(Pool pool)
                     cancellationToken: cancellationToken
                 )
             );
+            // Why: verdicts belong to a checked conversation; an open one is unchecked, and kept rows would be counted, filtered and shown as if they judged the new turns
+            await connection.ExecuteAsync(
+                new CommandDefinition(
+                    "DELETE FROM monitoring_check_results WHERE conversation_id = @conversationId",
+                    new { conversationId },
+                    transaction,
+                    cancellationToken: cancellationToken
+                )
+            );
             await connection.ExecuteAsync(
                 new CommandDefinition(
                     """

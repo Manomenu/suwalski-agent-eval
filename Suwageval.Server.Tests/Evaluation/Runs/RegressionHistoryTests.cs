@@ -12,9 +12,9 @@ using Suwageval.Server.Evaluation.Scenarios;
 
 namespace Suwageval.Server.Tests.Evaluation.Runs;
 
-public sealed class RegressionHistoryTests(TestDatabase database) : IAsyncDisposable
+public sealed class RegressionHistoryTests(TestDatabase database, ClassServer server) : IClassFixture<ClassServer>
 {
-    private readonly WebApplicationFactory<Program> app = RunTestApp.Create();
+    private readonly WebApplicationFactory<Program> app = server.App;
 
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
 
@@ -29,12 +29,6 @@ public sealed class RegressionHistoryTests(TestDatabase database) : IAsyncDispos
     {
         _ = database.Pool;
         return app.CreateClient();
-    }
-
-    public ValueTask DisposeAsync()
-    {
-        app.Dispose();
-        return ValueTask.CompletedTask;
     }
 
     private Task<SeededAgent> NewAgentAsync() =>

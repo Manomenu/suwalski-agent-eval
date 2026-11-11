@@ -4,14 +4,12 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Suwageval.AgentSdk;
 using Suwageval.Contracts.Agents;
 using Suwageval.Server.Tests.Agents;
-using Suwageval.Server.Tests.Evaluation.Runs;
 
 namespace Suwageval.Server.Tests.Api;
 
-internal sealed class TestServer(TestDatabase database) : IAsyncDisposable
+internal sealed class TestServer(TestDatabase database, ClassServer classServer)
 {
-    // Why: the run worker is left out because it would take the runs other tests queue on the same database
-    private readonly WebApplicationFactory<Program> app = RunTestApp.Create();
+    private readonly WebApplicationFactory<Program> app = classServer.App;
 
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
 
@@ -56,6 +54,4 @@ internal sealed class TestServer(TestDatabase database) : IAsyncDisposable
         (await Post("/agents", new AgentDefinition { Name = name, EndpointUrl = "http://agent.test" })).EnsureSuccessStatusCode();
         return name;
     }
-
-    public ValueTask DisposeAsync() => app.DisposeAsync();
 }

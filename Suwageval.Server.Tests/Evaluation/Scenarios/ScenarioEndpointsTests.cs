@@ -6,11 +6,9 @@ using Suwageval.Server.Tests.Api;
 
 namespace Suwageval.Server.Tests.Evaluation.Scenarios;
 
-public sealed class ScenarioEndpointsTests(TestDatabase database) : IAsyncDisposable
+public sealed class ScenarioEndpointsTests(TestDatabase database, ClassServer classServer) : IClassFixture<ClassServer>
 {
-    private readonly TestServer server = new(database);
-
-    public ValueTask DisposeAsync() => server.DisposeAsync();
+    private readonly TestServer server = new(database, classServer);
 
     private static ScenarioInput Scenario(string key, string text = "Hello", params string[] tags) =>
         new()

@@ -16,17 +16,14 @@ using Suwageval.Server.Agents;
 using Suwageval.Server.Monitoring.Checking;
 using Suwageval.Server.Monitoring.Conversations;
 using Suwageval.Server.Tests.Agents;
-using Suwageval.Server.Tests.Evaluation.Runs;
 
 namespace Suwageval.Server.Tests.Monitoring.Checking;
 
-public sealed class MonitoringChecksTests(TestDatabase database) : IAsyncDisposable
+public sealed class MonitoringChecksTests(TestDatabase database, ClassServer server) : IClassFixture<ClassServer>
 {
-    private readonly WebApplicationFactory<Program> app = RunTestApp.Create();
+    private readonly WebApplicationFactory<Program> app = server.App;
 
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
-
-    public ValueTask DisposeAsync() => app.DisposeAsync();
 
     private HttpClient Client()
     {
@@ -320,5 +317,25 @@ public sealed class MonitoringChecksTests(TestDatabase database) : IAsyncDisposa
         Assert.Equal(ConversationState.Open, reopened.State);
         Assert.Null(reopened.CheckedAt);
         Assert.False(stored);
+    }
+
+    [Fact]
+    public async Task A_turn_after_the_close_drops_the_verdicts_of_the_earlier_check()
+    {
+        var client = Client();
+        var agent = await MonitoredAgent(client);
+        await PutChecks(client, agent, SaysHello);
+        await SendAsync(client, agent, "reopened", "Bye.");
+        await CloseAndCheckAsync(agent);
+        var id = (await Get<ConversationList>(client, $"/monitoring/agents/{agent}/conversations")).Conversations[0].Id;
+
+        await SendAsync(client, agent, "reopened", "Hello!");
+        var reopened = (await Get<ConversationList>(client, $"/monitoring/agents/{agent}/conversations")).Conversations[0];
+        var filtered = await Get<ConversationList>(client, $"/monitoring/agents/{agent}/conversations?failedCheck=says-hello");
+        var detail = await Get<ConversationDetail>(client, $"/monitoring/conversations/{id}");
+
+        Assert.Equal((0, 0), (reopened.FailedChecks, reopened.NotJudgedChecks));
+        Assert.Empty(filtered.Conversations);
+        Assert.Empty(detail.Checks);
     }
 }

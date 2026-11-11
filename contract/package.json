@@ -1,0 +1,8 @@
+{
+    "name": "suwageval-contract",
+    "version": "1.0.0",
+    "description": "The HTTP API of the Suwageval server as an OpenAPI document. Bump the version in the change that changes openapi.json: minor for an addition, major for a break.",
+    "files": ["openapi.json"],
+    "exports": { "./openapi.json": "./openapi.json" },
+    "license": "MIT"
+}
