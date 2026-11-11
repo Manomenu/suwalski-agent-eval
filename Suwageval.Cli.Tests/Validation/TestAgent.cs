@@ -60,6 +60,23 @@ internal static class TestAgent
             Context = new ContextDefinition { Events = [new EventDeclaration { Type = "state.changed", DataSchema = Schema }] },
         };
 
+    public static AgentContract WithSystemTool { get; } =
+        Contract with
+        {
+            Context = Contract.Context with
+            {
+                Tools =
+                [
+                    new ToolDefinition
+                    {
+                        Name = "book_visit",
+                        Description = "Book the visit.",
+                        Parameters = Schema,
+                    },
+                ],
+            },
+        };
+
     public static AgentContract WithFixtures { get; } = Contract with { Context = Contract.Context with { FixturesSchema = Schema } };
 
     public static AgentContract WithRetrieval { get; } =

@@ -140,7 +140,14 @@ turn (the conversation in, the items it produced out). `GET /suwageval/contract`
     "usesRetrieval": true,
     "retrieval": { "dataVersion": "index-build-2026-10-14.3", "description": "1832 articles, help center + returns policy" },
     "events": [{ "type": "state.changed", "dataSchema": { "type": "object" } }],
-    "fixturesSchema": { "type": "object" }
+    "fixturesSchema": { "type": "object" },
+    "tools": [
+      {
+        "name": "book_pickup",
+        "description": "Book the courier pickup of a return once the refund is approved.",
+        "parameters": { "type": "object", "properties": { "order_id": { "type": "string" } }, "required": ["order_id"] }
+      }
+    ]
   }
 }
 ```
@@ -160,9 +167,11 @@ turn (the conversation in, the items it produced out). `GET /suwageval/contract`
 | `context.retrieval.description` | | for people (e.g. `1832 articles, help center + returns policy`), kept on the run beside its data version, shown on the web and in the comparison header; no part of the content, like `label` |
 | `context.events` | | the events the agent emits: `type` and `dataSchema` (a JSON Schema for `data`) |
 | `context.fixturesSchema` | | a JSON Schema: present means the agent accepts scenario fixtures (below). Declared only: the fixtures are not validated against it yet |
+| `context.tools` | | the tools the system's own code calls, with no LLM agent choosing them (a deterministic step books the pickup): the shape of an agent's tool, owned by no agent. A call of one names no `agent`, a check of one takes no `by`. A name is unique here and is no agent's tool too, or a call that names no agent would be ambiguous. Default empty, and left out of the JSON while empty |
 
 Everything but `label` and `context.retrieval` (its `dataVersion` and `description`) is part of the content hash, so any change of a
-`config` or of `otherConfig` is a new version. A version is what the agent does; the data it reads is an attribute of each run (and,
+`config`, of `otherConfig` or of a tool (an agent's or one of `context.tools`) is a new version. An empty `context.tools` is not
+written, so a contract that does not use it hashes as it did before the field existed. A version is what the agent does; the data it reads is an attribute of each run (and,
 with live traffic, of a monitored conversation when the agent sends it), so the trend and the regressions of one version go on across
 new data, and the comparison says where the data differs.
 
@@ -172,7 +181,8 @@ settings (chunking, embedding model, index parameters). Not "last updated": a de
 does not move it. For repeatable runs the agent serves a frozen snapshot of its data in test mode, so `dataVersion` changes only when the
 snapshot is swapped on purpose.
 
-Unknown fields are an error, like everywhere in the contracts.
+Unknown fields are an error, like everywhere in the contracts. So a reader older than a field (an installed CLI, a server not yet
+updated) refuses a contract that carries it: declare `context.tools` only against a server and CLI that know it.
 
 **The turn.** `POST /suwageval/turn` gets `{ "conversation": [...], "fixtures": {...}, "conversationId": "..." }` and answers
 `{ "items": [...] }`, everything the agent produced in that turn, in order (never a `UserMessage`). `fixtures` is the scenario's
@@ -235,8 +245,8 @@ version; the answer to `POST /eval/runs` and `suwageval run` say which version a
 - An agent that cannot be reached, or whose contract cannot be read or is not valid, is a 502
   that names the URL and the cause; nothing is queued.
 - The scenarios and checks must fit that version (every tool and event they name is in it, a
-  tool call's `agent` and a check's `by` name an agent that has the tool, a
-  retrieval needs `usesRetrieval`): otherwise 409 with the mismatches, nothing is queued.
+  tool call's `agent` and a check's `by` name an agent that has the tool, a tool of `context.tools` is named
+  with neither, a retrieval needs `usesRetrieval`): otherwise 409 with the mismatches, nothing is queued.
 - A scenario with `fixtures` needs a version that declares `context.fixturesSchema`; otherwise it is a mismatch too.
 - A **re-check** (`POST /eval/runs/{id}/recheck`, `suwageval recheck`) is a run that does not call the agent: it copies the stored
   samples of a finished run (output, error, undeclared, `durationMs` — the turn times are the source's, copied, not measured
@@ -252,7 +262,7 @@ version; the answer to `POST /eval/runs` and `suwageval run` say which version a
 - At the end of a run the contract is read again. If it differs from the run's version (the agent
   was redeployed mid-run) the run says `contractChangedDuringRun: true`.
 - A `ToolCall` or `Event` the agent produces during a run that its version does not declare is
-  recorded on the sample as `undeclared` (`tool 'x'` when no agent has it, `agent 'y'` for an agent the contract does not have, `tool 'x' of agent 'y'` for an agent without that tool, `event 'z'`) and shown in the results. It
+  recorded on the sample as `undeclared` (`tool 'x'` for a call that names no agent when neither an agent nor `context.tools` has it, `agent 'y'` for an agent the contract does not have, `tool 'x' of agent 'y'` for an agent without that tool, a tool of `context.tools` among them, `event 'z'`) and shown in the results. It
   is a warning, not a failure by itself.
 
 ### A .NET agent: the `Suwageval.AgentSdk` package
@@ -306,7 +316,7 @@ evaluation (one answered at `POST /suwageval/turn`, or with `suwageval.run.id` i
 | --- | --- | --- |
 | `agent` | required | the agent's `name` in its `agent.yaml` |
 | `environment` | required | where this deployment runs: lowercase words of letters and digits joined by hyphens; one the agent's `features.monitoring.environments` takes (any when it names none) |
-| `contractHash` | required | the hash of the contract the agent serves at `/suwageval/contract`: SHA-256, in lowercase hex, of the contract's JSON with `label` and `context.retrieval` (its `dataVersion` and `description`) set to null, serialized compactly with the properties in the contract's order (the SDK's `AgentContractHash.Of`) |
+| `contractHash` | required | the hash of the contract the agent serves at `/suwageval/contract`: SHA-256, in lowercase hex, of the contract's JSON with `label` and `context.retrieval` (its `dataVersion` and `description`) set to null and an empty `context.tools` left out, serialized compactly with the properties in the contract's order (the SDK's `AgentContractHash.Of`) |
 | `contract` | | the whole contract, sent only when the server asked for it (below) |
 | `turns` | required | 1 to 500 turns. Each: `id` (a UUID the sender makes, so a turn sent twice is stored once), `conversationId` (the agent's own id, up to 200 characters; turns with one id are one conversation per environment), `at` (when the turn ended), `items` (the conversation log's items of the turn: the user's message first, then what the agent did and answered, as in a `TurnResponse`), `dataVersion` (optional: the retrieval data it answered from, when the agent can say it cheaply) |
 
@@ -459,7 +469,7 @@ full with `kind:`.
 | --- | --- |
 | `- user: "text"` | `UserMessage` with `text` |
 | `- assistant: "text"` | `AssistantMessage` with `text` and optionally `interrupted` (full form also `sources`: the ids of the documents the answer is grounded on, a list of strings) |
-| `- tool_call: { id, name, arguments, agent }` | `ToolCall`; `arguments` is free mapping; `agent` (optional) is the LLM agent, from the contract's `agents`, that made the call |
+| `- tool_call: { id, name, arguments, agent }` | `ToolCall`; `arguments` is free mapping; `agent` (optional) is the LLM agent, from the contract's `agents`, that made the call; left out for a tool of `context.tools`, which the system's code calls |
 | `- tool_result: { call_id, content, isError }` | `ToolResult` with `callId`; `isError` defaults to `false` |
 | `- event: { type, data }` | `Event`; `data` is free mapping |
 | | `Retrieval` with `query` and `chunks: [{ text, source, score }]` (full form only; `score` is optional, not every retriever reports one) |
@@ -477,7 +487,7 @@ scenario's, see "Samples"). The scenario is the file the check sits in.
 
 | `type` | Fields | Passes when |
 | --- | --- | --- |
-| `tool-called` | `tool`, `by` (optional), `args` (optional), `result` (optional) | the agent called the tool; `by`, when given, names the LLM agent that must have made the call (a call that names no agent never satisfies it); `args`, when given, is a subset of the call's arguments; `result`, when given, is a subset of the call's result (a value may be a `$pattern` or `$judge` matcher, below) |
+| `tool-called` | `tool`, `by` (optional), `args` (optional), `result` (optional) | the agent called the tool; `by`, when given, names the LLM agent that must have made the call (a call that names no agent never satisfies it; a tool of `context.tools` takes no `by`); `args`, when given, is a subset of the call's arguments; `result`, when given, is a subset of the call's result (a value may be a `$pattern` or `$judge` matcher, below) |
 | `tool-not-called` | `tool`, `by` (optional) | the agent did not call the tool; with `by`, only calls made by that LLM agent count |
 | `event` | `event` (the type), `data` (optional), `min`, `max`, `exactly` or `last` (optional) | the agent emitted the event; `data`, when given, is a subset of its data (a value may be a `$pattern` or `$judge` matcher, below). With a bound, the matching events are counted; with `last: true`, only the last event of the type is compared (below) |
 | `event-not-emitted` | `event`, `data` (optional) | no event of that type was emitted (with `data`: none whose data contains it; a `$pattern` may be used there, a `$judge` may not) |
@@ -502,7 +512,7 @@ the one candidate. A check without these fields is stored as before.
 `contains` and `notContains` take one text or a list of texts: the answer contains every text of `contains` and none of
 `notContains`, and a failed verdict names each one that failed. One text is stored as a plain string, as before.
 
-A `tool` must be a tool of some agent (of the agent named by `by`, when given; `by` must be an agent of the contract) and an `event` one of its declared event types (checked
+A `tool` must be a tool of some agent or of `context.tools` (of the agent named by `by`, when given; `by` must be an agent of the contract, and a tool of `context.tools` takes no `by`) and an `event` one of its declared event types (checked
 by `validate` against the agent's contract, and by the server when a run starts).
 An unknown `type` is an error.
 
@@ -511,8 +521,8 @@ An unknown `type` is an error.
 | Field | Meaning |
 | --- | --- |
 | `turn` | a number from 1, `last` or `any` (default `any`) |
-| `after` | a tool name or event type: only what came after it counts |
-| `before` | a tool name or event type: only what came before it counts |
+| `after` | a tool name (an agent's or of `context.tools`) or event type: only what came after it counts |
+| `before` | a tool name (an agent's or of `context.tools`) or event type: only what came before it counts |
 
 How a check is evaluated (the server's `Verdicts/`; no model involved, except for `judge`, below):
 

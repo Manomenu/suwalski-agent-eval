@@ -735,6 +735,70 @@ public sealed class RunEndpointsTests(TestDatabase database, ClassServer server)
         Assert.Equal(duration, results.P95Ms);
     }
 
+    private const string BookingTurn = """
+        {"items":[
+          {"kind":"ToolCall","id":"c1","name":"book_visit","arguments":{"date":"2026-11-12"}},
+          {"kind":"ToolResult","callId":"c1","content":"{\"booked\":true}","isError":false},
+          {"kind":"AssistantMessage","text":"Your visit is booked."}
+        ]}
+        """;
+
+    private static ToolCalledCheck VisitBooked(string? by = null) =>
+        new()
+        {
+            Key = "visit-booked",
+            ScenarioKey = "book",
+            Tool = "book_visit",
+            By = by,
+        };
+
+    [Fact]
+    [Trait("criterion", "AC-system-tools-6")]
+    public async Task A_tool_called_check_of_a_context_tool_passes_on_a_call_that_names_no_agent()
+    {
+        await using var fake = await FakeAgent.AlwaysAsync(BookingTurn);
+        fake.ServeContract(SeededAgent.ExampleVersionWithSystemTool);
+        var client = Client();
+        var agent = await SeededAgent.CreateAsync(database.Pool, fake.Url.AbsoluteUri, [SeededAgent.Scenario("book")], [VisitBooked()]);
+        var created = await StartAsync(client, new RunRequest { Agent = agent.Name });
+
+        var run = await app.Services.GetRequiredService<RunStore>().ClaimNextAsync(agent.Id, Cancellation);
+        await app
+            .Services.GetRequiredService<RunExecutor>()
+            .ExecuteAsync(run ?? throw new InvalidOperationException("not queued"), Cancellation);
+
+        var scenario = Assert.Single((await GetAsync<RunResults>(client, $"/eval/runs/{created.RunId}/results")).Scenarios);
+        Assert.Empty(scenario.Samples[0].Undeclared);
+        Assert.True(Assert.Single(scenario.Checks).Passed);
+        var version = await GetAsync<AgentVersionDetail>(client, $"/agents/{agent.Name}/versions/{created.AgentVersionId}");
+        Assert.Equal("book_visit", Assert.Single(version.Content.Context.Tools).Name);
+    }
+
+    [Fact]
+    [Trait("criterion", "AC-system-tools-6")]
+    public async Task A_check_by_an_agent_of_a_context_tool_is_409_saying_the_systems_code_calls_it()
+    {
+        await using var fake = await FakeAgent.AlwaysAsync(BookingTurn);
+        fake.ServeContract(SeededAgent.ExampleVersionWithSystemTool);
+        var client = Client();
+        var agent = await SeededAgent.CreateAsync(
+            database.Pool,
+            fake.Url.AbsoluteUri,
+            [SeededAgent.Scenario("book")],
+            [VisitBooked(by: "support-agent")]
+        );
+
+        var response = await Post(client, new RunRequest { Agent = agent.Name });
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        using var problem = JsonDocument.Parse(await response.Content.ReadAsStringAsync(Cancellation));
+        Assert.Equal(
+            "check 'visit-booked': it names tool 'book_visit', by agent 'support-agent', but the system's code calls it (context.tools), "
+                + "not an agent: remove 'by'",
+            Assert.Single(problem.RootElement.GetProperty("mismatches").EnumerateArray()).GetString()
+        );
+    }
+
     [Fact]
     public async Task Pass_rates_list_the_finished_runs_oldest_first_with_the_rate_per_tag()
     {

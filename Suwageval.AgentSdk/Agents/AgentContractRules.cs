@@ -49,6 +49,22 @@ public static class AgentContractRules
                 "context.retrieval: the agent does not use retrieval (usesRetrieval is false), so it has no data version to declare"
             );
         }
+        var contextTools = new HashSet<string>();
+        for (var i = 0; i < contract.Context.Tools.Count; i++)
+        {
+            var name = contract.Context.Tools[i].Name;
+            if (string.IsNullOrWhiteSpace(name) || !contextTools.Add(name))
+            {
+                problems.Add($"context.tools[{i}].name: a tool has a name, and its name is unique among the context's tools");
+            }
+            else if (contract.Agents.FirstOrDefault(agent => agent.Tools.Any(tool => tool.Name == name)) is { } owner)
+            {
+                problems.Add(
+                    $"context.tools[{i}].name: '{name}' is also a tool of agent '{owner.Name}'; a tool is called either by the system's "
+                        + "code (context.tools) or by an agent, so keep it in one place, or a call that names no agent would be ambiguous"
+                );
+            }
+        }
         var events = new HashSet<string>();
         for (var i = 0; i < contract.Context.Events.Count; i++)
         {

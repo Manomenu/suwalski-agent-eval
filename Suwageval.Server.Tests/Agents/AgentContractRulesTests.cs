@@ -68,6 +68,33 @@ public sealed class AgentContractRulesTests
     }
 
     [Fact]
+    [Trait("criterion", "AC-system-tools-1")]
+    public void A_context_tool_is_named_once_and_is_no_agents_tool()
+    {
+        var problems = AgentContractRules.Problems(
+            new AgentContract
+            {
+                Agents = [Agent("a", tools: Tool("get_order"))],
+                Context = new ContextDefinition { Tools = [Tool("book_visit"), Tool("book_visit"), Tool(" "), Tool("get_order")] },
+            }
+        );
+
+        Assert.Equal(3, problems.Count);
+        Assert.StartsWith("context.tools[1].name: a tool has a name, and its name is unique", problems[0], StringComparison.Ordinal);
+        Assert.StartsWith("context.tools[2].name", problems[1], StringComparison.Ordinal);
+        Assert.StartsWith("context.tools[3].name: 'get_order' is also a tool of agent 'a'", problems[2], StringComparison.Ordinal);
+        Assert.Empty(
+            AgentContractRules.Problems(
+                new AgentContract
+                {
+                    Agents = [Agent("a", tools: Tool("get_order"))],
+                    Context = new ContextDefinition { Tools = [Tool("book_visit")] },
+                }
+            )
+        );
+    }
+
+    [Fact]
     public void Retrieval_with_a_data_version_is_fine() => Assert.Empty(AgentContractRules.Problems(WithRetrieval("v1")));
 
     [Fact]

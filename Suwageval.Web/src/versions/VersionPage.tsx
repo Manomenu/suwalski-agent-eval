@@ -16,6 +16,7 @@ export function VersionPage({ name, versionId }: { name: string; versionId: stri
             {(version) => {
                 const { content } = version;
                 const events = content.context?.events ?? [];
+                const systemTools = content.context?.tools ?? [];
                 return (
                     <Stack gap="md">
                         <Anchor href={agentHref(name)}>← {name}</Anchor>
@@ -50,6 +51,24 @@ export function VersionPage({ name, versionId }: { name: string; versionId: stri
                                 </Stack>
                             </Paper>
                         ))}
+
+                        {systemTools.length > 0 && (
+                            <Paper withBorder p="md">
+                                <Stack gap="sm">
+                                    <Title order={3}>Tools of the system's code</Title>
+                                    <Text c="dimmed">
+                                        No agent owns these: the system calls them from its own code, no model chooses them.
+                                    </Text>
+                                    {systemTools.map((tool) => (
+                                        <Stack key={tool.name} gap="xs">
+                                            <Text fw={600}>{tool.name}</Text>
+                                            <Text>{tool.description}</Text>
+                                            <Code block>{jsonText(tool.parameters)}</Code>
+                                        </Stack>
+                                    ))}
+                                </Stack>
+                            </Paper>
+                        )}
 
                         {content.otherConfig != null && content.otherConfig !== "" && (
                             <Paper withBorder p="md">

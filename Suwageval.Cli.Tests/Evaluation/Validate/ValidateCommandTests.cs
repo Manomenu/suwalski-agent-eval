@@ -179,7 +179,7 @@ public sealed class ValidateCommandTests : IDisposable
 
         Assert.Equal(1, exit);
         Assert.Contains(
-            "No agent has the tool 'refund_it' (the tools: get_order, refund_order, charge_card)",
+            "Neither an agent nor the system's code (context.tools) has the tool 'refund_it' (the tools: get_order, refund_order, charge_card)",
             output,
             StringComparison.Ordinal
         );

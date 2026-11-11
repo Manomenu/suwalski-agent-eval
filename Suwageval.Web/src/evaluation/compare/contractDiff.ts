@@ -76,6 +76,25 @@ function presenceRow(reference: number, label: string, has: boolean[]): Differen
 
 const unique = (names: string[]) => [...new Set(names)];
 
+type Tool = NonNullable<Contract["agents"][number]["tools"]>[number];
+
+function toolRows(reference: number, owner: string, owned: Tool[][]): Difference[] {
+    const tools = owned.map((list) => new Map(list.map((tool) => [tool.name, json([tool.description, tool.parameters])])));
+    return unique(tools.flatMap((entries) => [...entries.keys()])).flatMap((tool) => {
+        const label = `${owner} ${tool}`;
+        const has = tools.map((entries) => entries.has(tool));
+        if (!has.every(Boolean)) return presenceRow(reference, label, has);
+        return valueRow(
+            reference,
+            label,
+            tools.map((entries) => entries.get(tool) ?? null),
+        ).map((row) => ({
+            ...row,
+            cells: row.cells.map((cell) => ({ ...cell, text: cell.text === null ? null : cell.changed ? CHANGED : SAME })),
+        }));
+    });
+}
+
 export function contractDifferences(columns: readonly ColumnContract[], reference = 0): Difference[] {
     const contracts = columns.map((column) => column.contract);
     const differences: Difference[] = [];
@@ -121,25 +140,22 @@ export function contractDifferences(columns: readonly ColumnContract[], referenc
             });
         }
 
-        const tools = agents.map(
-            (agent) => new Map((agent?.tools ?? []).map((tool) => [tool.name, json([tool.description, tool.parameters])])),
+        differences.push(
+            ...toolRows(
+                reference,
+                `Agent ${name} · tool`,
+                agents.map((agent) => agent?.tools ?? []),
+            ),
         );
-        for (const tool of unique(tools.flatMap((entries) => [...entries.keys()]))) {
-            const label = `Agent ${name} · tool ${tool}`;
-            const has = tools.map((entries) => entries.has(tool));
-            if (has.every(Boolean)) {
-                const definitions = tools.map((entries) => entries.get(tool) ?? null);
-                differences.push(
-                    ...valueRow(reference, label, definitions).map((row) => ({
-                        ...row,
-                        cells: row.cells.map((cell) => ({ ...cell, text: cell.text === null ? null : cell.changed ? CHANGED : SAME })),
-                    })),
-                );
-            } else {
-                differences.push(...presenceRow(reference, label, has));
-            }
-        }
     }
+
+    differences.push(
+        ...toolRows(
+            reference,
+            "System's code (no agent) · tool",
+            contracts.map((contract) => contract.context?.tools ?? []),
+        ),
+    );
 
     const otherLines = contracts.map((contract) => lines(contract.otherConfig));
     for (const line of unique(otherLines.flat())) {

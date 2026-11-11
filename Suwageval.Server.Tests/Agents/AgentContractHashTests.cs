@@ -1,3 +1,5 @@
+using System.Text.Json;
+using Suwageval.AgentSdk;
 using Suwageval.AgentSdk.Agents;
 using Suwageval.Server.Database;
 
@@ -53,12 +55,48 @@ public sealed class AgentContractHashTests
         Assert.DoesNotContain("\"v1\"", AgentContractHash.Content(WithRetrieval("v1")), StringComparison.Ordinal);
     }
 
+    private static AgentContract WithSystemTool(string description) =>
+        Contract() with
+        {
+            Context = new ContextDefinition
+            {
+                Tools =
+                [
+                    new ToolDefinition
+                    {
+                        Name = "book_visit",
+                        Description = description,
+                        Parameters = JsonDocument.Parse("""{"type":"object"}""").RootElement,
+                    },
+                ],
+            },
+        };
+
+    private static JsonElement ContextOf(string json) => JsonDocument.Parse(json).RootElement.GetProperty("context");
+
+    [Fact]
+    [Trait("criterion", "AC-system-tools-2")]
+    public void A_context_tool_is_part_of_the_content_and_an_empty_list_is_not()
+    {
+        Assert.Equal(AgentContractHash.Of(WithSystemTool("Book a visit.")), AgentContractHash.Of(WithSystemTool("Book a visit.")));
+        Assert.NotEqual(AgentContractHash.Of(WithSystemTool("Book a visit.")), AgentContractHash.Of(WithSystemTool("Book the visit.")));
+        Assert.NotEqual(AgentContractHash.Of(Contract()), AgentContractHash.Of(WithSystemTool("Book a visit.")));
+        Assert.False(ContextOf(AgentContractHash.Content(Contract())).TryGetProperty("tools", out _));
+        Assert.False(ContextOf(JsonSerializer.Serialize(Contract(), ContractJson.Options)).TryGetProperty("tools", out _));
+        Assert.Contains(
+            "\"tools\":[{\"name\":\"book_visit\"",
+            AgentContractHash.Content(WithSystemTool("Book a visit.")),
+            StringComparison.Ordinal
+        );
+    }
+
     [Fact]
     public void The_hash_is_the_one_the_server_registers_the_content_under() =>
         Assert.Equal(ContentHash.Of(AgentContractHash.Content(Contract())), AgentContractHash.Of(Contract()));
 
     // Why: agents send this hash as their version name, so changing it splits every stored version; change the expected value only together with a migration
     [Fact]
+    [Trait("criterion", "AC-system-tools-2")]
     public void The_hash_of_a_known_contract_does_not_change() =>
         Assert.Equal(
             "27109d34e75c78ccd2de5ec90629f05c239578d975419107d6a65df2e4e16e26",

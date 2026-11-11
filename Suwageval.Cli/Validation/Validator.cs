@@ -269,11 +269,27 @@ internal static class Validator
         }
         if (agent is null)
         {
-            if (!contract.Agents.Any(declared => declared.Tools.Any(t => t.Name == tool)))
+            if (!AllTools(contract).Contains(tool))
             {
                 var known = string.Join(", ", AllTools(contract));
-                problems.Add(source.Problem(path, $"No agent has the tool '{tool}' (the tools: {known})."));
+                problems.Add(
+                    source.Problem(
+                        path,
+                        $"Neither an agent nor the system's code (context.tools) has the tool '{tool}' (the tools: {known})."
+                    )
+                );
             }
+            return;
+        }
+        if (contract.Context.Tools.Any(t => t.Name == tool))
+        {
+            var field = path[(path.LastIndexOf('.') + 1)..];
+            problems.Add(
+                source.Problem(
+                    path,
+                    $"The tool '{tool}' is called by the system's code (context.tools), not by an agent: remove '{field}: {agent}'."
+                )
+            );
             return;
         }
         var owner = contract.Agents.FirstOrDefault(declared => declared.Name == agent);
@@ -290,7 +306,7 @@ internal static class Validator
     }
 
     private static IEnumerable<string> AllTools(AgentContract contract) =>
-        contract.Agents.SelectMany(agent => agent.Tools.Select(tool => tool.Name)).Distinct();
+        contract.Agents.SelectMany(agent => agent.Tools).Concat(contract.Context.Tools).Select(tool => tool.Name).Distinct();
 
     private static void CheckAnchor(YamlSource source, string path, string? name, AgentContract contract, List<Problem> problems)
     {

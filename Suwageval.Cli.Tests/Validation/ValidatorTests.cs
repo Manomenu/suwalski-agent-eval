@@ -475,7 +475,49 @@ public sealed class ValidatorTests
               - tool_call: { id: c1, name: nope, arguments: {} }
             """;
 
-        AssertProblem(Validate(scenario), "conversation[0].tool_call.name", "No agent has the tool 'nope'");
+        AssertProblem(
+            Validate(scenario),
+            "conversation[0].tool_call.name",
+            "Neither an agent nor the system's code (context.tools) has the tool 'nope'"
+        );
+    }
+
+    [Fact]
+    [Trait("criterion", "AC-system-tools-5")]
+    public void A_context_tool_is_named_without_an_agent_and_by_an_agent_is_a_problem_saying_what_to_remove()
+    {
+        var scenario = """
+            key: k
+            conversation:
+              - tool_call: { id: c1, name: book_visit, arguments: {} }
+              - tool_call: { id: c2, name: book_visit, arguments: {}, agent: support-agent }
+            checks:
+              - key: a
+                type: tool-called
+                tool: book_visit
+              - key: b
+                type: tool-not-called
+                tool: book_visit
+                by: support-agent
+              - key: c
+                type: text
+                contains: booked
+                where: { after: book_visit }
+            """;
+
+        var result = Validate(scenario, TestAgent.WithSystemTool);
+
+        AssertProblem(
+            result,
+            "conversation[1].tool_call.agent",
+            "The tool 'book_visit' is called by the system's code (context.tools), not by an agent: remove 'agent: support-agent'."
+        );
+        AssertProblem(
+            result,
+            "checks[1].by",
+            "The tool 'book_visit' is called by the system's code (context.tools), not by an agent: remove 'by: support-agent'."
+        );
+        Assert.Equal(2, result.Problems.Count);
     }
 
     [Fact]

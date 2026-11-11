@@ -92,4 +92,24 @@ describe("contractDifferences", () => {
             ["Agent judge", ["absent", "present"]],
         ]);
     });
+
+    it("AC-system-tools-7: lists a tool of the system's code added, removed or changed, apart from the agents' tools", () => {
+        const book = { name: "book_visit", description: "Books a visit", parameters: {} };
+        const first = column("a", { context: { tools: [book, { name: "cancel_visit", description: "Cancels", parameters: {} }] } });
+        const second = column("b", {
+            context: {
+                tools: [
+                    { ...book, description: "Books the visit" },
+                    { name: "notify", description: "Notifies", parameters: {} },
+                ],
+            },
+        });
+
+        expect(summary([first, second, column("c")])).toEqual([
+            ["System's code (no agent) · tool book_visit", ["present", "present", "absent"]],
+            ["System's code (no agent) · tool cancel_visit", ["present", "absent", "absent"]],
+            ["System's code (no agent) · tool notify", ["absent", "present", "absent"]],
+        ]);
+        expect(summary([first, second])[0]).toEqual(["System's code (no agent) · tool book_visit", ["same", "changed"]]);
+    });
 });

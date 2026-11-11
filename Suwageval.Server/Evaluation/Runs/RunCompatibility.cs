@@ -15,6 +15,7 @@ internal static class RunCompatibility
     {
         ArgumentNullException.ThrowIfNull(version);
         var agents = version.Agents.ToDictionary(agent => agent.Name, agent => agent.Tools.Select(tool => tool.Name).ToHashSet());
+        var contextTools = version.Context.Tools.Select(tool => tool.Name).ToHashSet();
         var events = version.Context.Events.Select(declared => declared.Type).ToHashSet();
         var mismatches = new List<string>();
 
@@ -28,7 +29,7 @@ internal static class RunCompatibility
             {
                 switch (item)
                 {
-                    case ToolCall call when ToolProblem(agents, call.Name, call.Agent) is { } problem:
+                    case ToolCall call when ToolProblem(agents, contextTools, call.Name, call.Agent, "agent") is { } problem:
                         mismatches.Add($"scenario '{key}': the conversation calls tool '{call.Name}'{problem}");
                         break;
                     case Event emitted when !events.Contains(emitted.Type):
@@ -55,7 +56,7 @@ internal static class RunCompatibility
             {
                 mismatches.Add($"check '{check.Key}': {turnProblem}");
             }
-            if (CheckRules.NamedTool(check) is { } named && ToolProblem(agents, named.Tool, named.By) is { } problem)
+            if (CheckRules.NamedTool(check) is { } named && ToolProblem(agents, contextTools, named.Tool, named.By, "by") is { } problem)
             {
                 mismatches.Add($"check '{check.Key}': it names tool '{named.Tool}'{problem}");
             }
@@ -65,7 +66,7 @@ internal static class RunCompatibility
             }
             foreach (var (path, name) in CheckRules.Anchors(check))
             {
-                if (!events.Contains(name) && !agents.Values.Any(tools => tools.Contains(name)))
+                if (!events.Contains(name) && !contextTools.Contains(name) && !agents.Values.Any(tools => tools.Contains(name)))
                 {
                     mismatches.Add(
                         $"check '{check.Key}': {path} names '{name}', which is neither a tool of the version nor one of its event types"
@@ -76,11 +77,23 @@ internal static class RunCompatibility
         return [.. mismatches.Distinct()];
     }
 
-    private static string? ToolProblem(Dictionary<string, HashSet<string>> agents, string tool, string? agent)
+    private static string? ToolProblem(
+        Dictionary<string, HashSet<string>> agents,
+        HashSet<string> contextTools,
+        string tool,
+        string? agent,
+        string agentField
+    )
     {
         if (agent is null)
         {
-            return agents.Values.Any(tools => tools.Contains(tool)) ? null : ", which no agent of the version has";
+            return contextTools.Contains(tool) || agents.Values.Any(tools => tools.Contains(tool))
+                ? null
+                : ", which no agent of the version has and its context.tools does not declare";
+        }
+        if (contextTools.Contains(tool))
+        {
+            return $", by agent '{agent}', but the system's code calls it (context.tools), not an agent: remove '{agentField}'";
         }
         if (!agents.TryGetValue(agent, out var own))
         {
