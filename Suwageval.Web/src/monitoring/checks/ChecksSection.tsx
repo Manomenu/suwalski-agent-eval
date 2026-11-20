@@ -1,9 +1,8 @@
-import { Anchor, Group, SegmentedControl, Select, Stack, Table, Text, Title } from "@mantine/core";
-import { useState } from "react";
+import { Anchor, Group, Loader, SegmentedControl, Select, Stack, Table, Text, Title } from "@mantine/core";
+import { lazy, Suspense, useState } from "react";
 
 import { useRequest } from "../../api/useRequest";
 import { percentText, seriesColor } from "../../charts/chartStyle";
-import { LineTrend } from "../../charts/LineTrend";
 
 const MAIN_STROKE_WIDTH = 4;
 import { HeaderHelp } from "../../help/HeaderHelp";
@@ -29,6 +28,8 @@ import {
     type Rate,
     type TrendDays,
 } from "./monitoring";
+
+const LineTrend = lazy(() => import("../../charts/LineTrend").then((module) => ({ default: module.LineTrend })));
 
 export function ChecksSection({
     agent,
@@ -122,7 +123,11 @@ export function ChecksSection({
                 />
             </Group>
             {trend.kind === "error" && <Text c="red">{trend.error.message}</Text>}
-            {trend.kind === "loaded" && <TrendCharts trend={trend.value} />}
+            {trend.kind === "loaded" && (
+                <Suspense fallback={<Loader aria-label="Loading the charts" />}>
+                    <TrendCharts trend={trend.value} />
+                </Suspense>
+            )}
         </Stack>
     );
 }
