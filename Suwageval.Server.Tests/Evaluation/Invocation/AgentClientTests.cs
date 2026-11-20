@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Time.Testing;
 using Suwageval.AgentSdk.Conversations;
 using Suwageval.AgentSdk.Invocation;
 using Suwageval.Server.Evaluation.Invocation;
@@ -44,11 +45,19 @@ public sealed class AgentClientTests
     private static HttpResponseMessage Ok(string json) =>
         new(HttpStatusCode.OK) { Content = new StringContent(json, Encoding.UTF8, "application/json") };
 
-    private static async Task<(TurnResult Result, Stub Stub)> CallAsync(Func<HttpRequestMessage, Task<HttpResponseMessage>> answer)
+    private static async Task<(TurnResult Result, Stub Stub)> CallAsync(
+        Func<HttpRequestMessage, Task<HttpResponseMessage>> answer,
+        TimeProvider? time = null
+    )
     {
         using var stub = new Stub(answer);
         using var http = new HttpClient(stub, disposeHandler: false) { Timeout = TimeSpan.FromSeconds(30) };
-        var result = await new AgentClient(http).TurnAsync(Agent, [new UserMessage { Text = "hi" }], Context, Cancellation);
+        var result = await new AgentClient(http, time ?? TimeProvider.System).TurnAsync(
+            Agent,
+            [new UserMessage { Text = "hi" }],
+            Context,
+            Cancellation
+        );
         return (result, stub);
     }
 
@@ -77,7 +86,7 @@ public sealed class AgentClientTests
         using var stub = new Stub(_ => Task.FromResult(Ok("""{"items":[]}""")));
         using var http = new HttpClient(stub, disposeHandler: false);
 
-        await new AgentClient(http).TurnAsync(Agent, [new AssistantMessage { Text = "a" }], Context, Cancellation);
+        await new AgentClient(http, TimeProvider.System).TurnAsync(Agent, [new AssistantMessage { Text = "a" }], Context, Cancellation);
 
         Assert.DoesNotContain("interrupted", stub.RequestBody, StringComparison.Ordinal);
     }
@@ -89,7 +98,15 @@ public sealed class AgentClientTests
         using var http = new HttpClient(stub, disposeHandler: false);
         var fixtures = JsonDocument.Parse("""{"pinnedResources":["plans"],"n":1.50}""").RootElement.Clone();
 
-        await new AgentClient(http).TurnAsync(Agent, [new UserMessage { Text = "hi" }], Context with { Fixtures = fixtures }, Cancellation);
+        await new AgentClient(http, TimeProvider.System).TurnAsync(
+            Agent,
+            [new UserMessage { Text = "hi" }],
+            Context with
+            {
+                Fixtures = fixtures,
+            },
+            Cancellation
+        );
 
         using var body = JsonDocument.Parse(stub.RequestBody ?? "");
         Assert.Equal(fixtures.GetRawText(), body.RootElement.GetProperty("fixtures").GetRawText());
@@ -124,20 +141,27 @@ public sealed class AgentClientTests
     [Fact]
     public async Task Measures_how_long_the_call_took_whether_it_succeeded_or_not()
     {
-        var (answered, _) = await CallAsync(async _ =>
-        {
-            await Task.Delay(60, Cancellation);
-            return Ok("""{"items":[]}""");
-        });
-        var (failed, _) = await CallAsync(async _ =>
-        {
-            await Task.Delay(60, Cancellation);
-            return new HttpResponseMessage(HttpStatusCode.InternalServerError);
-        });
+        var time = new FakeTimeProvider();
+        var (answered, _) = await CallAsync(
+            _ =>
+            {
+                time.Advance(TimeSpan.FromMilliseconds(60));
+                return Task.FromResult(Ok("""{"items":[]}"""));
+            },
+            time
+        );
+        var (failed, _) = await CallAsync(
+            _ =>
+            {
+                time.Advance(TimeSpan.FromMilliseconds(70));
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.InternalServerError));
+            },
+            time
+        );
 
-        Assert.True(answered.DurationMs >= 50, $"{answered.DurationMs}");
+        Assert.Equal(60, answered.DurationMs);
         Assert.Null(failed.Items);
-        Assert.True(failed.DurationMs >= 50, $"{failed.DurationMs}");
+        Assert.Equal(70, failed.DurationMs);
     }
 
     [Fact]
@@ -205,7 +229,12 @@ public sealed class AgentClientTests
         using var hanging = new Hanging();
         using var http = new HttpClient(hanging, disposeHandler: false) { Timeout = TimeSpan.FromMilliseconds(200) };
 
-        var result = await new AgentClient(http).TurnAsync(Agent, [new UserMessage { Text = "hi" }], Context, Cancellation);
+        var result = await new AgentClient(http, TimeProvider.System).TurnAsync(
+            Agent,
+            [new UserMessage { Text = "hi" }],
+            Context,
+            Cancellation
+        );
 
         Assert.Null(result.Items);
         Assert.Contains("did not answer within", result.Error, StringComparison.Ordinal);
@@ -221,7 +250,7 @@ public sealed class AgentClientTests
     {
         using var stub = new Stub(answer);
         using var http = new HttpClient(stub, disposeHandler: false) { Timeout = TimeSpan.FromSeconds(30) };
-        return (await new AgentClient(http).GetContractAsync(Agent, Cancellation), stub);
+        return (await new AgentClient(http, TimeProvider.System).GetContractAsync(Agent, Cancellation), stub);
     }
 
     [Fact]
@@ -269,7 +298,7 @@ public sealed class AgentClientTests
         using var hanging = new Hanging();
         using var http = new HttpClient(hanging, disposeHandler: false) { Timeout = TimeSpan.FromMilliseconds(200) };
 
-        var result = await new AgentClient(http).GetContractAsync(Agent, Cancellation);
+        var result = await new AgentClient(http, TimeProvider.System).GetContractAsync(Agent, Cancellation);
 
         Assert.Null(result.Contract);
         Assert.Contains("no answer within", result.Error, StringComparison.Ordinal);
@@ -284,7 +313,7 @@ public sealed class AgentClientTests
         using var http = new HttpClient(stub, disposeHandler: false);
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            new AgentClient(http).TurnAsync(Agent, [new UserMessage { Text = "hi" }], Context, cancelled.Token)
+            new AgentClient(http, TimeProvider.System).TurnAsync(Agent, [new UserMessage { Text = "hi" }], Context, cancelled.Token)
         );
     }
 }

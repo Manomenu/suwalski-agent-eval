@@ -110,6 +110,7 @@ test("print=1 in the address opens the print dialog once, when the page is shown
     await page.goto(`/runs/${runId}?tag=smoke&print=1`);
     await expect.poll(() => printedCount(page)).toBe(1);
     await expect(page).toHaveURL(new RegExp(`/runs/${runId}\\?tag=smoke$`));
-    await page.waitForTimeout(300);
+    await page.locator("label", { hasText: /^Hide passed checks$/ }).click();
+    await expect(page).toHaveURL(/hide=passed/);
     expect(await printedCount(page)).toBe(1);
 });

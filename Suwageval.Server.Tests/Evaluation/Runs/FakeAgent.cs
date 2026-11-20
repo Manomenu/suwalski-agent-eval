@@ -25,8 +25,6 @@ internal sealed class FakeAgent : IAsyncDisposable
     private WebApplication? app;
     private readonly ConcurrentQueue<string> requests = new();
     private readonly ConcurrentQueue<IReadOnlyDictionary<string, string>> headers = new();
-    private int inFlight;
-    private int maxInFlight;
     private int contractRequests;
     private Func<int, IResult> contract = _ => Results.Text(SeededAgent.Serialized(SeededAgent.ExampleVersion), "application/json");
 
@@ -44,12 +42,10 @@ internal sealed class FakeAgent : IAsyncDisposable
 
     public void ServeContract(Func<int, IResult> answer) => Volatile.Write(ref contract, answer);
 
-    public int MaxConcurrency => Volatile.Read(ref maxInFlight);
+    public static Task<FakeAgent> StartAsync(Func<string, int, IResult> answer, InFlightCalls? held = null) =>
+        StartAsync((body, call) => Task.FromResult(answer(body, call)), held);
 
-    public static Task<FakeAgent> StartAsync(Func<string, int, IResult> answer, TimeSpan? delay = null) =>
-        StartAsync((body, call) => Task.FromResult(answer(body, call)), delay);
-
-    public static async Task<FakeAgent> StartAsync(Func<string, int, Task<IResult>> answer, TimeSpan? delay = null)
+    public static async Task<FakeAgent> StartAsync(Func<string, int, Task<IResult>> answer, InFlightCalls? held = null)
     {
         var builder = WebApplication.CreateSlimBuilder();
         builder.Logging.ClearProviders();
@@ -67,23 +63,18 @@ internal sealed class FakeAgent : IAsyncDisposable
                     request.Headers.ToDictionary(header => header.Key, header => header.Value.ToString(), StringComparer.OrdinalIgnoreCase)
                 );
                 agent.requests.Enqueue(body);
-                var now = Interlocked.Increment(ref agent.inFlight);
-                int seen;
-                do
+                if (held is null)
                 {
-                    seen = Volatile.Read(ref agent.maxInFlight);
-                } while (now > seen && Interlocked.CompareExchange(ref agent.maxInFlight, now, seen) != seen);
+                    return await answer(body, agent.requests.Count);
+                }
                 try
                 {
-                    if (delay is { } wait)
-                    {
-                        await Task.Delay(wait);
-                    }
+                    await held.EnterAsync();
                     return await answer(body, agent.requests.Count);
                 }
                 finally
                 {
-                    Interlocked.Decrement(ref agent.inFlight);
+                    held.Leave();
                 }
             }
         );
@@ -93,8 +84,8 @@ internal sealed class FakeAgent : IAsyncDisposable
         return agent;
     }
 
-    public static Task<FakeAgent> AlwaysAsync(string json, TimeSpan? delay = null) =>
-        StartAsync((_, _) => Results.Text(json, "application/json"), delay);
+    public static Task<FakeAgent> AlwaysAsync(string json, InFlightCalls? held = null) =>
+        StartAsync((_, _) => Results.Text(json, "application/json"), held);
 
     public async ValueTask DisposeAsync()
     {

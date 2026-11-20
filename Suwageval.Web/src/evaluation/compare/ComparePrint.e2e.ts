@@ -125,6 +125,7 @@ test("print=1 in the address opens the print dialog once, when the page is shown
     await page.goto(fitting("&print=1"));
     await expect.poll(() => printedCount(page)).toBe(1);
     await expect(page).not.toHaveURL(/print=1/);
-    await page.waitForTimeout(300);
+    await page.getByText("By tag", { exact: true }).click();
+    await expect(page.getByRole("radio", { name: "By tag", exact: true })).toBeChecked();
     expect(await printedCount(page)).toBe(1);
 });

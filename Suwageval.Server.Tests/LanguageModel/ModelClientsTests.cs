@@ -22,45 +22,39 @@ public sealed class ModelClientsTests
 
     private static readonly ChatMessage[] Question = [new(ChatRole.User, "?")];
 
-    private sealed class Counting
-    {
-        private int inFlight;
-        private int peak;
-
-        public int Peak => Volatile.Read(ref peak);
-
-        public RecordedModel Model { get; }
-
-        public Counting()
+    private static RecordedModel Holding(InFlightCalls held) =>
+        new(async _ =>
         {
-            Model = new RecordedModel(async cancellation =>
+            try
             {
-                var now = Interlocked.Increment(ref inFlight);
-                int seen;
-                while (now > (seen = Volatile.Read(ref peak)) && Interlocked.CompareExchange(ref peak, now, seen) != seen) { }
-                await Task.Delay(30, cancellation);
-                Interlocked.Decrement(ref inFlight);
+                await held.EnterAsync();
                 return "{}";
-            });
-        }
-    }
+            }
+            finally
+            {
+                held.Leave();
+            }
+        });
 
     [Fact]
     public async Task Twenty_calls_through_eight_slots_never_have_more_than_eight_in_flight()
     {
-        var counting = new Counting();
-        var client = counting.Model.Clients(maxConcurrency: 8).Get("fallback");
+        var held = new InFlightCalls();
+        var client = Holding(held).Clients(maxConcurrency: 8).Get("fallback");
 
-        await Task.WhenAll(Enumerable.Range(0, 20).Select(_ => client.GetResponseAsync(Question, cancellationToken: Cancellation)));
+        var calls = Enumerable.Range(0, 20).Select(_ => client.GetResponseAsync(Question, cancellationToken: Cancellation)).ToList();
+        await held.ReachedAsync(8).WaitAsync(TimeSpan.FromSeconds(30), Cancellation);
+        held.Release();
+        await Task.WhenAll(calls);
 
-        Assert.Equal(8, counting.Peak);
+        Assert.Equal(8, held.Peak);
     }
 
     [Fact]
     public async Task The_pool_of_a_model_is_shared_by_everything_that_asks_for_it()
     {
-        var counting = new Counting();
-        var clients = counting.Model.Clients(maxConcurrency: 3);
+        var held = new InFlightCalls();
+        var clients = Holding(held).Clients(maxConcurrency: 3);
 
         Assert.Same(clients.Get("fallback"), clients.Get("FALLBACK"));
 
@@ -74,11 +68,13 @@ public sealed class ModelClientsTests
             Criteria = "c",
         };
         var trace = Items.Turn(Items.Say("hi"));
-        var calls = Enumerable.Range(0, 12).Select(i => (i % 2 == 0 ? first : second).JudgeAsync(check, [], trace, Cancellation));
+        var calls = Enumerable.Range(0, 12).Select(i => (i % 2 == 0 ? first : second).JudgeAsync(check, [], trace, Cancellation)).ToList();
 
+        await held.ReachedAsync(3).WaitAsync(TimeSpan.FromSeconds(30), Cancellation);
+        held.Release();
         await Task.WhenAll(calls);
 
-        Assert.Equal(3, counting.Peak);
+        Assert.Equal(3, held.Peak);
     }
 
     [Fact]
