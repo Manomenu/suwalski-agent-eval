@@ -248,3 +248,8 @@ To do in that change:
   the existing tags or a parallel mechanism beside them (e.g. `topics`). The same agent-scoped tag list would serve the triage
   of live checks above. The doubt: written tags are free, repeatable and reviewed in the repo; matched ones can change between
   pushes and make the filters and the trend lie. Build only if writing tags proves a burden.
+
+## When suwgate is ready: move the gate to it and offer this repo's own guards
+
+- Replace the gate glue (the check script and the repository guards) with `suwgate check` from the public suwgate project (GitHub Manomenu/suwgate; npm @maniumek/suwgate; NuGet Suwgate.Architecture and Suwgate.Database), configured in suwgate.yml.
+- Before moving, review the guards and checks this repo has beyond the template, and propose the generic ones for suwgate, so every app gets them.
