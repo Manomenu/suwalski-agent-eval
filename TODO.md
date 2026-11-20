@@ -257,16 +257,7 @@ To do in that change:
 - **The server on suwbackkit**, in a change of its own: the migrator, the pool, the worktree databases. Its `MapServerDefaults`
   maps a `/health` of its own, next to the server's `/health`, which the compose healthcheck, the e2e tests and the chart's
   probes call.
-- **Exceptions of `suwgate.yml` that wait for suwgate fixes** (each fix makes its exceptions stale, and the gate says so):
-  options bound through a `Section` constant (`appsettings-bound`), Helm templates as images (`image-pins`).
-- **The null-forgiving `!` in tests**: AGENTS.md bans it outside tests only, and `architecture/no-escape-hatches` reads the tests
-  since Suwgate.Architecture 0.2.0, so each test file that uses it is an exception in `suwgate.yml`. Either the tests state
-  their values without it, or suwgate takes a setting that leaves the tests out.
-- **Gaps of suwgate this repository works around:** `dotnet-test` takes no filter, so the live tests run in the gate and skip
-  without a model; no lookup of one criterion (`just criteria <id>` is gone); the browser tests run only inside `suwgate check`,
-  so `just e2e` (`--headed`, `-g`) went with the app's own e2e script.
-- **Offer this repository's own guards to suwgate**, which does not have them yet: the Helm chart step, the layers inside an area
-  and the sub-features (`ServerContractsTests`), a class fixture instead of a server started in a field (`ClassServerTests`,
-  by the initializer, not the field's type), the worktree database refusal (`TestDatabase`), web modules differing only in
-  letter case (`WebModuleNamesTests`), the server image copying every project it builds from (`ServerImageTests`), prose files of
+- **A gap of suwgate:** no lookup of one criterion (`just criteria <id>` is gone).
+- **Offer this repository's own guards to suwgate**, which does not have them yet: the Helm chart step, the worktree database
+  refusal (`TestDatabase`), web modules differing only in letter case (`WebModuleNamesTests`), the server image copying every project it builds from (`ServerImageTests`), prose files of
   `criteria.json` holding no test (`CriteriaExamplesTests`).

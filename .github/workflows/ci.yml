@@ -21,7 +21,7 @@ jobs:
   gate:
     permissions:
       contents: read
-    uses: Manomenu/suwgate/.github/workflows/gate.yml@28c7f98f3d3a012996c05926e47a6af3388ebdfa
+    uses: Manomenu/suwgate/.github/workflows/gate.yml@79c384742e641de1e729b5f8a405b3d597befa3b
     with:
       working-directory: Suwageval.Web
       dotnet: true

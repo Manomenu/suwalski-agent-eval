@@ -1,6 +1,6 @@
 {
   "projects": {
-    "Suwageval.AgentSdk": {},
+    "Suwageval.AgentSdk": { "layers": ["Monitoring", "Invocation", "Agents | Conversations", "."] },
     "Suwageval.Contracts": { "references": ["Suwageval.AgentSdk"] },
     "Suwageval.Server": {
       "layers": ["Api", "LiveCheck | ScenarioDrafts", "Evaluation | Monitoring", "Judges", "Verdicts | LanguageModel", "Agents", "Database | Problems"],
@@ -8,6 +8,7 @@
         "Evaluation": ["Runs", "Simulation", "Checks | Invocation", "Scenarios"],
         "Monitoring": ["Checking", "Checks | Conversations"]
       },
+      "subFeatures": true,
       "references": ["Suwageval.Contracts"],
       "internalsVisibleTo": ["Suwageval.Server.Tests"]
     },

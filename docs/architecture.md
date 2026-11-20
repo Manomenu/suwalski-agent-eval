@@ -36,7 +36,7 @@ One line per top-level path (at most 300 characters each). suwgate's `repository
 - `.config/` — `dotnet-tools.json`: the pinned CSharpier.
 - `.artifacts/` — everything generated (e2e reports, renders), outside git and the images.
 
-Files at the root: `suwgate.yml` (the gate: profiles, the steps it adds, the exceptions with their reasons, the local stack), `layers.json` (the layers of the server and the CLI, and which project may reference which), `criteria.json` (the files the `criteria` step reads as prose), `Directory.Build.props` (target framework, warnings as errors, lock files, and Suwgate.Architecture, which brings the analyzers, the banned APIs and the rules), `Directory.Build.rsp` (no idle MSBuild workers), `Directory.Packages.props` (every package version, once), `.editorconfig` (whitespace, CSharpier's width and the rules this repository switches off), `.gitattributes` (a new binary or generated file type gets its line), `global.json`, `nuget.config` (nuget.org only), `tmux-dev.just` and `secrets.just` (modules of the `justfile`).
+Files at the root: `suwgate.yml` (the gate: profiles, the steps it adds, the exceptions with their reasons, the local stack), `layers.json` (the layers of the server, the CLI and the SDK, and which project may reference which), `criteria.json` (the files the `criteria` step reads as prose), `Directory.Build.props` (target framework, warnings as errors, lock files, and Suwgate.Architecture, which brings the analyzers, the banned APIs and the rules), `Directory.Build.rsp` (no idle MSBuild workers), `Directory.Packages.props` (every package version, once), `.editorconfig` (whitespace, CSharpier's width and the rules this repository switches off), `.gitattributes` (a new binary or generated file type gets its line), `global.json`, `nuget.config` (nuget.org only), `tmux-dev.just` and `secrets.just` (modules of the `justfile`).
 
 ## The gate
 
@@ -45,18 +45,16 @@ The gate is [suwgate](https://github.com/Manomenu/suwgate): `suwgate check` runs
 - Belongs in the gate: anything that decides whether a change passes. A tool for everyday work stays in `scripts/`, even when the gate calls it.
 - The edit hook (`suwgate hook guard-edit`) refuses an agent's edit of the gate files: `suwgate.yml`, `layers.json`, the tool configs, the workflows, `Suwageval.Gate/`. The owner lifts it for one session with `ALLOW_GATE_EDIT=1 claude`.
 - An exception in `suwgate.yml` lets one target through one guard, always with its reason; one that no longer matches fails the gate.
-- The SDK's layers stay beside the SDK's tests (`AgentSdkContractsTests` in `Suwageval.Server.Tests`): the release workflow picks those tests by class name, and its proof should be what it ran.
 
 ## What the gate forbids
 
 Each line is a build rule, a guard or a test; its message says the fix. Rules live as low as they can: types and analyzers first.
 
-- From suwgate: the build (analyzers `latest-all`, warnings as errors, style rules, namespace equals folder, NuGet audit, the banned APIs: the clock, blocking on tasks, `Console`, `Activator`, reflection discovery, Newtonsoft.Json), CSharpier and Prettier (`just fmt` fixes both), the tests, tsc strict, eslint (strict type-checked, no comments, no inline switches), knip, the API contract and its version, acceptance criteria, compose, shellcheck, gitleaks; the guards over comments, names, scripts, images, docs paths, the map above, AGENTS.md, VS Code settings, packages, appsettings and hooks; and, through Suwgate.Architecture, the server's layers, endpoints, project references, interfaces with two implementations, nothing obsolete, no unused type, unique type names, one type per file, no `dynamic` and no null-forgiving `!` outside tests, the build settings and the names of migration scripts.
+- From suwgate: the build (analyzers `latest-all`, warnings as errors, style rules, namespace equals folder, NuGet audit, the banned APIs: the clock, blocking on tasks, `Console`, `Activator`, reflection discovery, Newtonsoft.Json), CSharpier and Prettier (`just fmt` fixes both), the tests, tsc strict, eslint (strict type-checked, no comments, no inline switches), knip, the API contract and its version, acceptance criteria, compose, shellcheck, gitleaks; the guards over comments, names, scripts, images, docs paths, the map above, AGENTS.md, VS Code settings, packages, appsettings and hooks; and, through Suwgate.Architecture, the layers of the server, the CLI and the SDK with the areas and the server's sub-features, a class fixture instead of a server started in a field, endpoints, project references, interfaces with two implementations, nothing obsolete, no unused type, unique type names, one type per file, no `dynamic` and no null-forgiving `!` outside tests, the build settings and the names of migration scripts.
 - This repository's own (in `suwgate.yml` or `Suwageval.Gate`):
   - the chart: `helm lint` and `helm template` with the 63-character limit on annotation and label names (`Suwageval.Gate/scripts/chart.sh`);
   - the plugin's session hook gives an agent's repository the Suwageval loop (a step of `suwgate.yml`); manifests and skills are sound (`ClaudePluginTests`);
-  - the order of the features inside an area, and a sub-feature used by neither its feature nor its siblings (`ServerContractsTests`); the CLI's layers and areas (`CliContractsTests`);
-  - no test class starts the server in a field (`ClassServerTests`); a linked worktree's tests never use the main checkout's database (`TestDatabase`);
+  - a linked worktree's tests never use the main checkout's database (`TestDatabase`);
   - the server's image copies every project it builds from (`ServerImageTests`); no two web modules in one folder differ only in letter case (`WebModuleNamesTests`);
   - a file `criteria.json` reads as prose is named whole and holds no test (`CriteriaExamplesTests`);
   - eslint: the import boundaries of the web (below), a request in an effect goes through `api/useRequest.ts`, a switch over a union names every member.
@@ -72,7 +70,7 @@ Each line is a build rule, a guard or a test; its message says the fix. Rules li
 
 ## Import contracts: which part may use which
 
-A part may use the parts below it, never above it or beside it. "Below" means more basic. The order is data in `layers.json` for the server and the CLI, and `boundaries/*` in `Suwageval.Web/eslint.config.js` for the web; a dependency against it fails with the types involved. The check reads compiled code: a `const` or a `nameof` leaves no trace there, a type used in a signature, a field or a call does.
+A part may use the parts below it, never above it or beside it. "Below" means more basic. The order is data in `layers.json` for the server, the CLI and the SDK, and `boundaries/*` in `Suwageval.Web/eslint.config.js` for the web; a dependency against it fails with the types involved. The check reads compiled code: a `const` or a `nameof` leaves no trace there, a type used in a signature, a field or a call does.
 
 - **Areas.** An area (`Evaluation`, `Monitoring`) groups the features of one product area: one entry in the top order, with an order of its own inside. An area never uses another area. Features every area needs stand below the areas and never use one; what a second area needs from the first moves down into a shared feature. `Api` and the parts above the areas compose them.
 - **The CLI** is layered the same way. The commands of an area are siblings, none uses another; what two share moves down. Command names stay flat on purpose (`suwageval run`): evaluation is the daily work, so only the code follows the areas, and `HelpSections` shows them as sections.

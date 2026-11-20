@@ -30,6 +30,7 @@ just web             # web app on :3230, proxies /api to the server
 just up              # the whole stack in containers on :8093 — no cluster needed
 just build-images    # only build suwageval-server:local and suwageval-web:local, for another repository's compose stack
 just check           # the quality gate (suwgate check, the browser tests too), exactly what CI runs
+just e2e             # only the browser tests (suwgate step e2e), with what they need; --headed, -g <name> go to Playwright
 just check-quick     # the gate while working: the guards, and build, csharpier, the guard tests, eslint, tsc, vitest for what changed; no database
 just cli validate DIR  # the suwageval CLI from source; `just cli-install` installs it globally
 just tmux-dev start  # tmux layout: server, web, the example agent suwexag (from source with `dotnet watch`, else its `suwexag:local` image), spare shell, CLI shell (SUWAGEVAL_AGENT_DIR sets the agent folder)

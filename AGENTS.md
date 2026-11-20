@@ -27,7 +27,7 @@ Agents commit and push only with [suwgit](https://github.com/Manomenu/suwgit) (`
 - For people: a recipe in `justfile`, or in a module of the whole repository beside it (`tmux-dev.just`, `secrets.just`), with a one-line description; `just` lists them.
 - For agents: a script in `scripts/.internal/`, or in `Suwageval.Gate/scripts/` when it checks quality; each answers `--help`. A recipe only calls the script. The gate is
   `suwgate` (`Suwageval.Web/node_modules/.bin/suwgate`), configured in `suwgate.yml`; `suwgate dev` runs the local database and server.
-- `suwgate check --quick` while working, `just check` (the full `suwgate check`, with this checkout's databases and the browser tests) before calling a change done.
+- `suwgate check --quick` while working, and `suwgate step <step> [-- <tool args>]` runs one step while working (e.g. `suwgate step e2e -- --headed` after changing anything a user clicks; `suwgate step` lists them); `just check` (the full `suwgate check`, with this checkout's databases and the browser tests) before calling a change done.
 
 ## Rules
 

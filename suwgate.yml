@@ -11,10 +11,11 @@ steps:
       title: the plugin's session hook gives an agent's repository the Suwageval loop (claude-plugin/scripts/session-context.sh on the CLI's sample agent)
       run: CLAUDE_PROJECT_DIR=Suwageval.Cli.Tests/Sample sh claude-plugin/scripts/session-context.sh | grep -q "tested and watched by Suwageval"
       limitSeconds: 30
+  configure:
+    dotnet-test:
+      settings:
+        excludeTraits: [live=true]
 exceptions:
-  - guard: architecture/every-project-guarded
-    target: Suwageval.AgentSdk
-    reason: its layers end in the root namespace, which the layers guard cannot name; AgentSdkContractsTests guard them in Suwageval.Server.Tests, the tests the SDK's release workflow runs
   - guard: architecture/every-project-guarded
     target: Suwageval.Contracts
     reason: plain records that mirror the server's areas, with no layer above another to keep apart
@@ -24,18 +25,6 @@ exceptions:
   - guard: architecture/interfaces-have-two-implementations
     target: Suwageval.AgentSdk.Invocation.ITurnHandler
     reason: the agent under test implements it, outside this repository
-  - guard: appsettings-bound
-    target: Invocation
-    reason: bound by BindConfiguration(InvocationOptions.Section), a constant the guard does not read
-  - guard: appsettings-bound
-    target: Judge
-    reason: bound by BindConfiguration(JudgeOptions.Section), a constant the guard does not read
-  - guard: appsettings-bound
-    target: Runs
-    reason: bound by BindConfiguration(RunsOptions.Section), a constant the guard does not read
-  - guard: appsettings-bound
-    target: Simulation
-    reason: bound by BindConfiguration(SimulationOptions.Section), a constant the guard does not read
   - guard: banned-npm-packages
     target: "@mantine/charts"
     reason: the web app is built on Mantine until its own change moves it to suwfrontkit (TODO.md)
@@ -54,112 +43,9 @@ exceptions:
   - guard: forbidden-names
     target: deploy/chart/templates/_helpers.tpl
     reason: the name Helm's convention gives the chart's named templates (helm create)
-  - guard: image-pins
-    target: deploy/chart/templates/live-check.yaml
-    reason: the image is a Helm template ({{ include "app.image" }}) whose tag is required at deployment, never latest
-  - guard: image-pins
-    target: deploy/chart/templates/server.yaml
-    reason: the image is a Helm template ({{ include "app.image" }}) whose tag is required at deployment, never latest
-  - guard: image-pins
-    target: deploy/chart/templates/smoke-test.yaml
-    reason: the image is a Helm template ({{ include "app.image" }}) whose tag is required at deployment, never latest
-  - guard: image-pins
-    target: deploy/chart/templates/web.yaml
-    reason: the image is a Helm template ({{ include "app.image" }}) whose tag is required at deployment, never latest
-  - guard: architecture/no-escape-hatches
-    target: Suwageval.Cli.Tests/Evaluation/Run/RunCommandTests.cs
-    reason: a test file; AGENTS.md bans the null-forgiving ! outside tests only, and a test that reads a value it has just asserted states it with !
-  - guard: architecture/no-escape-hatches
-    target: Suwageval.Cli.Tests/Evaluation/Sweep/VariantSweepTests.cs
-    reason: a test file; AGENTS.md bans the null-forgiving ! outside tests only, and a test that reads a value it has just asserted states it with !
-  - guard: architecture/no-escape-hatches
-    target: Suwageval.Cli.Tests/Files/ConversationShorthandsTests.cs
-    reason: a test file; AGENTS.md bans the null-forgiving ! outside tests only, and a test that reads a value it has just asserted states it with !
-  - guard: architecture/no-escape-hatches
-    target: Suwageval.Cli.Tests/Files/YamlSourceTests.cs
-    reason: a test file; AGENTS.md bans the null-forgiving ! outside tests only, and a test that reads a value it has just asserted states it with !
-  - guard: architecture/no-escape-hatches
-    target: Suwageval.Cli.Tests/Init/InitCommandTests.cs
-    reason: a test file; AGENTS.md bans the null-forgiving ! outside tests only, and a test that reads a value it has just asserted states it with !
-  - guard: architecture/no-escape-hatches
-    target: Suwageval.Cli.Tests/Validation/TestAgent.cs
-    reason: a test file; AGENTS.md bans the null-forgiving ! outside tests only, and a test that reads a value it has just asserted states it with !
-  - guard: architecture/no-escape-hatches
-    target: Suwageval.Server.Tests/Agents/AgentEndpointsTests.cs
-    reason: a test file; AGENTS.md bans the null-forgiving ! outside tests only, and a test that reads a value it has just asserted states it with !
-  - guard: architecture/no-escape-hatches
-    target: Suwageval.Server.Tests/Agents/DeletionTests.cs
-    reason: a test file; AGENTS.md bans the null-forgiving ! outside tests only, and a test that reads a value it has just asserted states it with !
-  - guard: architecture/no-escape-hatches
-    target: Suwageval.Server.Tests/AgentSdk/Monitoring/SuwagevalMonitoringTests.cs
-    reason: a test file; AGENTS.md bans the null-forgiving ! outside tests only, and a test that reads a value it has just asserted states it with !
-  - guard: architecture/no-escape-hatches
-    target: Suwageval.Server.Tests/EndToEnd/EveryEndpointHasACliCommandTests.cs
-    reason: a test file; AGENTS.md bans the null-forgiving ! outside tests only, and a test that reads a value it has just asserted states it with !
-  - guard: architecture/no-escape-hatches
-    target: Suwageval.Server.Tests/Evaluation/Checks/CheckTypesTests.cs
-    reason: a test file; AGENTS.md bans the null-forgiving ! outside tests only, and a test that reads a value it has just asserted states it with !
-  - guard: architecture/no-escape-hatches
-    target: Suwageval.Server.Tests/Evaluation/Invocation/SuwagevalAgentEndpointsTests.cs
-    reason: a test file; AGENTS.md bans the null-forgiving ! outside tests only, and a test that reads a value it has just asserted states it with !
-  - guard: architecture/no-escape-hatches
-    target: Suwageval.Server.Tests/Evaluation/Invocation/TurnRequestTests.cs
-    reason: a test file; AGENTS.md bans the null-forgiving ! outside tests only, and a test that reads a value it has just asserted states it with !
-  - guard: architecture/no-escape-hatches
-    target: Suwageval.Server.Tests/Evaluation/Runs/AgentErrors/AgentErrorEndpointsTests.cs
-    reason: a test file; AGENTS.md bans the null-forgiving ! outside tests only, and a test that reads a value it has just asserted states it with !
-  - guard: architecture/no-escape-hatches
-    target: Suwageval.Server.Tests/Evaluation/Runs/AgentErrors/AgentErrorStoreTests.cs
-    reason: a test file; AGENTS.md bans the null-forgiving ! outside tests only, and a test that reads a value it has just asserted states it with !
-  - guard: architecture/no-escape-hatches
-    target: Suwageval.Server.Tests/Evaluation/Runs/Compare/CompareEndpointsTests.cs
-    reason: a test file; AGENTS.md bans the null-forgiving ! outside tests only, and a test that reads a value it has just asserted states it with !
-  - guard: architecture/no-escape-hatches
-    target: Suwageval.Server.Tests/Evaluation/Runs/Compare/RunComparerTests.cs
-    reason: a test file; AGENTS.md bans the null-forgiving ! outside tests only, and a test that reads a value it has just asserted states it with !
-  - guard: architecture/no-escape-hatches
-    target: Suwageval.Server.Tests/Evaluation/Runs/Groups/RunGroupEndpointsTests.cs
-    reason: a test file; AGENTS.md bans the null-forgiving ! outside tests only, and a test that reads a value it has just asserted states it with !
-  - guard: architecture/no-escape-hatches
-    target: Suwageval.Server.Tests/Evaluation/Runs/RegressionHistoryTests.cs
-    reason: a test file; AGENTS.md bans the null-forgiving ! outside tests only, and a test that reads a value it has just asserted states it with !
-  - guard: architecture/no-escape-hatches
-    target: Suwageval.Server.Tests/Evaluation/Runs/RunEndpointsTests.cs
-    reason: a test file; AGENTS.md bans the null-forgiving ! outside tests only, and a test that reads a value it has just asserted states it with !
-  - guard: architecture/no-escape-hatches
-    target: Suwageval.Server.Tests/Evaluation/Runs/RunHistory.cs
-    reason: a test file; AGENTS.md bans the null-forgiving ! outside tests only, and a test that reads a value it has just asserted states it with !
-  - guard: architecture/no-escape-hatches
-    target: Suwageval.Server.Tests/Evaluation/Runs/RunRecheckTests.cs
-    reason: a test file; AGENTS.md bans the null-forgiving ! outside tests only, and a test that reads a value it has just asserted states it with !
-  - guard: architecture/no-escape-hatches
-    target: Suwageval.Server.Tests/Evaluation/Runs/RunStoreTests.cs
-    reason: a test file; AGENTS.md bans the null-forgiving ! outside tests only, and a test that reads a value it has just asserted states it with !
-  - guard: architecture/no-escape-hatches
-    target: Suwageval.Server.Tests/Evaluation/Runs/Trend/PassRatesEndpointTests.cs
-    reason: a test file; AGENTS.md bans the null-forgiving ! outside tests only, and a test that reads a value it has just asserted states it with !
-  - guard: architecture/no-escape-hatches
-    target: Suwageval.Server.Tests/Evaluation/Runs/Unstable/UnstableEndpointsTests.cs
-    reason: a test file; AGENTS.md bans the null-forgiving ! outside tests only, and a test that reads a value it has just asserted states it with !
-  - guard: architecture/no-escape-hatches
-    target: Suwageval.Server.Tests/Evaluation/Runs/Unstable/UnstableStoreTests.cs
-    reason: a test file; AGENTS.md bans the null-forgiving ! outside tests only, and a test that reads a value it has just asserted states it with !
-  - guard: architecture/no-escape-hatches
-    target: Suwageval.Server.Tests/Evaluation/Scenarios/ScenarioStoreTests.cs
-    reason: a test file; AGENTS.md bans the null-forgiving ! outside tests only, and a test that reads a value it has just asserted states it with !
-  - guard: architecture/no-escape-hatches
-    target: Suwageval.Server.Tests/Monitoring/Checking/MonitoringChecksTests.cs
-    reason: a test file; AGENTS.md bans the null-forgiving ! outside tests only, and a test that reads a value it has just asserted states it with !
-  - guard: architecture/no-escape-hatches
-    target: Suwageval.Server.Tests/Monitoring/Conversations/ConversationEndpointsTests.cs
-    reason: a test file; AGENTS.md bans the null-forgiving ! outside tests only, and a test that reads a value it has just asserted states it with !
-  - guard: architecture/no-escape-hatches
-    target: Suwageval.Server.Tests/TestDatabase.cs
-    reason: a test file; AGENTS.md bans the null-forgiving ! outside tests only, and a test that reads a value it has just asserted states it with !
-  - guard: architecture/no-escape-hatches
-    target: Suwageval.Server.Tests/Verdicts/CheckEvaluatorTests.cs
-    reason: a test file; AGENTS.md bans the null-forgiving ! outside tests only, and a test that reads a value it has just asserted states it with !
 settings:
+  architecture/no-escape-hatches:
+    nullForgivingInTests: true
   docs-paths:
     ignore: [Suwageval.Web/node_modules/, setup.sh, secrets.json, .secrets/, .artifacts/nupkg, scripts/.internal/package.sh, suwageval/, monitoring-checks.yaml, refund-damaged-item.yaml]
   hooks:

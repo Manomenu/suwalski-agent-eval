@@ -98,6 +98,11 @@ logs *service:
 check:
     @{{ suwgate }} check
 
+# Browser tests (Playwright) against a real server and an empty database of their own, the gate's e2e step alone; arguments go to Playwright (--headed, -g <name>)
+[group('maintenance')]
+e2e *args:
+    @{{ suwgate }} step e2e -- {{ args }}
+
 # The quick gate while working: the repository guards, and build, csharpier, the guard tests, eslint, tsc, vitest and shellcheck for what changed (what the Claude Code Stop hook runs)
 [group('maintenance')]
 check-quick:
