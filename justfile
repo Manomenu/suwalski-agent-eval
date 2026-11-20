@@ -93,15 +93,10 @@ status:
 logs *service:
     docker compose logs -f {{ service }}
 
-# Browser tests of the whole app against a real server and database (also run by CI); not part of `just check`
-[group('maintenance')]
-e2e *args:
-    @./scripts/.internal/e2e.sh {{ args }}
-
-# The whole gate (suwgate check: build with analyzers, csharpier, every test, the web checks, the API contract and its version, acceptance criteria, the chart, compose, shellcheck, gitleaks) — the same CI runs; a worktree gets its own test database
+# The whole gate (suwgate check: build with analyzers, csharpier, every test, the web checks, the API contract and its version, acceptance criteria, the chart, compose, shellcheck, gitleaks, the browser tests) — the same CI runs; a worktree gets its own test databases and ports
 [group('maintenance')]
 check:
-    @eval "$({{ suwgate }} dev checkout-env)" && {{ suwgate }} check
+    @{{ suwgate }} check
 
 # The quick gate while working: the repository guards, and build, csharpier, the guard tests, eslint, tsc, vitest and shellcheck for what changed (what the Claude Code Stop hook runs)
 [group('maintenance')]

@@ -1,12 +1,7 @@
 namespace Suwageval.AgentSdk.Agents;
 
-/// <summary>
-/// What is wrong with an <see cref="AgentContract"/>, written once for the server (which refuses to register such a contract)
-/// and for an agent's own unit test.
-/// </summary>
 public static class AgentContractRules
 {
-    /// <summary>One sentence for each problem; empty when the contract can be registered.</summary>
     public static IReadOnlyList<string> Problems(AgentContract contract)
     {
         ArgumentNullException.ThrowIfNull(contract);

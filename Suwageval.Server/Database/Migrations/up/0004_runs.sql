@@ -1,4 +1,3 @@
--- A run is a row in a queue: the worker takes the oldest 'Queued' one (FOR UPDATE SKIP LOCKED).
 CREATE TABLE runs (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     agent_id uuid NOT NULL REFERENCES agents (id),
@@ -17,7 +16,6 @@ CREATE TABLE runs (
 CREATE INDEX runs_queue_idx ON runs (created_at, id) WHERE status = 'Queued';
 CREATE INDEX runs_agent_id_idx ON runs (agent_id, created_at DESC);
 
--- One row per sample of a scenario: what the agent produced for it, or why it produced nothing.
 CREATE TABLE scenario_results (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     run_id uuid NOT NULL REFERENCES runs (id),
@@ -31,7 +29,6 @@ CREATE TABLE scenario_results (
     UNIQUE (run_id, scenario_id, sample)
 );
 
--- One row per check and sample: the verdict. The pass rate over samples is computed when the results are read.
 CREATE TABLE check_results (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     scenario_result_id uuid NOT NULL REFERENCES scenario_results (id),

@@ -257,15 +257,14 @@ To do in that change:
 - **The server on suwbackkit**, in a change of its own: the migrator, the pool, the worktree databases. Its `MapServerDefaults`
   maps a `/health` of its own, next to the server's `/health`, which the compose healthcheck, the e2e tests and the chart's
   probes call.
-- **Exceptions of `suwgate.yml` that wait for suwgate 0.1.x fixes** (each fix makes its exceptions stale, and the gate says so):
-  XML documentation of the SDK and the contracts (`comments-csharp`, one exception per file: a setting for documented folders),
-  comments of migrations that already ran (`comments-sql` versus `migrations-unchanged`), options bound through a `Section`
-  constant (`appsettings-bound`), Helm templates as images (`image-pins`), the CLI's assembly named `suwageval`
-  (the every-project-guarded guard, and `Layers` cannot read the CLI, so `CliContractsTests` stays).
-- **Gaps of suwgate 0.1.x this repository works around:** `suwgate check` does not apply `suwgate dev checkout-env` to the
-  .NET tests (`just check` does, and `TestDatabase` refuses a worktree without it); the `e2e` step makes no fresh database
-  (skipped, `e2e.sh` runs the browser tests); `dotnet-test` takes no filter, so the live tests run in the gate and skip without
-  a model; no lookup of one criterion (`just criteria <id>` is gone).
+- **Exceptions of `suwgate.yml` that wait for suwgate fixes** (each fix makes its exceptions stale, and the gate says so):
+  options bound through a `Section` constant (`appsettings-bound`), Helm templates as images (`image-pins`).
+- **The null-forgiving `!` in tests**: AGENTS.md bans it outside tests only, and `architecture/no-escape-hatches` reads the tests
+  since Suwgate.Architecture 0.2.0, so each test file that uses it is an exception in `suwgate.yml`. Either the tests state
+  their values without it, or suwgate takes a setting that leaves the tests out.
+- **Gaps of suwgate this repository works around:** `dotnet-test` takes no filter, so the live tests run in the gate and skip
+  without a model; no lookup of one criterion (`just criteria <id>` is gone); the browser tests run only inside `suwgate check`,
+  so `just e2e` (`--headed`, `-g`) went with the app's own e2e script.
 - **Offer this repository's own guards to suwgate**, which does not have them yet: the Helm chart step, the layers inside an area
   and the sub-features (`ServerContractsTests`), a class fixture instead of a server started in a field (`ClassServerTests`,
   by the initializer, not the field's type), the worktree database refusal (`TestDatabase`), web modules differing only in

@@ -1,12 +1,5 @@
 namespace Suwageval.Contracts.Agents;
 
-/// <summary>
-/// A registered version of an agent, without its content (but with the names of the models its LLM agents use, so runs can be
-/// filtered by model); <c>Data</c> is the retrieval data its runs ran on, each once (empty for an agent without retrieval), newest first;
-/// <c>ArchivedAt</c> is set while the version is archived.
-/// <c>Runs</c> counts the version's runs in no group and <c>GroupRuns</c> those in a group (a re-check counts as in the group of its original):
-/// where the version is used. Both zero: unused.
-/// </summary>
 public sealed record AgentVersion(
     Guid Id,
     Guid AgentId,
@@ -23,6 +16,5 @@ public sealed record AgentVersion(
 
     public required int GroupRuns { get; init; }
 
-    /// <summary>Where the version answers the conversations of a deployed agent (monitoring), one entry per environment; empty: nowhere.</summary>
     public IReadOnlyList<VersionMonitoring> Monitoring { get; init; } = [];
 }

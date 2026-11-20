@@ -6,7 +6,7 @@ internal static class LayerOrders
 {
     public const string Path = "layers.json";
 
-    private static readonly Lazy<JsonDocument> Document = new(() => JsonDocument.Parse(ArchitectureTests.Repository.Read(Path)));
+    private static readonly Lazy<JsonDocument> Document = new(() => JsonDocument.Parse(GuardTests.Repository.Read(Path)));
 
     public static LayerOrder Server => Order("Suwageval.Server");
 

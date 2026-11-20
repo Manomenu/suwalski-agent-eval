@@ -1,6 +1,5 @@
 namespace Suwageval.Contracts.Runs;
 
-/// <summary>One earlier run of a check's history and whether the check passed in it.</summary>
 public sealed record CheckHistoryPoint
 {
     public required Guid RunId { get; init; }
@@ -9,6 +8,5 @@ public sealed record CheckHistoryPoint
 
     public required bool Passed { get; init; }
 
-    /// <summary>The retrieval data that run was on; none for an agent without retrieval.</summary>
     public string? DataVersion { get; init; }
 }

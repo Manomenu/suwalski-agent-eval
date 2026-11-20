@@ -1,9 +1,5 @@
 namespace Suwageval.Contracts.Agents;
 
-/// <summary>
-/// Whether an agent's <see cref="RegressionSettings"/> are valid, written once for <c>suwageval validate</c> and <c>push</c> and for the
-/// server when a push arrives. Paths are relative to the agent definition (<c>regression.history</c>).
-/// </summary>
 public static class RegressionRules
 {
     public static IReadOnlyList<(string Path, string Message)> Problems(RegressionSettings? settings)

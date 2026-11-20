@@ -1,6 +1,3 @@
--- The agent's monitoring checks (suwageval/monitoring-checks.yaml, pushed whole: a check the file no longer has is deleted, its
--- revisions and results stay), and their verdicts on each closed conversation. A conversation is checked once it closes (checked_at);
--- a new turn opens it again and it is checked anew when it closes again, its results replaced.
 CREATE TABLE monitoring_checks (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     agent_id uuid NOT NULL REFERENCES agents (id) ON DELETE CASCADE,

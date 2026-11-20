@@ -5,7 +5,7 @@ public sealed class WebModuleNamesTests
     [Fact]
     public void No_two_web_modules_in_one_folder_differ_only_in_letter_case_of_their_name()
     {
-        var clashes = ArchitectureTests
+        var clashes = GuardTests
             .Repository.Paths.Where(path => path.StartsWith("Suwageval.Web/src/", StringComparison.Ordinal))
             .Where(path => path.EndsWith(".ts", StringComparison.Ordinal) || path.EndsWith(".tsx", StringComparison.Ordinal))
             .Select(path => (Folder: path[..path.LastIndexOf('/')], File: path[(path.LastIndexOf('/') + 1)..]))

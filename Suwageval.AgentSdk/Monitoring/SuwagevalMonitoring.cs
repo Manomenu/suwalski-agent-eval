@@ -7,18 +7,10 @@ namespace Suwageval.AgentSdk.Monitoring;
 
 public static class SuwagevalMonitoring
 {
-    /// <summary>The name of the <see cref="HttpClient"/> the turns are sent with, for an agent that configures its handler (a proxy, say).</summary>
     public const string HttpClientName = "Suwageval.Monitoring";
 
-    /// <summary>How many recorded turns wait for the sender at most; past that the oldest go.</summary>
     public const int QueueCapacity = 1000;
 
-    /// <summary>
-    /// Registers <see cref="IConversationRecorder"/>: with <c>Suwageval:Url</c> set (<see cref="MonitoringOptions"/>), recorded turns go
-    /// to Suwageval in the background, named by the contract the registered <see cref="Invocation.IAgentContractSource"/> serves;
-    /// without it the recorder does nothing, so an agent records its turns the same way in every deployment. With the URL set,
-    /// <c>Suwageval:Agent</c> and <c>Suwageval:Environment</c> are required: the agent does not start without them.
-    /// </summary>
     public static IServiceCollection AddSuwagevalMonitoring(this IServiceCollection services, IConfiguration configuration)
     {
         ArgumentNullException.ThrowIfNull(configuration);

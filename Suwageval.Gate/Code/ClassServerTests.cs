@@ -13,7 +13,7 @@ public sealed class ClassServerTests
     [Fact]
     public void No_test_class_starts_the_server_in_a_field()
     {
-        var found = ArchitectureTests
+        var found = GuardTests
             .Repository.CSharpSources("Suwageval.Server.Tests/")
             .Where(file => file.Path != "Suwageval.Server.Tests/ClassServer.cs")
             .SelectMany(file =>

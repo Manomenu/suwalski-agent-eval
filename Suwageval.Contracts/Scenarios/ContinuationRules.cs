@@ -2,15 +2,10 @@ using Suwageval.Contracts.Checks;
 
 namespace Suwageval.Contracts.Scenarios;
 
-/// <summary>
-/// Whether a scenario's <c>continuation</c> is valid, and whether a check fits it — written once for the CLI and the server.
-/// </summary>
 public static class ContinuationRules
 {
-    /// <summary>The most turns a scenario may ask for: every turn is an agent call and a model call, times the samples.</summary>
     public const int MaxTurns = 20;
 
-    /// <summary>What is wrong with the scenario's continuation, each with its path under the scenario (<c>continuation.turns</c>).</summary>
     public static IReadOnlyList<(string Path, string Message)> Problems(ScenarioInput scenario)
     {
         ArgumentNullException.ThrowIfNull(scenario);
@@ -36,10 +31,6 @@ public static class ContinuationRules
         return problems;
     }
 
-    /// <summary>
-    /// What is wrong with a check of a scenario with <paramref name="continuation"/>, or null: a simulation goes another way in every
-    /// sample, so a check of one never picks a turn by its number.
-    /// </summary>
     public static string? CheckProblem(CheckInput check, Continuation continuation)
     {
         ArgumentNullException.ThrowIfNull(check);

@@ -4,13 +4,6 @@ using Suwageval.Contracts.Samples;
 
 namespace Suwageval.Contracts.Checks;
 
-/// <summary>
-/// The rules that decide whether a check is valid, written once for everyone who validates one: <c>suwageval validate</c> and
-/// <c>push</c> (the CLI) and the server when a push arrives. They look at one check at a time; what needs more than the check
-/// (keys unique across the request or the files, tools and events an agent declares) stays with the caller, which can ask
-/// <see cref="NamedTool"/>, <see cref="NamedEvent"/> and <see cref="Anchors"/> what the check refers to.
-/// Paths are relative to the check, so a caller passes where the check sits (<c>checks[2]</c>).
-/// </summary>
 public static class CheckRules
 {
     public const string JudgeKey = "$judge";
@@ -22,7 +15,6 @@ public static class CheckRules
     private const int MostEventsCounted = 1000;
     private static readonly TimeSpan PatternTimeout = TimeSpan.FromSeconds(1);
 
-    /// <summary>Everything wrong with the check itself, each problem with its path under <paramref name="path"/>.</summary>
     public static IReadOnlyList<CheckProblem> Problems(CheckInput check, string path)
     {
         ArgumentNullException.ThrowIfNull(check);
@@ -89,7 +81,6 @@ public static class CheckRules
         return problems;
     }
 
-    /// <summary>The tool the check asks for (<c>tool-called</c>, <c>tool-not-called</c>); null for any other check.</summary>
     public static ToolReference? NamedTool(CheckInput check) =>
         check switch
         {
@@ -98,7 +89,6 @@ public static class CheckRules
             _ => null,
         };
 
-    /// <summary>The event type the check asks for (<c>event</c>, <c>event-not-emitted</c>); null for any other check.</summary>
     public static string? NamedEvent(CheckInput check) =>
         check switch
         {
@@ -107,7 +97,6 @@ public static class CheckRules
             _ => null,
         };
 
-    /// <summary>The names in <c>where.after</c> / <c>where.before</c> — each a tool or an event type — with their path under the check.</summary>
     public static IEnumerable<(string Path, string Name)> Anchors(CheckInput check)
     {
         ArgumentNullException.ThrowIfNull(check);
@@ -121,7 +110,6 @@ public static class CheckRules
         }
     }
 
-    /// <summary>Whether a <c>$judge</c> key is anywhere in <paramref name="expected"/>.</summary>
     public static bool HoldsJudge(JsonElement expected) =>
         expected.ValueKind switch
         {
@@ -137,7 +125,6 @@ public static class CheckRules
             _ => false,
         };
 
-    /// <summary>The matchers in <c>args</c> / <c>result</c> / <c>data</c>: every <c>$pattern</c> compiles, every <c>$judge</c> is well formed.</summary>
     private static void AddMatcherProblems(List<CheckProblem> problems, JsonElement? expected, string path)
     {
         if (expected is not { } json)

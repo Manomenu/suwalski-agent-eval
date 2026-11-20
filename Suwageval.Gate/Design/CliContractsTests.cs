@@ -10,7 +10,7 @@ public sealed class CliContractsTests
 {
     private const string Root = "Suwageval.Cli";
 
-    private static readonly Architecture Cli = new ArchLoader().LoadAssemblies(ArchitectureTests.Cli).Build();
+    private static readonly Architecture Cli = new ArchLoader().LoadAssemblies(GuardTests.Cli).Build();
 
     public static TheoryData<string, string> Edges() => LayerOrders.Cli.AllEdges();
 
