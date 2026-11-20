@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Time.Testing;
 using Suwageval.AgentSdk.Conversations;
 using Suwageval.AgentSdk.Invocation;
 using Suwageval.Contracts.Checks;
@@ -36,7 +37,8 @@ public sealed class RunExecutorTests(TestDatabase database)
         Uri? endpoint = null,
         Judge? judge = null,
         ArgumentJudge? argumentJudge = null,
-        UserSimulator? simulator = null
+        UserSimulator? simulator = null,
+        TimeProvider? time = null
     )
     {
         var store = Store();
@@ -53,7 +55,7 @@ public sealed class RunExecutorTests(TestDatabase database)
             new ScenarioStore(database.Pool),
             new CheckStore(database.Pool),
             new AgentStore(database.Pool),
-            new AgentClient(new HttpClient { Timeout = TimeSpan.FromSeconds(10) }),
+            new AgentClient(new HttpClient { Timeout = TimeSpan.FromSeconds(10) }, time ?? TimeProvider.System),
             simulator ?? RecordedModel.SimulatorAnswering("simulated-end.json"),
             judge ?? RecordedModel.JudgeAnswering("passed.json"),
             argumentJudge ?? RecordedModel.Answering("passed.json").ArgumentJudge(),
@@ -67,10 +69,11 @@ public sealed class RunExecutorTests(TestDatabase database)
         SeededAgent agent,
         IReadOnlyCollection<string>? tags = null,
         int parallel = 2,
-        Judge? judge = null
+        Judge? judge = null,
+        TimeProvider? time = null
     )
     {
-        var (run, executor) = await ClaimAsync(agent, tags, parallel, judge: judge);
+        var (run, executor) = await ClaimAsync(agent, tags, parallel, judge: judge, time: time);
         await executor.ExecuteAsync(run, Cancellation);
         return await ResultsAsync(run.Id);
     }
@@ -160,7 +163,14 @@ public sealed class RunExecutorTests(TestDatabase database)
     [Fact]
     public async Task The_duration_of_the_call_is_stored_per_sample_and_missing_when_no_call_was_made()
     {
-        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.PlainTurn, TimeSpan.FromMilliseconds(80));
+        var time = new FakeTimeProvider();
+        await using var fake = await FakeAgent.StartAsync(
+            (_, _) =>
+            {
+                time.Advance(TimeSpan.FromMilliseconds(80));
+                return Results.Text(FakeAgent.PlainTurn, "application/json");
+            }
+        );
         var agent = await SeededAgent.CreateAsync(
             database.Pool,
             fake.Url.AbsoluteUri,
@@ -168,10 +178,10 @@ public sealed class RunExecutorTests(TestDatabase database)
             []
         );
 
-        var results = await RunAsync(agent);
+        var results = await RunAsync(agent, time: time);
 
         var answered = Assert.Single(Assert.Single(results.Scenarios, scenario => scenario.Key == "answered").Samples);
-        Assert.True(answered.DurationMs >= 70, $"{answered.DurationMs}");
+        Assert.Equal(80, answered.DurationMs);
         var skipped = Assert.Single(Assert.Single(results.Scenarios, scenario => scenario.Key == "multi").Samples);
         Assert.Null(skipped.DurationMs);
     }
@@ -179,14 +189,21 @@ public sealed class RunExecutorTests(TestDatabase database)
     [Fact]
     public async Task A_call_that_failed_still_has_a_duration()
     {
-        await using var fake = await FakeAgent.StartAsync((_, _) => Results.StatusCode(500), TimeSpan.FromMilliseconds(80));
+        var time = new FakeTimeProvider();
+        await using var fake = await FakeAgent.StartAsync(
+            (_, _) =>
+            {
+                time.Advance(TimeSpan.FromMilliseconds(80));
+                return Results.StatusCode(500);
+            }
+        );
         var agent = await SeededAgent.CreateAsync(database.Pool, fake.Url.AbsoluteUri, [SeededAgent.Scenario("down")], []);
 
-        var results = await RunAsync(agent);
+        var results = await RunAsync(agent, time: time);
 
         var sample = Assert.Single(Assert.Single(results.Scenarios).Samples);
         Assert.Equal(SampleStatus.Failed, sample.Status);
-        Assert.True(sample.DurationMs >= 70, $"{sample.DurationMs}");
+        Assert.Equal(80, sample.DurationMs);
     }
 
     private static JudgeCheck PoliteRefusal(string key, string scenarioKey) =>
@@ -617,7 +634,8 @@ public sealed class RunExecutorTests(TestDatabase database)
     [Fact]
     public async Task Samples_run_in_parallel_up_to_the_configured_degree()
     {
-        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.PlainTurn, TimeSpan.FromMilliseconds(250));
+        var held = new InFlightCalls();
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.PlainTurn, held);
         var agent = await SeededAgent.CreateAsync(
             database.Pool,
             fake.Url.AbsoluteUri,
@@ -625,16 +643,20 @@ public sealed class RunExecutorTests(TestDatabase database)
             []
         );
 
-        var results = await RunAsync(agent, parallel: 2);
+        var running = RunAsync(agent, parallel: 2);
+        await held.ReachedAsync(2).WaitAsync(TimeSpan.FromSeconds(30), Cancellation);
+        held.Release();
+        var results = await running;
 
         Assert.Equal(5, results.Run.SamplesDone);
-        Assert.Equal(2, fake.MaxConcurrency);
+        Assert.Equal(2, held.Peak);
     }
 
     [Fact]
     public async Task One_at_a_time_when_the_degree_is_one()
     {
-        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.PlainTurn, TimeSpan.FromMilliseconds(100));
+        var held = new InFlightCalls();
+        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.PlainTurn, held);
         var agent = await SeededAgent.CreateAsync(
             database.Pool,
             fake.Url.AbsoluteUri,
@@ -642,9 +664,12 @@ public sealed class RunExecutorTests(TestDatabase database)
             []
         );
 
-        await RunAsync(agent, parallel: 1);
+        var running = RunAsync(agent, parallel: 1);
+        await held.ReachedAsync(1).WaitAsync(TimeSpan.FromSeconds(30), Cancellation);
+        held.Release();
+        await running;
 
-        Assert.Equal(1, fake.MaxConcurrency);
+        Assert.Equal(1, held.Peak);
     }
 
     [Fact]
@@ -718,9 +743,9 @@ public sealed class RunExecutorTests(TestDatabase database)
 
     private const string Angry = "Anna wants her money back for a broken kettle and is annoyed.";
 
-    private async Task<RunResults> SimulateAsync(SeededAgent agent, UserSimulator simulator)
+    private async Task<RunResults> SimulateAsync(SeededAgent agent, UserSimulator simulator, TimeProvider? time = null)
     {
-        var (run, executor) = await ClaimAsync(agent, simulator: simulator);
+        var (run, executor) = await ClaimAsync(agent, simulator: simulator, time: time);
         await executor.ExecuteAsync(run, Cancellation);
         return await ResultsAsync(run.Id);
     }
@@ -734,7 +759,14 @@ public sealed class RunExecutorTests(TestDatabase database)
     [Fact]
     public async Task A_simulation_plays_every_turn_and_each_turn_but_the_first_opens_with_the_simulated_user()
     {
-        await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.PlainTurn, TimeSpan.FromMilliseconds(30));
+        var time = new FakeTimeProvider();
+        await using var fake = await FakeAgent.StartAsync(
+            (_, call) =>
+            {
+                time.Advance(TimeSpan.FromMilliseconds(10 * call));
+                return Results.Text(FakeAgent.PlainTurn, "application/json");
+            }
+        );
         var agent = await SeededAgent.CreateAsync(
             database.Pool,
             fake.Url.AbsoluteUri,
@@ -749,7 +781,7 @@ public sealed class RunExecutorTests(TestDatabase database)
             ]
         );
 
-        var results = await SimulateAsync(agent, RecordedModel.SimulatorAnswering("simulated-message.json"));
+        var results = await SimulateAsync(agent, RecordedModel.SimulatorAnswering("simulated-message.json"), time);
 
         var scenario = Assert.Single(results.Scenarios);
         var sample = Assert.Single(scenario.Samples);
@@ -760,8 +792,8 @@ public sealed class RunExecutorTests(TestDatabase database)
             sample.Output?.Select(item => item.GetType().Name)
         );
         Assert.Equal("It arrived broken, I want my money back.", Assert.IsType<UserMessage>(sample.Output?[1]).Text);
-        Assert.Equal(3, sample.TurnDurationsMs?.Count);
-        Assert.Equal(sample.TurnDurationsMs?.Sum(), sample.DurationMs);
+        Assert.Equal([10, 20, 30], sample.TurnDurationsMs);
+        Assert.Equal(60, sample.DurationMs);
         Assert.True(Assert.Single(scenario.Checks).Passed);
 
         var bodies = fake.Requests.ToList();

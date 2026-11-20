@@ -52,7 +52,7 @@ public sealed class GateRunTests(TestDatabase database)
             new ScenarioStore(database.Pool),
             new CheckStore(database.Pool),
             new AgentStore(database.Pool),
-            new AgentClient(new HttpClient { Timeout = TimeSpan.FromSeconds(10) }),
+            new AgentClient(new HttpClient { Timeout = TimeSpan.FromSeconds(10) }, TimeProvider.System),
             RecordedModel.SimulatorAnswering("simulated-end.json"),
             RecordedModel.JudgeAnswering("passed.json"),
             RecordedModel.Answering("passed.json").ArgumentJudge(),

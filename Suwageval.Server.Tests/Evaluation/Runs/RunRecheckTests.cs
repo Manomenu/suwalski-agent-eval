@@ -77,7 +77,7 @@ public sealed class RunRecheckTests(TestDatabase database, ClassServer server) :
                 scenarios,
                 checks,
                 new AgentStore(database.Pool),
-                new AgentClient(new HttpClient { Timeout = TimeSpan.FromSeconds(10) }),
+                new AgentClient(new HttpClient { Timeout = TimeSpan.FromSeconds(10) }, TimeProvider.System),
                 RecordedModel.SimulatorAnswering("simulated-end.json"),
                 answering,
                 argumentJudge,

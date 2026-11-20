@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -9,7 +8,7 @@ using Suwageval.AgentSdk.Invocation;
 
 namespace Suwageval.Server.Evaluation.Invocation;
 
-internal sealed class AgentClient(HttpClient http)
+internal sealed class AgentClient(HttpClient http, TimeProvider time)
 {
     private const int BodyExcerptLength = 300;
 
@@ -45,9 +44,9 @@ internal sealed class AgentClient(HttpClient http)
         CancellationToken cancellationToken = default
     )
     {
-        var clock = Stopwatch.StartNew();
+        var start = time.GetTimestamp();
         var result = await CallAsync(endpointUrl, conversation, context, cancellationToken);
-        return result with { DurationMs = (int)clock.ElapsedMilliseconds };
+        return result with { DurationMs = (int)time.GetElapsedTime(start).TotalMilliseconds };
     }
 
     internal static string Baggage(TurnContext context)
