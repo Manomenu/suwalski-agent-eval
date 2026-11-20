@@ -4,7 +4,6 @@ namespace Suwageval.Server.Verdicts;
 
 internal sealed record Trace(IReadOnlyList<IReadOnlyList<ConversationItem>> Turns)
 {
-    // Why: the agent never produces a UserMessage, so each one is the simulated user's and opens a turn
     public static Trace Of(IReadOnlyList<ConversationItem> output)
     {
         ArgumentNullException.ThrowIfNull(output);

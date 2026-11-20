@@ -20,10 +20,8 @@ using Suwageval.Server.ScenarioDrafts;
 
 namespace Suwageval.Server.Api;
 
-// Why: routes have no /api prefix because the edge (vite proxy, nginx) strips it before the request lands here
 internal static class ServerApp
 {
-    // Why: the build writes the OpenAPI document by starting the app inside its GetDocument tool, so the database must not be touched
     private static bool WritingOpenApiDocument => Assembly.GetEntryAssembly()?.GetName().Name == "GetDocument.Insider";
 
     public static WebApplication Build(string[] args)
@@ -42,7 +40,6 @@ internal static class ServerApp
         builder.Services.ConfigureHttpJsonOptions(options =>
         {
             ContractJson.Configure(options.SerializerOptions);
-            // Why: an unset field is absent from a response, and this is not in ContractJson.Options because that also serializes what is hashed
             options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
         });
         builder.Services.AddProblemDetails();
@@ -53,7 +50,6 @@ internal static class ServerApp
         builder.Services.AddOpenApi();
 
         var app = builder.Build();
-        // Why: every answer says which build sent it, because the CLI names it when it cannot read an answer
         var build = ServerVersion.Of(typeof(ServerApp).Assembly);
         app.Use(
             (context, next) =>
@@ -65,7 +61,6 @@ internal static class ServerApp
         app.UseStatusCodePages();
         app.MapOpenApi();
 
-        // Why: touches nothing outside the process, so it doubles as the cluster's liveness probe
         app.MapGet("/health", () => new Health("ok"));
 
         app.MapAgents();

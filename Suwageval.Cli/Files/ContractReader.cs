@@ -28,7 +28,6 @@ internal static partial class ContractReader
         }
         catch (NotSupportedException e) when (e.Message.Contains("type discriminator", StringComparison.Ordinal))
         {
-            // Why: System.Text.Json throws this exception, not a JsonException, when a polymorphic payload has no discriminator
             problems.Add(
                 source.Problem(
                     path,

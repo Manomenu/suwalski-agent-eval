@@ -9,7 +9,6 @@ internal static class ValidationReport
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
         WriteIndented = true,
-        // Why: printed for a program, not embedded in HTML, so quotes stay quotes
         Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
     };
 

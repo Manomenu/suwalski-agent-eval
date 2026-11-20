@@ -34,7 +34,7 @@ To do in that change:
 
 ## Practices of the template not yet in place
 
-- **A `!` in tests.** `EscapeHatchTests` leaves tests out: about 120 of them, on values the test just asserted.
+- **A `!` in tests.** `No_escape_hatches` in `Suwageval.Gate` reads only the production code: about 120 in the tests, on values the test just asserted.
 
 ## Later, after the MVP
 
@@ -249,7 +249,25 @@ To do in that change:
   of live checks above. The doubt: written tags are free, repeatable and reviewed in the repo; matched ones can change between
   pushes and make the filters and the trend lie. Build only if writing tags proves a burden.
 
-## When suwgate is ready: move the gate to it and offer this repo's own guards
+## The rest of the move to the shared kits
 
-- Replace the gate glue (the check script and the repository guards) with `suwgate check` from the public suwgate project (GitHub Manomenu/suwgate; npm @maniumek/suwgate; NuGet Suwgate.Architecture and Suwgate.Database), configured in suwgate.yml.
-- Before moving, review the guards and checks this repo has beyond the template, and propose the generic ones for suwgate, so every app gets them.
+- **The web on suwfrontkit**, in a change of its own: Mantine out, the components and the theme of `@maniumek/suwfrontkit` in. Until
+  then `suwgate.yml` excepts the three Mantine packages from `banned-npm-packages` and the Mantine theme in `src/main.tsx` from
+  `no-raw-colors`; those exceptions go with the move.
+- **The server on suwbackkit**, in a change of its own: the migrator, the pool, the worktree databases. Its `MapServerDefaults`
+  maps a `/health` of its own, next to the server's `/health`, which the compose healthcheck, the e2e tests and the chart's
+  probes call.
+- **Exceptions of `suwgate.yml` that wait for suwgate 0.1.x fixes** (each fix makes its exceptions stale, and the gate says so):
+  XML documentation of the SDK and the contracts (`comments-csharp`, one exception per file: a setting for documented folders),
+  comments of migrations that already ran (`comments-sql` versus `migrations-unchanged`), options bound through a `Section`
+  constant (`appsettings-bound`), Helm templates as images (`image-pins`), the CLI's assembly named `suwageval`
+  (the every-project-guarded guard, and `Layers` cannot read the CLI, so `CliContractsTests` stays).
+- **Gaps of suwgate 0.1.x this repository works around:** `suwgate check` does not apply `suwgate dev checkout-env` to the
+  .NET tests (`just check` does, and `TestDatabase` refuses a worktree without it); the `e2e` step makes no fresh database
+  (skipped, `e2e.sh` runs the browser tests); `dotnet-test` takes no filter, so the live tests run in the gate and skip without
+  a model; no lookup of one criterion (`just criteria <id>` is gone).
+- **Offer this repository's own guards to suwgate**, which does not have them yet: the Helm chart step, the layers inside an area
+  and the sub-features (`ServerContractsTests`), a class fixture instead of a server started in a field (`ClassServerTests`,
+  by the initializer, not the field's type), the worktree database refusal (`TestDatabase`), web modules differing only in
+  letter case (`WebModuleNamesTests`), the server image copying every project it builds from (`ServerImageTests`), prose files of
+  `criteria.json` holding no test (`CriteriaExamplesTests`).

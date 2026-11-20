@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { createAgent, runToEnd, serveAgent } from "../../../e2e/helpers";
+import { createAgent, runToEnd, serveAgent } from "../../../e2e/agentSteps";
 
 test("the trend charts appear with the second finished run and draw only the picked tags beside All", async ({ page, request }) => {
     const agentServer = await serveAgent({ label: "e2e-trend" });

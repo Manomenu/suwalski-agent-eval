@@ -15,7 +15,7 @@ public sealed class TestDatabaseTests : IDisposable
             TestDatabase.RefuseMainCheckoutDatabaseInLinkedWorktree(null, TestDirectory)
         );
 
-        Assert.Contains("source scripts/.internal/checkout-env.sh", refusal.Message, StringComparison.Ordinal);
+        Assert.Contains("suwgate dev checkout-env", refusal.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -23,7 +23,7 @@ public sealed class TestDatabaseTests : IDisposable
     {
         File.WriteAllText(Path.Combine(checkout.FullName, ".git"), "gitdir: /repos/main/.git/worktrees/feature\n");
 
-        TestDatabase.RefuseMainCheckoutDatabaseInLinkedWorktree("Host=localhost;Database=suwageval_test_feature", TestDirectory);
+        TestDatabase.RefuseMainCheckoutDatabaseInLinkedWorktree("Host=127.0.0.1;Database=suwageval_test_feature", TestDirectory);
     }
 
     [Fact]

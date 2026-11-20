@@ -1,5 +1,2 @@
-# The agent under test. Its version (prompt, model, tools, events) is read from the running agent at
-# GET {endpointUrl}/suwageval/contract, not written here.
-# Format: https://github.com/Manomenu/suwalski-agent-eval/blob/master/docs/scenario-format.md
 name: example-agent
 endpointUrl: http://localhost:7010

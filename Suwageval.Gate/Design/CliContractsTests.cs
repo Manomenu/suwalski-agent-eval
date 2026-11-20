@@ -3,7 +3,6 @@ using ArchUnitNET.Domain;
 using ArchUnitNET.Loader;
 using ArchUnitNET.xUnitV3;
 using static ArchUnitNET.Fluent.ArchRuleDefinition;
-using Assembly = System.Reflection.Assembly;
 
 namespace Suwageval.Gate.Design;
 
@@ -11,11 +10,9 @@ public sealed class CliContractsTests
 {
     private const string Root = "Suwageval.Cli";
 
-    internal static readonly Assembly CliAssembly = Assembly.Load("suwageval");
+    private static readonly Architecture Cli = new ArchLoader().LoadAssemblies(ArchitectureTests.Cli).Build();
 
-    internal static readonly Architecture Cli = new ArchLoader().LoadAssemblies(CliAssembly).Build();
-
-    public static TheoryData<string, string> Edges() => LayersFile.Cli.Edges();
+    public static TheoryData<string, string> Edges() => LayerOrders.Cli.AllEdges();
 
     [Theory]
     [MemberData(nameof(Edges))]
@@ -25,7 +22,7 @@ public sealed class CliContractsTests
             .ResideInNamespaceMatching(Pattern(part))
             .Should()
             .NotDependOnAny(Types().That().ResideInNamespaceMatching(Pattern(forbidden)))
-            .Because($"{part} must not use {forbidden}: what two commands share moves down into a layer ({LayersFile.Path})")
+            .Because($"{part} must not use {forbidden}: what two commands share moves down into a layer ({LayerOrders.Path})")
             .WithoutRequiringPositiveResults()
             .Check(Cli);
 
@@ -44,11 +41,11 @@ public sealed class CliContractsTests
     [Fact]
     public void Every_cli_namespace_has_a_layer()
     {
-        var missing = LayersFile.Cli.Unplaced(Cli.Namespaces.Select(ns => ns.FullName), Root);
+        var missing = LayerOrders.Cli.Unplaced(Cli.Namespaces.Select(ns => ns.FullName), Root);
 
         Assert.True(
             missing.Length == 0,
-            $"add to cli.layers (or cli.areas) in {LayersFile.Path}, at the place it belongs: {string.Join(", ", missing)}"
+            $"add to the layers (or areas) of {Root} in {LayerOrders.Path}, at the place it belongs: {string.Join(", ", missing)}"
         );
     }
 

@@ -1,6 +1,6 @@
 import { expect, test, type APIRequestContext, type Route } from "@playwright/test";
 
-import { createAgent, runToEnd, serveAgent } from "../../../e2e/helpers";
+import { createAgent, runToEnd, serveAgent } from "../../../e2e/agentSteps";
 
 async function createAgentWithTwoTags(request: APIRequestContext, name: string, endpointUrl: string) {
     const scenarios = ["smoke", "billing"].map((tag) => ({
@@ -18,7 +18,6 @@ async function createAgentWithTwoTags(request: APIRequestContext, name: string, 
     await createAgent(request, { name, endpointUrl, scenarios, checks });
 }
 
-// Why: the charts are a full screen tall and stand above the filters, so arriving later they pushed an open tag list off the screen
 test("the run filters are not shown before the charts' code has arrived, and picking a tag then hides the runs limited to other tags and keeps the pick in the address", async ({
     page,
     request,
@@ -55,7 +54,6 @@ test("the run filters are not shown before the charts' code has arrived, and pic
     }
 });
 
-// Why: The Problems cards stand above the filters and come from requests of their own: arriving later, they pushed an open tag list away, which hid it.
 test("the run filters are not shown before the Problems have arrived, so the cards never push them away", async ({ page, request }) => {
     const name = `e2e-runs-late-problems-${String(Date.now())}`;
     const agentServer = await serveAgent({ label: "e2e-runs-late-problems" });

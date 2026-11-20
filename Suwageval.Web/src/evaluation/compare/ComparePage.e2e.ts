@@ -1,6 +1,6 @@
 import { expect, test, type APIRequestContext } from "@playwright/test";
 
-import { createAgent, runToEnd, serveAgent, type RunningAgent, type ServedAgent } from "../../../e2e/helpers";
+import { createAgent, runToEnd, serveAgent, type RunningAgent, type ServedAgent } from "../../../e2e/agentSteps";
 import { CONTENT_MAX_WIDTH } from "../../shell/layout";
 import { tableMinWidth } from "./layout";
 

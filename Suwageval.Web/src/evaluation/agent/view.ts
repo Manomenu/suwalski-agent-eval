@@ -96,7 +96,6 @@ export function allowedVersionIds(
     return allowed.length === versions.length ? null : allowed;
 }
 
-// Why: always listed because the server's default for none is every version not archived, which is not what archived shown means
 export function consideredVersionIds(
     versions: FilteredVersion[],
     showArchived: boolean,

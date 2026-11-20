@@ -28,7 +28,6 @@ spec:
   failedJobsHistoryLimit: 2
   jobTemplate:
     spec:
-      # No retries: the next try is tomorrow or by hand; a retry would only double the alarm.
       backoffLimit: 0
       activeDeadlineSeconds: 300
       template:
@@ -52,7 +51,6 @@ spec:
               {{- if or .Values.liveCheck.discordSecret (include "app.anyModelSecret" .) }}
               envFrom:
                 {{- with .Values.liveCheck.discordSecret }}
-                # Optional: without it the check still runs, it just tells nobody.
                 - secretRef:
                     name: {{ . }}
                     optional: true

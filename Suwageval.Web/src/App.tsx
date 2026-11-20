@@ -17,7 +17,6 @@ import { ReportAgentContext } from "./shell/reportAgent";
 import { VersionPage } from "./versions/VersionPage";
 import { VersionsPage } from "./versions/VersionsPage";
 
-// Why: the diff library is needed only here, so the page loads when a comparison of versions is opened
 const VersionComparePage = lazy(() => import("./versions/VersionComparePage").then((module) => ({ default: module.VersionComparePage })));
 
 export function App() {

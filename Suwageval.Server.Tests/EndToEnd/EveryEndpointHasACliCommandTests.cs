@@ -99,7 +99,6 @@ public sealed class EveryEndpointHasACliCommandTests(TestDatabase database, Clas
             TimeSpan.FromSeconds(1)
         );
 
-    // Why: the old address before /eval is covered by the command of its /eval route until the monitoring-tab epic removes the old ones
     private static string UnderEval(string route)
     {
         var space = route.IndexOf(' ', StringComparison.Ordinal);
@@ -114,7 +113,7 @@ public sealed class EveryEndpointHasACliCommandTests(TestDatabase database, Clas
         Assert.True(
             missing.Count == 0,
             $"These routes have no CLI command: {string.Join("; ", missing)}. Anything the web can do, the CLI can do (AGENTS.md, section 5): "
-                + "add the `suwageval` command for it (with its tests, its layer in Suwageval.Gate/layers.json, the plugin's SKILL.md and "
+                + "add the `suwageval` command for it (with its tests, its layer in layers.json, the plugin's SKILL.md and "
                 + "docs/front-doors.md) and list the route in this table; or list it as NotForCli with the reason."
         );
     }
@@ -157,7 +156,6 @@ public sealed class EveryEndpointHasACliCommandTests(TestDatabase database, Clas
 
         foreach (var command in commands)
         {
-            // Why: ask the parent's help because an unknown word after a real command would just print that command's help
             var words = command.Split(' ');
             using var output = new StringWriter();
             using var error = new StringWriter();

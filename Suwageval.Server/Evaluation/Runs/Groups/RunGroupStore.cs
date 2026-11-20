@@ -98,7 +98,6 @@ internal sealed class RunGroupStore(Pool pool)
         );
     }
 
-    // Why: the group's archive row is locked so that no run is queued in it while deciding, because starting one would put the group back in use
     public async Task<DeletionResult<RunGroupDeletion>> DeleteAsync(
         Guid agentId,
         string name,

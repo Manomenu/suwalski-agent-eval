@@ -30,7 +30,6 @@ spec:
           ports:
             - containerPort: {{ .Values.server.port }}
           env:
-            # Port z values — jedno źródło prawdy dla sondy i procesu.
             - name: ASPNETCORE_HTTP_PORTS
               value: {{ .Values.server.port | quote }}
             {{- include "app.modelsEnv" . | nindent 12 }}
@@ -46,7 +45,6 @@ spec:
             {{- end }}
             {{- include "app.modelsEnvFrom" . | nindent 12 }}
           {{- end }}
-          # /health nie dotyka niczego poza procesem, więc nadaje się na sondę.
           readinessProbe:
             httpGet:
               path: /health
@@ -67,8 +65,6 @@ metadata:
   labels:
     {{- include "app.labels" . | nindent 4 }}
 spec:
-  # ClusterIP: widoczne tylko wewnątrz klastra. Z zewnątrz i tak wchodzi się przez web,
-  # który proxuje /api — tak samo jak w compose.
   type: ClusterIP
   selector:
     app.kubernetes.io/instance: {{ .Release.Name }}

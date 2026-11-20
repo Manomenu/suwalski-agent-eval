@@ -35,7 +35,6 @@ internal sealed partial class RunRechecker(
             {
                 var sourceId = run.RecheckOf ?? throw new InvalidOperationException("The run is not a re-check.");
                 var sourceSamples = await runs.ListScenarioResultsAsync(sourceId, cancellationToken);
-                // Why: unchanged verdicts come from the run the person looked at, because an earlier re-check has the same answers already judged
                 var verdictsId = run.VerdictsFrom ?? sourceId;
                 var verdictSamples =
                     verdictsId == sourceId ? sourceSamples : await runs.ListScenarioResultsAsync(verdictsId, cancellationToken);

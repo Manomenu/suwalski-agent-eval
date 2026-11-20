@@ -17,20 +17,18 @@ internal static class ScenarioYaml
     public static string Of(ScenarioInput scenario)
     {
         ArgumentNullException.ThrowIfNull(scenario);
-        // Why: the serializer writes every scenario property, so the node and its fields exist
-        var source = (JsonObject)JsonSerializer.SerializeToNode(scenario, Shape)!;
+        var source =
+            JsonSerializer.SerializeToNode(scenario, Shape) as JsonObject
+            ?? throw new InvalidOperationException("A scenario serializes to a JSON object.");
         var file = new JsonObject { ["key"] = scenario.Key };
         if (scenario.Tags.Count > 0)
         {
-            // Why: the serializer writes the tags array for every scenario
-            file["tags"] = source["tags"]!.DeepClone();
+            file["tags"] = Required(source, "tags").DeepClone();
         }
-        // Why: the serializer writes the conversation array and every item is an object
-        file["conversation"] = new JsonArray([.. ((JsonArray)source["conversation"]!).Select(item => Item((JsonObject)item!))]);
+        file["conversation"] = new JsonArray([.. ((JsonArray)Required(source, "conversation")).Select(Item)]);
         if (scenario.Continuation != new Continuation())
         {
-            // Why: the serializer writes the continuation property
-            file["continuation"] = source["continuation"]!.DeepClone();
+            file["continuation"] = Required(source, "continuation").DeepClone();
         }
         if (source["fixtures"] is { } fixtures)
         {
@@ -43,17 +41,18 @@ internal static class ScenarioYaml
         return ContractYaml.Of(file);
     }
 
-    private static JsonNode Item(JsonObject item)
+    private static JsonNode Required(JsonObject node, string name) =>
+        node[name] ?? throw new InvalidOperationException($"The serializer writes the '{name}' property here, so it exists.");
+
+    private static JsonNode Item(JsonNode? node)
     {
-        // Why: every serialized conversation item has a kind
-        var kind = item["kind"]!.GetValue<string>();
+        var item = node as JsonObject ?? throw new InvalidOperationException("The serializer writes every conversation item as an object.");
+        var kind = Required(item, "kind").GetValue<string>();
         var fields = new JsonObject(item.Where(field => field.Key != "kind").Select(field => Copy(field)));
         return kind switch
         {
-            // Why: a user message always has a text field
-            "UserMessage" when fields.Count == 1 => new JsonObject { ["user"] = fields["text"]!.DeepClone() },
-            // Why: an assistant message always has a text field
-            "AssistantMessage" when fields.Count == 1 => new JsonObject { ["assistant"] = fields["text"]!.DeepClone() },
+            "UserMessage" when fields.Count == 1 => new JsonObject { ["user"] = Required(fields, "text").DeepClone() },
+            "AssistantMessage" when fields.Count == 1 => new JsonObject { ["assistant"] = Required(fields, "text").DeepClone() },
             "ToolCall" => new JsonObject { ["tool_call"] = fields },
             "ToolResult" => new JsonObject
             {

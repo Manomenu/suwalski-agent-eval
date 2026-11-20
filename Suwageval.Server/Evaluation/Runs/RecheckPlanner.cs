@@ -172,6 +172,8 @@ internal static class RecheckPlanner
         };
 
     private static CheckInput Definition(CheckResultRow verdict) =>
-        // Why: the verdict's definition was serialized by the server when the check ran, so it is valid JSON
-        JsonSerializer.Deserialize<CheckInput>(verdict.Definition, ContractJson.Options)!;
+        JsonSerializer.Deserialize<CheckInput>(verdict.Definition, ContractJson.Options)
+        ?? throw new InvalidOperationException(
+            "The verdict's definition was serialized by the server when the check ran, so it is valid JSON."
+        );
 }

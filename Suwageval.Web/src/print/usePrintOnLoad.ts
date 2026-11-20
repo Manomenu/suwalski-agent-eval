@@ -2,7 +2,6 @@ import { useEffect } from "react";
 
 import { printRequested, searchWithoutPrint } from "./printOnLoad";
 
-// Why: StrictMode's second effect run cancels the first timer so the dialog opens once, and the parameter is removed first so a reload does not reopen it
 export function usePrintOnLoad(ready: boolean): void {
     useEffect(() => {
         if (!ready || !printRequested(window.location.search)) return;

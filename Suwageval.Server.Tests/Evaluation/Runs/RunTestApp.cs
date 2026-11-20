@@ -6,7 +6,6 @@ using Suwageval.Server.Monitoring.Conversations;
 
 namespace Suwageval.Server.Tests.Evaluation.Runs;
 
-// Why: the workers are left out because they would take the queued runs of tests sharing the database or close their conversations
 internal static class RunTestApp
 {
     [SuppressMessage(

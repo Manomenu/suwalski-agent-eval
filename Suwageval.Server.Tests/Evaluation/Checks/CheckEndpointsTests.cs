@@ -391,7 +391,6 @@ public sealed class CheckEndpointsTests(TestDatabase database, ClassServer class
     public async Task A_check_written_before_the_options_is_unchanged_when_pushed_again()
     {
         var agent = await AgentWithScenariosAsync("s");
-        // Why: the body an older CLI sends, with one text as a plain string and no event bounds
         using var older = System.Text.Json.JsonDocument.Parse(
             """
             {"checks":[
@@ -421,7 +420,6 @@ public sealed class CheckEndpointsTests(TestDatabase database, ClassServer class
         Assert.All(again.Results, result => Assert.Equal(UpsertOutcome.Unchanged, result.Outcome));
     }
 
-    // Why: the forms the server stored before the options, read back from a real database; a check keeps its revision only while its JSON is these bytes
     [Theory]
     [Trait("criterion", "AC-check-options-6")]
     [InlineData(

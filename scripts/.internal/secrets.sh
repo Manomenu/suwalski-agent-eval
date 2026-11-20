@@ -28,7 +28,6 @@ for tool in bw jq; do
     }
 done
 
-# Why: the files this covers: .env at the root and in each project directory. Nothing else
 env_files() {
     (cd "$ROOT" && for f in .env */.env; do [ -f "$f" ] && printf '%s\n' "$f"; done) || true
 }
@@ -87,7 +86,6 @@ restore() {
     }
     while IFS=$'\t' read -r id name; do
         path="${name#"$PREFIX"}"
-        # Why: only .env or <existing directory>/.env: a note name must not steer a write elsewhere
         if ! [[ "$path" == .env || ("$path" =~ ^[A-Za-z0-9_-]+/\.env$ && -d "$ROOT/${path%/.env}") ]]; then
             echo "  $name: skipped (not a .env of this repo)" >&2
             continue

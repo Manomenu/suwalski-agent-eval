@@ -1,21 +1,17 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <!-- The strict JSON options of ContractJson need .NET 9; the repository default is net10. -->
     <TargetFrameworks>net9.0;net10.0</TargetFrameworks>
     <TargetFramework />
     <RootNamespace>Suwageval.AgentSdk</RootNamespace>
-    <!-- A release passes its version (agent-sdk.yml or just agent-publish-local, -p:Version=); a local pack is plainly not one. -->
     <Version>0.0.0-local</Version>
     <PackageId>Suwageval.AgentSdk</PackageId>
     <Authors>Piotr Gugnowski</Authors>
     <Copyright>Copyright (c) 2026 Piotr Gugnowski</Copyright>
     <Description>Everything a .NET agent under test needs for Suwageval, an evaluation server for LLM agents: the contract types, their JSON options, the contract rules and the two endpoints (GET /suwageval/contract, POST /suwageval/turn).</Description>
     <PackageTags>suwageval llm agent evaluation testing aspnetcore</PackageTags>
-    <!-- An expression, not the LICENSE file: nuget.org shows an SPDX identifier most clearly, and MIT has one. -->
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageProjectUrl>https://github.com/Manomenu/suwalski-agent-eval</PackageProjectUrl>
-    <!-- Named here: Source Link would take it from the origin remote, which on a developer's machine is the SSH address. -->
     <RepositoryUrl>https://github.com/Manomenu/suwalski-agent-eval.git</RepositoryUrl>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <IncludeSymbols>true</IncludeSymbols>

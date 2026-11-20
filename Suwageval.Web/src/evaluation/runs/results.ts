@@ -141,7 +141,6 @@ export interface SampleVerdict {
 }
 
 export function sampleVerdict(scenario: ScenarioRunResult, sample: number): SampleVerdict {
-    // Why: a sample without an answer stores its checks as not passed, so its status has to win over the count of failed checks
     const status = scenario.samples.find((candidate) => candidate.sample === sample)?.status;
     if (status === "Failed") return { kind: "no output", failedChecks: 0 };
     if (status === "NotSimulated") return { kind: "not simulated", failedChecks: 0 };

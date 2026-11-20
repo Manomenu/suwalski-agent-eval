@@ -103,10 +103,14 @@ internal sealed partial class RunExecutor(
             .ToList();
         var stoppedBy = (string?)null;
         var notStarted = new System.Collections.Concurrent.ConcurrentBag<string>();
+        static AcGuardrail GuardrailOf(PlannedScenario scenario)
+        {
+            return scenario.Content.AcGuardrail
+                ?? throw new InvalidOperationException("Gate items are only scenarios with an acGuardrail.");
+        }
         int Limit(PlannedScenario scenario)
         {
-            // Why: gate items are only scenarios with an acGuardrail
-            return AcGuardrailRules.EffectiveRetryLimit(scenario.Content.AcGuardrail!.RetryLimit, agentRetryLimit);
+            return AcGuardrailRules.EffectiveRetryLimit(GuardrailOf(scenario).RetryLimit, agentRetryLimit);
         }
 
         async Task AttemptAsync(PlannedScenario scenario)
@@ -127,8 +131,7 @@ internal sealed partial class RunExecutor(
                     return;
                 }
             }
-            // Why: gate items are only scenarios with an acGuardrail
-            Interlocked.CompareExchange(ref stoppedBy, scenario.Content.AcGuardrail!.Id, null);
+            Interlocked.CompareExchange(ref stoppedBy, GuardrailOf(scenario).Id, null);
         }
 
         return new RunLoop.Plan<PlannedScenario>(
@@ -234,7 +237,6 @@ internal sealed partial class RunExecutor(
     {
         if (scenario.Content.Continuation.Turns > 1)
         {
-            // Why: stored before more turns needed a simulated user, and validation refuses such a scenario now
             return new Played(
                 SampleStatus.Failed,
                 null,

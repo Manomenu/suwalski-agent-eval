@@ -21,7 +21,6 @@ public sealed class SuwagevalMonitoringTests(TestDatabase database, ClassServer 
 
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
 
-    // Why: nginx and the vite proxy strip the /api prefix in front of the server, so the in-process test must do the same
     private sealed class EdgeHandler : DelegatingHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)

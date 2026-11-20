@@ -22,7 +22,7 @@ export function saveWhatDiffersOpen(open: boolean, storage: KeyValueStorage | nu
     try {
         storage?.setItem(STORAGE_KEY, String(open));
     } catch {
-        // Why: a convenience only: nothing to tell the person
+        return;
     }
 }
 

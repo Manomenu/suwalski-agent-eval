@@ -128,7 +128,6 @@ export function visibleOnPaperButNotWanted(page: Page): Promise<string[]> {
 
 const AGENTS_PAGE_SIZE = 10;
 
-// Why: the agents list is sorted by name and paged, and other tests' agents share the database, so an agent's page depends on them
 export async function openAgentsListAt(page: Page, request: APIRequestContext, name: string): Promise<void> {
     const response = await request.get("/api/agents");
     expect(response.ok()).toBe(true);

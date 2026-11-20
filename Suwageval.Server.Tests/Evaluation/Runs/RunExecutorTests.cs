@@ -352,7 +352,6 @@ public sealed class RunExecutorTests(TestDatabase database)
     [Fact]
     public async Task A_contract_that_changed_while_the_run_was_going_is_flagged_on_the_run()
     {
-        // Why: the agent serves another contract after its first answered turn to simulate a redeploy between samples
         FakeAgent? redeployed = null;
         await using var fake = await FakeAgent.StartAsync(
             (_, _) =>

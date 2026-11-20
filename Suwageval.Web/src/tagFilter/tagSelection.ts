@@ -17,7 +17,6 @@ export function keepsTags(tags: readonly string[], selected: readonly string[]):
     return selected.length === 0 || tags.some((tag) => selected.includes(tag));
 }
 
-// Why: the row of every check is dropped with a filter because the server has no rate for any of these tags
 export function selectedTagRows<Row extends { tag?: string | null }>(rows: readonly Row[], selected: readonly string[]): Row[] {
     return selected.length === 0 ? [...rows] : rows.filter((row) => row.tag != null && selected.includes(row.tag));
 }

@@ -8,7 +8,6 @@ public sealed class PoolTests(TestDatabase database)
     [Fact]
     public async Task The_pool_replaces_a_connection_the_database_killed()
     {
-        // Why: a database restart kills every idle connection, and the pool must hand out a working one or the next request is a 500
         var cancellation = TestContext.Current.CancellationToken;
         await using var pool = Pool.Create(TestDatabase.ConnectionString, maxSize: 1);
         int victim;

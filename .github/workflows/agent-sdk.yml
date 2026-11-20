@@ -1,7 +1,5 @@
 name: agent-sdk
 
-# Releases Suwageval.AgentSdk to nuget.org: started by `just agent-publish <version>`, never by a push, because a version
-# there cannot be deleted. nuget.org's Trusted Publishing policy names this file, so it cannot be renamed alone (docs/release.md).
 on:
   workflow_dispatch:
     inputs:
@@ -16,13 +14,11 @@ permissions:
 env:
   DOTNET_NOLOGO: "1"
   DOTNET_CLI_TELEMETRY_OPTOUT: "1"
-  # Through the environment, never written into a script: the input is free text.
   VERSION: ${{ inputs.version }}
 
 jobs:
   pack:
     runs-on: ubuntu-latest
-    # One SDK test records turns into a real server. Without a database it would skip, quietly and green.
     services:
       postgres:
         image: docker.io/library/postgres:17.11
@@ -50,15 +46,12 @@ jobs:
       - name: Check the version
         run: ./scripts/.internal/agent-sdk-version.sh "$VERSION"
 
-      # The same SDK band as ci.yml.
       - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: "10.0.x"
           cache: true
           cache-dependency-path: "**/packages.lock.json"
 
-      # The tests of the SDK's own code. The whole gate already ran on this commit in ci.yml, so a release does not repeat it.
-      # AgentSdkWorkflowTests fails the gate for a class named here that no longer exists.
       - name: Test the SDK
         run: >
           dotnet test --project Suwageval.Server.Tests --configuration Release --no-progress
@@ -70,11 +63,9 @@ jobs:
           --filter-class "*TurnRequestTests"
           --filter-class "*SuwagevalMonitoringTests"
 
-      # The flags of scripts/.internal/agent-publish-local.sh. The csproj holds the metadata, Source Link and the snupkg.
       - name: Pack
         run: dotnet pack Suwageval.AgentSdk -c Release -o nupkg -p:Version="$VERSION" -p:ContinuousIntegrationBuild=true
 
-      # The folder, not only the .nupkg: the push finds the .snupkg beside it.
       - uses: actions/upload-artifact@v4
         with:
           name: nupkg
@@ -84,7 +75,6 @@ jobs:
   publish:
     needs: pack
     runs-on: ubuntu-latest
-    # The only job that can get a key, and it runs no code of the repository: no checkout.
     permissions:
       contents: read
       id-token: write
@@ -98,14 +88,11 @@ jobs:
         with:
           dotnet-version: "10.0.x"
 
-      # Exchanges the job's OIDC token for a nuget.org key that lives one hour, so it comes right before the push.
-      # NUGET_USER is the nuget.org profile name of the policy's owner, not the GitHub owner.
       - uses: NuGet/login@v1
         id: login
         with:
           user: ${{ secrets.NUGET_USER }}
 
-      # No --skip-duplicate: a version already there is a mistake to see, not a green run that released nothing.
       - name: Push
         env:
           NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}

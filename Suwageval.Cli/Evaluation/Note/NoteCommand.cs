@@ -85,18 +85,19 @@ internal static class NoteCommand
                     {
                         var output = parsed.InvocationConfiguration.Output;
                         var cleared = parsed.GetValue(clear);
-                        if (groupName is not null)
+                        if (groupName is not null && agent is not null)
                         {
-                            // Why: agent is non-null here: a null agent with a group name returned exit 2 above
-                            await client.SetGroupNoteAsync(agent!, groupName, cleared ? null : parsed.GetValue(runId), cancellationToken);
+                            await client.SetGroupNoteAsync(agent, groupName, cleared ? null : parsed.GetValue(runId), cancellationToken);
                             await output.WriteLineAsync(
                                 cleared ? $"Cleared the note of group {groupName}." : $"Set the note of group {groupName}."
                             );
                             await output.WriteLineAsync(ServerAddress.ComparePage(site, [], groupName, agent, null).ToString());
                             return 0;
                         }
-                        // Why: runId is a required argument on this path, so its value is present
-                        var id = Guid.Parse(parsed.GetRequiredValue(runId)!);
+                        var id = Guid.Parse(
+                            parsed.GetRequiredValue(runId)
+                                ?? throw new InvalidOperationException("Without --group the run id argument is required.")
+                        );
                         await client.SetNoteAsync(id, cleared ? null : parsed.GetValue(text), cancellationToken);
                         await output.WriteLineAsync(cleared ? $"Cleared the note of run {id}." : $"Set the note of run {id}.");
                         await output.WriteLineAsync(ServerAddress.RunPage(site, id).ToString());

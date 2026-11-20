@@ -21,7 +21,6 @@ version="$1"
 
 cd "$ROOT"
 if [[ -f .env ]]; then
-  # Why: not exported, unlike for `just server`: the key reaches the push below and nothing else
   # shellcheck disable=SC1091
   . ./.env
 fi
@@ -29,7 +28,6 @@ fi
 feed_url="${AGENT_SDK_FEED_URL:-}"
 feed_key="${AGENT_SDK_FEED_API_KEY:-}"
 if [[ -n "$feed_key" && -z "$feed_url" ]]; then
-  # Why: without this a leftover key would turn a push meant for a private feed into a public, permanent one
   echo "AGENT_SDK_FEED_API_KEY is set without AGENT_SDK_FEED_URL: in .env set both to publish to that feed, or remove the key to publish to nuget.org." >&2
   exit 1
 fi
@@ -39,7 +37,6 @@ if [[ -n "$feed_url" ]]; then
   key="$feed_key"
   key_name="AGENT_SDK_FEED_API_KEY"
   key_help="the push key of $feed_url"
-  # Why: the symbol package is for nuget.org's symbol server; another feed may refuse it
   symbols=(--no-symbols)
 else
   source="https://api.nuget.org/v3/index.json"

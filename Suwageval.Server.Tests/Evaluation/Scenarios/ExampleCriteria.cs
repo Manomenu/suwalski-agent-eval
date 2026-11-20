@@ -1,6 +1,5 @@
 namespace Suwageval.Server.Tests.Evaluation.Scenarios;
 
-// Why: these ids are data of an agent under test, from that agent's spec, not criteria of this repository; criteria.json lists this file as not a guardrail
 internal static class ExampleCriteria
 {
     public const string Refunds1 = "AC-refunds-1";

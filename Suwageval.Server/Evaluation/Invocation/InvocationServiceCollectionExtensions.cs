@@ -16,7 +16,6 @@ internal static class InvocationServiceCollectionExtensions
                 (provider, client) =>
                     client.Timeout = TimeSpan.FromSeconds(provider.GetRequiredService<IOptions<InvocationOptions>>().Value.TimeoutSeconds)
             )
-            // Why: connections are renewed so that an agent that moved is found again
             .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(2) });
         return services;
     }

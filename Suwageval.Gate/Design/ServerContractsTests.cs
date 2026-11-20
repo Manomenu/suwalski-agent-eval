@@ -3,7 +3,6 @@ using ArchUnitNET.Domain;
 using ArchUnitNET.Loader;
 using ArchUnitNET.xUnitV3;
 using static ArchUnitNET.Fluent.ArchRuleDefinition;
-using Assembly = System.Reflection.Assembly;
 
 namespace Suwageval.Gate.Design;
 
@@ -11,22 +10,19 @@ public sealed class ServerContractsTests
 {
     private const string Root = "Suwageval.Server";
 
-    // Why: by name, not typeof: ServerApp is internal and only the server's tests may see its internals
-    internal static readonly Assembly ServerAssembly = Assembly.Load(Root);
+    private static readonly Architecture Server = new ArchLoader().LoadAssemblies(ArchitectureTests.Server).Build();
 
-    internal static readonly Architecture Server = new ArchLoader().LoadAssemblies(ServerAssembly).Build();
-
-    public static TheoryData<string, string> Edges() => LayersFile.Server.Edges();
+    public static TheoryData<string, string> Edges() => LayerOrders.Server.AreaEdges();
 
     [Theory]
     [MemberData(nameof(Edges))]
-    public void Layers_use_only_the_layers_below_them(string part, string forbidden) =>
+    public void Features_of_an_area_use_only_the_features_below_them(string part, string forbidden) =>
         Types()
             .That()
             .ResideInNamespaceMatching(Pattern(part))
             .Should()
             .NotDependOnAny(Types().That().ResideInNamespaceMatching(Pattern(forbidden)))
-            .Because($"{part} must not use {forbidden}: move the shared code down or pass it in from above ({LayersFile.Path})")
+            .Because($"{part} must not use {forbidden}: move the shared code down or pass it in from above ({LayerOrders.Path})")
             .WithoutRequiringPositiveResults()
             .Check(Server);
 
@@ -44,19 +40,19 @@ public sealed class ServerContractsTests
     }
 
     [Fact]
-    public void Every_server_namespace_has_a_layer()
+    public void Every_namespace_of_an_area_has_a_feature()
     {
-        var missing = LayersFile.Server.Unplaced(Server.Namespaces.Select(ns => ns.FullName), Root);
+        var missing = LayerOrders.Server.UnplacedInAreas(Server.Namespaces.Select(ns => ns.FullName), Root);
 
         Assert.True(
             missing.Length == 0,
-            $"add to server.layers (or server.areas) in {LayersFile.Path}, at the place it belongs: {string.Join(", ", missing)}"
+            $"add to the areas of {Root} in {LayerOrders.Path}, at the place it belongs: {string.Join(", ", missing)}"
         );
     }
 
     public static TheoryData<string, string> SubFeatureEdges()
     {
-        var areas = LayersFile.Server.Areas;
+        var areas = LayerOrders.Server.Areas;
         var data = new TheoryData<string, string>();
         var subFeatures = Server
             .Namespaces.Select(ns => ns.FullName)
@@ -95,22 +91,6 @@ public sealed class ServerContractsTests
             .Because("a sub-feature is built on its feature: what the feature needs moves up into the feature")
             .WithoutRequiringPositiveResults()
             .Check(Server);
-
-    [Fact]
-    public void Every_namespace_has_at_most_one_endpoints_class()
-    {
-        var crowded = ServerAssembly
-            .DefinedTypes.Where(type => type.Name.EndsWith("Endpoints", StringComparison.Ordinal))
-            .GroupBy(type => type.Namespace)
-            .Where(group => group.Count() > 1)
-            .Select(group => $"{group.Key}: {string.Join(", ", group.Select(type => type.Name).Order())}")
-            .ToArray();
-
-        Assert.True(
-            crowded.Length == 0,
-            $"a second set of routes is a second feature, give each its own folder: {string.Join("; ", crowded)}"
-        );
-    }
 
     private static string Pattern(string part) => $@"^{Regex.Escape(Root + "." + part)}(\..+)?$";
 }

@@ -48,7 +48,6 @@ internal static class CliApp
     )
     {
         var root = Create(new Terminal(input, interactive), input, http, openBrowser, origins, shell, labelPollInterval);
-        // Why: System.CommandLine would otherwise end the process two seconds after Ctrl+C, in the middle of the question run --wait asks
         return root.Parse(args)
             .InvokeAsync(
                 new InvocationConfiguration

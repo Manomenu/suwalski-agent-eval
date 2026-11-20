@@ -209,7 +209,6 @@ internal sealed class VersionStore(Pool pool)
         {
             return new DeletionResult<VersionDeletion>(DeletionOutcome.Allowed, contents);
         }
-        // Why: a conversation the version answered a turn of goes whole, because the cascade alone would leave one with a gap
         await connection.ExecuteAsync(
             new CommandDefinition(
                 """

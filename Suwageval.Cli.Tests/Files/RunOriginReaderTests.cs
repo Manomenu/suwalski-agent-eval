@@ -193,7 +193,6 @@ public sealed class RunOriginReaderTests
             Assert.True(Run(work, "push", "-u", "origin", "main"));
             Assert.True(Run(work, "remote", "set-head", "origin", "main"));
             var agentDir = Path.Combine(work, "suwageval");
-            // Why: under GitHub Actions the reader would take the CI's branch instead of git's
             var reader = new RunOriginReader(RunOriginReader.RunGit, _ => null);
 
             var pushed = reader.Read(agentDir, null);
@@ -261,7 +260,6 @@ public sealed class RunOriginReaderTests
         {
             return;
         }
-        // Why: git marks its object files read-only, which Directory.Delete refuses on Windows
         foreach (var file in Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories))
         {
             File.SetAttributes(file, FileAttributes.Normal);

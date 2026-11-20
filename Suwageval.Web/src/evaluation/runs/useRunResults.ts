@@ -9,7 +9,6 @@ export function useRunResults(runId: string): RunResultsState {
     const [state, setState] = useState<RunResultsState>({ kind: "loading" });
 
     useEffect(() => {
-        // Why: StrictMode runs effects twice in development, so the first loop is aborted and its results ignored
         const controller = new AbortController();
         let timer: ReturnType<typeof setTimeout> | undefined;
         const fail = (e: unknown) => {

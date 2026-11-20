@@ -47,7 +47,6 @@ internal sealed partial class MonitoringSender(
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
-            // Why: the agent stops: send what is queued, once, within a short time
             using var flush = new CancellationTokenSource(Flush);
             try
             {

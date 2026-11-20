@@ -1,37 +1,19 @@
-# Defaults. The image tag is empty on purpose: the platform repo sets it, because it decides
-# what runs. A tag hard-coded here would make a code commit a deployment at the same time.
-
-# Off = the chart renders nothing: Argo prunes every object of the release and the cluster is free,
-# while what the chart does not own stays (the namespace, its Secrets, the database). The platform
-# repo switches a deployment off and on with this one value.
 enabled: true
 
 image:
   registry: ghcr.io/manomenu/suwalski-agent-eval
-  tag: "" # e.g. sha-a1b2c3d — set by the Argo Application
+  tag: ""
   pullPolicy: IfNotPresent
-  # A docker-registry Secret in the release namespace, for a private registry. The platform
-  # repo creates it (scripts/projects/…/setup.sh); empty = pull without logging in.
   pullSecret: ""
 
 server:
   replicas: 1
   port: 6230
-  # A Secret with ConnectionStrings__Default (an Npgsql connection string) in the release namespace, created by the platform repo. Without
-  # a database the server deliberately does not start.
   databaseSecret: ""
   resources:
     requests: { cpu: 50m, memory: 128Mi }
     limits: { memory: 384Mi }
 
-# The models Suwageval itself calls (Models:<name>), each an OpenAI-compatible server (its endpoints directly under baseUrl,
-# e.g. {baseUrl}/chat/completions). `fallback` is enough: every role without an entry of its own uses it — judge (the
-# verdicts of `judge` checks), simulator (the simulated user) and describer (a simulated user described from a monitored
-# conversation). Give a role its own entry only to call another model for it. No model at all: the server starts, and a run
-# with judge checks or simulations is refused. maxConcurrency is the pool of calls to that model, shared by everything that asks it.
-# The address of a private model server does not belong in a public repo, so on the cluster use `secret`: a Secret in the
-# release namespace with Models__<name>__BaseUrl and Models__<name>__Model (optionally __ApiKey), created by the platform repo's
-# setup.sh; the server and the live check read it through envFrom and baseUrl/name are then ignored.
 models:
   fallback:
     baseUrl: ""
@@ -54,18 +36,11 @@ models:
     secret: ""
     maxConcurrency: 8
 
-# The simulated user's settings. temperature: how freely the simulated user writes, 0 to 2;
-# empty = the server's default (0.7).
 simulation:
   temperature: ""
 
-# The daily check of the models from the cluster's own network (templates/live-check.yaml): the
-# server's image, another command, one call per role with a fixed tiny case. Rendered only with a
-# model in `models`. A failure turns the Job red and, with discordSecret, posts to the alerts channel.
 liveCheck:
-  schedule: "17 6 * * *" # once a day (the CronJob's time zone is Europe/Warsaw)
-  # A Secret in the release namespace with LiveCheck__DiscordWebhookUrl (a Discord webhook), created
-  # by the platform repo's setup.sh. Optional: empty or missing = the check only fails the Job.
+  schedule: "17 6 * * *"
   discordSecret: ""
   resources:
     requests: { cpu: 20m, memory: 128Mi }
@@ -78,7 +53,6 @@ web:
     requests: { cpu: 10m, memory: 32Mi }
     limits: { memory: 128Mi }
 
-# Checked after every deploy (templates/smoke-test.yaml): a Job Argo runs after each sync.
 smokeTest:
   enabled: true
   image: docker.io/curlimages/curl:8.22.0

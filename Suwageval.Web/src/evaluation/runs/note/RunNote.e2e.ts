@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { createAgent, runToEnd, serveAgent } from "../../../../e2e/helpers";
+import { createAgent, runToEnd, serveAgent } from "../../../../e2e/agentSteps";
 
 test("a note added on the run page survives a reload and shows in the comparison", async ({ page, request }) => {
     const agentServer = await serveAgent({ label: "e2e-note", reply: "Hello there." });

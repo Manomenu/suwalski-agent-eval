@@ -25,7 +25,7 @@ export function useRuns(
     const none = versionIds === "";
     const { group, grouping } = groupQuery(filter);
     const requestKey = JSON.stringify([agent, key, requestedPage, pageSize, versionIds, group, grouping, tags, dataVersions]);
-    // Why: split from the string because the request depends on versionIds, not on a new array every render
+
     const loaded = useRequest(none ? null : requestKey, (signal) =>
         fetchRuns(agent, requestedPage, pageSize, idsOf(versionIds), group, grouping, tags, dataVersions, signal),
     );

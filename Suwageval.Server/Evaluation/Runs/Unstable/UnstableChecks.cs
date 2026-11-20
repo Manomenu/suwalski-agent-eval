@@ -36,8 +36,7 @@ internal static class UnstableChecks
                 .Select(check =>
                 {
                     var latestRevision = check.Max(item => item.First.CheckRevision);
-                    // Why: the group holds at least the item of the latest revision it was filtered by
-                    return check.Where(item => item.First.CheckRevision == latestRevision).MinBy(item => item.Rank)!;
+                    return check.Where(item => item.First.CheckRevision == latestRevision).OrderBy(item => item.Rank).First();
                 })
                 .Where(item => item.Passed > 0 && item.Passed < item.Runs)
                 .OrderByDescending(item => (item.Runs - item.Passed) / (double)item.Runs)

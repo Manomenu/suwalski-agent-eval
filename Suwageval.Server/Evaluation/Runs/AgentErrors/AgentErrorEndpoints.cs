@@ -44,8 +44,11 @@ internal static class AgentErrorEndpoints
                     VersionLabel = labels.GetValueOrDefault(row.AgentVersionId),
                     Errors = row.Errors,
                     Samples = row.Samples,
-                    // Why: only rows with at least one agent error are listed, so the newest error run exists
-                    NewestErrorRunId = row.NewestErrorRunId!.Value,
+                    NewestErrorRunId =
+                        row.NewestErrorRunId
+                        ?? throw new InvalidOperationException(
+                            "Only rows with at least one agent error are listed, so the newest error run exists."
+                        ),
                     NewestError = row.NewestError ?? "",
                 })
                 .ToList()

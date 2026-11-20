@@ -1,9 +1,4 @@
-# `just secrets <recipe>` — a copy of this repo's local .env files in Bitwarden.
-# The logic is in scripts/.internal/secrets.sh. Cluster secrets live in the platform repo.
-
 set shell := ["bash", "-euo", "pipefail", "-c"]
-# Recipes run from the repo root, like the ones in the main justfile.
-set working-directory := ".."
 set positional-arguments
 
 [private]

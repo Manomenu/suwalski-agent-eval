@@ -54,7 +54,6 @@ internal static class CheckEvaluator
         switch (check)
         {
             case ToolCalledCheck called:
-                // Why: a call made by another agent is never a candidate for a by check
                 var calls = scope.Items.OfType<ToolCall>().Where(call => call.Name == called.Tool && MadeBy(call, called.By)).ToList();
                 return new ArgumentSearch(
                     $"{ToolLabel(called.Tool, called.By)} was called{scope.Description}",
@@ -78,7 +77,6 @@ internal static class CheckEvaluator
                 );
             case EventCheck { Data: { } data } emitted:
                 var ofType = scope.Items.OfType<Event>().Where(item => item.Type == emitted.Event).ToList();
-                // Why: with last, the only candidate a model may accept is the last event of the type
                 var events = emitted.Last is true && ofType.Count > 0 ? [ofType[^1]] : ofType;
                 return new ArgumentSearch(
                     $"Event {emitted.Event} was emitted{scope.Description}",

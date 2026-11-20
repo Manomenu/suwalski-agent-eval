@@ -54,7 +54,6 @@ inside_session() {
   [[ -n "${TMUX:-}" && "$(tmux display-message -p '#S')" == "$SESSION" ]]
 }
 
-# Why: kills the session and everything running in it; the agent's container (image mode) is removed first, so nothing keeps its port (run from inside the session, killing it ends this shell too, so nothing after it would run)
 kill_session() {
   docker rm -f suwexag >/dev/null 2>&1 || true
   tmux kill-session -t "=$SESSION"
@@ -85,10 +84,8 @@ fi
 
 agent_env="$AGENT_DIR/.env"
 if [[ -f "$AGENT_DIR/ExampleAgent/ExampleAgent.csproj" ]]; then
-  # Why: the agent builds the SDK from this repo, whose generated AssemblyInfo carries the commit hash: after every commit here the watcher would otherwise stop and ask to restart, like `just server` it restarts on its own
   agent_command="cd $(printf '%q' "$AGENT_DIR") && DOTNET_WATCH_RESTART_ON_RUDE_EDIT=1 dotnet watch --project ExampleAgent"
 elif docker image inspect "$AGENT_IMAGE" >/dev/null 2>&1; then
-  # Why: --rm and a fixed name: a session killed by --restart leaves no container behind to block the next one's port
   env_file=""
   [[ -f "$agent_env" ]] && env_file="--env-file $(printf '%q' "$agent_env")"
   agent_command="docker rm -f suwexag >/dev/null 2>&1; docker run --rm --name suwexag -p 127.0.0.1:7010:7010 $env_file $AGENT_IMAGE"
@@ -102,7 +99,6 @@ fi
 left_dir="$REPO"
 [[ -d "$AGENT_DIR" ]] && left_dir="$AGENT_DIR"
 
-# Why: types a command into a pane's shell, so the pane survives the command's exit
 run() { tmux send-keys -t "$1" "$2" Enter; }
 
 left=$(tmux new-session -d -s "$SESSION" -c "$left_dir" -x 220 -y 50 -P -F '#{pane_id}')
@@ -113,7 +109,6 @@ bottom_right=$(tmux split-window -h -t "$bottom_left" -c "$REPO" -P -F '#{pane_i
 
 tmux set-option -t "$SESSION" pane-border-status top
 tmux select-pane -t "$left" -T "cli"
-# Why: a pane that serves something is named "<name>: (<port>)", or "(<port>/<path>)" when its page is not at the root
 tmux select-pane -t "$top_left" -T "server: (6230)"
 tmux select-pane -t "$top_right" -T "web: (3230)"
 tmux select-pane -t "$bottom_left" -T "suwexag: (7010)"

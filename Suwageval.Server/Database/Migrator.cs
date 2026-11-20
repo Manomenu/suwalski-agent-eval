@@ -4,14 +4,12 @@ using grate.postgresql.DependencyInjection;
 
 namespace Suwageval.Server.Database;
 
-// Why: a migration script is never edited after it ran somewhere, because databases with the old text and the new text would quietly differ
 internal static class Migrator
 {
     public static string DefaultDirectory => Path.Combine(AppContext.BaseDirectory, "Database", "Migrations");
 
     public static async Task<IReadOnlyList<string>> MigrateAsync(string connectionString, string directory)
     {
-        // Why: grate writes copies of what it ran here, and the working directory (/app) is not writable in the image
         var output = Directory.CreateTempSubdirectory("suwageval-grate-");
         using var temporaryFolders = new GrateTemporaryFolders(directory);
         IReadOnlyList<string> deleted;

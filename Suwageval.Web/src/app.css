@@ -1,7 +1,3 @@
-/* The agent's page: one column, and from 1900px (the navbar included) the analytics in a column of their own beside the
-   agent and its runs, kept in view while the runs scroll. The runs keep the width of every other page (CONTENT_MAX_WIDTH,
-   shell/layout.ts, wide enough for the tables of runs and comparisons); the analytics take the rest of the screen, up to its
-   right edge. */
 .agent-layout {
     max-width: 1400px;
     display: grid;
@@ -22,7 +18,6 @@
     min-width: 0;
 }
 
-/* Unstable checks and agent errors side by side when the column fits both (at least 320px each), else stacked. */
 .agent-health-cards {
     display: flex;
     flex-wrap: wrap;
@@ -54,14 +49,11 @@
     .agent-layout-analytics {
         position: sticky;
         top: calc(var(--app-shell-header-height) + var(--mantine-spacing-md));
-        /* Taller than the screen (the chart and the unstable checks): it scrolls within itself instead of being cut off. */
         max-height: calc(100vh - var(--app-shell-header-height) - 2 * var(--mantine-spacing-md));
         overflow-y: auto;
     }
 }
 
-/* The line diff of two versions: a row is the two line numbers, the +/- marker and the text, which wraps (never scrolled
-   sideways) and hangs under its start (the row's inline padding, see diff/LineDiffView.tsx). */
 .line-diff {
     font-family: var(--mantine-font-family-monospace);
     font-size: var(--mantine-font-size-sm);
@@ -97,7 +89,6 @@
     min-height: 1lh;
 }
 
-/* A check jumped to from the run page's regression list: clear of the fixed header (HEADER_HEIGHT, 60px), and marked a moment. */
 .check-target {
     scroll-margin-top: 76px;
     border-radius: var(--mantine-radius-sm);
@@ -120,19 +111,14 @@
     overflow-wrap: anywhere;
 }
 
-/* A badge, a count or a date never wraps or shrinks to nothing: only the long text columns (label, group, tags, version) give way. */
 .no-wrap {
     white-space: nowrap;
 }
 
-/* Mantine clips a badge's label (overflow hidden, an ellipsis), so a table squeezed by more columns would cut "Done" short:
-   in a no-wrap cell a badge is always as wide as its text. */
 .no-wrap .mantine-Badge-root {
     min-width: max-content;
 }
 
-/* The run page's "Compared with" section: one grid for all groups, so the check names, the history strips and the extras
-   (failing since, compare link) line up in columns across the groups. Below 600px each check wraps into lines of its own. */
 .regression-checks {
     display: grid;
     grid-template-columns: minmax(0, max-content) max-content minmax(0, 1fr);

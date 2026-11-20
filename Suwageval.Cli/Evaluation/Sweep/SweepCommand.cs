@@ -178,13 +178,16 @@ internal static partial class SweepCommand
         }
 
         using var agentHttp = http is null ? new HttpClient { Timeout = ContractFetcher.Timeout } : null;
+        var contractHttp =
+            http
+            ?? agentHttp
+            ?? throw new InvalidOperationException("agentHttp is created whenever no http client was injected, so one of the two is set.");
         return await ServerCall.RunAsync(
             arguments.Server,
             http,
             error,
             async (client, site) =>
             {
-                // Why: a group exists only once it has a run, so its note can be set only after the first run is created
                 var noteSet = arguments.Note is null;
                 async Task onFirstRun(CancellationToken token)
                 {
@@ -205,11 +208,7 @@ internal static partial class SweepCommand
                 var sweep = new VariantSweep(
                     settings,
                     shell,
-                    async token =>
-                        // Why: agentHttp is created whenever no http client was injected, so one of the two is set
-                        (await ContractFetcher.FetchAsync(http ?? agentHttp!, endpoint, token))
-                            .Contract
-                            ?.Label,
+                    async token => (await ContractFetcher.FetchAsync(contractHttp, endpoint, token)).Contract?.Label,
                     token => StartRunAsync(client, agent.Definition.Name, arguments, group, origins, onFirstRun, token),
                     output,
                     TimeSpan.FromSeconds(settings.WaitSeconds),
@@ -316,8 +315,7 @@ internal static partial class SweepCommand
                 .EnumerateFiles(variantsDir)
                 .Select(Path.GetFileNameWithoutExtension)
                 .Where(name => !string.IsNullOrEmpty(name))
-                // Why: empty and null names are filtered out by the Where just above
-                .Select(name => name!)
+                .OfType<string>()
                 .Distinct(StringComparer.Ordinal)
                 .Order(StringComparer.Ordinal)
                 .ToList()
@@ -327,7 +325,6 @@ internal static partial class SweepCommand
             problem = $"No variants: {variantsDir} is missing or has no files.";
             return null;
         }
-        // Why: a variant name goes into shell command lines, so it must be a plain word
         if (available.FirstOrDefault(name => !VariantName().IsMatch(name)) is { } odd)
         {
             problem = $"'{odd}' in {variantsDir} cannot be a variant: use letters, digits, '.', '_' and '-'.";

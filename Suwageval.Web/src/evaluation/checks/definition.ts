@@ -12,7 +12,7 @@ export function definitionYaml(definition: CheckDefinition): string {
     const entries = Object.entries({ ...definition, where }).filter(([name, value]) => value !== undefined && !LEFT_OUT.includes(name));
     const take = (names: string[]) => names.flatMap((name) => entries.filter(([entryName]) => entryName === name));
     const middle = entries.filter(([name]) => !FIRST_KEYS.includes(name) && !LAST_KEYS.includes(name));
-    // Why: no folding, so long text stays on one line in the YAML and the drawer wraps it on screen
+
     return stringify(Object.fromEntries([...take(FIRST_KEYS), ...middle, ...take(LAST_KEYS)]), { lineWidth: 0 });
 }
 
@@ -61,7 +61,6 @@ function subject(definition: CheckDefinition): string {
     return "check";
 }
 
-// Why: the server writes one text as a plain string, so a check stored before lists keeps its form, though the schema names a list
 function quotedTexts(texts: string | readonly string[]): string {
     return (typeof texts === "string" ? [texts] : texts).map((text) => JSON.stringify(text)).join(", ");
 }

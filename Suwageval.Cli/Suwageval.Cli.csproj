@@ -2,13 +2,10 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <RootNamespace>Suwageval.Cli</RootNamespace>
-    <!-- The command's name in its help text. -->
     <AssemblyName>suwageval</AssemblyName>
-    <!-- Packed as a .NET tool: installing it gives the `suwageval` command (just cli-install). -->
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>suwageval</ToolCommandName>
     <PackageId>Suwageval.Cli</PackageId>
-    <!-- Suwageval.AgentSdk brings the ASP.NET Core framework for agents; the command needs only the base runtime. -->
     <DisableTransitiveFrameworkReferences>true</DisableTransitiveFrameworkReferences>
     <Description>Validate, push and run the evaluation files of an agent's repository against Suwageval.</Description>
   </PropertyGroup>
@@ -24,7 +21,6 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Suwageval.Cli.Tests" />
-    <!-- The server's end-to-end tests run the CLI against the server in process. -->
     <InternalsVisibleTo Include="Suwageval.Server.Tests" />
   </ItemGroup>
 </Project>

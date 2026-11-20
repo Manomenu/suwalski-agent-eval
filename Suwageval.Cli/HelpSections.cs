@@ -36,12 +36,14 @@ internal static class HelpSections
         ("Agent", ["init", "agents", "agent", "versions", "delete-agent"]),
     ];
 
-    // Why: System.CommandLine's help builder is internal, so the root's help is written here
     public static void Apply(RootCommand root)
     {
         var option = root.Options.OfType<HelpOption>().Single();
-        // Why: the root's help option always has an action, and it is a synchronous one
-        option.Action = new RootHelpAction(root, (SynchronousCommandLineAction)option.Action!);
+        option.Action = new RootHelpAction(
+            root,
+            option.Action as SynchronousCommandLineAction
+                ?? throw new InvalidOperationException("The root's help option always has a synchronous action.")
+        );
     }
 
     private sealed class RootHelpAction(RootCommand root, SynchronousCommandLineAction commandHelp) : SynchronousCommandLineAction

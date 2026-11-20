@@ -114,7 +114,6 @@ internal sealed class ServerClient(HttpClient http)
     )
     {
         var runs = new List<RunSummary>();
-        // Why: the server pages by number, so changing the page size between requests would skip or repeat runs
         var size = referenceOnly ? MaxPageSize : Math.Min(limit, MaxPageSize);
         for (var page = 1; runs.Count < limit; page++)
         {

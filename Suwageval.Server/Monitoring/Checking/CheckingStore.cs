@@ -82,7 +82,6 @@ internal sealed class CheckingStore(Pool pool)
         ];
     }
 
-    // Why: nothing is stored when a turn opened the conversation again meanwhile, because it is checked when it closes again
     public async Task<bool> StoreAsync(Guid conversationId, IReadOnlyList<Verdict> verdicts, CancellationToken cancellationToken = default)
     {
         await using var connection = await pool.OpenAsync(cancellationToken);

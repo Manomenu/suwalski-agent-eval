@@ -5,7 +5,6 @@ import { useAgentFeatures } from "../agents/useAgentFeatures";
 import { agentEvaluationHref, agentHref, agentMonitoringHref, agentVersionsHref } from "../routes/links";
 import type { Navigation } from "./navigation";
 
-// Why: nesting is drawn by hand, not as a NavLink with children, because Mantine turns a click on such a NavLink into a toggle and these are all links
 export function AppNavbar({ agentName, active }: Navigation) {
     const features = useAgentFeatures(agentName);
     const evaluation = features === null || areaOn(features, "evaluation");

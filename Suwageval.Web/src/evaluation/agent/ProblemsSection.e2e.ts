@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { createAgent, runToEnd, serveAgent } from "../../../e2e/helpers";
+import { createAgent, runToEnd, serveAgent } from "../../../e2e/agentSteps";
 
 test("AC-product-simplification-4: the Evaluation page has a Problems section with the unstable checks and the agent errors", async ({
     page,
@@ -13,7 +13,7 @@ test("AC-product-simplification-4: the Evaluation page has a Problems section wi
         await createAgent(request, { name, endpointUrl: agentServer.endpointUrl, scenarios: [scenario] });
         const runId = await runToEnd(request, { agent: name });
         const version = ((await (await request.get(`/api/eval/runs/${runId}`)).json()) as { agentVersionId: string }).agentVersionId;
-        // Why: a real unstable check needs a version whose runs flip, which one agent double cannot be made to do on request
+
         const unstable = {
             scenarioKey: "greets",
             checkKey: "says-hello",

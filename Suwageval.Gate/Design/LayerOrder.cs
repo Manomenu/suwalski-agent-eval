@@ -19,22 +19,12 @@ internal sealed record LayerOrder(string[] Layers, Dictionary<string, string[]> 
         }
     }
 
-    public TheoryData<string, string> Edges()
-    {
-        var data = new TheoryData<string, string>();
-        foreach (var (part, forbidden) in EdgesOf(Layers))
-        {
-            data.Add(part, forbidden);
-        }
-        foreach (var (area, features) in Areas)
-        {
-            foreach (var (part, forbidden) in EdgesOf(features, area + "."))
-            {
-                data.Add(part, forbidden);
-            }
-        }
-        return data;
-    }
+    public TheoryData<string, string> AreaEdges() => Data(AreaEdgePairs());
+
+    public TheoryData<string, string> AllEdges() => Data(EdgesOf(Layers).Concat(AreaEdgePairs()));
+
+    public string[] UnplacedInAreas(IEnumerable<string> namespaces, string root) =>
+        [.. Unplaced(namespaces, root).Where(name => name.StartsWith("area ", StringComparison.Ordinal) || name.Contains('.'))];
 
     public string[] Unplaced(IEnumerable<string> namespaces, string root)
     {
@@ -57,5 +47,17 @@ internal sealed record LayerOrder(string[] Layers, Dictionary<string, string[]> 
                 .Distinct()
                 .Order(),
         ];
+    }
+
+    private IEnumerable<(string Part, string Forbidden)> AreaEdgePairs() => Areas.SelectMany(area => EdgesOf(area.Value, area.Key + "."));
+
+    private static TheoryData<string, string> Data(IEnumerable<(string Part, string Forbidden)> edges)
+    {
+        var data = new TheoryData<string, string>();
+        foreach (var (part, forbidden) in edges)
+        {
+            data.Add(part, forbidden);
+        }
+        return data;
     }
 }

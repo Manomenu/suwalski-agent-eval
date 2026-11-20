@@ -13,7 +13,6 @@ function inGrouping(version: Counted, grouping: VersionGrouping): boolean {
     return true;
 }
 
-// Why: filters also offer what they already chose, so a choice never disappears when the table's group filter changes
 export function offeredVersions<T extends Counted & { id: string; modelNames: string[]; data?: readonly { version: string }[] }>(
     versions: T[],
     grouping: VersionGrouping,

@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { openAgentsListAt } from "../../e2e/helpers";
+import { openAgentsListAt } from "../../e2e/agentSteps";
 
 test("the server answers, an agent opens on Versions, Evaluation is one click away, and Agents leads back to the list", async ({
     page,
@@ -13,7 +13,7 @@ test("the server answers, an agent opens on Versions, Evaluation is one click aw
     const evaluation = navbar.getByRole("link", { name: "Evaluation", exact: true });
 
     await openAgentsListAt(page, request, name);
-    // Why: exact, because a substring match would also pass on the down text
+
     await expect(page.getByText("server: up", { exact: true })).toBeVisible();
     await page.getByRole("main").getByRole("link", { name, exact: true }).click();
     await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();

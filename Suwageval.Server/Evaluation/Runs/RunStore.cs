@@ -58,7 +58,6 @@ internal sealed class RunStore(Pool pool)
     {
         await using var connection = await pool.OpenAsync(cancellationToken);
         await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
-        // Why: a run started in an archived group puts the group back in use
         await connection.ExecuteAsync(
             new CommandDefinition(
                 "DELETE FROM archived_run_groups WHERE agent_id = @agentId AND name = @runGroup::text",
@@ -200,7 +199,6 @@ internal sealed class RunStore(Pool pool)
         );
     }
 
-    // Why: FOR UPDATE SKIP LOCKED in one statement so that two workers never claim the same run
     public async Task<RunRow?> ClaimNextAsync(Guid? agentId = null, CancellationToken cancellationToken = default)
     {
         Guid? id;
@@ -224,7 +222,6 @@ internal sealed class RunStore(Pool pool)
                 )
             );
         }
-        // Why: read after the claiming connection is back in the pool, because holding two at once could exhaust a small pool
         return id is { } claimed ? await GetAsync(claimed, cancellationToken) : null;
     }
 
@@ -327,7 +324,6 @@ internal sealed class RunStore(Pool pool)
         );
     }
 
-    // Why: the chart and compose run one server (replicas: 1), so after a start no other process can hold a run; more replicas would need a worker heartbeat
     public async Task<int> InterruptRunningAsync(Guid? agentId = null, CancellationToken cancellationToken = default)
     {
         await using var connection = await pool.OpenAsync(cancellationToken);

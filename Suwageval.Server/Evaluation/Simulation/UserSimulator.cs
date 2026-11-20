@@ -6,7 +6,6 @@ using Suwageval.Server.LanguageModel;
 
 namespace Suwageval.Server.Evaluation.Simulation;
 
-// Why: the simulated user sees only the messages, never tool calls, events, retrievals or fixtures, and what it writes is never judged
 internal sealed class UserSimulator(ModelClients models, IOptions<SimulationOptions> options)
 {
     private const string Instructions = """

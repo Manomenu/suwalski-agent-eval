@@ -5,7 +5,6 @@ export function hangingIndent(line: string): number {
 
 const BLOCK_SCALAR_HEADER = /(?::|^\s*-)\s+[|>][-+]?\d*[-+]?\s*$/;
 
-// Why: lines of a block scalar hang by indentation only, or a word followed by a colon inside the prose would push the rest of the line off the screen
 export function hangingIndents(lines: readonly string[]): number[] {
     let scalarParent: number | null = null;
     return lines.map((line) => {

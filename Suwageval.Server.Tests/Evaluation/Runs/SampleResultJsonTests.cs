@@ -5,7 +5,6 @@ using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Server.Tests.Evaluation.Runs;
 
-// Why: a client older than simulations refuses unknown fields, so a one-turn sample must carry none of theirs
 public sealed class SampleResultJsonTests
 {
     private static readonly JsonSerializerOptions Response = new(ContractJson.Options)

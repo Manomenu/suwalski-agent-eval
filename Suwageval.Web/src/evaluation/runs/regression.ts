@@ -71,7 +71,7 @@ export function comparedWithHeading(summary: RegressionSummary): string {
 
 export function historyText(summary: RegressionSummary): string {
     const runs = summary.comparedWith == null ? "runs" : "reference runs";
-    // Why: the state reads up to twice the history (a failure after a steady pass needs both), and so does the history strip
+
     return `${summary.history} ${runs} make a steady pass; the history shows up to ${summary.history * 2}`;
 }
 

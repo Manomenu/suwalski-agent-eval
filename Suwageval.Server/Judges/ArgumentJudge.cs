@@ -98,7 +98,6 @@ internal sealed class ArgumentJudge(ModelClients models, IOptions<JudgeOptions> 
         return new CheckVerdict(false, search.Named, $"{search.Subject}, but not with judged values that fit. {why}", ModelName: modelName);
     }
 
-    // Why: anything but exactly the candidate's paths, each once, is null so that a skipped, made-up or repeated value is not judged and never a pass
     public static IReadOnlyList<ArgumentAnswers.Entry>? Read(string text, ArgumentCandidate candidate)
     {
         ArgumentNullException.ThrowIfNull(candidate);

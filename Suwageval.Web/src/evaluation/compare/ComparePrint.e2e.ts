@@ -8,7 +8,7 @@ import {
     stubPrint,
     visibleOnPaperButNotWanted,
     type RunningAgent,
-} from "../../../e2e/helpers";
+} from "../../../e2e/agentSteps";
 import { PRINT_COLUMN_WIDTH, PRINT_LABEL_COLUMN_WIDTH, PRINT_MAX_RUNS, PRINT_PAGE_WIDTH } from "./layout";
 
 const CONVERSATION = [{ kind: "UserMessage", text: "Hello" }];

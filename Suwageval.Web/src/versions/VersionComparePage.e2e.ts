@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { createAgent, runToEnd, serveAgent } from "../../e2e/helpers";
+import { createAgent, runToEnd, serveAgent } from "../../e2e/agentSteps";
 
 const LOOKUP_TOOL = {
     name: "lookup",

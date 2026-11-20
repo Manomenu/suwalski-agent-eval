@@ -69,8 +69,7 @@ internal static class RunComparer
             .. rows.Select(row =>
             {
                 var cells = row.Value.Select(check => check is null ? null : Cell(check)).ToList();
-                // Why: a row exists only because at least one run has the check, so some cell is not null
-                var shown = row.Value[baselineColumn] ?? row.Value.First(check => check is not null)!;
+                var shown = row.Value[baselineColumn] ?? row.Value.OfType<CheckRunResult>().First();
                 var baseline = cells[baselineColumn];
                 return new ComparedCheck
                 {

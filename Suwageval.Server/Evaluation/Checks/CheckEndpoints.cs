@@ -38,7 +38,6 @@ internal static class CheckEndpoints
         var errors = CheckValidation.Validate(request.Checks);
         if (errors.Count == 0)
         {
-            // Why: looked up first so that a check naming a missing scenario writes nothing, and no other check of the request either
             var live = (await scenarios.ListAsync(row.Id, cancellationToken: cancellationToken))
                 .Select(scenario => scenario.Key)
                 .ToHashSet();

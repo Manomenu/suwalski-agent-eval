@@ -24,8 +24,15 @@ internal static partial class AgentYamlEditor
             problems.Add(source.Problem("", "The file is a mapping with 'name' and 'endpointUrl'."));
             return null;
         }
-        // Why: values of JsonValue pairs are non-null: the filter keeps only JsonValue entries
-        return root.Where(pair => pair.Value is JsonValue).ToDictionary(pair => pair.Key, pair => pair.Value!.ToString());
+        var values = new Dictionary<string, string>();
+        foreach (var (key, node) in root)
+        {
+            if (node is JsonValue value)
+            {
+                values[key] = value.ToString();
+            }
+        }
+        return values;
     }
 
     public static bool? HasMonitoring(string file, string text) =>

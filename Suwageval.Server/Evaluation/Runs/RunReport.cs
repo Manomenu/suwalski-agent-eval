@@ -11,7 +11,6 @@ namespace Suwageval.Server.Evaluation.Runs;
 
 internal static class RunReport
 {
-    // Why: floating-point slack so that 4 of 5 samples reaching a threshold of 0.8 counts as reaching it
     private const double Epsilon = 1e-9;
 
     public static bool Reaches(int passed, int total, double threshold) => (passed / (double)total) + Epsilon >= threshold;
@@ -66,14 +65,12 @@ internal static class RunReport
                     .GroupBy(verdict => verdict.CheckKey)
                     .OrderBy(byCheck => byCheck.Key, StringComparer.Ordinal)
                     .Select(byCheck => CheckResult(byCheck.Key, [.. byCheck], sampleNumberOf));
-                // Why: a group of samples is never empty
-                var latest = group.MaxBy(sample => sample.ScenarioRevision)!;
+                var latest = group.OrderByDescending(sample => sample.ScenarioRevision).First();
                 return new ScenarioRunResult
                 {
                     Key = group.Key,
                     AcGuardrail = Guardrail(run, Definition(latest).AcGuardrail, [.. group], verdictsOf),
-                    // Why: the tags column is always a JSON array written by the server
-                    Tags = JsonSerializer.Deserialize<string[]>(group.First().ScenarioTagsJson)!,
+                    Tags = Stored<string[]>(group.First().ScenarioTagsJson),
                     Revision = group.Max(sample => sample.ScenarioRevision),
                     DefinitionYaml = DefinitionYaml(latest),
                     Samples = [.. group.OrderBy(sample => sample.Sample).Select(Sample)],
@@ -102,13 +99,15 @@ internal static class RunReport
                 && scenario.Samples.All(sample => sample.Status == SampleStatus.Done),
         };
 
+    private static T Stored<T>(string json, JsonSerializerOptions? options = null) =>
+        JsonSerializer.Deserialize<T>(json, options)
+        ?? throw new InvalidOperationException("Stored JSON was serialized by the server, so it is valid and not null.");
+
     private static ScenarioInput Definition(ScenarioResultRow sample) =>
-        // Why: stored scenario content was serialized by the server, so it is valid JSON
-        JsonSerializer.Deserialize<ScenarioInput>(sample.ScenarioContent, ContractJson.Options)!;
+        Stored<ScenarioInput>(sample.ScenarioContent, ContractJson.Options);
 
     private static string DefinitionYaml(ScenarioResultRow sample) =>
-        // Why: the tags column is always a JSON array written by the server
-        ScenarioYaml.Of(Definition(sample) with { Tags = JsonSerializer.Deserialize<string[]>(sample.ScenarioTagsJson)! });
+        ScenarioYaml.Of(Definition(sample) with { Tags = Stored<string[]>(sample.ScenarioTagsJson) });
 
     private static ScenarioGuardrailResult? Guardrail(
         RunRow run,
@@ -158,8 +157,7 @@ internal static class RunReport
         var passed = rows.Count(row => row.Passed);
         var passRate = passed / (double)rows.Count;
         var threshold = rows[0].PassThreshold;
-        // Why: a group of check rows is never empty and its definition was serialized by the server
-        var definition = JsonSerializer.Deserialize<CheckInput>(rows.MaxBy(row => row.CheckRevision)!.Definition, ContractJson.Options)!;
+        var definition = Stored<CheckInput>(rows.OrderByDescending(row => row.CheckRevision).First().Definition, ContractJson.Options);
         return new CheckRunResult
         {
             Key = key,
@@ -173,7 +171,6 @@ internal static class RunReport
                 .Select(group => group.Key)
                 .FirstOrDefault(),
             Passed = Reaches(passed, rows.Count, threshold),
-            // Why: a verdict is open while a sample is not judged, so only a fully judged sample set passes for good
             PassedFully = Reaches(passed, rows.Count, threshold) && !rows.Any(row => row.NotJudged),
             PassRate = passRate,
             PassThreshold = threshold,

@@ -151,7 +151,6 @@ internal sealed class AgentStore(Pool pool)
         {
             return new AgentVersionRegistration(created, Created: true);
         }
-        // Why: an archived version that the agent serves again is back in use
         var existing = await connection.QuerySingleAsync<AgentVersionRow>(
             new CommandDefinition(
                 $"UPDATE agent_versions SET archived_at = NULL WHERE agent_id = @agentId AND content_hash = @hash RETURNING {VersionColumns}",

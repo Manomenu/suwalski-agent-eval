@@ -197,8 +197,8 @@ Then ask, or use `/suwageval:scenario`, `/suwageval:fix`, `/suwageval:run`, `/su
 | container stack | `just up` → http://localhost:8093 | the same images the cluster runs |
 | cluster | the Helm chart in `deploy/chart/` | production, with a post-deploy smoke test |
 
-`just check` runs the gate CI runs (analyzers, formatters, tests against a real PostgreSQL, import contracts, dead code, the
-chart); `just e2e` the browser tests. The pictures in this README are drawn on
+`just check` runs the gate CI runs ([suwgate](https://github.com/Manomenu/suwgate): analyzers, formatters, tests against a real
+PostgreSQL, import contracts, dead code, the chart); `just e2e` the browser tests. The pictures in this README are drawn on
 [docs/visual/board/readme.html](docs/visual/board/readme.html) and rendered with the suwagent plugin's `vdoc.py render`; a
 longer visual tour is [docs/visual-readme.html](docs/visual-readme.html). Rules for changing the repository:
 [AGENTS.md](AGENTS.md).
