@@ -8,7 +8,6 @@ namespace Suwageval.Server.Tests.Api;
 
 public sealed class ServerAppTests(TestDatabase database, ClassServer server) : IClassFixture<ClassServer>
 {
-    // Why: the run worker is left out because it would take the queued runs of other tests sharing the database
     private readonly WebApplicationFactory<Program> app = server.App;
 
     private HttpClient Client()
@@ -38,7 +37,6 @@ public sealed class ServerAppTests(TestDatabase database, ClassServer server) : 
     [Fact]
     public async Task Routes_carry_no_api_prefix()
     {
-        // Why: /api is stripped at the edge, so a route declared with it would be reachable in no environment
         var response = await Client().GetAsync(new Uri("/api/health", UriKind.Relative), TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);

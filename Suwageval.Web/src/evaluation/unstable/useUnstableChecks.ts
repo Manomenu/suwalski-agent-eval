@@ -17,7 +17,7 @@ export function useUnstableChecks(
                 : fetchUnstableChecks(agent ?? "", versionIds, dataVersions, signal),
         { fallback: NONE },
     );
-    // Why: arrived tells the page the first answer is in (or none is asked for), so it can hold the view back instead of letting the cards push the filters down later
+
     return {
         checks: request.kind === "loaded" && !request.pending ? request.value : NONE,
         arrived: request.kind !== "loading" || !request.pending,

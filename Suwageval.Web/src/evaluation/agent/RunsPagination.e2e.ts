@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { createAgent, serveAgent, startRun } from "../../../e2e/helpers";
+import { createAgent, serveAgent, startRun } from "../../../e2e/agentSteps";
 
 test("the runs table pages by number, keeps the page in the address and shows the last page for one past it", async ({ page, request }) => {
     const name = `e2e-runs-paging-${String(Date.now())}`;

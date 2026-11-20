@@ -100,7 +100,6 @@ internal static class RunEndpoints
             );
         }
 
-        // Why: the version is what the agent says it is right now, so its contract is read and registered first and nothing is queued when the agent cannot say
         var endpoint = request.EndpointUrl ?? agent.EndpointUrl;
         var served = await client.GetContractAsync(new Uri(endpoint), cancellationToken);
         if (served.Contract is not { } contract)
@@ -211,8 +210,12 @@ internal static class RunEndpoints
             return ProblemResults.Invalid("gate", $"The scenario '{withoutChecks.Key}': {AcGuardrailRules.NoChecks}");
         }
         var duplicate = guardrails
-            // Why: only scenarios with an acGuardrail are grouped, so it is set
-            .GroupBy(scenario => StoredContent.Scenario(scenario.Content).AcGuardrail!.Id, StringComparer.Ordinal)
+            .GroupBy(
+                scenario =>
+                    StoredContent.Scenario(scenario.Content).AcGuardrail?.Id
+                    ?? throw new InvalidOperationException("Only scenarios with an acGuardrail are grouped."),
+                StringComparer.Ordinal
+            )
             .FirstOrDefault(group => group.Count() > 1);
         return duplicate is null
             ? null
@@ -308,7 +311,6 @@ internal static class RunEndpoints
         {
             return null;
         }
-        // Why: a re-check has the answers of the run it was made from, so that run is what is re-checked again
         var original = shown.RecheckOf is { } originalId ? await runs.GetAsync(originalId, cancellationToken) ?? shown : shown;
         if (original.Gate)
         {
@@ -425,7 +427,6 @@ internal static class RunEndpoints
             return Results.Ok(results);
         }
         var n = RegressionReport.HistoryOf((await agents.GetAsync(run.AgentId.ToString(), cancellationToken))?.Regression);
-        // Why: a re-check stands where its original stood, so the history is what came before that run
         var history = await runs.ListCheckHistoriesAsync(
             id,
             run.RecheckOf ?? id,

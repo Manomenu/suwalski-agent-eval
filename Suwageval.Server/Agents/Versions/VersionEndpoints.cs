@@ -58,7 +58,6 @@ internal static class VersionEndpoints
         {
             return ProblemResults.NotFound("Agent", agent);
         }
-        // Why: looked up first so that one unknown id changes nothing at all
         var unknown = await versions.UnknownVersionsAsync(row.Id, request.VersionIds, cancellationToken);
         if (unknown.Count > 0)
         {
@@ -134,7 +133,6 @@ internal static class VersionEndpoints
         {
             return ProblemResults.Invalid(first.AgentId != row.Id ? "from" : "to", $"The version is not one of agent '{agent}'.");
         }
-        // Why: the older version is the base; versions made at the same time keep the order asked for
         var (older, newer) = second.CreatedAt < first.CreatedAt ? (second, first) : (first, second);
         var counts = await versions.RunCountsAsync(row.Id, cancellationToken);
         var data = await versions.DataAsync(row.Id, cancellationToken);

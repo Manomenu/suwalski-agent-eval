@@ -38,7 +38,6 @@ internal sealed class ConversationChecker(CheckingStore checking, ConversationSt
                     verdict.Passed,
                     verdict.NotJudged,
                     verdict.Message,
-                    // Why: a judge check's evidence is the whole conversation, already on its page, so it is stored without it
                     JsonSerializer.Serialize(input is JudgeCheck ? [] : verdict.Evidence, ContractJson.Options),
                     verdict.ModelName
                 )

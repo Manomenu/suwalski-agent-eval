@@ -122,14 +122,12 @@ internal sealed class RunOriginReader(
                 }
             };
             process.BeginOutputReadLine();
-            // Why: drained so a chatty git cannot block on a full pipe
             process.BeginErrorReadLine();
             if (!process.WaitForExit(GitTimeout))
             {
                 process.Kill(entireProcessTree: true);
                 return null;
             }
-            // Why: without a timeout this second wait is the one that lets the last output lines arrive
             process.WaitForExit();
             return new GitAnswer(process.ExitCode, output.ToString());
         }

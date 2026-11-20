@@ -697,7 +697,6 @@ public sealed class RunCommandTests
         Assert.Equal(RunStatus.Done, printed?.Run.Status);
     }
 
-    // Why: a real run once printed invalid JSON from a raw line break inside a string, so reasons and replies with line breaks must reach stdout escaped
     private const char LineSeparator = (char)0x2028;
     private const char ParagraphSeparator = (char)0x2029;
     private const char NextLine = (char)0x85;

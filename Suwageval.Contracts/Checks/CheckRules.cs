@@ -58,7 +58,6 @@ public static class CheckRules
                 AddMatcherProblems(problems, notEmitted.Data, $"{path}.data");
                 if (notEmitted.Data is { } data && HoldsJudge(data))
                 {
-                    // Why: "no event whose data a model would accept" would need a model call per event and turn its verdict upside down
                     problems.Add(
                         new CheckProblem(
                             $"{path}.data",
@@ -298,7 +297,6 @@ public static class CheckRules
         }
         if (bounded && emitted.Data is { } data && HoldsJudge(data))
         {
-            // Why: a count needs a yes or no for every event, and a model is asked about one candidate at a time
             problems.Add(
                 new CheckProblem(
                     $"{path}.data",

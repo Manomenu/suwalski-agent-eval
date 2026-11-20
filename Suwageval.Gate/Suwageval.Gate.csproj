@@ -6,21 +6,18 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+    <PackageReference Update="Suwgate.Architecture" IncludeAssets="all" />
+    <PackageReference Include="Suwgate.Database" />
     <PackageReference Include="TngTech.ArchUnitNET.xUnitV3" />
     <PackageReference Include="xunit.v3" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="../Suwageval.Server/Suwageval.Server.csproj" />
-    <!-- Aliased: the CLI has a top-level Program of its own, like the server. -->
     <ProjectReference Include="../Suwageval.Cli/Suwageval.Cli.csproj" Aliases="Cli" />
   </ItemGroup>
 
   <ItemGroup>
-    <Using Include="Suwageval.Gate.Code" />
-    <Using Include="Suwageval.Gate.Design" />
-    <Using Include="Suwageval.Gate.Repository" />
     <Using Include="Xunit" />
   </ItemGroup>
 </Project>

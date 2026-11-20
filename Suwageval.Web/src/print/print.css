@@ -1,9 +1,3 @@
-/* Paper: the run page and the comparison are printed as they are on the screen, changed only by the rules below and the page size
-   (the browser's print dialog is the preview, and "Save as PDF" is its). What is a control or only leads somewhere is marked
-   `no-print` where it is rendered; what the paper shows is said in a `print-only` line at the top. The comparison's column widths
-   come from compare/layout.ts, through the variables the table sets (--print-label-width, --print-column-width). */
-
-/* Landscape: a comparison is wider than tall. 10 mm margins: compare/layout.ts PRINT_PAGE_WIDTH is derived from them. */
 @page {
     size: A4 landscape;
     margin: 10mm;
@@ -14,17 +8,12 @@
     display: none;
 }
 
-/* What is folded on the screen is in the page all the time, only hidden: the paper shows it by these rules alone, with no
-   re-render on the way to the print dialog (a real dialog lays the paper out before React could react to it). */
 .folded-row,
 .folded-block {
     display: none;
 }
 
 @media print {
-    /* The app is dark on the screen; paper is white with dark text: the variables of Mantine's light scheme (copied from its styles.css,
-       the palette is the theme's), applied to the dark scheme the page is forced into (`html:root`: more specific than the theme's colors, which the provider
-       writes into the page after this file). */
     html:root[data-mantine-color-scheme="dark"] {
         --mantine-color-scheme: light;
         --mantine-primary-color-contrast: var(--mantine-color-white);
@@ -155,7 +144,6 @@
         --mantine-color-orange-light-color: var(--mantine-color-orange-9);
         --mantine-color-orange-outline: var(--mantine-color-orange-6);
         --mantine-color-orange-outline-hover: rgba(253, 126, 20, 0.05);
-        /* The dark palette's surfaces, where a component names them (an accordion, a code block), turn white and its text dark. */
         --mantine-color-dark-0: #000;
         --mantine-color-dark-1: #1e1e2e;
         --mantine-color-dark-2: #4c4f69;
@@ -174,10 +162,8 @@
         color: #000;
     }
 
-    /* Backgrounds that carry meaning (a verdict, a change against the baseline) print even when the dialog's "background graphics" is off. */
     * {
         print-color-adjust: exact;
-        /* The shell's padding and a panel's height animate on the screen: paper is laid out at once. */
         transition: none !important;
     }
 
@@ -207,7 +193,6 @@
         padding-bottom: 4px;
     }
 
-    /* The shell's room for the header and the navbar, and the content's maximum width, are not for paper. */
     .mantine-AppShell-main {
         padding: 0 !important;
     }
@@ -216,13 +201,11 @@
         max-width: none !important;
     }
 
-    /* A link on paper is its text. */
     a {
         color: inherit !important;
         text-decoration: none !important;
     }
 
-    /* A card, a check, a sample and a table row are not cut by a page break. */
     .mantine-Card-root,
     .check-target,
     .mantine-Accordion-item,
@@ -234,8 +217,6 @@
         display: table-header-group;
     }
 
-    /* A sample's conversation is folded on the screen (an accordion): on paper every one is open. The panel stays mounted when folded
-       (keepMountedMode display-none), so this is all it takes; the sample's title is a print-only line (the control is a button). */
     .mantine-Accordion-panel {
         display: block !important;
         height: auto !important;
@@ -247,7 +228,6 @@
         display: none !important;
     }
 
-    /* The comparison: no sideways scrolling, the columns share the paper. */
     .compare-paper {
         padding: 0 !important;
         border: 0 !important;
@@ -286,8 +266,6 @@
         font-size: 8pt;
     }
 
-    /* What stays on one line on the screen (a column's date, a cell's counts) may break on paper: with fonts that run wider (CI's)
-       it does not fit the printed column whole. */
     .compare-table .no-wrap {
         white-space: normal;
     }
@@ -300,8 +278,6 @@
         width: var(--print-column-width) !important;
     }
 
-    /* The note box (note/NoteBox.tsx) keeps the dark scheme's light text on its light blue background: dark text on paper, the box
-       still visible by its light background and thin border. */
     .note-box {
         --alert-bg: var(--mantine-color-blue-0);
         --alert-bd: 1px solid var(--mantine-color-blue-6);

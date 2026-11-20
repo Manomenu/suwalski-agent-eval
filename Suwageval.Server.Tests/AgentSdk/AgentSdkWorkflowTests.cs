@@ -3,7 +3,6 @@ using System.Text.RegularExpressions;
 
 namespace Suwageval.Server.Tests.AgentSdk;
 
-// Why: the release workflow filters the SDK's tests by class name, and a filter matching nothing is silent, so a renamed class would quietly drop the release's proof
 public sealed partial class AgentSdkWorkflowTests
 {
     [Fact]

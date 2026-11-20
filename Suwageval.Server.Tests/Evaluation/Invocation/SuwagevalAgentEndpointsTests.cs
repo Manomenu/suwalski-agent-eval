@@ -89,7 +89,6 @@ public sealed class SuwagevalAgentEndpointsTests : IAsyncLifetime
         );
         Assert.Equal("main", Assert.Single(contract!.Agents).Name);
 
-        // Why: the discriminator comes last here on purpose: it must still be read
         using var response = await PostTurn("""{"conversation":[{"text":"hi","kind":"UserMessage"}]}""");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);

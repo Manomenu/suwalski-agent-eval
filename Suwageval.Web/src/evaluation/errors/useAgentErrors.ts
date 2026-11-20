@@ -11,7 +11,7 @@ export function useAgentErrors(
         (signal) => fetchAgentErrors(agent ?? "", versionIds, dataVersions, signal),
         { fallback: NONE },
     );
-    // Why: arrived tells the page the first answer is in (or none is asked for), so it can hold the view back instead of letting the cards push the filters down later
+
     return {
         errors: request.kind === "loaded" && !request.pending ? request.value : NONE,
         arrived: request.kind !== "loading" || !request.pending,

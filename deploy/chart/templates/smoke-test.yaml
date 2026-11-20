@@ -20,10 +20,8 @@ metadata:
     app.kubernetes.io/component: smoke-test
   annotations:
     argocd.argoproj.io/hook: PostSync
-    # Poprzedni Job (i jego log) zostaje do następnego wdrożenia, potem znika.
     argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
 spec:
-  # Bez ponowień: chwilowe problemy łapie pętla w skrypcie, a powtórka Joba tylko by je ukryła.
   backoffLimit: 0
   activeDeadlineSeconds: 180
   template:
@@ -45,7 +43,6 @@ spec:
             - |
               set -u
               failed=0
-              # expect STATUS PATH [TEXT] — kod odpowiedzi (i fragment treści) przez web, jak z tunelu.
               expect() {
                 status="$1"; path="$2"; text="${3:-}"
                 for attempt in 1 2 3 4 5 6; do
@@ -60,15 +57,13 @@ spec:
                 head -c 300 /tmp/body; echo
                 failed=1
               }
-              expect 200 /healthz                          # strona (nginx) żyje
-              expect 200 /api/health '"ok"'                # serwer odpowiada (i ma bazę — bez niej nie wstaje)
+              expect 200 /healthz
+              expect 200 /api/health '"ok"'
               exit "$failed"
           resources:
             requests: { cpu: 10m, memory: 16Mi }
             limits: { memory: 32Mi }
           securityContext:
-            # Obraz podaje użytkownika nazwą (curl_user), a runAsNonRoot umie sprawdzić tylko
-            # numer — więc numer, wzięty z obrazu.
             runAsUser: 100
             runAsNonRoot: true
             allowPrivilegeEscalation: false

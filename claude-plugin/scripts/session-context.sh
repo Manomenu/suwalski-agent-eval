@@ -1,5 +1,9 @@
 #!/bin/sh
-# Why: a SessionStart hook: Claude Code adds what this prints to the context, so outside an agent's repository it prints nothing
+if [ "${1:-}" = "--help" ]; then
+  echo "The plugin's SessionStart hook (hooks/hooks.json): in an agent's repository, one with suwageval/agent.yaml under"
+  echo "CLAUDE_PROJECT_DIR, it prints the Suwageval loop into the session's context; anywhere else it prints nothing."
+  exit 0
+fi
 project="${CLAUDE_PROJECT_DIR:-$PWD}"
 [ -f "$project/suwageval/agent.yaml" ] || exit 0
 cat "$(dirname "$0")/../hooks/context/agent-loop.md"

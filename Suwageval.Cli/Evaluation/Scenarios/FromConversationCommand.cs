@@ -84,7 +84,8 @@ internal static class FromConversationCommand
                             );
                             return 0;
                         }
-                        var file = Path.Combine(parsed.GetRequiredValue(dir), "scenarios", $"{draft.Key}.yaml");
+                        var scenariosDir = Path.Combine(parsed.GetRequiredValue(dir), "scenarios");
+                        var file = Path.Combine(scenariosDir, $"{draft.Key}.yaml");
                         if (File.Exists(file))
                         {
                             await parsed.InvocationConfiguration.Error.WriteLineAsync(
@@ -92,8 +93,7 @@ internal static class FromConversationCommand
                             );
                             return 1;
                         }
-                        // Why: file is a path with a directory part, built from the folder and scenario key
-                        Directory.CreateDirectory(Path.GetDirectoryName(file)!);
+                        Directory.CreateDirectory(scenariosDir);
                         await File.WriteAllTextAsync(file, draft.Yaml, cancellationToken);
                         await output.WriteLineAsync($"wrote {file}: review it, add the checks it must keep, then validate and push.");
                         return 0;

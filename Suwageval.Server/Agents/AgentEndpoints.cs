@@ -39,7 +39,6 @@ internal static class AgentEndpoints
         {
             agent = await store.SetEndpointUrlAsync(agent.Id, definition.EndpointUrl, cancellationToken);
         }
-        // Why: the pushed definition is the source of truth, so a setting left out of the push puts its default back
         var features = definition.Features ?? new AgentFeatures();
         if (
             agent.Samples != definition.Samples

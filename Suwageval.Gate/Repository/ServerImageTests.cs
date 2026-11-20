@@ -4,7 +4,7 @@ namespace Suwageval.Gate.Repository;
 
 public sealed class ServerImageTests
 {
-    private static readonly string RepoRoot = RepositoryFiles.Root;
+    private static readonly string RepoRoot = ArchitectureTests.Repository.Root;
 
     private static List<string> ServerProjects()
     {

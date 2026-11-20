@@ -4,7 +4,6 @@ namespace Suwageval.Server.Database;
 
 internal static class DatabaseServiceCollectionExtensions
 {
-    // Why: without the database there is nothing to serve, so the server fails to start with a clear error instead of failing every request later
     public static IServiceCollection AddDatabase(this IServiceCollection services, IConfiguration configuration, bool migrateOnStart)
     {
         var options = services

@@ -13,7 +13,6 @@ internal static class LineDiff
         var before = Lines(from);
         var after = Lines(to);
 
-        // Why: most contracts differ in a few lines only, so trimming the common head and tail keeps the quadratic walk small
         var head = 0;
         while (head < before.Length && head < after.Length && before[head] == after[head])
         {
@@ -50,7 +49,6 @@ internal static class LineDiff
             Add(DiffKind.Same, line);
         }
 
-        // Why: the common subsequence is read from the end so that a walk from the start can follow it
         var common = new int[middleBefore.Length + 1][];
         for (var i = 0; i <= middleBefore.Length; i++)
         {

@@ -8,7 +8,6 @@ internal static class JsonSubset
     private const string PatternProperty = "$pattern";
     private static readonly TimeSpan PatternTimeout = TimeSpan.FromSeconds(1);
 
-    // Why: a pattern that is invalid or takes over a second matches nothing, and an object with both $pattern and $judge is neither matcher
     public static bool Contains(JsonElement actual, JsonElement expected) =>
         expected.ValueKind switch
         {

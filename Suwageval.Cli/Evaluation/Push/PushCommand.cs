@@ -73,7 +73,6 @@ internal static class PushCommand
             async (client, _) =>
             {
                 var (savedAgent, agentCreated) = await client.PutAgentAsync(agent.Definition, cancellationToken);
-                // Why: with evaluation off the server keeps no scenarios, so the files stay in the repository unsent
                 var evaluation = agent.Definition.Features?.Evaluation ?? true;
                 var scenarioResults = evaluation
                     ? (

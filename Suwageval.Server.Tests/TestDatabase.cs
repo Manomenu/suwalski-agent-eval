@@ -8,7 +8,7 @@ namespace Suwageval.Server.Tests;
 public sealed class TestDatabase : IAsyncLifetime
 {
     private const string MainCheckoutConnectionString =
-        "Host=localhost;Port=5463;Database=suwageval_test;Username=suwageval;Password=suwageval";
+        "Host=127.0.0.1;Port=5463;Database=suwageval_test;Username=suwageval;Password=suwageval";
 
     private static readonly string? FromEnvironment = Environment.GetEnvironmentVariable("TEST_CONNECTION_STRING");
 
@@ -45,7 +45,6 @@ public sealed class TestDatabase : IAsyncLifetime
         await Migrator.MigrateAsync(ConnectionString, Migrator.DefaultDirectory);
     }
 
-    // Why: the fixture drops and recreates its database, so a worktree on the main checkout's name wipes the tests running there
     internal static void RefuseMainCheckoutDatabaseInLinkedWorktree(string? fromEnvironment, string testDirectory)
     {
         if (fromEnvironment is not null || !IsInLinkedWorktree(testDirectory))
@@ -54,12 +53,11 @@ public sealed class TestDatabase : IAsyncLifetime
         }
         throw new InvalidOperationException(
             "TEST_CONNECTION_STRING is not set, and this is a linked git worktree, so the tests would use the main checkout's "
-                + "database suwageval_test: run them after 'source scripts/.internal/checkout-env.sh' (bash or zsh), "
-                + "or run Suwageval.Gate/scripts/check.sh"
+                + "database suwageval_test: run them after eval \"$(Suwageval.Web/node_modules/.bin/suwgate dev checkout-env)\", "
+                + "or run just check"
         );
     }
 
-    // Why: a linked worktree has a .git file pointing into the main repository's .git/worktrees/, the main checkout a .git directory
     private static bool IsInLinkedWorktree(string directory)
     {
         for (var current = new DirectoryInfo(directory); current is not null; current = current.Parent)

@@ -118,7 +118,6 @@ function DifferenceRows({
     folded: boolean;
     colSpan: number;
 }) {
-    // Why: a prompt diff the person did not open is hidden on screen and still printed (print.css)
     const changed = difference.isPrompt ? difference.cells.flatMap((cell, column) => (cell.changed ? [column] : [])) : [];
     return (
         <>

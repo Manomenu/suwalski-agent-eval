@@ -89,7 +89,6 @@ internal static class RunOutput
         }
     }
 
-    // Why: without a person to ask (a CI job being stopped) the run is cancelled, since nobody would read its results
     private static async Task<int> InterruptedAsync(ServerClient client, Guid runId, Uri site, TextWriter error, Terminal terminal)
     {
         await error.WriteLineAsync();

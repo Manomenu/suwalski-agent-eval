@@ -2,7 +2,6 @@ using Suwageval.Contracts.Runs;
 
 namespace Suwageval.Server.Evaluation.Runs;
 
-// Why: a group run is an experiment and a gate run is a verdict, so neither counts, and a re-check replaces the verdicts of its original instead of being a sample
 internal static class EffectiveRuns
 {
     internal sealed record Point(RunRow Run, RunRow? RecheckedBy)
@@ -15,8 +14,7 @@ internal static class EffectiveRuns
         ArgumentNullException.ThrowIfNull(newestFirst);
         var latestRecheck = newestFirst
             .Where(run => run.State == RunStatus.Done && run.RecheckOf is not null)
-            // Why: the runs were filtered to re-checks just above, so RecheckOf is set
-            .GroupBy(run => run.RecheckOf!.Value)
+            .GroupBy(run => run.RecheckOf ?? throw new InvalidOperationException("The runs were filtered to re-checks just above."))
             .ToDictionary(group => group.Key, group => group.First());
         return
         [

@@ -5,7 +5,6 @@ namespace Suwageval.Server.Evaluation.Runs.Compare;
 
 internal static class RunComparisonReport
 {
-    // Why: the same limit as the web print limit and the CLI's, and a test compares them
     public const int MaxRuns = 7;
 
     public static RunComparison Build(

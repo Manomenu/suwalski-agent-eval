@@ -78,13 +78,11 @@ internal static class ServerAddress
 
     public static Uri ConversationPage(Uri site, Guid id) => new(site, $"conversations/{id}");
 
-    // Why: commas stay unescaped to match the web's own addresses
     private static string Query(params (string Name, string? Value)[] parameters)
     {
         var parts = parameters
             .Where(p => !string.IsNullOrWhiteSpace(p.Value))
-            // Why: parts were filtered by IsNullOrWhiteSpace above, so Value is not null
-            .Select(p => $"{p.Name}={Uri.EscapeDataString(p.Value!).Replace("%2C", ",", StringComparison.Ordinal)}")
+            .Select(p => $"{p.Name}={Uri.EscapeDataString(p.Value ?? "").Replace("%2C", ",", StringComparison.Ordinal)}")
             .ToList();
         return parts.Count == 0 ? "" : "?" + string.Join('&', parts);
     }

@@ -8,7 +8,6 @@ import { versionInUseHref, compareGroupHref, runHref } from "../../routes/links"
 import { formatTime } from "../../format/time";
 import { shortId } from "../../format/names";
 
-// Why: the header keeps its height whatever the baseline changes are, so the button stays where it was clicked
 export interface BaselineInfo {
     isBaseline: boolean;
     onToggleBaseline: () => void;
@@ -42,7 +41,6 @@ export function ColumnHeader({ agent, variant, baseline }: { agent: string; vari
             )}
             {run.note?.trim() && (
                 <>
-                    {/* Why: one line on screen with the whole note in its tooltip, but on paper the whole note wrapped */}
                     <Tooltip label={run.note} multiline maw={360} style={{ whiteSpace: "pre-wrap" }}>
                         <Text size="xs" fw="normal" lineClamp={1} className="no-print">
                             Note: {run.note}

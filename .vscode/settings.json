@@ -11,25 +11,21 @@
         "**/dist": true,
         "**/*.tsbuildinfo": true
     },
-    // File nesting (docs/web.md): a file's tests and companions fold under it,
-    // so the explorer shows one entry per module. Extend these patterns, don't fight them.
     "explorer.fileNesting.enabled": true,
     "explorer.fileNesting.expand": false,
     "explorer.fileNesting.patterns": {
-        "README.md": "AGENTS.md, CLAUDE.md, TODO.md, LICENSE, justfile, .editorconfig, .gitignore, .gitattributes, .dockerignore, compose.yaml",
-        "Suwageval.slnx": "global.json, Directory.Build.props, Directory.Build.rsp, Directory.Packages.props, .csharpierrc.json",
+        "README.md": "AGENTS.md, CLAUDE.md, TODO.md, LICENSE, justfile, .editorconfig, .gitignore, .gitattributes, .dockerignore, compose.yaml, suwgate.yml, criteria.json",
+        "Suwageval.slnx": "global.json, Directory.Build.props, Directory.Build.rsp, Directory.Packages.props, .csharpierrc.json, layers.json",
         "*.csproj": "packages.lock.json",
         "appsettings.json": "appsettings.*.json",
-        "package.json": "pnpm*, .npm*, eslint*, .eslint*, prettier*, .prettier*, knip.json, tsconfig*.json, vite.config.ts, index.html",
+        "package.json": "pnpm*, .npm*, eslint*, .eslint*, prettier*, knip*, tsconfig*.json, vite.config.ts, index.html",
         "*.ts": "${capture}.js, ${capture}.*.ts",
         "*.tsx": "${capture}.ts, ${capture}.*.ts, ${capture}.*.tsx"
     },
     "dotnet.defaultSolution": "Suwageval.slnx",
-    // The Problems panel shows what the gate fails on (analyzers, nullable) for the whole
-    // solution, not only for the files that happen to be open.
+    "yaml.schemas": { "./Suwageval.Web/node_modules/@maniumek/suwgate/schema/suwgate.schema.json": "suwgate.yml" },
     "dotnet.backgroundAnalysis.analyzerDiagnosticsScope": "fullSolution",
     "dotnet.backgroundAnalysis.compilerDiagnosticsScope": "fullSolution",
-    // Test Explorer runs the xUnit tests through Microsoft.Testing.Platform, like `dotnet test`.
     "dotnet.testWindow.useTestingPlatformProtocol": true,
     "[typescript]": {
         "editor.defaultFormatter": "esbenp.prettier-vscode"

@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { createAgent, serveAgent, startRun } from "../../../e2e/helpers";
+import { createAgent, serveAgent, startRun } from "../../../e2e/agentSteps";
 
 test("Cancel run asks first, then the run ends as cancelled", async ({ page, request }) => {
     let release: () => void = () => undefined;

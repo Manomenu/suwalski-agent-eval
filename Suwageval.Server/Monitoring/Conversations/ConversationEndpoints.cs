@@ -73,7 +73,6 @@ internal static class ConversationEndpoints
             {
                 return ProblemResults.Invalid(contractProblems.Select(problem => new FieldError("contract", problem)));
             }
-            // Why: the expected hash is in the message so that an agent written in another language finds its mistake by comparing
             if (AgentContractHash.Of(contract) is var hash && hash != batch.ContractHash)
             {
                 return ProblemResults.Invalid(

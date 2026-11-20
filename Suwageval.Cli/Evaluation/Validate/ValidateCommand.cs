@@ -112,8 +112,15 @@ internal static class ValidateCommand
         }
 
         var source = new List<Problem>();
-        // Why: agentText is present here: a missing agent file already made the structure invalid and returned above
-        var url = AgentEndpoint.Override(endpoint) ?? AgentFileReader.Read(agentFile, agentText!, source)?.Definition.EndpointUrl;
+        var url =
+            AgentEndpoint.Override(endpoint)
+            ?? AgentFileReader
+                .Read(
+                    agentFile,
+                    agentText ?? throw new InvalidOperationException("A missing agent file already made the structure invalid."),
+                    source
+                )
+                ?.Definition.EndpointUrl;
         if (url is null || !Uri.TryCreate(url, UriKind.Absolute, out var address) || address.Scheme is not ("http" or "https"))
         {
             return structure with { Notice = $"names not checked: '{url}' is not an http or https address for the agent" };

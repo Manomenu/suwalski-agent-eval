@@ -44,9 +44,8 @@ export function TrendChart({
     domain: [number, number | "auto"];
     wholeNumbers?: boolean;
 }) {
-    // Why: colours follow all names, so a line keeps its colour whatever else is picked
     const shown = shownSeries(names, picked, recent);
-    // Why: the x axis is keyed by run because two runs can share a minute
+
     const labelOf = new Map(rows.map((row) => [row[RUN_KEY], row[LABEL_KEY]]));
     const marks = changeMarks(runChanges(points, rows));
     const markOf = new Map(marks.map((mark) => [mark.x, mark.label]));

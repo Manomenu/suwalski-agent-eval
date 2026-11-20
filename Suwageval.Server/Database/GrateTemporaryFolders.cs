@@ -2,7 +2,6 @@ using System.Collections.Concurrent;
 
 namespace Suwageval.Server.Database;
 
-// Why: grate never deletes the folders in the OS temp directory it copies its scripts to and names them only in its log, so they are read from there and removed
 internal sealed class GrateTemporaryFolders(string scriptsDirectory) : ILoggerProvider, ILogger
 {
     private readonly ConcurrentQueue<string> folders = new();

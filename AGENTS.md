@@ -24,9 +24,10 @@ Agents commit and push only with [suwgit](https://github.com/Manomenu/suwgit) (`
 
 ## Commands
 
-- For people: a recipe in `justfile` (or `.just/`) with a one-line description; `just` lists them.
-- For agents: a script in `scripts/.internal/`, or in `Suwageval.Gate/scripts/` when it checks quality; each answers `--help`. A recipe only calls the script.
-- `Suwageval.Gate/scripts/check.sh --quick` while working, without the flag before calling a change done. `scripts/.internal/e2e.sh` is not in the gate: run it after changing anything a user clicks.
+- For people: a recipe in `justfile`, or in a module of the whole repository beside it (`tmux-dev.just`, `secrets.just`), with a one-line description; `just` lists them.
+- For agents: a script in `scripts/.internal/`, or in `Suwageval.Gate/scripts/` when it checks quality; each answers `--help`. A recipe only calls the script. The gate is
+  `suwgate` (`Suwageval.Web/node_modules/.bin/suwgate`), configured in `suwgate.yml`; `suwgate dev` runs the local database and server.
+- `suwgate check --quick` while working, `just check` (the full `suwgate check`, with this checkout's test database) before calling a change done. `scripts/.internal/e2e.sh` is not in the gate: run it after changing anything a user clicks.
 
 ## Rules
 
@@ -38,7 +39,7 @@ Agents commit and push only with [suwgit](https://github.com/Manomenu/suwgit) (`
 - A new feature brings its checks along: go through the list in [docs/development.md](docs/development.md) or say in the change why one does not apply.
 - Anything the web can do, the CLI can do, and the plugin knows it: the same change adds the command, its line in the plugin's reference skill and its row in [docs/front-doors.md](docs/front-doors.md).
 - A new service or setting reaches `compose.yaml` and the chart in the same change, and all three ways to run keep working ([docs/deployment.md](docs/deployment.md)).
-- A new C# project or folder gets its place in `Suwageval.Gate/layers.json`; split a growing feature in a change of its own, moves only.
+- A new C# project or folder gets its place in `layers.json` (a gate file: give the owner the line); split a growing feature in a change of its own, moves only.
 - Think before coding: state assumptions, name the readings of an unclear request instead of picking one silently, say when a simpler way exists.
 - Surgical changes: every changed line traces to the task; mention other dead code instead of deleting it.
 - Goal-driven: turn a task into a check that proves it (a failing test first for a bug) and loop until it passes.
@@ -47,12 +48,12 @@ Agents commit and push only with [suwgit](https://github.com/Manomenu/suwgit) (`
 
 ## Specs
 
-A spec's acceptance criteria live as guardrails: `Suwageval.Gate/scripts/criteria.sh` and `Suwageval.Gate/criteria.json` say what fits, its messages the fix. What it cannot see:
+A spec's acceptance criteria live as guardrails: the `criteria` step of `suwgate check` says what fits (the kinds come with the profiles of `suwgate.yml`, this repository's own are in `criteria.json`), its messages the fix. What it cannot see:
 
 - Set ids with `vdoc.py ids`, never by hand: a dropped id is never reused, an id is never renumbered.
 - A criterion no automated check can prove is a wrong criterion: ask the owner, never keep it unguarded.
 - A criterion gets the lightest check that can fail for it: a plain test before a server test, a server test before a browser test.
-- Before merging a spec'd feature, run `/suwagent:visual-guardrails`: `criteria.sh` sees that an id is named, not that the test would fail.
+- Before merging a spec'd feature, run `/suwagent:visual-guardrails`: the `criteria` step sees that an id is named, not that the test would fail.
 
 ## Review
 
@@ -66,6 +67,14 @@ Docs say what and why, not where: a line that must change when the code moves do
 ## What no test can check
 
 - Names are chosen word by word: domain words in the users' language (English here), software words in technical English. One word per thing, everywhere: server, web, database, README. Abbreviations only well-established and only inside a longer name.
-- A comment says why, never what, as one line `// Why: <reason>` (`# Why:` in shell); if code needs a what comment, rename the code.
 - Secrets never enter the repo: not in code, settings, tests or history. Local values live in user secrets or the gitignored `.env`; a real hit is removed and rotated, never allow-listed. Addresses of the owner's own infrastructure are treated the same.
 - Personal rules (your tools, your habits) go in the gitignored `CLAUDE.local.md`, not here.
+
+## No comments
+
+No comments in project files: names, small functions, types and tests say what a comment would; if code is unclear without a comment, fix the code. A reason that cannot live in code goes into a test, a spec, this file or `docs/` as a sentence.
+
+- Covered (suwgate's comment guards): C#, TypeScript, JavaScript, shell, YAML, Dockerfiles, ignore files, `.editorconfig`, MSBuild and XML, JSON, SQL, CSS, justfiles; commented-out code and task markers included. Not covered: Markdown, `docs/` and data strings.
+- Allowed, because a tool reads them: the comments of `.env.example`; the line directly above a justfile recipe or `mod`; a shebang; `# shellcheck <directive>=…`; `# syntax=…` in a Dockerfile; `// @ts-expect-error <reason>`; `/*lang=…*/` and `// <auto-generated>` in C#; a criterion id where the `criteria` step reads it.
+- `///` documentation only in `Suwageval.AgentSdk` (it ships in the NuGet package) and `Suwageval.Contracts` (it becomes the OpenAPI descriptions), each file an exception in `suwgate.yml`; migration scripts that already ran keep their comments, because a changed script stops grate.
+- `#pragma warning disable`, `@ts-ignore`, `eslint-disable` and, outside tests, the null-forgiving `!` are banned outright; no comment excuses them.

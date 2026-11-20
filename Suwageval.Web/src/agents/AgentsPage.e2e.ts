@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { openAgentsListAt } from "../../e2e/helpers";
+import { openAgentsListAt } from "../../e2e/agentSteps";
 
 test("an agent is listed, opens its page and is deleted from it after its name is typed", async ({ page, request }) => {
     const name = `e2e-delete-agent-${String(Date.now())}`;

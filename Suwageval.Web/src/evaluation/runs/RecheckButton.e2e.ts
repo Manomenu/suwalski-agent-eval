@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { createAgent, runToEnd, serveAgent } from "../../../e2e/helpers";
+import { createAgent, runToEnd, serveAgent } from "../../../e2e/agentSteps";
 
 test("Re-check shows what changed, starts only then, and leads to the page of the re-check", async ({ page, request }) => {
     const agentServer = await serveAgent({ label: "e2e-recheck" });

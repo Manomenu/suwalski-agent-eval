@@ -25,7 +25,6 @@ internal static class ServerCall
         catch (ServerClientException failure)
         {
             await error.WriteLineAsync(failure.Message);
-            // Why: the server has the last push, so when the local file switches the refused area on the push is what is missing
             if (failure.Feature is { } feature && AgentReader.Quietly(agentDir)?.Definition is { } local && SwitchesOn(local, feature))
             {
                 await error.WriteLineAsync($"{Path.Combine(agentDir, "agent.yaml")} switches {feature} on: `suwageval push` to apply it.");

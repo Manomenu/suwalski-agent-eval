@@ -9,12 +9,10 @@ using Suwageval.AgentSdk.Invocation;
 
 namespace Suwageval.Server.Evaluation.Invocation;
 
-// Why: whatever goes wrong with the agent is returned as a failed result, because it belongs to that sample and must never stop a run
 internal sealed class AgentClient(HttpClient http)
 {
     private const int BodyExcerptLength = 300;
 
-    // Why: nulls are left out because an agent that does not know a field must not be sent it
     private static readonly JsonSerializerOptions Request = new(ContractJson.Options)
     {
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,

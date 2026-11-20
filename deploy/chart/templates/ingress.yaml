@@ -10,8 +10,6 @@ metadata:
 spec:
   ingressClassName: {{ .Values.ingress.className }}
   rules:
-    # Tylko web. Ruch na /api rozstrzyga nginx wewnątrz tego poda — jedna reguła zamiast
-    # dwóch, a przeglądarka widzi jeden origin, więc CORS nie wchodzi do gry.
     - host: {{ .Values.ingress.host }}
       http:
         paths:

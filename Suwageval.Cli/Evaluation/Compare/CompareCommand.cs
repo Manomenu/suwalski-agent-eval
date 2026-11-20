@@ -53,7 +53,6 @@ internal static class CompareCommand
         };
         command.Validators.Add(result =>
         {
-            // Why: read the tokens, not the parsed values: a token that is no id is an error of its own and reading its value would throw
             var ids = (result.GetResult(runIds)?.Tokens ?? [])
                 .Select(token => Guid.TryParse(token.Value, out var id) ? id : (Guid?)null)
                 .Distinct()

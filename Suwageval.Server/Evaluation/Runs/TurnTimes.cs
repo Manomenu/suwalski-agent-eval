@@ -5,13 +5,10 @@ namespace Suwageval.Server.Evaluation.Runs;
 internal static class TurnTimes
 {
     public static List<int> Durations(IEnumerable<ScenarioRunResult> scenarios) =>
-        [
-            .. scenarios
-                .SelectMany(scenario => scenario.Samples)
-                .Where(sample => sample.DurationMs is not null)
-                // Why: samples without a call are filtered out before, so a sample without per-turn times has a single duration
-                .SelectMany(sample => sample.TurnDurationsMs ?? [sample.DurationMs!.Value]),
-        ];
+        [.. scenarios.SelectMany(scenario => scenario.Samples).SelectMany(TurnDurations)];
+
+    private static IEnumerable<int> TurnDurations(SampleResult sample) =>
+        sample.DurationMs is not { } duration ? [] : sample.TurnDurationsMs ?? [duration];
 
     public static double? Median(IReadOnlyCollection<int> values)
     {

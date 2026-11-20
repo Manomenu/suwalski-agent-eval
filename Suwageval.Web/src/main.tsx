@@ -135,7 +135,7 @@ const theme = createTheme({
     colors: { dark, gray, mauve, red, green, yellow, blue, orange, teal, pink },
     primaryColor: "mauve",
     primaryShade: 5,
-    // Why: Mocha's accents are pastel, so text on a filled one must be dark, which Mantine picks
+
     autoContrast: true,
     black: "#11111b",
     defaultRadius: "md",

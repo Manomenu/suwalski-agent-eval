@@ -16,7 +16,6 @@ internal sealed class Pool(NpgsqlDataSource dataSource, int maxSize) : IAsyncDis
         return new(NpgsqlDataSource.Create(builder), maxSize);
     }
 
-    // Why: a connection is tried before it is handed out, or the first request after a database restart gets a dead one and fails with 57P01
     public async Task<NpgsqlConnection> OpenAsync(CancellationToken cancellationToken = default)
     {
         for (var attempt = 0; ; attempt++)

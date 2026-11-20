@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { createAgent, runToEnd, serveAgent, startRun } from "../../../e2e/helpers";
+import { createAgent, runToEnd, serveAgent, startRun } from "../../../e2e/agentSteps";
 
 const MISSING = "00000000-0000-4000-8000-000000000000";
 

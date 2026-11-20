@@ -72,3 +72,18 @@ Panel.e2e.ts              └ Panel.e2e.ts
   `Suwageval.Server.Tests/` mirrors the server's folders instead — same names,
   `<Type>Tests.cs`.
 
+
+## Import boundaries
+
+`eslint.config.js` says which folder of `src/` may import which. `src/` has three kinds of folders: the areas (`evaluation/`, `monitoring/`), each a folder per feature; the shared folders (the plumbing every area uses, named in `shared`); and any other folder of `src/`, a feature of its own, independent by default, so a new folder is checked from its first line. A feature imports itself, `api/` and the shared folders; a shared folder never imports an area; the entry points at the root of `src/` (`main.tsx`, `App.tsx`) compose everything. A feature of an area imports another feature of its area only through an edge of `edgesWithinAnArea`, never one of another area. The edges and why:
+
+| From | To | Why |
+| --- | --- | --- |
+| `agent` | `groups`, `trend`, `errors`, `unstable`, `runs` | the agent's Evaluation page places the run groups, the pass-rate charts, the agent errors and the unstable checks, and lists the runs with the run page's labels instead of copying them |
+| `compare` | `runs` | the compare page reads runs (results, labels, times) through `runs/`; the agent page links to it by an address of `routes/`, so the edge goes one way |
+| `runs`, `compare` | `checks` | `checks/` owns the icon of a model-judged check and the definition drawer, both pages place them |
+| `runs` | `unstable` | the run page marks each unstable check |
+| `unstable` | `checks` | the card of an unstable check sits under the icon `checks/` owns |
+| `agent` | `conversations`, `checks` | the agent's Monitoring page lists its conversations and its monitoring checks with their charts |
+
+A request in an effect goes through `api/useRequest.ts` (a signal, a key, the result ignored once aborted), written once there; `evaluation/runs/useRunResults.ts` is the one other place, a polling loop that owns its `AbortController`.

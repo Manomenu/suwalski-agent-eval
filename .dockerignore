@@ -1,12 +1,7 @@
-# The build context is the solution root for both images. An allowlist: everything is out
-# (so a new top-level folder, a stray file or a secret never reaches a build by accident)
-# and only what the two Dockerfiles COPY comes back in. A file a Dockerfile starts to COPY
-# is added to the list in the same change.
 *
 
 !global.json
 !Directory.Build.props
-!BannedSymbols.txt
 !Directory.Packages.props
 !.editorconfig
 !Suwageval.AgentSdk/
@@ -14,15 +9,12 @@
 !Suwageval.Server/
 !Suwageval.Web/
 
-# Inside the allowed folders: build output and caches of the host.
 **/node_modules/
 **/dist/
 **/bin/
 **/obj/
 **/TestResults/
 
-# The web image only builds the app (tsc over tsconfig.app.json, which leaves e2e tests out, and vite):
-# browser tests, their config and their output are not needed.
 Suwageval.Web/e2e/
 **/*.e2e.ts
 **/test-results/
@@ -30,6 +22,5 @@ Suwageval.Web/e2e/
 **/.vite/
 **/coverage/
 
-# Secrets never enter a build context, let alone an image layer.
 **/.env
 .secrets/

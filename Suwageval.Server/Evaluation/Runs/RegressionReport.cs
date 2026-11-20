@@ -72,8 +72,13 @@ internal static class RegressionReport
             })
             .ToList();
 
-        // Why: Apply has just set Regression on every check of the results
-        var states = scenarios.SelectMany(scenario => scenario.Checks).Select(check => check.Regression!.State).ToList();
+        var states = scenarios
+            .SelectMany(scenario => scenario.Checks)
+            .Select(check =>
+                check.Regression?.State
+                ?? throw new InvalidOperationException($"{check.Key} has no regression state: Apply sets one on every check of the results")
+            )
+            .ToList();
         var count = states.GroupBy(state => state).ToDictionary(group => group.Key, group => group.Count());
         int Count(RegressionState state)
         {

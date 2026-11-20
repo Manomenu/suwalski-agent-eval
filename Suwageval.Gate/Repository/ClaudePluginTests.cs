@@ -4,7 +4,7 @@ namespace Suwageval.Gate.Repository;
 
 public sealed class ClaudePluginTests
 {
-    private static readonly string RepoRoot = RepositoryFiles.Root;
+    private static readonly string RepoRoot = ArchitectureTests.Repository.Root;
 
     [Fact]
     public void Every_plugin_of_the_marketplace_has_its_folder_and_manifest()
@@ -26,10 +26,9 @@ public sealed class ClaudePluginTests
     {
         var skills = Directory.GetFiles(Path.Combine(RepoRoot, "claude-plugin", "skills"), "SKILL.md", SearchOption.AllDirectories);
         Assert.NotEmpty(skills);
-        // Why: commands are skills now: a commands folder would be a second place for the same thing
         Assert.False(
             Directory.Exists(Path.Combine(RepoRoot, "claude-plugin", "commands")),
-            "claude-plugin/commands/: write a skill instead"
+            "claude-plugin/commands/: commands are skills now, so a commands folder would be a second place for the same thing: write a skill instead"
         );
 
         foreach (var skill in skills)

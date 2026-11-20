@@ -37,7 +37,6 @@ export function groupQuery(filter: GroupFilter): { group: string | null; groupin
     }
 }
 
-// Why: a group is prefixed so one named like a filter is not mistaken for it
 export function filterValue(filter: GroupFilter): string {
     return filter.kind === "group" ? `${SELECT_GROUP_PREFIX}${filter.name}` : filter.kind;
 }

@@ -118,7 +118,6 @@ function ScenarioRow({
                     <CellView key={columns[column]?.run.id} cell={cell} best={best.has(column)} change={changes[column] ?? null} />
                 ))}
             </Table.Tr>
-            {/* Why: always in the page: folded it is hidden on screen and still printed (print.css) */}
             <Table.Tr className={expanded ? undefined : "folded-row"}>
                 <Table.Td colSpan={columns.length + 1} id={detailId}>
                     <ScenarioDetail scenario={scenario} columns={columns} baseline={baseline} baselineColumn={baselineColumn} />

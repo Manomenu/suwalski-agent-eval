@@ -27,7 +27,6 @@ export function NoteBox({
     const wanted = normalizeNote(draft);
     const problem = noteProblem(draft);
 
-    // Why: useEffectEvent gives the latest save without restarting the debounce whenever the parent renders a new callback
     const saveNow = useEffectEvent((note: string | null) => save(note));
 
     useEffect(() => {

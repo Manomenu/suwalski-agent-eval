@@ -1,9 +1,4 @@
-# `just tmux-dev <recipe>` — the local stack in one tmux session: server, web, the example agent suwexag, a spare shell
-# and a CLI shell. Humans only; the logic is in scripts/.internal/tmux-dev.sh.
-
 set shell := ["bash", "-euo", "pipefail", "-c"]
-# Recipes run from the repo root, like the ones in the main justfile.
-set working-directory := ".."
 
 [private]
 default:

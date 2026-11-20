@@ -1,30 +1,22 @@
-# Entry point for humans: `just` lists every recipe, grouped. Logic longer than a line or
-# two lives in scripts/.internal/ or Suwageval.Gate/scripts/, which is also what CI and agents call directly.
-
 set shell := ["bash", "-euo", "pipefail", "-c"]
 
-# The local PostgreSQL — `just db` lists its recipes (.just/db.just)
-mod db '.just/db.just'
+suwgate := "Suwageval.Web/node_modules/.bin/suwgate"
 
-# A copy of the local .env files in Bitwarden — `just secrets backup|restore` (.just/secrets.just)
-mod secrets '.just/secrets.just'
+# A copy of the local .env files in Bitwarden — `just secrets backup|restore` (secrets.just)
+mod secrets
 
-# The local stack in one tmux session — `just tmux-dev start [--restart]|stop` (.just/tmux-dev.just)
-mod tmux-dev '.just/tmux-dev.just'
+# The local stack in one tmux session: server, web, the example agent suwexag, a spare shell and a CLI shell — `just tmux-dev start [--restart]|stop` (tmux-dev.just)
+mod tmux-dev
 
 [private]
 default:
     @just --list --unsorted
 
-# ---------------------------------------------------------------------------------------
-# run — development servers on the host
-# ---------------------------------------------------------------------------------------
-
-# HTTP API on :6230 (OpenAPI document at /openapi/v1.json), rebuilt on every change — needs `just db up`
+# HTTP API on :6230 (OpenAPI document at /openapi/v1.json), restarted on every change — needs `just db up`
 [group('run')]
 server *args:
     @./scripts/.internal/free-port.sh 6230
-    set -a && { [ ! -f .env ] || . ./.env; } && set +a && DOTNET_WATCH_RESTART_ON_RUDE_EDIT=1 dotnet watch --project Suwageval.Server run {{ args }}
+    @{{ suwgate }} dev server {{ args }}
 
 # Web UI on :3230 — proxies /api to the server, so run `just server` alongside
 [group('run')]
@@ -32,19 +24,15 @@ web *args:
     @./scripts/.internal/free-port.sh 3230
     cd Suwageval.Web && { [ -d node_modules ] || pnpm install; } && pnpm dev {{ args }}
 
-# ---------------------------------------------------------------------------------------
-# dev — code generation and other chores while developing
-# ---------------------------------------------------------------------------------------
+# The local PostgreSQL on 127.0.0.1:5463 (compose profile db; data survives `down`): up, down, reset, psql, logs, status
+[group('run')]
+db *args:
+    @{{ suwgate }} dev db {{ args }}
 
-# Regenerate the web app's TypeScript types from the server's API (after changing a record the API sends or receives)
+# Regenerate the API contract (contract/openapi.json) and the web app's types from it, after changing a record the API sends or receives; then raise the contract's version in contract/package.json
 [group('dev')]
 api-types:
     @./scripts/.internal/api-types.sh
-
-# Does the server's API contract break its consumers, and does its version say so? Compares contract/openapi.json with master (or the given ref) with oasdiff
-[group('dev')]
-api-diff *args:
-    @./scripts/.internal/api-diff.sh {{ args }}
 
 # Run the suwageval CLI from source, e.g. `just cli validate ../my-agent/suwageval`
 [group('dev')]
@@ -72,10 +60,6 @@ agent-publish version:
 [group('dev')]
 agent-publish-local version:
     @./scripts/.internal/agent-publish-local.sh {{ version }}
-
-# ---------------------------------------------------------------------------------------
-# infra — the containerised stack: the same images the cluster runs, wired the same way
-# ---------------------------------------------------------------------------------------
 
 # Build and start the stack on http://localhost:8093
 [group('infra')]
@@ -106,38 +90,23 @@ status:
 
 # Follow the logs of one service, or of all of them
 [group('infra')]
-logs service="":
+logs *service:
     docker compose logs -f {{ service }}
 
-# ---------------------------------------------------------------------------------------
-# maintenance — quality gate and housekeeping
-# ---------------------------------------------------------------------------------------
-
-# Which guardrails keep each acceptance criterion of the specs true: id, kind, file:line (or one: just criteria AC-<feature>-<n>)
-[group('maintenance')]
-[positional-arguments]
-criteria *args:
-    @./Suwageval.Gate/scripts/criteria.sh "$@"
-
-# Move the pinned vdoc.py of the acceptance criteria check to the suwagent plugin's newest master
-[group('maintenance')]
-criteria-update:
-    @./Suwageval.Gate/scripts/criteria.sh --update
-
-# Browser tests of the whole app against a real server and database (also run by CI)
+# Browser tests of the whole app against a real server and database (also run by CI); not part of `just check`
 [group('maintenance')]
 e2e *args:
     @./scripts/.internal/e2e.sh {{ args }}
 
-# Lint, types, tests, import contracts, dead code, the chart and compose — the same gate CI runs
+# The whole gate (suwgate check: build with analyzers, csharpier, every test, the web checks, the API contract and its version, acceptance criteria, the chart, compose, shellcheck, gitleaks) — the same CI runs; a worktree gets its own test database
 [group('maintenance')]
 check:
-    @./Suwageval.Gate/scripts/check.sh
+    @eval "$({{ suwgate }} dev checkout-env)" && {{ suwgate }} check
 
-# The quick gate while working: build, csharpier, CLI tests and repository guards, tsc, vitest
+# The quick gate while working: the repository guards, and build, csharpier, the guard tests, eslint, tsc, vitest and shellcheck for what changed (what the Claude Code Stop hook runs)
 [group('maintenance')]
 check-quick:
-    @./Suwageval.Gate/scripts/check.sh --quick
+    @{{ suwgate }} check --quick
 
 # Apply autofixes and formatting: analyzer fixes and csharpier for C#, eslint and prettier for the web app
 [group('maintenance')]
@@ -154,3 +123,9 @@ sync:
     dotnet restore Suwageval.slnx
     @command -v pnpm >/dev/null || { echo "pnpm not found on PATH (just runs recipes in a non-interactive shell): install it, e.g. corepack enable --install-directory ~/.local/bin — see docs/development.md" >&2; exit 1; }
     cd Suwageval.Web && pnpm install --frozen-lockfile
+
+# Only the live tests, which call the real model of the judge and the simulated user (from .env); the gate leaves them out (they skip with no model configured)
+[group('maintenance')]
+[positional-arguments]
+live-check *args:
+    @./scripts/.internal/live-check.sh "$@"

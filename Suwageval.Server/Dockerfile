@@ -1,39 +1,25 @@
-# Build context is the SOLUTION ROOT, not this directory: global.json, Directory.Build.props
-# and Directory.Packages.props (the package versions) live up there.
-#
-#   docker build -f Suwageval.Server/Dockerfile -t suwageval-server .
-
 FROM mcr.microsoft.com/dotnet/sdk:10.0.402-noble AS builder
 
 WORKDIR /src
 
-# Manifests and lockfiles first — this layer is the expensive one and it only rebuilds when a
-# dependency moves. Locked mode: a lockfile out of date with the packages fails the image.
-# The packages stay in the layer, not in a cache mount: CI restores this layer from its layer
-# cache but starts with an empty cache mount, and publish --no-restore would then find no packages.
 COPY global.json Directory.Build.props Directory.Packages.props ./
 COPY Suwageval.AgentSdk/Suwageval.AgentSdk.csproj Suwageval.AgentSdk/packages.lock.json Suwageval.AgentSdk/
 COPY Suwageval.Contracts/Suwageval.Contracts.csproj Suwageval.Contracts/packages.lock.json Suwageval.Contracts/
 COPY Suwageval.Server/Suwageval.Server.csproj Suwageval.Server/packages.lock.json Suwageval.Server/
 RUN dotnet restore Suwageval.Server --locked-mode
 
-# Then the sources, which change every commit.
-COPY .editorconfig BannedSymbols.txt ./
+COPY .editorconfig ./
 COPY Suwageval.AgentSdk/ Suwageval.AgentSdk/
 COPY Suwageval.Contracts/ Suwageval.Contracts/
 COPY Suwageval.Server/ Suwageval.Server/
 RUN dotnet publish Suwageval.Server --no-restore -c Release -o /app
 
-
-# The runtime image matches the SDK band above; both are pinned like every image here.
 FROM mcr.microsoft.com/dotnet/aspnet:10.0.13-noble
 
 COPY --from=builder /app /app
 
-# The port ASP.NET Core listens on (the chart sets the same value from server.port).
 ENV ASPNETCORE_HTTP_PORTS=6230
 
-# The image's own non-root user (uid 1654).
 USER app
 WORKDIR /app
 EXPOSE 6230

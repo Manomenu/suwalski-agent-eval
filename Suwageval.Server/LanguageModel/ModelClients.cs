@@ -4,7 +4,6 @@ using OpenAI;
 
 namespace Suwageval.Server.LanguageModel;
 
-// Why: one instance per model, so everyone who names a model shares its pool of slots
 internal sealed class ModelClients(ModelsOptions options, Func<ModelOptions, IChatClient> create) : IDisposable
 {
     private readonly Dictionary<string, LimitedChatClient> clients = options.ToDictionary(
@@ -38,7 +37,6 @@ internal sealed class ModelClients(ModelsOptions options, Func<ModelOptions, ICh
     public static IChatClient OpenAiCompatible(ModelOptions model)
     {
         ArgumentNullException.ThrowIfNull(model);
-        // Why: the OpenAI client wants a key to build, so a server that asks for none gets a placeholder
         var apiKey = string.IsNullOrEmpty(model.ApiKey) ? "none" : model.ApiKey;
         var openAi = new OpenAIClient(new ApiKeyCredential(apiKey), new OpenAIClientOptions { Endpoint = new Uri(model.BaseUrl) });
         return openAi.GetChatClient(model.Model).AsIChatClient();

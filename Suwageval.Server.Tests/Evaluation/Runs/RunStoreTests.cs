@@ -336,7 +336,6 @@ public sealed class RunStoreTests(TestDatabase database)
         {
             ids.Add(await EnqueueAsync(store, agent));
         }
-        // Why: runs created at the same moment tie on time and are ordered by id
         foreach (var id in ids.Take(3))
         {
             await SetCreatedAtAsync(id, moment);

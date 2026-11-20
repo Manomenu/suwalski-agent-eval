@@ -31,7 +31,6 @@ internal static class RunLoop
                     new ParallelOptions { MaxDegreeOfParallelism = maxParallel, CancellationToken = stop.Token },
                     async (item, _) =>
                     {
-                        // Why: items in flight finish with the outer token, because stopping only starts no new one
                         if (await runs.IsCancelRequestedAsync(run.Id, cancellationToken))
                         {
                             await stop.CancelAsync();

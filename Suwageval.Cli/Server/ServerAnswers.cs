@@ -7,7 +7,6 @@ namespace Suwageval.Cli.Server;
 
 internal static class ServerAnswers
 {
-    // Why: a newer server may add fields, and an installed CLI must keep working; files a person writes stay strict so a typo does not pass
     public static JsonSerializerOptions Options { get; } = Create();
 
     public static string CliVersion { get; } = ServerVersion.Of(typeof(ServerAnswers).Assembly);

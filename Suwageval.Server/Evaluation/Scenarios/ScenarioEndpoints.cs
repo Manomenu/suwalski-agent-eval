@@ -43,7 +43,6 @@ internal static class ScenarioEndpoints
             return ProblemResults.Invalid(errors);
         }
 
-        // Why: tags are metadata and stay out of the content, so changing them makes no new revision
         var items = request
             .Scenarios.Select(scenario => new ScenarioItem(
                 scenario.Key,
@@ -159,7 +158,6 @@ internal static class ScenarioEndpoints
         {
             return ProblemResults.Invalid(errors);
         }
-        // Why: looked up first so that one unknown key changes nothing at all
         var live = (await store.ListAsync(row.Id, cancellationToken: cancellationToken)).Select(scenario => scenario.Key).ToHashSet();
         var unknown = request.ScenarioKeys.Distinct().Where(key => !live.Contains(key)).ToList();
         if (unknown.Count > 0)

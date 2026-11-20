@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { createAgent, runToEnd, serveAgent } from "../../e2e/helpers";
+import { createAgent, runToEnd, serveAgent } from "../../e2e/agentSteps";
 
 test("AC-system-tools-7: a version shows the tools of the system's code apart from its agents", async ({ page, request }) => {
     const agentServer = await serveAgent({

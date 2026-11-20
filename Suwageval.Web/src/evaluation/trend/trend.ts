@@ -8,7 +8,6 @@ export const CHANGE_MARKS_HELP = "A dashed line marks the run that started a new
 
 export const TREND_MIN_RUNS = 2;
 
-// Why: a tag is never named like these keys, because they start with a dollar sign
 export const RUN_KEY = "$run";
 export const LABEL_KEY = "$label";
 export const DETAILS_KEY = "$details";
@@ -69,7 +68,6 @@ export function trendRows(points: RunPassRates[], measure: Measure = passRateMea
             [RECHECK_KEY]: point.recheckedBy ?? null,
         };
         for (const name of series) {
-            // Why: a run limited to one tag says nothing about all checks, so All comes only from runs of every scenario
             const reading: Reading | undefined =
                 name === ALL_SERIES ? (limitedTo(point).length === 0 ? point : undefined) : point.tags.find((tag) => tag.tag === name);
             row[name] = reading === undefined ? null : measure(reading);

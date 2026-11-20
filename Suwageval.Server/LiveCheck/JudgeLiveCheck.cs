@@ -9,7 +9,6 @@ using Suwageval.Server.Verdicts;
 
 namespace Suwageval.Server.LiveCheck;
 
-// Why: the model is not ours and can change its answer without a commit here, so this daily check is what notices
 internal static class JudgeLiveCheck
 {
     private const string Criteria = "The assistant greets the user politely.";
@@ -83,7 +82,6 @@ internal static class JudgeLiveCheck
         builder.Services.AddOptions<LiveCheckOptions>().Bind(builder.Configuration.GetSection(LiveCheckOptions.Section)).ValidateOnStart();
         builder.Services.AddSingleton<IValidateOptions<LiveCheckOptions>, LiveCheckOptions.LiveCheckOptionsValidator>();
         using var host = builder.Build();
-        // Why: validates the options (ValidateOnStart) without running a service of ours
         await host.StartAsync();
 
         var problem =

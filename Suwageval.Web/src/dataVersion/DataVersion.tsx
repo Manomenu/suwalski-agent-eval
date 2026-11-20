@@ -43,7 +43,6 @@ export function DataVersion({
                     )}
                 </CopyButton>
             </Group>
-            {/* Why: as wide as its text, not the column, so the tooltip is placed next to the words */}
             {text ? (
                 <Tooltip label={text} multiline maw={360}>
                     <Text size={size} fw="normal" c="dimmed" lineClamp={DESCRIPTION_LINES} w="fit-content" maw="100%">

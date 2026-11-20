@@ -171,7 +171,6 @@ export function ScenarioCard({
                     );
                 })}
 
-                {/* Why: folded panels stay mounted as display:none, so print.css can open them all on paper */}
                 <Accordion multiple variant="contained" value={openSamples} onChange={setOpenSamples} keepMountedMode="display-none">
                     {scenario.samples.map((sample) => (
                         <Accordion.Item key={sample.sample} value={String(sample.sample)}>

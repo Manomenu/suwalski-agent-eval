@@ -78,8 +78,13 @@ internal static class CompareEndpoints
             );
             if (newestFirst.Count == 0)
             {
-                // Why: request validation allows exactly one of runs and group, and this is the branch without runs, so group is set
-                return ProblemResults.NotFound("Run group", group!);
+                return ProblemResults.NotFound(
+                    "Run group",
+                    group
+                        ?? throw new InvalidOperationException(
+                            "Request validation allows exactly one of runs and group, and this branch has no runs."
+                        )
+                );
             }
             if (newestFirst.Count > RunComparisonReport.MaxRuns)
             {

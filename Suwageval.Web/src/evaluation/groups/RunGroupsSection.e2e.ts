@@ -1,13 +1,13 @@
 import { expect, test } from "@playwright/test";
 
-import { createAgent, runToEnd, serveAgent } from "../../../e2e/helpers";
+import { createAgent, runToEnd, serveAgent } from "../../../e2e/agentSteps";
 
 test("the runs table hides group runs by default, and a group is archived, shown again and deleted", async ({ page, request }) => {
     const agentServer = await serveAgent({ label: "e2e-groups" });
     try {
         const suffix = String(Date.now());
         const name = `e2e-groups-${suffix}`;
-        // Why: as long as a real sweep's name, because the long Group column is what squeezes the others
+
         const group = `e2e-sweep-${suffix}-smart-router-salesbot`;
         await createAgent(request, { name, endpointUrl: agentServer.endpointUrl });
         const [plain, grouped] = await Promise.all([runToEnd(request, { agent: name }), runToEnd(request, { agent: name, group })]);
@@ -23,7 +23,7 @@ test("the runs table hides group runs by default, and a group is archived, shown
         expect(await status.evaluate((cell) => cell.scrollWidth <= cell.clientWidth)).toBe(true);
 
         await page.setViewportSize({ width: 500, height: 800 });
-        // Why: polled because right after the resize the shell is still moving to its phone layout and a frame may overflow for a moment
+
         await expect
             .poll(() => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth))
             .toBeLessThanOrEqual(0);

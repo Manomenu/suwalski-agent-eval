@@ -2,7 +2,6 @@ using Suwageval.Cli.Tests.Validation;
 
 namespace Suwageval.Cli.Tests.Evaluation.Validate;
 
-// Why: the working directory belongs to the whole process, and the root help reads the agent folder there, so this runs while nothing else does
 [CollectionDefinition(nameof(ValidateWorkingDirectoryTests), DisableParallelization = true)]
 [Collection(nameof(ValidateWorkingDirectoryTests))]
 public sealed class ValidateWorkingDirectoryTests

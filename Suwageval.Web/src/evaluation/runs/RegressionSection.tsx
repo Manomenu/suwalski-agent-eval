@@ -70,7 +70,6 @@ function KnownFailures({ known, runId }: { known: readonly StatedCheck[]; runId:
                     {opened ? "hide" : "show"}
                 </Anchor>
             </Group>
-            {/* Why: always in the page: folded it is hidden on screen and still printed (print.css) */}
             <ul className={opened ? "regression-checks-group" : "regression-checks-group folded-block"}>
                 {known.map((item) => (
                     <CheckLine key={`${item.scenarioKey}/${item.check.key}`} item={item} runId={runId} />

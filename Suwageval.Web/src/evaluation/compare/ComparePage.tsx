@@ -433,7 +433,6 @@ function TimeChanges({ compared }: { compared: ComparedRun | undefined }) {
     );
 }
 
-// Why: the judge differing from the baseline's is marked grey, not better or worse: a different verdict may come from the judge, not the agent
 function Judge({ model, changed, baselineModel }: { model: string | null | undefined; changed: boolean; baselineModel: string | null }) {
     if (model == null) return <Text size="sm">—</Text>;
     return (

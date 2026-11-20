@@ -23,22 +23,26 @@ internal static class GateText
         {
             return [RunVerdict.Line(results)];
         }
-        var guarded = results.Scenarios.Where(scenario => scenario.AcGuardrail is not null).ToList();
-        // Why: guarded holds only scenarios whose AcGuardrail is not null
-        var passed = guarded.Count(scenario => scenario.AcGuardrail!.Passed == true);
+        var guarded = new List<(ScenarioRunResult Scenario, ScenarioGuardrailResult Guardrail)>();
+        foreach (var scenario in results.Scenarios)
+        {
+            if (scenario.AcGuardrail is { } guardrail)
+            {
+                guarded.Add((scenario, guardrail));
+            }
+        }
+        var passed = guarded.Count(item => item.Guardrail.Passed == true);
         if (gate.Passed)
         {
             return [string.Create(CultureInfo.InvariantCulture, $"PASSED {passed} of {guarded.Count} acceptance criteria")];
         }
 
         var lines = new List<string>();
-        // Why: guarded holds only scenarios whose AcGuardrail is not null
-        foreach (var scenario in guarded.Where(scenario => scenario.AcGuardrail!.Passed == false))
+        foreach (var (scenario, guardrail) in guarded.Where(item => item.Guardrail.Passed == false))
         {
-            lines.AddRange(Failure(scenario));
+            lines.AddRange(Failure(scenario, guardrail));
         }
-        // Why: guarded holds only scenarios whose AcGuardrail is not null
-        var stopped = guarded.Where(scenario => scenario.AcGuardrail!.Passed is null).Select(scenario => scenario.AcGuardrail!.Id).ToList();
+        var stopped = guarded.Where(item => item.Guardrail.Passed is null).Select(item => item.Guardrail.Id).ToList();
         if (stopped.Count > 0)
         {
             lines.Add($"Stopped before their last attempt: {string.Join(", ", stopped)}");
@@ -56,10 +60,8 @@ internal static class GateText
         return lines;
     }
 
-    private static IEnumerable<string> Failure(ScenarioRunResult scenario)
+    private static IEnumerable<string> Failure(ScenarioRunResult scenario, ScenarioGuardrailResult guardrail)
     {
-        // Why: only guarded scenarios reach this method, so AcGuardrail is not null
-        var guardrail = scenario.AcGuardrail!;
         yield return string.Create(
             CultureInfo.InvariantCulture,
             $"FAILED {guardrail.Id} (scenario {scenario.Key}): {guardrail.Attempts} of {guardrail.RetryLimit} attempts failed"
@@ -85,7 +87,6 @@ internal static class GateText
             yield return $"{Indent}what the agent did in the last attempt:";
             foreach (var item in output)
             {
-                // Why: a model's answer often starts or ends with blank lines that only push the reason apart in a log
                 var shown = item is AssistantMessage message ? message with { Text = message.Text.Trim() } : item;
                 yield return $"{Indent}{Indent}{ConversationText.Item(shown)}";
             }

@@ -31,7 +31,6 @@ internal static partial class ContractYaml
             EmitterSettings.Default.WithBestIndent(2).WithBestWidth(int.MaxValue).WithMaxSimpleKeyLength(1024).WithNewLine("\n")
         );
         new YamlStream(new YamlDocument(root)).Save(emitter, assignAnchors: false);
-        // Why: the emitter closes a document that ends in an open scalar with '...', which is not part of the compared text
         var yaml = writer.ToString();
         return yaml.EndsWith("\n...\n", StringComparison.Ordinal) ? yaml[..^4] : yaml;
     }

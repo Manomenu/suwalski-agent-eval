@@ -9,7 +9,6 @@ using Suwageval.Server.Verdicts;
 
 namespace Suwageval.Server.Judges;
 
-// Why: a judge that cannot judge is never an exception: the verdict is failed and flagged not judged, which is not the same as judged failed
 internal sealed class Judge(ModelClients models, IOptions<JudgeOptions> options)
 {
     private const string Instructions = """

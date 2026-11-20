@@ -10,7 +10,6 @@ public sealed class EndToEndContractsTests
 {
     private const string EndToEnd = @"^Suwageval\.Server\.Tests\.EndToEnd(\..+)?$";
 
-    // Why: load by name, not typeof, because this file is outside EndToEnd and must not use the CLI
     private static readonly Assembly CliAssembly = Assembly.Load("suwageval");
 
     private static readonly Architecture Tests = new ArchLoader()

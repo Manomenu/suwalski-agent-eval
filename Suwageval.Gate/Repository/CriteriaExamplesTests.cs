@@ -7,7 +7,7 @@ public sealed class CriteriaExamplesTests
     [Fact]
     public void A_source_file_that_criteria_json_reads_as_prose_is_named_whole_and_holds_no_test()
     {
-        using var config = JsonDocument.Parse(RepositoryFiles.Read("Suwageval.Gate/criteria.json"));
+        using var config = JsonDocument.Parse(ArchitectureTests.Repository.Read("criteria.json"));
         var sources = config
             .RootElement.GetProperty("prose")
             .EnumerateArray()
@@ -20,14 +20,14 @@ public sealed class CriteriaExamplesTests
         {
             Assert.False(
                 source.Contains('*', StringComparison.Ordinal),
-                $"{source}: name the one file, a glob would hide guardrails from criteria.sh"
+                $"{source}: name the one file, a glob would hide guardrails from the criteria step"
             );
-            var text = RepositoryFiles.Read(source);
+            var text = ArchitectureTests.Repository.Read(source);
             Assert.False(
                 text.Contains("[Fact", StringComparison.Ordinal)
                     || text.Contains("[Theory", StringComparison.Ordinal)
                     || text.Contains("[Trait", StringComparison.Ordinal),
-                $"{source} holds a test, but criteria.sh does not read this file: move the test out, it must count as a guardrail"
+                $"{source} holds a test, but the criteria step does not read this file: move the test out, it must count as a guardrail"
             );
         }
     }

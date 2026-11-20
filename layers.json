@@ -1,0 +1,27 @@
+{
+  "projects": {
+    "Suwageval.AgentSdk": {},
+    "Suwageval.Contracts": { "references": ["Suwageval.AgentSdk"] },
+    "Suwageval.Server": {
+      "layers": ["Api", "LiveCheck | ScenarioDrafts", "Evaluation | Monitoring", "Judges", "Verdicts | LanguageModel", "Agents", "Database | Problems"],
+      "areas": {
+        "Evaluation": ["Runs", "Simulation", "Checks | Invocation", "Scenarios"],
+        "Monitoring": ["Checking", "Checks | Conversations"]
+      },
+      "references": ["Suwageval.Contracts"],
+      "internalsVisibleTo": ["Suwageval.Server.Tests"]
+    },
+    "Suwageval.Cli": {
+      "layers": [".", "Evaluation | Monitoring | Init | Agents | Versions | AgentDelete", "Output", "Validation | Server", "Files"],
+      "areas": {
+        "Evaluation": ["Validate | Push | Run | Recheck | Gate | Cancel | Results | Compare | Sweep | Runs | Groups | Note | Scenarios | Trend | Problems"],
+        "Monitoring": ["Conversations | Checks"]
+      },
+      "references": ["Suwageval.Contracts"],
+      "internalsVisibleTo": ["Suwageval.Cli.Tests", "Suwageval.Server.Tests"]
+    },
+    "Suwageval.Cli.Tests": { "references": ["Suwageval.Cli"] },
+    "Suwageval.Server.Tests": { "references": ["Suwageval.Server", "Suwageval.Cli"] },
+    "Suwageval.Gate": { "references": ["Suwageval.Server", "Suwageval.Cli"] }
+  }
+}

@@ -23,7 +23,6 @@ if ! command -v gh >/dev/null 2>&1; then
   exit 1
 fi
 
-# Why: the workflow builds origin/master, so these three make what is released the same as what is in front of the owner
 branch="$(git branch --show-current)"
 if [[ "$branch" != "master" ]]; then
   echo "on '${branch:-a detached HEAD}', and a release comes from master: run this in a checkout of master, after merging. Nothing was started." >&2

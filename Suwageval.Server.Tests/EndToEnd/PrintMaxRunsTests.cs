@@ -6,7 +6,6 @@ using CompareCommand = Cli::Suwageval.Cli.Evaluation.Compare.CompareCommand;
 
 namespace Suwageval.Server.Tests.EndToEnd;
 
-// Why: the comparison limit is a literal in three languages and this test is what keeps the server, CLI and web values equal
 public sealed partial class PrintMaxRunsTests
 {
     [Fact]

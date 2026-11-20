@@ -111,7 +111,6 @@ export function EvaluationPage({ name }: { name: string }) {
                 !areaOn(agent.features, "evaluation") ? (
                     <AreaOff area="evaluation" />
                 ) : (
-                    // Why: wraps the whole view, not the charts alone: they stand above the filters, so arriving later they would push an open list off the screen
                     <Suspense fallback={<Loader aria-label="Loading the charts" />}>
                         <AgentView
                             agent={agent}
@@ -176,16 +175,16 @@ function AgentView({
             setRequestedPage(1);
         };
     };
-    // Why: a model used only in sweeps is not offered while the runs table lists runs in no group
+
     const offered = offeredVersions(versions, versionGroupingFor(groupFilter), models, dataVersions, versionFilter);
     const toCompare = runsToCompare(runs, selected);
-    // Why: a newer version the filters hide must not close problems of the shown ones; with none shown, nothing is asked
+
     const considered = consideredVersionIds(versions, showArchived, models, dataVersions, versionFilter);
     const problemsAgent = considered.length === 0 ? null : agent.name;
     const { checks: unstable, arrived: checksArrived } = useUnstableChecks(problemsAgent, considered, false, dataVersions);
     const { errors, arrived: errorsArrived } = useAgentErrors(problemsAgent, considered, dataVersions);
     const trendPoints = visibleRuns(passRates, versions, showArchived, models, dataVersions, versionFilter);
-    // Why: the Problems cards stand above the filters, so arriving later they would push an open list off the screen
+
     if (!checksArrived || !errorsArrived) return <Loader aria-label="Loading the problems" />;
     return (
         <Stack gap="lg">

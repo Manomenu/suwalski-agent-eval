@@ -2,7 +2,6 @@ import { Chip, Tooltip } from "@mantine/core";
 
 const HELP_WIDTH = 320;
 
-// Why: the chip sits in a span so the tooltip has an element to hang on
 export function ToggleChip({
     label,
     checked,
