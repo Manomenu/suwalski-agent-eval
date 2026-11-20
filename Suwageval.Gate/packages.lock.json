@@ -4,9 +4,9 @@
     "net10.0": {
       "Suwgate.Architecture": {
         "type": "Direct",
-        "requested": "[0.2.0, )",
-        "resolved": "0.2.0",
-        "contentHash": "fKt9iV0MwFibwAoP+4GAG2tYmUPtqn7i+R6wH0Nwv5++oCNYmIFxq+nKKMst7K+aDMSeuQDE3TjYHeyTaVO0lw==",
+        "requested": "[0.3.0, )",
+        "resolved": "0.3.0",
+        "contentHash": "B5Tq71LjudDSA0XiGnOIdEdWNebf3nfiCbrp81dhHUeeJxwGmraqxFq5cLfr2NLmhYOnozwiR4tIH/yhN9B1Iw==",
         "dependencies": {
           "Microsoft.CodeAnalysis.BannedApiAnalyzers": "4.14.0",
           "Microsoft.CodeAnalysis.CSharp": "5.0.0",
@@ -16,24 +16,14 @@
       },
       "Suwgate.Database": {
         "type": "Direct",
-        "requested": "[0.2.0, )",
-        "resolved": "0.2.0",
-        "contentHash": "Y8aPiyBTeGG+OIAemUM2hxuBCymhomVMHEoVUwkc2l29bDnXp0N3qz812V35Jj8sy52CU9Zj6lUvz79wjt9qZg==",
+        "requested": "[0.3.0, )",
+        "resolved": "0.3.0",
+        "contentHash": "vWg/auL4n3WLGxUsFrQ9u1ZUKaotDJAH3N0QbDe8jX33SXNWbb7vnXHAxGUDz153gsV5b9dQE1b1ZP6NsTQzVw==",
         "dependencies": {
           "Microsoft.CodeAnalysis.CSharp": "5.0.0",
-          "Suwgate.Architecture": "0.2.0",
+          "Suwgate.Architecture": "0.3.0",
           "TngTech.ArchUnitNET": "0.13.4",
           "YamlDotNet": "18.1.0"
-        }
-      },
-      "TngTech.ArchUnitNET.xUnitV3": {
-        "type": "Direct",
-        "requested": "[0.13.4, )",
-        "resolved": "0.13.4",
-        "contentHash": "EZoUHDeA/p13h4fKztbFnkmXe8aKCRYjknXxyqex1G4+OZftlAmp0Tk6nS3Ktz7Ax/nDJmyEQrvzWjqMpLZO+g==",
-        "dependencies": {
-          "TngTech.ArchUnitNET": "0.13.4",
-          "xunit.v3.assert": "1.1.0"
         }
       },
       "xunit.v3": {

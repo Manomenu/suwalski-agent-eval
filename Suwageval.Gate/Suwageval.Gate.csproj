@@ -8,7 +8,6 @@
   <ItemGroup>
     <PackageReference Update="Suwgate.Architecture" IncludeAssets="all" />
     <PackageReference Include="Suwgate.Database" />
-    <PackageReference Include="TngTech.ArchUnitNET.xUnitV3" />
     <PackageReference Include="xunit.v3" />
   </ItemGroup>
 

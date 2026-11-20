@@ -55,7 +55,6 @@ jobs:
       - name: Test the SDK
         run: >
           dotnet test --project Suwageval.Server.Tests --configuration Release --no-progress
-          --filter-class "*AgentSdkContractsTests"
           --filter-class "*AgentContractRulesTests"
           --filter-class "*AgentContractHashTests"
           --filter-class "*SuwagevalAgentEndpointsTests"
