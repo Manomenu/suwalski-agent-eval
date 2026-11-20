@@ -3,10 +3,6 @@ using System.Text;
 
 namespace Suwageval.AgentSdk.Invocation;
 
-/// <summary>
-/// The W3C <c>baggage</c> header suwageval sends with every turn (<c>key=value,key=value</c>, values percent-encoded as UTF-8), and
-/// the keys in it. Written by the server and read by <see cref="TurnCorrelation"/>, so both ends share one encoding.
-/// </summary>
 public static class SuwagevalBaggage
 {
     public const string HeaderName = "baggage";
@@ -20,17 +16,12 @@ public static class SuwagevalBaggage
     public const string RunTags = "suwageval.run.tags";
     public const string RunGroup = "suwageval.run.group";
 
-    /// <summary>The header's value for these members, in order. A value is percent-encoded unless the W3C grammar allows it as it is.</summary>
     public static string Encode(IEnumerable<KeyValuePair<string, string>> members)
     {
         ArgumentNullException.ThrowIfNull(members);
         return string.Join(',', members.Select(member => $"{member.Key}={EncodeValue(member.Value)}"));
     }
 
-    /// <summary>
-    /// The members of one or more <c>baggage</c> header values. A member without <c>=</c> is skipped, properties (<c>;…</c>) are dropped;
-    /// when a key repeats the last one wins.
-    /// </summary>
     public static IReadOnlyDictionary<string, string> Decode(IEnumerable<string> headerValues)
     {
         ArgumentNullException.ThrowIfNull(headerValues);

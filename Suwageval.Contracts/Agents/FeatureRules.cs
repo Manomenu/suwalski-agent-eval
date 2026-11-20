@@ -3,13 +3,8 @@ using System.Text.RegularExpressions;
 
 namespace Suwageval.Contracts.Agents;
 
-/// <summary>
-/// Whether an agent's <see cref="AgentFeatures"/> are valid, and what its monitoring settings mean, written once for <c>suwageval validate</c>
-/// and <c>push</c> and for the server. Paths are relative to the agent definition (<c>features.monitoring.closeAfter</c>).
-/// </summary>
 public static partial class FeatureRules
 {
-    /// <summary>The default of <see cref="MonitoringSettings.CloseAfter"/>.</summary>
     public static readonly TimeSpan DefaultCloseAfter = TimeSpan.FromMinutes(30);
 
     public static readonly TimeSpan MinCloseAfter = TimeSpan.FromMinutes(1);
@@ -61,27 +56,23 @@ public static partial class FeatureRules
         return problems;
     }
 
-    /// <summary>What is wrong with an environment's name, or null: lowercase words of letters and digits joined by hyphens, at most 40 characters.</summary>
     public static string? EnvironmentProblem(string? environment) =>
         environment is not null && environment.Length <= MaxEnvironmentLength && EnvironmentName().IsMatch(environment)
             ? null
             : $"An environment is lowercase letters and digits, words joined by hyphens (production, demo-eu), at most {MaxEnvironmentLength} characters.";
 
-    /// <summary>How long a conversation of the agent waits for a turn before it is closed: the settings', else 30 minutes.</summary>
     public static TimeSpan CloseAfter(MonitoringSettings settings)
     {
         ArgumentNullException.ThrowIfNull(settings);
         return settings.CloseAfter is { } text && Duration(text) is { } duration ? duration : DefaultCloseAfter;
     }
 
-    /// <summary>Whether conversations from <paramref name="environment"/> are taken: any when the settings name none.</summary>
     public static bool Accepts(MonitoringSettings settings, string environment)
     {
         ArgumentNullException.ThrowIfNull(settings);
         return settings.Environments is not { } environments || environments.Contains(environment, StringComparer.Ordinal);
     }
 
-    /// <summary><c>45s</c>, <c>30m</c>, <c>2h</c> as a time span; null when it is not one.</summary>
     public static TimeSpan? Duration(string text)
     {
         ArgumentNullException.ThrowIfNull(text);

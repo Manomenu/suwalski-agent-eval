@@ -1,6 +1,5 @@
 namespace Suwageval.Contracts.Agents;
 
-/// <summary>An agent with what is stored for it: counts of active (not archived) versions, live scenarios and live checks.</summary>
 public sealed record AgentDetail
 {
     public required Guid Id { get; init; }
@@ -17,15 +16,11 @@ public sealed record AgentDetail
 
     public required int Checks { get; init; }
 
-    /// <summary>The agent's default number of samples from <c>agent.yaml</c>; none when it has no <c>samples:</c> (3 then).</summary>
     public int? Samples { get; init; }
 
-    /// <summary>The gate's default number of attempts from <c>agent.yaml</c>; none when it has no <c>acGuardrailRetryLimit:</c> (5 then).</summary>
     public int? AcGuardrailRetryLimit { get; init; }
 
-    /// <summary>The regression settings from <c>agent.yaml</c>; none when it has no <c>regression:</c>.</summary>
     public RegressionSettings? Regression { get; init; }
 
-    /// <summary>Which areas the agent uses, as pushed from <c>agent.yaml</c> (the defaults when it has no <c>features:</c>).</summary>
     public required AgentFeatures Features { get; init; }
 }

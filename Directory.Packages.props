@@ -4,8 +4,8 @@
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
   <ItemGroup Label="gate">
-    <PackageVersion Include="Suwgate.Architecture" Version="0.1.0" />
-    <PackageVersion Include="Suwgate.Database" Version="0.1.0" />
+    <PackageVersion Include="Suwgate.Architecture" Version="0.2.0" />
+    <PackageVersion Include="Suwgate.Database" Version="0.2.0" />
   </ItemGroup>
   <ItemGroup Label="server">
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.12" />

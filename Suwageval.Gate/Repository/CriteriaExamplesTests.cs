@@ -7,7 +7,7 @@ public sealed class CriteriaExamplesTests
     [Fact]
     public void A_source_file_that_criteria_json_reads_as_prose_is_named_whole_and_holds_no_test()
     {
-        using var config = JsonDocument.Parse(ArchitectureTests.Repository.Read("criteria.json"));
+        using var config = JsonDocument.Parse(GuardTests.Repository.Read("criteria.json"));
         var sources = config
             .RootElement.GetProperty("prose")
             .EnumerateArray()
@@ -22,7 +22,7 @@ public sealed class CriteriaExamplesTests
                 source.Contains('*', StringComparison.Ordinal),
                 $"{source}: name the one file, a glob would hide guardrails from the criteria step"
             );
-            var text = ArchitectureTests.Repository.Read(source);
+            var text = GuardTests.Repository.Read(source);
             Assert.False(
                 text.Contains("[Fact", StringComparison.Ordinal)
                     || text.Contains("[Theory", StringComparison.Ordinal)

@@ -1,6 +1,3 @@
--- Monitoring: the conversations a deployed agent sends (POST /monitoring/turns), per environment, with their turns. A conversation is
--- answered by the version of its last turn (version_changed: an earlier turn had another one, a deploy in between); it is Open while
--- turns come, Closed after features.monitoring.closeAfter without one (a new turn opens it again).
 CREATE TABLE monitoring_conversations (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     agent_id uuid NOT NULL REFERENCES agents (id) ON DELETE CASCADE,
@@ -21,8 +18,6 @@ CREATE TABLE monitoring_conversations (
 CREATE INDEX monitoring_conversations_list_idx ON monitoring_conversations (agent_id, last_turn_at DESC, id);
 CREATE INDEX monitoring_conversations_open_idx ON monitoring_conversations (received_at) WHERE state = 'Open';
 
--- One turn: its items as the agent recorded them (the conversation log's items), the version and data that answered it. The id is
--- the sender's, so a turn sent twice is stored once.
 CREATE TABLE monitoring_turns (
     id uuid PRIMARY KEY,
     conversation_id uuid NOT NULL REFERENCES monitoring_conversations (id) ON DELETE CASCADE,

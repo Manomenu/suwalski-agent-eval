@@ -21,65 +21,17 @@ jobs:
   gate:
     permissions:
       contents: read
-    uses: Manomenu/suwgate/.github/workflows/gate.yml@7c8432804c9be044a08fe2228b9532b7f82dcb38
+    uses: Manomenu/suwgate/.github/workflows/gate.yml@28c7f98f3d3a012996c05926e47a6af3388ebdfa
     with:
       working-directory: Suwageval.Web
       dotnet: true
+      database: true
       oasdiff: true
-      command: docker compose --profile db up -d --wait db && Suwageval.Web/node_modules/.bin/suwgate check --verbose
-
-  e2e:
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: docker.io/library/postgres:17.11
-        env:
-          POSTGRES_USER: suwageval
-          POSTGRES_PASSWORD: suwageval
-          POSTGRES_DB: suwageval
-        ports:
-          - 5463:5432
-        options: >-
-          --health-cmd "pg_isready -h 127.0.0.1 -U suwageval"
-          --health-interval 5s
-          --health-timeout 3s
-          --health-retries 10
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-dotnet@v5
-        with:
-          dotnet-version: "10.0.x"
-          cache: true
-          cache-dependency-path: "**/packages.lock.json"
-
-      - uses: pnpm/action-setup@v4
-        with:
-          package_json_file: Suwageval.Web/package.json
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "24"
-          cache: pnpm
-          cache-dependency-path: Suwageval.Web/pnpm-lock.yaml
-
-      - run: pnpm install --frozen-lockfile
-        working-directory: Suwageval.Web
-
-      - run: pnpm exec playwright install --with-deps chromium
-        working-directory: Suwageval.Web
-
-      - run: ./scripts/.internal/e2e.sh
-
-      - if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: e2e-report
-          path: .artifacts/e2e/
-          retention-days: 14
+      browser-install-command: pnpm exec playwright install --with-deps chromium
+      command: Suwageval.Web/node_modules/.bin/suwgate check --verbose
 
   build:
-    needs: [gate, e2e]
+    needs: [gate]
     runs-on: ubuntu-latest
     permissions:
       contents: read

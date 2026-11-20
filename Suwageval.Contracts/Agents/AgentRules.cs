@@ -3,10 +3,6 @@ using Suwageval.Contracts.Scenarios;
 
 namespace Suwageval.Contracts.Agents;
 
-/// <summary>
-/// What is wrong with the optional settings of an <see cref="AgentDefinition"/> (<c>samples</c>, <c>acGuardrailRetryLimit</c>, <c>regression</c>, <c>features</c>), written once for
-/// <c>suwageval validate</c> and <c>push</c> and for the server when a push arrives. Paths are relative to the agent definition.
-/// </summary>
 public static class AgentRules
 {
     public static IReadOnlyList<(string Path, string Message)> Problems(AgentDefinition definition)

@@ -62,8 +62,8 @@ Panel.e2e.ts              └ Panel.e2e.ts
 - Name companions `<name>.<role>.ts` — `<name>.test.ts` (vitest), `<name>.e2e.ts` (Playwright),
   `<name>.stories.tsx` etc. — never `test_<name>.ts` or a separate a separate tests folder folder; a
   differently named file falls out of the nesting.
-- Configuration nests under its owner: `Suwageval.slnx` ▸ `global.json`, `Directory.*.props`, `Directory.Build.rsp`,
-  `.csharpierrc.json`; a project file ▸ its `packages.lock.json`; `package.json` ▸ lockfile,
+- Configuration nests under its owner: `Suwageval.slnx` ▸ `global.json`, `Directory.*.props`, `Directory.Build.rsp`;
+  a project file ▸ its `packages.lock.json`; `package.json` ▸ lockfile,
   eslint, prettier, knip, tsconfig, vite; `appsettings.json` ▸ `appsettings.*.json`; `README.md` ▸
   the repo-level files.
 - A new kind of companion or config file gets a pattern in `.vscode/settings.json` in the

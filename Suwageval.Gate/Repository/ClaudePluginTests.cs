@@ -4,7 +4,7 @@ namespace Suwageval.Gate.Repository;
 
 public sealed class ClaudePluginTests
 {
-    private static readonly string RepoRoot = ArchitectureTests.Repository.Root;
+    private static readonly string RepoRoot = GuardTests.Repository.Root;
 
     [Fact]
     public void Every_plugin_of_the_marketplace_has_its_folder_and_manifest()

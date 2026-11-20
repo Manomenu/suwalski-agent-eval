@@ -9,7 +9,6 @@ const RUN_QUEUE_POLLED_TEN_TIMES_A_SECOND = "00:00:00.100";
 export default defineConfig(
     e2eTests({
         outputDir: "../../.artifacts/e2e/test-results",
-        reporter: process.env["CI"] ? [["list"], ["html", { open: "never", outputFolder: "../../.artifacts/e2e/report" }]] : "list",
         use: { baseURL: `http://127.0.0.1:${WEB_PORT}`, locale: "pl-PL" },
         webServer: [
             {

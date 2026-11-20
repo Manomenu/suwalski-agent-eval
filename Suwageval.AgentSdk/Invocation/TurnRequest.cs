@@ -4,23 +4,15 @@ using Suwageval.AgentSdk.Conversations;
 
 namespace Suwageval.AgentSdk.Invocation;
 
-/// <summary>What suwageval sends the agent under test: the conversation so far, whose last item the agent answers.</summary>
 public sealed record TurnRequest
 {
     public required IReadOnlyList<ConversationItem> Conversation { get; init; }
 
-    /// <summary>The scenario's fixtures, verbatim; omitted when it has none. <see cref="FixturesAs{T}"/> reads them as a type.</summary>
     public JsonElement? Fixtures { get; init; }
 
-    /// <summary>Read from the request's <c>baggage</c> header by <see cref="SuwagevalAgentEndpoints.MapSuwagevalAgent"/>; never part of the body.</summary>
     [JsonIgnore]
     public TurnCorrelation Correlation { get; init; } = TurnCorrelation.None;
 
-    /// <summary>
-    /// The fixtures as <typeparamref name="T"/>, or null when the scenario has none. A member the type does not declare is
-    /// rejected, like the schema in the agent's contract would.
-    /// </summary>
-    /// <exception cref="TurnRejectedException">The fixtures do not fit <typeparamref name="T"/>.</exception>
     public T? FixturesAs<T>()
         where T : class
     {
@@ -38,21 +30,7 @@ public sealed record TurnRequest
         }
     }
 
-    /// <summary>
-    /// The conversation before the last item, split into turns: each user message with what followed it, tool results paired
-    /// with their calls.
-    /// </summary>
-    /// <exception cref="TurnRejectedException">
-    /// A tool call id appears twice, a tool result has no call before it, or a turn's tool calls are not closed by an
-    /// assistant message.
-    /// </exception>
     public IReadOnlyList<HistoryTurn> HistoryTurns() => HistoryTurnSplitter.Split(Conversation.Take(Conversation.Count - 1));
 
-    /// <summary>
-    /// One id per conversation, always sent: a fresh one for every sample of a scenario, the same for every turn of a simulated
-    /// conversation. An agent that keeps state — its test data, a state machine — keeps it under this id: the first turn of an id
-    /// starts from fresh test data, every later turn of it goes on from what the earlier ones left. The conversation sent is still
-    /// the whole log. Null only when something other than suwageval calls the agent.
-    /// </summary>
     public string? ConversationId { get; init; }
 }

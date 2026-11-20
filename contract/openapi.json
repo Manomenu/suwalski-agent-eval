@@ -1648,20 +1648,17 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "string",
-            "description": "The criterion's id, `AC-&lt;feature&gt;-&lt;n&gt;` (AcGuardrailRules), unique within the agent."
+            "type": "string"
           },
           "retryLimit": {
             "type": [
               "null",
               "integer"
             ],
-            "description": "The most attempts the gate makes (1 to 20); not set: the agent's `acGuardrailRetryLimit`, else 5.",
             "format": "int32"
           }
         },
-        "additionalProperties": false,
-        "description": "The acceptance criterion a scenario guards (`acGuardrail:`): `suwageval gate` runs every scenario that has one, and the\nscenario passes on its first attempt in which every check passes, out of at most int? AcGuardrail.RetryLimit attempts."
+        "additionalProperties": false
       },
       "Agent": {
         "required": [
@@ -1687,8 +1684,7 @@
             "format": "date-time"
           }
         },
-        "additionalProperties": false,
-        "description": "An agent under test. The request that creates it is AgentDefinition."
+        "additionalProperties": false
       },
       "AgentContract": {
         "required": [
@@ -1706,22 +1702,19 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/LlmAgentDefinition"
-            },
-            "description": "The LLM agents the system is made of, at least one; each has its own model, config and tools."
+            }
           },
           "otherConfig": {
             "type": [
               "null",
               "string"
-            ],
-            "description": "Free text for what belongs to the system, not to one agent."
+            ]
           },
           "context": {
             "$ref": "#/components/schemas/ContextDefinition"
           }
         },
-        "additionalProperties": false,
-        "description": "What the system under test was configured as when a run happened: its LLM agents, and what belongs to the system as a whole."
+        "additionalProperties": false
       },
       "AgentDefinition": {
         "required": [
@@ -1734,15 +1727,13 @@
             "type": "string"
           },
           "endpointUrl": {
-            "type": "string",
-            "description": "Where suwageval reaches the agent under test (`POST {endpointUrl}/suwageval/turn`)."
+            "type": "string"
           },
           "samples": {
             "type": [
               "null",
               "integer"
             ],
-            "description": "How many times each scenario's conversation is sent to the agent by default (1 to 20); none means 3.",
             "format": "int32"
           },
           "acGuardrailRetryLimit": {
@@ -1750,7 +1741,6 @@
               "null",
               "integer"
             ],
-            "description": "How many attempts `suwageval gate` gives a scenario that sets no `acGuardrail.retryLimit` (1 to 20); none means 5.",
             "format": "int32"
           },
           "regression": {
@@ -1759,7 +1749,6 @@
                 "type": "null"
               },
               {
-                "description": "How the agent's regressions are found; none means the defaults.",
                 "$ref": "#/components/schemas/RegressionSettings"
               }
             ]
@@ -1770,7 +1759,6 @@
                 "type": "null"
               },
               {
-                "description": "Which areas the agent uses; none means evaluation on and monitoring off.",
                 "$ref": "#/components/schemas/AgentFeatures"
               }
             ]
@@ -1828,8 +1816,7 @@
             "default": 0
           }
         },
-        "additionalProperties": false,
-        "description": "What deleting an agent removes with it: its versions, scenarios and checks, every run with its samples and the verdicts on those, and\nits monitored conversations."
+        "additionalProperties": false
       },
       "AgentDetail": {
         "required": [
@@ -1875,7 +1862,6 @@
               "null",
               "integer"
             ],
-            "description": "The agent's default number of samples from `agent.yaml`; none when it has no `samples:` (3 then).",
             "format": "int32"
           },
           "acGuardrailRetryLimit": {
@@ -1883,7 +1869,6 @@
               "null",
               "integer"
             ],
-            "description": "The gate's default number of attempts from `agent.yaml`; none when it has no `acGuardrailRetryLimit:` (5 then).",
             "format": "int32"
           },
           "regression": {
@@ -1892,18 +1877,15 @@
                 "type": "null"
               },
               {
-                "description": "The regression settings from `agent.yaml`; none when it has no `regression:`.",
                 "$ref": "#/components/schemas/RegressionSettings"
               }
             ]
           },
           "features": {
-            "description": "Which areas the agent uses, as pushed from `agent.yaml` (the defaults when it has no `features:`).",
             "$ref": "#/components/schemas/AgentFeatures"
           }
         },
-        "additionalProperties": false,
-        "description": "An agent with what is stored for it: counts of active (not archived) versions, live scenarios and live checks."
+        "additionalProperties": false
       },
       "AgentError": {
         "required": [
@@ -1927,38 +1909,31 @@
             "type": [
               "null",
               "string"
-            ],
-            "description": "The label the version's contract carries, if any."
+            ]
           },
           "errors": {
             "type": "integer",
-            "description": "The samples without an answer; at least 1.",
             "format": "int32"
           },
           "samples": {
             "type": "integer",
-            "description": "All the samples the agent was asked for in the scenario, answered or not.",
             "format": "int32"
           },
           "newestErrorRunId": {
             "type": "string",
-            "description": "The newest run in which the scenario had an error.",
             "format": "uuid"
           },
           "newestError": {
-            "type": "string",
-            "description": "The error text of the newest such sample."
+            "type": "string"
           }
         },
-        "additionalProperties": false,
-        "description": "Samples in which the agent gave no answer (an HTTP error, a timeout, an unreadable answer) for one scenario of one agent version.\nThey do not count against checks; they say the agent itself is unreliable in that scenario."
+        "additionalProperties": false
       },
       "AgentFeatures": {
         "type": "object",
         "properties": {
           "evaluation": {
-            "type": "boolean",
-            "description": "Scenarios, runs and comparisons; on unless set to false."
+            "type": "boolean"
           },
           "monitoring": {
             "oneOf": [
@@ -1966,14 +1941,12 @@
                 "type": "null"
               },
               {
-                "description": "Conversations from a deployed agent and the checks run on them. Absent: off, and the server refuses the agent's conversations;\npresent (even empty, `monitoring: {}`): on, with these settings. Switching it on is the agent's repository agreeing that its\nconversations are stored.",
                 "$ref": "#/components/schemas/MonitoringSettings"
               }
             ]
           }
         },
-        "additionalProperties": false,
-        "description": "Which areas of Suwageval an agent uses (`features:` in `agent.yaml`). The file is the source of truth: a push carries it, and\nthe server refuses what a switched-off area would store. Left out, an agent has evaluation and no monitoring."
+        "additionalProperties": false
       },
       "AgentVersion": {
         "required": [
@@ -2039,12 +2012,10 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/VersionMonitoring"
-            },
-            "description": "Where the version answers the conversations of a deployed agent (monitoring), one entry per environment; empty: nowhere."
+            }
           }
         },
-        "additionalProperties": false,
-        "description": "A registered version of an agent, without its content (but with the names of the models its LLM agents use, so runs can be\nfiltered by model); `Data` is the retrieval data its runs ran on, each once (empty for an agent without retrieval), newest first;\n`ArchivedAt` is set while the version is archived.\n`Runs` counts the version's runs in no group and `GroupRuns` those in a group (a re-check counts as in the group of its original):\nwhere the version is used. Both zero: unused."
+        "additionalProperties": false
       },
       "AgentVersionDetail": {
         "required": [
@@ -2082,8 +2053,7 @@
             "format": "date-time"
           }
         },
-        "additionalProperties": false,
-        "description": "A registered version of an agent with its content (`Content.Label` is the version's label)."
+        "additionalProperties": false
       },
       "ArchiveRunGroupsRequest": {
         "required": [
@@ -2102,8 +2072,7 @@
             "type": "boolean"
           }
         },
-        "additionalProperties": false,
-        "description": "Archives (`Archived: true`) or restores (`false`) run groups of one agent, by name; nothing is deleted."
+        "additionalProperties": false
       },
       "ArchiveVersionsRequest": {
         "required": [
@@ -2123,8 +2092,7 @@
             "type": "boolean"
           }
         },
-        "additionalProperties": false,
-        "description": "Archives (`Archived: true`) or restores (`false`) versions of one agent; nothing is deleted."
+        "additionalProperties": false
       },
       "BaselineComparison": {
         "required": [
@@ -2137,33 +2105,28 @@
         "properties": {
           "runId": {
             "type": "string",
-            "description": "The baseline run: one of the compared runs.",
             "format": "uuid"
           },
           "runs": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ComparedRun"
-            },
-            "description": "One per compared run, in the order of the columns; the baseline's own entry has no changes."
+            }
           },
           "tags": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ComparedTag"
-            },
-            "description": "The pass rate over every check first, then one row per tag, sorted by name; every rate carries its change against the baseline."
+            }
           },
           "checks": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ComparedCheck"
-            },
-            "description": "The checks of all runs lined up by scenario key and check key, in the order they first appear (the baseline's first)."
+            }
           }
         },
-        "additionalProperties": false,
-        "description": "What a comparison adds when one of its runs is chosen as the baseline: how the others stand against it."
+        "additionalProperties": false
       },
       "ChangedCheck": {
         "required": [
@@ -2189,7 +2152,6 @@
                 "type": "null"
               },
               {
-                "description": "The check as the run used it; null for an added check.",
                 "$ref": "#/components/schemas/CheckInput"
               }
             ]
@@ -2200,26 +2162,22 @@
                 "type": "null"
               },
               {
-                "description": "The check as it is now; null for a removed check.",
                 "$ref": "#/components/schemas/CheckInput"
               }
             ]
           },
           "afterJudgedByModel": {
-            "type": "boolean",
-            "description": "Whether a model gives the verdict of CheckInput? ChangedCheck.After; false for a removed check."
+            "type": "boolean"
           }
         },
-        "additionalProperties": false,
-        "description": "A check whose verdict a re-check would not copy from the run: it changed, was added or was removed since."
+        "additionalProperties": false
       },
       "CheckChange": {
         "enum": [
           "Changed",
           "Added",
           "Removed"
-        ],
-        "description": "What happened to a check since a run. A changed pass threshold is a change: it is part of the check's revision."
+        ]
       },
       "CheckHistoryPoint": {
         "required": [
@@ -2244,12 +2202,10 @@
             "type": [
               "null",
               "string"
-            ],
-            "description": "The retrieval data that run was on; none for an agent without retrieval."
+            ]
           }
         },
-        "additionalProperties": false,
-        "description": "One earlier run of a check's history and whether the check passed in it."
+        "additionalProperties": false
       },
       "CheckInput": {
         "required": [
@@ -2282,7 +2238,6 @@
             "$ref": "#/components/schemas/CheckInputJudgeCheck"
           }
         ],
-        "description": "A test on what the agent produced, told apart by `type`: for a scenario (in a run), or for every monitored conversation of the\nagent (a monitoring check, `suwageval/monitoring-checks.yaml`: no scenario, a description).",
         "discriminator": {
           "propertyName": "type",
           "mapping": {
@@ -2313,23 +2268,19 @@
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "description": "The ids of the documents the answer must be grounded on: every one must appear in the `sources` of some assistant message. At least one, none empty."
+            }
           },
           "key": {
-            "type": "string",
-            "description": "Lowercase kebab-case, unique within the agent."
+            "type": "string"
           },
           "scenarioKey": {
-            "type": "string",
-            "description": "The scenario the check belongs to; empty for a monitoring check, which belongs to the agent."
+            "type": "string"
           },
           "description": {
             "type": [
               "null",
               "string"
-            ],
-            "description": "What the check makes sure of, in plain words: required of a monitoring check, a note for a scenario's."
+            ]
           },
           "where": {
             "oneOf": [
@@ -2343,7 +2294,6 @@
           },
           "passThreshold": {
             "type": "number",
-            "description": "The share of samples that must pass, from above 0 to 1.",
             "format": "double"
           },
           "samples": {
@@ -2351,7 +2301,6 @@
               "null",
               "integer"
             ],
-            "description": "How many of its scenario's samples the check is judged on (the first ones, 1 to 20), and the number its pass rate and threshold\ncount over. Not set: the scenario's samples.",
             "format": "int32"
           }
         },
@@ -2370,8 +2319,7 @@
             "type": "string"
           },
           "event": {
-            "type": "string",
-            "description": "The event's type, one the agent declares."
+            "type": "string"
           },
           "data": {
             "oneOf": [
@@ -2379,7 +2327,6 @@
                 "type": "null"
               },
               {
-                "description": "A subset the event's data must contain. Free JSON, shaped by the event's `dataSchema`.",
                 "$ref": "#/components/schemas/JsonElement"
               }
             ]
@@ -2389,7 +2336,6 @@
               "null",
               "integer"
             ],
-            "description": "At least this many matching events, from 0; with only int? EventCheck.Max given it is 1.",
             "format": "int32"
           },
           "max": {
@@ -2397,7 +2343,6 @@
               "null",
               "integer"
             ],
-            "description": "At most this many matching events, from 1: none at all is an `event-not-emitted` check.",
             "format": "int32"
           },
           "exactly": {
@@ -2405,30 +2350,25 @@
               "null",
               "integer"
             ],
-            "description": "Exactly this many matching events, from 1; stands alone, without int? EventCheck.Min and int? EventCheck.Max.",
             "format": "int32"
           },
           "last": {
             "type": [
               "null",
               "boolean"
-            ],
-            "description": "True: only the last event of the type in scope is compared with JsonElement? EventCheck.Data, e.g. an agent's state event read as where\nthe conversation ended up."
+            ]
           },
           "key": {
-            "type": "string",
-            "description": "Lowercase kebab-case, unique within the agent."
+            "type": "string"
           },
           "scenarioKey": {
-            "type": "string",
-            "description": "The scenario the check belongs to; empty for a monitoring check, which belongs to the agent."
+            "type": "string"
           },
           "description": {
             "type": [
               "null",
               "string"
-            ],
-            "description": "What the check makes sure of, in plain words: required of a monitoring check, a note for a scenario's."
+            ]
           },
           "where": {
             "oneOf": [
@@ -2442,7 +2382,6 @@
           },
           "passThreshold": {
             "type": "number",
-            "description": "The share of samples that must pass, from above 0 to 1.",
             "format": "double"
           },
           "samples": {
@@ -2450,12 +2389,10 @@
               "null",
               "integer"
             ],
-            "description": "How many of its scenario's samples the check is judged on (the first ones, 1 to 20), and the number its pass rate and threshold\ncount over. Not set: the scenario's samples.",
             "format": "int32"
           }
         },
-        "additionalProperties": false,
-        "description": "An event the agent emitted: by default at least one whose data contains JsonElement? EventCheck.Data. With a bound it counts those events;\nwith bool? EventCheck.Last it compares only the last event of the type. The optional members are left out when not set, so a\ncheck written before them keeps its content hash."
+        "additionalProperties": false
       },
       "CheckInputEventNotEmittedCheck": {
         "required": [
@@ -2470,8 +2407,7 @@
             "type": "string"
           },
           "event": {
-            "type": "string",
-            "description": "The event's type, one the agent declares."
+            "type": "string"
           },
           "data": {
             "oneOf": [
@@ -2479,25 +2415,21 @@
                 "type": "null"
               },
               {
-                "description": "With it, only events whose data contains this subset count. Free JSON, shaped by the event's `dataSchema`.",
                 "$ref": "#/components/schemas/JsonElement"
               }
             ]
           },
           "key": {
-            "type": "string",
-            "description": "Lowercase kebab-case, unique within the agent."
+            "type": "string"
           },
           "scenarioKey": {
-            "type": "string",
-            "description": "The scenario the check belongs to; empty for a monitoring check, which belongs to the agent."
+            "type": "string"
           },
           "description": {
             "type": [
               "null",
               "string"
-            ],
-            "description": "What the check makes sure of, in plain words: required of a monitoring check, a note for a scenario's."
+            ]
           },
           "where": {
             "oneOf": [
@@ -2511,7 +2443,6 @@
           },
           "passThreshold": {
             "type": "number",
-            "description": "The share of samples that must pass, from above 0 to 1.",
             "format": "double"
           },
           "samples": {
@@ -2519,7 +2450,6 @@
               "null",
               "integer"
             ],
-            "description": "How many of its scenario's samples the check is judged on (the first ones, 1 to 20), and the number its pass rate and threshold\ncount over. Not set: the scenario's samples.",
             "format": "int32"
           }
         },
@@ -2538,23 +2468,19 @@
             "type": "string"
           },
           "criteria": {
-            "type": "string",
-            "description": "What the agent's output must satisfy, in one or a few sentences; the judge answers whether it does."
+            "type": "string"
           },
           "key": {
-            "type": "string",
-            "description": "Lowercase kebab-case, unique within the agent."
+            "type": "string"
           },
           "scenarioKey": {
-            "type": "string",
-            "description": "The scenario the check belongs to; empty for a monitoring check, which belongs to the agent."
+            "type": "string"
           },
           "description": {
             "type": [
               "null",
               "string"
-            ],
-            "description": "What the check makes sure of, in plain words: required of a monitoring check, a note for a scenario's."
+            ]
           },
           "where": {
             "oneOf": [
@@ -2568,7 +2494,6 @@
           },
           "passThreshold": {
             "type": "number",
-            "description": "The share of samples that must pass, from above 0 to 1.",
             "format": "double"
           },
           "samples": {
@@ -2576,12 +2501,10 @@
               "null",
               "integer"
             ],
-            "description": "How many of its scenario's samples the check is judged on (the first ones, 1 to 20), and the number its pass rate and threshold\ncount over. Not set: the scenario's samples.",
             "format": "int32"
           }
         },
-        "additionalProperties": false,
-        "description": "A model's verdict on what the agent produced, against criteria written in plain words."
+        "additionalProperties": false
       },
       "CheckInputMessageCountCheck": {
         "required": [
@@ -2600,7 +2523,6 @@
                 "type": "null"
               },
               {
-                "description": "Only messages of this role count; not set: both a user's and an assistant's.",
                 "$ref": "#/components/schemas/MessageRole"
               }
             ]
@@ -2610,7 +2532,6 @@
               "null",
               "integer"
             ],
-            "description": "At least this many, from 1: at least 0 always holds.",
             "format": "int32"
           },
           "max": {
@@ -2618,7 +2539,6 @@
               "null",
               "integer"
             ],
-            "description": "At most this many, from 0.",
             "format": "int32"
           },
           "exactly": {
@@ -2626,23 +2546,19 @@
               "null",
               "integer"
             ],
-            "description": "Exactly this many, from 0; stands alone, without int? MessageCountCheck.Min and int? MessageCountCheck.Max.",
             "format": "int32"
           },
           "key": {
-            "type": "string",
-            "description": "Lowercase kebab-case, unique within the agent."
+            "type": "string"
           },
           "scenarioKey": {
-            "type": "string",
-            "description": "The scenario the check belongs to; empty for a monitoring check, which belongs to the agent."
+            "type": "string"
           },
           "description": {
             "type": [
               "null",
               "string"
-            ],
-            "description": "What the check makes sure of, in plain words: required of a monitoring check, a note for a scenario's."
+            ]
           },
           "where": {
             "oneOf": [
@@ -2656,7 +2572,6 @@
           },
           "passThreshold": {
             "type": "number",
-            "description": "The share of samples that must pass, from above 0 to 1.",
             "format": "double"
           },
           "samples": {
@@ -2664,12 +2579,10 @@
               "null",
               "integer"
             ],
-            "description": "How many of its scenario's samples the check is judged on (the first ones, 1 to 20), and the number its pass rate and threshold\ncount over. Not set: the scenario's samples.",
             "format": "int32"
           }
         },
-        "additionalProperties": false,
-        "description": "On how many messages are in scope: at least one bound is given, all given must hold."
+        "additionalProperties": false
       },
       "CheckInputTextCheck": {
         "required": [
@@ -2689,8 +2602,7 @@
             ],
             "items": {
               "type": "string"
-            },
-            "description": "A text, or a list of texts, each of which the answer contains."
+            }
           },
           "notContains": {
             "type": [
@@ -2699,30 +2611,25 @@
             ],
             "items": {
               "type": "string"
-            },
-            "description": "A text, or a list of texts, none of which the answer contains."
+            }
           },
           "pattern": {
             "type": [
               "null",
               "string"
-            ],
-            "description": "A regular expression the text must match."
+            ]
           },
           "key": {
-            "type": "string",
-            "description": "Lowercase kebab-case, unique within the agent."
+            "type": "string"
           },
           "scenarioKey": {
-            "type": "string",
-            "description": "The scenario the check belongs to; empty for a monitoring check, which belongs to the agent."
+            "type": "string"
           },
           "description": {
             "type": [
               "null",
               "string"
-            ],
-            "description": "What the check makes sure of, in plain words: required of a monitoring check, a note for a scenario's."
+            ]
           },
           "where": {
             "oneOf": [
@@ -2736,7 +2643,6 @@
           },
           "passThreshold": {
             "type": "number",
-            "description": "The share of samples that must pass, from above 0 to 1.",
             "format": "double"
           },
           "samples": {
@@ -2744,12 +2650,10 @@
               "null",
               "integer"
             ],
-            "description": "How many of its scenario's samples the check is judged on (the first ones, 1 to 20), and the number its pass rate and threshold\ncount over. Not set: the scenario's samples.",
             "format": "int32"
           }
         },
-        "additionalProperties": false,
-        "description": "On the agent's answer text; at least one of the three is given, all given must hold."
+        "additionalProperties": false
       },
       "CheckInputToolCalledCheck": {
         "required": [
@@ -2770,8 +2674,7 @@
             "type": [
               "null",
               "string"
-            ],
-            "description": "The LLM agent that must have made the call; a call that names no agent never satisfies it."
+            ]
           },
           "args": {
             "oneOf": [
@@ -2779,7 +2682,6 @@
                 "type": "null"
               },
               {
-                "description": "A subset the call's arguments must contain. Free JSON, shaped by the tool's parameters.",
                 "$ref": "#/components/schemas/JsonElement"
               }
             ]
@@ -2790,25 +2692,21 @@
                 "type": "null"
               },
               {
-                "description": "A subset the matching call's result must contain: the content of the `ToolResult` that answers the call, parsed as JSON\n(content that is not JSON counts as the JSON string of itself). A call with no result never matches.",
                 "$ref": "#/components/schemas/JsonElement"
               }
             ]
           },
           "key": {
-            "type": "string",
-            "description": "Lowercase kebab-case, unique within the agent."
+            "type": "string"
           },
           "scenarioKey": {
-            "type": "string",
-            "description": "The scenario the check belongs to; empty for a monitoring check, which belongs to the agent."
+            "type": "string"
           },
           "description": {
             "type": [
               "null",
               "string"
-            ],
-            "description": "What the check makes sure of, in plain words: required of a monitoring check, a note for a scenario's."
+            ]
           },
           "where": {
             "oneOf": [
@@ -2822,7 +2720,6 @@
           },
           "passThreshold": {
             "type": "number",
-            "description": "The share of samples that must pass, from above 0 to 1.",
             "format": "double"
           },
           "samples": {
@@ -2830,7 +2727,6 @@
               "null",
               "integer"
             ],
-            "description": "How many of its scenario's samples the check is judged on (the first ones, 1 to 20), and the number its pass rate and threshold\ncount over. Not set: the scenario's samples.",
             "format": "int32"
           }
         },
@@ -2855,23 +2751,19 @@
             "type": [
               "null",
               "string"
-            ],
-            "description": "Only calls made by this LLM agent count; a call that names no agent is never one of them."
+            ]
           },
           "key": {
-            "type": "string",
-            "description": "Lowercase kebab-case, unique within the agent."
+            "type": "string"
           },
           "scenarioKey": {
-            "type": "string",
-            "description": "The scenario the check belongs to; empty for a monitoring check, which belongs to the agent."
+            "type": "string"
           },
           "description": {
             "type": [
               "null",
               "string"
-            ],
-            "description": "What the check makes sure of, in plain words: required of a monitoring check, a note for a scenario's."
+            ]
           },
           "where": {
             "oneOf": [
@@ -2885,7 +2777,6 @@
           },
           "passThreshold": {
             "type": "number",
-            "description": "The share of samples that must pass, from above 0 to 1.",
             "format": "double"
           },
           "samples": {
@@ -2893,7 +2784,6 @@
               "null",
               "integer"
             ],
-            "description": "How many of its scenario's samples the check is judged on (the first ones, 1 to 20), and the number its pass rate and threshold\ncount over. Not set: the scenario's samples.",
             "format": "int32"
           }
         },
@@ -2915,8 +2805,7 @@
             "format": "int32"
           }
         },
-        "additionalProperties": false,
-        "description": "How a monitoring check did over some conversations: how many it was checked on, how many passed."
+        "additionalProperties": false
       },
       "CheckRegression": {
         "required": [
@@ -2932,7 +2821,6 @@
               "null",
               "string"
             ],
-            "description": "For RegressionState.AlreadyBroken: the first reference run of the failures in a row.",
             "format": "uuid"
           },
           "lastPassedRun": {
@@ -2940,23 +2828,19 @@
               "null",
               "string"
             ],
-            "description": "The newest run of the history in which the check passed, to compare with; none when it never passed there.",
             "format": "uuid"
           },
           "dataChanged": {
-            "type": "boolean",
-            "description": "True when this run was on other retrieval data than Guid? CheckRegression.LastPassedRun (their `dataVersion`s differ): a failure may come\nfrom the data, not the agent. False without a run that passed."
+            "type": "boolean"
           },
           "history": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/CheckHistoryPoint"
-            },
-            "description": "The verdicts the state was computed from, oldest first: the newest reference runs of the check's history."
+            }
           }
         },
-        "additionalProperties": false,
-        "description": "A check's verdict in a run against its history."
+        "additionalProperties": false
       },
       "CheckResult": {
         "required": [
@@ -2994,36 +2878,29 @@
           },
           "revision": {
             "type": "integer",
-            "description": "The revision of the check that ran.",
             "format": "int32"
           },
           "latestRevision": {
             "type": "integer",
-            "description": "The check's newest revision now; above int CheckRunResult.Revision when the check changed since the run.",
             "format": "int32"
           },
           "definition": {
-            "description": "The check as it was stored in int CheckRunResult.Revision: the definition the run used.",
             "$ref": "#/components/schemas/CheckInput"
           },
           "judgedByModel": {
-            "type": "boolean",
-            "description": "Whether a model gives the verdict of the check: a `judge` check, or one with a `$judge` matcher."
+            "type": "boolean"
           },
           "judgeModel": {
             "type": [
               "null",
               "string"
-            ],
-            "description": "The model that gave the verdicts of the samples: the most common name among them (the first in sample order on a tie); null for a deterministic check and for runs made before the name was recorded."
+            ]
           },
           "passed": {
-            "type": "boolean",
-            "description": "True when double CheckRunResult.PassRate reaches double CheckRunResult.PassThreshold."
+            "type": "boolean"
           },
           "passRate": {
             "type": "number",
-            "description": "The share of samples that passed, from 0 to 1.",
             "format": "double"
           },
           "passThreshold": {
@@ -3042,18 +2919,15 @@
                 "type": "null"
               },
               {
-                "description": "The verdict against the check's history; none until the run is done.",
                 "$ref": "#/components/schemas/CheckRegression"
               }
             ]
           },
           "passedFully": {
-            "type": "boolean",
-            "description": "Passed for good: the threshold was reached and every sample was judged (a sample not judged leaves the verdict open). What\n\"Hide passed checks\" and `results --failed-only` leave out; the server decides it, the web and the CLI only read it."
+            "type": "boolean"
           }
         },
-        "additionalProperties": false,
-        "description": "One check over the samples of its scenario: the pass rate against the threshold."
+        "additionalProperties": false
       },
       "CheckSampleResult": {
         "required": [
@@ -3067,30 +2941,25 @@
         "properties": {
           "sample": {
             "type": "integer",
-            "description": "From 1.",
             "format": "int32"
           },
           "passed": {
-            "type": "boolean",
-            "description": "False also when `notJudged`: a sample nobody could judge does not pass."
+            "type": "boolean"
           },
           "notJudged": {
-            "type": "boolean",
-            "description": "True when a judge check could not get a verdict (the model was unreachable, too slow or answered unreadably) — told\napart from a verdict of \"failed\"; `message` says what happened."
+            "type": "boolean"
           },
           "evidence": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ConversationItem"
-            },
-            "description": "The items that decided the verdict; may be empty (a tool that was not called leaves nothing to show)."
+            }
           },
           "message": {
             "type": "string"
           }
         },
-        "additionalProperties": false,
-        "description": "A check's verdict on one sample."
+        "additionalProperties": false
       },
       "CheckWhere": {
         "type": "object",
@@ -3102,19 +2971,16 @@
             "type": [
               "null",
               "string"
-            ],
-            "description": "A tool name or event type: only what came after it counts."
+            ]
           },
           "before": {
             "type": [
               "null",
               "string"
-            ],
-            "description": "A tool name or event type: only what came before it counts."
+            ]
           }
         },
-        "additionalProperties": false,
-        "description": "Narrows a check to a part of what the agent produced."
+        "additionalProperties": false
       },
       "ComparedCell": {
         "required": [
@@ -3130,17 +2996,14 @@
         "type": "object",
         "properties": {
           "passed": {
-            "type": "boolean",
-            "description": "The pass rate reached the threshold."
+            "type": "boolean"
           },
           "passRate": {
             "type": "number",
-            "description": "The share of samples that passed, from 0 to 1.",
             "format": "double"
           },
           "samplesPassed": {
             "type": "integer",
-            "description": "Samples that passed.",
             "format": "int32"
           },
           "samples": {
@@ -3149,7 +3012,6 @@
           },
           "notJudged": {
             "type": "integer",
-            "description": "Samples the judge could not judge (counted as failed, but not a verdict).",
             "format": "int32"
           },
           "revision": {
@@ -3167,8 +3029,7 @@
             "type": [
               "null",
               "string"
-            ],
-            "description": "The model that judged the check in this run; absent for a deterministic check and for a run from before the name was recorded."
+            ]
           },
           "trend": {
             "oneOf": [
@@ -3176,14 +3037,12 @@
                 "type": "null"
               },
               {
-                "description": "Against the baseline's cell; absent when either run has no such check.",
                 "$ref": "#/components/schemas/Trend"
               }
             ]
           }
         },
-        "additionalProperties": false,
-        "description": "What one run's scenarios say about one check."
+        "additionalProperties": false
       },
       "ComparedCheck": {
         "required": [
@@ -3208,34 +3067,28 @@
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "description": "The tags of the check's scenario now; what the web filters the rows by."
+            }
           },
           "definition": {
-            "description": "The check as the baseline ran it, or as the first run that has it ran it.",
             "$ref": "#/components/schemas/CheckInput"
           },
           "judgedByModel": {
             "type": "boolean"
           },
           "differs": {
-            "type": "boolean",
-            "description": "Some cell differs from the baseline's: another outcome or pass rate, or a check missing from a run."
+            "type": "boolean"
           },
           "comparable": {
-            "type": "boolean",
-            "description": "Every run has this check, so the runs can be compared on it."
+            "type": "boolean"
           },
           "cells": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ComparedCell"
-            },
-            "description": "One per compared run, in the order asked for; null for a run without the check (or without its scenario)."
+            }
           }
         },
-        "additionalProperties": false,
-        "description": "One check across the compared runs."
+        "additionalProperties": false
       },
       "ComparedRate": {
         "type": "object",
@@ -3272,8 +3125,7 @@
             "format": "int32"
           }
         },
-        "additionalProperties": false,
-        "description": "For a tag's row, int? ComparedRate.ScenariosRan of int? ComparedRate.ScenariosOfTag says how much of the tag the run covered: no rate when not all of it.\nA run's pass rate over a set of checks (from 0 to 1; absent when the run has no such check) and its change against the baseline's (absent for the baseline itself and when either rate is absent)."
+        "additionalProperties": false
       },
       "ComparedRun": {
         "required": [
@@ -3289,19 +3141,16 @@
             "type": [
               "null",
               "string"
-            ],
-            "description": "The model that judged the run: the most common known model among its model-judged checks; absent when none was judged by a known model."
+            ]
           },
           "judgeChanged": {
-            "type": "boolean",
-            "description": "The judge and the baseline's are both known and differ: verdicts may differ because of the judge, not the agent."
+            "type": "boolean"
           },
           "passRate": {
             "type": [
               "null",
               "number"
             ],
-            "description": "Checks passed over checks (from 0 to 1); absent for a run without checks.",
             "format": "double"
           },
           "medianMs": {
@@ -3324,7 +3173,6 @@
                 "type": "null"
               },
               {
-                "description": "Absent for the baseline itself and when either run made no call.",
                 "$ref": "#/components/schemas/TimeChange"
               }
             ]
@@ -3340,8 +3188,7 @@
             ]
           }
         },
-        "additionalProperties": false,
-        "description": "A compared run: its summary, its judge and its turn times, the latter against the baseline's."
+        "additionalProperties": false
       },
       "ComparedTag": {
         "required": [
@@ -3359,12 +3206,10 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ComparedRate"
-            },
-            "description": "One per compared run, in the order asked for."
+            }
           }
         },
-        "additionalProperties": false,
-        "description": "A row of the per-tag summary: string? ComparedTag.Tag is absent for the row of every check of the run. A check counts once, however many\nsamples it has; a run has a rate for a tag only when it ran every scenario of the tag."
+        "additionalProperties": false
       },
       "ContextDefinition": {
         "type": "object",
@@ -3378,7 +3223,6 @@
                 "type": "null"
               },
               {
-                "description": "The version of the data retrieval reads: required with `UsesRetrieval`, absent without it.",
                 "$ref": "#/components/schemas/RetrievalDefinition"
               }
             ]
@@ -3395,7 +3239,6 @@
                 "type": "null"
               },
               {
-                "description": "A JSON Schema of the scenario fixtures: present means the agent accepts them.",
                 "$ref": "#/components/schemas/JsonElement"
               }
             ]
@@ -3404,31 +3247,26 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ToolDefinition"
-            },
-            "description": "The tools the system's own code calls, with no LLM agent choosing them (a deterministic step that books a visit, say). No\nagent owns them, so a `ToolCall` of one names no `Agent`; a name is either here or an agent's\ntool, never both (AgentContractRules). Part of the content hash; an agent may leave it out when empty, and an\nempty list is not hashed, so a contract without them is the version it was before they existed."
+            }
           }
         },
-        "additionalProperties": false,
-        "description": "What besides messages and tool calls may appear in the agent's conversation log."
+        "additionalProperties": false
       },
       "Continuation": {
         "type": "object",
         "properties": {
           "turns": {
             "type": "integer",
-            "description": "How many agent turns are produced, at most (one: the agent answers the last message). Above one needs\n`simulatedUser`, who writes the user's message that starts each further turn; that user may end the\nconversation earlier.",
             "format": "int32"
           },
           "simulatedUser": {
             "type": [
               "null",
               "string"
-            ],
-            "description": "The user Suwageval plays with a model, in plain words: their goal, temperament, situation, what they know, the language they\nwrite in. Set means the scenario is a simulation; its checks look at the whole conversation, never at one turn by number."
+            ]
           }
         },
-        "additionalProperties": false,
-        "description": "How the conversation goes on after its last message."
+        "additionalProperties": false
       },
       "ConversationCheckResult": {
         "required": [
@@ -3450,8 +3288,7 @@
             "type": "boolean"
           },
           "notJudged": {
-            "type": "boolean",
-            "description": "The check needed the judge's model and none could answer: it failed without a verdict on the agent."
+            "type": "boolean"
           },
           "message": {
             "type": "string"
@@ -3466,12 +3303,10 @@
             "type": [
               "null",
               "string"
-            ],
-            "description": "The model that gave the verdict, for a check judged by one."
+            ]
           }
         },
-        "additionalProperties": false,
-        "description": "The verdict of one monitoring check on one conversation, with the items that decided it."
+        "additionalProperties": false
       },
       "ConversationDetail": {
         "required": [
@@ -3493,12 +3328,10 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ConversationCheckResult"
-            },
-            "description": "The verdicts of the agent's monitoring checks on it, by key; empty until it is checked."
+            }
           }
         },
-        "additionalProperties": false,
-        "description": "A monitored conversation with its turns, oldest first."
+        "additionalProperties": false
       },
       "ConversationItem": {
         "required": [
@@ -3525,7 +3358,6 @@
             "$ref": "#/components/schemas/ConversationItemEvent"
           }
         ],
-        "description": "One entry of the conversation log, told apart by `kind`.",
         "discriminator": {
           "propertyName": "kind",
           "mapping": {
@@ -3556,8 +3388,7 @@
             "type": [
               "null",
               "boolean"
-            ],
-            "description": "The user cut the answer off before it was finished."
+            ]
           },
           "sources": {
             "type": [
@@ -3566,8 +3397,7 @@
             ],
             "items": {
               "type": "string"
-            },
-            "description": "The ids of the documents the answer is grounded on, as the agent reports them."
+            }
           }
         },
         "additionalProperties": false
@@ -3585,11 +3415,9 @@
             "type": "string"
           },
           "type": {
-            "type": "string",
-            "description": "One of the types the agent declares in its context contract."
+            "type": "string"
           },
           "data": {
-            "description": "Free JSON: its shape is the agent's, declared by the event's `dataSchema`.",
             "$ref": "#/components/schemas/JsonElement"
           }
         },
@@ -3639,15 +3467,13 @@
             "type": "string"
           },
           "arguments": {
-            "description": "Free JSON: its shape is the agent's, declared by the tool's parameters in the agent's contract.",
             "$ref": "#/components/schemas/JsonElement"
           },
           "agent": {
             "type": [
               "null",
               "string"
-            ],
-            "description": "The name of the LLM agent (from the contract's agents) that made the call; left out when the system's own code made it (a\ntool of the contract's `context.tools`)."
+            ]
           }
         },
         "additionalProperties": false
@@ -3665,8 +3491,7 @@
             "type": "string"
           },
           "callId": {
-            "type": "string",
-            "description": "The string ToolCall.Id this answers."
+            "type": "string"
           },
           "content": {
             "type": "string"
@@ -3711,31 +3536,26 @@
           },
           "page": {
             "type": "integer",
-            "description": "The page these are (1-based): the one asked for, or the last one when that is past the end.",
             "format": "int32"
           },
           "totalCount": {
             "type": "integer",
-            "description": "How many conversations match the filters, over all pages.",
             "format": "int32"
           },
           "environments": {
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "description": "The environments the agent's conversations came from, sorted: what the environment filter offers."
+            }
           }
         },
-        "additionalProperties": false,
-        "description": "One page of an agent's monitored conversations, the one with the newest turn first."
+        "additionalProperties": false
       },
       "ConversationState": {
         "enum": [
           "Open",
           "Closed"
-        ],
-        "description": "Where a monitored conversation stands: `Open` while its turns come, `Closed` once none came for the agent's\n`features.monitoring.closeAfter` (a turn after that opens it again)."
+        ]
       },
       "ConversationSummary": {
         "required": [
@@ -3753,7 +3573,6 @@
         "properties": {
           "id": {
             "type": "string",
-            "description": "Suwageval's id of the conversation.",
             "format": "uuid"
           },
           "agent": {
@@ -3763,31 +3582,26 @@
             "type": "string"
           },
           "conversationId": {
-            "type": "string",
-            "description": "The agent's own id of the conversation, as it sent it."
+            "type": "string"
           },
           "agentVersionId": {
             "type": "string",
-            "description": "The version that answered its last turn.",
             "format": "uuid"
           },
           "versionLabel": {
             "type": [
               "null",
               "string"
-            ],
-            "description": "The label of that version's contract, if any."
+            ]
           },
           "versionChanged": {
-            "type": "boolean",
-            "description": "True when an earlier turn was answered by another version (the agent was redeployed during the conversation)."
+            "type": "boolean"
           },
           "dataVersion": {
             "type": [
               "null",
               "string"
-            ],
-            "description": "The retrieval data of its last turn, when the agent sends it."
+            ]
           },
           "state": {
             "$ref": "#/components/schemas/ConversationState"
@@ -3798,7 +3612,6 @@
           },
           "startedAt": {
             "type": "string",
-            "description": "When its first and its last turn ended, by the agent's clock.",
             "format": "date-time"
           },
           "lastTurnAt": {
@@ -3817,22 +3630,18 @@
               "null",
               "string"
             ],
-            "description": "When the agent's monitoring checks ran on it (after it closed); none while it was not checked.",
             "format": "date-time"
           },
           "failedChecks": {
             "type": "integer",
-            "description": "How many of its checks failed, once checked; a check not judged (the judge's model did not answer) is not counted.",
             "format": "int32"
           },
           "notJudgedChecks": {
             "type": "integer",
-            "description": "How many of its checks the judge's model did not judge (none configured, no answer), once checked.",
             "format": "int32"
           }
         },
-        "additionalProperties": false,
-        "description": "A conversation of a monitored agent, without its turns."
+        "additionalProperties": false
       },
       "ConversationTurn": {
         "required": [
@@ -3849,7 +3658,6 @@
           },
           "at": {
             "type": "string",
-            "description": "When the turn ended, by the agent's clock.",
             "format": "date-time"
           },
           "agentVersionId": {
@@ -3869,8 +3677,7 @@
             }
           }
         },
-        "additionalProperties": false,
-        "description": "One turn of a monitored conversation as the agent recorded it."
+        "additionalProperties": false
       },
       "DataChange": {
         "required": [
@@ -3887,8 +3694,7 @@
             "type": "string"
           }
         },
-        "additionalProperties": false,
-        "description": "When a data version was first seen on a monitored turn in a period."
+        "additionalProperties": false
       },
       "DiffBlock": {
         "required": [
@@ -3907,16 +3713,14 @@
             }
           }
         },
-        "additionalProperties": false,
-        "description": "A stretch of a line diff: lines to show, or unchanged lines folded away until the reader opens them."
+        "additionalProperties": false
       },
       "DiffKind": {
         "enum": [
           "Same",
           "Added",
           "Removed"
-        ],
-        "description": "How a line of a diff stands."
+        ]
       },
       "DiffRow": {
         "required": [
@@ -3936,7 +3740,6 @@
               "null",
               "integer"
             ],
-            "description": "The line's number (from 1) in the older text; absent for an added line.",
             "format": "int32"
           },
           "toLine": {
@@ -3944,12 +3747,10 @@
               "null",
               "integer"
             ],
-            "description": "The line's number (from 1) in the newer text; absent for a removed line.",
             "format": "int32"
           }
         },
-        "additionalProperties": false,
-        "description": "One line of a line diff with its number on each side."
+        "additionalProperties": false
       },
       "EventDeclaration": {
         "required": [
@@ -3962,7 +3763,6 @@
             "type": "string"
           },
           "dataSchema": {
-            "description": "The shape of the event's `data`, as a JSON Schema document.",
             "$ref": "#/components/schemas/JsonElement"
           }
         },
@@ -3981,12 +3781,10 @@
             "type": [
               "null",
               "string"
-            ],
-            "description": "The acceptance criterion that used up its attempts; none when the gate passed."
+            ]
           }
         },
-        "additionalProperties": false,
-        "description": "What a gate run (`suwageval gate`) came to: passed when every acceptance criterion it ran was met, failed at the first one\nthat used up its attempts. Read it only once the run is done; a run that did not finish answers nothing."
+        "additionalProperties": false
       },
       "Health": {
         "required": [
@@ -3998,8 +3796,7 @@
             "type": "string"
           }
         },
-        "additionalProperties": false,
-        "description": "What /health answers."
+        "additionalProperties": false
       },
       "JsonElement": { },
       "LlmAgentDefinition": {
@@ -4017,19 +3814,16 @@
             "$ref": "#/components/schemas/ModelDefinition"
           },
           "config": {
-            "type": "string",
-            "description": "Free text: the system prompt, a scope policy, whatever defines this agent. May be empty."
+            "type": "string"
           },
           "tools": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ToolDefinition"
-            },
-            "description": "The tools this agent may call."
+            }
           }
         },
-        "additionalProperties": false,
-        "description": "One LLM agent of the system under test."
+        "additionalProperties": false
       },
       "MessageRole": {
         "enum": [
@@ -4053,7 +3847,6 @@
                 "type": "null"
               },
               {
-                "description": "Free JSON (temperature and the like): which parameters exist is the model provider's business.",
                 "$ref": "#/components/schemas/JsonElement"
               }
             ]
@@ -4072,16 +3865,13 @@
         "properties": {
           "id": {
             "type": "string",
-            "description": "The turn's own id, made by the sender: a turn sent twice (a retry) is stored once.",
             "format": "uuid"
           },
           "conversationId": {
-            "type": "string",
-            "description": "The agent's id of the conversation; its turns are one conversation in Suwageval (per environment)."
+            "type": "string"
           },
           "at": {
             "type": "string",
-            "description": "When the turn ended, by the agent's clock.",
             "format": "date-time"
           },
           "items": {
@@ -4094,12 +3884,10 @@
             "type": [
               "null",
               "string"
-            ],
-            "description": "The retrieval data the turn was answered from (`context.retrieval.dataVersion`), when the agent can say it cheaply; none\notherwise. Not part of the version: Suwageval only marks where it changed."
+            ]
           }
         },
-        "additionalProperties": false,
-        "description": "One turn of a conversation in a monitored environment: what the user said and everything the agent did and answered, in order\n(the same items as a turn of an evaluation, IReadOnlyList&lt;ConversationItem&gt; TurnResponse.Items, with the user's message first)."
+        "additionalProperties": false
       },
       "MonitoringCheck": {
         "required": [
@@ -4123,15 +3911,13 @@
             "$ref": "#/components/schemas/CheckInput"
           },
           "last7Days": {
-            "description": "Over the conversations whose last turn came in the last 7 days (any revision of the check).",
             "$ref": "#/components/schemas/CheckRate"
           },
           "last30Days": {
             "$ref": "#/components/schemas/CheckRate"
           }
         },
-        "additionalProperties": false,
-        "description": "A monitoring check of the agent with its latest revision and how it did on the conversations of the last 7 and 30 days."
+        "additionalProperties": false
       },
       "MonitoringDay": {
         "required": [
@@ -4157,8 +3943,7 @@
             "format": "int32"
           }
         },
-        "additionalProperties": false,
-        "description": "One day (UTC, `yyyy-MM-dd`, the day of the conversations' last turn) in one environment: how many conversations, how many of them\nchecked. A day has a row per environment that sent conversations on it."
+        "additionalProperties": false
       },
       "MonitoringPoint": {
         "required": [
@@ -4189,8 +3974,7 @@
             "format": "int32"
           }
         },
-        "additionalProperties": false,
-        "description": "One check on one day over the conversations one version answered: how many it was checked on, how many passed."
+        "additionalProperties": false
       },
       "MonitoringSettings": {
         "type": "object",
@@ -4199,8 +3983,7 @@
             "type": [
               "null",
               "string"
-            ],
-            "description": "How long a conversation may go without a turn before it is closed and its checks run: a number with `s`, `m` or `h`\n(`30m`, the default; from one minute to a day). A turn after that opens it again."
+            ]
           },
           "environments": {
             "type": [
@@ -4209,12 +3992,10 @@
             ],
             "items": {
               "type": "string"
-            },
-            "description": "The environments whose conversations are taken (the running agent names its own, `Suwageval__Environment`); none: any.\nLowercase words joined by hyphens (`production`, `staging`, `demo-eu`)."
+            }
           }
         },
-        "additionalProperties": false,
-        "description": "How the conversations of a monitored agent are taken (`features.monitoring` in `agent.yaml`), every part optional."
+        "additionalProperties": false
       },
       "MonitoringTrend": {
         "required": [
@@ -4241,26 +4022,22 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/VersionChange"
-            },
-            "description": "When a version first answered in the period, oldest first: the deploys."
+            }
           },
           "dataVersions": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/DataChange"
-            },
-            "description": "When a data version was first seen in the period, oldest first (only for an agent that sends it)."
+            }
           },
           "environments": {
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "description": "Every environment the agent's conversations came from, whatever the environment asked for: what a filter offers."
+            }
           }
         },
-        "additionalProperties": false,
-        "description": "What the Monitoring page draws for an agent, day by day (UTC) over the last days: the conversations and how many were checked, each\ncheck's verdicts per version that answered, and the days a version or the retrieval data changed."
+        "additionalProperties": false
       },
       "NoteRequest": {
         "type": "object",
@@ -4272,8 +4049,7 @@
             ]
           }
         },
-        "additionalProperties": false,
-        "description": "Sets the note of a run or of a run group (NoteRules); none or blank clears it."
+        "additionalProperties": false
       },
       "PutChecksRequest": {
         "required": [
@@ -4288,8 +4064,7 @@
             }
           }
         },
-        "additionalProperties": false,
-        "description": "The agent's whole set of checks; a stored check not listed is deleted (its revisions and past verdicts stay)."
+        "additionalProperties": false
       },
       "PutChecksResponse": {
         "required": [
@@ -4304,8 +4079,7 @@
             }
           }
         },
-        "additionalProperties": false,
-        "description": "What happened to each check of the request, in its order, then to each check it deleted."
+        "additionalProperties": false
       },
       "PutScenariosRequest": {
         "required": [
@@ -4320,8 +4094,7 @@
             }
           }
         },
-        "additionalProperties": false,
-        "description": "The agent's whole set of scenarios; a stored scenario not listed is deleted (its revisions and past runs stay)."
+        "additionalProperties": false
       },
       "RateChange": {
         "required": [
@@ -4338,8 +4111,7 @@
             "$ref": "#/components/schemas/Trend"
           }
         },
-        "additionalProperties": false,
-        "description": "A pass rate against the baseline's: the difference in percentage points rounded to one decimal, and whether that is better, worse or the same."
+        "additionalProperties": false
       },
       "RecheckBlocker": {
         "enum": [
@@ -4368,8 +4140,7 @@
             "type": [
               "null",
               "string"
-            ],
-            "description": "Why not, in one sentence for a person; null when bool RecheckPlan.Possible."
+            ]
           },
           "blocker": {
             "oneOf": [
@@ -4377,7 +4148,6 @@
                 "type": "null"
               },
               {
-                "description": "What stops the re-check; null when bool RecheckPlan.Possible.",
                 "$ref": "#/components/schemas/RecheckBlocker"
               }
             ]
@@ -4386,38 +4156,32 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ChangedCheck"
-            },
-            "description": "The checks that would be evaluated again, by scenario and check key; the others keep the verdict of the run."
+            }
           },
           "judgedChecks": {
             "type": "integer",
-            "description": "How many of the checks that would be evaluated again call the judge's model.",
             "format": "int32"
           },
           "judgeModel": {
             "type": [
               "null",
               "string"
-            ],
-            "description": "The name of the judge's model as configured now, the one that would judge int RecheckPlan.JudgedChecks; null when none is configured."
+            ]
           },
           "skippedScenarios": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/SkippedScenario"
-            },
-            "description": "The scenarios of the run that would be left out, with the reason."
+            }
           },
           "mismatches": {
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "description": "What does not fit between the current checks and the version the run was under test; empty when it all fits."
+            }
           }
         },
-        "additionalProperties": false,
-        "description": "What a re-check of a run would do, and whether it can start at all. A re-check evaluates the run's stored answers again with\nthe current checks, so it is only worth starting when some check changed since the run; the agent is not asked and its current\ncontract plays no role."
+        "additionalProperties": false
       },
       "RegressionSettings": {
         "type": "object",
@@ -4429,20 +4193,17 @@
             ],
             "items": {
               "type": "string"
-            },
-            "description": "The branches whose runs make the history, the main one first; none means the repository's default branch (from git)."
+            }
           },
           "history": {
             "type": [
               "null",
               "integer"
             ],
-            "description": "How many of the newest reference runs make a check's history (int RegressionSettings.DefaultHistory when not set): a check is steadily\npassing after that many passing runs, and a failure becomes a known one after that many failing runs in a row.",
             "format": "int32"
           }
         },
-        "additionalProperties": false,
-        "description": "How an agent's regressions are found (`regression:` in `agent.yaml`), both parts optional. A check's history is its verdicts\nover the newest reference runs: runs from one of IReadOnlyList&lt;string&gt;? RegressionSettings.Branches, with a clean tree and a pushed commit. Nobody marks a\nbaseline; the history is the baseline."
+        "additionalProperties": false
       },
       "RegressionState": {
         "enum": [
@@ -4454,8 +4215,7 @@
           "Fixed",
           "Unstable",
           "AgentError"
-        ],
-        "description": "What a check's verdict in a run means against the check's history (the newest reference runs before it, in the same revisions of\nthe check and its scenario)."
+        ]
       },
       "RegressionSummary": {
         "required": [
@@ -4474,12 +4234,10 @@
             "type": [
               "null",
               "string"
-            ],
-            "description": "The branch whose reference runs make the history; none means every run of the agent (the run has no git origin)."
+            ]
           },
           "history": {
             "type": "integer",
-            "description": "How many reference runs make a check's history.",
             "format": "int32"
           },
           "regressions": {
@@ -4511,8 +4269,7 @@
             "format": "int32"
           }
         },
-        "additionalProperties": false,
-        "description": "How a run's checks stand against their history: what the run is compared with and how many checks are in each state."
+        "additionalProperties": false
       },
       "RetrievalData": {
         "required": [
@@ -4530,8 +4287,7 @@
             ]
           }
         },
-        "additionalProperties": false,
-        "description": "Retrieval data a version's runs ran on: its `dataVersion` and what the agent said it is (the newest description given)."
+        "additionalProperties": false
       },
       "RetrievalDefinition": {
         "type": "object",
@@ -4540,19 +4296,16 @@
             "type": [
               "null",
               "string"
-            ],
-            "description": "An opaque fingerprint of what retrieval can return (the content and how it was indexed); required of an agent that uses\nretrieval (AgentContractRules). Outside the content hash: the server keeps it on the run, so new data is not a\nnew agent version."
+            ]
           },
           "description": {
             "type": [
               "null",
               "string"
-            ],
-            "description": "For people (what the data is, how much of it). Outside the content hash, like the label."
+            ]
           }
         },
-        "additionalProperties": false,
-        "description": "The data an agent's retrieval reads, as the agent describes it."
+        "additionalProperties": false
       },
       "RetrievedChunk": {
         "required": [
@@ -4593,36 +4346,31 @@
             "type": [
               "null",
               "string"
-            ],
-            "description": "The group the runs were picked by; none when they were named one by one."
+            ]
           },
           "groupNote": {
             "type": [
               "null",
               "string"
-            ],
-            "description": "The note of the group (what the experiment is about); none when compared by run ids or the group has no note."
+            ]
           },
           "runs": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/VariantRun"
-            },
-            "description": "The columns: in the order asked for, or by creation time for a group."
+            }
           },
           "tags": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ComparedTag"
-            },
-            "description": "The pass rate over every check first, then one row per tag; the rates carry no changes (those are in BaselineComparison? RunComparison.Baseline)."
+            }
           },
           "scenarios": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/VariantScenario"
-            },
-            "description": "Every scenario any run ran, sorted by key."
+            }
           },
           "baseline": {
             "oneOf": [
@@ -4630,14 +4378,12 @@
                 "type": "null"
               },
               {
-                "description": "The runs against the baseline; absent when no baseline was asked for.",
                 "$ref": "#/components/schemas/BaselineComparison"
               }
             ]
           }
         },
-        "additionalProperties": false,
-        "description": "Runs of one agent side by side (typically one per model or configuration, each its own agent version): a column per run, the pass\nrate per tag and a row per scenario. When a baseline was asked for, also how the other runs stand against it."
+        "additionalProperties": false
       },
       "RunCreated": {
         "required": [
@@ -4653,12 +4399,10 @@
           },
           "agentVersionId": {
             "type": "string",
-            "description": "The version the run is under test: the contract the agent served when the run was started.",
             "format": "uuid"
           },
           "versionCreated": {
-            "type": "boolean",
-            "description": "`true` when that contract was new (a first version, or the agent changed); `false` when the same content was registered before."
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -4688,8 +4432,7 @@
             "format": "int32"
           }
         },
-        "additionalProperties": false,
-        "description": "What deleting an archived run group removes with it: the runs (re-checks of them included), their samples and the verdicts on those."
+        "additionalProperties": false
       },
       "RunGroupSummary": {
         "required": [
@@ -4709,7 +4452,6 @@
           },
           "versions": {
             "type": "integer",
-            "description": "How many different agent versions the runs used: the variants, when each run is of its own version.",
             "format": "int32"
           },
           "newestRunAt": {
@@ -4721,12 +4463,10 @@
               "null",
               "string"
             ],
-            "description": "When the group was archived (hidden by default, restorable); null for a group in use.",
             "format": "date-time"
           }
         },
-        "additionalProperties": false,
-        "description": "A group of an agent's runs (run --group) at a glance: where the compare page of the group starts."
+        "additionalProperties": false
       },
       "RunGrouping": {
         "type": "integer"
@@ -4747,17 +4487,14 @@
           },
           "page": {
             "type": "integer",
-            "description": "The page these runs are (1-based): the one asked for, or the last one when that is past the end.",
             "format": "int32"
           },
           "totalCount": {
             "type": "integer",
-            "description": "How many runs match the filters, over all pages.",
             "format": "int32"
           }
         },
-        "additionalProperties": false,
-        "description": "One page of runs, newest first."
+        "additionalProperties": false
       },
       "RunOrigin": {
         "required": [
@@ -4770,8 +4507,7 @@
             "type": [
               "null",
               "string"
-            ],
-            "description": "The checked-out branch; none on a detached HEAD the CI did not name."
+            ]
           },
           "commit": {
             "type": [
@@ -4780,37 +4516,31 @@
             ]
           },
           "clean": {
-            "type": "boolean",
-            "description": "True when the tree has no uncommitted changes."
+            "type": "boolean"
           },
           "pushed": {
-            "type": "boolean",
-            "description": "True when the commit is on the remote branch, not only in a local one."
+            "type": "boolean"
           },
           "defaultBranch": {
             "type": [
               "null",
               "string"
-            ],
-            "description": "The repository's default branch (`origin/HEAD`, or the CI's), used when the agent names no branches."
+            ]
           },
           "targetBranch": {
             "type": [
               "null",
               "string"
-            ],
-            "description": "The branch a pull or merge request targets, when the run comes from one in CI."
+            ]
           },
           "compareWith": {
             "type": [
               "null",
               "string"
-            ],
-            "description": "The branch to compare with, given by hand (`--ref`); it wins over everything the run would pick itself."
+            ]
           }
         },
-        "additionalProperties": false,
-        "description": "Where the agent's repository stood when a run was started: the facts the CLI reads from git (or from the CI's environment). The\nserver decides from them whether the run is a reference run and which branch's history it is compared with."
+        "additionalProperties": false
       },
       "RunPassRates": {
         "required": [
@@ -4836,7 +4566,6 @@
               "null",
               "string"
             ],
-            "description": "The re-check whose results the point shows (the newest finished one of this run); null when the point shows the run's own\nresults. A re-check is never a point of its own.",
             "format": "uuid"
           },
           "agentVersionId": {
@@ -4847,33 +4576,28 @@
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "description": "The tags the run was limited to; empty when it ran every scenario. Only such a run says what \"all checks\" are."
+            }
           },
           "versionLabel": {
             "type": [
               "null",
               "string"
-            ],
-            "description": "The label the version's contract carries, if any."
+            ]
           },
           "dataVersion": {
             "type": [
               "null",
               "string"
-            ],
-            "description": "The retrieval data the run was on (string? RunSummary.DataVersion); none for an agent without retrieval."
+            ]
           },
           "modelNames": {
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "description": "The models the version's LLM agents use."
+            }
           },
           "passRate": {
             "type": "number",
-            "description": "Checks passed over checks, from 0 to 1.",
             "format": "double"
           },
           "medianMs": {
@@ -4881,7 +4605,6 @@
               "null",
               "number"
             ],
-            "description": "The median turn time over the run's samples that made a call, in milliseconds; null when none did.",
             "format": "double"
           },
           "p95Ms": {
@@ -4889,19 +4612,16 @@
               "null",
               "number"
             ],
-            "description": "The 95th percentile (nearest rank) of the same turn times, in milliseconds; null when none.",
             "format": "double"
           },
           "tags": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/TagPassRate"
-            },
-            "description": "One rate per tag whose every scenario the run ran, sorted by tag; a tag it ran only in part is left out. A scenario without checks adds nothing to its tags."
+            }
           }
         },
-        "additionalProperties": false,
-        "description": "The pass rate of one finished run, over all its checks and per scenario tag: a point of the agent's trend. A check counts once\nper scenario (passed or not by its threshold over the samples), the way the results page counts it, with the turn time of its samples."
+        "additionalProperties": false
       },
       "RunRequest": {
         "required": [
@@ -4910,40 +4630,34 @@
         "type": "object",
         "properties": {
           "agent": {
-            "type": "string",
-            "description": "The agent's name or id."
+            "type": "string"
           },
           "tags": {
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "description": "Only the scenarios with any of these tags; empty means every scenario of the agent."
+            }
           },
           "endpointUrl": {
             "type": [
               "null",
               "string"
-            ],
-            "description": "Where to reach the agent for this run, and to read its contract from; none means the endpoint the agent was registered with."
+            ]
           },
           "group": {
             "type": [
               "null",
               "string"
-            ],
-            "description": "The group the run belongs to (RunGroupRules); none means no group."
+            ]
           },
           "note": {
             "type": [
               "null",
               "string"
-            ],
-            "description": "Why the run is started (NoteRules); none means no note. It can be changed after the run."
+            ]
           },
           "gate": {
-            "type": "boolean",
-            "description": "A gate run (`suwageval gate`): every scenario with an `acGuardrail`, each until its first attempt in which every check\npasses, stopped at the first one whose attempts run out. Takes no IReadOnlyList&lt;string&gt; RunRequest.Tags and no string? RunRequest.Group."
+            "type": "boolean"
           },
           "origin": {
             "oneOf": [
@@ -4951,14 +4665,12 @@
                 "type": "null"
               },
               {
-                "description": "Where the agent's repository stood; none when the run does not come from a git repository (it is then compared with every run of the agent).",
                 "$ref": "#/components/schemas/RunOrigin"
               }
             ]
           }
         },
-        "additionalProperties": false,
-        "description": "Starts a run of an agent's scenarios."
+        "additionalProperties": false
       },
       "RunResults": {
         "required": [
@@ -4981,7 +4693,6 @@
               "null",
               "number"
             ],
-            "description": "The median turn time over all samples that made a call, in milliseconds; null when none did.",
             "format": "double"
           },
           "p95Ms": {
@@ -4989,7 +4700,6 @@
               "null",
               "number"
             ],
-            "description": "The 95th percentile (nearest rank) of the same turn times, in milliseconds; null when none did.",
             "format": "double"
           },
           "gate": {
@@ -4998,7 +4708,6 @@
                 "type": "null"
               },
               {
-                "description": "What a gate run came to; none for another run and for a gate run that is not done.",
                 "$ref": "#/components/schemas/GateResult"
               }
             ]
@@ -5009,14 +4718,12 @@
                 "type": "null"
               },
               {
-                "description": "The checks against their history; none until the run is done.",
                 "$ref": "#/components/schemas/RegressionSummary"
               }
             ]
           }
         },
-        "additionalProperties": false,
-        "description": "A run with what every scenario produced and how every check judged it."
+        "additionalProperties": false
       },
       "RunStatus": {
         "enum": [
@@ -5026,8 +4733,7 @@
           "Failed",
           "Cancelled",
           "Interrupted"
-        ],
-        "description": "Where a run stands. `Failed` is the run itself breaking down; a scenario the agent did not answer is a result,\nnot a failure. `Interrupted` is the server stopping while the run was going (a restart, a deploy): the samples stored so far are\nkept, nothing is wrong with the agent, and a new run (`run`, or \"Run again\" on its page) does it again."
+        ]
       },
       "RunSummary": {
         "required": [
@@ -5059,22 +4765,19 @@
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "description": "The tags the run was limited to (a scenario with any of them ran); empty when it ran every scenario."
+            }
           },
           "label": {
             "type": [
               "null",
               "string"
-            ],
-            "description": "The label the agent's contract carried when the run started: the name of the variant it ran. None when the contract had none."
+            ]
           },
           "dataVersion": {
             "type": [
               "null",
               "string"
-            ],
-            "description": "The version of the retrieval data the agent's contract declared when the run started (`context.retrieval.dataVersion`), and\nwhat the agent says that data is: what the run's answers were found in. None for an agent without retrieval. Not part of the\nagent's version: runs of one version on other data are runs of the same version."
+            ]
           },
           "dataDescription": {
             "type": [
@@ -5089,15 +4792,13 @@
             "type": [
               "null",
               "string"
-            ],
-            "description": "The group the run was started in (run --group); none for a run without one."
+            ]
           },
           "note": {
             "type": [
               "null",
               "string"
-            ],
-            "description": "Why the run was started, free text the user wrote (and may change at any time); none for a run without one. It changes no verdict."
+            ]
           },
           "status": {
             "$ref": "#/components/schemas/RunStatus"
@@ -5106,12 +4807,10 @@
             "type": [
               "null",
               "string"
-            ],
-            "description": "Why a RunStatus.Failed run failed."
+            ]
           },
           "samplesTotal": {
             "type": "integer",
-            "description": "How many samples the run will produce; zero until the run starts.",
             "format": "int32"
           },
           "samplesDone": {
@@ -5120,12 +4819,10 @@
           },
           "samplesFailed": {
             "type": "integer",
-            "description": "How many of the done samples have no agent answer (a timeout, an HTTP error, an unreadable answer).",
             "format": "int32"
           },
           "checksPassed": {
             "type": "integer",
-            "description": "Checks that reached their pass threshold over their samples so far, as the checks of the results do.",
             "format": "int32"
           },
           "checksFailed": {
@@ -5133,12 +4830,10 @@
             "format": "int32"
           },
           "contractChangedDuringRun": {
-            "type": "boolean",
-            "description": "`true` when the agent's contract, read again at the end of the run, differs from the version the run started with\n        (a redeploy mid-run): the results may not all be of that version."
+            "type": "boolean"
           },
           "cancelRequested": {
-            "type": "boolean",
-            "description": "`true` once a stop was asked for. A run still RunStatus.Running with this set is finishing the samples in\n        flight; it becomes RunStatus.Cancelled when they are done."
+            "type": "boolean"
           },
           "createdAt": {
             "type": "string",
@@ -5163,15 +4858,13 @@
               "null",
               "string"
             ],
-            "description": "The run whose stored answers this run evaluated again with the current checks, without calling the agent (a re-check); null for a\nrun that called the agent. Always a run that called the agent: a re-check of a re-check points at the original. The turn times\nof a re-check are the source's, copied, not measured again.",
             "format": "uuid"
           },
           "skippedScenarios": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/SkippedScenario"
-            },
-            "description": "The scenarios of the source a re-check left out, with the reason; empty for a run that called the agent."
+            }
           },
           "origin": {
             "oneOf": [
@@ -5179,32 +4872,27 @@
                 "type": "null"
               },
               {
-                "description": "Where the agent's repository stood when the run was started; a re-check has its source's.",
                 "$ref": "#/components/schemas/RunOrigin"
               }
             ]
           },
           "reference": {
-            "type": "boolean",
-            "description": "True when the run makes the history of its branch (a branch of the agent's regression settings, a clean tree, a pushed commit)."
+            "type": "boolean"
           },
           "comparedWith": {
             "type": [
               "null",
               "string"
-            ],
-            "description": "The branch whose history the run is compared with; none means every run of the agent (a run without git)."
+            ]
           },
           "judgeModels": {
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "description": "The distinct models that gave the run's verdicts, sorted by name; empty for a run with no model-judged check (or one made before the name was recorded)."
+            }
           }
         },
-        "additionalProperties": false,
-        "description": "A run and how far it is. A sample is one scenario run once; the checks are counted per sample."
+        "additionalProperties": false
       },
       "SampleResult": {
         "required": [
@@ -5215,7 +4903,6 @@
         "properties": {
           "sample": {
             "type": "integer",
-            "description": "From 1.",
             "format": "int32"
           },
           "status": {
@@ -5228,8 +4915,7 @@
             ],
             "items": {
               "$ref": "#/components/schemas/ConversationItem"
-            },
-            "description": "The items the agent produced. In a simulation, every turn in order, each turn but one the agent started opening with the simulated\nuser's `UserMessage` (the agent never produces one); a simulation that stopped keeps what happened before. None when a sample\nof one turn failed."
+            }
           },
           "error": {
             "type": [
@@ -5242,7 +4928,6 @@
               "null",
               "integer"
             ],
-            "description": "How long the call to the agent took, measured by Suwageval (wall-clock, whether it answered or not); null when no call was made.",
             "format": "int32"
           },
           "turnDurationsMs": {
@@ -5253,31 +4938,26 @@
             "items": {
               "type": "integer",
               "format": "int32"
-            },
-            "description": "In a simulation, how long the agent took for each turn, in order (their sum is `durationMs`; the simulated user's time\nis not in it); null for a scenario of one turn."
+            }
           },
           "endedByUser": {
-            "type": "boolean",
-            "description": "In a simulation, whether the simulated user ended the conversation before the scenario's last turn. Absent when false, so a\nclient older than simulations, which refuses unknown fields, still reads the results of every other sample."
+            "type": "boolean"
           },
           "undeclared": {
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "description": "Warnings: tool calls and events the agent produced that its version does not declare (`tool 'x'`, `event 'y'`).\nNot a failure by itself."
+            }
           }
         },
-        "additionalProperties": false,
-        "description": "What the agent produced for one sample of a scenario."
+        "additionalProperties": false
       },
       "SampleStatus": {
         "enum": [
           "Done",
           "Failed",
           "NotSimulated"
-        ],
-        "description": "Whether the agent produced an answer for one sample of a scenario."
+        ]
       },
       "ScenarioDraft": {
         "required": [
@@ -5291,8 +4971,7 @@
             "type": "string"
           },
           "path": {
-            "type": "string",
-            "description": "Where the file goes, relative to the repository's root: `suwageval/scenarios/&lt;key&gt;.yaml`."
+            "type": "string"
           },
           "yaml": {
             "type": "string"
@@ -5301,12 +4980,10 @@
             "type": [
               "null",
               "string"
-            ],
-            "description": "Said above the YAML when the simulated user was not described by a model, and why; null otherwise."
+            ]
           }
         },
-        "additionalProperties": false,
-        "description": "A scenario file drafted from a monitored conversation, for a person to review and put in the agent's repository: its proposed\nstring ScenarioDraft.Key, the file's string ScenarioDraft.Path in the repository and its string ScenarioDraft.Yaml (with the monitoring checks the conversation failed as comments)."
+        "additionalProperties": false
       },
       "ScenarioGuardrailResult": {
         "required": [
@@ -5315,15 +4992,13 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "string",
-            "description": "The criterion's id, `AC-&lt;feature&gt;-&lt;n&gt;`."
+            "type": "string"
           },
           "retryLimit": {
             "type": [
               "null",
               "integer"
             ],
-            "description": "In a gate run: the most attempts the scenario had (its own limit, else the agent's at the start of the run, else 5); none in another run.",
             "format": "int32"
           },
           "attempts": {
@@ -5331,19 +5006,16 @@
               "null",
               "integer"
             ],
-            "description": "In a gate run: the attempts made; none in another run.",
             "format": "int32"
           },
           "passed": {
             "type": [
               "null",
               "boolean"
-            ],
-            "description": "In a gate run: true when an attempt passed every check, false when the attempts ran out; none in another run, or while attempts go on."
+            ]
           }
         },
-        "additionalProperties": false,
-        "description": "The acceptance criterion a scenario guards (its `acGuardrail` in the revision that ran) and, in a gate run, how its attempts went."
+        "additionalProperties": false
       },
       "ScenarioInput": {
         "required": [
@@ -5353,15 +5025,13 @@
         "type": "object",
         "properties": {
           "key": {
-            "type": "string",
-            "description": "Lowercase kebab-case, unique within the agent."
+            "type": "string"
           },
           "tags": {
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "description": "Lowercase kebab-case; a run picks scenarios by tag."
+            }
           },
           "conversation": {
             "type": "array",
@@ -5375,7 +5045,6 @@
                 "type": "null"
               },
               {
-                "description": "Test data the agent is started with, sent verbatim with every turn. Free JSON, shaped by the agent's\n`context.fixturesSchema`; a scenario that has it needs an agent that declares the schema.",
                 "$ref": "#/components/schemas/JsonElement"
               }
             ]
@@ -5388,7 +5057,6 @@
               "null",
               "integer"
             ],
-            "description": "How many times the conversation is repeated, for agents that do not answer the same way twice (1 to 20); a check can set its own.\nNot set: the agent's `samples`, else 3.",
             "format": "int32"
           },
           "acGuardrail": {
@@ -5397,7 +5065,6 @@
                 "type": "null"
               },
               {
-                "description": "The acceptance criterion the scenario guards on the gate (`suwageval gate`); none for a scenario that guards none.",
                 "$ref": "#/components/schemas/AcGuardrail"
               }
             ]
@@ -5408,14 +5075,12 @@
                 "type": "null"
               },
               {
-                "description": "Where the scenario came from (a monitored conversation), when it was made from one; it changes nothing in a run.",
                 "$ref": "#/components/schemas/ScenarioOrigin"
               }
             ]
           }
         },
-        "additionalProperties": false,
-        "description": "A frozen moment of a conversation; the agent answers its last message."
+        "additionalProperties": false
       },
       "ScenarioOrigin": {
         "type": "object",
@@ -5428,8 +5093,7 @@
             "format": "uuid"
           }
         },
-        "additionalProperties": false,
-        "description": "Where a scenario came from, when it was made from something real: a monitored conversation (its id in Suwageval)."
+        "additionalProperties": false
       },
       "ScenarioRunResult": {
         "required": [
@@ -5450,17 +5114,14 @@
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "description": "The tags the scenario carries now (they belong to no revision); what the web filters a run's scenarios by."
+            }
           },
           "revision": {
             "type": "integer",
-            "description": "The revision of the scenario that ran.",
             "format": "int32"
           },
           "definitionYaml": {
-            "type": "string",
-            "description": "The scenario as a scenario file would hold it (docs/scenario-format.md), without its samples and checks, which the results show:\nthe content of int ScenarioRunResult.Revision, so the definition the run used. Its tags are the ones the scenario carries now: tags\nbelong to no revision. Comments of the pushed file are not kept."
+            "type": "string"
           },
           "acGuardrail": {
             "oneOf": [
@@ -5468,7 +5129,6 @@
                 "type": "null"
               },
               {
-                "description": "The acceptance criterion the scenario guards, with its attempts in a gate run (a sample is an attempt there); none when it guards none.",
                 "$ref": "#/components/schemas/ScenarioGuardrailResult"
               }
             ]
@@ -5486,12 +5146,10 @@
             }
           },
           "passedFully": {
-            "type": "boolean",
-            "description": "Nothing to look at: the scenario has checks, every one passed fully, and the agent answered every sample. What the run page's\n\"Hide passed checks\" and `results --failed-only` leave out; the server decides it, the web and the CLI only read it."
+            "type": "boolean"
           }
         },
-        "additionalProperties": false,
-        "description": "One scenario in a run: its samples and, per check, how many of them passed."
+        "additionalProperties": false
       },
       "ScenarioSummary": {
         "required": [
@@ -5520,8 +5178,7 @@
             "format": "date-time"
           }
         },
-        "additionalProperties": false,
-        "description": "A scenario as listed: its latest revision's number, without the conversation."
+        "additionalProperties": false
       },
       "SkippedScenario": {
         "required": [
@@ -5537,8 +5194,7 @@
             "type": "string"
           }
         },
-        "additionalProperties": false,
-        "description": "A scenario a re-check did not evaluate, and why: its stored answers answer a conversation that is not the current one."
+        "additionalProperties": false
       },
       "TagChangeRequest": {
         "required": [
@@ -5567,8 +5223,7 @@
             }
           }
         },
-        "additionalProperties": false,
-        "description": "Adds and removes tags on several scenarios at once; tags are metadata and make no new revision."
+        "additionalProperties": false
       },
       "TagPassRate": {
         "required": [
@@ -5599,8 +5254,7 @@
             "format": "double"
           }
         },
-        "additionalProperties": false,
-        "description": "The pass rate of a run over the checks of the scenarios that carry one tag, from 0 to 1, and the turn time of those scenarios'\nsamples (milliseconds; null when none of them made a call)."
+        "additionalProperties": false
       },
       "TagUsage": {
         "required": [
@@ -5617,8 +5271,7 @@
             "format": "int32"
           }
         },
-        "additionalProperties": false,
-        "description": "A tag in use and how many live scenarios carry it."
+        "additionalProperties": false
       },
       "TimeChange": {
         "required": [
@@ -5635,8 +5288,7 @@
             "$ref": "#/components/schemas/Trend"
           }
         },
-        "additionalProperties": false,
-        "description": "A turn time against the baseline's. For time lower is better, so Trend.Better is faster. A change under 5 % of the\nbaseline's time or under 100 ms counts as Trend.Same (a fast agent's noise)."
+        "additionalProperties": false
       },
       "ToolDefinition": {
         "required": [
@@ -5653,7 +5305,6 @@
             "type": "string"
           },
           "parameters": {
-            "description": "The arguments the tool takes, as a JSON Schema document.",
             "$ref": "#/components/schemas/JsonElement"
           }
         },
@@ -5664,8 +5315,7 @@
           "Same",
           "Better",
           "Worse"
-        ],
-        "description": "How something stands against the baseline's: better, worse, or the same."
+        ]
       },
       "TurnBatch": {
         "required": [
@@ -5677,12 +5327,10 @@
         "type": "object",
         "properties": {
           "agent": {
-            "type": "string",
-            "description": "The agent's name in Suwageval (`name` in its `agent.yaml`)."
+            "type": "string"
           },
           "environment": {
-            "type": "string",
-            "description": "The environment the agent runs in (`Suwageval:Environment`), one its `features.monitoring.environments` takes."
+            "type": "string"
           },
           "contractHash": {
             "type": "string"
@@ -5693,7 +5341,6 @@
                 "type": "null"
               },
               {
-                "description": "The whole contract, sent only when the server asked for it.",
                 "$ref": "#/components/schemas/AgentContract"
               }
             ]
@@ -5705,8 +5352,7 @@
             }
           }
         },
-        "additionalProperties": false,
-        "description": "What a monitored agent sends to `POST /api/monitoring/turns`: turns of its conversations, with the version that answered them\nnamed by its contract hash (string AgentContractHash.Of(AgentContract contract)). When the server does not know the hash it answers\nbool TurnBatchAnswer.SendContract and stores nothing; the same turns come again with AgentContract? TurnBatch.Contract, from which\nthe server registers the version, as a run does."
+        "additionalProperties": false
       },
       "TurnBatchAnswer": {
         "required": [
@@ -5716,20 +5362,15 @@
         "properties": {
           "stored": {
             "type": "integer",
-            "description": "How many of the turns were new (a turn sent before is not stored twice).",
             "format": "int32"
           },
           "sendContract": {
-            "type": "boolean",
-            "description": "The server does not know the contract hash: nothing was stored, send the same turns again with the contract."
+            "type": "boolean"
           }
         },
-        "additionalProperties": false,
-        "description": "The server's answer to a TurnBatch."
+        "additionalProperties": false
       },
-      "TurnSelector": {
-        "description": "Which turn a check looks at: a number (from 1), `\"last\"` or `\"any\"`. The default value is \"any\"."
-      },
+      "TurnSelector": { },
       "UnstableCheck": {
         "required": [
           "scenarioKey",
@@ -5760,27 +5401,22 @@
             "type": [
               "null",
               "string"
-            ],
-            "description": "The label the version's contract carries, if any."
+            ]
           },
           "runs": {
             "type": "integer",
-            "description": "The finished runs of the version that had a verdict of the check; at least 2.",
             "format": "int32"
           },
           "passedRuns": {
             "type": "integer",
-            "description": "How many of int UnstableCheck.Runs the check passed in; more than 0 and less than int UnstableCheck.Runs.",
             "format": "int32"
           },
           "newestFailedRunId": {
             "type": "string",
-            "description": "The newest of those runs in which the check failed.",
             "format": "uuid"
           }
         },
-        "additionalProperties": false,
-        "description": "A check that passed in some finished runs of one agent version and failed in others: the model does not answer the same way\ntwice, so a failure of this check in a run is noise as much as a regression. A check counts per run by its threshold over the\nsamples; an edited check (another revision) is another check."
+        "additionalProperties": false
       },
       "UpsertOutcome": {
         "enum": [
@@ -5788,8 +5424,7 @@
           "updated",
           "unchanged",
           "deleted"
-        ],
-        "description": "What a push did to one scenario or check, serialized by name: `created`, `updated`, `unchanged`; `deleted` for a\nscenario or check the files no longer have."
+        ]
       },
       "VariantCell": {
         "required": [
@@ -5815,15 +5450,13 @@
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "description": "The keys of the checks that missed their threshold."
+            }
           },
           "checks": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/VariantCheck"
-            },
-            "description": "Every check of the scenario in this run, in the order the run lists them."
+            }
           },
           "samples": {
             "type": "integer",
@@ -5831,19 +5464,16 @@
           },
           "samplesFailed": {
             "type": "integer",
-            "description": "The samples where the agent gave no answer.",
             "format": "int32"
           },
           "noAnswers": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/VariantNoAnswer"
-            },
-            "description": "The samples where the agent gave no answer, with their errors."
+            }
           }
         },
-        "additionalProperties": false,
-        "description": "One run's result for one scenario: its checks, each passed by the share of its samples against its pass threshold."
+        "additionalProperties": false
       },
       "VariantCheck": {
         "required": [
@@ -5861,12 +5491,10 @@
             "type": "string"
           },
           "passed": {
-            "type": "boolean",
-            "description": "True when double VariantCheck.PassRate reaches the check's pass threshold."
+            "type": "boolean"
           },
           "passRate": {
             "type": "number",
-            "description": "The share of samples that passed, from 0 to 1.",
             "format": "double"
           },
           "samples": {
@@ -5878,19 +5506,16 @@
             "format": "int32"
           },
           "judgedByModel": {
-            "type": "boolean",
-            "description": "A model gives the verdict (a judge check, or a `$judge` matcher): the check is not deterministic."
+            "type": "boolean"
           },
           "failures": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/VariantFailure"
-            },
-            "description": "The samples that did not pass, with the message the run page shows for them."
+            }
           }
         },
-        "additionalProperties": false,
-        "description": "One check of a scenario in one run, for the detail of a compare row: its verdict and why the samples that failed it did."
+        "additionalProperties": false
       },
       "VariantFailure": {
         "required": [
@@ -5901,15 +5526,13 @@
         "properties": {
           "sample": {
             "type": "integer",
-            "description": "From 1.",
             "format": "int32"
           },
           "message": {
             "type": "string"
           }
         },
-        "additionalProperties": false,
-        "description": "Why one sample did not pass a check: the check's message for it."
+        "additionalProperties": false
       },
       "VariantNoAnswer": {
         "required": [
@@ -5919,7 +5542,6 @@
         "properties": {
           "sample": {
             "type": "integer",
-            "description": "From 1.",
             "format": "int32"
           },
           "error": {
@@ -5929,8 +5551,7 @@
             ]
           }
         },
-        "additionalProperties": false,
-        "description": "A sample where the agent gave no answer, with the error the run page shows for it."
+        "additionalProperties": false
       },
       "VariantRun": {
         "required": [
@@ -5946,29 +5567,25 @@
             "type": [
               "null",
               "string"
-            ],
-            "description": "The label the run's version carries: the name of the variant."
+            ]
           },
           "modelNames": {
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "description": "The models the run's version uses."
+            }
           },
           "judgeModel": {
             "type": [
               "null",
               "string"
-            ],
-            "description": "The model that judged the run: the most common known model among its model-judged checks; absent when none was judged by a known model."
+            ]
           },
           "medianMs": {
             "type": [
               "null",
               "number"
             ],
-            "description": "The median turn time over the run's samples that made a call, in milliseconds; null when none did.",
             "format": "double"
           },
           "p95Ms": {
@@ -5979,8 +5596,7 @@
             "format": "double"
           }
         },
-        "additionalProperties": false,
-        "description": "A column of the compare view: the run, the variant it is of and its turn times."
+        "additionalProperties": false
       },
       "VariantScenario": {
         "required": [
@@ -6003,12 +5619,10 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/VariantCell"
-            },
-            "description": "One per run, in the order of IReadOnlyList&lt;VariantRun&gt; RunComparison.Runs; null for a run that did not run the scenario."
+            }
           }
         },
-        "additionalProperties": false,
-        "description": "A row of the compare view: one scenario and what each run made of it."
+        "additionalProperties": false
       },
       "VersionChange": {
         "required": [
@@ -6032,8 +5646,7 @@
             ]
           }
         },
-        "additionalProperties": false,
-        "description": "When a version first answered a monitored conversation in a period: a deploy."
+        "additionalProperties": false
       },
       "VersionDeletion": {
         "required": [
@@ -6072,8 +5685,7 @@
             "default": 0
           }
         },
-        "additionalProperties": false,
-        "description": "What deleting an archived version removes with it: the runs (re-checks of them included), their samples and the verdicts on those, and\nthe monitored conversations it answered a turn of (a conversation goes whole, not with a gap)."
+        "additionalProperties": false
       },
       "VersionDiff": {
         "required": [
@@ -6093,7 +5705,6 @@
           },
           "added": {
             "type": "integer",
-            "description": "How many lines AgentVersion VersionDiff.To adds and removes compared with AgentVersion VersionDiff.From.",
             "format": "int32"
           },
           "removed": {
@@ -6104,12 +5715,10 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/DiffBlock"
-            },
-            "description": "The hunks: every change with three unchanged lines around it, a longer unchanged run folded into one block; none for the same content."
+            }
           }
         },
-        "additionalProperties": false,
-        "description": "What changed between two versions of an agent: both contracts written as YAML and compared line by line. AgentVersion VersionDiff.From is the\nolder version (the base), AgentVersion VersionDiff.To the newer; versions created at the same time stay in the order asked for."
+        "additionalProperties": false
       },
       "VersionMonitoring": {
         "required": [
@@ -6135,8 +5744,7 @@
             "type": "boolean"
           }
         },
-        "additionalProperties": false,
-        "description": "A version in one monitored environment: the conversations whose last turn it answered in the last 30 days, when it last answered a turn,\nand whether it is the version answering there now (the one of the environment's newest turn)."
+        "additionalProperties": false
       }
     }
   },

@@ -2,11 +2,6 @@ using Suwageval.Contracts.Checks;
 
 namespace Suwageval.Contracts.Monitoring;
 
-/// <summary>
-/// What is wrong with the agent's monitoring checks (<c>suwageval/monitoring-checks.yaml</c>), written once for <c>validate</c>, <c>push</c>
-/// and the server: every rule of <see cref="CheckRules"/>, and those of a check that runs once on each conversation of the agent — a
-/// description, no scenario, no samples or pass threshold (a conversation is one sample), each key once. Paths are <c>checks[i]…</c>.
-/// </summary>
 public static class MonitoringCheckRules
 {
     public static IReadOnlyList<CheckProblem> Problems(IReadOnlyList<CheckInput> checks)

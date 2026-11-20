@@ -10,7 +10,7 @@ public sealed class ServerContractsTests
 {
     private const string Root = "Suwageval.Server";
 
-    private static readonly Architecture Server = new ArchLoader().LoadAssemblies(ArchitectureTests.Server).Build();
+    private static readonly Architecture Server = new ArchLoader().LoadAssemblies(GuardTests.Server).Build();
 
     public static TheoryData<string, string> Edges() => LayerOrders.Server.AreaEdges();
 

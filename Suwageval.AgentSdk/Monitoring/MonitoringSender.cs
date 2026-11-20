@@ -9,11 +9,6 @@ using Suwageval.AgentSdk.Invocation;
 
 namespace Suwageval.AgentSdk.Monitoring;
 
-/// <summary>
-/// Empties the queue of recorded turns into <c>POST /api/monitoring/turns</c>, a batch at a time, in the background. A batch that does
-/// not get through is tried again later (the queue keeps filling meanwhile, dropping its oldest turns when full); one the server refuses
-/// (a 4xx: the agent's setup is wrong, a retry would not help) is dropped with a warning in the log.
-/// </summary>
 internal sealed partial class MonitoringSender(
     Channel<MonitoredTurn> queue,
     IHttpClientFactory clients,
@@ -23,16 +18,13 @@ internal sealed partial class MonitoringSender(
     TimeProvider time
 ) : BackgroundService
 {
-    /// <summary>How many turns one request carries at most.</summary>
     public const int MaxBatch = 50;
 
-    /// <summary>How long the sender waits after the first turn for more to go in the same request.</summary>
     public static readonly TimeSpan Gather = TimeSpan.FromSeconds(2);
 
     private static readonly TimeSpan FirstRetry = TimeSpan.FromSeconds(1);
     private static readonly TimeSpan LastRetry = TimeSpan.FromMinutes(1);
 
-    /// <summary>How long the sender may take, when the agent stops, to send what is still queued.</summary>
     private static readonly TimeSpan Flush = TimeSpan.FromSeconds(5);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -97,7 +89,6 @@ internal sealed partial class MonitoringSender(
         }
     }
 
-    /// <summary>True when the batch is done with (stored, or refused for good); false when it is worth trying again.</summary>
     private async Task<bool> SendAsync(List<MonitoredTurn> batch, CancellationToken cancellationToken)
     {
         var contract = await contracts.GetContractAsync(cancellationToken);

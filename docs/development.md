@@ -29,13 +29,12 @@ just server          # API on :6230 (OpenAPI document at /openapi/v1.json)
 just web             # web app on :3230, proxies /api to the server
 just up              # the whole stack in containers on :8093 — no cluster needed
 just build-images    # only build suwageval-server:local and suwageval-web:local, for another repository's compose stack
-just check           # the quality gate (suwgate check), exactly what CI runs
+just check           # the quality gate (suwgate check, the browser tests too), exactly what CI runs
 just check-quick     # the gate while working: the guards, and build, csharpier, the guard tests, eslint, tsc, vitest for what changed; no database
 just cli validate DIR  # the suwageval CLI from source; `just cli-install` installs it globally
 just tmux-dev start  # tmux layout: server, web, the example agent suwexag (from source with `dotnet watch`, else its `suwexag:local` image), spare shell, CLI shell (SUWAGEVAL_AGENT_DIR sets the agent folder)
 just tmux-dev start --restart  # the same, after killing the old session and everything running in it
 just tmux-dev stop   # kill the session and everything running in it
-just e2e             # browser tests against a real server and database
 just live-check      # only the live tests, against the real model of .env
 just secrets backup  # copy the local .env files into Bitwarden (restore on a new machine)
 just agent-publish VERSION  # release Suwageval.AgentSdk to nuget.org through its workflow, no key, permanently: release.md
@@ -48,7 +47,7 @@ New human-facing commands go into the matching group of the `justfile`; a family
 
 ## Worktrees
 
-A linked git worktree gets its own test and e2e databases and its own e2e ports, derived from its directory name by `suwgate dev checkout-env`, which `just check` and `e2e.sh` apply; its databases are left behind, not dropped. A value already in the environment wins. The server's tests refuse to run in a worktree without its own `TEST_CONNECTION_STRING`, so a plain `suwgate check` there fails with the fix instead of using the main checkout's database.
+A linked git worktree gets its own test and e2e databases and its own e2e ports, derived from its directory name by `suwgate dev checkout-env`, which `suwgate check` applies to its .NET and browser tests; its databases are left behind, not dropped. A value already in the environment wins. The server's tests refuse to run in a worktree without its own `TEST_CONNECTION_STRING`, so a plain `dotnet test` there fails with the fix instead of using the main checkout's database.
 
 ## Claude Code hooks
 

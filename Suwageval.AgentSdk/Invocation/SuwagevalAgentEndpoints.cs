@@ -8,11 +8,6 @@ namespace Suwageval.AgentSdk.Invocation;
 
 public static class SuwagevalAgentEndpoints
 {
-    /// <summary>
-    /// Maps <c>GET /suwageval/contract</c> and <c>POST /suwageval/turn</c> over the <see cref="IAgentContractSource"/> and the
-    /// <see cref="ITurnHandler"/> registered in the services. Both read and write with <see cref="ContractJson.Options"/>, not
-    /// with the application's own JSON settings.
-    /// </summary>
     public static IEndpointRouteBuilder MapSuwagevalAgent(this IEndpointRouteBuilder endpoints)
     {
         ArgumentNullException.ThrowIfNull(endpoints);

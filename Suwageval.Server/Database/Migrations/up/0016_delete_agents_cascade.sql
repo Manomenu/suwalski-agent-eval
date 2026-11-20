@@ -1,6 +1,3 @@
--- An agent can be deleted (AgentStore.DeleteAgentAsync): everything that belongs to it goes with it. Next to the chain of 0015
--- (version -> runs -> samples -> verdicts) these are the agent's own rows: versions, scenarios and checks with their revisions;
--- the samples and verdicts also point at the revisions they were made with.
 ALTER TABLE agent_versions DROP CONSTRAINT agent_versions_agent_id_fkey;
 ALTER TABLE agent_versions ADD CONSTRAINT agent_versions_agent_id_fkey FOREIGN KEY (agent_id) REFERENCES agents (id) ON DELETE CASCADE;
 

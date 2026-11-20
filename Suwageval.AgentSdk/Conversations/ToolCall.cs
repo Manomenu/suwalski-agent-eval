@@ -8,12 +8,7 @@ public sealed record ToolCall : ConversationItem
 
     public required string Name { get; init; }
 
-    /// <summary>Free JSON: its shape is the agent's, declared by the tool's parameters in the agent's contract.</summary>
     public required JsonElement Arguments { get; init; }
 
-    /// <summary>
-    /// The name of the LLM agent (from the contract's agents) that made the call; left out when the system's own code made it (a
-    /// tool of the contract's <c>context.tools</c>).
-    /// </summary>
     public string? Agent { get; init; }
 }

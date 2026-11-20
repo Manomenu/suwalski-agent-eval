@@ -3,10 +3,6 @@ using System.Text.Json.Serialization;
 
 namespace Suwageval.Contracts.Checks;
 
-/// <summary>
-/// Reads a text check's <c>contains</c> or <c>notContains</c> as one text or a list of texts, and writes one text as a plain string,
-/// so a check written before lists existed keeps its stored form and its content hash.
-/// </summary>
 public sealed class TextsConverter : JsonConverter<IReadOnlyList<string>>
 {
     public override IReadOnlyList<string> Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)

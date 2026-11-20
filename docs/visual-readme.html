@@ -642,7 +642,7 @@ flowchart TB
     <tr><td>Container stack</td><td><code>just up</code> → :8093</td><td>the same images the cluster runs</td></tr>
     <tr><td>Cluster</td><td>Helm chart in <code>deploy/chart/</code>, with a post-deploy smoke test and a daily live check of the models</td><td>production</td></tr>
   </table>
-  <p>One gate (<code>just check</code>) runs the compiler with every analyzer, both formatters, the tests against a real PostgreSQL, the import contracts, dead-code detection and the chart; browser tests run apart (<code>just e2e</code>). Rules for changing the repository: <a href="https://github.com/Manomenu/suwalski-agent-eval/blob/master/AGENTS.md">AGENTS.md</a>.</p>
+  <p>One gate (<code>just check</code>) runs the compiler with every analyzer, both formatters, the tests against a real PostgreSQL, the import contracts, dead-code detection, the chart and the browser tests. Rules for changing the repository: <a href="https://github.com/Manomenu/suwalski-agent-eval/blob/master/AGENTS.md">AGENTS.md</a>.</p>
 </section>
 
 <section data-role="docs">

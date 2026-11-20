@@ -3,7 +3,6 @@ using System.Text.Json.Serialization;
 
 namespace Suwageval.Contracts.Checks;
 
-/// <summary>Writes a <see cref="TurnSelector"/> as a number or as "last" / "any".</summary>
 public sealed class TurnSelectorConverter : JsonConverter<TurnSelector>
 {
     public override TurnSelector Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)

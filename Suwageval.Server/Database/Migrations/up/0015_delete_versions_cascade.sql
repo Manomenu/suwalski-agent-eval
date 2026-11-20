@@ -1,6 +1,3 @@
--- A version can be deleted (only an archived one, see AgentStore.DeleteVersionAsync): everything that belongs to it goes with it.
--- The chain is version -> runs -> samples (scenario_results) -> verdicts (check_results); a re-check or a run that copies verdicts
--- points at its source run, so it is deleted with that run.
 ALTER TABLE runs DROP CONSTRAINT runs_agent_version_id_fkey;
 ALTER TABLE runs ADD CONSTRAINT runs_agent_version_id_fkey FOREIGN KEY (agent_version_id) REFERENCES agent_versions (id) ON DELETE CASCADE;
 
