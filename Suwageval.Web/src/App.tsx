@@ -11,6 +11,7 @@ import { ServerStatus } from "./health/ServerStatus";
 import { pageOf } from "./routes/pageOf";
 import { RunPage } from "./evaluation/runs/RunPage";
 import { AppNavbar } from "./shell/AppNavbar";
+import { ErrorBoundary } from "./shell/ErrorBoundary";
 import { contentMaxWidth, HEADER_HEIGHT, LOGO_SIZE, NAVBAR_WIDTH } from "./shell/layout";
 import { navigationOf } from "./shell/navigation";
 import { ReportAgentContext } from "./shell/reportAgent";
@@ -50,26 +51,28 @@ export function App() {
                 <AppNavbar {...navigationOf(page, agentOfPage)} />
             </AppShell.Navbar>
             <AppShell.Main>
-                <ReportAgentContext.Provider value={setAgentOfPage}>
+                <ReportAgentContext value={setAgentOfPage}>
                     <Box maw={contentMaxWidth(page.kind)} className="print-content">
-                        {page.kind === "agents" && <AgentsPage />}
-                        {page.kind === "agentEvaluation" && <EvaluationPage name={page.name} />}
-                        {page.kind === "agentMonitoring" && <MonitoringPage name={page.name} />}
-                        {page.kind === "agentVersions" && <VersionsPage name={page.name} />}
-                        {page.kind === "version" && <VersionPage name={page.name} versionId={page.versionId} />}
-                        {page.kind === "versionCompare" && (
-                            <Suspense fallback={null}>
-                                <VersionComparePage name={page.name} a={page.a} b={page.b} />
-                            </Suspense>
-                        )}
-                        {page.kind === "run" && <RunPage runId={page.runId} />}
-                        {page.kind === "conversation" && <ConversationPage conversationId={page.conversationId} />}
-                        {page.kind === "compare" && (
-                            <ComparePage runs={page.runs} group={page.group} agent={page.agent} baseline={page.baseline} />
-                        )}
-                        {page.kind === "unknown" && <Anchor href="/">Page not found — back to the list of agents</Anchor>}
+                        <ErrorBoundary>
+                            {page.kind === "agents" && <AgentsPage />}
+                            {page.kind === "agentEvaluation" && <EvaluationPage name={page.name} />}
+                            {page.kind === "agentMonitoring" && <MonitoringPage name={page.name} />}
+                            {page.kind === "agentVersions" && <VersionsPage name={page.name} />}
+                            {page.kind === "version" && <VersionPage name={page.name} versionId={page.versionId} />}
+                            {page.kind === "versionCompare" && (
+                                <Suspense fallback={null}>
+                                    <VersionComparePage name={page.name} a={page.a} b={page.b} />
+                                </Suspense>
+                            )}
+                            {page.kind === "run" && <RunPage runId={page.runId} />}
+                            {page.kind === "conversation" && <ConversationPage conversationId={page.conversationId} />}
+                            {page.kind === "compare" && (
+                                <ComparePage runs={page.runs} group={page.group} agent={page.agent} baseline={page.baseline} />
+                            )}
+                            {page.kind === "unknown" && <Anchor href="/">Page not found — back to the list of agents</Anchor>}
+                        </ErrorBoundary>
                     </Box>
-                </ReportAgentContext.Provider>
+                </ReportAgentContext>
             </AppShell.Main>
         </AppShell>
     );
