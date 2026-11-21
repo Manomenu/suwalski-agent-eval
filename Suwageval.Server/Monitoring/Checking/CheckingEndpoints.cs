@@ -14,7 +14,9 @@ internal static class CheckingEndpoints
 
     public static IEndpointRouteBuilder MapChecking(this IEndpointRouteBuilder app)
     {
-        app.MapGet("/agents/{agent}/trend", TrendAsync).Produces<MonitoringTrend>();
+        app.MapGet("/agents/{agent}/trend", TrendAsync)
+            .Produces<MonitoringTrend>()
+            .ProducesRefusal(StatusCodes.Status404NotFound, StatusCodes.Status422UnprocessableEntity);
         return app;
     }
 
@@ -32,12 +34,12 @@ internal static class CheckingEndpoints
         var span = days ?? DefaultDays;
         if (span is < 1 or > MaxDays)
         {
-            return ProblemResults.Invalid("days", $"days is from 1 to {MaxDays}.");
+            return ProblemResults.Invalid("days", $"days is not from 1 to {MaxDays}.", $"Ask for 1 to {MaxDays} days.");
         }
         var row = await agents.GetAsync(agent, cancellationToken);
         if (row is null)
         {
-            return ProblemResults.NotFound("Agent", agent);
+            return ProblemResults.AgentNotFound(agent);
         }
         var since = new DateTimeOffset(time.GetUtcNow().UtcDateTime.Date, TimeSpan.Zero).AddDays(1 - span);
         var found = await trend.TrendAsync(row.Id, since, string.IsNullOrEmpty(environment) ? null : environment, cancellationToken);

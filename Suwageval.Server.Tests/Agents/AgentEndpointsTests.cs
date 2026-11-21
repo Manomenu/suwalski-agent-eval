@@ -79,7 +79,7 @@ public sealed class AgentEndpointsTests(TestDatabase database, ClassServer class
         var response = await server.Post("/agents", new AgentDefinition { Name = name, EndpointUrl = url });
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
-        Assert.Equal([field], await TestServer.ErrorFields(response));
+        Assert.Equal([field], await TestServer.MistakesAt(response));
     }
 
     [Fact]
@@ -161,7 +161,7 @@ public sealed class AgentEndpointsTests(TestDatabase database, ClassServer class
         );
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
-        Assert.Equal(["samples"], await TestServer.ErrorFields(response));
+        Assert.Equal(["samples"], await TestServer.MistakesAt(response));
     }
 
     [Fact]
@@ -180,7 +180,7 @@ public sealed class AgentEndpointsTests(TestDatabase database, ClassServer class
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
         Assert.Equal(
             ["regression.branches[1]", "regression.branches[2]", "regression.history"],
-            (await TestServer.ErrorFields(response)).Order(StringComparer.Ordinal)
+            (await TestServer.MistakesAt(response)).Order(StringComparer.Ordinal)
         );
     }
 
@@ -234,7 +234,7 @@ public sealed class AgentEndpointsTests(TestDatabase database, ClassServer class
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
         Assert.Equal(
             ["features.monitoring.closeAfter", "features.monitoring.environments[0]", "features.monitoring.environments[2]"],
-            (await TestServer.ErrorFields(response)).Order(StringComparer.Ordinal)
+            (await TestServer.MistakesAt(response)).Order(StringComparer.Ordinal)
         );
     }
 

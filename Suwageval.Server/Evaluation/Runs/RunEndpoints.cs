@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Suwageval.AgentSdk.Agents;
+using Suwageval.Contracts.Refusals;
 using Suwageval.Contracts.Runs;
 using Suwageval.Contracts.Scenarios;
 using Suwageval.Server.Agents;
@@ -21,14 +22,24 @@ internal static class RunEndpoints
     public static IEndpointRouteBuilder MapRuns(this IEndpointRouteBuilder app)
     {
         ArgumentNullException.ThrowIfNull(app);
-        app.MapPost("/runs", CreateAsync).Produces<RunCreated>(StatusCodes.Status202Accepted);
-        app.MapGet("/runs", ListAsync).Produces<RunList>();
-        app.MapGet("/runs/{id:guid}", GetAsync).Produces<RunSummary>();
-        app.MapGet("/runs/{id:guid}/results", ResultsAsync).Produces<RunResults>();
-        app.MapGet("/runs/{id:guid}/recheck", RecheckPlanAsync).Produces<RecheckPlan>();
-        app.MapPost("/runs/{id:guid}/recheck", RecheckAsync).Produces<RunCreated>(StatusCodes.Status202Accepted);
-        app.MapPost("/runs/{id:guid}/cancel", CancelAsync).Produces(StatusCodes.Status202Accepted);
-        app.MapPut("/runs/{id:guid}/note", SetNoteAsync).Produces(StatusCodes.Status204NoContent);
+        app.MapPost("/runs", CreateAsync)
+            .Produces<RunCreated>(StatusCodes.Status202Accepted)
+            .ProducesRefusal(StatusCodes.Status404NotFound, StatusCodes.Status409Conflict, StatusCodes.Status422UnprocessableEntity);
+        app.MapGet("/runs", ListAsync)
+            .Produces<RunList>()
+            .ProducesRefusal(StatusCodes.Status404NotFound, StatusCodes.Status422UnprocessableEntity);
+        app.MapGet("/runs/{id:guid}", GetAsync).Produces<RunSummary>().ProducesRefusal(StatusCodes.Status404NotFound);
+        app.MapGet("/runs/{id:guid}/results", ResultsAsync).Produces<RunResults>().ProducesRefusal(StatusCodes.Status404NotFound);
+        app.MapGet("/runs/{id:guid}/recheck", RecheckPlanAsync).Produces<RecheckPlan>().ProducesRefusal(StatusCodes.Status404NotFound);
+        app.MapPost("/runs/{id:guid}/recheck", RecheckAsync)
+            .Produces<RunCreated>(StatusCodes.Status202Accepted)
+            .ProducesRefusal(StatusCodes.Status404NotFound, StatusCodes.Status409Conflict);
+        app.MapPost("/runs/{id:guid}/cancel", CancelAsync)
+            .Produces(StatusCodes.Status202Accepted)
+            .ProducesRefusal(StatusCodes.Status404NotFound);
+        app.MapPut("/runs/{id:guid}/note", SetNoteAsync)
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesRefusal(StatusCodes.Status404NotFound, StatusCodes.Status422UnprocessableEntity);
         return app;
     }
 
@@ -46,39 +57,44 @@ internal static class RunEndpoints
     {
         if (string.IsNullOrWhiteSpace(request.Agent))
         {
-            return ProblemResults.Invalid("agent", "The agent's name or id is required.");
+            return ProblemResults.Invalid("agent", "The agent's name or id is missing.", "Name the agent to run.");
         }
         if (request.EndpointUrl is { } url && !(Uri.TryCreate(url, UriKind.Absolute, out var parsed) && parsed.Scheme is "http" or "https"))
         {
-            return ProblemResults.Invalid("endpointUrl", "The endpoint is an absolute http or https URL.");
+            return ProblemResults.Invalid(
+                "endpointUrl",
+                "The endpoint is not an absolute http or https URL.",
+                "Give the agent's address with http:// or https://."
+            );
         }
 
         if (RunGroupRules.Problem(request.Group) is { } groupProblem)
         {
-            return ProblemResults.Invalid("group", groupProblem);
+            return ProblemResults.Invalid("group", groupProblem, RunGroupRules.Fix);
         }
 
         if (NoteRules.Problem(request.Note) is { } noteProblem)
         {
-            return ProblemResults.Invalid("note", noteProblem);
+            return ProblemResults.Invalid("note", noteProblem, NoteRules.Fix);
         }
 
         if (request.Gate && (request.Tags.Count > 0 || request.Group is not null))
         {
             return ProblemResults.Invalid(
                 request.Tags.Count > 0 ? "tags" : "group",
-                "A gate run takes every scenario with an acGuardrail: no tags and no group."
+                "A gate run takes every scenario with an acGuardrail: no tags and no group.",
+                "Start the gate run without tags and without a group."
             );
         }
 
         var agent = await agents.GetAsync(request.Agent, cancellationToken);
         if (agent is null)
         {
-            return ProblemResults.NotFound("Agent", request.Agent);
+            return ProblemResults.AgentNotFound(request.Agent);
         }
         if (!agent.Evaluation)
         {
-            return ProblemResults.FeatureOff(agent.Name, "evaluation");
+            return ProblemResults.EvaluationOff(agent.Name);
         }
 
         var picked = await scenarios.ListAsync(agent.Id, request.Tags, cancellationToken);
@@ -96,7 +112,8 @@ internal static class RunEndpoints
                 "tags",
                 request.Tags.Count == 0
                     ? "The agent has no scenarios."
-                    : $"No scenario has any of the tags {string.Join(", ", request.Tags.Select(tag => $"'{tag}'"))}."
+                    : $"No scenario has any of the tags {string.Join(", ", request.Tags.Select(tag => $"'{tag}'"))}.",
+                request.Tags.Count == 0 ? "Push the agent's scenarios first." : "Name a tag some scenario has, or none."
             );
         }
 
@@ -135,29 +152,24 @@ internal static class RunEndpoints
         );
         if (mismatches.Count > 0)
         {
-            return Results.Problem(
-                title: "The version does not fit the scenarios",
-                detail: string.Join("; ", mismatches),
-                statusCode: StatusCodes.Status409Conflict,
-                extensions: new Dictionary<string, object?> { ["mismatches"] = mismatches }
-            );
+            return ProblemResults.Unfit(RefusalCode.VersionUnfit, "The version does not fit the scenarios", mismatches);
         }
 
         if (!judge.IsConfigured && pickedChecks.Any(CheckEvaluator.JudgedByModel))
         {
-            return Results.Problem(
-                title: "No judge model is configured",
-                detail: "The scenarios have judge checks or $judge argument matching, but no model is configured for the judge (Models:fallback, or Models:judge of its own: BaseUrl and Model); nothing was queued.",
-                statusCode: StatusCodes.Status409Conflict
+            return ProblemResults.Conflict(
+                RefusalCode.JudgeNotConfigured,
+                "No judge model is configured",
+                "The scenarios have judge checks or $judge argument matching, but no model is configured for the judge (Models:fallback, or Models:judge of its own: BaseUrl and Model); nothing was queued."
             );
         }
 
         if (!simulator.IsConfigured && picked.Any(scenario => StoredContent.Scenario(scenario.Content).Simulated))
         {
-            return Results.Problem(
-                title: "No simulator model is configured",
-                detail: "The scenarios have a simulated user, but no model is configured for the simulated user (Models:fallback, or Models:simulator of its own: BaseUrl and Model); nothing was queued.",
-                statusCode: StatusCodes.Status409Conflict
+            return ProblemResults.Conflict(
+                RefusalCode.SimulatorNotConfigured,
+                "No simulator model is configured",
+                "The scenarios have a simulated user, but no model is configured for the simulated user (Models:fallback, or Models:simulator of its own: BaseUrl and Model); nothing was queued."
             );
         }
 
@@ -200,14 +212,22 @@ internal static class RunEndpoints
     {
         if (guardrails.Count == 0)
         {
-            return ProblemResults.Invalid("gate", "The agent has no scenario with an acGuardrail: there is nothing for the gate to run.");
+            return ProblemResults.Invalid(
+                "gate",
+                "The agent has no scenario with an acGuardrail: there is nothing for the gate to run.",
+                "Give a scenario an acGuardrail and push it, or start a run that is not a gate run."
+            );
         }
         var withChecks = (await checks.ListAsync(agentId, cancellationToken: cancellationToken))
             .Select(check => check.ScenarioKey)
             .ToHashSet();
         if (guardrails.FirstOrDefault(scenario => !withChecks.Contains(scenario.Key)) is { } withoutChecks)
         {
-            return ProblemResults.Invalid("gate", $"The scenario '{withoutChecks.Key}': {AcGuardrailRules.NoChecks}");
+            return ProblemResults.Invalid(
+                "gate",
+                $"The scenario '{withoutChecks.Key}': {AcGuardrailRules.NoChecks}",
+                ProblemResults.FixInAgentFiles
+            );
         }
         var duplicate = guardrails
             .GroupBy(
@@ -221,7 +241,8 @@ internal static class RunEndpoints
             ? null
             : ProblemResults.Invalid(
                 "gate",
-                $"The acceptance criterion '{duplicate.Key}' is guarded by several scenarios on the server ({string.Join(", ", duplicate.Select(scenario => $"'{scenario.Key}'"))}); one scenario guards one criterion."
+                $"The acceptance criterion '{duplicate.Key}' is guarded by several scenarios on the server ({string.Join(", ", duplicate.Select(scenario => $"'{scenario.Key}'"))}); one scenario guards one criterion.",
+                ProblemResults.FixInAgentFiles
             );
     }
 
@@ -236,9 +257,7 @@ internal static class RunEndpoints
     )
     {
         var planned = await PlanRecheckAsync(id, agents, scenarios, checks, runs, cancellationToken);
-        return planned is null
-            ? ProblemResults.NotFound("Run", id.ToString())
-            : Results.Ok(planned.Plan with { JudgeModel = judge.ModelName });
+        return planned is null ? ProblemResults.RunNotFound(id) : Results.Ok(planned.Plan with { JudgeModel = judge.ModelName });
     }
 
     private static async Task<IResult> RecheckAsync(
@@ -253,23 +272,22 @@ internal static class RunEndpoints
         var planned = await PlanRecheckAsync(id, agents, scenarios, checks, runs, cancellationToken);
         if (planned is null)
         {
-            return ProblemResults.NotFound("Run", id.ToString());
+            return ProblemResults.RunNotFound(id);
         }
         if (!planned.Plan.Possible)
         {
-            return Results.Problem(
-                title: "The run cannot be re-checked",
-                detail: string.Join("; ", [planned.Plan.Reason, .. planned.Plan.Mismatches]),
-                statusCode: StatusCodes.Status409Conflict,
-                extensions: planned.Plan.Mismatches.Count > 0
-                    ? new Dictionary<string, object?> { ["mismatches"] = planned.Plan.Mismatches }
-                    : null
-            );
+            return planned.Plan.Mismatches.Count > 0
+                ? ProblemResults.Unfit(RefusalCode.RecheckImpossible, "The run cannot be re-checked", planned.Plan.Mismatches)
+                : ProblemResults.Conflict(
+                    RefusalCode.RecheckImpossible,
+                    "The run cannot be re-checked",
+                    planned.Plan.Reason ?? "Nothing in this run can be re-checked: start a new run instead."
+                );
         }
         var source = planned.Original;
         if (await agents.GetAsync(source.AgentId.ToString(), cancellationToken) is { Evaluation: false } off)
         {
-            return ProblemResults.FeatureOff(off.Name, "evaluation");
+            return ProblemResults.EvaluationOff(off.Name);
         }
         var created = await runs.EnqueueAsync(
             source.AgentId,
@@ -347,16 +365,24 @@ internal static class RunEndpoints
     {
         if (!string.IsNullOrEmpty(group) && grouping is RunGrouping.None or RunGrouping.Any)
         {
-            return ProblemResults.Invalid("grouping", "Name a group or a grouping (none, any), not both.");
+            return ProblemResults.Invalid(
+                "grouping",
+                "A group and a grouping (none, any) are named together.",
+                "Name a group or a grouping, not both."
+            );
         }
         var size = pageSize ?? DefaultPageSize;
         if (size is < 1 or > MaxPageSize)
         {
-            return ProblemResults.Invalid("pageSize", $"The page size is between 1 and {MaxPageSize}.");
+            return ProblemResults.Invalid(
+                "pageSize",
+                $"The page size is not between 1 and {MaxPageSize}.",
+                $"Ask for 1 to {MaxPageSize} runs a page."
+            );
         }
         if (page is < 1)
         {
-            return ProblemResults.Invalid("page", "The page is 1 or more.");
+            return ProblemResults.Invalid("page", "The page is below 1.", "Ask for page 1 or later.");
         }
         Guid? agentId = null;
         if (agent is not null)
@@ -364,7 +390,7 @@ internal static class RunEndpoints
             var found = await agents.GetAsync(agent, cancellationToken);
             if (found is null)
             {
-                return ProblemResults.NotFound("Agent", agent);
+                return ProblemResults.AgentNotFound(agent);
             }
             agentId = found.Id;
         }
@@ -404,7 +430,7 @@ internal static class RunEndpoints
     private static async Task<IResult> GetAsync(Guid id, RunStore runs, CancellationToken cancellationToken)
     {
         var run = await runs.GetAsync(id, cancellationToken);
-        return run is null ? ProblemResults.NotFound("Run", id.ToString()) : Results.Ok(RunReport.Summary(run));
+        return run is null ? ProblemResults.RunNotFound(id) : Results.Ok(RunReport.Summary(run));
     }
 
     private static async Task<IResult> ResultsAsync(Guid id, RunStore runs, AgentStore agents, CancellationToken cancellationToken)
@@ -412,7 +438,7 @@ internal static class RunEndpoints
         var run = await runs.GetAsync(id, cancellationToken);
         if (run is null)
         {
-            return ProblemResults.NotFound("Run", id.ToString());
+            return ProblemResults.RunNotFound(id);
         }
         var samples = await runs.ListScenarioResultsAsync(id, cancellationToken);
         var verdicts = await runs.ListCheckResultsAsync(id, cancellationToken);
@@ -441,7 +467,7 @@ internal static class RunEndpoints
     {
         if (await runs.GetAsync(id, cancellationToken) is null)
         {
-            return ProblemResults.NotFound("Run", id.ToString());
+            return ProblemResults.RunNotFound(id);
         }
         await runs.RequestCancelAsync(id, cancellationToken);
         return Results.Accepted($"/eval/runs/{id}");
@@ -451,10 +477,10 @@ internal static class RunEndpoints
     {
         if (NoteRules.Problem(request.Note) is { } problem)
         {
-            return ProblemResults.Invalid("note", problem);
+            return ProblemResults.Invalid("note", problem, NoteRules.Fix);
         }
         return await runs.SetNoteAsync(id, NoteRules.Normalize(request.Note), cancellationToken)
             ? Results.NoContent()
-            : ProblemResults.NotFound("Run", id.ToString());
+            : ProblemResults.RunNotFound(id);
     }
 }

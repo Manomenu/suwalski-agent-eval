@@ -11,7 +11,9 @@ internal static class CompareEndpoints
     public static IEndpointRouteBuilder MapCompare(this IEndpointRouteBuilder app)
     {
         ArgumentNullException.ThrowIfNull(app);
-        app.MapGet("/runs/compare", CompareAsync).Produces<RunComparison>();
+        app.MapGet("/runs/compare", CompareAsync)
+            .Produces<RunComparison>()
+            .ProducesRefusal(StatusCodes.Status404NotFound, StatusCodes.Status422UnprocessableEntity);
         return app;
     }
 
@@ -31,6 +33,7 @@ internal static class CompareEndpoints
         {
             return ProblemResults.Invalid(
                 "runs",
+                ids.Count > 0 ? "Both the runs and a group are given." : "Neither the runs nor a group is given.",
                 "Give the runs to show (runs) or the group they are in (group), not both and not neither."
             );
         }
@@ -39,14 +42,18 @@ internal static class CompareEndpoints
         {
             if (ids.Count > RunComparisonReport.MaxRuns)
             {
-                return ProblemResults.Invalid("runs", $"Choose at most {RunComparisonReport.MaxRuns} runs.");
+                return ProblemResults.Invalid(
+                    "runs",
+                    $"More than {RunComparisonReport.MaxRuns} runs are chosen.",
+                    $"Choose at most {RunComparisonReport.MaxRuns} runs."
+                );
             }
             foreach (var id in ids)
             {
                 var row = await store.GetAsync(id, cancellationToken);
                 if (row is null)
                 {
-                    return ProblemResults.NotFound("Run", id.ToString());
+                    return ProblemResults.RunNotFound(id);
                 }
                 rows.Add(row);
             }
@@ -56,7 +63,7 @@ internal static class CompareEndpoints
         {
             if (RunGroupRules.Problem(group) is { } problem)
             {
-                return ProblemResults.Invalid("group", problem);
+                return ProblemResults.Invalid("group", problem, RunGroupRules.Fix);
             }
             Guid? agentId = null;
             if (!string.IsNullOrEmpty(agent))
@@ -64,7 +71,7 @@ internal static class CompareEndpoints
                 var found = await agents.GetAsync(agent, cancellationToken);
                 if (found is null)
                 {
-                    return ProblemResults.NotFound("Agent", agent);
+                    return ProblemResults.AgentNotFound(agent);
                 }
                 agentId = found.Id;
             }
@@ -78,8 +85,7 @@ internal static class CompareEndpoints
             );
             if (newestFirst.Count == 0)
             {
-                return ProblemResults.NotFound(
-                    "Run group",
+                return ProblemResults.RunGroupNotFound(
                     group
                         ?? throw new InvalidOperationException(
                             "Request validation allows exactly one of runs and group, and this branch has no runs."
@@ -90,7 +96,8 @@ internal static class CompareEndpoints
             {
                 return ProblemResults.Invalid(
                     "group",
-                    $"The group has more than {RunComparisonReport.MaxRuns} runs; name the runs to show."
+                    $"The group has more than {RunComparisonReport.MaxRuns} runs.",
+                    $"Name at most {RunComparisonReport.MaxRuns} of its runs to show (runs)."
                 );
             }
             rows = [.. newestFirst.Reverse()];
@@ -102,7 +109,8 @@ internal static class CompareEndpoints
                 group is null ? "runs" : "group",
                 group is null
                     ? "Runs of different agents cannot be compared."
-                    : $"The group has runs of several agents ({string.Join(", ", agentNames)}): add agent=<name>."
+                    : $"The group has runs of several agents ({string.Join(", ", agentNames)}).",
+                group is null ? "Choose runs of one agent." : "Add agent=<name> to compare the runs of one of them."
             );
         }
 
@@ -112,11 +120,19 @@ internal static class CompareEndpoints
             var index = rows.FindIndex(row => row.Id == baselineId);
             if (index < 0)
             {
-                return ProblemResults.Invalid("baseline", "The baseline must be one of the compared runs.");
+                return ProblemResults.Invalid(
+                    "baseline",
+                    "The baseline is not one of the compared runs.",
+                    "Choose one of the compared runs as the baseline."
+                );
             }
             if (rows.Count < 2)
             {
-                return ProblemResults.Invalid("baseline", "A baseline needs at least two runs to compare.");
+                return ProblemResults.Invalid(
+                    "baseline",
+                    "A baseline needs at least two runs to compare.",
+                    "Compare two runs or more, or leave the baseline out."
+                );
             }
             baselineColumn = index;
         }

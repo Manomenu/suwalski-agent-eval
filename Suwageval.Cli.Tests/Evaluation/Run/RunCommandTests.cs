@@ -789,7 +789,7 @@ public sealed class RunCommandTests
                 new HttpResponseMessage(HttpStatusCode.Conflict)
                 {
                     Content = new StringContent(
-                        """{"title":"x","mismatches":["check 'a': it names tool 'nope', which the version does not have"]}""",
+                        """{"title":"The version does not fit the scenarios","code":"version.unfit","mistakes":[{"code":"version.mismatch","message":"check 'a': it names tool 'nope', which the version does not have","fix":"Make the check fit."}]}""",
                         Encoding.UTF8,
                         "application/json"
                     ),
@@ -801,6 +801,7 @@ public sealed class RunCommandTests
         Assert.Empty(output);
         Assert.Contains("409", error, StringComparison.Ordinal);
         Assert.Contains("tool 'nope'", error, StringComparison.Ordinal);
+        Assert.Contains("Make the check fit.", error, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -2,6 +2,7 @@ import { Alert, Anchor, Badge, formatDateTime, Paper, Spinner, ToggleChip } from
 import { DataVersion } from "../../dataVersion/DataVersion";
 
 import { isNotFound } from "../../api/client";
+import { Failure } from "../../api/Failure";
 import { CancelButton } from "./CancelButton";
 import { HeaderHelp } from "../../help/HeaderHelp";
 import { ChecksCount, SamplesCount } from "./RunCounts";
@@ -50,7 +51,7 @@ export function RunPage({ runId }: { runId: string }) {
         return (
             <Alert variant="destructive">
                 <p className="font-semibold">{notFound ? "Run not found" : "Could not load the results"}</p>
-                <p>{notFound ? `There is no run ${runId}.` : state.error.message}</p>
+                {notFound ? <p>{`There is no run ${runId}.`}</p> : <Failure error={state.error} />}
             </Alert>
         );
     }

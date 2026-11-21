@@ -5,6 +5,7 @@ using Suwageval.AgentSdk.Conversations;
 using Suwageval.AgentSdk.Monitoring;
 using Suwageval.Contracts.Agents;
 using Suwageval.Contracts.Monitoring;
+using Suwageval.Contracts.Refusals;
 using Suwageval.Server.Agents;
 using Suwageval.Server.Problems;
 
@@ -20,11 +21,18 @@ internal static class ConversationEndpoints
 
     public const int MaxConversationIdLength = 200;
 
+    private const string SendAsMonitoringSays =
+        "Send the turns as docs/scenario-format.md (Monitoring) describes, or let the Suwageval SDK send them.";
+
     public static IEndpointRouteBuilder MapConversations(this IEndpointRouteBuilder app)
     {
-        app.MapPost("/turns", TakeTurnsAsync).Produces<TurnBatchAnswer>();
-        app.MapGet("/agents/{agent}/conversations", ListAsync).Produces<ConversationList>();
-        app.MapGet("/conversations/{id:guid}", GetAsync).Produces<ConversationDetail>();
+        app.MapPost("/turns", TakeTurnsAsync)
+            .Produces<TurnBatchAnswer>()
+            .ProducesRefusal(StatusCodes.Status404NotFound, StatusCodes.Status409Conflict, StatusCodes.Status422UnprocessableEntity);
+        app.MapGet("/agents/{agent}/conversations", ListAsync)
+            .Produces<ConversationList>()
+            .ProducesRefusal(StatusCodes.Status404NotFound, StatusCodes.Status422UnprocessableEntity);
+        app.MapGet("/conversations/{id:guid}", GetAsync).Produces<ConversationDetail>().ProducesRefusal(StatusCodes.Status404NotFound);
         return app;
     }
 
@@ -38,27 +46,28 @@ internal static class ConversationEndpoints
         var agent = await agents.GetAsync(batch.Agent, cancellationToken);
         if (agent is null)
         {
-            return ProblemResults.NotFound("Agent", batch.Agent);
+            return ProblemResults.AgentNotFound(batch.Agent);
         }
         if (agent.Features.Monitoring is not { } monitoring)
         {
-            return ProblemResults.FeatureOff(agent.Name, "monitoring");
+            return ProblemResults.MonitoringOff(agent.Name);
         }
         if (FeatureRules.EnvironmentProblem(batch.Environment) is { } environmentProblem)
         {
-            return ProblemResults.Invalid("environment", environmentProblem);
+            return ProblemResults.Invalid("environment", environmentProblem, FeatureRules.EnvironmentFix);
         }
         if (!FeatureRules.Accepts(monitoring, batch.Environment))
         {
             return ProblemResults.Conflict(
+                RefusalCode.EnvironmentNotTaken,
                 "Environment not taken",
-                $"Agent '{agent.Name}' takes conversations from {string.Join(", ", monitoring.Environments ?? [])} only, not from '{batch.Environment}' (features.monitoring.environments in its suwageval/agent.yaml)."
+                $"Agent '{agent.Name}' takes conversations from {string.Join(", ", monitoring.Environments ?? [])} only, not from '{batch.Environment}': add it to features.monitoring.environments in its suwageval/agent.yaml and push."
             );
         }
         var errors = TurnProblems(batch.Turns);
         if (errors.Count > 0)
         {
-            return ProblemResults.Invalid(errors);
+            return ProblemResults.Invalid(errors, SendAsMonitoringSays);
         }
 
         var version = await agents.FindVersionAsync(agent.Id, batch.ContractHash, cancellationToken);
@@ -71,13 +80,17 @@ internal static class ConversationEndpoints
             var contractProblems = AgentContractRules.Problems(contract);
             if (contractProblems.Count > 0)
             {
-                return ProblemResults.Invalid(contractProblems.Select(problem => new FieldError("contract", problem)));
+                return ProblemResults.Invalid(
+                    contractProblems.Select(problem => new FieldError("contract", problem)),
+                    "Correct the agent's contract, then send its turns again."
+                );
             }
             if (AgentContractHash.Of(contract) is var hash && hash != batch.ContractHash)
             {
                 return ProblemResults.Invalid(
                     "contractHash",
-                    $"The contract sent hashes to {hash}, not to the contractHash given (docs/scenario-format.md, Monitoring)."
+                    $"The contract sent hashes to {hash}, not to the contractHash given.",
+                    SendAsMonitoringSays
                 );
             }
             version = (
@@ -130,16 +143,20 @@ internal static class ConversationEndpoints
         var size = pageSize ?? DefaultPageSize;
         if (size is < 1 or > MaxPageSize)
         {
-            return ProblemResults.Invalid("pageSize", $"The page size is between 1 and {MaxPageSize}.");
+            return ProblemResults.Invalid(
+                "pageSize",
+                $"The page size is not between 1 and {MaxPageSize}.",
+                $"Ask for 1 to {MaxPageSize} conversations a page."
+            );
         }
         if (page is < 1)
         {
-            return ProblemResults.Invalid("page", "The page is 1 or more.");
+            return ProblemResults.Invalid("page", "The page is below 1.", "Ask for page 1 or later.");
         }
         var found = await agents.GetAsync(agent, cancellationToken);
         if (found is null)
         {
-            return ProblemResults.NotFound("Agent", agent);
+            return ProblemResults.AgentNotFound(agent);
         }
         var filter = (
             Environment: string.IsNullOrEmpty(environment) ? null : environment,
@@ -175,7 +192,7 @@ internal static class ConversationEndpoints
         var row = await conversations.GetAsync(id, cancellationToken);
         if (row is null)
         {
-            return ProblemResults.NotFound("Conversation", id.ToString());
+            return ProblemResults.ConversationNotFound(id);
         }
         var turns = await conversations.TurnsAsync(id, cancellationToken);
         var results = await conversations.ResultsAsync(id, cancellationToken);

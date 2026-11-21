@@ -8,14 +8,11 @@ namespace Suwageval.Cli.Tests.Server;
 
 public sealed class ServerClientTests
 {
-    private sealed class Answer(string body, string? serverVersion) : HttpMessageHandler
+    private sealed class Answer(string body, string? serverVersion, HttpStatusCode status = HttpStatusCode.Accepted) : HttpMessageHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            var response = new HttpResponseMessage(HttpStatusCode.Accepted)
-            {
-                Content = new StringContent(body, Encoding.UTF8, "application/json"),
-            };
+            var response = new HttpResponseMessage(status) { Content = new StringContent(body, Encoding.UTF8, "application/json") };
             if (serverVersion is not null)
             {
                 response.Headers.Add(ServerVersion.Header, serverVersion);
@@ -24,9 +21,9 @@ public sealed class ServerClientTests
         }
     }
 
-    private static async Task<RunCreated> Create(string body, string? serverVersion)
+    private static async Task<RunCreated> Create(string body, string? serverVersion, HttpStatusCode status = HttpStatusCode.Accepted)
     {
-        using var handler = new Answer(body, serverVersion);
+        using var handler = new Answer(body, serverVersion, status);
         using var http = new HttpClient(handler, disposeHandler: false) { BaseAddress = new Uri("http://api.test/") };
         return await new ServerClient(http).CreateAsync(new RunRequest { Agent = "shop" }, TestContext.Current.CancellationToken);
     }
@@ -50,5 +47,49 @@ public sealed class ServerClientTests
         Assert.Contains("9.9.9+abc", failure.Message, StringComparison.Ordinal);
         Assert.Contains(ServerAnswers.CliVersion, failure.Message, StringComparison.Ordinal);
         Assert.Contains("just cli-install", failure.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_refusal_prints_where_each_mistake_is_what_is_wrong_and_its_fix()
+    {
+        var failure = await Assert.ThrowsAsync<ServerClientException>(() =>
+            Create(
+                """{"title":"The request is not valid","detail":"2 mistakes in `mistakes`: fix each as its `fix` says, then try again.","code":"request.invalid","mistakes":[{"code":"field.invalid","message":"The page is below 1.","fix":"Ask for page 1 or later.","at":"page"},{"code":"field.invalid","message":"No fix here."},{"code":"version.mismatch","message":"check 'a' names tool 'x'.","fix":"Make the check fit."}]}""",
+                null,
+                HttpStatusCode.UnprocessableEntity
+            )
+        );
+
+        Assert.Equal(
+            "The server answered 422 UnprocessableEntity: The request is not valid:\n  - page: The page is below 1. Ask for page 1 or later."
+                + "\n  - check 'a' names tool 'x'. Make the check fit.",
+            failure.Message
+        );
+        Assert.Null(failure.Feature);
+    }
+
+    [Fact]
+    public async Task A_refusal_without_mistakes_prints_its_detail_and_names_the_feature_that_is_off()
+    {
+        var failure = await Assert.ThrowsAsync<ServerClientException>(() =>
+            Create("""{"title":"Feature off","detail":"Monitoring is off.","code":"monitoring.off"}""", null, HttpStatusCode.Conflict)
+        );
+
+        Assert.Equal("The server answered 409 Conflict: Monitoring is off.", failure.Message);
+        Assert.Equal("monitoring", failure.Feature);
+    }
+
+    [Theory]
+    [InlineData(
+        """{"title":"Newer","detail":"A code this CLI does not know.","code":"something.new"}""",
+        ": A code this CLI does not know."
+    )]
+    [InlineData("<html>busy</html>", "")]
+    public async Task An_unknown_code_or_an_answer_that_is_no_refusal_prints_what_it_can(string body, string printed)
+    {
+        var failure = await Assert.ThrowsAsync<ServerClientException>(() => Create(body, null, HttpStatusCode.ServiceUnavailable));
+
+        Assert.Equal($"The server answered 503 ServiceUnavailable{printed}", failure.Message);
+        Assert.Null(failure.Feature);
     }
 }

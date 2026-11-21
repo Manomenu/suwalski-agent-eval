@@ -1,5 +1,6 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
+import { messageOf } from "../../api/client";
 import { runListQuery, type RunSummary } from "../runs/api";
 import { groupQuery, type GroupFilter } from "./groupFilter";
 
@@ -35,6 +36,6 @@ export function useRuns(
         totalCount: query.data?.totalCount ?? 0,
         page: query.data?.page ?? requestedPage,
         loading: query.isFetching,
-        error: query.isError ? query.error.message : null,
+        error: query.isError ? messageOf(query.error) : null,
     };
 }

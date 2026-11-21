@@ -1,5 +1,7 @@
 import { useState } from "react";
 
+import { messageOf } from "../api/client";
+
 export function useArchiveList(archive: (keys: string[], archived: boolean) => Promise<void>, onChanged: () => void) {
     const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
     const [busy, setBusy] = useState(false);
@@ -27,7 +29,7 @@ export function useArchiveList(archive: (keys: string[], archived: boolean) => P
             clear();
             onChanged();
         } catch (e: unknown) {
-            setError(e instanceof Error ? e.message : String(e));
+            setError(messageOf(e));
         } finally {
             setBusy(false);
         }

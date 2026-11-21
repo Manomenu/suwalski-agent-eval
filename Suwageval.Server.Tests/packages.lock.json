@@ -19,6 +19,15 @@
         "resolved": "10.11.0",
         "contentHash": "DTivKZ2Du0dJideTTa6vPj/eXKNRu+RxtjBX7NOOUXHBtHx1ehbE+lM+j3/5M3wU6BqzcZqEEyR4+FnPKs2rTA=="
       },
+      "Suwbackkit.Testing": {
+        "type": "Direct",
+        "requested": "[0.4.0, )",
+        "resolved": "0.4.0",
+        "contentHash": "2/iU8k9nuNj+8EbhTatDUPlb/kzjedN6o23ulGPfRZ0oJrvTL7DNT0DYmZMHcrGC0XmGgDe4WClNlY2Yx+zcqg==",
+        "dependencies": {
+          "Npgsql": "10.0.3"
+        }
+      },
       "Suwgate.Architecture": {
         "type": "Direct",
         "requested": "[0.4.0, )",

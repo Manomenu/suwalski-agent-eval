@@ -158,7 +158,7 @@ public sealed class ConversationEndpointsTests(TestDatabase database, ClassServe
         var response = await server.Post("/monitoring/turns", Batch(name, Contract(), withContract: true, Turn("c", "Hi", Noon)));
 
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
-        Assert.Equal("monitoring", (await TestServer.Read<JsonElement>(response)).GetProperty("feature").GetString());
+        Assert.Equal("monitoring.off", await TestServer.CodeOf(response));
     }
 
     [Fact]
@@ -182,12 +182,10 @@ public sealed class ConversationEndpointsTests(TestDatabase database, ClassServe
         );
 
         Assert.Equal(HttpStatusCode.Conflict, staging.StatusCode);
-        Assert.Contains(
-            "features.monitoring.environments",
-            (await TestServer.Read<JsonElement>(staging)).GetProperty("detail").GetString(),
-            StringComparison.Ordinal
-        );
-        Assert.Equal(["environment"], await TestServer.ErrorFields(malformed));
+        var notTaken = await TestServer.Read<JsonElement>(staging);
+        Assert.Equal("environment.notTaken", notTaken.GetProperty("code").GetString());
+        Assert.Contains("features.monitoring.environments", notTaken.GetProperty("detail").GetString(), StringComparison.Ordinal);
+        Assert.Equal(["environment"], await TestServer.MistakesAt(malformed));
     }
 
     [Fact]
@@ -207,8 +205,8 @@ public sealed class ConversationEndpointsTests(TestDatabase database, ClassServe
             Batch(name, Contract(), withContract: true, Turn("c", "Hi", Noon) with { Items = [] })
         );
 
-        Assert.Equal(["contractHash"], await TestServer.ErrorFields(mismatch));
-        Assert.Equal(["turns[0].items"], await TestServer.ErrorFields(empty));
+        Assert.Equal(["contractHash"], await TestServer.MistakesAt(mismatch));
+        Assert.Equal(["turns[0].items"], await TestServer.MistakesAt(empty));
     }
 
     [Fact]

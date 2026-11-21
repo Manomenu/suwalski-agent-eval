@@ -2,6 +2,7 @@ import { Anchor, Label, SegmentedControl, Select, Spinner, Table } from "@manium
 import { useQuery } from "@tanstack/react-query";
 import { lazy, Suspense, useId, useState } from "react";
 
+import { Failure } from "../../api/Failure";
 import { percentText, seriesColor } from "../../charts/chartStyle";
 
 const MAIN_STROKE_WIDTH = 4;
@@ -78,7 +79,7 @@ export function ChecksSection({
             <h3 className="text-[22px] font-bold">
                 <HeaderHelp label="Monitoring checks" help={MONITORING_CHECKS_HELP} />
             </h3>
-            {checks.isError && <p className="text-destructive">{checks.error.message}</p>}
+            {checks.isError && <Failure className="text-destructive" error={checks.error} />}
             {checks.data?.length === 0 && (
                 <p className="text-muted-foreground">No monitoring checks: write them in suwageval/monitoring-checks.yaml and push.</p>
             )}
@@ -127,7 +128,7 @@ export function ChecksSection({
                     }}
                 />
             </div>
-            {trend.isError && <p className="text-destructive">{trend.error.message}</p>}
+            {trend.isError && <Failure className="text-destructive" error={trend.error} />}
             {trend.data !== undefined && (
                 <Suspense fallback={<Spinner label="Loading the charts" />}>
                     <TrendCharts trend={trend.data} />

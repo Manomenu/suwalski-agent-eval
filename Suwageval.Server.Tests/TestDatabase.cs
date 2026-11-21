@@ -1,5 +1,6 @@
 using Npgsql;
 using Suwbackkit.Postgres;
+using Suwbackkit.Testing;
 
 [assembly: AssemblyFixture(typeof(Suwageval.Server.Tests.TestDatabase))]
 
@@ -10,9 +11,8 @@ public sealed class TestDatabase : IAsyncLifetime
     private const string MainCheckoutConnectionString =
         "Host=127.0.0.1;Port=5463;Database=suwageval_test;Username=suwageval;Password=suwageval";
 
-    private static readonly string? FromEnvironment = Environment.GetEnvironmentVariable("TEST_CONNECTION_STRING");
-
-    public static readonly string ConnectionString = FromEnvironment ?? MainCheckoutConnectionString;
+    public static readonly string ConnectionString =
+        Environment.GetEnvironmentVariable("TEST_CONNECTION_STRING") ?? MainCheckoutConnectionString;
 
     private string? unavailable;
     private NpgsqlDataSource? dataSource;
@@ -31,10 +31,10 @@ public sealed class TestDatabase : IAsyncLifetime
 
     public async ValueTask InitializeAsync()
     {
-        RefuseMainCheckoutDatabaseInLinkedWorktree(FromEnvironment, AppContext.BaseDirectory);
+        LinkedWorktree.RefuseSharedDatabase();
         try
         {
-            await RecreateAsync(ConnectionString);
+            await TestDatabases.RecreateAsync(ConnectionString);
         }
         catch (Exception error) when (error is NpgsqlException or TimeoutException && Environment.GetEnvironmentVariable("CI") is null)
         {
@@ -43,70 +43,6 @@ public sealed class TestDatabase : IAsyncLifetime
         }
         dataSource = NpgsqlDataSource.Create(new NpgsqlConnectionStringBuilder(ConnectionString) { MaxPoolSize = 4 }.ConnectionString);
         await Migrator.MigrateAsync(ConnectionString, Migrator.DefaultDirectory);
-    }
-
-    internal static void RefuseMainCheckoutDatabaseInLinkedWorktree(string? fromEnvironment, string testDirectory)
-    {
-        if (fromEnvironment is not null || !IsInLinkedWorktree(testDirectory))
-        {
-            return;
-        }
-        throw new InvalidOperationException(
-            "TEST_CONNECTION_STRING is not set, and this is a linked git worktree, so the tests would use the main checkout's "
-                + "database suwageval_test: run them after eval \"$(Suwageval.Web/node_modules/.bin/suwgate dev checkout-env)\", "
-                + "or run just check"
-        );
-    }
-
-    private static bool IsInLinkedWorktree(string directory)
-    {
-        for (var current = new DirectoryInfo(directory); current is not null; current = current.Parent)
-        {
-            var git = Path.Combine(current.FullName, ".git");
-            if (Directory.Exists(git))
-            {
-                return false;
-            }
-            if (File.Exists(git))
-            {
-                return File.ReadAllText(git).Replace('\\', '/').Contains("/worktrees/", StringComparison.Ordinal);
-            }
-        }
-        return false;
-    }
-
-    public static async Task RecreateAsync(string connectionString)
-    {
-        await DropAsync(connectionString);
-        await using var connection = await OpenAdminAsync(connectionString);
-        await using var create = new NpgsqlCommand(
-            $"CREATE DATABASE \"{new NpgsqlConnectionStringBuilder(connectionString).Database}\"",
-            connection
-        );
-        await create.ExecuteNonQueryAsync();
-    }
-
-    public static async Task DropAsync(string connectionString)
-    {
-        await using var connection = await OpenAdminAsync(connectionString);
-        await using var drop = new NpgsqlCommand(
-            $"DROP DATABASE IF EXISTS \"{new NpgsqlConnectionStringBuilder(connectionString).Database}\" WITH (FORCE)",
-            connection
-        );
-        await drop.ExecuteNonQueryAsync();
-    }
-
-    private static async Task<NpgsqlConnection> OpenAdminAsync(string connectionString)
-    {
-        var admin = new NpgsqlConnectionStringBuilder(connectionString)
-        {
-            Database = "postgres",
-            Timeout = 3,
-            Pooling = false,
-        };
-        var connection = new NpgsqlConnection(admin.ConnectionString);
-        await connection.OpenAsync();
-        return connection;
     }
 
     public async ValueTask DisposeAsync()

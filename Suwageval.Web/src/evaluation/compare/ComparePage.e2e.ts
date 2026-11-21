@@ -186,3 +186,14 @@ test("a prompt's diff reads from the baseline's version, whichever column the ba
         agentServer.close();
     }
 });
+
+test("a comparison the server refuses shows its title and each mistake with where it is and its fix", async ({ page }) => {
+    const { plainBefore, plainAfter, groupedBefore } = seed;
+    await page.goto(`/compare?runs=${plainBefore},${plainAfter}&baseline=${groupedBefore}`);
+
+    const refusal = page.getByRole("alert").filter({ hasText: "Cannot compare" });
+    await expect(refusal.getByText("The request is not valid", { exact: true })).toBeVisible();
+    await expect(refusal.getByRole("listitem")).toHaveText([
+        "baseline: The baseline is not one of the compared runs. Choose one of the compared runs as the baseline.",
+    ]);
+});

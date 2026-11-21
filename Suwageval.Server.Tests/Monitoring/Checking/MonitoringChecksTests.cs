@@ -16,6 +16,7 @@ using Suwageval.Server.Agents;
 using Suwageval.Server.Monitoring.Checking;
 using Suwageval.Server.Monitoring.Conversations;
 using Suwageval.Server.Tests.Agents;
+using Suwageval.Server.Tests.Api;
 
 namespace Suwageval.Server.Tests.Monitoring.Checking;
 
@@ -211,11 +212,7 @@ public sealed class MonitoringChecksTests(TestDatabase database, ClassServer ser
         var refused = await PutChecks(client, off, NoRefund);
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, invalid.StatusCode);
-        var fields = (await invalid.Content.ReadFromJsonAsync<JsonElement>(Cancellation))
-            .GetProperty("errors")
-            .EnumerateObject()
-            .Select(field => field.Name)
-            .Order(StringComparer.Ordinal);
+        var fields = (await TestServer.MistakesAt(invalid)).Order(StringComparer.Ordinal);
         Assert.Equal(["checks[1].samples", "checks[1].scenarioKey", "checks[2].key", "checks[2].passThreshold"], fields);
         Assert.Equal(HttpStatusCode.Conflict, refused.StatusCode);
     }

@@ -56,6 +56,8 @@ public static partial class FeatureRules
         return problems;
     }
 
+    public const string EnvironmentFix = "Name the environment in lowercase letters, digits and hyphens, like production or demo-eu.";
+
     public static string? EnvironmentProblem(string? environment) =>
         environment is not null && environment.Length <= MaxEnvironmentLength && EnvironmentName().IsMatch(environment)
             ? null

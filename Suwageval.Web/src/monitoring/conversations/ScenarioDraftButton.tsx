@@ -2,6 +2,7 @@ import { Alert, Button, CopyButton, Dialog, Input, Label, Select, Spinner, Toggl
 import { useQuery } from "@tanstack/react-query";
 import { useId, useState } from "react";
 
+import { Failure } from "../../api/Failure";
 import { scenarioDraftQuery } from "./api";
 import type { ConversationItem } from "../../conversation/items";
 import {
@@ -169,7 +170,7 @@ function Draft({
 }) {
     const draft = useQuery(scenarioDraftQuery(conversationId, cut, ordinal, turns, run));
     if (draft.isPending) return <Spinner label="Loading the draft" />;
-    if (draft.isError) return <p className="text-destructive">{draft.error.message}</p>;
+    if (draft.isError) return <Failure className="text-destructive" error={draft.error} />;
     const { path, yaml, notice } = draft.data;
     return (
         <div className="flex flex-col gap-3">

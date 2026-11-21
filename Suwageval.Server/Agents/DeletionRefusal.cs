@@ -1,3 +1,5 @@
+using Suwageval.Contracts.Refusals;
+
 namespace Suwageval.Server.Agents;
 
-internal sealed record DeletionRefusal(string Title, string Detail);
+internal sealed record DeletionRefusal(RefusalCode Code, string Title, string Detail);

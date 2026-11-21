@@ -252,10 +252,9 @@ To do in that change:
 ## The rest of the move to the shared kits
 
 - **A gap of suwgate:** no lookup of one criterion (`just criteria <id>` is gone).
-- **Suwbackkit.Testing and the shared refusal format (Suwbackkit 0.3.0, 0.4.0).** `TestDatabase` may call
-  `LinkedWorktree.RefuseSharedDatabase()` and `TestDatabases.RecreateAsync`/`DropAsync` instead of its own refusal and
-  database helpers (and drop `TestDatabaseTests`, whose cases the kit tests); `Problems/ProblemResults.cs` may answer with
-  `Refusals.Refuse`/`ProducesRefusal`, which the web reads with the kit's `refusalReader` and `MistakeList`. Both change
-  behaviour or the contract, so they wait for a change of their own.
+- **A mistake code per rule, when a client branches on one.** A 422 refusal's mistakes all have the code `field.invalid`
+  today: the rules that find them live in `Suwageval.Contracts`, shared with `suwageval validate`, and say only a path and a
+  message. When the web or the CLI needs to tell one kind from another (to mark a field, to offer a fix), the rules get codes of
+  their own and `MistakeCode` grows with them.
 - **Offer this repository's own guards to suwgate**, which does not have them yet: the Helm chart step, web modules differing only in letter case (`WebModuleNamesTests`), the server image copying every project it builds from (`ServerImageTests`), prose files of
   `criteria.json` holding no test (`CriteriaExamplesTests`).

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Suwageval.AgentSdk;
 using Suwageval.Contracts.Agents;
+using Suwageval.Contracts.Refusals;
 using Suwageval.Server.Problems;
 
 namespace Suwageval.Server.Agents;
@@ -9,11 +10,15 @@ internal static class AgentEndpoints
 {
     public static void MapAgents(this IEndpointRouteBuilder app)
     {
-        app.MapPost("/agents", CreateAsync);
+        app.MapPost("/agents", CreateAsync).ProducesRefusal(StatusCodes.Status422UnprocessableEntity);
         app.MapGet("/agents", ListAsync).Produces<IReadOnlyList<Agent>>();
-        app.MapGet("/agents/{agent}", GetAsync).Produces<AgentDetail>();
-        app.MapGet("/agents/{agent}/deletion", PreviewAgentDeletionAsync).Produces<AgentDeletion>();
-        app.MapDelete("/agents/{agent}", DeleteAgentAsync).Produces(StatusCodes.Status204NoContent);
+        app.MapGet("/agents/{agent}", GetAsync).Produces<AgentDetail>().ProducesRefusal(StatusCodes.Status404NotFound);
+        app.MapGet("/agents/{agent}/deletion", PreviewAgentDeletionAsync)
+            .Produces<AgentDeletion>()
+            .ProducesRefusal(StatusCodes.Status404NotFound, StatusCodes.Status409Conflict);
+        app.MapDelete("/agents/{agent}", DeleteAgentAsync)
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesRefusal(StatusCodes.Status404NotFound, StatusCodes.Status409Conflict);
     }
 
     private static async Task<IResult> CreateAsync(AgentDefinition definition, AgentStore store, CancellationToken cancellationToken)
@@ -30,7 +35,7 @@ internal static class AgentEndpoints
         errors.AddRange(AgentRules.Problems(definition).Select(problem => new FieldError(problem.Path, problem.Message)));
         if (errors.Count > 0)
         {
-            return ProblemResults.Invalid(errors);
+            return ProblemResults.Invalid(errors, ProblemResults.FixInAgentFiles);
         }
 
         var creation = await store.CreateAsync(definition.Name, definition.EndpointUrl, cancellationToken);
@@ -77,7 +82,7 @@ internal static class AgentEndpoints
         var row = await store.GetAsync(agent, cancellationToken);
         if (row is null)
         {
-            return ProblemResults.NotFound("Agent", agent);
+            return ProblemResults.AgentNotFound(agent);
         }
         var counts = await store.CountAsync(row.Id, cancellationToken);
         return Results.Ok(
@@ -114,14 +119,17 @@ internal static class AgentEndpoints
         var row = await store.GetAsync(agent, cancellationToken);
         if (row is null)
         {
-            return ProblemResults.NotFound("Agent", agent);
+            return ProblemResults.AgentNotFound(agent);
         }
         var result = await store.DeleteAgentAsync(row.Id, dryRun, cancellationToken);
         return result.ToHttp(
-            "Agent",
-            agent,
+            ProblemResults.AgentNotFound(agent),
             null,
-            new DeletionRefusal("Agent has active runs", "A run of this agent is queued or running: cancel it or wait until it ends.")
+            new DeletionRefusal(
+                RefusalCode.RunsActive,
+                "Agent has active runs",
+                "A run of this agent is queued or running: cancel it or wait until it ends."
+            )
         );
     }
 

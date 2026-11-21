@@ -11,13 +11,19 @@ internal static class ScenarioEndpoints
 {
     public static void MapScenarios(this IEndpointRouteBuilder app)
     {
-        app.MapPut("/agents/{agent}/scenarios", PutAsync);
-        app.MapGet("/agents/{agent}/scenarios", ListAsync).Produces<IReadOnlyList<ScenarioSummary>>();
-        app.MapGet("/agents/{agent}/scenarios/{key}", GetAsync);
-        app.MapGet("/agents/{agent}/scenarios/{key}/revisions", ListRevisionsAsync);
-        app.MapDelete("/agents/{agent}/scenarios/{key}", DeleteAsync);
-        app.MapPost("/agents/{agent}/scenarios/tags", ChangeTagsAsync);
-        app.MapGet("/agents/{agent}/tags", ListTagsAsync).Produces<IReadOnlyList<TagUsage>>();
+        app.MapPut("/agents/{agent}/scenarios", PutAsync)
+            .ProducesRefusal(StatusCodes.Status404NotFound, StatusCodes.Status409Conflict, StatusCodes.Status422UnprocessableEntity);
+        app.MapGet("/agents/{agent}/scenarios", ListAsync)
+            .Produces<IReadOnlyList<ScenarioSummary>>()
+            .ProducesRefusal(StatusCodes.Status404NotFound);
+        app.MapGet("/agents/{agent}/scenarios/{key}", GetAsync).ProducesRefusal(StatusCodes.Status404NotFound);
+        app.MapGet("/agents/{agent}/scenarios/{key}/revisions", ListRevisionsAsync).ProducesRefusal(StatusCodes.Status404NotFound);
+        app.MapDelete("/agents/{agent}/scenarios/{key}", DeleteAsync).ProducesRefusal(StatusCodes.Status404NotFound);
+        app.MapPost("/agents/{agent}/scenarios/tags", ChangeTagsAsync)
+            .ProducesRefusal(StatusCodes.Status404NotFound, StatusCodes.Status422UnprocessableEntity);
+        app.MapGet("/agents/{agent}/tags", ListTagsAsync)
+            .Produces<IReadOnlyList<TagUsage>>()
+            .ProducesRefusal(StatusCodes.Status404NotFound);
     }
 
     private static async Task<IResult> PutAsync(
@@ -31,16 +37,16 @@ internal static class ScenarioEndpoints
         var row = await agents.GetAsync(agent, cancellationToken);
         if (row is null)
         {
-            return ProblemResults.NotFound("Agent", agent);
+            return ProblemResults.AgentNotFound(agent);
         }
         if (!row.Evaluation)
         {
-            return ProblemResults.FeatureOff(row.Name, "evaluation");
+            return ProblemResults.EvaluationOff(row.Name);
         }
         var errors = ScenarioValidation.Validate(request.Scenarios);
         if (errors.Count > 0)
         {
-            return ProblemResults.Invalid(errors);
+            return ProblemResults.Invalid(errors, ProblemResults.FixInAgentFiles);
         }
 
         var items = request
@@ -67,7 +73,7 @@ internal static class ScenarioEndpoints
         var row = await agents.GetAsync(agent, cancellationToken);
         if (row is null)
         {
-            return ProblemResults.NotFound("Agent", agent);
+            return ProblemResults.AgentNotFound(agent);
         }
         var scenarios = await store.ListAsync(row.Id, tag is null ? null : [tag], cancellationToken);
         return Results.Ok(
@@ -86,12 +92,12 @@ internal static class ScenarioEndpoints
         var row = await agents.GetAsync(agent, cancellationToken);
         if (row is null)
         {
-            return ProblemResults.NotFound("Agent", agent);
+            return ProblemResults.AgentNotFound(agent);
         }
         var scenario = await store.GetAsync(row.Id, key, cancellationToken);
         if (scenario is null)
         {
-            return ProblemResults.NotFound("Scenario", key);
+            return ProblemResults.ScenarioNotFound(key);
         }
         return Results.Ok(new ScenarioDetail(scenario.Revision, scenario.CreatedAt, Read(scenario.Content) with { Tags = scenario.Tags }));
     }
@@ -107,12 +113,12 @@ internal static class ScenarioEndpoints
         var row = await agents.GetAsync(agent, cancellationToken);
         if (row is null)
         {
-            return ProblemResults.NotFound("Agent", agent);
+            return ProblemResults.AgentNotFound(agent);
         }
         var revisions = await store.ListRevisionsAsync(row.Id, key, cancellationToken);
         if (revisions.Count == 0)
         {
-            return ProblemResults.NotFound("Scenario", key);
+            return ProblemResults.ScenarioNotFound(key);
         }
         return Results.Ok(
             revisions.Select(revision => new ScenarioRevision(
@@ -135,9 +141,9 @@ internal static class ScenarioEndpoints
         var row = await agents.GetAsync(agent, cancellationToken);
         if (row is null)
         {
-            return ProblemResults.NotFound("Agent", agent);
+            return ProblemResults.AgentNotFound(agent);
         }
-        return await store.DeleteAsync(row.Id, key, cancellationToken) ? Results.NoContent() : ProblemResults.NotFound("Scenario", key);
+        return await store.DeleteAsync(row.Id, key, cancellationToken) ? Results.NoContent() : ProblemResults.ScenarioNotFound(key);
     }
 
     private static async Task<IResult> ChangeTagsAsync(
@@ -151,18 +157,21 @@ internal static class ScenarioEndpoints
         var row = await agents.GetAsync(agent, cancellationToken);
         if (row is null)
         {
-            return ProblemResults.NotFound("Agent", agent);
+            return ProblemResults.AgentNotFound(agent);
         }
         var errors = ScenarioValidation.Validate(request);
         if (errors.Count > 0)
         {
-            return ProblemResults.Invalid(errors);
+            return ProblemResults.Invalid(errors, "Write each scenario key and tag in lowercase kebab-case.");
         }
         var live = (await store.ListAsync(row.Id, cancellationToken: cancellationToken)).Select(scenario => scenario.Key).ToHashSet();
         var unknown = request.ScenarioKeys.Distinct().Where(key => !live.Contains(key)).ToList();
         if (unknown.Count > 0)
         {
-            return ProblemResults.Invalid(unknown.Select(key => new FieldError("scenarioKeys", $"There is no scenario '{key}'.")));
+            return ProblemResults.Invalid(
+                unknown.Select(key => new FieldError("scenarioKeys", $"There is no scenario '{key}'.")),
+                "Name only scenarios the agent has."
+            );
         }
 
         var changed = await store.ChangeTagsAsync(row.Id, request.ScenarioKeys, request.Add, request.Remove, cancellationToken);
@@ -179,7 +188,7 @@ internal static class ScenarioEndpoints
         var row = await agents.GetAsync(agent, cancellationToken);
         if (row is null)
         {
-            return ProblemResults.NotFound("Agent", agent);
+            return ProblemResults.AgentNotFound(agent);
         }
         return Results.Ok((await store.ListTagsAsync(row.Id, cancellationToken)).Select(tag => new TagUsage(tag.Tag, tag.ScenarioCount)));
     }

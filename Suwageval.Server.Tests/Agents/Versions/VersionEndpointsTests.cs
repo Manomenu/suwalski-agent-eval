@@ -164,8 +164,8 @@ public sealed class VersionEndpointsTests(TestDatabase database, ClassServer cla
         var noAgent = await server.Get($"/agents/{Guid.NewGuid()}/versions/diff?from={version.Id}&to={foreign.Id}");
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, itself.StatusCode);
-        Assert.Equal(["to"], await TestServer.ErrorFields(missing));
-        Assert.Equal(["to"], await TestServer.ErrorFields(ofAnother));
+        Assert.Equal(["to"], await TestServer.MistakesAt(missing));
+        Assert.Equal(["to"], await TestServer.MistakesAt(ofAnother));
         Assert.Equal(HttpStatusCode.NotFound, noVersion.StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, noAgent.StatusCode);
     }

@@ -15,7 +15,9 @@ internal static class ScenarioDraftEndpoints
 {
     public static IEndpointRouteBuilder MapScenarioDrafts(this IEndpointRouteBuilder app)
     {
-        app.MapGet("/conversations/{id:guid}/scenario", DraftAsync).Produces<ScenarioDraft>();
+        app.MapGet("/conversations/{id:guid}/scenario", DraftAsync)
+            .Produces<ScenarioDraft>()
+            .ProducesRefusal(StatusCodes.Status404NotFound, StatusCodes.Status422UnprocessableEntity);
         return app;
     }
 
@@ -34,12 +36,13 @@ internal static class ScenarioDraftEndpoints
         var conversation = await conversations.GetAsync(id, cancellationToken);
         if (conversation is null)
         {
-            return ProblemResults.NotFound("Conversation", id.ToString());
+            return ProblemResults.ConversationNotFound(id);
         }
         if (upToUserMessage is not null && upToAgentMessage is not null)
         {
             return ProblemResults.Invalid(
                 "upToAgentMessage",
+                "Both a user message and an agent message are named to copy up to.",
                 "Name one message to copy up to: a user message or an agent message, not both."
             );
         }
@@ -58,27 +61,44 @@ internal static class ScenarioDraftEndpoints
         {
             return ProblemResults.Invalid(
                 cut.UserMessage ? "upToUserMessage" : "upToAgentMessage",
-                $"The conversation has no {cut.Describe()}."
+                $"The conversation has no {cut.Describe()}.",
+                "Name a message the conversation has."
             );
         }
         if (simulate is not true && turns is not null)
         {
-            return ProblemResults.Invalid("turns", "Turns are the simulated rest's: set simulate too.");
+            return ProblemResults.Invalid(
+                "turns",
+                "Turns are given without simulate.",
+                "Set simulate too: turns are the simulated rest's."
+            );
         }
         if (turns is < 1 or > ContinuationRules.MaxTurns)
         {
-            return ProblemResults.Invalid("turns", $"Turns are from 1 to {ContinuationRules.MaxTurns}.");
+            return ProblemResults.Invalid(
+                "turns",
+                $"Turns are not from 1 to {ContinuationRules.MaxTurns}.",
+                $"Ask for 1 to {ContinuationRules.MaxTurns} turns."
+            );
         }
         (UserDescription User, int Turns)? simulation = null;
         if (simulate is true)
         {
             if (cut is null || end is not { } at)
             {
-                return ProblemResults.Invalid("simulate", "Name the message to copy up to: the rest after it is simulated.");
+                return ProblemResults.Invalid(
+                    "simulate",
+                    "Simulate is set without a message to copy up to.",
+                    "Name the message to copy up to: the rest after it is simulated."
+                );
             }
             if (DraftTurns.After(items, at) == 0)
             {
-                return ProblemResults.Invalid("simulate", $"Nothing came after {cut.Describe()} to simulate.");
+                return ProblemResults.Invalid(
+                    "simulate",
+                    $"Nothing came after {cut.Describe()} to simulate.",
+                    "Copy up to an earlier message, or leave simulate out."
+                );
             }
             simulation = (await describer.DescribeAsync(items, cancellationToken), turns ?? DraftTurns.After(items, at));
         }

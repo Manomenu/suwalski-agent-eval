@@ -9,6 +9,8 @@ namespace Suwageval.Server.Tests.Api;
 
 internal sealed class TestServer(TestDatabase database, ClassServer classServer)
 {
+    private static readonly string[] FieldMistakeMembers = ["code", "message", "fix", "at"];
+
     private readonly WebApplicationFactory<Program> app = classServer.App;
 
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
@@ -42,11 +44,34 @@ internal sealed class TestServer(TestDatabase database, ClassServer classServer)
         await response.Content.ReadFromJsonAsync<T>(ContractJson.Options, Cancellation)
         ?? throw new InvalidOperationException("Empty body.");
 
-    public static async Task<IReadOnlyList<string>> ErrorFields(HttpResponseMessage response)
+    public static async Task<IReadOnlyList<string>> MistakesAt(HttpResponseMessage response)
     {
-        var problem = await Read<JsonElement>(response);
-        return [.. problem.GetProperty("errors").EnumerateObject().Select(field => field.Name)];
+        var refusal = await Read<JsonElement>(response);
+        Assert.Equal("request.invalid", refusal.GetProperty("code").GetString());
+        var mistakes = refusal.GetProperty("mistakes").EnumerateArray().ToList();
+        Assert.All(
+            mistakes,
+            mistake =>
+                Assert.All(
+                    FieldMistakeMembers,
+                    member => Assert.False(string.IsNullOrWhiteSpace(mistake.GetProperty(member).GetString()), member)
+                )
+        );
+        return [.. mistakes.Select(mistake => mistake.GetProperty("at").GetString() ?? "").Distinct()];
     }
+
+    public static async Task<IReadOnlyList<string>> Mismatches(HttpResponseMessage response, string code)
+    {
+        var refusal = await Read<JsonElement>(response);
+        Assert.Equal(code, refusal.GetProperty("code").GetString());
+        var mistakes = refusal.GetProperty("mistakes").EnumerateArray().ToList();
+        Assert.All(mistakes, mistake => Assert.Equal("version.mismatch", mistake.GetProperty("code").GetString()));
+        Assert.All(mistakes, mistake => Assert.False(string.IsNullOrWhiteSpace(mistake.GetProperty("fix").GetString())));
+        return [.. mistakes.Select(mistake => mistake.GetProperty("message").GetString() ?? "")];
+    }
+
+    public static async Task<string?> CodeOf(HttpResponseMessage response) =>
+        (await Read<JsonElement>(response)).TryGetProperty("code", out var code) ? code.GetString() : null;
 
     public async Task<string> NewAgent()
     {

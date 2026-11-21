@@ -2,6 +2,7 @@ import { Alert, Anchor, Badge, cn, formatPercent, Paper, SegmentedControl, Spinn
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
+import { Failure } from "../../api/Failure";
 import { ModelJudgedIcon } from "../../verdict/ModelJudgedIcon";
 import { HeaderHelp } from "../../help/HeaderHelp";
 import { NoteBox } from "../../note/NoteBox";
@@ -67,7 +68,7 @@ const PRINT_WIDTHS = {
 export function ComparePage({ runs, group, agent, baseline }: { runs: string; group: string; agent: string; baseline: string }) {
     const selection = selectionOf(runs, group, agent);
     return selection.kind === "error" ? (
-        <Problem message={selection.message} />
+        <Problem error={selection.message} />
     ) : (
         <Comparison selection={selection} baseline={baselineOf(baseline)} />
     );
@@ -84,7 +85,7 @@ function Comparison({ selection, baseline }: { selection: ValidSelection; baseli
     const query = useQuery(comparisonQuery(selection, baselineId));
 
     if (query.isPending) return <Spinner label="Loading the comparison" />;
-    if (query.isError) return <Problem message={query.error.message} />;
+    if (query.isError) return <Problem error={query.error} />;
     return <Loaded selection={selection} comparison={query.data} onBaseline={chooseBaseline} />;
 }
 
@@ -103,7 +104,7 @@ function Loaded({
     const base = useQuery(comparedVersionsQuery(agent, versionIds));
 
     if (base.isPending) return <Spinner label="Loading the comparison" />;
-    if (base.isError) return <Problem message={base.error.message} />;
+    if (base.isError) return <Problem error={base.error} />;
     const details = base.data;
     const differences =
         comparison.runs.length > 1
@@ -452,12 +453,12 @@ function SectionRow({ columns, title, help }: { columns: number; title: string; 
     );
 }
 
-function Problem({ message }: { message: string }) {
+function Problem({ error }: { error: unknown }) {
     return (
         <div className="flex flex-col gap-3">
             <Alert variant="destructive">
                 <p className="font-semibold">Cannot compare</p>
-                <p>{message}</p>
+                <Failure error={error} />
             </Alert>
             <Anchor href="/">Back to the list of agents</Anchor>
         </div>

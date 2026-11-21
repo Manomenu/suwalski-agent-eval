@@ -2,6 +2,7 @@ import { Alert, ConfirmDialog, Input, Label, Spinner } from "@maniumek/suwfrontk
 import { useQuery } from "@tanstack/react-query";
 import { useId, useState } from "react";
 
+import { Failure } from "../api/Failure";
 import { confirmsDeletion } from "./deletion";
 
 export function DeleteDialog<Preview>({
@@ -32,7 +33,7 @@ export function DeleteDialog<Preview>({
     onDeleted: () => void;
 }) {
     const [typed, setTyped] = useState("");
-    const [error, setError] = useState<string | null>(null);
+    const [failed, setFailed] = useState<{ error: unknown } | null>(null);
     const preview = useQuery({
         queryKey: previewKey ?? ["deletion", noun, expected],
         queryFn: ({ signal }) => loadPreview(signal),
@@ -41,11 +42,11 @@ export function DeleteDialog<Preview>({
     const inputId = useId();
 
     const confirm = async () => {
-        setError(null);
+        setFailed(null);
         try {
             await remove();
         } catch (failure: unknown) {
-            setError(failure instanceof Error ? failure.message : `The ${noun} could not be deleted.`);
+            setFailed({ error: failure });
             throw failure;
         }
         onDeleted();
@@ -74,7 +75,7 @@ export function DeleteDialog<Preview>({
             {preview.isError && (
                 <Alert variant="destructive">
                     <p className="font-semibold">{`The ${noun} cannot be deleted`}</p>
-                    <p>{preview.error.message}</p>
+                    <Failure error={preview.error} />
                 </Alert>
             )}
             <div className="flex flex-col gap-1">
@@ -88,10 +89,10 @@ export function DeleteDialog<Preview>({
                     }}
                 />
             </div>
-            {error !== null && (
+            {failed !== null && (
                 <Alert variant="destructive">
                     <p className="font-semibold">{`The ${noun} could not be deleted`}</p>
-                    <p>{error}</p>
+                    <Failure error={failed.error} />
                 </Alert>
             )}
         </ConfirmDialog>
