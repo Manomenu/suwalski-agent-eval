@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Suwageval.AgentSdk.Agents;
 using Suwageval.Contracts.Agents;
+using Suwageval.Contracts.Refusals;
 using Suwageval.Server.Problems;
 
 namespace Suwageval.Server.Agents.Versions;
@@ -10,12 +11,24 @@ internal static class VersionEndpoints
     public static IEndpointRouteBuilder MapVersions(this IEndpointRouteBuilder app)
     {
         ArgumentNullException.ThrowIfNull(app);
-        app.MapGet("/agents/{agent}/versions", ListVersionsAsync).Produces<IReadOnlyList<AgentVersion>>();
-        app.MapPost("/agents/{agent}/versions/archive", ArchiveVersionsAsync).Produces(StatusCodes.Status204NoContent);
-        app.MapGet("/agents/{agent}/versions/diff", DiffVersionsAsync).Produces<VersionDiff>();
-        app.MapGet("/agents/{agent}/versions/{versionId:guid}", GetVersionAsync).Produces<AgentVersionDetail>();
-        app.MapGet("/agents/{agent}/versions/{versionId:guid}/deletion", PreviewDeletionAsync).Produces<VersionDeletion>();
-        app.MapDelete("/agents/{agent}/versions/{versionId:guid}", DeleteVersionAsync).Produces(StatusCodes.Status204NoContent);
+        app.MapGet("/agents/{agent}/versions", ListVersionsAsync)
+            .Produces<IReadOnlyList<AgentVersion>>()
+            .ProducesRefusal(StatusCodes.Status404NotFound);
+        app.MapPost("/agents/{agent}/versions/archive", ArchiveVersionsAsync)
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesRefusal(StatusCodes.Status404NotFound);
+        app.MapGet("/agents/{agent}/versions/diff", DiffVersionsAsync)
+            .Produces<VersionDiff>()
+            .ProducesRefusal(StatusCodes.Status404NotFound, StatusCodes.Status422UnprocessableEntity);
+        app.MapGet("/agents/{agent}/versions/{versionId:guid}", GetVersionAsync)
+            .Produces<AgentVersionDetail>()
+            .ProducesRefusal(StatusCodes.Status404NotFound);
+        app.MapGet("/agents/{agent}/versions/{versionId:guid}/deletion", PreviewDeletionAsync)
+            .Produces<VersionDeletion>()
+            .ProducesRefusal(StatusCodes.Status404NotFound, StatusCodes.Status409Conflict);
+        app.MapDelete("/agents/{agent}/versions/{versionId:guid}", DeleteVersionAsync)
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesRefusal(StatusCodes.Status404NotFound, StatusCodes.Status409Conflict);
         return app;
     }
 
@@ -30,7 +43,7 @@ internal static class VersionEndpoints
         var row = await store.GetAsync(agent, cancellationToken);
         if (row is null)
         {
-            return ProblemResults.NotFound("Agent", agent);
+            return ProblemResults.AgentNotFound(agent);
         }
         var counts = await versions.RunCountsAsync(row.Id, cancellationToken);
         var data = await versions.DataAsync(row.Id, cancellationToken);
@@ -56,12 +69,12 @@ internal static class VersionEndpoints
         var row = await store.GetAsync(agent, cancellationToken);
         if (row is null)
         {
-            return ProblemResults.NotFound("Agent", agent);
+            return ProblemResults.AgentNotFound(agent);
         }
         var unknown = await versions.UnknownVersionsAsync(row.Id, request.VersionIds, cancellationToken);
         if (unknown.Count > 0)
         {
-            return ProblemResults.NotFound("Version", string.Join(", ", unknown));
+            return ProblemResults.VersionNotFound(string.Join(", ", unknown));
         }
         await versions.ArchiveVersionsAsync(row.Id, request.VersionIds, request.Archived, cancellationToken);
         return Results.NoContent();
@@ -72,12 +85,12 @@ internal static class VersionEndpoints
         var row = await store.GetAsync(agent, cancellationToken);
         if (row is null)
         {
-            return ProblemResults.NotFound("Agent", agent);
+            return ProblemResults.AgentNotFound(agent);
         }
         var version = await store.GetVersionAsync(versionId, cancellationToken);
         if (version is null || version.AgentId != row.Id)
         {
-            return ProblemResults.NotFound("Version", versionId.ToString());
+            return ProblemResults.VersionNotFound(versionId.ToString());
         }
         return Results.Ok(
             new AgentVersionDetail(
@@ -105,33 +118,40 @@ internal static class VersionEndpoints
         var row = await store.GetAsync(agent, cancellationToken);
         if (row is null)
         {
-            return ProblemResults.NotFound("Agent", agent);
+            return ProblemResults.AgentNotFound(agent);
         }
         if (from is null || to is null)
         {
-            return ProblemResults.Invalid([
-                .. new[] { (from, "from"), (to, "to") }
-                    .Where(side => side.Item1 is null)
-                    .Select(side => new FieldError(side.Item2, "Name the version to compare.")),
-            ]);
+            return ProblemResults.Invalid(
+                [
+                    .. new[] { (from, "from"), (to, "to") }
+                        .Where(side => side.Item1 is null)
+                        .Select(side => new FieldError(side.Item2, "The version to compare is not named.")),
+                ],
+                "Name both versions to compare, from and to."
+            );
         }
         if (from == to)
         {
-            return ProblemResults.Invalid("to", "A version is not compared with itself.");
+            return ProblemResults.Invalid("to", "A version is not compared with itself.", "Choose two different versions.");
         }
         var first = await store.GetVersionAsync(from.Value, cancellationToken);
         var second = await store.GetVersionAsync(to.Value, cancellationToken);
         if (first is null)
         {
-            return ProblemResults.NotFound("Version", from.Value.ToString());
+            return ProblemResults.VersionNotFound(from.Value.ToString());
         }
         if (second is null)
         {
-            return ProblemResults.NotFound("Version", to.Value.ToString());
+            return ProblemResults.VersionNotFound(to.Value.ToString());
         }
         if (first.AgentId != row.Id || second.AgentId != row.Id)
         {
-            return ProblemResults.Invalid(first.AgentId != row.Id ? "from" : "to", $"The version is not one of agent '{agent}'.");
+            return ProblemResults.Invalid(
+                first.AgentId != row.Id ? "from" : "to",
+                $"The version is not one of agent '{agent}'.",
+                "Choose two versions of this agent."
+            );
         }
         var (older, newer) = second.CreatedAt < first.CreatedAt ? (second, first) : (first, second);
         var counts = await versions.RunCountsAsync(row.Id, cancellationToken);
@@ -180,14 +200,18 @@ internal static class VersionEndpoints
         var row = await store.GetAsync(agent, cancellationToken);
         if (row is null)
         {
-            return ProblemResults.NotFound("Agent", agent);
+            return ProblemResults.AgentNotFound(agent);
         }
         var result = await versions.DeleteVersionAsync(row.Id, versionId, dryRun, cancellationToken);
         return result.ToHttp(
-            "Version",
-            versionId.ToString(),
-            new DeletionRefusal("Version not archived", "Only an archived version can be deleted: archive it first."),
+            ProblemResults.VersionNotFound(versionId.ToString()),
             new DeletionRefusal(
+                RefusalCode.VersionNotArchived,
+                "Version not archived",
+                "Only an archived version can be deleted: archive it first."
+            ),
+            new DeletionRefusal(
+                RefusalCode.RunsActive,
                 "Version has active runs",
                 "A run of this version (or a re-check of one) is queued or running: cancel it or wait until it ends."
             )

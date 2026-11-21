@@ -3,6 +3,7 @@ import { IconX } from "@tabler/icons-react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useId, useState } from "react";
 
+import { Failure } from "../../api/Failure";
 import { HeaderHelp } from "../../help/HeaderHelp";
 import { ListPagination } from "../../pagination/ListPagination";
 import { usePageParam } from "../../pagination/usePageParam";
@@ -71,7 +72,7 @@ export function ConversationsSection({ agent, environment }: { agent: string; en
                     </Badge>
                 )}
             </div>
-            {loaded.isError && <p className="text-destructive">{loaded.error.message}</p>}
+            {loaded.isError && <Failure className="text-destructive" error={loaded.error} />}
             {list !== null && list.totalCount === 0 && (
                 <p className="text-muted-foreground">
                     No conversations yet: the deployed agent sends them as they happen (Suwageval:Url in its configuration).

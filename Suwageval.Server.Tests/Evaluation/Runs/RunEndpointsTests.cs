@@ -12,6 +12,7 @@ using Suwageval.Contracts.Checks;
 using Suwageval.Contracts.Runs;
 using Suwageval.Contracts.Scenarios;
 using Suwageval.Server.Evaluation.Runs;
+using Suwageval.Server.Tests.Api;
 using Suwageval.Server.Tests.Evaluation.Scenarios;
 
 namespace Suwageval.Server.Tests.Evaluation.Runs;
@@ -138,7 +139,7 @@ public sealed class RunEndpointsTests(TestDatabase database, ClassServer server)
         {
             Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
             var problem = await response.Content.ReadFromJsonAsync<JsonElement>(Cancellation);
-            Assert.Equal("evaluation", problem.GetProperty("feature").GetString());
+            Assert.Equal("evaluation.off", problem.GetProperty("code").GetString());
             Assert.Contains("features.evaluation", problem.GetProperty("detail").GetString(), StringComparison.Ordinal);
         }
     }
@@ -300,8 +301,7 @@ public sealed class RunEndpointsTests(TestDatabase database, ClassServer server)
         );
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
-        using var problem = JsonDocument.Parse(await response.Content.ReadAsStringAsync(Cancellation));
-        Assert.True(problem.RootElement.GetProperty("errors").TryGetProperty(field, out _));
+        Assert.Contains(field, await TestServer.MistakesAt(response));
     }
 
     [Fact]
@@ -340,6 +340,7 @@ public sealed class RunEndpointsTests(TestDatabase database, ClassServer server)
         Assert.Equal(HttpStatusCode.BadGateway, response.StatusCode);
         using var problem = JsonDocument.Parse(await response.Content.ReadAsStringAsync(Cancellation));
         Assert.Contains(detailPart, problem.RootElement.GetProperty("detail").GetString(), StringComparison.Ordinal);
+        Assert.False(problem.RootElement.TryGetProperty("code", out _));
     }
 
     [Fact]
@@ -371,11 +372,10 @@ public sealed class RunEndpointsTests(TestDatabase database, ClassServer server)
         var response = await Post(client, new RunRequest { Agent = agent.Name });
 
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
-        using var problem = JsonDocument.Parse(await response.Content.ReadAsStringAsync(Cancellation));
-        var mismatches = problem.RootElement.GetProperty("mismatches").EnumerateArray().Select(m => m.GetString()).ToList();
+        var mismatches = await TestServer.Mismatches(response, "version.unfit");
         Assert.Equal(2, mismatches.Count);
-        Assert.Contains(mismatches, m => m!.Contains("refund_order", StringComparison.Ordinal));
-        Assert.Contains(mismatches, m => m!.Contains("where.after", StringComparison.Ordinal));
+        Assert.Contains(mismatches, m => m.Contains("refund_order", StringComparison.Ordinal));
+        Assert.Contains(mismatches, m => m.Contains("where.after", StringComparison.Ordinal));
         Assert.Empty((await GetAsync<RunList>(client, $"/eval/runs?agent={agent.Name}")).Runs);
     }
 
@@ -518,8 +518,7 @@ public sealed class RunEndpointsTests(TestDatabase database, ClassServer server)
         var response = await Post(client, new RunRequest { Agent = agent.Name, Group = group });
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
-        using var problem = JsonDocument.Parse(await response.Content.ReadAsStringAsync(Cancellation));
-        Assert.True(problem.RootElement.GetProperty("errors").TryGetProperty("group", out _));
+        Assert.Equal(["group"], await TestServer.MistakesAt(response));
         Assert.Empty((await GetAsync<RunList>(client, $"/eval/runs?agent={agent.Name}")).Runs);
     }
 
@@ -562,8 +561,7 @@ public sealed class RunEndpointsTests(TestDatabase database, ClassServer server)
 
         var tooLong = await PutNote(client, created.RunId, new string('x', NoteRules.MaxLength + 1));
         Assert.Equal(HttpStatusCode.UnprocessableEntity, tooLong.StatusCode);
-        using var problem = JsonDocument.Parse(await tooLong.Content.ReadAsStringAsync(Cancellation));
-        Assert.True(problem.RootElement.GetProperty("errors").TryGetProperty("note", out _));
+        Assert.Equal(["note"], await TestServer.MistakesAt(tooLong));
         Assert.Equal("after it finished", (await GetAsync<RunSummary>(client, $"/eval/runs/{created.RunId}")).Note);
 
         var rejectedAtStart = await Post(client, new RunRequest { Agent = agent.Name, Note = new string('x', NoteRules.MaxLength + 1) });
@@ -796,11 +794,10 @@ public sealed class RunEndpointsTests(TestDatabase database, ClassServer server)
         var response = await Post(client, new RunRequest { Agent = agent.Name });
 
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
-        using var problem = JsonDocument.Parse(await response.Content.ReadAsStringAsync(Cancellation));
         Assert.Equal(
             "check 'visit-booked': it names tool 'book_visit', by agent 'support-agent', but the system's code calls it (context.tools), "
                 + "not an agent: remove 'by'",
-            Assert.Single(problem.RootElement.GetProperty("mismatches").EnumerateArray()).GetString()
+            Assert.Single(await TestServer.Mismatches(response, "version.unfit"))
         );
     }
 

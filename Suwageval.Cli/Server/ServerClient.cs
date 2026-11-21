@@ -8,6 +8,7 @@ using Suwageval.Contracts;
 using Suwageval.Contracts.Agents;
 using Suwageval.Contracts.Checks;
 using Suwageval.Contracts.Monitoring;
+using Suwageval.Contracts.Refusals;
 using Suwageval.Contracts.Runs;
 using Suwageval.Contracts.Scenarios;
 
@@ -17,6 +18,7 @@ internal sealed class ServerClient(HttpClient http)
 {
     private const int MaxPageSize = 100;
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(1);
+    private static readonly JsonSerializerOptions LenientRefusals = new(JsonSerializerDefaults.Web);
 
     public Task<(Agent Agent, bool Created)> PutAgentAsync(AgentDefinition definition, CancellationToken cancellationToken) =>
         ReadAsync(
@@ -557,15 +559,21 @@ internal sealed class ServerClient(HttpClient http)
 
     private static string? FeatureOf(string body)
     {
+        var code = KnownCode(RefusalOf(body)?.Code);
+        return code == RefusalCode.EvaluationOff ? "evaluation"
+            : code == RefusalCode.MonitoringOff ? "monitoring"
+            : null;
+    }
+
+    private static RefusalCode? KnownCode(string? code)
+    {
+        if (code is null)
+        {
+            return null;
+        }
         try
         {
-            using var problem = JsonDocument.Parse(body);
-            return
-                problem.RootElement.ValueKind == JsonValueKind.Object
-                && problem.RootElement.TryGetProperty("feature", out var feature)
-                && feature.ValueKind == JsonValueKind.String
-                ? feature.GetString()
-                : null;
+            return JsonSerializer.Deserialize<RefusalCode>(JsonSerializer.Serialize(code));
         }
         catch (JsonException)
         {
@@ -576,37 +584,37 @@ internal sealed class ServerClient(HttpClient http)
     private static string Describe(HttpStatusCode status, string body)
     {
         var text = new StringBuilder().Append(CultureInfo.InvariantCulture, $"The server answered {(int)status} {status}");
-        try
+        var refusal = RefusalOf(body);
+        var mistakes = (refusal?.Mistakes ?? []).Where(mistake => mistake.Message is not null && mistake.Fix is not null).ToList();
+        if (mistakes.Count > 0)
         {
-            using var problem = JsonDocument.Parse(body);
-            var root = problem.RootElement;
-            if (root.ValueKind == JsonValueKind.Object)
+            text.Append(": ").Append(refusal?.Title ?? "the request was refused").Append(':');
+            foreach (var mistake in mistakes)
             {
-                if (root.TryGetProperty("errors", out var errors) && errors.ValueKind == JsonValueKind.Object)
+                text.Append("\n  - ");
+                if (mistake.At is { } at)
                 {
-                    foreach (var field in errors.EnumerateObject())
-                    {
-                        text.Append(
-                            CultureInfo.InvariantCulture,
-                            $": {field.Name}: {string.Join(" ", field.Value.EnumerateArray().Select(message => message.GetString()))}"
-                        );
-                    }
+                    text.Append(at).Append(": ");
                 }
-                else if (root.TryGetProperty("mismatches", out var mismatches) && mismatches.ValueKind == JsonValueKind.Array)
-                {
-                    text.Append(": the agent's version does not fit its scenarios:");
-                    foreach (var mismatch in mismatches.EnumerateArray())
-                    {
-                        text.Append("\n  - ").Append(mismatch.GetString());
-                    }
-                }
-                else if (root.TryGetProperty("detail", out var detail) && detail.ValueKind == JsonValueKind.String)
-                {
-                    text.Append(": ").Append(detail.GetString());
-                }
+                text.Append(mistake.Message).Append(' ').Append(mistake.Fix);
             }
         }
-        catch (JsonException) { }
+        else if (refusal?.Detail is { } detail)
+        {
+            text.Append(": ").Append(detail);
+        }
         return text.ToString();
+    }
+
+    private static Refusal? RefusalOf(string body)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<Refusal>(body, LenientRefusals);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
     }
 }

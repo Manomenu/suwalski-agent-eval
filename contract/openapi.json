@@ -21,8 +21,15 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
           }
         }
       },
@@ -72,6 +79,16 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
           }
         }
       },
@@ -92,6 +109,26 @@
         "responses": {
           "204": {
             "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
           }
         }
       }
@@ -118,6 +155,26 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AgentDeletion"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
                 }
               }
             }
@@ -153,6 +210,16 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
           }
         }
       }
@@ -185,6 +252,16 @@
         "responses": {
           "204": {
             "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
           }
         }
       }
@@ -230,6 +307,26 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
           }
         }
       }
@@ -268,6 +365,16 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
           }
         }
       },
@@ -297,6 +404,26 @@
         "responses": {
           "204": {
             "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
           }
         }
       }
@@ -335,6 +462,26 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
           }
         }
       }
@@ -365,8 +512,35 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
           }
         }
       },
@@ -404,6 +578,16 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
           }
         }
       }
@@ -432,8 +616,15 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK"
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
           }
         }
       },
@@ -460,8 +651,15 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK"
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
           }
         }
       }
@@ -490,8 +688,15 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK"
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
           }
         }
       }
@@ -522,8 +727,25 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
           }
         }
       }
@@ -553,6 +775,16 @@
                   "items": {
                     "$ref": "#/components/schemas/TagUsage"
                   }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
                 }
               }
             }
@@ -586,8 +818,35 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
           }
         }
       },
@@ -613,8 +872,15 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK"
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
           }
         }
       }
@@ -643,8 +909,15 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK"
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
           }
         }
       }
@@ -671,6 +944,36 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RunCreated"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
                 }
               }
             }
@@ -761,6 +1064,26 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
           }
         }
       }
@@ -788,6 +1111,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RunSummary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
                 }
               }
             }
@@ -821,6 +1154,16 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
           }
         }
       }
@@ -848,6 +1191,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RecheckPlan"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
                 }
               }
             }
@@ -879,6 +1232,26 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
           }
         }
       }
@@ -902,6 +1275,16 @@
         "responses": {
           "202": {
             "description": "Accepted"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
           }
         }
       }
@@ -935,6 +1318,26 @@
         "responses": {
           "204": {
             "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
           }
         }
       }
@@ -989,6 +1392,26 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
           }
         }
       }
@@ -1018,6 +1441,16 @@
                   "items": {
                     "$ref": "#/components/schemas/RunGroupSummary"
                   }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
                 }
               }
             }
@@ -1053,6 +1486,16 @@
         "responses": {
           "204": {
             "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
           }
         }
       }
@@ -1093,6 +1536,26 @@
         "responses": {
           "204": {
             "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
           }
         }
       }
@@ -1130,6 +1593,26 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
           }
         }
       }
@@ -1160,6 +1643,26 @@
         "responses": {
           "204": {
             "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
           }
         }
       }
@@ -1189,6 +1692,16 @@
                   "items": {
                     "$ref": "#/components/schemas/RunPassRates"
                   }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
                 }
               }
             }
@@ -1245,6 +1758,16 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
           }
         }
       }
@@ -1298,6 +1821,16 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
           }
         }
       }
@@ -1324,6 +1857,36 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/TurnBatchAnswer"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
                 }
               }
             }
@@ -1404,6 +1967,26 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
           }
         }
       }
@@ -1431,6 +2014,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ConversationDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
                 }
               }
             }
@@ -1473,6 +2066,36 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
           }
         }
       },
@@ -1507,6 +2130,16 @@
                   "items": {
                     "$ref": "#/components/schemas/MonitoringCheck"
                   }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
                 }
               }
             }
@@ -1551,6 +2184,26 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MonitoringTrend"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
                 }
               }
             }
@@ -1612,6 +2265,26 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ScenarioDraft"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefusalOfRefusalCodeAndMistakeOfMistakeCode"
                 }
               }
             }
@@ -3814,6 +4487,38 @@
           "assistant"
         ]
       },
+      "MistakeCode": {
+        "enum": [
+          "field.invalid",
+          "version.mismatch"
+        ]
+      },
+      "MistakeOfMistakeCode": {
+        "required": [
+          "code",
+          "message",
+          "fix"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/MistakeCode"
+          },
+          "message": {
+            "type": "string"
+          },
+          "fix": {
+            "type": "string"
+          },
+          "at": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
       "ModelDefinition": {
         "required": [
           "name"
@@ -4159,6 +4864,70 @@
             "type": "array",
             "items": {
               "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "RefusalCode": {
+        "enum": [
+          "request.invalid",
+          "agent.notFound",
+          "version.notFound",
+          "scenario.notFound",
+          "check.notFound",
+          "run.notFound",
+          "runGroup.notFound",
+          "conversation.notFound",
+          "evaluation.off",
+          "monitoring.off",
+          "environment.notTaken",
+          "runs.active",
+          "version.notArchived",
+          "runGroup.notArchived",
+          "version.unfit",
+          "judge.notConfigured",
+          "simulator.notConfigured",
+          "recheck.impossible"
+        ]
+      },
+      "RefusalOfRefusalCodeAndMistakeOfMistakeCode": {
+        "required": [
+          "type",
+          "title",
+          "status",
+          "detail",
+          "traceId",
+          "code"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "traceId": {
+            "type": "string"
+          },
+          "code": {
+            "$ref": "#/components/schemas/RefusalCode"
+          },
+          "mistakes": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/MistakeOfMistakeCode"
             }
           }
         },

@@ -2,6 +2,7 @@ import { Alert, Button, Textarea } from "@maniumek/suwfrontkit";
 import { IconCheck, IconInfoCircle, IconNotes, IconPencil } from "@tabler/icons-react";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 
+import { messageOf } from "../api/client";
 import { NOTE_MAX_LENGTH, normalizeNote, noteProblem } from "./note";
 
 const NOTE_SAVE_DELAY_MS = 800;
@@ -43,7 +44,7 @@ export function NoteBox({
                 (failure: unknown) => {
                     inFlight.current = false;
                     setFailedFor(draft);
-                    setState({ kind: "failed", message: failure instanceof Error ? failure.message : "The note could not be saved." });
+                    setState({ kind: "failed", message: messageOf(failure) });
                 },
             );
         }, NOTE_SAVE_DELAY_MS);

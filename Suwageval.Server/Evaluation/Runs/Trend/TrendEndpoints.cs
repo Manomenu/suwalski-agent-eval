@@ -10,7 +10,9 @@ internal static class TrendEndpoints
     public static IEndpointRouteBuilder MapTrend(this IEndpointRouteBuilder app)
     {
         ArgumentNullException.ThrowIfNull(app);
-        app.MapGet("/agents/{agent}/pass-rates", ListAsync).Produces<IReadOnlyList<RunPassRates>>();
+        app.MapGet("/agents/{agent}/pass-rates", ListAsync)
+            .Produces<IReadOnlyList<RunPassRates>>()
+            .ProducesRefusal(StatusCodes.Status404NotFound);
         return app;
     }
 
@@ -26,7 +28,7 @@ internal static class TrendEndpoints
         var found = await agents.GetAsync(agent, cancellationToken);
         if (found is null)
         {
-            return ProblemResults.NotFound("Agent", agent);
+            return ProblemResults.AgentNotFound(agent);
         }
         var picked = EffectiveRuns.Pick(await runs.ListAsync(found.Id, cancellationToken), PassRateTrend.MaxRuns);
         var versions = (await agents.ListVersionsAsync(found.Id, cancellationToken)).ToDictionary(version => version.Id);

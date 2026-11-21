@@ -195,7 +195,7 @@ public sealed class CompareEndpointsTests(TestDatabase database, ClassServer ser
         Assert.Equal([first, second], comparison.Runs.Select(run => run.Run.Id));
         Assert.Null(comparison.Baseline);
         Assert.Equal(HttpStatusCode.UnprocessableEntity, several.StatusCode);
-        Assert.Equal(["group"], await TestServer.ErrorFields(several));
+        Assert.Equal(["group"], await TestServer.MistakesAt(several));
     }
 
     [Fact]
@@ -227,9 +227,9 @@ public sealed class CompareEndpointsTests(TestDatabase database, ClassServer ser
         var aloneOutside = await GetAsync($"/eval/runs/compare?runs={one}&baseline={two}");
         var fine = await GetAsync($"/eval/runs/compare?runs={one}&runs={two}&baseline={two}");
 
-        Assert.Equal(["baseline"], await TestServer.ErrorFields(notAmong));
-        Assert.Equal(["baseline"], await TestServer.ErrorFields(alone));
-        Assert.Equal(["baseline"], await TestServer.ErrorFields(aloneOutside));
+        Assert.Equal(["baseline"], await TestServer.MistakesAt(notAmong));
+        Assert.Equal(["baseline"], await TestServer.MistakesAt(alone));
+        Assert.Equal(["baseline"], await TestServer.MistakesAt(aloneOutside));
         Assert.Equal(HttpStatusCode.OK, fine.StatusCode);
     }
 
@@ -250,7 +250,7 @@ public sealed class CompareEndpointsTests(TestDatabase database, ClassServer ser
 
         Assert.Equal(HttpStatusCode.OK, seven.StatusCode);
         Assert.Equal(ids[3], (await TestServer.Read<RunComparison>(seven)).Baseline!.RunId);
-        Assert.Equal(["runs"], await TestServer.ErrorFields(tooMany));
+        Assert.Equal(["runs"], await TestServer.MistakesAt(tooMany));
     }
 
     [Fact]
@@ -268,7 +268,7 @@ public sealed class CompareEndpointsTests(TestDatabase database, ClassServer ser
         var unknownGroup = await GetAsync($"/eval/runs/compare?group=no-such-group&agent={agent.Name}");
         var alone = await GetAsync($"/eval/runs/compare?runs={one}");
 
-        Assert.Equal(["runs"], await TestServer.ErrorFields(differentAgents));
+        Assert.Equal(["runs"], await TestServer.MistakesAt(differentAgents));
         Assert.Equal(HttpStatusCode.UnprocessableEntity, both.StatusCode);
         Assert.Equal(HttpStatusCode.UnprocessableEntity, neither.StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, unknownRun.StatusCode);

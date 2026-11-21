@@ -2,6 +2,7 @@ import { Alert, Button, Diff, Dialog, Spinner, Tooltip } from "@maniumek/suwfron
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
+import { Failure } from "../../api/Failure";
 import { definitionYaml } from "../checks/definition";
 import { ModelJudgedIcon } from "../../verdict/ModelJudgedIcon";
 import { recheck, recheckPlanQuery, type ChangedCheck, type RunSummary } from "./api";
@@ -39,17 +40,17 @@ export function RecheckButton({ run }: { run: Pick<RunSummary, "id" | "status"> 
 function RecheckDialog({ runId, onClose }: { runId: string; onClose: () => void }) {
     const state = useQuery({ ...recheckPlanQuery(runId), gcTime: 0 });
     const [busy, setBusy] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [failed, setFailed] = useState<{ error: unknown } | null>(null);
 
     const start = () => {
         setBusy(true);
-        setError(null);
+        setFailed(null);
         recheck(runId).then(
             (created) => {
                 window.location.assign(runHref(created.runId));
             },
             (failure: unknown) => {
-                setError(failure instanceof Error ? failure.message : "The re-check could not be started.");
+                setFailed({ error: failure });
                 setBusy(false);
             },
         );
@@ -78,7 +79,7 @@ function RecheckDialog({ runId, onClose }: { runId: string; onClose: () => void 
             <Dialog open onOpenChange={onOpenChange} title="Re-check this run?" width="wide" actions={close}>
                 <Alert variant="destructive">
                     <p className="font-semibold">The plan could not be loaded</p>
-                    <p>{state.error.message}</p>
+                    <Failure error={state.error} />
                 </Alert>
             </Dialog>
         );
@@ -145,10 +146,10 @@ function RecheckDialog({ runId, onClose }: { runId: string; onClose: () => void 
                         </ul>
                     </div>
                 )}
-                {error && (
+                {failed !== null && (
                     <Alert variant="destructive">
                         <p className="font-semibold">The re-check could not be started</p>
-                        <p>{error}</p>
+                        <Failure error={failed.error} />
                     </Alert>
                 )}
             </div>

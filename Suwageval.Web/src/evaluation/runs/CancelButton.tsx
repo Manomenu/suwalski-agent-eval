@@ -1,21 +1,22 @@
 import { Alert, Button, ConfirmDialog } from "@maniumek/suwfrontkit";
 import { useState } from "react";
 
+import { Failure } from "../../api/Failure";
 import { cancelRun, type RunSummary } from "./api";
 import { canCancel } from "./results";
 
 export function CancelButton({ run }: { run: Pick<RunSummary, "id" | "status" | "cancelRequested"> }) {
     const [asking, setAsking] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [failed, setFailed] = useState<{ error: unknown } | null>(null);
 
     if (!canCancel(run)) return null;
 
     const confirm = async () => {
-        setError(null);
+        setFailed(null);
         try {
             await cancelRun(run.id);
         } catch (failure: unknown) {
-            setError(failure instanceof Error ? failure.message : "The run could not be cancelled.");
+            setFailed({ error: failure });
             throw failure;
         }
     };
@@ -42,10 +43,10 @@ export function CancelButton({ run }: { run: Pick<RunSummary, "id" | "status" | 
             >
                 <div className="flex flex-col gap-4">
                     <p>Samples already in progress finish; no new sample starts, and the run ends as cancelled.</p>
-                    {error && (
+                    {failed !== null && (
                         <Alert variant="destructive">
                             <p className="font-semibold">The run could not be cancelled</p>
-                            <p>{error}</p>
+                            <Failure error={failed.error} />
                         </Alert>
                     )}
                 </div>

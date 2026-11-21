@@ -12,9 +12,10 @@ internal static class CheckEndpoints
 {
     public static void MapChecks(this IEndpointRouteBuilder app)
     {
-        app.MapPut("/agents/{agent}/checks", PutAsync);
-        app.MapGet("/agents/{agent}/checks", ListAsync);
-        app.MapDelete("/agents/{agent}/checks/{key}", DeleteAsync);
+        app.MapPut("/agents/{agent}/checks", PutAsync)
+            .ProducesRefusal(StatusCodes.Status404NotFound, StatusCodes.Status409Conflict, StatusCodes.Status422UnprocessableEntity);
+        app.MapGet("/agents/{agent}/checks", ListAsync).ProducesRefusal(StatusCodes.Status404NotFound);
+        app.MapDelete("/agents/{agent}/checks/{key}", DeleteAsync).ProducesRefusal(StatusCodes.Status404NotFound);
     }
 
     private static async Task<IResult> PutAsync(
@@ -29,11 +30,11 @@ internal static class CheckEndpoints
         var row = await agents.GetAsync(agent, cancellationToken);
         if (row is null)
         {
-            return ProblemResults.NotFound("Agent", agent);
+            return ProblemResults.AgentNotFound(agent);
         }
         if (!row.Evaluation)
         {
-            return ProblemResults.FeatureOff(row.Name, "evaluation");
+            return ProblemResults.EvaluationOff(row.Name);
         }
         var errors = CheckValidation.Validate(request.Checks);
         if (errors.Count == 0)
@@ -51,7 +52,7 @@ internal static class CheckEndpoints
         }
         if (errors.Count > 0)
         {
-            return ProblemResults.Invalid(errors);
+            return ProblemResults.Invalid(errors, ProblemResults.FixInAgentFiles);
         }
 
         var items = request.Checks.Select(check => new CheckItem(
@@ -64,7 +65,8 @@ internal static class CheckEndpoints
         if (missing.Count > 0)
         {
             return ProblemResults.Invalid(
-                missing.Select(result => new FieldError("checks", $"The scenario of check '{result.Key}' is gone."))
+                missing.Select(result => new FieldError("checks", $"The scenario of check '{result.Key}' is gone.")),
+                "Push the scenarios and their checks again."
             );
         }
         return Results.Ok(new PutChecksResponse([.. results.Select(result => new CheckResult(result.Key, ToOutcome(result.Outcome)))]));
@@ -81,7 +83,7 @@ internal static class CheckEndpoints
         var row = await agents.GetAsync(agent, cancellationToken);
         if (row is null)
         {
-            return ProblemResults.NotFound("Agent", agent);
+            return ProblemResults.AgentNotFound(agent);
         }
         var checks = await store.ListAsync(row.Id, scenario, cancellationToken);
         return Results.Ok(
@@ -105,9 +107,9 @@ internal static class CheckEndpoints
         var row = await agents.GetAsync(agent, cancellationToken);
         if (row is null)
         {
-            return ProblemResults.NotFound("Agent", agent);
+            return ProblemResults.AgentNotFound(agent);
         }
-        return await store.DeleteAsync(row.Id, key, cancellationToken) ? Results.NoContent() : ProblemResults.NotFound("Check", key);
+        return await store.DeleteAsync(row.Id, key, cancellationToken) ? Results.NoContent() : ProblemResults.CheckNotFound(key);
     }
 
     private static UpsertOutcome ToOutcome(CheckOutcome outcome) =>

@@ -10,7 +10,9 @@ internal static class UnstableEndpoints
     public static IEndpointRouteBuilder MapUnstable(this IEndpointRouteBuilder app)
     {
         ArgumentNullException.ThrowIfNull(app);
-        app.MapGet("/agents/{agent}/unstable-checks", ListAsync).Produces<IReadOnlyList<UnstableCheck>>();
+        app.MapGet("/agents/{agent}/unstable-checks", ListAsync)
+            .Produces<IReadOnlyList<UnstableCheck>>()
+            .ProducesRefusal(StatusCodes.Status404NotFound);
         return app;
     }
 
@@ -27,7 +29,7 @@ internal static class UnstableEndpoints
         var found = await agents.GetAsync(agent, cancellationToken);
         if (found is null)
         {
-            return ProblemResults.NotFound("Agent", agent);
+            return ProblemResults.AgentNotFound(agent);
         }
         var versions = await agents.ListVersionsAsync(found.Id, cancellationToken);
         var considered = RecentRuns.Considered(versions, version);

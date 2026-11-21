@@ -107,7 +107,7 @@ features:
 ```
 
 The file is the source of truth: `push` carries `features`, and leaving it out puts the defaults back. A switched-off area keeps what
-it stored, but nothing new: the server answers 409 with the area in a `feature` field (a run, a re-check, scenarios and checks for
+it stored, but nothing new: the server answers 409 with the code `evaluation.off` or `monitoring.off` (a run, a re-check, scenarios and checks for
 `evaluation: false`; `push` then leaves the scenarios unsent and says so), the web leaves its item out of the sidebar and its page
 says how to switch it on, and the CLI exits 2 with the same words (and "`suwageval push` to apply it" when the local file already
 switches it on). Switching monitoring on is the repository agreeing that the deployed agent's conversations are stored. Environment
@@ -246,7 +246,8 @@ version; the answer to `POST /eval/runs` and `suwageval run` say which version a
   that names the URL and the cause; nothing is queued.
 - The scenarios and checks must fit that version (every tool and event they name is in it, a
   tool call's `agent` and a check's `by` name an agent that has the tool, a tool of `context.tools` is named
-  with neither, a retrieval needs `usesRetrieval`): otherwise 409 with the mismatches, nothing is queued.
+  with neither, a retrieval needs `usesRetrieval`): otherwise 409 `version.unfit` with one mistake (`version.mismatch`) per
+  mismatch, nothing is queued.
 - A scenario with `fixtures` needs a version that declares `context.fixturesSchema`; otherwise it is a mismatch too.
 - A **re-check** (`POST /eval/runs/{id}/recheck`, `suwageval recheck`) is a run that does not call the agent: it copies the stored
   samples of a finished run (output, error, undeclared, `durationMs` — the turn times are the source's, copied, not measured
@@ -257,7 +258,7 @@ version; the answer to `POST /eval/runs` and `suwageval run` say which version a
   re-check points at the original). Unchanged verdicts are copied from the run the re-check was asked for, so a re-check of a re-check does not ask the judge again for what the earlier one already judged. `GET /eval/runs/{id}/recheck` previews it (`possible`, `changedChecks`, `skippedScenarios`,
   `mismatches`); a re-check that would change nothing (no check changed, was added or removed — a changed pass threshold
   counts), whose scenarios are all skipped, whose checks do not fit the source's version or whose source is not `Done` is
-  refused with 409. The agent's current contract plays no role. In the pass-rate trend a re-check is never a point of its own:
+  refused with 409 `recheck.impossible` (with the mismatches as mistakes when they are the reason). The agent's current contract plays no role. In the pass-rate trend a re-check is never a point of its own:
   the point of its source run shows the results of the latest finished re-check (`recheckedBy`).
 - At the end of a run the contract is read again. If it differs from the run's version (the agent
   was redeployed mid-run) the run says `contractChangedDuringRun: true`.
@@ -322,8 +323,9 @@ evaluation (one answered at `POST /suwageval/turn`, or with `suwageval.run.id` i
 
 The answer is `200 { "stored": n }` (`n`: the new turns), or `200 { "stored": 0, "sendContract": true }` when the server does not know
 the hash: nothing was stored, and the same turns are sent again with `contract`, from which the server registers the version as a
-run does (it checks that `contractHash` is that contract's). `404`: no such agent; `409`: its monitoring is off (with `feature:
-"monitoring"`) or the environment is not one it takes; `422`: a malformed environment, turn or contract. A sender retries on a network
+run does (it checks that `contractHash` is that contract's). `404`: no such agent; `409`: its monitoring is off
+(`monitoring.off`) or the environment is not one it takes (`environment.notTaken`); `422`: a malformed environment, turn or contract
+(`request.invalid`, one mistake per problem with its `at` and `fix`). A sender retries on a network
 error, a 5xx, 408 and 429, and drops a batch the server refused otherwise (a retry would not change the answer). Behind Cloudflare
 Access, the request carries a service token (`CF-Access-Client-Id`, `CF-Access-Client-Secret`).
 

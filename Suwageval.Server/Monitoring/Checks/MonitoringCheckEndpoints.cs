@@ -11,8 +11,12 @@ internal static class MonitoringCheckEndpoints
 {
     public static IEndpointRouteBuilder MapMonitoringChecks(this IEndpointRouteBuilder app)
     {
-        app.MapPut("/agents/{agent}/checks", PutAsync).Produces<PutChecksResponse>();
-        app.MapGet("/agents/{agent}/checks", ListAsync).Produces<IReadOnlyList<MonitoringCheck>>();
+        app.MapPut("/agents/{agent}/checks", PutAsync)
+            .Produces<PutChecksResponse>()
+            .ProducesRefusal(StatusCodes.Status404NotFound, StatusCodes.Status409Conflict, StatusCodes.Status422UnprocessableEntity);
+        app.MapGet("/agents/{agent}/checks", ListAsync)
+            .Produces<IReadOnlyList<MonitoringCheck>>()
+            .ProducesRefusal(StatusCodes.Status404NotFound);
         return app;
     }
 
@@ -27,16 +31,19 @@ internal static class MonitoringCheckEndpoints
         var row = await agents.GetAsync(agent, cancellationToken);
         if (row is null)
         {
-            return ProblemResults.NotFound("Agent", agent);
+            return ProblemResults.AgentNotFound(agent);
         }
         if (row.Features.Monitoring is null)
         {
-            return ProblemResults.FeatureOff(row.Name, "monitoring");
+            return ProblemResults.MonitoringOff(row.Name);
         }
         var problems = MonitoringCheckRules.Problems(request.Checks);
         if (problems.Count > 0)
         {
-            return ProblemResults.Invalid(problems.Select(problem => new FieldError(problem.Path, problem.Message)));
+            return ProblemResults.Invalid(
+                problems.Select(problem => new FieldError(problem.Path, problem.Message)),
+                ProblemResults.FixInAgentFiles
+            );
         }
         return Results.Ok(new PutChecksResponse(await checks.ReplaceAsync(row.Id, request.Checks, cancellationToken)));
     }
@@ -53,7 +60,7 @@ internal static class MonitoringCheckEndpoints
         var row = await agents.GetAsync(agent, cancellationToken);
         if (row is null)
         {
-            return ProblemResults.NotFound("Agent", agent);
+            return ProblemResults.AgentNotFound(agent);
         }
         return Results.Ok(
             (await checks.ListAsync(row.Id, time.GetUtcNow(), environment, cancellationToken)).Select(check => new MonitoringCheck

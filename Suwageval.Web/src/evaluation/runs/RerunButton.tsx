@@ -1,22 +1,23 @@
 import { Alert, Button } from "@maniumek/suwfrontkit";
 import { useState } from "react";
 
+import { Failure } from "../../api/Failure";
 import { runRequestLike, startRun, type RunSummary } from "./api";
 import { runHref } from "../../routes/links";
 
 export function RerunButton({ run }: { run: RunSummary }) {
     const [busy, setBusy] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [failed, setFailed] = useState<{ error: unknown } | null>(null);
 
     const start = () => {
         setBusy(true);
-        setError(null);
+        setFailed(null);
         startRun(runRequestLike(run)).then(
             (created) => {
                 window.location.assign(runHref(created.runId));
             },
             (failure: unknown) => {
-                setError(failure instanceof Error ? failure.message : "The run could not be started.");
+                setFailed({ error: failure });
                 setBusy(false);
             },
         );
@@ -27,10 +28,10 @@ export function RerunButton({ run }: { run: RunSummary }) {
             <Button onClick={start} disabled={busy}>
                 {busy ? "Starting…" : "Run again"}
             </Button>
-            {error && (
+            {failed !== null && (
                 <Alert variant="destructive">
                     <p className="font-semibold">The run could not be started</p>
-                    <p>{error}</p>
+                    <Failure error={failed.error} />
                 </Alert>
             )}
         </div>

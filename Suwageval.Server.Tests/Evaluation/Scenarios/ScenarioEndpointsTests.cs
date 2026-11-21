@@ -170,7 +170,7 @@ public sealed class ScenarioEndpointsTests(TestDatabase database, ClassServer cl
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
         Assert.Equal(
             ["scenarios[1].key", "scenarios[1].tags[0]", "scenarios[1].samples", "scenarios[1].conversation", "scenarios[2].key"],
-            await TestServer.ErrorFields(response)
+            await TestServer.MistakesAt(response)
         );
         Assert.Empty(await TestServer.Read<ScenarioSummary[]>(await server.Get($"/eval/agents/{agent}/scenarios")));
     }
@@ -206,14 +206,19 @@ public sealed class ScenarioEndpointsTests(TestDatabase database, ClassServer cl
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
         Assert.Equal(
             ["scenarios[1].acGuardrail.id", "scenarios[1].acGuardrail.retryLimit", "scenarios[2].acGuardrail.id"],
-            await TestServer.ErrorFields(response)
+            await TestServer.MistakesAt(response)
         );
         using var problem = System.Text.Json.JsonDocument.Parse(
             await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)
         );
         Assert.Equal(
             AcGuardrailRules.Duplicate(ExampleCriteria.Refunds1, "a"),
-            problem.RootElement.GetProperty("errors").GetProperty("scenarios[2].acGuardrail.id")[0].GetString()
+            problem
+                .RootElement.GetProperty("mistakes")
+                .EnumerateArray()
+                .Single(mistake => mistake.GetProperty("at").GetString() == "scenarios[2].acGuardrail.id")
+                .GetProperty("message")
+                .GetString()
         );
         Assert.Empty(await TestServer.Read<ScenarioSummary[]>(await server.Get($"/eval/agents/{agent}/scenarios")));
     }
@@ -271,6 +276,6 @@ public sealed class ScenarioEndpointsTests(TestDatabase database, ClassServer cl
         var response = await server.Post($"/eval/agents/{agent}/scenarios/tags", new TagChangeRequest(["a"], ["Bad Tag"], ["Also Bad"]));
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
-        Assert.Equal(["add[0]", "remove[0]"], await TestServer.ErrorFields(response));
+        Assert.Equal(["add[0]", "remove[0]"], await TestServer.MistakesAt(response));
     }
 }

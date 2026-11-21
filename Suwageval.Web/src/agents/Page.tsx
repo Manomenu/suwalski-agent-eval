@@ -2,6 +2,7 @@ import { Alert, Spinner } from "@maniumek/suwfrontkit";
 import type { ReactNode } from "react";
 
 import { isNotFound } from "../api/client";
+import { Failure } from "../api/Failure";
 
 export interface PageData<T> {
     isPending: boolean;
@@ -15,7 +16,7 @@ export function Page<T>({ query, notFound, children }: { query: PageData<T>; not
         return (
             <Alert variant="destructive">
                 <p className="font-semibold">{missing ? "Not found" : "Could not load the page"}</p>
-                <p>{missing ? notFound : query.error.message}</p>
+                {missing ? <p>{notFound}</p> : <Failure error={query.error} />}
             </Alert>
         );
     }

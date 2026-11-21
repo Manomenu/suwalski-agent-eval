@@ -153,7 +153,7 @@ public sealed class CheckEndpointsTests(TestDatabase database, ClassServer class
         );
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
-        Assert.Equal(["checks[1].scenarioKey"], await TestServer.ErrorFields(response));
+        Assert.Equal(["checks[1].scenarioKey"], await TestServer.MistakesAt(response));
         Assert.Empty(await TestServer.Read<CheckDetail[]>(await server.Get($"/eval/agents/{agent}/checks")));
     }
 
@@ -181,7 +181,7 @@ public sealed class CheckEndpointsTests(TestDatabase database, ClassServer class
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
         Assert.Equal(
             ["checks[0].key", "checks[0].passThreshold", "checks[1].pattern", "checks[2].key", "checks[3].criteria"],
-            await TestServer.ErrorFields(response)
+            await TestServer.MistakesAt(response)
         );
     }
 
@@ -222,7 +222,7 @@ public sealed class CheckEndpointsTests(TestDatabase database, ClassServer class
                 "checks[0].args.g[0].$judge",
                 "checks[1].data.x.$judge.examples",
             ],
-            await TestServer.ErrorFields(response)
+            await TestServer.MistakesAt(response)
         );
     }
 
@@ -254,7 +254,7 @@ public sealed class CheckEndpointsTests(TestDatabase database, ClassServer class
         );
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
-        Assert.Equal(["checks[0]"], await TestServer.ErrorFields(response));
+        Assert.Equal(["checks[0]"], await TestServer.MistakesAt(response));
     }
 
     [Fact]
@@ -302,7 +302,7 @@ public sealed class CheckEndpointsTests(TestDatabase database, ClassServer class
         var response = await server.Put($"/eval/agents/{agent}/checks", new PutChecksRequest([badResult, mixed, inverted]));
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
-        Assert.Equal(["checks[0].result.note.$judge", "checks[1].args.reason", "checks[2].data"], await TestServer.ErrorFields(response));
+        Assert.Equal(["checks[0].result.note.$judge", "checks[1].args.reason", "checks[2].data"], await TestServer.MistakesAt(response));
     }
 
     [Fact]
@@ -329,7 +329,7 @@ public sealed class CheckEndpointsTests(TestDatabase database, ClassServer class
         var stored = Assert.IsType<MessageCountCheck>(Assert.Single(listed).Check);
         Assert.Equal((MessageRole.Assistant, 1, TurnSelectorKind.Last), (stored.Role, stored.Max, stored.Where?.Turn.Kind));
         Assert.Equal(HttpStatusCode.UnprocessableEntity, refused.StatusCode);
-        Assert.Equal(["checks[0]"], await TestServer.ErrorFields(refused));
+        Assert.Equal(["checks[0]"], await TestServer.MistakesAt(refused));
     }
 
     [Fact]
@@ -383,7 +383,7 @@ public sealed class CheckEndpointsTests(TestDatabase database, ClassServer class
         Assert.True(Assert.IsType<EventCheck>(listed["ended-known"]).Last);
         Assert.Equal(["otherType", "quoteRequest"], Assert.IsType<TextCheck>(listed["no-technical-word"]).NotContains);
         Assert.Equal(HttpStatusCode.UnprocessableEntity, refused.StatusCode);
-        Assert.Equal(["checks[0].last"], await TestServer.ErrorFields(refused));
+        Assert.Equal(["checks[0].last"], await TestServer.MistakesAt(refused));
     }
 
     [Fact]

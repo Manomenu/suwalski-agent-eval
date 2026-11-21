@@ -17,6 +17,7 @@ using Suwageval.Server.Evaluation.Invocation;
 using Suwageval.Server.Evaluation.Runs;
 using Suwageval.Server.Evaluation.Scenarios;
 using Suwageval.Server.Judges;
+using Suwageval.Server.Tests.Api;
 using Suwageval.Server.Tests.Judges;
 using static Suwageval.Server.Tests.Evaluation.Checks.Items;
 
@@ -530,7 +531,11 @@ public sealed class RunRecheckTests(TestDatabase database, ClassServer server) :
         Assert.Equal(RecheckBlocker.Mismatches, plan.Blocker);
         Assert.Contains("no_such_tool", Assert.Single(plan.Mismatches), StringComparison.Ordinal);
         Assert.Equal(HttpStatusCode.Conflict, refused.StatusCode);
-        Assert.Contains("mismatches", await refused.Content.ReadAsStringAsync(Cancellation), StringComparison.Ordinal);
+        Assert.Contains(
+            "no_such_tool",
+            Assert.Single(await TestServer.Mismatches(refused, "recheck.impossible")),
+            StringComparison.Ordinal
+        );
     }
 
     [Fact]

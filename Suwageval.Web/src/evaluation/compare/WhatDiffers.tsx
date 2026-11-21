@@ -3,6 +3,7 @@ import { IconChevronDown, IconChevronRight } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
+import { Failure } from "../../api/Failure";
 import { type Difference } from "./contractDiff";
 import { type VariantRun } from "./api";
 import { versionDiffQuery } from "../../versions/api";
@@ -184,7 +185,7 @@ function PromptDiff({
                 Contract diff: {columnName(first)} → {columnName(other)}
             </p>
             {diff.isPending && <Spinner size="xs" label="Loading the diff" />}
-            {diff.isError && <p className="text-sm text-destructive">{diff.error.message}</p>}
+            {diff.isError && <Failure className="text-sm text-destructive" error={diff.error} />}
             {diff.data !== undefined && (
                 <Diff
                     before={firstIsOlder ? diff.data.fromYaml : diff.data.toYaml}

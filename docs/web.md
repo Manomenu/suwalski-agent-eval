@@ -23,8 +23,9 @@ The frontend is React 19 and Vite on the shared kit [`@maniumek/suwfrontkit`](ht
   fails — and a small status shows where it stands (saving / saved / offline), instead of a
   spinner over the form. A conflict (409) is shown to the user, never silently overwritten.
 - **Errors reach the user in their language.** The kit's `dataOf` turns every failed response
-  into an `ApiError` with the server's `detail`; a validation error (422) maps onto the fields
-  it belongs to. No raw stack traces, no silent `catch`.
+  into an `ApiError`; a refusal with mistakes is shown by its title and the kit's `MistakeList`
+  (each mistake with where it is, what is wrong and its fix), any other failure by its `detail`.
+  No raw stack traces, no silent `catch`.
 - **The kit first.** Components from `@maniumek/suwfrontkit`, layout and spacing with Tailwind
   utilities, colours only from the kit's tokens (`text-muted-foreground`, `bg-success-light`,
   `var(--ctp-mauve)`). A global stylesheet (`src/app.css`) only for a grid or an effect no utility

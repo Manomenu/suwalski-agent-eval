@@ -4,6 +4,8 @@ public static class RunGroupRules
 {
     public const int MaxLength = 64;
 
+    public const string Fix = "Name the group in lowercase kebab-case, like 'sweep-2026-10-21'.";
+
     public static string? Problem(string? group) =>
         group is null || (group.Length <= MaxLength && Kebab.IsValid(group))
             ? null
