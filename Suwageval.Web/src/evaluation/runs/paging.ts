@@ -1,6 +1,10 @@
+import type { paths } from "../../api/openapi";
+
 export const RUNS_PAGE_SIZE = 20;
 
-export function runsPath(
+export type RunsQuery = NonNullable<paths["/eval/runs"]["get"]["parameters"]["query"]>;
+
+export function runsQuery(
     agent: string,
     page: number,
     pageSize: number,
@@ -9,12 +13,15 @@ export function runsPath(
     grouping: "None" | "Any" | null = null,
     tags: readonly string[] = [],
     dataVersions: readonly string[] = [],
-): string {
-    const query = new URLSearchParams({ agent, page: String(page), pageSize: String(pageSize) });
-    for (const id of versionIds) query.append("version", id);
-    if (group !== null) query.set("group", group);
-    if (grouping !== null) query.set("grouping", grouping);
-    for (const tag of tags) query.append("tag", tag);
-    for (const data of dataVersions) query.append("dataVersion", data);
-    return `/eval/runs?${query.toString()}`;
+): RunsQuery {
+    return {
+        agent,
+        page,
+        pageSize,
+        ...(versionIds.length > 0 && { version: [...versionIds] }),
+        ...(group !== null && { group }),
+        ...(grouping !== null && { grouping }),
+        ...(tags.length > 0 && { tag: [...tags] }),
+        ...(dataVersions.length > 0 && { dataVersion: [...dataVersions] }),
+    };
 }

@@ -30,17 +30,15 @@ test("the runs table hides group runs by default, and a group is archived, shown
         await page.setViewportSize({ width: 1280, height: 800 });
 
         const filter = page.getByRole("combobox", { name: "Group", exact: true });
-        await filter.click();
-        await page.getByRole("option", { name: "Any group", exact: true }).click();
+        await filter.selectOption({ label: "Any group" });
         await expect(groupedBox).toBeVisible();
         await expect(plainBox).toHaveCount(0);
         await expect(page).toHaveURL(/runs=any/);
-        await filter.click();
-        await page.getByRole("option", { name: "All runs", exact: true }).click();
+        await filter.selectOption({ label: "All runs" });
         await expect(plainBox).toBeVisible();
         await expect(groupedBox).toBeVisible();
         const clippedBadges = await page
-            .locator("td.no-wrap .mantine-Badge-label")
+            .locator("td.no-wrap [data-slot=badge]")
             .evaluateAll((labels) => labels.filter((label) => label.scrollWidth > label.clientWidth).map((label) => label.textContent));
         expect(clippedBadges).toEqual([]);
         await page.goto(`/agents/${name}/evaluation?group=${group}`);
@@ -55,10 +53,8 @@ test("the runs table hides group runs by default, and a group is archived, shown
         await expect(page.getByRole("checkbox", { name: `Select group ${group}`, exact: true })).toHaveCount(0);
         await expect(page.getByText("All groups are archived", { exact: false })).toBeVisible();
         const chip = page
-            .locator(".mantine-Group-root")
-            .filter({ has: archive })
-            .first()
-            .locator("label", { hasText: /^Archived$/ });
+            .getByRole("group", { name: "Run groups archive", exact: true })
+            .getByRole("button", { name: "Archived", exact: true });
         await chip.hover();
         await expect(page.getByRole("tooltip").getByText("Archived groups: hidden from the lists", { exact: false })).toBeVisible();
         await chip.click();
@@ -69,7 +65,7 @@ test("the runs table hides group runs by default, and a group is archived, shown
         await expect(open).toBeDisabled();
         await page.getByRole("checkbox", { name: `Select group ${group}`, exact: true }).check();
         await open.click();
-        const dialog = page.getByRole("dialog", { name: "Delete this run group?", exact: true });
+        const dialog = page.getByRole("alertdialog", { name: "Delete this run group?", exact: true });
         await expect(dialog.getByText("1 run, 1 sample and 0 verdicts will be deleted.", { exact: true })).toBeVisible();
         const confirm = dialog.getByRole("button", { name: "Delete", exact: true });
         await expect(confirm).toBeDisabled();

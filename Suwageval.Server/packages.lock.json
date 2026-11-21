@@ -8,17 +8,6 @@
         "resolved": "2.1.89",
         "contentHash": "1VjFE664wnxvuhlgP8kS4PeFFF4jqD3VkbIHW6Zlc52zuibgcz5ICnIHcQXlTp6pURpPNGLV0ZpNe5x9KePJnA=="
       },
-      "grate.postgresql": {
-        "type": "Direct",
-        "requested": "[2.1.6, )",
-        "resolved": "2.1.6",
-        "contentHash": "krNCVLocLaEKSWkeFVf6JA+MHhh0FnDwdVWQs2O9wvIU35wkyx8hNzUMfo/jJ3CCM6k0eP14e3E3QlADtXE4sg==",
-        "dependencies": {
-          "Dapper": "2.1.79",
-          "Npgsql": "10.0.3",
-          "grate.core": "2.1.6"
-        }
-      },
       "Microsoft.Agents.AI": {
         "type": "Direct",
         "requested": "[1.25.0, )",
@@ -32,15 +21,6 @@
           "Microsoft.Extensions.Compliance.Abstractions": "10.10.0",
           "Microsoft.Extensions.VectorData.Abstractions": "10.10.0",
           "Microsoft.ML.Tokenizers": "2.0.0"
-        }
-      },
-      "Microsoft.AspNetCore.OpenApi": {
-        "type": "Direct",
-        "requested": "[10.0.12, )",
-        "resolved": "10.0.12",
-        "contentHash": "7RnQ/UKn+kK3JDLmTpW+vVqNErWthGPAVAy1aIiBzv4ucQ6g9NFvOJUuT0PHcpvcJxGVxctMxj6t+NESWMrgHQ==",
-        "dependencies": {
-          "Microsoft.OpenApi": "[2.12.0, 3.0.0)"
         }
       },
       "Microsoft.Extensions.AI.OpenAI": {
@@ -59,17 +39,30 @@
         "resolved": "10.0.12",
         "contentHash": "Z/bU4AL/E4m0j5tduRjIuqZrVMK//wRAM+iq+UcQtjQuEMwBnMY8AQ+MvK4IQZAdKb5Zlk9PUglfsN53xOmU3A=="
       },
-      "Npgsql": {
+      "Suwbackkit.Postgres": {
         "type": "Direct",
-        "requested": "[10.0.3, )",
-        "resolved": "10.0.3",
-        "contentHash": "7nb5YzXuvWWJxB0J8DiyL3we+X4FOctZrt0fIBnucOIaIevFEEwGQVZKtiu9olXdlNAK1eNgqSral6r/jlhI4w=="
+        "requested": "[0.2.2, )",
+        "resolved": "0.2.2",
+        "contentHash": "CxG3PsqIIHBrHPtOkLs1Cprt0yF/zd4SWnUqWLZqgHUPlMzzQJ2dX+dQ7SrGdW2TgNHW+zSqJUGhtyp/DXpC8A==",
+        "dependencies": {
+          "Npgsql": "10.0.3",
+          "grate.postgresql": "2.1.6"
+        }
+      },
+      "Suwbackkit.Server": {
+        "type": "Direct",
+        "requested": "[0.2.2, )",
+        "resolved": "0.2.2",
+        "contentHash": "995N2AUbXskLpHIFU7qDueuqnyffQ2cQIOECPgWrAcypFbe5MjfehjatMTZfwQFoRsykYtbtarxOKSz7Bc3WMQ==",
+        "dependencies": {
+          "Microsoft.AspNetCore.OpenApi": "10.0.12"
+        }
       },
       "Suwgate.Architecture": {
         "type": "Direct",
-        "requested": "[0.3.0, )",
-        "resolved": "0.3.0",
-        "contentHash": "B5Tq71LjudDSA0XiGnOIdEdWNebf3nfiCbrp81dhHUeeJxwGmraqxFq5cLfr2NLmhYOnozwiR4tIH/yhN9B1Iw==",
+        "requested": "[0.4.0, )",
+        "resolved": "0.4.0",
+        "contentHash": "nYUYByAfD0Qv9rE4BZdvCEeRHQGkDELzUmnSAYtispDpLkoD1zZ/DUztbgQqtbvpGJ8oI3A7HlWg6XqmK+H8lA==",
         "dependencies": {
           "Microsoft.CodeAnalysis.BannedApiAnalyzers": "4.14.0",
           "Microsoft.CodeAnalysis.CSharp": "5.0.0",
@@ -101,6 +94,16 @@
           "Dapper": "2.1.79"
         }
       },
+      "grate.postgresql": {
+        "type": "Transitive",
+        "resolved": "2.1.6",
+        "contentHash": "krNCVLocLaEKSWkeFVf6JA+MHhh0FnDwdVWQs2O9wvIU35wkyx8hNzUMfo/jJ3CCM6k0eP14e3E3QlADtXE4sg==",
+        "dependencies": {
+          "Dapper": "2.1.79",
+          "Npgsql": "10.0.3",
+          "grate.core": "2.1.6"
+        }
+      },
       "JetBrains.Annotations": {
         "type": "Transitive",
         "resolved": "2026.2.0",
@@ -112,6 +115,14 @@
         "contentHash": "HuJ8dlKcippI6ZREvRhcc1h2EkK//EEyjJcZSjKN56aNedjUZrGrgF10i3BoMzo1wFceM1L0y6QbxVsWjgfP2g==",
         "dependencies": {
           "Microsoft.Extensions.AI.Abstractions": "10.10.1"
+        }
+      },
+      "Microsoft.AspNetCore.OpenApi": {
+        "type": "Transitive",
+        "resolved": "10.0.12",
+        "contentHash": "7RnQ/UKn+kK3JDLmTpW+vVqNErWthGPAVAy1aIiBzv4ucQ6g9NFvOJUuT0PHcpvcJxGVxctMxj6t+NESWMrgHQ==",
+        "dependencies": {
+          "Microsoft.OpenApi": "[2.12.0, 3.0.0)"
         }
       },
       "Microsoft.CodeAnalysis.Analyzers": {
@@ -198,6 +209,11 @@
         "type": "Transitive",
         "resolved": "13.0.4",
         "contentHash": "pdgNNMai3zv51W5aq268sujXUyx7SNdE2bj1wZcWjAQrKMFZV260lbqYop1d2GM67JI1huLRwxo9ZqnfF/lC6A=="
+      },
+      "Npgsql": {
+        "type": "Transitive",
+        "resolved": "10.0.3",
+        "contentHash": "7nb5YzXuvWWJxB0J8DiyL3we+X4FOctZrt0fIBnucOIaIevFEEwGQVZKtiu9olXdlNAK1eNgqSral6r/jlhI4w=="
       },
       "OpenAI": {
         "type": "Transitive",

@@ -23,11 +23,13 @@ public sealed class MonitoringChecksTests(TestDatabase database, ClassServer ser
 {
     private readonly WebApplicationFactory<Program> app = server.App;
 
+    private DateTimeOffset Now => server.Time.GetUtcNow();
+
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
 
     private HttpClient Client()
     {
-        _ = database.Pool;
+        _ = database.DataSource;
         return app.CreateClient();
     }
 
@@ -80,7 +82,7 @@ public sealed class MonitoringChecksTests(TestDatabase database, ClassServer ser
     private static Task<T> Get<T>(HttpClient client, string url) =>
         client.GetFromJsonAsync<T>(new Uri(url, UriKind.Relative), ContractJson.Options, Cancellation)!;
 
-    private static async Task SendAsync(HttpClient client, string agent, string conversation, string answer, string? tool = null)
+    private async Task SendAsync(HttpClient client, string agent, string conversation, string answer, string? tool = null)
     {
         var contract = AgentEndpointsTests.Version();
         List<ConversationItem> items = [new UserMessage { Text = "Hi" }];
@@ -111,7 +113,7 @@ public sealed class MonitoringChecksTests(TestDatabase database, ClassServer ser
                     {
                         Id = Guid.NewGuid(),
                         ConversationId = conversation,
-                        At = TimeProvider.System.GetUtcNow(),
+                        At = Now,
                         Items = items,
                     },
                 ],
@@ -124,8 +126,8 @@ public sealed class MonitoringChecksTests(TestDatabase database, ClassServer ser
 
     private async Task CloseAndCheckAsync(string agent)
     {
-        var agentId = (await new AgentStore(database.Pool).GetAsync(agent, Cancellation))!.Id;
-        await new ConversationStore(database.Pool).CloseIdleAsync(agentId, TimeProvider.System.GetUtcNow().AddMinutes(1), Cancellation);
+        var agentId = (await new AgentStore(database.DataSource).GetAsync(agent, Cancellation))!.Id;
+        await new ConversationStore(database.DataSource).CloseIdleAsync(agentId, DateTimeOffset.MaxValue.AddYears(-1), Cancellation);
         var checking = app.Services.GetRequiredService<CheckingStore>();
         var checker = app.Services.GetRequiredService<ConversationChecker>();
         foreach (var (conversationId, ofAgent) in await checking.UncheckedAsync(1000, Cancellation))
@@ -259,7 +261,7 @@ public sealed class MonitoringChecksTests(TestDatabase database, ClassServer ser
         Assert.Equal(new CheckRate(1, 2), checks.Single(check => check.Check.Key == "no-refund").Last7Days);
         Assert.Equal(new CheckRate(0, 0), checks.Single(check => check.Check.Key == "is-polite").Last30Days);
         var trend = await Get<MonitoringTrend>(client, $"/monitoring/agents/{agent}/trend?days=7");
-        var today = TimeProvider.System.GetUtcNow().UtcDateTime.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+        var today = Now.UtcDateTime.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
         Assert.Equal(new MonitoringDay(today, "production", 2, 2), Assert.Single(trend.Days));
         Assert.Equal(["production"], trend.Environments);
         var elsewhere = await Get<MonitoringCheck[]>(client, $"/monitoring/agents/{agent}/checks?environment=staging");
@@ -312,7 +314,7 @@ public sealed class MonitoringChecksTests(TestDatabase database, ClassServer ser
         var reopened = (await Get<ConversationList>(client, $"/monitoring/agents/{agent}/conversations")).Conversations[0];
         var stored = await app
             .Services.GetRequiredService<ConversationChecker>()
-            .CheckAsync(id, (await new AgentStore(database.Pool).GetAsync(agent, Cancellation))!.Id, Cancellation);
+            .CheckAsync(id, (await new AgentStore(database.DataSource).GetAsync(agent, Cancellation))!.Id, Cancellation);
 
         Assert.Equal(ConversationState.Open, reopened.State);
         Assert.Null(reopened.CheckedAt);

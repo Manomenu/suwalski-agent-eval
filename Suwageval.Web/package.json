@@ -9,20 +9,20 @@
         "build": "tsc --noEmit && vite build"
     },
     "dependencies": {
-        "@mantine/charts": "^9.6.3",
-        "@mantine/core": "^9.6.3",
-        "@mantine/hooks": "^9.6.3",
+        "@maniumek/suwfrontkit": "0.9.0",
         "@tabler/icons-react": "^3.49.0",
-        "diff": "^9.0.0",
+        "@tailwindcss/vite": "^4.3.5",
+        "@tanstack/react-query": "^5.108.1",
         "react": "^19.3.0",
         "react-dom": "^19.3.0",
         "recharts": "^3.10.1",
         "shiki": "^4.5.0",
+        "tailwindcss": "^4.3.5",
         "yaml": "^2.9.1"
     },
     "devDependencies": {
         "@eslint/js": "^10.0.1",
-        "@maniumek/suwgate": "0.5.2",
+        "@maniumek/suwgate": "0.7.0",
         "@playwright/test": "^1.63.0",
         "@types/node": "^26.6.4",
         "@types/react": "^19.3.0",

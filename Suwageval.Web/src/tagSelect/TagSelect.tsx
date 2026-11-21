@@ -1,9 +1,7 @@
-import { MultiSelect } from "@mantine/core";
+import { Label, MultiSelect } from "@maniumek/suwfrontkit";
+import { useId } from "react";
 
 import { tagOptions } from "./tagOptions";
-
-const FIELD_WIDTH = 480;
-const DROPDOWN_HEIGHT = 280;
 
 export function TagSelect({
     label,
@@ -18,21 +16,21 @@ export function TagSelect({
     selected: readonly string[];
     onChange: (tags: string[]) => void;
 }) {
+    const id = useId();
     const options = tagOptions(tags, selected);
     if (options.length === 0) return null;
     return (
-        <MultiSelect
-            label={label}
-            placeholder={selected.length === 0 ? placeholder : undefined}
-            data={options}
-            value={[...selected]}
-            onChange={onChange}
-            searchable
-            clearable
-            nothingFoundMessage="No such tag"
-            maxDropdownHeight={DROPDOWN_HEIGHT}
-            maw={FIELD_WIDTH}
-            w="100%"
-        />
+        <div className="flex w-full max-w-[480px] flex-col gap-1">
+            <Label htmlFor={id}>{label}</Label>
+            <MultiSelect
+                id={id}
+                label={label}
+                placeholder={placeholder}
+                emptyLabel="No such tag"
+                options={options.map((tag) => ({ value: tag, label: tag }))}
+                value={selected}
+                onValueChange={onChange}
+            />
+        </div>
     );
 }

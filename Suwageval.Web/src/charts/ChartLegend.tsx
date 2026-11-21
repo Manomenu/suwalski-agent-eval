@@ -1,16 +1,12 @@
-import { ColorSwatch, Group, Text } from "@mantine/core";
-
-import { swatchColor } from "./chartStyle";
-
 export function ChartLegend({ series }: { series: readonly { name: string; color: string }[] }) {
     return (
-        <Group gap="md" role="list" aria-label="Series">
+        <ul aria-label="Series" className="flex flex-wrap items-center gap-4">
             {series.map(({ name, color }) => (
-                <Group key={name} gap={6} wrap="nowrap" role="listitem">
-                    <ColorSwatch color={`var(--mantine-color-${swatchColor(color)}-5)`} size={10} withShadow={false} />
-                    <Text size="sm">{name}</Text>
-                </Group>
+                <li key={name} className="flex items-center gap-1.5 text-sm">
+                    <span aria-hidden="true" className="size-2.5 rounded-full" style={{ backgroundColor: color }} />
+                    {name}
+                </li>
             ))}
-        </Group>
+        </ul>
     );
 }

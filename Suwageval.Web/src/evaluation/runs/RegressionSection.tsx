@@ -1,4 +1,4 @@
-import { Anchor, Group, Paper, Stack, Text, Title } from "@mantine/core";
+import { Anchor, Button, Paper } from "@maniumek/suwfrontkit";
 import { Fragment, useState } from "react";
 
 import type { RunResults } from "./api";
@@ -25,25 +25,25 @@ function CheckLine({ item, runId }: { item: StatedCheck; runId: string }) {
     const failingSince = regression?.failingSince;
     return (
         <li className="regression-checks-row">
-            <Anchor href={`#${checkAnchor(item.scenarioKey, item.check.key)}`} fw={600} c="inherit" className="wrap-key">
+            <Anchor href={`#${checkAnchor(item.scenarioKey, item.check.key)}`} className="wrap-key font-semibold">
                 {item.scenarioKey} / {item.check.key}
             </Anchor>
             <div>
                 <CheckHistory check={item.check} />
             </div>
-            <Group gap="xs">
+            <div className="flex flex-wrap items-center gap-2.5">
                 {failedOnOtherData(item.check) && <DataChangedBadge />}
                 {failingSince != null && (
-                    <Text span c="dimmed">
+                    <span className="text-muted-foreground">
                         failing since <Anchor href={runHref(failingSince)}>run {shortId(failingSince)}</Anchor>
-                    </Text>
+                    </span>
                 )}
                 {compare !== null && (
                     <Anchor href={compare.href} className="no-print">
                         {compare.label}
                     </Anchor>
                 )}
-            </Group>
+            </div>
         </li>
     );
 }
@@ -52,24 +52,21 @@ function KnownFailures({ known, runId }: { known: readonly StatedCheck[]; runId:
     const [opened, setOpened] = useState(false);
     return (
         <>
-            <Group gap="xs" className="regression-checks-heading">
-                <StateBadge state="KnownFailure" variant="light">
-                    {stateLabel("KnownFailure")}
-                </StateBadge>
-                <Text span c="dimmed">
-                    ({known.length})
-                </Text>
-                <Anchor
-                    component="button"
-                    type="button"
+            <div className="regression-checks-heading flex flex-wrap items-center gap-2.5">
+                <StateBadge state="KnownFailure">{stateLabel("KnownFailure")}</StateBadge>
+                <span className="text-muted-foreground">({known.length})</span>
+                <Button
+                    variant="link"
                     size="sm"
                     className="no-print"
                     aria-expanded={opened}
-                    onClick={() => setOpened((open) => !open)}
+                    onClick={() => {
+                        setOpened((open) => !open);
+                    }}
                 >
                     {opened ? "hide" : "show"}
-                </Anchor>
-            </Group>
+                </Button>
+            </div>
             <ul className={opened ? "regression-checks-group" : "regression-checks-group folded-block"}>
                 {known.map((item) => (
                     <CheckLine key={`${item.scenarioKey}/${item.check.key}`} item={item} runId={runId} />
@@ -85,23 +82,17 @@ export function RegressionSection({ results }: { results: RunResults }) {
     const groups = groupChecks(statedChecks(results));
     const runId = results.run.id;
     return (
-        <Paper withBorder p="md" aria-label={comparedWithHeading(summary)}>
-            <Stack gap="sm">
-                <Title order={3}>{comparedWithHeading(summary)}</Title>
-                <Text c="dimmed" size="sm">
-                    {historyText(summary)}
-                </Text>
+        <Paper role="region" aria-label={comparedWithHeading(summary)}>
+            <div className="flex flex-col gap-3">
+                <h3 className="text-[22px] font-bold">{comparedWithHeading(summary)}</h3>
+                <p className="text-sm text-muted-foreground">{historyText(summary)}</p>
                 <div className="regression-checks">
                     {groups.groups.map((group) => (
                         <Fragment key={group.state}>
-                            <Group gap="xs" className="regression-checks-heading">
-                                <StateBadge state={group.state} variant="light">
-                                    {stateLabel(group.state)}
-                                </StateBadge>
-                                <Text span c="dimmed">
-                                    ({group.checks.length})
-                                </Text>
-                            </Group>
+                            <div className="regression-checks-heading flex flex-wrap items-center gap-2.5">
+                                <StateBadge state={group.state}>{stateLabel(group.state)}</StateBadge>
+                                <span className="text-muted-foreground">({group.checks.length})</span>
+                            </div>
                             <ul className="regression-checks-group">
                                 {group.checks.map((item) => (
                                     <CheckLine key={`${item.scenarioKey}/${item.check.key}`} item={item} runId={runId} />
@@ -111,7 +102,7 @@ export function RegressionSection({ results }: { results: RunResults }) {
                     ))}
                     {groups.known.length > 0 && <KnownFailures known={groups.known} runId={runId} />}
                 </div>
-            </Stack>
+            </div>
         </Paper>
     );
 }

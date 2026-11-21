@@ -1,15 +1,13 @@
-import { Button, Group, Loader, Table, Text, UnstyledButton } from "@mantine/core";
+import { Button, cn, Diff, Spinner } from "@maniumek/suwfrontkit";
 import { IconChevronDown, IconChevronRight } from "@tabler/icons-react";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
-import { useRequest } from "../../api/useRequest";
-import { LineDiffView } from "../../diff/LineDiffView";
-import { blocksFrom } from "../../diff/lineDiff";
 import { type Difference } from "./contractDiff";
-import type { VariantRun } from "./api";
+import { type VariantRun } from "./api";
+import { versionDiffQuery } from "../../versions/api";
 import { columnName } from "./variants";
 import { readWhatDiffersOpen, saveWhatDiffersOpen, whatDiffersTitle } from "./whatDiffersOpening";
-import { fetchVersionDiff } from "../../versions/api";
 
 const nameOf = (column: VariantRun | undefined) => (column === undefined ? "" : columnName(column));
 
@@ -43,44 +41,45 @@ export function WhatDiffers({
     const folded = open ? undefined : "folded-row";
 
     return (
-        <Table.Tbody>
-            <Table.Tr>
-                <Table.Th colSpan={colSpan} bg="var(--mantine-color-default)" title={WHAT_DIFFERS_HELP}>
-                    <UnstyledButton onClick={toggleSection} aria-expanded={open} className="no-print" fw={700} fz="sm">
-                        <Group gap={4} wrap="nowrap">
-                            {open ? <IconChevronDown size={16} aria-hidden /> : <IconChevronRight size={16} aria-hidden />}
-                            {title}
-                        </Group>
-                    </UnstyledButton>
-                    <Text span inherit className="print-only-inline">
-                        What differs
-                    </Text>
-                </Table.Th>
-            </Table.Tr>
+        <tbody>
+            <tr>
+                <th colSpan={colSpan} className="bg-secondary" title={WHAT_DIFFERS_HELP}>
+                    <button
+                        type="button"
+                        onClick={toggleSection}
+                        aria-expanded={open}
+                        className="no-print flex items-center gap-1 text-left"
+                    >
+                        {open ? <IconChevronDown size={16} aria-hidden /> : <IconChevronRight size={16} aria-hidden />}
+                        {title}
+                    </button>
+                    <span className="print-only-inline">What differs</span>
+                </th>
+            </tr>
             {versions.size === 1 && (
-                <Table.Tr className={folded}>
-                    <Table.Td colSpan={colSpan}>
-                        <Text size="sm" c="dimmed">
+                <tr className={folded}>
+                    <td colSpan={colSpan}>
+                        <p className="text-sm text-muted-foreground">
                             Every column ran the same agent version: its contract does not differ.
-                        </Text>
-                    </Table.Td>
-                </Table.Tr>
+                        </p>
+                    </td>
+                </tr>
             )}
             {versions.size > 1 && differences === null && (
-                <Table.Tr className={folded}>
-                    <Table.Td colSpan={colSpan}>
-                        <Loader size="xs" aria-label="Loading the contracts" />
-                    </Table.Td>
-                </Table.Tr>
+                <tr className={folded}>
+                    <td colSpan={colSpan}>
+                        <Spinner size="xs" label="Loading the contracts" />
+                    </td>
+                </tr>
             )}
             {versions.size > 1 && differences?.length === 0 && (
-                <Table.Tr className={folded}>
-                    <Table.Td colSpan={colSpan}>
-                        <Text size="sm" c="dimmed">
+                <tr className={folded}>
+                    <td colSpan={colSpan}>
+                        <p className="text-sm text-muted-foreground">
                             The versions differ in nothing this view lists (models, parameters, tools, prompts, other config, data version).
-                        </Text>
-                    </Table.Td>
-                </Table.Tr>
+                        </p>
+                    </td>
+                </tr>
             )}
             {differences?.map((difference) => (
                 <DifferenceRows
@@ -95,7 +94,7 @@ export function WhatDiffers({
                     colSpan={colSpan}
                 />
             ))}
-        </Table.Tbody>
+        </tbody>
     );
 }
 
@@ -121,18 +120,16 @@ function DifferenceRows({
     const changed = difference.isPrompt ? difference.cells.flatMap((cell, column) => (cell.changed ? [column] : [])) : [];
     return (
         <>
-            <Table.Tr className={folded ? "folded-row" : undefined}>
-                <Table.Td fw={500} className="wrap-key">
-                    {difference.label}
-                </Table.Td>
+            <tr className={folded ? "folded-row" : undefined}>
+                <td className="wrap-key font-medium">{difference.label}</td>
                 {difference.cells.map((cell, column) => (
-                    <Table.Td key={columns[column]?.run.id} className="wrap-key">
+                    <td key={columns[column]?.run.id} className="wrap-key">
                         {difference.isPrompt && cell.changed ? (
                             <>
                                 <Button
                                     className="no-print"
-                                    size="compact-xs"
-                                    variant="light"
+                                    size="xs"
+                                    variant="outline"
                                     aria-expanded={openDiffs.includes(column)}
                                     aria-label={`Prompt changed in ${nameOf(columns[column])}: ${openDiffs.includes(column) ? "hide" : "show"} the diff`}
                                     onClick={() => {
@@ -141,24 +138,22 @@ function DifferenceRows({
                                 >
                                     {cell.text ?? ""} · {openDiffs.includes(column) ? "hide diff" : "show diff"}
                                 </Button>
-                                <Text size="sm" fw={600} className="print-only-inline">
-                                    {cell.text ?? ""}
-                                </Text>
+                                <span className="print-only-inline font-semibold">{cell.text ?? ""}</span>
                             </>
                         ) : (
-                            <Text size="sm" fw={cell.changed ? 600 : 400} c={cell.text === null ? "dimmed" : "inherit"}>
+                            <span className={cn(cell.changed && "font-semibold", cell.text === null && "text-muted-foreground")}>
                                 {cell.text ?? "—"}
-                            </Text>
+                            </span>
                         )}
-                    </Table.Td>
+                    </td>
                 ))}
-            </Table.Tr>
+            </tr>
             {changed.map((column) => (
-                <Table.Tr key={`diff-${String(column)}`} className={!folded && openDiffs.includes(column) ? undefined : "folded-row"}>
-                    <Table.Td colSpan={colSpan}>
+                <tr key={`diff-${String(column)}`} className={!folded && openDiffs.includes(column) ? undefined : "folded-row"}>
+                    <td colSpan={colSpan}>
                         <PromptDiff agent={agent} columns={columns} reference={reference} column={column} />
-                    </Table.Td>
-                </Table.Tr>
+                    </td>
+                </tr>
             ))}
         </>
     );
@@ -177,22 +172,25 @@ function PromptDiff({
 }) {
     const first = columns[reference];
     const other = columns[column];
-    const state = useRequest(`${first?.run.agentVersionId ?? ""}/${other?.run.agentVersionId ?? ""}`, (signal) =>
-        fetchVersionDiff(agent, first?.run.agentVersionId ?? "", other?.run.agentVersionId ?? "", signal),
-    );
+    const diff = useQuery({
+        ...versionDiffQuery(agent, first?.run.agentVersionId ?? "", other?.run.agentVersionId ?? ""),
+        enabled: first !== undefined && other !== undefined,
+    });
     if (first === undefined || other === undefined) return null;
+    const firstIsOlder = diff.data?.from.id === first.run.agentVersionId;
     return (
         <>
-            <Text size="sm" fw={500} mb={4}>
+            <p className="mb-1 text-sm font-medium">
                 Contract diff: {columnName(first)} → {columnName(other)}
-            </Text>
-            {state.kind === "loading" && <Loader size="xs" aria-label="Loading the diff" />}
-            {state.kind === "error" && (
-                <Text size="sm" c="red">
-                    {state.error.message}
-                </Text>
+            </p>
+            {diff.isPending && <Spinner size="xs" label="Loading the diff" />}
+            {diff.isError && <p className="text-sm text-destructive">{diff.error.message}</p>}
+            {diff.data !== undefined && (
+                <Diff
+                    before={firstIsOlder ? diff.data.fromYaml : diff.data.toYaml}
+                    after={firstIsOlder ? diff.data.toYaml : diff.data.fromYaml}
+                />
             )}
-            {state.kind === "loaded" && <LineDiffView blocks={blocksFrom(state.value, first.run.agentVersionId)} />}
         </>
     );
 }

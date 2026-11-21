@@ -10,13 +10,13 @@ public sealed class UnstableStoreTests(TestDatabase database)
 {
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
 
-    private UnstableStore Unstable() => new(database.Pool);
+    private UnstableStore Unstable() => new(database.DataSource);
 
-    private RunStore Store() => new(database.Pool);
+    private RunStore Store() => new(database.DataSource);
 
     private Task<SeededAgent> NewAgentAsync(double threshold = 1.0) =>
         SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             "http://agent.test",
             [SeededAgent.Scenario("refund")],
             [SeededAgent.RefundAfterLookup("refund-called", "refund", threshold)]
@@ -32,8 +32,8 @@ public sealed class UnstableStoreTests(TestDatabase database)
     )
     {
         var id = await store.EnqueueAsync(agent.Id, agent.VersionId, [], agent.EndpointUrl, recheckOf, cancellationToken: Cancellation);
-        var scenario = await new ScenarioStore(database.Pool).GetAsync(agent.Id, "refund", Cancellation);
-        var check = Assert.Single(await new CheckStore(database.Pool).ListAsync(agent.Id, cancellationToken: Cancellation));
+        var scenario = await new ScenarioStore(database.DataSource).GetAsync(agent.Id, "refund", Cancellation);
+        var check = Assert.Single(await new CheckStore(database.DataSource).ListAsync(agent.Id, cancellationToken: Cancellation));
         for (var i = 0; i < samplePassed.Length; i++)
         {
             await store.AddSampleAsync(

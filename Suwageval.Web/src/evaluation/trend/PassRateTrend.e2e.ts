@@ -19,12 +19,12 @@ test("the trend charts appear with the second finished run and draw only the pic
         await runToEnd(request, { agent: name });
         await page.reload();
         await expect(page.getByText("The trend appears after two finished runs.", { exact: true })).toHaveCount(0);
-        const passRate = page.locator(".mantine-Paper-root").filter({ has: page.getByRole("heading", { name: "Pass rate", exact: true }) });
-        const turnTime = page.locator(".mantine-Paper-root").filter({ has: page.getByRole("heading", { name: "Turn time", exact: true }) });
+        const passRate = page.getByRole("region", { name: "Pass rate", exact: true });
+        const turnTime = page.getByRole("region", { name: "Turn time", exact: true });
         await expect(passRate.locator(".recharts-line")).toHaveCount(3);
         await expect(turnTime.locator(".recharts-line")).toHaveCount(3);
         await expect(turnTime.getByRole("radio", { name: "Median", exact: true })).toBeChecked();
-        await turnTime.getByText("p95", { exact: true }).click();
+        await turnTime.getByRole("radio", { name: "p95", exact: true }).click();
         await expect(turnTime.getByRole("radio", { name: "p95", exact: true })).toBeChecked();
 
         await page.getByRole("combobox", { name: "Tags in the charts", exact: true }).fill("smo");

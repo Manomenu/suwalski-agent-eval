@@ -132,7 +132,7 @@ public sealed class ConversationEndpointsTests(TestDatabase database, ClassServe
     public async Task The_versions_list_says_where_each_version_answered_and_which_answers_now()
     {
         var name = await MonitoredAgent();
-        var now = TimeProvider.System.GetUtcNow();
+        var now = classServer.Time.GetUtcNow();
         await Send(
             Batch(name, Contract(), withContract: true, Turn("old", "Long ago", now.AddDays(-40)), Turn("c-1", "Hi", now.AddHours(-2)))
         );
@@ -216,19 +216,11 @@ public sealed class ConversationEndpointsTests(TestDatabase database, ClassServe
     {
         var name = await MonitoredAgent(new MonitoringSettings { CloseAfter = "1m" });
         await Send(Batch(name, Contract(), withContract: true, Turn("c-4", "Hi", Noon)));
-        var store = new ConversationStore(database.Pool);
-        var agent = (await new AgentStore(database.Pool).GetAsync(name, TestContext.Current.CancellationToken))!;
+        var store = new ConversationStore(database.DataSource);
+        var agent = (await new AgentStore(database.DataSource).GetAsync(name, TestContext.Current.CancellationToken))!;
 
-        var notYet = await store.CloseIdleAsync(
-            agent.Id,
-            TimeProvider.System.GetUtcNow().AddMinutes(-1),
-            TestContext.Current.CancellationToken
-        );
-        var closed = await store.CloseIdleAsync(
-            agent.Id,
-            TimeProvider.System.GetUtcNow().AddMinutes(1),
-            TestContext.Current.CancellationToken
-        );
+        var notYet = await store.CloseIdleAsync(agent.Id, DateTimeOffset.UnixEpoch, TestContext.Current.CancellationToken);
+        var closed = await store.CloseIdleAsync(agent.Id, DateTimeOffset.MaxValue.AddYears(-1), TestContext.Current.CancellationToken);
         var whenClosed = (
             await TestServer.Read<ConversationList>(await server.Get($"/monitoring/agents/{name}/conversations?state=Closed"))
         ).Conversations;

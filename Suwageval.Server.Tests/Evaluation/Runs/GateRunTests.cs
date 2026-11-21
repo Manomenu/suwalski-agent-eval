@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Time.Testing;
 using Suwageval.AgentSdk.Conversations;
 using Suwageval.Contracts.Runs;
 using Suwageval.Contracts.Scenarios;
@@ -37,7 +38,7 @@ public sealed class GateRunTests(TestDatabase database)
     )]
     private async Task<RunResults> GateAsync(SeededAgent agent, int? agentRetryLimit = 5, int parallel = 2)
     {
-        var store = new RunStore(database.Pool);
+        var store = new RunStore(database.DataSource);
         await store.EnqueueAsync(
             agent.Id,
             agent.VersionId,
@@ -49,10 +50,10 @@ public sealed class GateRunTests(TestDatabase database)
         var run = await store.ClaimNextAsync(agent.Id, Cancellation) ?? throw new InvalidOperationException("nothing was queued");
         var executor = new RunExecutor(
             store,
-            new ScenarioStore(database.Pool),
-            new CheckStore(database.Pool),
-            new AgentStore(database.Pool),
-            new AgentClient(new HttpClient { Timeout = TimeSpan.FromSeconds(10) }, TimeProvider.System),
+            new ScenarioStore(database.DataSource),
+            new CheckStore(database.DataSource),
+            new AgentStore(database.DataSource),
+            new AgentClient(new HttpClient { Timeout = TimeSpan.FromSeconds(10) }, new FakeTimeProvider()),
             RecordedModel.SimulatorAnswering("simulated-end.json"),
             RecordedModel.JudgeAnswering("passed.json"),
             RecordedModel.Answering("passed.json").ArgumentJudge(),
@@ -75,7 +76,7 @@ public sealed class GateRunTests(TestDatabase database)
     {
         await using var fake = await RefundingOnAsync(2);
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [Guarded("refund", ExampleCriteria.Refunds1), SeededAgent.Scenario("not-guarded", samples: 1)],
             [SeededAgent.RefundAfterLookup("refund-called", "refund"), SeededAgent.RefundAfterLookup("other-called", "not-guarded")]
@@ -108,7 +109,7 @@ public sealed class GateRunTests(TestDatabase database)
     {
         await using var fake = await RefundingOnAsync();
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [Guarded("own-limit", ExampleCriteria.Refunds2, retryLimit: 2)],
             [SeededAgent.RefundAfterLookup("refund-called", "own-limit")]
@@ -137,7 +138,7 @@ public sealed class GateRunTests(TestDatabase database)
     {
         await using var fake = await RefundingOnAsync();
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [Guarded("agent-limit", ExampleCriteria.Refunds3)],
             [SeededAgent.RefundAfterLookup("refund-called", "agent-limit")]
@@ -155,7 +156,7 @@ public sealed class GateRunTests(TestDatabase database)
     {
         await using var fake = await RefundingOnAsync();
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [Guarded("a-fails", ExampleCriteria.Refunds1, retryLimit: 1), Guarded("b-never-runs", ExampleCriteria.Refunds2)],
             [SeededAgent.RefundAfterLookup("a-called", "a-fails"), SeededAgent.RefundAfterLookup("b-called", "b-never-runs")]
@@ -177,13 +178,13 @@ public sealed class GateRunTests(TestDatabase database)
     {
         await using var fake = await RefundingOnAsync(1);
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [Guarded("refund", ExampleCriteria.Refunds1)],
             [SeededAgent.RefundAfterLookup("refund-called", "refund")]
         );
         await GateAsync(agent);
-        var store = new RunStore(database.Pool);
+        var store = new RunStore(database.DataSource);
 
         foreach (var grouping in Enum.GetValues<RunGrouping>())
         {
@@ -191,7 +192,7 @@ public sealed class GateRunTests(TestDatabase database)
             Assert.Equal(0, await store.CountAsync(agent.Id, [], grouping: grouping, cancellationToken: Cancellation));
         }
         Assert.Empty(EffectiveRuns.Pick(await store.ListAsync(agent.Id, Cancellation), 10));
-        Assert.Empty(await new Server.Agents.Versions.VersionStore(database.Pool).RunCountsAsync(agent.Id, Cancellation));
+        Assert.Empty(await new Server.Agents.Versions.VersionStore(database.DataSource).RunCountsAsync(agent.Id, Cancellation));
     }
 
     [Fact]
@@ -200,7 +201,7 @@ public sealed class GateRunTests(TestDatabase database)
     {
         await using var fake = await RefundingOnAsync(1, 2, 3);
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [Guarded("refund", ExampleCriteria.Refunds1), SeededAgent.Scenario("plain", samples: 1)],
             [SeededAgent.RefundAfterLookup("refund-called", "refund")]

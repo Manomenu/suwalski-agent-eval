@@ -1,11 +1,10 @@
-import { Box, Code, Text } from "@mantine/core";
 import { useEffect, useState } from "react";
 
-import { hangingIndents } from "../../diff/hangingIndent";
+import { hangingIndents } from "./hangingIndent";
 import { DEFINITION_THEME, loadHighlighter } from "./highlighter";
 
-const PRE_STYLE =
-    "margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font-family:var(--mantine-font-family-monospace);padding:var(--mantine-spacing-sm);border-radius:var(--mantine-radius-sm);font-size:var(--mantine-font-size-sm)";
+const PRE_STYLE = "margin:0;white-space:pre-wrap;overflow-wrap:anywhere";
+const PRE_CLASS = "rounded-md p-3 font-mono text-sm";
 
 export function HighlightedYaml({ yaml }: { yaml: string }) {
     const [highlighted, setHighlighted] = useState<{ yaml: string; html: string } | null>(null);
@@ -26,6 +25,7 @@ export function HighlightedYaml({ yaml }: { yaml: string }) {
                             {
                                 pre(node) {
                                     node.properties.style = `${String(node.properties.style)};${PRE_STYLE}`;
+                                    node.properties["class"] = `${String(node.properties["class"])} ${PRE_CLASS}`;
                                 },
                                 code(node) {
                                     node.children = node.children.filter((child) => child.type !== "text");
@@ -51,16 +51,12 @@ export function HighlightedYaml({ yaml }: { yaml: string }) {
     if (highlighted?.yaml !== yaml) {
         return (
             <>
-                <Code block style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
+                <pre className="overflow-x-auto rounded-md bg-secondary p-3 font-mono text-[13px] whitespace-pre-wrap wrap-anywhere">
                     {yaml}
-                </Code>
-                {failed && (
-                    <Text size="xs" c="dimmed" mt="xs">
-                        Syntax highlighting could not be loaded.
-                    </Text>
-                )}
+                </pre>
+                {failed && <p className="mt-2.5 text-xs text-muted-foreground">Syntax highlighting could not be loaded.</p>}
             </>
         );
     }
-    return <Box dangerouslySetInnerHTML={{ __html: highlighted.html }} />;
+    return <div dangerouslySetInnerHTML={{ __html: highlighted.html }} />;
 }

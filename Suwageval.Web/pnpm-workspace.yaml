@@ -3,5 +3,6 @@ allowBuilds:
   unrs-resolver: false
 minimumReleaseAgeExclude:
   - "@maniumek/suwgate"
+  - "@maniumek/suwfrontkit"
 onlyBuiltDependencies:
   - esbuild

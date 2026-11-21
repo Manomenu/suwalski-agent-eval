@@ -16,13 +16,11 @@ test("AC-system-tools-7: a version shows the tools of the system's code apart fr
 
         await page.goto(`/agents/${name}/versions/${run.agentVersionId}`);
 
-        const systemTools = page.locator(".mantine-Paper-root", {
-            has: page.getByRole("heading", { name: "Tools of the system's code", exact: true }),
-        });
+        const systemTools = page.getByRole("region", { name: "Tools of the system's code", exact: true });
         await expect(systemTools.getByText("No agent owns these", { exact: false })).toBeVisible();
         await expect(systemTools.getByText("book_visit", { exact: true })).toBeVisible();
         await expect(systemTools.getByText("lookup", { exact: true })).toHaveCount(0);
-        const agent = page.locator(".mantine-Paper-root", { has: page.getByRole("heading", { name: "Agent main", exact: true }) });
+        const agent = page.getByRole("region", { name: "Agent main", exact: true });
         await expect(agent.getByText("lookup", { exact: true })).toBeVisible();
         await expect(agent.getByText("book_visit", { exact: true })).toHaveCount(0);
     } finally {

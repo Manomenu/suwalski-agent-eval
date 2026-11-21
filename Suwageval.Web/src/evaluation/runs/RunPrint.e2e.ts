@@ -86,7 +86,7 @@ test("the filters stay applied on paper and are named in the line, without the H
 }) => {
     await page.setViewportSize(PAPER);
     await page.goto(`/runs/${runId}?tag=billing&hide=passed`);
-    await expect(page.getByRole("checkbox", { name: "Hide passed checks", exact: true })).toBeChecked();
+    await expect(page.getByRole("button", { name: "Hide passed checks", exact: true })).toHaveAttribute("aria-pressed", "true");
     await page.emulateMedia({ media: "print" });
 
     await expect(
@@ -94,7 +94,7 @@ test("the filters stay applied on paper and are named in the line, without the H
     ).toBeVisible();
     await expect(page.getByRole("heading", { name: "refunds", exact: true })).toHaveCount(0);
     await expect(page.getByRole("heading", { name: "greets", exact: true })).toHaveCount(0);
-    await expect(page.locator("label", { hasText: /^Hide passed checks$/ })).toBeHidden();
+    await expect(page.getByRole("button", { name: "Hide passed checks", exact: true })).toBeHidden();
     await expect(page.getByRole("textbox", { name: "Filter by tag" })).toBeHidden();
     await expect(page.getByText("Hidden:", { exact: false })).toBeHidden();
     expect(await visibleOnPaperButNotWanted(page)).toEqual([]);
@@ -110,7 +110,7 @@ test("print=1 in the address opens the print dialog once, when the page is shown
     await page.goto(`/runs/${runId}?tag=smoke&print=1`);
     await expect.poll(() => printedCount(page)).toBe(1);
     await expect(page).toHaveURL(new RegExp(`/runs/${runId}\\?tag=smoke$`));
-    await page.locator("label", { hasText: /^Hide passed checks$/ }).click();
+    await page.getByRole("button", { name: "Hide passed checks", exact: true }).click();
     await expect(page).toHaveURL(/hide=passed/);
     expect(await printedCount(page)).toBe(1);
 });

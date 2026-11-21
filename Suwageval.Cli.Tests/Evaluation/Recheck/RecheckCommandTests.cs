@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Time.Testing;
 using Suwageval.AgentSdk;
 using Suwageval.Cli.Tests.Evaluation.Run;
 using Suwageval.Contracts.Runs;
@@ -42,7 +43,7 @@ public sealed class RecheckCommandTests
             SamplesDone = 1,
             ChecksPassed = 0,
             ChecksFailed = 0,
-            CreatedAt = TimeProvider.System.GetUtcNow().UtcDateTime,
+            CreatedAt = new FakeTimeProvider().GetUtcNow().UtcDateTime,
         };
 
     private static readonly RecheckPlan Possible = new()

@@ -16,7 +16,7 @@ import {
     searchWithBaseline,
     timeDeltaText,
     toggledBaseline,
-    trendColor,
+    trendClass,
 } from "./compare";
 import type { VariantCell, VariantCheck } from "./api";
 
@@ -46,13 +46,13 @@ describe("searchWithBaseline", () => {
     });
 });
 
-describe("trendColor", () => {
+describe("trendClass", () => {
     it("colours better green and worse red, nothing else", () => {
-        expect([trendColor("Better"), trendColor("Worse"), trendColor("Same"), trendColor(undefined)]).toEqual([
-            "green",
-            "red",
-            "dimmed",
-            "dimmed",
+        expect([trendClass("Better"), trendClass("Worse"), trendClass("Same"), trendClass(undefined)]).toEqual([
+            "text-success",
+            "text-destructive",
+            "text-muted-foreground",
+            "text-muted-foreground",
         ]);
     });
 });
@@ -143,8 +143,8 @@ describe("changeBackground / changeOfTrend", () => {
     it("colours only better and worse", () => {
         expect(changeBackground("better")).toBe(BETTER_BACKGROUND);
         expect(changeBackground("worse")).toBe(WORSE_BACKGROUND);
-        expect(changeBackground("same")).toBe("transparent");
-        expect(changeBackground(null)).toBe("transparent");
+        expect(changeBackground("same")).toBe("");
+        expect(changeBackground(null)).toBe("");
         expect(changeOfTrend("Better")).toBe("better");
         expect(changeOfTrend("Same")).toBe("same");
         expect(changeOfTrend(null)).toBeNull();

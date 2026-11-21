@@ -20,7 +20,7 @@ public sealed class VersionDeletionTests(TestDatabase database, ClassServer clas
 
     private async Task<(int Runs, int Samples, int Verdicts)> RowsOfAsync(params Guid[] runs)
     {
-        await using var connection = await database.Pool.OpenAsync(Cancellation);
+        await using var connection = await database.DataSource.OpenConnectionAsync(Cancellation);
         return await connection.QuerySingleAsync<(int, int, int)>(
             """
             SELECT (SELECT count(*) FROM runs WHERE id = ANY(@runs))::int,
@@ -33,7 +33,7 @@ public sealed class VersionDeletionTests(TestDatabase database, ClassServer clas
 
     private async Task<bool> VersionExistsAsync(Guid versionId)
     {
-        await using var connection = await database.Pool.OpenAsync(Cancellation);
+        await using var connection = await database.DataSource.OpenConnectionAsync(Cancellation);
         return await connection.QuerySingleAsync<bool>(
             "SELECT EXISTS (SELECT 1 FROM agent_versions WHERE id = @versionId)",
             new { versionId }
@@ -96,7 +96,7 @@ public sealed class VersionDeletionTests(TestDatabase database, ClassServer clas
     public async Task A_version_with_a_queued_or_running_run_is_refused_with_409_and_kept(bool running)
     {
         var agent = await DeletionTests.SeedAsync(database);
-        var store = new RunStore(database.Pool);
+        var store = new RunStore(database.DataSource);
         var run = await store.EnqueueAsync(agent.Id, agent.VersionId, [], agent.EndpointUrl, cancellationToken: Cancellation);
         if (running)
         {

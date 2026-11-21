@@ -1,20 +1,21 @@
-import { useRequest } from "../../api/useRequest";
-import { fetchAgentErrors, type AgentError } from "./api";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+
+import { agentErrorListQuery, type AgentError } from "./api";
 
 export function useAgentErrors(
     agent: string | null,
     versionIds: readonly string[],
     dataVersions: readonly string[],
 ): { errors: AgentError[]; arrived: boolean } {
-    const request = useRequest(
-        agent === null ? null : JSON.stringify([agent, versionIds, dataVersions]),
-        (signal) => fetchAgentErrors(agent ?? "", versionIds, dataVersions, signal),
-        { fallback: NONE },
-    );
+    const query = useQuery({
+        ...agentErrorListQuery(agent ?? "", versionIds, dataVersions),
+        enabled: agent !== null,
+        placeholderData: keepPreviousData,
+    });
 
     return {
-        errors: request.kind === "loaded" && !request.pending ? request.value : NONE,
-        arrived: request.kind !== "loading" || !request.pending,
+        errors: query.isPlaceholderData || query.isError ? NONE : (query.data ?? NONE),
+        arrived: agent === null || !query.isPending,
     };
 }
 

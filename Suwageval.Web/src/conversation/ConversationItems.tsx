@@ -1,4 +1,4 @@
-import { Badge, Code, Paper, Stack } from "@mantine/core";
+import { Badge, Paper } from "@maniumek/suwfrontkit";
 
 import { itemBody, itemKey, itemTitle, type ConversationItem } from "./items";
 
@@ -12,21 +12,21 @@ export function ConversationItems({
     simulatedUser?: boolean;
 }) {
     return (
-        <Stack gap="xs">
+        <div className="flex flex-col gap-2.5">
             {items.map((item, index) => {
                 const marked = highlight.has(itemKey(item));
                 const simulated = simulatedUser && item.kind === "UserMessage";
                 return (
-                    <Paper key={index} withBorder p="xs" style={marked ? { borderColor: "var(--mantine-color-red-6)" } : undefined}>
-                        <Badge variant="light" color={marked ? "red" : simulated ? "blue" : "gray"} mb={4}>
+                    <Paper key={index} className={`p-2.5${marked ? " border-destructive" : ""}`}>
+                        <Badge variant={marked ? "danger" : simulated ? "info" : "neutral"} className="mb-1">
                             {simulated ? "simulated user" : itemTitle(item)}
                             {marked ? " · evidence" : ""}
                         </Badge>
-                        <Code block>{itemBody(item)}</Code>
+                        <pre className="overflow-x-auto rounded-md bg-secondary p-3 font-mono text-[13px]">{itemBody(item)}</pre>
                     </Paper>
                 );
             })}
-        </Stack>
+        </div>
     );
 }
 

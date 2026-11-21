@@ -35,35 +35,35 @@ test("versions are archived, shown again on request, restored and deleted with t
 
         await page.goto(`/agents/${name}/evaluation`);
         await expect(runRows).toHaveCount(1);
-        const chip = page.locator("label", { hasText: /^Archived$/ });
+        const chip = page.getByRole("button", { name: "Archived", exact: true });
         await chip.hover();
         await expect(page.getByRole("tooltip").getByText("Runs of archived versions: hidden by default", { exact: false })).toBeVisible();
         await chip.click();
-        await expect(page.getByRole("checkbox", { name: "Archived", exact: true })).toBeChecked();
+        await expect(chip).toHaveAttribute("aria-pressed", "true");
         await expect(page).toHaveURL(/archived=1/);
         await expect(runRows).toHaveCount(2);
 
         await page.goto(`/agents/${name}`);
-        await page.locator("label", { hasText: /^Archived$/ }).click();
+        await page.getByRole("button", { name: "Archived", exact: true }).click();
         await expect(garbageVersion).toBeVisible();
         await expect(page.getByRole("cell").getByText("Archived", { exact: true })).toBeVisible();
 
         await garbageVersion.check();
         await page.getByRole("button", { name: "Unarchive selected", exact: true }).click();
         await expect(page.getByRole("cell").getByText("Archived", { exact: true })).toHaveCount(0);
-        await page.locator("label", { hasText: /^Archived$/ }).click();
+        await page.getByRole("button", { name: "Archived", exact: true }).click();
         await expect(garbageVersion).toBeVisible();
 
         await garbageVersion.check();
         await archive.click();
         await expect(garbageVersion).toHaveCount(0);
-        await page.locator("label", { hasText: /^Archived$/ }).click();
+        await page.getByRole("button", { name: "Archived", exact: true }).click();
         const open = page.getByRole("button", { name: "Delete", exact: true });
         await expect(open).toBeDisabled();
         await garbageVersion.check();
         await open.click();
 
-        const dialog = page.getByRole("dialog", { name: "Delete this version?", exact: true });
+        const dialog = page.getByRole("alertdialog", { name: "Delete this version?", exact: true });
         await expect(dialog.getByText("1 run, 1 sample and 0 verdicts will be deleted.", { exact: true })).toBeVisible();
         const confirm = dialog.getByRole("button", { name: "Delete", exact: true });
         await expect(confirm).toBeDisabled();
@@ -104,7 +104,7 @@ test("a version linked from the Evaluation page opens the Versions list narrowed
         await page.getByRole("link", { name: "e2e-main", exact: true }).click();
 
         await expect(page).toHaveURL(/\/versions\?usage=evaluation&version=[0-9a-f-]{36}$/);
-        await expect(page.getByRole("checkbox", { name: "Evaluation", exact: true })).toBeChecked();
+        await expect(page.getByRole("button", { name: "Evaluation", exact: true })).toHaveAttribute("aria-pressed", "true");
         await expect(page.getByText(/^version [0-9a-f]{8}$/)).toBeVisible();
         await expect(rows).toHaveCount(1);
         await expect(mainVersion).toBeVisible();
@@ -119,8 +119,8 @@ test("a version linked from the Evaluation page opens the Versions list narrowed
         await expect(mainVersion).toBeVisible();
         await expect(sweepVersion).toHaveCount(0);
 
-        await page.getByText("Groups", { exact: true }).click();
-        await expect(page.getByRole("checkbox", { name: "Groups", exact: true })).toBeChecked();
+        await page.getByRole("button", { name: "Groups", exact: true }).click();
+        await expect(page.getByRole("button", { name: "Groups", exact: true })).toHaveAttribute("aria-pressed", "true");
         await expect(sweepVersion).toBeVisible();
         await expect(mainVersion).toBeVisible();
         expect(page.url()).toContain("usage=evaluation,groups");

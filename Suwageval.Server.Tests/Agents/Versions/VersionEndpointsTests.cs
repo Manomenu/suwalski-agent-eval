@@ -110,6 +110,8 @@ public sealed class VersionEndpointsTests(TestDatabase database, ClassServer cla
         Assert.Contains(rows, row => row is { Kind: DiffKind.Removed, Text: "  config: Be helpful." });
         Assert.Contains(rows, row => row is { Kind: DiffKind.Added, Text: "    Be brief." });
         Assert.Contains(rows, row => row is { Kind: DiffKind.Same, Text: "- name: main", FromLine: 2, ToLine: 2 });
+        Assert.Contains("  config: Be helpful.", diff.FromYaml, StringComparison.Ordinal);
+        Assert.Contains("    Be brief.", diff.ToYaml, StringComparison.Ordinal);
     }
 
     [Fact]

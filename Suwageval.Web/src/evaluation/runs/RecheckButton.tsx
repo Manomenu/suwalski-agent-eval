@@ -1,25 +1,21 @@
-import { Accordion, Alert, Button, Group, List, Loader, Modal, Stack, Text, Tooltip } from "@mantine/core";
+import { Alert, Button, Diff, Dialog, Spinner, Tooltip } from "@maniumek/suwfrontkit";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
-import { useRequest } from "../../api/useRequest";
 import { definitionYaml } from "../checks/definition";
 import { ModelJudgedIcon } from "../../verdict/ModelJudgedIcon";
-import { diffBlocks, diffRows } from "../../diff/lineDiff";
-import { LineDiffView } from "../../diff/LineDiffView";
-import { fetchRecheckPlan, recheck, type ChangedCheck, type RunSummary } from "./api";
+import { recheck, recheckPlanQuery, type ChangedCheck, type RunSummary } from "./api";
 import { changesByScenario, judgedNote, planHeadline, recheckDisabledReason, recheckTooltip } from "./recheck";
 import { runHref } from "../../routes/links";
-
-const RECHECK_TOOLTIP_WIDTH = 340;
 
 export function RecheckButton({ run }: { run: Pick<RunSummary, "id" | "status"> }) {
     const [asking, setAsking] = useState(false);
     const disabledReason = recheckDisabledReason(run.status);
     return (
         <>
-            <Tooltip label={recheckTooltip(run.status)} multiline w={RECHECK_TOOLTIP_WIDTH}>
+            <Tooltip label={recheckTooltip(run.status)}>
                 <Button
-                    variant="default"
+                    variant="outline"
                     disabled={disabledReason !== null}
                     onClick={() => {
                         setAsking(true);
@@ -28,27 +24,20 @@ export function RecheckButton({ run }: { run: Pick<RunSummary, "id" | "status"> 
                     Re-check
                 </Button>
             </Tooltip>
-            <Modal
-                opened={asking}
-                onClose={() => {
-                    setAsking(false);
-                }}
-                title="Re-check this run?"
-                size="lg"
-            >
+            {asking && (
                 <RecheckDialog
                     runId={run.id}
                     onClose={() => {
                         setAsking(false);
                     }}
                 />
-            </Modal>
+            )}
         </>
     );
 }
 
 function RecheckDialog({ runId, onClose }: { runId: string; onClose: () => void }) {
-    const state = useRequest(runId, (signal) => fetchRecheckPlan(runId, signal));
+    const state = useQuery({ ...recheckPlanQuery(runId), gcTime: 0 });
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -66,125 +55,129 @@ function RecheckDialog({ runId, onClose }: { runId: string; onClose: () => void 
         );
     };
 
-    if (state.kind === "loading") {
+    const close = (
+        <Button variant="outline" disabled={busy} onClick={onClose}>
+            Close
+        </Button>
+    );
+    const onOpenChange = (open: boolean) => {
+        if (!open && !busy) onClose();
+    };
+
+    if (state.isPending) {
         return (
-            <Stack align="center" p="md">
-                <Loader aria-label="Loading the re-check plan" />
-            </Stack>
+            <Dialog open onOpenChange={onOpenChange} title="Re-check this run?" width="wide">
+                <div className="flex justify-center p-4">
+                    <Spinner label="Loading the re-check plan" />
+                </div>
+            </Dialog>
         );
     }
-    if (state.kind === "error") {
+    if (state.isError) {
         return (
-            <Stack>
-                <Alert color="red" title="The plan could not be loaded">
-                    {state.error.message}
+            <Dialog open onOpenChange={onOpenChange} title="Re-check this run?" width="wide" actions={close}>
+                <Alert variant="destructive">
+                    <p className="font-semibold">The plan could not be loaded</p>
+                    <p>{state.error.message}</p>
                 </Alert>
-                <CloseRow onClose={onClose} />
-            </Stack>
+            </Dialog>
         );
     }
 
-    const plan = state.value;
+    const plan = state.data;
     const judged = judgedNote(plan);
     return (
-        <Stack>
-            {plan.possible ? (
+        <Dialog
+            open
+            onOpenChange={onOpenChange}
+            title="Re-check this run?"
+            width="wide"
+            actions={
                 <>
-                    <Text>{planHeadline(plan)}</Text>
-                    {judged && <Text fw={500}>{judged}</Text>}
-                    <Text size="sm" c="dimmed">
-                        The agent is not called: the answers stored in this run are judged again, and the turn times stay the run's.
-                    </Text>
+                    {close}
+                    {plan.possible && (
+                        <Button onClick={start} disabled={busy}>
+                            {busy ? "Starting…" : "Start re-check"}
+                        </Button>
+                    )}
                 </>
-            ) : (
-                <Alert color="yellow" title="Nothing to re-check">
-                    {plan.reason}
-                </Alert>
-            )}
-            {plan.mismatches.length > 0 && (
-                <List size="sm" aria-label="Mismatches">
-                    {plan.mismatches.map((mismatch) => (
-                        <List.Item key={mismatch}>{mismatch}</List.Item>
-                    ))}
-                </List>
-            )}
-            {changesByScenario(plan.changedChecks).map((group) => (
-                <Stack key={group.scenarioKey} gap={4}>
-                    <Text fw={600} className="wrap-key">
-                        {group.scenarioKey}
-                    </Text>
-                    {group.checks.map((check) => (
-                        <ChangedCheckRow key={check.checkKey} check={check} judgeModel={plan.judgeModel} />
-                    ))}
-                </Stack>
-            ))}
-            {plan.skippedScenarios.length > 0 && (
-                <Stack gap={4}>
-                    <Text fw={600}>Skipped scenarios</Text>
-                    <List size="sm">
-                        {plan.skippedScenarios.map((skipped) => (
-                            <List.Item key={skipped.key}>
-                                {skipped.key}: {skipped.reason}
-                            </List.Item>
-                        ))}
-                    </List>
-                </Stack>
-            )}
-            {error && (
-                <Alert color="red" title="The re-check could not be started">
-                    {error}
-                </Alert>
-            )}
-            <CloseRow onClose={onClose} busy={busy}>
-                {plan.possible && (
-                    <Button onClick={start} loading={busy} disabled={busy}>
-                        Start re-check
-                    </Button>
+            }
+        >
+            <div className="flex flex-col gap-4">
+                {plan.possible ? (
+                    <>
+                        <p>{planHeadline(plan)}</p>
+                        {judged && <p className="font-medium">{judged}</p>}
+                        <p className="text-sm text-muted-foreground">
+                            The agent is not called: the answers stored in this run are judged again, and the turn times stay the run's.
+                        </p>
+                    </>
+                ) : (
+                    <Alert variant="warning">
+                        <p className="font-semibold">Nothing to re-check</p>
+                        <p>{plan.reason}</p>
+                    </Alert>
                 )}
-            </CloseRow>
-        </Stack>
-    );
-}
-
-function CloseRow({ onClose, busy = false, children }: { onClose: () => void; busy?: boolean; children?: React.ReactNode }) {
-    return (
-        <Group justify="flex-end">
-            <Button variant="default" disabled={busy} onClick={onClose}>
-                Close
-            </Button>
-            {children}
-        </Group>
+                {plan.mismatches.length > 0 && (
+                    <ul className="list-disc pl-5 text-sm" aria-label="Mismatches">
+                        {plan.mismatches.map((mismatch) => (
+                            <li key={mismatch}>{mismatch}</li>
+                        ))}
+                    </ul>
+                )}
+                {changesByScenario(plan.changedChecks).map((group) => (
+                    <div key={group.scenarioKey} className="flex flex-col gap-1">
+                        <p className="wrap-key font-semibold">{group.scenarioKey}</p>
+                        {group.checks.map((check) => (
+                            <ChangedCheckRow key={check.checkKey} check={check} judgeModel={plan.judgeModel} />
+                        ))}
+                    </div>
+                ))}
+                {plan.skippedScenarios.length > 0 && (
+                    <div className="flex flex-col gap-1">
+                        <p className="font-semibold">Skipped scenarios</p>
+                        <ul className="list-disc pl-5 text-sm">
+                            {plan.skippedScenarios.map((skipped) => (
+                                <li key={skipped.key}>
+                                    {skipped.key}: {skipped.reason}
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
+                {error && (
+                    <Alert variant="destructive">
+                        <p className="font-semibold">The re-check could not be started</p>
+                        <p>{error}</p>
+                    </Alert>
+                )}
+            </div>
+        </Dialog>
     );
 }
 
 function ChangedCheckRow({ check, judgeModel }: { check: ChangedCheck; judgeModel: string | null | undefined }) {
     const judgedNow = check.afterJudgedByModel;
     return (
-        <Stack gap={4}>
-            <Group gap="xs">
-                <Text span className="wrap-key">
-                    {check.checkKey}
-                </Text>
-                <Text span c="dimmed" aria-label={`${check.checkKey} change`}>
+        <div className="flex flex-col gap-1">
+            <div className="flex flex-wrap items-center gap-2.5">
+                <span className="wrap-key">{check.checkKey}</span>
+                <span className="text-muted-foreground" aria-label={`${check.checkKey} change`}>
                     {check.change}
-                </Text>
+                </span>
                 {judgedNow && <ModelJudgedIcon model={judgeModel} />}
-            </Group>
-            <Accordion variant="contained">
-                <Accordion.Item value="change">
-                    <Accordion.Control aria-label={`Show change of ${check.checkKey}`}>Show change</Accordion.Control>
-                    <Accordion.Panel>
-                        <LineDiffView
-                            blocks={diffBlocks(
-                                diffRows(
-                                    check.before == null ? "" : definitionYaml(check.before),
-                                    check.after == null ? "" : definitionYaml(check.after),
-                                ),
-                            )}
-                        />
-                    </Accordion.Panel>
-                </Accordion.Item>
-            </Accordion>
-        </Stack>
+            </div>
+            <details className="rounded-md border border-border">
+                <summary className="cursor-pointer p-2.5" aria-label={`Show change of ${check.checkKey}`}>
+                    Show change
+                </summary>
+                <div className="border-t border-border p-2.5">
+                    <Diff
+                        before={check.before == null ? "" : definitionYaml(check.before)}
+                        after={check.after == null ? "" : definitionYaml(check.after)}
+                    />
+                </div>
+            </details>
+        </div>
     );
 }

@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Time.Testing;
 using Suwageval.AgentSdk.Conversations;
 using Suwageval.Contracts.Checks;
 using Suwageval.Server.Evaluation.Checks;
@@ -11,7 +12,7 @@ public sealed class SamplePlanTests
 
     private static (CheckRow Row, CheckInput Input) Check(string key, int? samples) =>
         (
-            new CheckRow(Guid.NewGuid(), Guid.NewGuid(), key, "s", 1, "{}", "hash", TimeProvider.System.GetUtcNow().UtcDateTime),
+            new CheckRow(Guid.NewGuid(), Guid.NewGuid(), key, "s", 1, "{}", "hash", new FakeTimeProvider().GetUtcNow().UtcDateTime),
             new TextCheck
             {
                 Key = key,

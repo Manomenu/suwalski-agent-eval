@@ -1,20 +1,6 @@
-import {
-    Alert,
-    Anchor,
-    Badge,
-    Button,
-    Checkbox,
-    Group,
-    Loader,
-    MultiSelect,
-    Paper,
-    Select,
-    Stack,
-    Table,
-    Text,
-    Title,
-} from "@mantine/core";
-import { lazy, Suspense, useState } from "react";
+import { Alert, Anchor, Badge, Button, formatDateTime, Label, MultiSelect, Paper, Select, Spinner, Table } from "@maniumek/suwfrontkit";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { lazy, Suspense, useId, useState, type ReactNode } from "react";
 
 import { ARCHIVED_RUNS_PARAM } from "../../archive/archivedParam";
 import { ToggleChip } from "../../toggle/ToggleChip";
@@ -25,11 +11,11 @@ import { RUNS_PAGE_SIZE } from "../runs/paging";
 import { useUnstableChecks } from "../unstable/useUnstableChecks";
 import { ChecksCount, SamplesCount } from "../runs/RunCounts";
 import { RUN_CHECKS_HELP, RUN_SAMPLES_HELP, runLabel, statusColor, statusLabel } from "../runs/results";
-import { fetchAgent, fetchTags, fetchVersions, type AgentVersion, type TagUsage } from "../../agents/api";
+import { agentKeys, agentQuery, tagsQuery, versionsQuery, type AgentDetail, type AgentVersion, type TagUsage } from "../../agents/api";
 import { ConfigurationSection } from "./ConfigurationSection";
 import { HeaderHelp } from "../../help/HeaderHelp";
 import { filterOfValue, filterOptions, filterValue } from "./groupFilter";
-import { Page } from "../../agents/Page";
+import { Page, type PageData } from "../../agents/Page";
 import { AreaOff } from "../../agents/AreaOff";
 import { areaOn } from "../../agents/features";
 import { RunGroupsSection } from "../groups/RunGroupsSection";
@@ -37,7 +23,6 @@ import { TagSelect } from "../../tagSelect/TagSelect";
 import { useTagFilter } from "../../tagFilter/useTagFilter";
 import { useGroupFilter } from "./useGroupFilter";
 import { offeredVersions, versionGroupingFor } from "./offeredVersions";
-import { useRequest } from "../../api/useRequest";
 import { useRuns } from "./useRuns";
 import {
     allowedVersionIds,
@@ -67,10 +52,10 @@ import {
     COMPARE_MAX_RUNS,
     COMPARE_MIN_RUNS,
 } from "../../routes/links";
-import { formatTime } from "../../format/time";
 import { shortId } from "../../format/names";
-import { fetchPassRates } from "../trend/api";
-import { fetchRunGroups, type RunGroupSummary } from "../groups/api";
+import { passRatesQuery, type RunPassRates } from "../trend/api";
+import { runGroupsQuery, type RunGroupSummary } from "../groups/api";
+import { runKeys } from "../runs/api";
 import { AgentErrorsCard } from "../errors/AgentErrorsCard";
 import { useAgentErrors } from "../errors/useAgentErrors";
 
@@ -89,38 +74,45 @@ const TAG_HELP = "The scenario tags the run was limited to (run --tag, repeatabl
 
 const Trends = lazy(() => import("../trend/Trends").then((module) => ({ default: module.Trends })));
 
-const MODEL_FILTER_MIN_WIDTH = 260;
-const RUNS_TABLE_MIN_WIDTH = 1100;
-
 export function EvaluationPage({ name }: { name: string }) {
-    const [reload, setReload] = useState(0);
-    const state = useRequest(`${name}/${reload}`, async (signal) => {
-        const [agent, versions, passRates, groups, tags] = await Promise.all([
-            fetchAgent(name, signal),
-            fetchVersions(name, signal),
-            fetchPassRates(name, signal),
-            fetchRunGroups(name, signal),
-            fetchTags(name, signal),
-        ]);
-        return { agent, versions, passRates, groups, tags };
-    });
+    const queryClient = useQueryClient();
+    const agent = useQuery(agentQuery(name));
+    const versions = useQuery(versionsQuery(name));
+    const passRates = useQuery(passRatesQuery(name));
+    const groups = useQuery(runGroupsQuery(name));
+    const tags = useQuery(tagsQuery(name));
+    const parts = [agent, versions, passRates, groups, tags];
+    const query: PageData<{
+        agent: AgentDetail;
+        versions: AgentVersion[];
+        passRates: RunPassRates[];
+        groups: RunGroupSummary[];
+        tags: TagUsage[];
+    }> = {
+        isPending: parts.some((part) => part.isPending),
+        error: parts.find((part) => part.error !== null)?.error ?? null,
+        data:
+            agent.data && versions.data && passRates.data && groups.data && tags.data
+                ? { agent: agent.data, versions: versions.data, passRates: passRates.data, groups: groups.data, tags: tags.data }
+                : undefined,
+    };
 
     return (
-        <Page state={state} notFound={`There is no agent ${name}.`}>
+        <Page query={query} notFound={`There is no agent ${name}.`}>
             {({ agent, versions, passRates, groups, tags }) =>
                 !areaOn(agent.features, "evaluation") ? (
                     <AreaOff area="evaluation" />
                 ) : (
-                    <Suspense fallback={<Loader aria-label="Loading the charts" />}>
+                    <Suspense fallback={<Spinner label="Loading the charts" />}>
                         <AgentView
                             agent={agent}
                             versions={versions}
                             passRates={passRates}
                             groups={groups}
                             tags={tags}
-                            reload={reload}
                             onChanged={() => {
-                                setReload(reload + 1);
+                                void queryClient.invalidateQueries({ queryKey: agentKeys.agent(name) });
+                                void queryClient.invalidateQueries({ queryKey: runKeys.all });
                             }}
                         />
                     </Suspense>
@@ -130,24 +122,19 @@ export function EvaluationPage({ name }: { name: string }) {
     );
 }
 
-type Agent = Awaited<ReturnType<typeof fetchAgent>>;
-type PassRates = Awaited<ReturnType<typeof fetchPassRates>>;
-
 function AgentView({
     agent,
     versions,
     passRates,
     groups,
     tags,
-    reload,
     onChanged,
 }: {
-    agent: Agent;
+    agent: AgentDetail;
     versions: AgentVersion[];
-    passRates: PassRates;
+    passRates: RunPassRates[];
     groups: RunGroupSummary[];
     tags: TagUsage[];
-    reload: number;
     onChanged: () => void;
 }) {
     const [showArchived, setShowArchived] = useArchivedParam(ARCHIVED_RUNS_PARAM);
@@ -162,7 +149,6 @@ function AgentView({
     const { runs, totalCount, page, loading, error } = useRuns(
         agent.name,
         versionIds?.join(",") ?? null,
-        `${reload}`,
         groupFilter,
         requestedPage,
         RUNS_PAGE_SIZE,
@@ -185,89 +171,105 @@ function AgentView({
     const { errors, arrived: errorsArrived } = useAgentErrors(problemsAgent, considered, dataVersions);
     const trendPoints = visibleRuns(passRates, versions, showArchived, models, dataVersions, versionFilter);
 
-    if (!checksArrived || !errorsArrived) return <Loader aria-label="Loading the problems" />;
+    if (!checksArrived || !errorsArrived) return <Spinner label="Loading the problems" />;
     return (
-        <Stack gap="lg">
+        <div className="flex flex-col gap-5">
             <Anchor href="/">← Agents</Anchor>
             <div className="agent-layout">
                 <div className="agent-layout-header">
-                    <Paper withBorder p="md">
-                        <Stack gap={4}>
-                            <Group justify="space-between">
-                                <Title order={2}>{agent.name}</Title>
-                                <Anchor href={versionsInEvaluationHref(agent.name)}>Versions in evaluation</Anchor>
-                            </Group>
-                            <Text c="dimmed">
-                                {agent.endpointUrl} · created {formatTime(agent.createdAt)}
-                            </Text>
-                            <Text c="dimmed">
-                                versions {agent.versions} · scenarios {agent.scenarios} · checks {agent.checks}
-                            </Text>
-                        </Stack>
+                    <Paper className="flex flex-col gap-1">
+                        <div className="flex flex-wrap items-center justify-between gap-4">
+                            <h2 className="text-[26px] leading-tight font-bold">{agent.name}</h2>
+                            <Anchor href={versionsInEvaluationHref(agent.name)}>Versions in evaluation</Anchor>
+                        </div>
+                        <p className="text-muted-foreground">
+                            {agent.endpointUrl} · created {formatDateTime(agent.createdAt)}
+                        </p>
+                        <p className="text-muted-foreground">
+                            versions {agent.versions} · scenarios {agent.scenarios} · checks {agent.checks}
+                        </p>
                     </Paper>
                 </div>
 
                 <div className="agent-layout-analytics">
-                    <Stack gap="lg">
+                    <div className="flex flex-col gap-5">
                         {(unstable.length > 0 || errors.length > 0) && (
-                            <Stack gap="sm">
-                                <Title order={3}>
+                            <div className="flex flex-col gap-3">
+                                <h3 className="text-[22px] font-bold">
                                     <HeaderHelp label="Problems" help={PROBLEMS_SECTION_HELP} />
-                                </Title>
+                                </h3>
                                 <div className="agent-health-cards">
                                     <UnstableChecksCard checks={unstable} />
                                     <AgentErrorsCard errors={errors} />
                                 </div>
-                            </Stack>
+                            </div>
                         )}
                         <Trends points={trendPoints} />
-                    </Stack>
+                    </div>
                 </div>
 
-                <Stack gap="lg" className="agent-layout-main">
+                <div className="agent-layout-main flex flex-col gap-5">
                     <RunGroupsSection agentName={agent.name} groups={groups} onChanged={onChanged} />
-                    <Title order={3}>
+                    <h3 className="text-[22px] font-bold">
                         <HeaderHelp label="Runs" help={RUNS_SECTION_HELP} />
-                    </Title>
-                    <Group justify="space-between" align="flex-end">
-                        <Group align="flex-end">
-                            <MultiSelect
-                                label={<HeaderHelp label="Model" help={MODEL_HELP} />}
-                                placeholder={models.length === 0 ? "All models" : undefined}
-                                data={modelsOf(offered)}
-                                value={models}
-                                onChange={filtered(setModels)}
-                                clearable
-                                miw={MODEL_FILTER_MIN_WIDTH}
-                            />
-                            <MultiSelect
-                                label={<HeaderHelp label="Data version" help={DATA_VERSION_HELP} />}
-                                placeholder={dataVersions.length === 0 ? "All data versions" : undefined}
-                                data={dataVersionOptions(offered)}
-                                value={dataVersions}
-                                onChange={filtered(setDataVersions)}
-                                clearable
-                                miw={MODEL_FILTER_MIN_WIDTH}
-                            />
-                            <MultiSelect
-                                label={<HeaderHelp label="Versions" help={VERSIONS_FILTER_HELP} />}
-                                placeholder={versionFilter.length === 0 ? "All versions" : undefined}
-                                data={versionOptions(offered)}
-                                value={versionFilter}
-                                onChange={filtered(setVersionFilter)}
-                                clearable
-                                miw={MODEL_FILTER_MIN_WIDTH}
-                            />
-                            <Select
-                                label={<HeaderHelp label="Group" help={GROUP_HELP} />}
-                                data={filterOptions(groups, groupFilter)}
-                                value={filterValue(groupFilter)}
-                                onChange={filtered((value: string | null) => {
-                                    setGroupFilter(filterOfValue(value));
-                                })}
-                                allowDeselect={false}
-                                miw={MODEL_FILTER_MIN_WIDTH}
-                            />
+                    </h3>
+                    <div className="flex flex-wrap items-end justify-between gap-4">
+                        <div className="flex flex-wrap items-end gap-4">
+                            <Filter label={<HeaderHelp label="Model" help={MODEL_HELP} />}>
+                                {(id) => (
+                                    <MultiSelect
+                                        id={id}
+                                        label="Model"
+                                        placeholder="All models"
+                                        options={modelsOf(offered).map((model) => ({ value: model, label: model }))}
+                                        value={models}
+                                        onValueChange={filtered(setModels)}
+                                    />
+                                )}
+                            </Filter>
+                            <Filter label={<HeaderHelp label="Data version" help={DATA_VERSION_HELP} />}>
+                                {(id) => (
+                                    <MultiSelect
+                                        id={id}
+                                        label="Data version"
+                                        placeholder="All data versions"
+                                        options={dataVersionOptions(offered)}
+                                        value={dataVersions}
+                                        onValueChange={filtered(setDataVersions)}
+                                    />
+                                )}
+                            </Filter>
+                            <Filter label={<HeaderHelp label="Versions" help={VERSIONS_FILTER_HELP} />}>
+                                {(id) => (
+                                    <MultiSelect
+                                        id={id}
+                                        label="Versions"
+                                        placeholder="All versions"
+                                        options={versionOptions(offered)}
+                                        value={versionFilter}
+                                        onValueChange={filtered(setVersionFilter)}
+                                    />
+                                )}
+                            </Filter>
+                            <Filter label={<HeaderHelp label="Group" help={GROUP_HELP} />}>
+                                {(id) => (
+                                    <Select
+                                        id={id}
+                                        aria-label="Group"
+                                        className="w-full"
+                                        value={filterValue(groupFilter)}
+                                        onChange={(event) => {
+                                            filtered(setGroupFilter)(filterOfValue(event.currentTarget.value));
+                                        }}
+                                    >
+                                        {filterOptions(groups, groupFilter).map((option) => (
+                                            <option key={option.value} value={option.value}>
+                                                {option.label}
+                                            </option>
+                                        ))}
+                                    </Select>
+                                )}
+                            </Filter>
                             <TagSelect
                                 label="Filter runs by tag"
                                 placeholder={TAG_FILTER_PLACEHOLDER}
@@ -281,7 +283,7 @@ function AgentView({
                                 help={ARCHIVED_RUNS_HELP}
                                 onChange={filtered(setShowArchived)}
                             />
-                        </Group>
+                        </div>
                         <Button
                             disabled={!canCompare(toCompare.length)}
                             title={`Select ${COMPARE_MIN_RUNS} to ${COMPARE_MAX_RUNS} runs to compare`}
@@ -291,141 +293,139 @@ function AgentView({
                         >
                             Compare ({toCompare.length})
                         </Button>
-                    </Group>
+                    </div>
                     {error !== null && (
-                        <Alert color="red" title="Could not load the runs">
-                            {error}
+                        <Alert variant="destructive">
+                            <p className="font-semibold">Could not load the runs</p>
+                            <p>{error}</p>
                         </Alert>
                     )}
                     {runs.length === 0 ? (
                         loading ? (
-                            <Loader aria-label="Loading runs" />
+                            <Spinner label="Loading runs" />
                         ) : (
                             error === null && (
-                                <Text c="dimmed">
+                                <p className="text-muted-foreground">
                                     {versionIds !== null
                                         ? "No run matches the filters — archived versions are hidden unless the Archived chip is on."
                                         : groupFilter.kind === "none" && groups.length > 0
                                           ? "This agent has no runs outside groups yet — runs started in a group are listed under Any group or All runs."
                                           : "This agent has no runs yet."}
-                                </Text>
+                                </p>
                             )
                         )
                     ) : (
-                        <Paper withBorder p="md">
-                            <Table.ScrollContainer minWidth={RUNS_TABLE_MIN_WIDTH}>
-                                <Table highlightOnHover>
-                                    <Table.Thead>
-                                        <Table.Tr>
-                                            <Table.Th />
-                                            <Table.Th className="no-wrap">
-                                                <HeaderHelp label="Run" help={RUN_ID_HELP} />
-                                            </Table.Th>
-                                            <Table.Th className="no-wrap">
-                                                <HeaderHelp label="Status" help={RUN_STATUS_HELP} />
-                                            </Table.Th>
-                                            <Table.Th>
-                                                <HeaderHelp label="Tags" help={TAG_HELP} />
-                                            </Table.Th>
-                                            <Table.Th>
-                                                <HeaderHelp label="Group" help={RUN_GROUP_HELP} />
-                                            </Table.Th>
-                                            <Table.Th>
-                                                <HeaderHelp label="Version" help={VERSION_HELP} />
-                                            </Table.Th>
-                                            <Table.Th className="no-wrap">
-                                                <HeaderHelp label="Checks" help={RUN_CHECKS_HELP} />
-                                            </Table.Th>
-                                            <Table.Th className="no-wrap">
-                                                <HeaderHelp label="Samples" help={RUN_SAMPLES_HELP} />
-                                            </Table.Th>
-                                            <Table.Th className="no-wrap">
-                                                <HeaderHelp label="Created" help={RUN_CREATED_HELP} />
-                                            </Table.Th>
-                                            <Table.Th className="no-wrap">
-                                                <HeaderHelp label="Finished" help={RUN_FINISHED_HELP} />
-                                            </Table.Th>
-                                        </Table.Tr>
-                                    </Table.Thead>
-                                    <Table.Tbody>
-                                        {runs.map((run) => (
-                                            <Table.Tr key={run.id}>
-                                                <Table.Td>
-                                                    <Checkbox
-                                                        aria-label={`Select run ${shortId(run.id)}`}
-                                                        checked={selected.has(run.id)}
-                                                        onChange={(event) => {
-                                                            const next = new Set(selected);
-                                                            if (event.currentTarget.checked) next.add(run.id);
-                                                            else next.delete(run.id);
-                                                            setSelected(next);
-                                                        }}
-                                                    />
-                                                </Table.Td>
-                                                <Table.Td className="no-wrap">
-                                                    <Anchor href={runHref(run.id)}>{shortId(run.id)}</Anchor>
-                                                </Table.Td>
-                                                <Table.Td className="no-wrap">
-                                                    <Stack gap={4} align="flex-start">
-                                                        <Badge color={statusColor(run.status)}>{statusLabel(run.status)}</Badge>
-                                                        {run.reference === true && (
-                                                            <Badge variant="outline" color="teal">
-                                                                Reference
-                                                            </Badge>
-                                                        )}
-                                                        {run.recheckOf != null && (
-                                                            <Badge variant="outline" color="gray">
-                                                                Re-check
-                                                            </Badge>
-                                                        )}
-                                                    </Stack>
-                                                </Table.Td>
-                                                <Table.Td>{run.tags?.length ? run.tags.join(", ") : "—"}</Table.Td>
-                                                <Table.Td className="wrap-key">
-                                                    {run.group == null ? (
-                                                        "—"
-                                                    ) : (
-                                                        <Anchor href={compareGroupHref(run.group, agent.name)}>{run.group}</Anchor>
-                                                    )}
-                                                </Table.Td>
-                                                <Table.Td>
-                                                    <Anchor href={versionInUseHref(agent.name, run.agentVersionId, run.group != null)}>
-                                                        {runLabel(
-                                                            run,
-                                                            versions.find((version) => version.id === run.agentVersionId)?.label,
-                                                        )}
-                                                    </Anchor>
-                                                </Table.Td>
-                                                <Table.Td className="no-wrap">
-                                                    <ChecksCount run={run} />
-                                                </Table.Td>
-                                                <Table.Td className="no-wrap">
-                                                    <SamplesCount run={run} />
-                                                </Table.Td>
-                                                <Table.Td className="no-wrap">{formatTime(run.createdAt)}</Table.Td>
-                                                <Table.Td className="no-wrap">{formatTime(run.finishedAt)}</Table.Td>
-                                            </Table.Tr>
-                                        ))}
-                                    </Table.Tbody>
-                                </Table>
-                            </Table.ScrollContainer>
-                            <Group justify="center" mt="md">
-                                <ListPagination
-                                    totalCount={totalCount}
-                                    page={page}
-                                    pageSize={RUNS_PAGE_SIZE}
-                                    onChange={(next) => {
-                                        setRequestedPage(next);
-                                        setSelected(new Set());
-                                    }}
-                                />
-                            </Group>
+                        <Paper className="flex flex-col gap-4">
+                            <Table className="min-w-[1100px]">
+                                <thead>
+                                    <tr>
+                                        <th />
+                                        <th className="no-wrap">
+                                            <HeaderHelp label="Run" help={RUN_ID_HELP} />
+                                        </th>
+                                        <th className="no-wrap">
+                                            <HeaderHelp label="Status" help={RUN_STATUS_HELP} />
+                                        </th>
+                                        <th>
+                                            <HeaderHelp label="Tags" help={TAG_HELP} />
+                                        </th>
+                                        <th>
+                                            <HeaderHelp label="Group" help={RUN_GROUP_HELP} />
+                                        </th>
+                                        <th>
+                                            <HeaderHelp label="Version" help={VERSION_HELP} />
+                                        </th>
+                                        <th className="no-wrap">
+                                            <HeaderHelp label="Checks" help={RUN_CHECKS_HELP} />
+                                        </th>
+                                        <th className="no-wrap">
+                                            <HeaderHelp label="Samples" help={RUN_SAMPLES_HELP} />
+                                        </th>
+                                        <th className="no-wrap">
+                                            <HeaderHelp label="Created" help={RUN_CREATED_HELP} />
+                                        </th>
+                                        <th className="no-wrap">
+                                            <HeaderHelp label="Finished" help={RUN_FINISHED_HELP} />
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {runs.map((run) => (
+                                        <tr key={run.id}>
+                                            <td>
+                                                <input
+                                                    type="checkbox"
+                                                    className="size-4 accent-primary"
+                                                    aria-label={`Select run ${shortId(run.id)}`}
+                                                    checked={selected.has(run.id)}
+                                                    onChange={(event) => {
+                                                        const next = new Set(selected);
+                                                        if (event.currentTarget.checked) next.add(run.id);
+                                                        else next.delete(run.id);
+                                                        setSelected(next);
+                                                    }}
+                                                />
+                                            </td>
+                                            <td className="no-wrap">
+                                                <Anchor href={runHref(run.id)}>{shortId(run.id)}</Anchor>
+                                            </td>
+                                            <td className="no-wrap">
+                                                <div className="flex flex-col items-start gap-1">
+                                                    <Badge variant={statusColor(run.status)}>{statusLabel(run.status)}</Badge>
+                                                    {run.reference === true && <Badge variant="success">Reference</Badge>}
+                                                    {run.recheckOf != null && <Badge>Re-check</Badge>}
+                                                </div>
+                                            </td>
+                                            <td>{run.tags?.length ? run.tags.join(", ") : "—"}</td>
+                                            <td className="wrap-key">
+                                                {run.group == null ? (
+                                                    "—"
+                                                ) : (
+                                                    <Anchor href={compareGroupHref(run.group, agent.name)}>{run.group}</Anchor>
+                                                )}
+                                            </td>
+                                            <td>
+                                                <Anchor href={versionInUseHref(agent.name, run.agentVersionId, run.group != null)}>
+                                                    {runLabel(run, versions.find((version) => version.id === run.agentVersionId)?.label)}
+                                                </Anchor>
+                                            </td>
+                                            <td className="no-wrap">
+                                                <ChecksCount run={run} />
+                                            </td>
+                                            <td className="no-wrap">
+                                                <SamplesCount run={run} />
+                                            </td>
+                                            <td className="no-wrap">{formatDateTime(run.createdAt)}</td>
+                                            <td className="no-wrap">{formatDateTime(run.finishedAt)}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </Table>
+                            <ListPagination
+                                totalCount={totalCount}
+                                page={page}
+                                pageSize={RUNS_PAGE_SIZE}
+                                onChange={(next) => {
+                                    setRequestedPage(next);
+                                    setSelected(new Set());
+                                }}
+                            />
                         </Paper>
                     )}
 
                     <ConfigurationSection endpointUrl={agent.endpointUrl} samples={agent.samples} regression={agent.regression} />
-                </Stack>
+                </div>
             </div>
-        </Stack>
+        </div>
+    );
+}
+
+function Filter({ label, children }: { label: ReactNode; children: (id: string) => ReactNode }) {
+    const id = useId();
+    return (
+        <div className="flex w-[260px] flex-col gap-1">
+            <Label htmlFor={id}>{label}</Label>
+            {children(id)}
+        </div>
     );
 }

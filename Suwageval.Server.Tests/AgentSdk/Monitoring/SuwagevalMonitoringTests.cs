@@ -59,7 +59,7 @@ public sealed class SuwagevalMonitoringTests(TestDatabase database, ClassServer 
 
     private async Task<string> MonitoredAgent()
     {
-        _ = database.Pool;
+        _ = database.DataSource;
         var name = AgentStoreTests.UniqueName();
         using var client = app.CreateClient();
         var response = await client.PostAsJsonAsync(
@@ -80,7 +80,7 @@ public sealed class SuwagevalMonitoringTests(TestDatabase database, ClassServer 
     private async Task<ConversationList> WaitForConversationsAsync(string name, int count)
     {
         using var client = app.CreateClient();
-        var deadline = TimeProvider.System.GetUtcNow().UtcDateTime.AddSeconds(20);
+        using var ceiling = new CancellationTokenSource(TimeSpan.FromSeconds(20));
         while (true)
         {
             var list = await client.GetFromJsonAsync<ConversationList>(
@@ -88,7 +88,7 @@ public sealed class SuwagevalMonitoringTests(TestDatabase database, ClassServer 
                 ContractJson.Options,
                 Cancellation
             );
-            if (list!.Conversations.Count >= count || TimeProvider.System.GetUtcNow().UtcDateTime > deadline)
+            if (list!.Conversations.Count >= count || ceiling.IsCancellationRequested)
             {
                 return list;
             }

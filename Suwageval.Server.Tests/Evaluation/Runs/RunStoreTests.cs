@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Dapper;
+using Microsoft.Extensions.Time.Testing;
 using Suwageval.AgentSdk;
 using Suwageval.Contracts.Runs;
 using Suwageval.Server.Evaluation.Checks;
@@ -12,11 +13,11 @@ public sealed class RunStoreTests(TestDatabase database)
 {
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
 
-    private RunStore Store() => new(database.Pool);
+    private RunStore Store() => new(database.DataSource);
 
     private Task<SeededAgent> NewAgentAsync(double threshold = 1.0) =>
         SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             "http://agent.test",
             [SeededAgent.Scenario("refund")],
             [SeededAgent.RefundAfterLookup("refund-called", "refund", threshold)]
@@ -98,8 +99,8 @@ public sealed class RunStoreTests(TestDatabase database)
         var store = Store();
         var agent = await NewAgentAsync(threshold: 0.5);
         var id = await EnqueueAsync(store, agent);
-        var scenario = await new ScenarioStore(database.Pool).GetAsync(agent.Id, "refund", Cancellation);
-        var check = Assert.Single(await new CheckStore(database.Pool).ListAsync(agent.Id, cancellationToken: Cancellation));
+        var scenario = await new ScenarioStore(database.DataSource).GetAsync(agent.Id, "refund", Cancellation);
+        var check = Assert.Single(await new CheckStore(database.DataSource).ListAsync(agent.Id, cancellationToken: Cancellation));
 
         foreach (var (sample, passed) in new[] { (1, true), (2, false), (3, true), (4, false) })
         {
@@ -130,7 +131,7 @@ public sealed class RunStoreTests(TestDatabase database)
         var store = Store();
         var agent = await NewAgentAsync(threshold: 0.5);
         var id = await EnqueueAsync(store, agent);
-        var scenario = await new ScenarioStore(database.Pool).GetAsync(agent.Id, "refund", Cancellation);
+        var scenario = await new ScenarioStore(database.DataSource).GetAsync(agent.Id, "refund", Cancellation);
 
         foreach (var (sample, status) in new[] { (1, SampleStatus.Done), (2, SampleStatus.Failed) })
         {
@@ -151,8 +152,8 @@ public sealed class RunStoreTests(TestDatabase database)
         var store = Store();
         var agent = await NewAgentAsync(threshold: 0.8);
         var id = await EnqueueAsync(store, agent);
-        var scenario = await new ScenarioStore(database.Pool).GetAsync(agent.Id, "refund", Cancellation);
-        var check = Assert.Single(await new CheckStore(database.Pool).ListAsync(agent.Id, cancellationToken: Cancellation));
+        var scenario = await new ScenarioStore(database.DataSource).GetAsync(agent.Id, "refund", Cancellation);
+        var check = Assert.Single(await new CheckStore(database.DataSource).ListAsync(agent.Id, cancellationToken: Cancellation));
 
         await store.AddSampleAsync(
             id,
@@ -187,7 +188,7 @@ public sealed class RunStoreTests(TestDatabase database)
         Assert.Contains("\"tool\": \"refund_order\"", verdict.Definition, StringComparison.Ordinal);
 
         var changed = SeededAgent.RefundAfterLookup("refund-called", "refund", 0.5);
-        await new CheckStore(database.Pool).UpsertAsync(
+        await new CheckStore(database.DataSource).UpsertAsync(
             agent.Id,
             [new CheckItem(changed.Key, changed.ScenarioKey, JsonSerializer.Serialize(changed, ContractJson.Options))],
             Cancellation
@@ -203,7 +204,7 @@ public sealed class RunStoreTests(TestDatabase database)
         var store = Store();
         var agent = await NewAgentAsync();
         var id = await EnqueueAsync(store, agent);
-        var scenario = await new ScenarioStore(database.Pool).GetAsync(agent.Id, "refund", Cancellation);
+        var scenario = await new ScenarioStore(database.DataSource).GetAsync(agent.Id, "refund", Cancellation);
 
         await store.AddSampleAsync(
             id,
@@ -220,7 +221,7 @@ public sealed class RunStoreTests(TestDatabase database)
         var store = Store();
         var agent = await NewAgentAsync();
         var id = await EnqueueAsync(store, agent);
-        var scenario = await new ScenarioStore(database.Pool).GetAsync(agent.Id, "refund", Cancellation);
+        var scenario = await new ScenarioStore(database.DataSource).GetAsync(agent.Id, "refund", Cancellation);
         var sample = new NewSample(scenario!.Id, scenario.Revision, 1, SampleStatus.Failed, null, "down", null, [], []);
         await store.AddSampleAsync(id, sample, Cancellation);
 
@@ -312,7 +313,7 @@ public sealed class RunStoreTests(TestDatabase database)
 
     private async Task SetCreatedAtAsync(Guid id, DateTime createdAt)
     {
-        await using var connection = await database.Pool.OpenAsync(Cancellation);
+        await using var connection = await database.DataSource.OpenConnectionAsync(Cancellation);
         await connection.ExecuteAsync(
             new CommandDefinition(
                 "UPDATE runs SET created_at = @createdAt WHERE id = @id",
@@ -330,7 +331,7 @@ public sealed class RunStoreTests(TestDatabase database)
     {
         var store = Store();
         var agent = await NewAgentAsync();
-        var moment = TimeProvider.System.GetUtcNow().UtcDateTime.AddDays(-1);
+        var moment = new FakeTimeProvider().GetUtcNow().UtcDateTime.AddDays(-1);
         var ids = new List<Guid>();
         for (var index = 0; index < 4; index++)
         {

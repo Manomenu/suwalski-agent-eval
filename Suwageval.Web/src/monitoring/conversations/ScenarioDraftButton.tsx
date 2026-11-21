@@ -1,23 +1,8 @@
-import {
-    ActionIcon,
-    Alert,
-    Button,
-    Code,
-    CopyButton,
-    Group,
-    Loader,
-    Modal,
-    NumberInput,
-    Select,
-    Stack,
-    Text,
-    Tooltip,
-} from "@mantine/core";
-import { IconCheck, IconCopy } from "@tabler/icons-react";
-import { useState } from "react";
+import { Alert, Button, CopyButton, Dialog, Input, Label, Select, Spinner } from "@maniumek/suwfrontkit";
+import { useQuery } from "@tanstack/react-query";
+import { useId, useState } from "react";
 
-import { useRequest } from "../../api/useRequest";
-import { fetchScenarioDraft } from "./api";
+import { scenarioDraftQuery } from "./api";
 import type { ConversationItem } from "../../conversation/items";
 import { ToggleChip } from "../../toggle/ToggleChip";
 import {
@@ -41,6 +26,9 @@ export function ScenarioDraftButton({
     items: ConversationItem[];
     failed: boolean;
 }) {
+    const cutId = useId();
+    const messageId = useId();
+    const turnsId = useId();
     const [opened, setOpened] = useState(false);
     const [cut, setCut] = useState<DraftCut>("end");
     const [ordinal, setOrdinal] = useState<string | null>(null);
@@ -58,51 +46,64 @@ export function ScenarioDraftButton({
     return (
         <>
             <Button
-                variant={failed ? "filled" : "light"}
-                color={failed ? "red" : "mauve"}
+                variant={failed ? "destructive" : "outline"}
                 onClick={() => {
                     setOpened(true);
                 }}
             >
                 Scenario YAML
             </Button>
-            <Modal
-                opened={opened}
-                onClose={() => {
-                    setOpened(false);
+            <Dialog
+                open={opened}
+                onOpenChange={(open) => {
+                    if (!open) setOpened(false);
                 }}
                 title="This conversation as a scenario"
-                size="xl"
+                width="wide"
             >
                 {opened && (
-                    <Stack gap="sm">
-                        <Select
-                            label="Copy"
-                            data={DRAFT_CUTS}
-                            value={cut}
-                            onChange={(value) => {
-                                setCut(draftCutOf(value));
-                                setOrdinal(null);
-                                setTurns(null);
-                                changed();
-                            }}
-                            allowDeselect={false}
-                        />
-                        {cut !== "end" && (
+                    <div className="flex flex-col gap-3">
+                        <div className="flex flex-col gap-1">
+                            <Label htmlFor={cutId}>Copy</Label>
                             <Select
-                                label={cut === "user" ? "Last user message" : "Last agent message"}
-                                data={options}
-                                value={picked}
-                                onChange={(value) => {
-                                    setOrdinal(value);
+                                id={cutId}
+                                value={cut}
+                                onChange={(event) => {
+                                    setCut(draftCutOf(event.target.value));
+                                    setOrdinal(null);
                                     setTurns(null);
                                     changed();
                                 }}
-                                allowDeselect={false}
-                            />
+                            >
+                                {DRAFT_CUTS.map((option) => (
+                                    <option key={option.value} value={option.value}>
+                                        {option.label}
+                                    </option>
+                                ))}
+                            </Select>
+                        </div>
+                        {cut !== "end" && (
+                            <div className="flex flex-col gap-1">
+                                <Label htmlFor={messageId}>{cut === "user" ? "Last user message" : "Last agent message"}</Label>
+                                <Select
+                                    id={messageId}
+                                    value={picked}
+                                    onChange={(event) => {
+                                        setOrdinal(event.target.value);
+                                        setTurns(null);
+                                        changed();
+                                    }}
+                                >
+                                    {options.map((option) => (
+                                        <option key={option.value} value={option.value}>
+                                            {option.label}
+                                        </option>
+                                    ))}
+                                </Select>
+                            </div>
                         )}
                         {cut !== "end" && (
-                            <Group gap="sm" align="flex-end">
+                            <div className="flex flex-wrap items-end gap-3">
                                 <ToggleChip
                                     label="Simulate the rest"
                                     checked={simulating}
@@ -115,19 +116,22 @@ export function ScenarioDraftButton({
                                 />
                                 {simulating && (
                                     <>
-                                        <NumberInput
-                                            label="Turns"
-                                            w={100}
-                                            min={1}
-                                            max={MAX_DRAFT_TURNS}
-                                            clampBehavior="strict"
-                                            allowDecimal={false}
-                                            value={shownTurns}
-                                            onChange={(value) => {
-                                                setTurns(typeof value === "number" ? value : null);
-                                                changed();
-                                            }}
-                                        />
+                                        <div className="flex w-25 flex-col gap-1">
+                                            <Label htmlFor={turnsId}>Turns</Label>
+                                            <Input
+                                                id={turnsId}
+                                                type="number"
+                                                min={1}
+                                                max={MAX_DRAFT_TURNS}
+                                                step={1}
+                                                value={shownTurns}
+                                                onChange={(event) => {
+                                                    const value = Math.trunc(event.target.valueAsNumber);
+                                                    setTurns(Number.isNaN(value) ? null : Math.min(Math.max(value, 1), MAX_DRAFT_TURNS));
+                                                    changed();
+                                                }}
+                                            />
+                                        </div>
                                         <Button
                                             onClick={() => {
                                                 setGenerated(Date.now());
@@ -137,15 +141,15 @@ export function ScenarioDraftButton({
                                         </Button>
                                     </>
                                 )}
-                            </Group>
+                            </div>
                         )}
                         {!simulating && <Draft conversationId={conversationId} cut={cut} ordinal={Number(picked)} turns={null} run={0} />}
                         {simulating && generated !== null && (
                             <Draft conversationId={conversationId} cut={cut} ordinal={Number(picked)} turns={shownTurns} run={generated} />
                         )}
-                    </Stack>
+                    </div>
                 )}
-            </Modal>
+            </Dialog>
         </>
     );
 }
@@ -163,40 +167,26 @@ function Draft({
     turns: number | null;
     run: number;
 }) {
-    const draft = useRequest(JSON.stringify([conversationId, cut, ordinal, turns, run]), (signal) =>
-        fetchScenarioDraft(conversationId, cut, ordinal, turns, signal),
-    );
-    if (draft.kind === "loading") return <Loader aria-label="Loading the draft" />;
-    if (draft.kind === "error") return <Text c="red">{draft.error.message}</Text>;
-    const { path, yaml, notice } = draft.value;
+    const draft = useQuery(scenarioDraftQuery(conversationId, cut, ordinal, turns, run));
+    if (draft.isPending) return <Spinner label="Loading the draft" />;
+    if (draft.isError) return <p className="text-destructive">{draft.error.message}</p>;
+    const { path, yaml, notice } = draft.data;
     return (
-        <Stack gap="sm">
-            <Text size="sm">{SCENARIO_DRAFT_HELP}</Text>
-            {notice && <Alert color="yellow">{notice}</Alert>}
-            <Group gap="xs" wrap="nowrap">
-                <Code aria-label="File path">{path}</Code>
-                <Copy value={path} label="Copy the path" />
-            </Group>
-            <Group justify="flex-end">
-                <Copy value={yaml} label="Copy the YAML" />
-            </Group>
-            <Code block aria-label="Scenario YAML">
+        <div className="flex flex-col gap-3">
+            <p className="text-sm">{SCENARIO_DRAFT_HELP}</p>
+            {notice && <Alert variant="warning">{notice}</Alert>}
+            <div className="flex items-center gap-2.5">
+                <code aria-label="File path" className="rounded-sm bg-secondary px-1 font-mono text-[13px]">
+                    {path}
+                </code>
+                <CopyButton value={path} label="Copy the path" variant="ghost" size="xs" />
+            </div>
+            <div className="flex justify-end">
+                <CopyButton value={yaml} label="Copy the YAML" variant="ghost" size="xs" />
+            </div>
+            <pre aria-label="Scenario YAML" className="overflow-x-auto rounded-md bg-secondary p-3 font-mono text-[13px]">
                 {yaml}
-            </Code>
-        </Stack>
-    );
-}
-
-function Copy({ value, label }: { value: string; label: string }) {
-    return (
-        <CopyButton value={value}>
-            {({ copied, copy }) => (
-                <Tooltip label={copied ? "Copied" : label}>
-                    <ActionIcon variant="subtle" onClick={copy} aria-label={label}>
-                        {copied ? <IconCheck size={16} /> : <IconCopy size={16} />}
-                    </ActionIcon>
-                </Tooltip>
-            )}
-        </CopyButton>
+            </pre>
+        </div>
     );
 }

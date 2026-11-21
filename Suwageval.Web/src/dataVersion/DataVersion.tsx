@@ -1,9 +1,8 @@
-import { ActionIcon, CopyButton, Group, Stack, Text, Tooltip } from "@mantine/core";
-import { IconCheck, IconCopy } from "@tabler/icons-react";
+import { CopyButton, Tooltip } from "@maniumek/suwfrontkit";
 
 import { shortDataVersion } from "./shortDataVersion";
 
-const DESCRIPTION_LINES = 2;
+const TEXT_SIZE = { xs: "text-xs", sm: "text-sm" };
 
 export function DataVersion({
     dataVersion,
@@ -16,40 +15,28 @@ export function DataVersion({
 }) {
     const text = description?.trim();
     return (
-        <Stack gap={0}>
-            <Group gap={4} wrap="nowrap">
-                <Text size={size} fw="normal">
+        <div className="flex flex-col">
+            <div className="flex items-center gap-1">
+                <p className={TEXT_SIZE[size]}>
                     Data{" "}
-                    <Tooltip label={dataVersion} multiline maw={360} style={{ overflowWrap: "anywhere" }}>
-                        <Text span inherit style={{ cursor: "help" }}>
-                            {shortDataVersion(dataVersion)}
-                        </Text>
+                    <Tooltip label={dataVersion}>
+                        <span className="cursor-help">{shortDataVersion(dataVersion)}</span>
                     </Tooltip>
-                </Text>
-                <CopyButton value={dataVersion}>
-                    {({ copied, copy }) => (
-                        <Tooltip label={copied ? "Copied" : "Copy the data version"}>
-                            <ActionIcon
-                                size="xs"
-                                variant="subtle"
-                                className="no-print"
-                                color={copied ? "teal" : "gray"}
-                                aria-label="Copy the data version"
-                                onClick={copy}
-                            >
-                                {copied ? <IconCheck size={12} /> : <IconCopy size={12} />}
-                            </ActionIcon>
-                        </Tooltip>
-                    )}
-                </CopyButton>
-            </Group>
+                </p>
+                <CopyButton
+                    className="no-print"
+                    variant="ghost"
+                    size="xs"
+                    value={dataVersion}
+                    label="Copy the data version"
+                    copiedLabel="Copied"
+                />
+            </div>
             {text ? (
-                <Tooltip label={text} multiline maw={360}>
-                    <Text size={size} fw="normal" c="dimmed" lineClamp={DESCRIPTION_LINES} w="fit-content" maw="100%">
-                        {text}
-                    </Text>
+                <Tooltip label={text}>
+                    <p className={`${TEXT_SIZE[size]} line-clamp-2 w-fit max-w-full text-muted-foreground`}>{text}</p>
                 </Tooltip>
             ) : null}
-        </Stack>
+        </div>
     );
 }

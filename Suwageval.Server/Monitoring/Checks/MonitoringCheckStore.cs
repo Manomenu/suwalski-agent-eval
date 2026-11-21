@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Dapper;
+using Npgsql;
 using Suwageval.AgentSdk;
 using Suwageval.Contracts;
 using Suwageval.Contracts.Checks;
@@ -7,7 +8,7 @@ using Suwageval.Server.Database;
 
 namespace Suwageval.Server.Monitoring.Checks;
 
-internal sealed class MonitoringCheckStore(Pool pool)
+internal sealed class MonitoringCheckStore(NpgsqlDataSource dataSource)
 {
     public async Task<IReadOnlyList<CheckResult>> ReplaceAsync(
         Guid agentId,
@@ -15,7 +16,7 @@ internal sealed class MonitoringCheckStore(Pool pool)
         CancellationToken cancellationToken = default
     )
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
         var results = new List<CheckResult>();
         foreach (var check in checks)
@@ -96,7 +97,7 @@ internal sealed class MonitoringCheckStore(Pool pool)
         CancellationToken cancellationToken = default
     )
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         return
         [
             .. await connection.QueryAsync<MonitoringCheckRow>(

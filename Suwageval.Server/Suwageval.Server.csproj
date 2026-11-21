@@ -9,13 +9,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Suwbackkit.Server" />
+    <PackageReference Include="Suwbackkit.Postgres" />
     <PackageReference Include="Dapper" />
     <PackageReference Include="Microsoft.Agents.AI" />
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
     <PackageReference Include="Microsoft.Extensions.AI.OpenAI" />
     <PackageReference Include="Microsoft.Extensions.ApiDescription.Server" PrivateAssets="all" />
-    <PackageReference Include="Npgsql" />
-    <PackageReference Include="grate.postgresql" />
     <PackageReference Include="YamlDotNet" />
   </ItemGroup>
 

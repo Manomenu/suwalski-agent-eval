@@ -1,15 +1,15 @@
 using Dapper;
+using Npgsql;
 using Suwageval.Contracts.Runs;
 using Suwageval.Server.Agents;
-using Suwageval.Server.Database;
 
 namespace Suwageval.Server.Evaluation.Runs.Groups;
 
-internal sealed class RunGroupStore(Pool pool)
+internal sealed class RunGroupStore(NpgsqlDataSource dataSource)
 {
     public async Task<IReadOnlyList<RunGroupRow>> ListAsync(Guid agentId, CancellationToken cancellationToken = default)
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         var rows = await connection.QueryAsync<RunGroupRow>(
             new CommandDefinition(
                 """
@@ -30,7 +30,7 @@ internal sealed class RunGroupStore(Pool pool)
 
     public async Task<bool> SetNoteAsync(Guid agentId, string name, string? note, CancellationToken cancellationToken = default)
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         if (
             !await connection.QuerySingleAsync<bool>(
                 new CommandDefinition(
@@ -69,7 +69,7 @@ internal sealed class RunGroupStore(Pool pool)
         CancellationToken cancellationToken = default
     )
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         var known = await connection.QueryAsync<string>(
             new CommandDefinition(
                 "SELECT DISTINCT run_group FROM runs WHERE agent_id = @agentId AND run_group = ANY(@names)",
@@ -82,7 +82,7 @@ internal sealed class RunGroupStore(Pool pool)
 
     public async Task ArchiveAsync(Guid agentId, IReadOnlyList<string> names, bool archived, CancellationToken cancellationToken = default)
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         await connection.ExecuteAsync(
             new CommandDefinition(
                 archived
@@ -105,7 +105,7 @@ internal sealed class RunGroupStore(Pool pool)
         CancellationToken cancellationToken = default
     )
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
         var archived = await connection.QuerySingleOrDefaultAsync<DateTime?>(
             new CommandDefinition(

@@ -1,16 +1,16 @@
 using Dapper;
-using Suwageval.Server.Database;
+using Npgsql;
 
 namespace Suwageval.Server.Evaluation.Runs.Trend;
 
-internal sealed class TrendStore(Pool pool)
+internal sealed class TrendStore(NpgsqlDataSource dataSource)
 {
     public async Task<IReadOnlyList<TrendCheckRow>> ListTrendChecksAsync(
         IReadOnlyCollection<Guid> runIds,
         CancellationToken cancellationToken = default
     )
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         var rows = await connection.QueryAsync<TrendCheckRow>(
             new CommandDefinition(
                 """
@@ -37,7 +37,7 @@ internal sealed class TrendStore(Pool pool)
         CancellationToken cancellationToken = default
     )
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         var rows = await connection.QueryAsync<TrendScenarioRow>(
             new CommandDefinition(
                 """
@@ -58,7 +58,7 @@ internal sealed class TrendStore(Pool pool)
         CancellationToken cancellationToken = default
     )
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         var rows = await connection.QueryAsync<TrendDurationRow>(
             new CommandDefinition(
                 """

@@ -24,13 +24,13 @@ public sealed class RunEndpointsTests(TestDatabase database, ClassServer server)
 
     private HttpClient Client()
     {
-        _ = database.Pool;
+        _ = database.DataSource;
         return app.CreateClient();
     }
 
     private Task<SeededAgent> NewAgentAsync(string endpoint) =>
         SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             endpoint,
             [SeededAgent.Scenario("refund", ["regression"]), SeededAgent.Scenario("other", ["smoke"])],
             [SeededAgent.RefundAfterLookup("refund-called", "refund"), SeededAgent.RefundedEvent("refund-event", "refund")]
@@ -239,7 +239,7 @@ public sealed class RunEndpointsTests(TestDatabase database, ClassServer server)
 
         Assert.Equal((HttpStatusCode.UnprocessableEntity, HttpStatusCode.UnprocessableEntity), (none.StatusCode, tagged.StatusCode));
         Assert.Contains("no scenario with an acGuardrail", await none.Content.ReadAsStringAsync(Cancellation), StringComparison.Ordinal);
-        Assert.Empty(await new RunStore(database.Pool).ListAsync(agent.Id, Cancellation));
+        Assert.Empty(await new RunStore(database.DataSource).ListAsync(agent.Id, Cancellation));
     }
 
     [Fact]
@@ -247,7 +247,7 @@ public sealed class RunEndpointsTests(TestDatabase database, ClassServer server)
     {
         var client = Client();
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             "http://127.0.0.1:1",
             [SeededAgent.Scenario("unchecked") with { AcGuardrail = new AcGuardrail { Id = ExampleCriteria.Refunds1 } }],
             []
@@ -265,14 +265,14 @@ public sealed class RunEndpointsTests(TestDatabase database, ClassServer server)
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
         var client = Client();
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [SeededAgent.Scenario("refund") with { AcGuardrail = new AcGuardrail { Id = ExampleCriteria.Refunds1 } }],
             [SeededAgent.RefundAfterLookup("refund-called", "refund")]
         );
 
         var created = await StartAsync(client, new RunRequest { Agent = agent.Name, Gate = true });
-        var stored = await new RunStore(database.Pool).GetAsync(created.RunId, Cancellation);
+        var stored = await new RunStore(database.DataSource).GetAsync(created.RunId, Cancellation);
         var plan = await GetAsync<RecheckPlan>(client, $"/eval/runs/{created.RunId}/recheck");
 
         Assert.Equal(AcGuardrailRules.DefaultRetryLimit, stored?.GateRetryLimit);
@@ -362,7 +362,7 @@ public sealed class RunEndpointsTests(TestDatabase database, ClassServer server)
         );
         var client = Client();
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [SeededAgent.Scenario("refund")],
             [SeededAgent.RefundAfterLookup("refund-called", "refund")]
@@ -387,7 +387,7 @@ public sealed class RunEndpointsTests(TestDatabase database, ClassServer server)
         await using var withoutJudge = app.WithWebHostBuilder(host => host.UseSetting("Judge:Model", ""));
         var client = withoutJudge.CreateClient();
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [SeededAgent.Scenario("refund")],
             [
@@ -421,7 +421,7 @@ public sealed class RunEndpointsTests(TestDatabase database, ClassServer server)
         });
         var client = onlyFallback.CreateClient();
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [SeededAgent.Scenario("refund"), SeededAgent.Scenario("simulated", turns: 3, simulatedUser: "Anna")],
             [
@@ -446,7 +446,7 @@ public sealed class RunEndpointsTests(TestDatabase database, ClassServer server)
         await using var withoutJudge = app.WithWebHostBuilder(host => host.UseSetting("Judge:Model", ""));
         var client = withoutJudge.CreateClient();
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [SeededAgent.Scenario("refund")],
             [
@@ -600,7 +600,7 @@ public sealed class RunEndpointsTests(TestDatabase database, ClassServer server)
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
         var client = Client();
         var agent = await NewAgentAsync(fake.Url.AbsoluteUri);
-        var store = new RunStore(database.Pool);
+        var store = new RunStore(database.DataSource);
         var smoke = await store.EnqueueAsync(agent.Id, agent.VersionId, ["smoke"], agent.EndpointUrl, cancellationToken: Cancellation);
         await store.EnqueueAsync(agent.Id, agent.VersionId, ["billing"], agent.EndpointUrl, cancellationToken: Cancellation);
         var everything = await store.EnqueueAsync(agent.Id, agent.VersionId, [], agent.EndpointUrl, cancellationToken: Cancellation);
@@ -759,7 +759,12 @@ public sealed class RunEndpointsTests(TestDatabase database, ClassServer server)
         await using var fake = await FakeAgent.AlwaysAsync(BookingTurn);
         fake.ServeContract(SeededAgent.ExampleVersionWithSystemTool);
         var client = Client();
-        var agent = await SeededAgent.CreateAsync(database.Pool, fake.Url.AbsoluteUri, [SeededAgent.Scenario("book")], [VisitBooked()]);
+        var agent = await SeededAgent.CreateAsync(
+            database.DataSource,
+            fake.Url.AbsoluteUri,
+            [SeededAgent.Scenario("book")],
+            [VisitBooked()]
+        );
         var created = await StartAsync(client, new RunRequest { Agent = agent.Name });
 
         var run = await app.Services.GetRequiredService<RunStore>().ClaimNextAsync(agent.Id, Cancellation);
@@ -782,7 +787,7 @@ public sealed class RunEndpointsTests(TestDatabase database, ClassServer server)
         fake.ServeContract(SeededAgent.ExampleVersionWithSystemTool);
         var client = Client();
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [SeededAgent.Scenario("book")],
             [VisitBooked(by: "support-agent")]

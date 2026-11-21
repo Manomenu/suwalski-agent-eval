@@ -1,29 +1,40 @@
-import { request } from "../../api/client";
+import { dataOf } from "@maniumek/suwfrontkit";
+import { queryOptions } from "@tanstack/react-query";
+
+import { api } from "../../api/client";
 import type { components } from "../../api/openapi";
 
 export type MonitoringCheck = components["schemas"]["MonitoringCheck"];
 export type MonitoringTrend = components["schemas"]["MonitoringTrend"];
 
-function environmentQuery(environment: string | null): string {
-    return environment === null ? "" : `environment=${encodeURIComponent(environment)}`;
-}
+const environmentParams = (environment: string | null) => (environment === null ? {} : { environment });
 
-export function fetchMonitoringChecks(agent: string, environment: string | null, signal: AbortSignal): Promise<MonitoringCheck[]> {
-    const query = environmentQuery(environment);
-    return request<MonitoringCheck[]>(`/monitoring/agents/${encodeURIComponent(agent)}/checks${query === "" ? "" : `?${query}`}`, {
-        signal,
-    });
-}
-
-export function fetchMonitoringTrend(
-    agent: string,
-    days: number,
-    environment: string | null,
-    signal: AbortSignal,
-): Promise<MonitoringTrend> {
-    const query = environmentQuery(environment);
-    return request<MonitoringTrend>(
-        `/monitoring/agents/${encodeURIComponent(agent)}/trend?days=${String(days)}${query === "" ? "" : `&${query}`}`,
-        { signal },
+function fetchMonitoringChecks(agent: string, environment: string | null, signal: AbortSignal): Promise<MonitoringCheck[]> {
+    return dataOf(
+        api.GET("/monitoring/agents/{agent}/checks", {
+            params: { path: { agent }, query: environmentParams(environment) },
+            signal,
+        }),
     );
 }
+
+function fetchMonitoringTrend(agent: string, days: number, environment: string | null, signal: AbortSignal): Promise<MonitoringTrend> {
+    return dataOf(
+        api.GET("/monitoring/agents/{agent}/trend", {
+            params: { path: { agent }, query: { days, ...environmentParams(environment) } },
+            signal,
+        }),
+    );
+}
+
+export const monitoringChecksQuery = (agent: string, environment: string | null) =>
+    queryOptions({
+        queryKey: ["monitoring", agent, "checks", environment] as const,
+        queryFn: ({ signal }) => fetchMonitoringChecks(agent, environment, signal),
+    });
+
+export const monitoringTrendQuery = (agent: string, days: number, environment: string | null) =>
+    queryOptions({
+        queryKey: ["monitoring", agent, "trend", days, environment] as const,
+        queryFn: ({ signal }) => fetchMonitoringTrend(agent, days, environment, signal),
+    });

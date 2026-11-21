@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Time.Testing;
 using Suwageval.AgentSdk;
 using Suwageval.AgentSdk.Agents;
 using Suwageval.Cli.Files;
@@ -63,7 +64,7 @@ public sealed class SweepCommandTests : IDisposable
             SamplesDone = 0,
             ChecksPassed = 0,
             ChecksFailed = 0,
-            CreatedAt = TimeProvider.System.GetUtcNow().UtcDateTime,
+            CreatedAt = new FakeTimeProvider().GetUtcNow().UtcDateTime,
         };
         return (request.Method.Method, request.RequestUri?.AbsolutePath) switch
         {

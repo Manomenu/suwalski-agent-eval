@@ -10,14 +10,14 @@ public sealed class CheckStoreTests(TestDatabase database)
 {
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
 
-    private CheckStore Store() => new(database.Pool);
+    private CheckStore Store() => new(database.DataSource);
 
     private async Task<Guid> NewAgentWithScenariosAsync(params string[] scenarioKeys)
     {
-        var agent = (await new AgentStore(database.Pool).CreateAsync(AgentStoreTests.UniqueName(), "http://agent.test", Cancellation))
+        var agent = (await new AgentStore(database.DataSource).CreateAsync(AgentStoreTests.UniqueName(), "http://agent.test", Cancellation))
             .Agent
             .Id;
-        await new ScenarioStore(database.Pool).UpsertAsync(
+        await new ScenarioStore(database.DataSource).UpsertAsync(
             agent,
             [.. scenarioKeys.Select(key => new ScenarioItem(key, [], "{}"))],
             Cancellation
@@ -89,7 +89,7 @@ public sealed class CheckStoreTests(TestDatabase database)
     {
         var store = Store();
         var agent = await NewAgentWithScenariosAsync("s1");
-        await new ScenarioStore(database.Pool).DeleteAsync(agent, "s1", Cancellation);
+        await new ScenarioStore(database.DataSource).DeleteAsync(agent, "s1", Cancellation);
 
         var result = await store.UpsertAsync(agent, [Item("c1", "s1")], Cancellation);
 

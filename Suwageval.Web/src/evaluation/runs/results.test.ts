@@ -73,7 +73,7 @@ describe("results", () => {
     it("labels statuses in English", () => {
         expect(statusLabel("Done")).toBe("done");
         expect(statusLabel("Interrupted")).toBe("interrupted");
-        expect(statusColor("Interrupted")).toBe("orange");
+        expect(statusColor("Interrupted")).toBe("warning");
     });
 
     it("summarizes a check", () => {

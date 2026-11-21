@@ -1,6 +1,7 @@
+import { formatPercent } from "@maniumek/suwfrontkit";
 import { changeMarks, type ChartMark } from "../../charts/chartStyle";
 import type { ChartRow } from "../../charts/LineTrend";
-import { percent, percentValue } from "../../format/numbers";
+import { percentValue } from "../../format/numbers";
 
 export interface Rate {
     passed: number;
@@ -24,7 +25,7 @@ const CHECKED_SERIES = "Checked";
 
 export function rateText(rate: Rate): string {
     if (rate.checked === 0) return "—";
-    return `${percent(rate.passed / rate.checked)} (${String(rate.passed)}/${String(rate.checked)})`;
+    return `${formatPercent(rate.passed / rate.checked)} (${String(rate.passed)}/${String(rate.checked)})`;
 }
 
 export function hasFailures(rate: Rate): boolean {

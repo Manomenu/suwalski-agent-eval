@@ -1,5 +1,6 @@
-import { useRequest } from "../../api/useRequest";
-import { fetchUnstableChecks, type UnstableCheck } from "./api";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+
+import { unstableListQuery, type UnstableCheck } from "./api";
 
 export function useUnstableChecks(
     agent: string | null,
@@ -7,20 +8,15 @@ export function useUnstableChecks(
     eachVersion = false,
     dataVersions: readonly string[] = NO_DATA,
 ): { checks: UnstableCheck[]; arrived: boolean } {
-    const request = useRequest(
-        agent === null ? null : JSON.stringify([agent, versionIds, eachVersion, dataVersions]),
-        (signal) =>
-            eachVersion
-                ? Promise.all(versionIds.map((id) => fetchUnstableChecks(agent ?? "", [id], dataVersions, signal))).then((lists) =>
-                      lists.flat(),
-                  )
-                : fetchUnstableChecks(agent ?? "", versionIds, dataVersions, signal),
-        { fallback: NONE },
-    );
+    const query = useQuery({
+        ...unstableListQuery(agent ?? "", versionIds, eachVersion, dataVersions),
+        enabled: agent !== null,
+        placeholderData: keepPreviousData,
+    });
 
     return {
-        checks: request.kind === "loaded" && !request.pending ? request.value : NONE,
-        arrived: request.kind !== "loading" || !request.pending,
+        checks: query.isPlaceholderData || query.isError ? NONE : (query.data ?? NONE),
+        arrived: agent === null || !query.isPending,
     };
 }
 

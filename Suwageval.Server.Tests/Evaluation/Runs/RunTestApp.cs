@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
 using Suwageval.Server.Evaluation.Runs;
 using Suwageval.Server.Monitoring.Checking;
 using Suwageval.Server.Monitoring.Conversations;
@@ -13,12 +14,13 @@ internal static class RunTestApp
         "CA2000:Dispose objects before losing scope",
         Justification = "The caller owns the factory and disposes it."
     )]
-    public static WebApplicationFactory<Program> Create() =>
+    public static WebApplicationFactory<Program> Create(TimeProvider time) =>
         new WebApplicationFactory<Program>().WithWebHostBuilder(host =>
         {
             host.UseSetting("ConnectionStrings:Default", TestDatabase.ConnectionString);
             host.ConfigureServices(services =>
             {
+                services.AddSingleton(time);
                 foreach (
                     var worker in services
                         .Where(descriptor =>

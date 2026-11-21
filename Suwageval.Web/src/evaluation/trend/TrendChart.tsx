@@ -1,4 +1,4 @@
-import { Paper, Stack, Text } from "@mantine/core";
+import { Paper } from "@maniumek/suwfrontkit";
 
 import { changeMarks } from "../../charts/chartStyle";
 import { LineTrend } from "../../charts/LineTrend";
@@ -51,7 +51,7 @@ export function TrendChart({
     const markOf = new Map(marks.map((mark) => [mark.x, mark.label]));
 
     return (
-        <Stack gap="sm">
+        <div className="flex flex-col gap-3">
             <LineTrend
                 rows={rows}
                 dataKey={RUN_KEY}
@@ -73,38 +73,30 @@ export function TrendChart({
                     const row = asTrendRow(value);
                     if (!row) return null;
                     return (
-                        <Paper withBorder shadow="sm" p="xs">
-                            <Text fw={500}>{row[LABEL_KEY]}</Text>
-                            <Text size="xs" c="dimmed">
-                                {row[DETAILS_KEY]}
-                            </Text>
+                        <Paper className="flex flex-col gap-0.5 p-2.5 shadow-sm">
+                            <p className="font-medium">{row[LABEL_KEY]}</p>
+                            <p className="text-xs text-muted-foreground">{row[DETAILS_KEY]}</p>
                             {typeof row[RUN_KEY] === "string" && markOf.has(row[RUN_KEY]) && (
-                                <Text size="xs" fw={600}>
-                                    New from this run: {markOf.get(row[RUN_KEY])}
-                                </Text>
+                                <p className="text-xs font-semibold">New from this run: {markOf.get(row[RUN_KEY])}</p>
                             )}
                             {typeof row[RECHECK_KEY] === "string" && (
-                                <Text size="xs" c="dimmed">
-                                    Re-checked: these are the results of its latest re-check
-                                </Text>
+                                <p className="text-xs text-muted-foreground">Re-checked: these are the results of its latest re-check</p>
                             )}
                             {measuredSeries(row, shown).map((name) => (
-                                <Text key={name} size="sm" c={seriesColor(name, names)}>
+                                <p key={name} className="text-sm" style={{ color: seriesColor(name, names) }}>
                                     {name}: {format(Number(row[name]))}
-                                </Text>
+                                </p>
                             ))}
                         </Paper>
                     );
                 }}
             />
-            <Text size="xs" c="dimmed">
-                {GROUP_RUNS_NOT_INCLUDED}
-            </Text>
+            <p className="text-xs text-muted-foreground">{GROUP_RUNS_NOT_INCLUDED}</p>
             {hasRechecks(points) && (
-                <Text size="xs" c="dimmed">
+                <p className="text-xs text-muted-foreground">
                     A point of a re-checked run shows the results of its latest re-check; the run keeps its place and time.
-                </Text>
+                </p>
             )}
-        </Stack>
+        </div>
     );
 }

@@ -1,9 +1,8 @@
-import { LineChart } from "@mantine/charts";
-import { Stack } from "@mantine/core";
 import type { ReactNode } from "react";
+import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import { ChartLegend } from "./ChartLegend";
-import { CHART_HEIGHT, markLines, type ChartMark } from "./chartStyle";
+import { CHART_HEIGHT, type ChartMark } from "./chartStyle";
 
 export type ChartRow = Record<string, string | number | null>;
 
@@ -12,6 +11,9 @@ export interface ChartSeries {
     color: string;
     strokeWidth?: number;
 }
+
+const AXIS = { stroke: "var(--muted-foreground)", fontSize: 12 } as const;
+const DEFAULT_STROKE_WIDTH = 2;
 
 export function LineTrend({
     rows,
@@ -37,42 +39,52 @@ export function LineTrend({
     onPointClick?: (index: number) => void;
 }) {
     return (
-        <Stack gap="sm">
-            <LineChart
-                h={CHART_HEIGHT}
-                data={rows}
-                dataKey={dataKey}
-                series={series.map(({ name, color }) => ({ name, color }))}
-                referenceLines={markLines(marks)}
-                curveType="linear"
-                connectNulls
-                withDots
-                withLegend={false}
-                valueFormatter={format}
-                xAxisProps={xTickFormatter === undefined ? {} : { tickFormatter: xTickFormatter }}
-                yAxisProps={{ ...(domain === undefined ? {} : { domain }), allowDecimals: !wholeNumbers }}
-                lineProps={(line) => ({ strokeWidth: series.find((one) => one.name === line.name)?.strokeWidth ?? 2 })}
-                lineChartProps={
-                    onPointClick === undefined
-                        ? {}
-                        : {
-                              onClick: (state) => {
-                                  if (state.activeIndex != null) onPointClick(Number(state.activeIndex));
-                              },
-                          }
-                }
-                {...(tooltip === undefined
-                    ? {}
-                    : {
-                          tooltipProps: {
-                              content: ({ payload }: { payload?: readonly { payload?: unknown }[] }) => {
-                                  const row = payload?.[0]?.payload;
-                                  return typeof row === "object" && row !== null ? tooltip(row as ChartRow) : null;
-                              },
-                          },
-                      })}
-            />
+        <div className="flex flex-col gap-3">
+            <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+                <LineChart
+                    data={rows}
+                    onClick={(state) => {
+                        if (onPointClick !== undefined && state.activeIndex != null) onPointClick(Number(state.activeIndex));
+                    }}
+                >
+                    <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey={dataKey} {...AXIS} {...(xTickFormatter === undefined ? {} : { tickFormatter: xTickFormatter })} />
+                    <YAxis {...AXIS} {...(domain === undefined ? {} : { domain })} allowDecimals={!wholeNumbers} tickFormatter={format} />
+                    <Tooltip
+                        cursor={{ stroke: "var(--border)" }}
+                        {...(tooltip === undefined
+                            ? { formatter: (value: unknown) => format(Number(value)) }
+                            : {
+                                  content: ({ payload }: { payload?: readonly { payload?: unknown }[] }) => {
+                                      const row = payload?.[0]?.payload;
+                                      return typeof row === "object" && row !== null ? tooltip(row as ChartRow) : null;
+                                  },
+                              })}
+                    />
+                    {marks.map((mark) => (
+                        <ReferenceLine
+                            key={mark.x}
+                            x={mark.x}
+                            stroke="var(--muted-foreground)"
+                            strokeDasharray="4 4"
+                            label={{ value: mark.label, position: "insideTopLeft", fill: "var(--muted-foreground)", fontSize: 12 }}
+                        />
+                    ))}
+                    {series.map((line) => (
+                        <Line
+                            key={line.name}
+                            type="linear"
+                            dataKey={line.name}
+                            stroke={line.color}
+                            strokeWidth={line.strokeWidth ?? DEFAULT_STROKE_WIDTH}
+                            dot={{ r: 3, fill: line.color }}
+                            connectNulls
+                            isAnimationActive={false}
+                        />
+                    ))}
+                </LineChart>
+            </ResponsiveContainer>
             <ChartLegend series={series} />
-        </Stack>
+        </div>
     );
 }

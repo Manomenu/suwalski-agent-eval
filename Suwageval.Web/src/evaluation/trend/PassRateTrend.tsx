@@ -1,4 +1,4 @@
-import { Paper, Stack, Text, Title } from "@mantine/core";
+import { Paper } from "@maniumek/suwfrontkit";
 
 import { HeaderHelp } from "../../help/HeaderHelp";
 import { percentText } from "../../charts/chartStyle";
@@ -20,26 +20,24 @@ export function PassRateTrend({
     recent: readonly string[];
 }) {
     return (
-        <Paper withBorder p="md">
-            <Stack gap="sm">
-                <Title order={3}>
-                    <HeaderHelp label="Pass rate" help={PASS_RATE_HELP} />
-                </Title>
-                {points.length < TREND_MIN_RUNS ? (
-                    <Text c="dimmed">The trend appears after two finished runs.</Text>
-                ) : (
-                    <TrendChart
-                        points={points}
-                        rows={trendRows(points)}
-                        names={trendSeries(points)}
-                        picked={picked}
-                        recent={recent}
-                        format={percentText}
-                        domain={[0, 100]}
-                        wholeNumbers
-                    />
-                )}
-            </Stack>
+        <Paper role="region" aria-label="Pass rate" className="flex flex-col gap-3">
+            <h3 className="text-[22px] font-bold">
+                <HeaderHelp label="Pass rate" help={PASS_RATE_HELP} />
+            </h3>
+            {points.length < TREND_MIN_RUNS ? (
+                <p className="text-muted-foreground">The trend appears after two finished runs.</p>
+            ) : (
+                <TrendChart
+                    points={points}
+                    rows={trendRows(points)}
+                    names={trendSeries(points)}
+                    picked={picked}
+                    recent={recent}
+                    format={percentText}
+                    domain={[0, 100]}
+                    wholeNumbers
+                />
+            )}
         </Paper>
     );
 }

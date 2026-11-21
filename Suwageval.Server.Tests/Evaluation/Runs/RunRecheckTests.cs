@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Time.Testing;
 using Suwageval.AgentSdk;
 using Suwageval.AgentSdk.Conversations;
 using Suwageval.Contracts.Checks;
@@ -27,11 +28,11 @@ public sealed class RunRecheckTests(TestDatabase database, ClassServer server) :
 
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
 
-    private RunStore Store() => new(database.Pool);
+    private RunStore Store() => new(database.DataSource);
 
     private HttpClient Client()
     {
-        _ = database.Pool;
+        _ = database.DataSource;
         return app.CreateClient();
     }
 
@@ -50,7 +51,7 @@ public sealed class RunRecheckTests(TestDatabase database, ClassServer server) :
         };
 
     private async Task UpsertCheckAsync(SeededAgent agent, CheckInput check) =>
-        await new CheckStore(database.Pool).UpsertAsync(
+        await new CheckStore(database.DataSource).UpsertAsync(
             agent.Id,
             [new CheckItem(check.Key, check.ScenarioKey, JsonSerializer.Serialize(check, ContractJson.Options))],
             Cancellation
@@ -65,8 +66,8 @@ public sealed class RunRecheckTests(TestDatabase database, ClassServer server) :
     {
         var store = Store();
         var run = await store.ClaimNextAsync(agent.Id, Cancellation) ?? throw new InvalidOperationException("nothing is queued");
-        var scenarios = new ScenarioStore(database.Pool);
-        var checks = new CheckStore(database.Pool);
+        var scenarios = new ScenarioStore(database.DataSource);
+        var checks = new CheckStore(database.DataSource);
         var options = Options.Create(new RunOptions { MaxParallelScenarios = 2 });
         var answering = judge ?? RecordedModel.JudgeAnswering("passed.json");
         var argumentJudge = RecordedModel.Answering("passed.json").ArgumentJudge();
@@ -76,8 +77,8 @@ public sealed class RunRecheckTests(TestDatabase database, ClassServer server) :
                 store,
                 scenarios,
                 checks,
-                new AgentStore(database.Pool),
-                new AgentClient(new HttpClient { Timeout = TimeSpan.FromSeconds(10) }, TimeProvider.System),
+                new AgentStore(database.DataSource),
+                new AgentClient(new HttpClient { Timeout = TimeSpan.FromSeconds(10) }, new FakeTimeProvider()),
                 RecordedModel.SimulatorAnswering("simulated-end.json"),
                 answering,
                 argumentJudge,
@@ -91,7 +92,7 @@ public sealed class RunRecheckTests(TestDatabase database, ClassServer server) :
                 store,
                 scenarios,
                 checks,
-                new AgentStore(database.Pool),
+                new AgentStore(database.DataSource),
                 answering,
                 argumentJudge,
                 options,
@@ -190,7 +191,7 @@ public sealed class RunRecheckTests(TestDatabase database, ClassServer server) :
                 NotContains = ["otherType", "quoteRequest"],
             },
         ];
-        var agent = await SeededAgent.CreateAsync(database.Pool, fake.Url.AbsoluteUri, [SeededAgent.Scenario("plain")], checks);
+        var agent = await SeededAgent.CreateAsync(database.DataSource, fake.Url.AbsoluteUri, [SeededAgent.Scenario("plain")], checks);
 
         var run = await FinishedRunAsync(agent);
 
@@ -214,7 +215,7 @@ public sealed class RunRecheckTests(TestDatabase database, ClassServer server) :
         const string TwoMessages =
             """{"items":[{"kind":"AssistantMessage","text":"Hello."},{"kind":"AssistantMessage","text":"Hello."}]}""";
         await using var fake = await FakeAgent.AlwaysAsync(TwoMessages);
-        var agent = await SeededAgent.CreateAsync(database.Pool, fake.Url.AbsoluteUri, [SeededAgent.Scenario("plain")], [AtMost(1)]);
+        var agent = await SeededAgent.CreateAsync(database.DataSource, fake.Url.AbsoluteUri, [SeededAgent.Scenario("plain")], [AtMost(1)]);
 
         var source = await FinishedRunAsync(agent);
         await UpsertCheckAsync(agent, AtMost(2));
@@ -234,7 +235,7 @@ public sealed class RunRecheckTests(TestDatabase database, ClassServer server) :
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [SeededAgent.Scenario("refund", samples: 2)],
             [SeededAgent.RefundAfterLookup("refund-called", "refund"), SeededAgent.RefundedEvent("refund-event", "refund")]
@@ -274,7 +275,7 @@ public sealed class RunRecheckTests(TestDatabase database, ClassServer server) :
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [SeededAgent.Scenario("refund", samples: 2)],
             [SeededAgent.RefundAfterLookup("refund-called", "refund"), SeededAgent.RefundedEvent("refund-event", "refund")]
@@ -298,7 +299,7 @@ public sealed class RunRecheckTests(TestDatabase database, ClassServer server) :
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [SeededAgent.Scenario("refund"), SeededAgent.Scenario("other")],
             [Polite("polite", "refund"), Polite("polite-other", "other"), SeededAgent.RefundedEvent("refund-event", "refund")]
@@ -330,7 +331,7 @@ public sealed class RunRecheckTests(TestDatabase database, ClassServer server) :
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [SeededAgent.Scenario("refund")],
             [Polite("polite", "refund")]
@@ -348,7 +349,7 @@ public sealed class RunRecheckTests(TestDatabase database, ClassServer server) :
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [SeededAgent.Scenario("kept"), SeededAgent.Scenario("edited"), SeededAgent.Scenario("gone")],
             [
@@ -359,12 +360,12 @@ public sealed class RunRecheckTests(TestDatabase database, ClassServer server) :
         );
         var source = await FinishedRunAsync(agent);
         var edited = SeededAgent.Scenario("edited") with { Conversation = [new UserMessage { Text = "A different question." }] };
-        await new ScenarioStore(database.Pool).UpsertAsync(
+        await new ScenarioStore(database.DataSource).UpsertAsync(
             agent.Id,
             [new ScenarioItem("edited", edited.Tags, JsonSerializer.Serialize(edited, ContractJson.Options))],
             Cancellation
         );
-        await new ScenarioStore(database.Pool).DeleteAsync(agent.Id, "gone", Cancellation);
+        await new ScenarioStore(database.DataSource).DeleteAsync(agent.Id, "gone", Cancellation);
         await UpsertCheckAsync(agent, Changed("kept-called", "kept"));
 
         await RecheckAsync(Client(), source);
@@ -383,7 +384,7 @@ public sealed class RunRecheckTests(TestDatabase database, ClassServer server) :
     {
         await using var fake = await FakeAgent.StartAsync((_, _) => Results.Text("boom", statusCode: 500));
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [SeededAgent.Scenario("refund")],
             [SeededAgent.RefundAfterLookup("refund-called", "refund")]
@@ -406,7 +407,7 @@ public sealed class RunRecheckTests(TestDatabase database, ClassServer server) :
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [SeededAgent.Scenario("refund")],
             [SeededAgent.RefundAfterLookup("refund-called", "refund"), SeededAgent.RefundedEvent("refund-event", "refund")]
@@ -415,7 +416,7 @@ public sealed class RunRecheckTests(TestDatabase database, ClassServer server) :
         var client = Client();
         await UpsertCheckAsync(agent, Changed("refund-called", "refund"));
         await UpsertCheckAsync(agent, Polite("polite", "refund"));
-        await new CheckStore(database.Pool).DeleteAsync(agent.Id, "refund-event", Cancellation);
+        await new CheckStore(database.DataSource).DeleteAsync(agent.Id, "refund-event", Cancellation);
 
         var plan = await PlanAsync(client, source);
 
@@ -451,7 +452,7 @@ public sealed class RunRecheckTests(TestDatabase database, ClassServer server) :
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [SeededAgent.Scenario("refund")],
             [Polite("polite", "refund"), SeededAgent.RefundedEvent("refund-event", "refund")]
@@ -488,7 +489,7 @@ public sealed class RunRecheckTests(TestDatabase database, ClassServer server) :
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [SeededAgent.Scenario("refund")],
             [SeededAgent.RefundAfterLookup("refund-called", "refund")]
@@ -514,7 +515,7 @@ public sealed class RunRecheckTests(TestDatabase database, ClassServer server) :
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [SeededAgent.Scenario("refund")],
             [SeededAgent.RefundAfterLookup("refund-called", "refund")]
@@ -537,13 +538,13 @@ public sealed class RunRecheckTests(TestDatabase database, ClassServer server) :
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [SeededAgent.Scenario("refund")],
             [SeededAgent.RefundAfterLookup("refund-called", "refund")]
         );
         var source = await FinishedRunAsync(agent);
-        await new ScenarioStore(database.Pool).DeleteAsync(agent.Id, "refund", Cancellation);
+        await new ScenarioStore(database.DataSource).DeleteAsync(agent.Id, "refund", Cancellation);
         var client = Client();
 
         var plan = await PlanAsync(client, source);

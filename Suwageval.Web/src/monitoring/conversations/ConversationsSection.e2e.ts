@@ -35,8 +35,8 @@ test("a conversation the agent sent is listed on its Monitoring page and opens w
     await expect(page.getByText("Where is order A-17?", { exact: true })).toBeVisible();
     await expect(page.getByText("It is on its way.", { exact: true })).toBeVisible();
     await expect(page.getByRole("navigation").getByRole("link", { name: "Monitoring", exact: true })).toHaveAttribute(
-        "data-active",
-        "true",
+        "aria-current",
+        "page",
     );
 });
 
@@ -86,17 +86,15 @@ test("a conversation drafts as a scenario, whole, up to a chosen message, or wit
     const yaml = page.getByLabel("Scenario YAML");
     await expect(yaml).toContainText("- assistant: About And B-2?");
 
-    await page.getByRole("combobox", { name: "Copy", exact: true }).click();
-    await page.getByRole("option", { name: "Up to a user message", exact: true }).click();
-    await page.getByRole("combobox", { name: "Last user message", exact: true }).click();
-    await page.getByRole("option", { name: "1. Where is A-17?", exact: true }).click();
+    await page.getByRole("combobox", { name: "Copy", exact: true }).selectOption({ label: "Up to a user message" });
+    await page.getByRole("combobox", { name: "Last user message", exact: true }).selectOption({ label: "1. Where is A-17?" });
 
     await expect(yaml).toContainText("- user: Where is A-17?");
     await expect(yaml).not.toContainText("About Where is A-17?");
     await expect(yaml).not.toContainText("And B-2?");
 
-    await page.locator("label", { hasText: /^Simulate the rest$/ }).click();
-    await expect(page.getByRole("textbox", { name: "Turns", exact: true })).toHaveValue("2");
+    await page.getByRole("button", { name: "Simulate the rest", exact: true }).click();
+    await expect(page.getByRole("spinbutton", { name: "Turns", exact: true })).toHaveValue("2");
     await expect(yaml).toHaveCount(0);
     await page.getByRole("button", { name: "Generate scenario", exact: true }).click();
     await expect(yaml).toContainText("turns: 2");
@@ -124,8 +122,7 @@ test("the environment filter above the page narrows the conversations, all of th
     await expect(page.getByRole("link", { name: "in-production", exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "in-staging", exact: true })).toBeVisible();
 
-    await page.getByRole("combobox", { name: "Environment", exact: true }).click();
-    await page.getByRole("option", { name: "staging", exact: true }).click();
+    await page.getByRole("combobox", { name: "Environment", exact: true }).selectOption("staging");
 
     await expect(page.getByRole("link", { name: "in-staging", exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "in-production", exact: true })).toHaveCount(0);

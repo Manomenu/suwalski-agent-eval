@@ -1,10 +1,10 @@
-import { Anchor, Badge, Group, List, Stack, Table, Text, Title, UnstyledButton } from "@mantine/core";
+import { Anchor, Badge, cn } from "@maniumek/suwfrontkit";
 import { IconChevronDown, IconChevronRight } from "@tabler/icons-react";
 
 import type { BaselineComparison, VariantCell, VariantRun, VariantScenario } from "./api";
 import { ChangeNote } from "./ChangeNote";
-import { changeBackground, checkCellChange, scenarioCellChange, type Change } from "./compare";
-import { COLUMN_MIN_WIDTH, LABEL_COLUMN_WIDTH } from "./layout";
+import { BETTER_BACKGROUND, changeBackground, checkCellChange, scenarioCellChange, type Change } from "./compare";
+import { COLUMN_MIN_WIDTH, COMPARE_SCROLL, COMPARE_TABLE, LABEL_COLUMN_WIDTH, tableMinWidth } from "./layout";
 import {
     bestColumns,
     cellShare,
@@ -22,8 +22,6 @@ import { ModelJudgedIcon } from "../../verdict/ModelJudgedIcon";
 import { scenarioInRunHref } from "../../routes/links";
 import { shortId } from "../../format/names";
 
-const BEST_BACKGROUND = "var(--mantine-color-green-light)";
-
 export function ScenarioRows({
     section,
     columns,
@@ -40,11 +38,11 @@ export function ScenarioRows({
     return (
         <>
             {section.title !== null && (
-                <Table.Tr>
-                    <Table.Td colSpan={columns.length + 1} fz="xs" c="dimmed" fw={600} className="wrap-key">
+                <tr>
+                    <td colSpan={columns.length + 1} className="wrap-key text-xs font-semibold text-muted-foreground">
                         {section.title}
-                    </Table.Td>
-                </Table.Tr>
+                    </td>
+                </tr>
             )}
             {section.scenarios.map((scenario) => {
                 const best = baseline === null ? bestColumns(scenario.cells.map(cellShare)) : new Set<number>();
@@ -100,29 +98,29 @@ function ScenarioRow({
 }) {
     return (
         <>
-            <Table.Tr>
-                <Table.Td className="wrap-key">
-                    <UnstyledButton onClick={onToggle} aria-expanded={expanded} aria-controls={detailId} w="100%" className="no-print">
-                        <Group gap={4} wrap="nowrap" align="flex-start">
-                            {expanded ? <IconChevronDown size={16} aria-hidden /> : <IconChevronRight size={16} aria-hidden />}
-                            <Text span inherit className="wrap-key">
-                                {scenario.key}
-                            </Text>
-                        </Group>
-                    </UnstyledButton>
-                    <Text span inherit className="wrap-key print-only-inline">
-                        {scenario.key}
-                    </Text>
-                </Table.Td>
+            <tr>
+                <td className="wrap-key">
+                    <button
+                        type="button"
+                        onClick={onToggle}
+                        aria-expanded={expanded}
+                        aria-controls={detailId}
+                        className="no-print flex w-full items-start gap-1 text-left"
+                    >
+                        {expanded ? <IconChevronDown size={16} aria-hidden /> : <IconChevronRight size={16} aria-hidden />}
+                        <span className="wrap-key">{scenario.key}</span>
+                    </button>
+                    <span className="wrap-key print-only-inline">{scenario.key}</span>
+                </td>
                 {scenario.cells.map((cell, column) => (
                     <CellView key={columns[column]?.run.id} cell={cell} best={best.has(column)} change={changes[column] ?? null} />
                 ))}
-            </Table.Tr>
-            <Table.Tr className={expanded ? undefined : "folded-row"}>
-                <Table.Td colSpan={columns.length + 1} id={detailId}>
+            </tr>
+            <tr className={expanded ? undefined : "folded-row"}>
+                <td colSpan={columns.length + 1} id={detailId}>
                     <ScenarioDetail scenario={scenario} columns={columns} baseline={baseline} baselineColumn={baselineColumn} />
-                </Table.Td>
-            </Table.Tr>
+                </td>
+            </tr>
         </>
     );
 }
@@ -131,26 +129,18 @@ function CellView({ cell, best, change }: { cell: VariantCell | null; best: bool
     const status = cellStatus(cell);
     const noAnswer = noAnswerText(cell);
     return (
-        <Table.Td bg={best ? BEST_BACKGROUND : changeBackground(change)} data-change={change ?? undefined}>
+        <td className={best ? BETTER_BACKGROUND : changeBackground(change)} data-change={change ?? undefined}>
             {status === null ? (
-                <Text size="sm">{cellText(cell)}</Text>
+                <span>{cellText(cell)}</span>
             ) : (
-                <Stack gap={2} align="flex-start">
-                    <Badge color={status.color} variant={status.color === "red" ? "filled" : "light"}>
-                        {status.label}
-                    </Badge>
-                    <Text size="xs" fw={best ? 700 : 400}>
-                        {cellText(cell)}
-                    </Text>
-                    {noAnswer !== null && (
-                        <Text size="xs" c="dimmed">
-                            {noAnswer}
-                        </Text>
-                    )}
+                <div className="flex flex-col items-start gap-0.5">
+                    <Badge variant={status.variant}>{status.label}</Badge>
+                    <span className={cn("text-xs", best && "font-bold")}>{cellText(cell)}</span>
+                    {noAnswer !== null && <span className="text-xs text-muted-foreground">{noAnswer}</span>}
                     <ChangeNote change={change} />
-                </Stack>
+                </div>
             )}
-        </Table.Td>
+        </td>
     );
 }
 
@@ -168,122 +158,107 @@ function ScenarioDetail({
     const matrix = checkMatrix(scenario.cells);
     const noAnswers = noAnswerRows(scenario.cells);
     return (
-        <Stack gap="sm" py="xs">
+        <div className="flex flex-col gap-3 py-2.5">
             {matrix.length === 0 ? (
-                <Text size="sm" c="dimmed">
-                    No check ran for this scenario.
-                </Text>
+                <p className="text-sm text-muted-foreground">No check ran for this scenario.</p>
             ) : (
-                <Table.ScrollContainer minWidth={LABEL_COLUMN_WIDTH + columns.length * COLUMN_MIN_WIDTH}>
-                    <Table
-                        layout="fixed"
-                        verticalSpacing="xs"
-                        withColumnBorders
-                        className="compare-table"
+                <div className={COMPARE_SCROLL}>
+                    <table
+                        className={cn(COMPARE_TABLE, "[&_td+td]:border-l [&_th+th]:border-l")}
+                        style={{ minWidth: tableMinWidth(columns.length) }}
                         aria-label={`Checks of ${scenario.key} by run`}
                     >
-                        <Table.Thead>
-                            <Table.Tr>
-                                <Table.Th w={LABEL_COLUMN_WIDTH} className="compare-label-column">
+                        <thead>
+                            <tr>
+                                <th style={{ width: LABEL_COLUMN_WIDTH }} className="compare-label-column">
                                     Check
-                                </Table.Th>
+                                </th>
                                 {columns.map((column) => (
-                                    <Table.Th key={column.run.id} miw={COLUMN_MIN_WIDTH} className="wrap-key compare-run-column">
+                                    <th key={column.run.id} style={{ minWidth: COLUMN_MIN_WIDTH }} className="wrap-key compare-run-column">
                                         {columnName(column)}
-                                    </Table.Th>
+                                    </th>
                                 ))}
-                            </Table.Tr>
-                        </Table.Thead>
-                        <Table.Tbody>
+                            </tr>
+                        </thead>
+                        <tbody>
                             {matrix.map((row) => {
                                 const compared = baseline?.checks.find(
                                     (candidate) => candidate.scenarioKey === scenario.key && candidate.checkKey === row.key,
                                 );
                                 const baselineCheck = row.checks[baselineColumn] ?? null;
                                 return (
-                                    <Table.Tr key={row.key}>
-                                        <Table.Td className="wrap-key">
-                                            <Group gap={4} wrap="nowrap" align="flex-start">
+                                    <tr key={row.key}>
+                                        <td className="wrap-key">
+                                            <div className="flex items-start gap-1">
                                                 {row.checks.some((check) => check?.judgedByModel === true) && (
                                                     <OnPaper text="model-judged">
                                                         <ModelJudgedIcon />
                                                     </OnPaper>
                                                 )}
-                                                <Text span inherit>
-                                                    {row.key}
-                                                </Text>
-                                            </Group>
-                                        </Table.Td>
+                                                <span>{row.key}</span>
+                                            </div>
+                                        </td>
                                         {row.checks.map((check, column) => {
                                             const change =
                                                 baseline === null || column === baselineColumn
                                                     ? null
                                                     : checkCellChange(check, baselineCheck, compared, column);
                                             return (
-                                                <Table.Td
+                                                <td
                                                     key={columns[column]?.run.id}
-                                                    bg={changeBackground(change)}
+                                                    className={changeBackground(change)}
                                                     data-change={change ?? undefined}
                                                 >
                                                     {check === null ? (
-                                                        <Text size="sm" c="dimmed">
-                                                            —
-                                                        </Text>
+                                                        <span className="text-muted-foreground">—</span>
                                                     ) : (
-                                                        <Stack gap={2} align="flex-start">
-                                                            <Badge
-                                                                color={check.passed ? "green" : "red"}
-                                                                variant={check.passed ? "light" : "filled"}
-                                                            >
+                                                        <div className="flex flex-col items-start gap-0.5">
+                                                            <Badge variant={check.passed ? "success" : "danger"}>
                                                                 {checkVerdictText(check)}
                                                             </Badge>
-                                                            <List size="xs" listStyleType="none">
+                                                            <ul className="text-xs">
                                                                 {check.failures.map((failure) => (
-                                                                    <List.Item key={failure.sample}>
-                                                                        <Text span inherit className="wrap-key">
-                                                                            {check.samples > 1 ? `sample ${String(failure.sample)}: ` : ""}
-                                                                            {failure.message}
-                                                                        </Text>
-                                                                    </List.Item>
+                                                                    <li key={failure.sample} className="wrap-key">
+                                                                        {check.samples > 1 ? `sample ${String(failure.sample)}: ` : ""}
+                                                                        {failure.message}
+                                                                    </li>
                                                                 ))}
-                                                            </List>
-                                                        </Stack>
+                                                            </ul>
+                                                        </div>
                                                     )}
                                                     <ChangeNote change={change} />
-                                                </Table.Td>
+                                                </td>
                                             );
                                         })}
-                                    </Table.Tr>
+                                    </tr>
                                 );
                             })}
-                        </Table.Tbody>
-                    </Table>
-                </Table.ScrollContainer>
+                        </tbody>
+                    </table>
+                </div>
             )}
             {noAnswers.length > 0 && (
-                <Stack gap={2}>
-                    <Title order={5}>Samples without an answer</Title>
-                    <List size="sm" listStyleType="none">
+                <div className="flex flex-col gap-0.5">
+                    <h5 className="text-base font-bold">Samples without an answer</h5>
+                    <ul className="text-sm">
                         {noAnswers.map((item) => (
-                            <List.Item key={`${String(item.column)}-${String(item.sample)}`}>
-                                <Text span inherit className="wrap-key">
-                                    {nameOf(columns[item.column])}, sample {item.sample}: {item.error ?? "the agent returned nothing"}
-                                </Text>
-                            </List.Item>
+                            <li key={`${String(item.column)}-${String(item.sample)}`} className="wrap-key">
+                                {nameOf(columns[item.column])}, sample {item.sample}: {item.error ?? "the agent returned nothing"}
+                            </li>
                         ))}
-                    </List>
-                </Stack>
+                    </ul>
+                </div>
             )}
-            <Group gap="md" className="no-print">
+            <div className="no-print flex flex-wrap items-center gap-4">
                 {columns.map((column, index) =>
                     scenario.cells[index] == null ? null : (
-                        <Anchor key={column.run.id} size="sm" href={scenarioInRunHref(column.run.id, scenario.key)}>
+                        <Anchor key={column.run.id} className="text-sm" href={scenarioInRunHref(column.run.id, scenario.key)}>
                             Open in run {shortId(column.run.id)}
                         </Anchor>
                     ),
                 )}
-            </Group>
-        </Stack>
+            </div>
+        </div>
     );
 }
 

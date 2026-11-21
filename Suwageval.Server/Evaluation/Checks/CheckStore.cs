@@ -4,7 +4,7 @@ using Suwageval.Server.Database;
 
 namespace Suwageval.Server.Evaluation.Checks;
 
-internal sealed class CheckStore(Pool pool)
+internal sealed class CheckStore(NpgsqlDataSource dataSource)
 {
     private const string LatestRevision = """
         SELECT c.id, c.agent_id AS AgentId, c.key, s.key AS ScenarioKey, r.revision, r.content::text AS Content,
@@ -36,7 +36,7 @@ internal sealed class CheckStore(Pool pool)
         CancellationToken cancellationToken
     )
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
         var results = new List<CheckUpsertResult>();
         foreach (var item in items)
@@ -142,7 +142,7 @@ internal sealed class CheckStore(Pool pool)
         CancellationToken cancellationToken = default
     )
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         var rows = await connection.QueryAsync<CheckRow>(
             new CommandDefinition(
                 $"{LatestRevision} AND (@scenarioKey::text IS NULL OR s.key = @scenarioKey) ORDER BY c.key",
@@ -155,7 +155,7 @@ internal sealed class CheckStore(Pool pool)
 
     public async Task<bool> DeleteAsync(Guid agentId, string key, CancellationToken cancellationToken = default)
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         var deleted = await connection.ExecuteAsync(
             new CommandDefinition(
                 "UPDATE checks SET deleted_at = now() WHERE agent_id = @agentId AND key = @key AND deleted_at IS NULL",

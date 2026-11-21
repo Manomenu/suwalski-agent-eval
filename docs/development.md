@@ -81,7 +81,7 @@ through the list and add what fits — or say in the change why something does n
 - **Formatting:** CSharpier on the server, Prettier on the web — run `just fmt` before the
   gate; never hand-format against them or add files to `.prettierignore` to dodge them.
 - **Unit tests** for every type with rules: `Suwageval.Server.Tests/` mirrors the server's
-  folders (`Database/Migrator.cs` → `Database/MigratorTests.cs`), `<name>.test.ts` sits beside the
+  folders (`Agents/AgentStore.cs` → `Agents/AgentStoreTests.cs`), `<name>.test.ts` sits beside the
   file on the web.
 - **A browser test** (`<name>.e2e.ts` beside the code) when users click it: the path a user
   relies on, not every button.

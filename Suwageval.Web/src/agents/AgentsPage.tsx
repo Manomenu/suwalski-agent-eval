@@ -1,55 +1,52 @@
-import { Anchor, Paper, Stack, Table, Text, Title } from "@mantine/core";
+import { Anchor, Paper, Table, formatDateTime } from "@maniumek/suwfrontkit";
+import { useQuery } from "@tanstack/react-query";
 
 import { ListPagination } from "../pagination/ListPagination";
 import { pageOfItems } from "../pagination/pages";
 import { usePageParam } from "../pagination/usePageParam";
-import { fetchAgents } from "./api";
+import { agentsQuery } from "./api";
 import { Page } from "./Page";
-import { useRequest } from "../api/useRequest";
 import { agentHref } from "../routes/links";
-import { formatTime } from "../format/time";
 
 export function AgentsPage() {
-    const state = useRequest("agents", fetchAgents);
+    const query = useQuery(agentsQuery());
     const [requestedPage, setRequestedPage] = usePageParam("agentsPage");
 
     return (
-        <Page state={state} notFound="">
+        <Page query={query} notFound="">
             {(allAgents) => {
                 const { items: agents, page } = pageOfItems(allAgents, requestedPage);
                 return (
-                    <Stack gap="md">
-                        <Title order={2}>Agents</Title>
+                    <div className="flex flex-col gap-4">
+                        <h2 className="text-[26px] leading-tight font-bold">Agents</h2>
                         {allAgents.length === 0 ? (
-                            <Text c="dimmed">There are no agents yet. Add the first one with suwageval push.</Text>
+                            <p className="text-muted-foreground">There are no agents yet. Add the first one with suwageval push.</p>
                         ) : (
-                            <Paper withBorder p="md">
-                                <Table.ScrollContainer minWidth={500}>
-                                    <Table highlightOnHover>
-                                        <Table.Thead>
-                                            <Table.Tr>
-                                                <Table.Th>Name</Table.Th>
-                                                <Table.Th>Address</Table.Th>
-                                                <Table.Th>Created</Table.Th>
-                                            </Table.Tr>
-                                        </Table.Thead>
-                                        <Table.Tbody>
-                                            {agents.map((agent) => (
-                                                <Table.Tr key={agent.id}>
-                                                    <Table.Td>
-                                                        <Anchor href={agentHref(agent.name)}>{agent.name}</Anchor>
-                                                    </Table.Td>
-                                                    <Table.Td>{agent.endpointUrl}</Table.Td>
-                                                    <Table.Td>{formatTime(agent.createdAt)}</Table.Td>
-                                                </Table.Tr>
-                                            ))}
-                                        </Table.Tbody>
-                                    </Table>
-                                </Table.ScrollContainer>
+                            <Paper>
+                                <Table className="min-w-[500px]">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Address</th>
+                                            <th>Created</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {agents.map((agent) => (
+                                            <tr key={agent.id}>
+                                                <td>
+                                                    <Anchor href={agentHref(agent.name)}>{agent.name}</Anchor>
+                                                </td>
+                                                <td>{agent.endpointUrl}</td>
+                                                <td>{formatDateTime(agent.createdAt)}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </Table>
                                 <ListPagination totalCount={allAgents.length} page={page} onChange={setRequestedPage} />
                             </Paper>
                         )}
-                    </Stack>
+                    </div>
                 );
             }}
         </Page>

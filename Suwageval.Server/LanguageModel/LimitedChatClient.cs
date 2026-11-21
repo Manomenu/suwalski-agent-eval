@@ -2,7 +2,8 @@ using Microsoft.Extensions.AI;
 
 namespace Suwageval.Server.LanguageModel;
 
-internal sealed class LimitedChatClient(IChatClient inner, int maxConcurrency, TimeSpan timeout) : DelegatingChatClient(inner)
+internal sealed class LimitedChatClient(IChatClient inner, int maxConcurrency, TimeSpan timeout, TimeProvider timeProvider)
+    : DelegatingChatClient(inner)
 {
     private readonly SemaphoreSlim slots = new(maxConcurrency, maxConcurrency);
 
@@ -15,13 +16,13 @@ internal sealed class LimitedChatClient(IChatClient inner, int maxConcurrency, T
         await slots.WaitAsync(cancellationToken);
         try
         {
-            using var limit = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            limit.CancelAfter(timeout);
+            using var expiry = new CancellationTokenSource(timeout, timeProvider);
+            using var limit = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, expiry.Token);
             try
             {
                 return await base.GetResponseAsync(messages, options, limit.Token);
             }
-            catch (OperationCanceledException) when (limit.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+            catch (OperationCanceledException) when (expiry.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
             {
                 throw new TimeoutException($"The model did not answer within {timeout.TotalSeconds:0.##} seconds.");
             }

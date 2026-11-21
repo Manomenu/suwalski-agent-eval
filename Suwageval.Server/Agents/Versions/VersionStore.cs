@@ -1,17 +1,18 @@
 using Dapper;
+using Npgsql;
 using Suwageval.Contracts.Agents;
 using Suwageval.Server.Database;
 
 namespace Suwageval.Server.Agents.Versions;
 
-internal sealed class VersionStore(Pool pool)
+internal sealed class VersionStore(NpgsqlDataSource dataSource)
 {
     public async Task<IReadOnlyDictionary<Guid, VersionRunCounts>> RunCountsAsync(
         Guid agentId,
         CancellationToken cancellationToken = default
     )
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         var rows = await connection.QueryAsync<(Guid VersionId, int Runs, int GroupRuns)>(
             new CommandDefinition(
                 $"""
@@ -34,7 +35,7 @@ internal sealed class VersionStore(Pool pool)
         CancellationToken cancellationToken = default
     )
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         var rows = await connection.QueryAsync<(Guid VersionId, string DataVersion, string? Description)>(
             new CommandDefinition(
                 """
@@ -61,7 +62,7 @@ internal sealed class VersionStore(Pool pool)
         CancellationToken cancellationToken = default
     )
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         var rows = await connection.QueryAsync<(Guid VersionId, string Environment, int Conversations, DateTime LastAt, bool Current)>(
             new CommandDefinition(
                 """
@@ -116,7 +117,7 @@ internal sealed class VersionStore(Pool pool)
         CancellationToken cancellationToken = default
     )
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         var known = await connection.QueryAsync<Guid>(
             new CommandDefinition(
                 "SELECT id FROM agent_versions WHERE agent_id = @agentId AND id = ANY(@versionIds)",
@@ -134,7 +135,7 @@ internal sealed class VersionStore(Pool pool)
         CancellationToken cancellationToken = default
     )
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         await connection.ExecuteAsync(
             new CommandDefinition(
                 """
@@ -160,7 +161,7 @@ internal sealed class VersionStore(Pool pool)
         CancellationToken cancellationToken = default
     )
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
         var version = await connection.QuerySingleOrDefaultAsync<VersionToDelete>(
             new CommandDefinition(

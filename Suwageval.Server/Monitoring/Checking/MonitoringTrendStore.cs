@@ -1,10 +1,10 @@
 using Dapper;
+using Npgsql;
 using Suwageval.Contracts.Monitoring;
-using Suwageval.Server.Database;
 
 namespace Suwageval.Server.Monitoring.Checking;
 
-internal sealed class MonitoringTrendStore(Pool pool)
+internal sealed class MonitoringTrendStore(NpgsqlDataSource dataSource)
 {
     private const string Conversations = """
         FROM monitoring_conversations c
@@ -19,7 +19,7 @@ internal sealed class MonitoringTrendStore(Pool pool)
         CancellationToken cancellationToken = default
     )
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         var parameters = new
         {
             agentId,

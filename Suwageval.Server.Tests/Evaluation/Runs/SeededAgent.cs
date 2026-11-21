@@ -1,11 +1,11 @@
 using System.Text.Json;
+using Npgsql;
 using Suwageval.AgentSdk;
 using Suwageval.AgentSdk.Agents;
 using Suwageval.AgentSdk.Conversations;
 using Suwageval.Contracts.Checks;
 using Suwageval.Contracts.Scenarios;
 using Suwageval.Server.Agents;
-using Suwageval.Server.Database;
 using Suwageval.Server.Evaluation.Checks;
 using Suwageval.Server.Evaluation.Scenarios;
 using Suwageval.Server.Tests.Agents;
@@ -119,7 +119,7 @@ internal sealed record SeededAgent(Guid Id, string Name, Guid VersionId, string 
         };
 
     public static async Task<SeededAgent> CreateAsync(
-        Pool pool,
+        NpgsqlDataSource dataSource,
         string endpointUrl,
         IReadOnlyList<ScenarioInput> scenarios,
         IReadOnlyList<CheckInput> checks,
@@ -127,7 +127,7 @@ internal sealed record SeededAgent(Guid Id, string Name, Guid VersionId, string 
         int? agentSamples = null
     )
     {
-        var agents = new AgentStore(pool);
+        var agents = new AgentStore(dataSource);
         var agent = (await agents.CreateAsync(AgentStoreTests.UniqueName(), endpointUrl, TestContext.Current.CancellationToken)).Agent;
         var registered = await agents.RegisterVersionAsync(
             agent.Id,
@@ -139,7 +139,7 @@ internal sealed record SeededAgent(Guid Id, string Name, Guid VersionId, string 
         {
             await agents.SetSettingsAsync(agent.Id, agentSamples, null, cancellationToken: TestContext.Current.CancellationToken);
         }
-        await new ScenarioStore(pool).UpsertAsync(
+        await new ScenarioStore(dataSource).UpsertAsync(
             agent.Id,
             [
                 .. scenarios.Select(scenario => new ScenarioItem(
@@ -150,7 +150,7 @@ internal sealed record SeededAgent(Guid Id, string Name, Guid VersionId, string 
             ],
             TestContext.Current.CancellationToken
         );
-        await new CheckStore(pool).UpsertAsync(
+        await new CheckStore(dataSource).UpsertAsync(
             agent.Id,
             [.. checks.Select(check => new CheckItem(check.Key, check.ScenarioKey, JsonSerializer.Serialize(check, ContractJson.Options)))],
             TestContext.Current.CancellationToken

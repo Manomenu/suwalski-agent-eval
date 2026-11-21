@@ -1,16 +1,16 @@
 using Dapper;
-using Suwageval.Server.Database;
+using Npgsql;
 
 namespace Suwageval.Server.Evaluation.Runs.Unstable;
 
-internal sealed class UnstableStore(Pool pool)
+internal sealed class UnstableStore(NpgsqlDataSource dataSource)
 {
     public async Task<IReadOnlyList<RunCheckVerdictRow>> ListRunCheckVerdictsAsync(
         IReadOnlyCollection<EffectiveRuns.Point> points,
         CancellationToken cancellationToken = default
     )
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         var rows = await connection.QueryAsync<RunCheckVerdictRow>(
             new CommandDefinition(
                 """

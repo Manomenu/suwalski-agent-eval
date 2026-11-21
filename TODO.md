@@ -251,12 +251,6 @@ To do in that change:
 
 ## The rest of the move to the shared kits
 
-- **The web on suwfrontkit**, in a change of its own: Mantine out, the components and the theme of `@maniumek/suwfrontkit` in. Until
-  then `suwgate.yml` excepts the three Mantine packages from `banned-npm-packages` and the Mantine theme in `src/main.tsx` from
-  `no-raw-colors`; those exceptions go with the move.
-- **The server on suwbackkit**, in a change of its own: the migrator, the pool, the worktree databases. Its `MapServerDefaults`
-  maps a `/health` of its own, next to the server's `/health`, which the compose healthcheck, the e2e tests and the chart's
-  probes call.
 - **A gap of suwgate:** no lookup of one criterion (`just criteria <id>` is gone).
 - **Offer this repository's own guards to suwgate**, which does not have them yet: the Helm chart step, the worktree database
   refusal (`TestDatabase`), web modules differing only in letter case (`WebModuleNamesTests`), the server image copying every project it builds from (`ServerImageTests`), prose files of

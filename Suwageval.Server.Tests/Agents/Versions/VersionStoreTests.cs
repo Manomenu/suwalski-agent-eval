@@ -12,8 +12,8 @@ public sealed class VersionStoreTests(TestDatabase database)
     [Fact]
     public async Task Archiving_keeps_the_first_time_and_unknown_versions_are_reported()
     {
-        var store = new AgentStore(database.Pool);
-        var versions = new VersionStore(database.Pool);
+        var store = new AgentStore(database.DataSource);
+        var versions = new VersionStore(database.DataSource);
         var agent = (await store.CreateAsync(AgentStoreTests.UniqueName(), "http://one.test", Cancellation)).Agent;
         var version = (await store.RegisterVersionAsync(agent.Id, """{"model":"m1"}""", null, cancellationToken: Cancellation)).Version;
         await versions.ArchiveVersionsAsync(agent.Id, [version.Id], archived: true, Cancellation);
@@ -30,8 +30,8 @@ public sealed class VersionStoreTests(TestDatabase database)
 
     internal static async Task<(string Name, GroupedVersions Versions)> SeedGroupRunsAsync(TestDatabase database)
     {
-        var store = new AgentStore(database.Pool);
-        var runs = new RunStore(database.Pool);
+        var store = new AgentStore(database.DataSource);
+        var runs = new RunStore(database.DataSource);
         var name = AgentStoreTests.UniqueName();
         var agent = (await store.CreateAsync(name, "http://one.test", Cancellation)).Agent;
         async Task<Guid> RegisterAsync(string model)
@@ -72,7 +72,7 @@ public sealed class VersionStoreTests(TestDatabase database)
     {
         var (_, seeded) = await SeedGroupRunsAsync(database);
 
-        var counts = await new VersionStore(database.Pool).RunCountsAsync(seeded.AgentId, Cancellation);
+        var counts = await new VersionStore(database.DataSource).RunCountsAsync(seeded.AgentId, Cancellation);
 
         Assert.Equal(new VersionRunCounts(0, 1), counts[seeded.GroupOnly]);
         Assert.Equal(new VersionRunCounts(1, 1), counts[seeded.Mixed]);
@@ -84,7 +84,7 @@ public sealed class VersionStoreTests(TestDatabase database)
     public async Task A_run_outside_a_group_counts_beside_the_group_runs()
     {
         var (_, seeded) = await SeedGroupRunsAsync(database);
-        await new RunStore(database.Pool).EnqueueAsync(
+        await new RunStore(database.DataSource).EnqueueAsync(
             seeded.AgentId,
             seeded.GroupOnly,
             [],
@@ -92,7 +92,7 @@ public sealed class VersionStoreTests(TestDatabase database)
             cancellationToken: Cancellation
         );
 
-        var counts = await new VersionStore(database.Pool).RunCountsAsync(seeded.AgentId, Cancellation);
+        var counts = await new VersionStore(database.DataSource).RunCountsAsync(seeded.AgentId, Cancellation);
 
         Assert.Equal(new VersionRunCounts(1, 1), counts[seeded.GroupOnly]);
     }

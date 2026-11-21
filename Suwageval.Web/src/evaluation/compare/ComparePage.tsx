@@ -1,8 +1,7 @@
-import { Alert, Anchor, Badge, Box, Group, Loader, Paper, SegmentedControl, Stack, Table, Text, Title, Tooltip } from "@mantine/core";
+import { Alert, Anchor, Badge, cn, formatPercent, Paper, SegmentedControl, Spinner, Tooltip } from "@maniumek/suwfrontkit";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
-import { fetchVersion } from "../../agents/api";
-import { useRequest } from "../../api/useRequest";
 import { ModelJudgedIcon } from "../../verdict/ModelJudgedIcon";
 import { HeaderHelp } from "../../help/HeaderHelp";
 import { NoteBox } from "../../note/NoteBox";
@@ -11,11 +10,12 @@ import { durationSummary, RUN_CHECKS_HELP, RUN_SAMPLES_HELP } from "../runs/resu
 import { filteredLabel, keepsTags, selectedTagRows } from "../../tagFilter/tagSelection";
 import { TagFilter } from "../../tagFilter/TagFilter";
 import { useTagFilter } from "../../tagFilter/useTagFilter";
-import { fetchComparison, setGroupNote, type ComparedRun, type RunComparison } from "./api";
+import { compareKeys, comparedVersionsQuery, comparisonQuery, setGroupNote, type ComparedRun, type RunComparison } from "./api";
 import { ColumnHeader, type BaselineInfo } from "./ColumnHeader";
 import { ChangeNote } from "./ChangeNote";
 import {
     baselineOf,
+    BETTER_BACKGROUND,
     changeBackground,
     changeOfTrend,
     checksChange,
@@ -25,12 +25,20 @@ import {
     TIME_DELTA_HELP,
     timeDeltaText,
     toggledBaseline,
-    trendColor,
+    trendClass,
     type Change,
     referenceColumn,
 } from "./compare";
 import { contractDifferences, type Difference } from "./contractDiff";
-import { COLUMN_MIN_WIDTH, LABEL_COLUMN_WIDTH, PRINT_COLUMN_WIDTH, PRINT_LABEL_COLUMN_WIDTH, tableMinWidth } from "./layout";
+import {
+    COLUMN_MIN_WIDTH,
+    COMPARE_SCROLL,
+    COMPARE_TABLE,
+    LABEL_COLUMN_WIDTH,
+    PRINT_COLUMN_WIDTH,
+    PRINT_LABEL_COLUMN_WIDTH,
+    tableMinWidth,
+} from "./layout";
 import { comparePrintLine } from "./printing";
 import { ScenarioRows } from "./ScenarioRows";
 import { useOpenScenarios } from "./useOpenScenarios";
@@ -48,13 +56,14 @@ import {
 import { WhatDiffers } from "./WhatDiffers";
 import { agentEvaluationHref } from "../../routes/links";
 import { useReportAgent } from "../../shell/reportAgent";
-import { percent } from "../../format/numbers";
 import { PrintButton } from "../../print/PrintButton";
 import { usePrintOnLoad } from "../../print/usePrintOnLoad";
 import { ToggleChip } from "../../toggle/ToggleChip";
 
-const BEST_BACKGROUND = "var(--mantine-color-green-light)";
-const HELP_WIDTH = 280;
+const PRINT_WIDTHS = {
+    "--print-label-width": `${String(PRINT_LABEL_COLUMN_WIDTH)}px`,
+    "--print-column-width": `${String(PRINT_COLUMN_WIDTH)}px`,
+};
 
 export function ComparePage({ runs, group, agent, baseline }: { runs: string; group: string; agent: string; baseline: string }) {
     const selection = selectionOf(runs, group, agent);
@@ -73,11 +82,11 @@ function Comparison({ selection, baseline }: { selection: ValidSelection; baseli
         const { pathname, search, hash } = window.location;
         window.history.replaceState(null, "", `${pathname}${searchWithBaseline(search, next)}${hash}`);
     };
-    const state = useRequest(JSON.stringify([selection, baselineId]), (signal) => fetchComparison(selection, baselineId, signal));
+    const query = useQuery(comparisonQuery(selection, baselineId));
 
-    if (state.kind === "loading") return <Loader aria-label="Loading the comparison" />;
-    if (state.kind === "error") return <Problem message={state.error.message} />;
-    return <Loaded selection={selection} comparison={state.value} onBaseline={chooseBaseline} />;
+    if (query.isPending) return <Spinner label="Loading the comparison" />;
+    if (query.isError) return <Problem message={query.error.message} />;
+    return <Loaded selection={selection} comparison={query.data} onBaseline={chooseBaseline} />;
 }
 
 function Loaded({
@@ -92,13 +101,11 @@ function Loaded({
     const agent = comparison.agent;
     useReportAgent(agent);
     const versionIds = [...new Set(comparison.runs.map((column) => column.run.agentVersionId))];
-    const base = useRequest(`${agent}/${versionIds.join(",")}`, (signal) =>
-        Promise.all(versionIds.map((id) => fetchVersion(agent, id, signal))),
-    );
+    const base = useQuery(comparedVersionsQuery(agent, versionIds));
 
-    if (base.kind === "loading") return <Loader aria-label="Loading the comparison" />;
-    if (base.kind === "error") return <Problem message={base.error.message} />;
-    const details = base.value;
+    if (base.isPending) return <Spinner label="Loading the comparison" />;
+    if (base.isError) return <Problem message={base.error.message} />;
+    const details = base.data;
     const differences =
         comparison.runs.length > 1
             ? contractDifferences(
@@ -126,6 +133,7 @@ function View({
     differences: Difference[];
     onBaseline: (runId: string) => void;
 }) {
+    const queryClient = useQueryClient();
     const [onlyDifferences, setOnlyDifferences] = useState(selection.kind === "runs");
     const [byTag, setByTag] = useState(false);
     const [selectedTags, selectTags] = useTagFilter();
@@ -149,27 +157,30 @@ function View({
     };
 
     return (
-        <Stack gap="md">
-            <Group gap="xs" className="no-print">
+        <div className="flex flex-col gap-4">
+            <div className="no-print flex flex-wrap items-center gap-2.5">
                 <Anchor href="/">Agents</Anchor>/<Anchor href={agentEvaluationHref(variants.agent)}>{variants.agent}</Anchor>
-            </Group>
-            <Title order={2}>Compare runs of {variants.agent}</Title>
-            <Text c="dimmed">
+            </div>
+            <h2 className="text-[26px] leading-tight font-bold">Compare runs of {variants.agent}</h2>
+            <p className="text-muted-foreground">
                 {variants.group == null ? "" : `Group ${variants.group} · `}
                 {columns} {columns === 1 ? "run" : "runs"}, one column each.
                 {compared === null
                     ? " A check passes when its pass rate reaches its threshold; the best column of a row is marked. Pick a baseline by a column's header to read the others against it."
                     : " Every run is read against the baseline: a cell better than the baseline's is green, a worse one red. Pick another by its header, or click the baseline again to go back to the plain view. A check passes when its pass rate reaches its threshold."}
-            </Text>
+            </p>
             {selection.kind === "group" && (
                 <NoteBox
                     key={selection.group}
                     initial={variants.groupNote}
-                    save={(note) => setGroupNote(variants.agent, selection.group, note)}
+                    save={async (note) => {
+                        await setGroupNote(variants.agent, selection.group, note);
+                        await queryClient.invalidateQueries({ queryKey: compareKeys.all });
+                    }}
                     placeholder="What is this experiment about?"
                 />
             )}
-            <Text className="print-only print-line">
+            <p className="print-only print-line">
                 {comparePrintLine({
                     agent: variants.agent,
                     group: variants.group,
@@ -179,29 +190,21 @@ function View({
                     onlyDifferences,
                     byTag,
                 })}
-            </Text>
-            <Box className="no-print">
+            </p>
+            <div className="no-print">
                 <TagFilter
                     tags={[...variants.scenarios.flatMap((scenario) => scenario.tags), ...variants.tags.flatMap((row) => row.tag ?? [])]}
                     selected={selectedTags}
                     onChange={selectTags}
                 />
-            </Box>
+            </div>
             <PrintButton />
-            <Paper withBorder p="md" className="compare-paper">
-                <Table.ScrollContainer minWidth={tableMinWidth(columns)}>
-                    <Table
-                        layout="fixed"
-                        verticalSpacing="xs"
-                        className="compare-table"
-                        style={{
-                            "--print-label-width": `${PRINT_LABEL_COLUMN_WIDTH}px`,
-                            "--print-column-width": `${PRINT_COLUMN_WIDTH}px`,
-                        }}
-                    >
-                        <Table.Thead>
-                            <Table.Tr>
-                                <Table.Th w={LABEL_COLUMN_WIDTH} className="compare-label-column" />
+            <Paper className="compare-paper">
+                <div className={COMPARE_SCROLL}>
+                    <table className={COMPARE_TABLE} style={{ ...PRINT_WIDTHS, minWidth: tableMinWidth(columns) }}>
+                        <thead>
+                            <tr>
+                                <th style={{ width: LABEL_COLUMN_WIDTH }} className="compare-label-column" />
                                 {variants.runs.map((variant) => {
                                     const baselineInfo: BaselineInfo | null =
                                         columns < 2
@@ -213,18 +216,17 @@ function View({
                                                   },
                                               };
                                     return (
-                                        <Table.Th
+                                        <th
                                             key={variant.run.id}
-                                            miw={COLUMN_MIN_WIDTH}
-                                            className="compare-run-column"
-                                            style={{ verticalAlign: "top" }}
+                                            style={{ minWidth: COLUMN_MIN_WIDTH }}
+                                            className="compare-run-column align-top"
                                         >
                                             <ColumnHeader agent={variants.agent} variant={variant} baseline={baselineInfo} />
-                                        </Table.Th>
+                                        </th>
                                     );
                                 })}
-                            </Table.Tr>
-                        </Table.Thead>
+                            </tr>
+                        </thead>
                         <WhatDiffers
                             agent={variants.agent}
                             columns={variants.runs}
@@ -232,156 +234,145 @@ function View({
                             differences={differences}
                             colSpan={columns + 1}
                         />
-                        <Table.Tbody>
+                        <tbody>
                             <SectionRow columns={columns} title="Summary" />
-                            <Table.Tr>
-                                <Table.Td fw={500}>
-                                    <Tooltip label={RUN_CHECKS_HELP} multiline w={HELP_WIDTH}>
-                                        <Text span style={{ cursor: "help" }}>
-                                            {filteredLabel("Checks", selectedTags)}
-                                        </Text>
+                            <tr>
+                                <td className="font-medium">
+                                    <Tooltip label={RUN_CHECKS_HELP}>
+                                        <span className="cursor-help">{filteredLabel("Checks", selectedTags)}</span>
                                     </Tooltip>
-                                </Table.Td>
+                                </td>
                                 {variants.runs.map((variant, column) => {
                                     const change = summaryChange(column, checksChange);
                                     return (
-                                        <Table.Td
+                                        <td
                                             key={variant.run.id}
-                                            className="no-wrap"
-                                            bg={changeBackground(change)}
+                                            className={cn("no-wrap", changeBackground(change))}
                                             data-change={change ?? undefined}
                                         >
                                             <ChecksCount run={filtered ? columnTotals(scenarios, column) : variant.run} />
                                             <ChangeNote change={change} />
-                                        </Table.Td>
+                                        </td>
                                     );
                                 })}
-                            </Table.Tr>
-                            <Table.Tr>
-                                <Table.Td fw={500}>
-                                    <Tooltip label={RUN_SAMPLES_HELP} multiline w={HELP_WIDTH}>
-                                        <Text span style={{ cursor: "help" }}>
-                                            {filteredLabel("Samples", selectedTags)}
-                                        </Text>
+                            </tr>
+                            <tr>
+                                <td className="font-medium">
+                                    <Tooltip label={RUN_SAMPLES_HELP}>
+                                        <span className="cursor-help">{filteredLabel("Samples", selectedTags)}</span>
                                     </Tooltip>
-                                </Table.Td>
+                                </td>
                                 {variants.runs.map((variant, column) => {
                                     const change = summaryChange(column, samplesChange);
                                     return (
-                                        <Table.Td
+                                        <td
                                             key={variant.run.id}
-                                            className="no-wrap"
-                                            bg={changeBackground(change)}
+                                            className={cn("no-wrap", changeBackground(change))}
                                             data-change={change ?? undefined}
                                         >
                                             <SamplesCount run={filtered ? columnTotals(scenarios, column) : variant.run} />
                                             <ChangeNote change={change} />
-                                        </Table.Td>
+                                        </td>
                                     );
                                 })}
-                            </Table.Tr>
-                            <Table.Tr>
-                                <Table.Td fw={500}>{filtered ? "Turn time (all scenarios)" : "Turn time"}</Table.Td>
+                            </tr>
+                            <tr>
+                                <td className="font-medium">{filtered ? "Turn time (all scenarios)" : "Turn time"}</td>
                                 {variants.runs.map((variant, column) => (
-                                    <Table.Td key={variant.run.id}>
-                                        <Text size="sm">{durationSummary(variant)?.replace("Turn time: ", "") ?? "—"}</Text>
+                                    <td key={variant.run.id}>
+                                        <span>{durationSummary(variant)?.replace("Turn time: ", "") ?? "—"}</span>
                                         <TimeChanges compared={compared?.[column]} />
-                                    </Table.Td>
+                                    </td>
                                 ))}
-                            </Table.Tr>
+                            </tr>
                             {variants.runs.some((variant) => variant.judgeModel != null) && (
-                                <Table.Tr>
-                                    <Table.Td fw={500}>Judge</Table.Td>
+                                <tr>
+                                    <td className="font-medium">Judge</td>
                                     {variants.runs.map((variant, column) => (
-                                        <Table.Td key={variant.run.id}>
+                                        <td key={variant.run.id}>
                                             <Judge
                                                 model={variant.judgeModel}
                                                 changed={compared?.[column]?.judgeChanged ?? false}
                                                 baselineModel={baselineJudgeModel(variants)}
                                             />
-                                        </Table.Td>
+                                        </td>
                                     ))}
-                                </Table.Tr>
+                                </tr>
                             )}
-                        </Table.Tbody>
-                        <Table.Tbody>
+                        </tbody>
+                        <tbody>
                             <SectionRow columns={columns} title="Pass rate per tag" help={TAG_RATE_HELP} />
                             {tagRows.map((row) => {
                                 const best = baseline == null ? bestColumns(row.rates.map(({ passRate }) => passRate)) : new Set<number>();
                                 const changes = comparedTags?.find((candidate) => candidate.tag === row.tag);
                                 return (
-                                    <Table.Tr key={row.tag ?? "\u0000all"}>
-                                        <Table.Td fw={500} className="wrap-key">
-                                            {row.tag ?? "All"}
-                                        </Table.Td>
+                                    <tr key={row.tag ?? "\u0000all"}>
+                                        <td className="wrap-key font-medium">{row.tag ?? "All"}</td>
                                         {row.rates.map((rate, column) => {
                                             const { passRate } = rate;
                                             const change = changes?.rates[column]?.change;
                                             const cellChange = changeOfTrend(change?.trend);
                                             const hint = coverageHint(row.tag, rate);
                                             return (
-                                                <Table.Td
+                                                <td
                                                     key={variants.runs[column]?.run.id}
-                                                    bg={best.has(column) ? BEST_BACKGROUND : changeBackground(cellChange)}
-                                                    fw={best.has(column) ? 700 : 400}
-                                                    className="no-wrap"
+                                                    className={cn(
+                                                        "no-wrap",
+                                                        best.has(column)
+                                                            ? cn(BETTER_BACKGROUND, "font-bold")
+                                                            : changeBackground(cellChange),
+                                                    )}
+                                                    data-best={best.has(column) ? "" : undefined}
                                                     data-change={cellChange ?? undefined}
                                                 >
-                                                    <Group gap="xs" wrap="nowrap">
-                                                        <Text inherit>{passRate == null ? "—" : percent(passRate)}</Text>
+                                                    <div className="flex items-center gap-2.5">
+                                                        <span>{passRate == null ? "—" : formatPercent(passRate)}</span>
                                                         {hint !== null && (
-                                                            <Text
-                                                                size="xs"
-                                                                c="dimmed"
-                                                                fw="normal"
-                                                                className="wrap-key"
-                                                                style={{ whiteSpace: "normal" }}
+                                                            <span
+                                                                className="wrap-key text-xs font-normal whitespace-normal text-muted-foreground"
                                                                 title={hint}
                                                             >
                                                                 {hint}
-                                                            </Text>
+                                                            </span>
                                                         )}
                                                         {change != null && (
-                                                            <Text size="sm" c={trendColor(change.trend)}>
-                                                                {deltaText(change)}
-                                                            </Text>
+                                                            <span className={trendClass(change.trend)}>{deltaText(change)}</span>
                                                         )}
-                                                    </Group>
+                                                    </div>
                                                     <ChangeNote change={cellChange} />
-                                                </Table.Td>
+                                                </td>
                                             );
                                         })}
-                                    </Table.Tr>
+                                    </tr>
                                 );
                             })}
-                        </Table.Tbody>
-                        <Table.Tbody>
-                            <Table.Tr>
-                                <Table.Th colSpan={columns + 1} bg="var(--mantine-color-default)">
-                                    <Group justify="space-between">
+                        </tbody>
+                        <tbody>
+                            <tr>
+                                <th colSpan={columns + 1} className="bg-secondary">
+                                    <div className="flex flex-wrap items-center justify-between gap-4">
                                         Scenarios
-                                        <Group gap="lg" className="no-print">
+                                        <div className="no-print flex flex-wrap items-center gap-5">
                                             <ToggleChip
                                                 label="Only rows that differ"
                                                 checked={onlyDifferences}
                                                 onChange={setOnlyDifferences}
                                             />
                                             <SegmentedControl
-                                                size="xs"
-                                                aria-label="List scenarios"
+                                                label="List scenarios"
                                                 value={byTag ? "tag" : "scenario"}
-                                                onChange={(value) => {
+                                                onValueChange={(value) => {
                                                     setByTag(value === "tag");
                                                 }}
-                                                data={[
+                                                options={[
                                                     { value: "scenario", label: "By scenario" },
                                                     { value: "tag", label: "By tag" },
                                                 ]}
                                             />
-                                        </Group>
-                                    </Group>
-                                </Table.Th>
-                            </Table.Tr>
+                                        </div>
+                                    </div>
+                                </th>
+                            </tr>
                             {sections.map((section) => (
                                 <ScenarioRows
                                     key={section.title ?? ""}
@@ -392,20 +383,20 @@ function View({
                                     onToggle={toggleOpen}
                                 />
                             ))}
-                        </Table.Tbody>
-                    </Table>
-                </Table.ScrollContainer>
+                        </tbody>
+                    </table>
+                </div>
                 {scenarios.length === 0 && (
-                    <Text c="dimmed" mt="sm">
+                    <p className="mt-3 text-muted-foreground">
                         {tagged.length > 0
                             ? "Every scenario came out the same in all runs — switch off Only rows that differ to see them."
                             : filtered
                               ? "No scenario has any of the selected tags."
                               : "No run has a result for a scenario yet."}
-                    </Text>
+                    </p>
                 )}
             </Paper>
-        </Stack>
+        </div>
     );
 }
 
@@ -421,60 +412,57 @@ function TimeChanges({ compared }: { compared: ComparedRun | undefined }) {
     ];
     if (changes.length === 0) return null;
     return (
-        <Tooltip label={TIME_DELTA_HELP} multiline w={HELP_WIDTH}>
-            <Group gap="xs" wrap="nowrap" w="fit-content" style={{ cursor: "help" }}>
+        <Tooltip label={TIME_DELTA_HELP}>
+            <div className="flex w-fit cursor-help items-center gap-2.5 text-xs">
                 {changes.map(({ label, change }) => (
-                    <Text key={label} size="xs" c={trendColor(change.trend)}>
+                    <span key={label} className={trendClass(change.trend)}>
                         {label} {timeDeltaText(change)}
-                    </Text>
+                    </span>
                 ))}
-            </Group>
+            </div>
         </Tooltip>
     );
 }
 
 function Judge({ model, changed, baselineModel }: { model: string | null | undefined; changed: boolean; baselineModel: string | null }) {
-    if (model == null) return <Text size="sm">—</Text>;
+    if (model == null) return <span>—</span>;
     return (
-        <Group gap={4} wrap="nowrap">
-            <Box component="span" className="no-print">
+        <div className="flex items-center gap-1">
+            <span className="no-print">
                 <ModelJudgedIcon model={model} />
-            </Box>
-            <Text size="sm" className="wrap-key">
-                {model}
-            </Text>
+            </span>
+            <span className="wrap-key">{model}</span>
             {changed && (
                 <Tooltip
                     label={`The baseline was judged by ${baselineModel ?? "another model"}: a different verdict may come from the judge, not the agent`}
-                    multiline
-                    w={HELP_WIDTH}
                 >
-                    <Badge size="xs" variant="outline" color="gray" style={{ cursor: "help" }}>
+                    <Badge variant="neutral" className="cursor-help">
                         ≠ baseline
                     </Badge>
                 </Tooltip>
             )}
-        </Group>
+        </div>
     );
 }
 
 function SectionRow({ columns, title, help }: { columns: number; title: string; help?: string }) {
     return (
-        <Table.Tr>
-            <Table.Th colSpan={columns + 1} bg="var(--mantine-color-default)">
+        <tr>
+            <th colSpan={columns + 1} className="bg-secondary">
                 {help === undefined ? title : <HeaderHelp label={title} help={help} />}
-            </Table.Th>
-        </Table.Tr>
+            </th>
+        </tr>
     );
 }
 
 function Problem({ message }: { message: string }) {
     return (
-        <Stack gap="sm">
-            <Alert color="red" title="Cannot compare">
-                {message}
+        <div className="flex flex-col gap-3">
+            <Alert variant="destructive">
+                <p className="font-semibold">Cannot compare</p>
+                <p>{message}</p>
             </Alert>
             <Anchor href="/">Back to the list of agents</Anchor>
-        </Stack>
+        </div>
     );
 }

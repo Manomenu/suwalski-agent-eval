@@ -1,5 +1,5 @@
+import { formatSeconds } from "@maniumek/suwfrontkit";
 import type { ComparedCheck, RateChange, TimeChange, Trend, VariantCell, VariantCheck } from "./api";
-import { formatSeconds } from "../../format/numbers";
 
 const BASELINE_PARAM = "baseline";
 
@@ -25,8 +25,8 @@ type ValueTrend = Trend | null | undefined;
 
 const trendMarker = (value: ValueTrend): string => (value === "Better" ? "▲" : value === "Worse" ? "▼" : "");
 
-export function trendColor(value: ValueTrend): "green" | "red" | "dimmed" {
-    return value === "Better" ? "green" : value === "Worse" ? "red" : "dimmed";
+export function trendClass(value: ValueTrend): string {
+    return value === "Better" ? "text-success" : value === "Worse" ? "text-destructive" : "text-muted-foreground";
 }
 
 export function deltaText(value: RateChange): string {
@@ -44,8 +44,8 @@ export const TIME_DELTA_HELP =
 
 export type Change = "better" | "worse" | "same";
 
-export const BETTER_BACKGROUND = "var(--mantine-color-green-light)";
-export const WORSE_BACKGROUND = "var(--mantine-color-red-light)";
+export const BETTER_BACKGROUND = "bg-success-light";
+export const WORSE_BACKGROUND = "bg-destructive-light";
 
 export const CHANGE_TEXT: Record<Change, string> = {
     better: "better than the baseline",
@@ -54,7 +54,7 @@ export const CHANGE_TEXT: Record<Change, string> = {
 };
 
 export function changeBackground(change: Change | null | undefined): string {
-    return change === "better" ? BETTER_BACKGROUND : change === "worse" ? WORSE_BACKGROUND : "transparent";
+    return change === "better" ? BETTER_BACKGROUND : change === "worse" ? WORSE_BACKGROUND : "";
 }
 
 export function changeOfTrend(trend: ValueTrend): Change | null {

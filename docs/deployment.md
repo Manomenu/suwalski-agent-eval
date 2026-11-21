@@ -45,7 +45,7 @@ from the tunnel. A failure turns the sync red and the Job's log says what broke.
 chart has this Job** — it is the only check that runs against the real cluster, with its
 real secrets, database and routing. It stays small and fast: status codes and a fragment of
 the body, no logging in, no writes. Today it checks that nginx answers (`/healthz`) and that
-the page reaches the server, which only starts with its database (`/api/health`).
+the page reaches the server and the server its database (`/api/health`, the kit's health check, 503 while the database does not answer). Compose and the chart's probes ask `/alive`, which does not depend on the database.
 
 
 ## Secrets

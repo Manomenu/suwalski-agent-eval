@@ -11,4 +11,8 @@ public sealed record VersionDiff
     public required int Removed { get; init; }
 
     public required IReadOnlyList<DiffBlock> Blocks { get; init; }
+
+    public required string FromYaml { get; init; }
+
+    public required string ToYaml { get; init; }
 }

@@ -1,17 +1,14 @@
-import { Badge } from "@mantine/core";
+import { StatusBadge } from "@maniumek/suwfrontkit";
+import { useQuery } from "@tanstack/react-query";
 
-import { useRequest } from "../api/useRequest";
-import { fetchHealth } from "./api";
+import { checkHealth } from "./api";
 import { describe, statusOf, type ServerStatus as Status } from "./status";
 
-export function ServerStatus() {
-    const health = useRequest("health", fetchHealth);
-    const status: Status =
-        health.kind === "loading" ? { kind: "checking" } : statusOf(health.kind === "error" ? health.error : health.value);
+const BADGE_OF_STATUS = { checking: "pending", up: "success", down: "danger" } as const;
 
-    return (
-        <Badge variant="light" size="lg" color={status.kind === "down" ? "red" : "mauve"}>
-            server: {describe(status)}
-        </Badge>
-    );
+export function ServerStatus() {
+    const health = useQuery({ queryKey: ["health"], retry: false, queryFn: ({ signal }) => checkHealth(signal) });
+    const status: Status = health.isPending ? { kind: "checking" } : statusOf(health.error);
+
+    return <StatusBadge status={BADGE_OF_STATUS[status.kind]}>server: {describe(status)}</StatusBadge>;
 }

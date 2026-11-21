@@ -17,7 +17,7 @@ public sealed class PushCommandEndToEndTests(TestDatabase database, ClassServer 
 
     private HttpClient Client()
     {
-        _ = database.Pool;
+        _ = database.DataSource;
         return App.CreateClient();
     }
 

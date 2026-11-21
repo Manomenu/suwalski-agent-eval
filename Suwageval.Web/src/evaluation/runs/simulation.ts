@@ -1,5 +1,5 @@
+import { formatSeconds } from "@maniumek/suwfrontkit";
 import type { ConversationItem, ScenarioRunResult } from "./api";
-import { formatSeconds } from "../../format/numbers";
 
 type SampleResult = ScenarioRunResult["samples"][number];
 

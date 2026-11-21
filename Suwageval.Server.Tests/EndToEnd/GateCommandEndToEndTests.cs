@@ -29,7 +29,7 @@ public sealed class GateCommandEndToEndTests(TestDatabase database, ClassServer 
 
     private Task<SeededAgent> SeedAsync(string endpoint, params ScenarioInput[] scenarios) =>
         SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             endpoint,
             scenarios,
             [.. scenarios.Select(scenario => SeededAgent.RefundAfterLookup($"{scenario.Key}-refunded", scenario.Key))]

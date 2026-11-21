@@ -1,13 +1,19 @@
 import { describe, expect, it } from "vitest";
 
 import { itemKey } from "../conversation/items";
-import { failedEvidence, verdictOf } from "./verdict";
+import { failedEvidence, VERDICT_VARIANT, verdictOf } from "./verdict";
 
 describe("verdictOf", () => {
     it("tells passed, failed and not judged apart", () => {
         expect(verdictOf({ passed: true })).toBe("passed");
         expect(verdictOf({ passed: false })).toBe("failed");
         expect(verdictOf({ passed: false, notJudged: true })).toBe("not judged");
+    });
+});
+
+describe("VERDICT_VARIANT", () => {
+    it("gives every verdict its badge variant", () => {
+        expect(VERDICT_VARIANT).toEqual({ passed: "success", failed: "danger", "not judged": "warning" });
     });
 });
 

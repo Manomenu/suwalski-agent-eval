@@ -1,11 +1,10 @@
-import { Anchor, Badge, Box, Button, Stack, Text, Tooltip } from "@mantine/core";
+import { Anchor, Badge, Button, cn, formatDateTime, Tooltip } from "@maniumek/suwfrontkit";
 
 import { DataVersion } from "../../dataVersion/DataVersion";
 import { statusColor, statusLabel } from "../runs/results";
 import type { VariantRun } from "./api";
 import { columnTitle, runTagsText } from "./variants";
 import { versionInUseHref, compareGroupHref, runHref } from "../../routes/links";
-import { formatTime } from "../../format/time";
 import { shortId } from "../../format/names";
 
 export interface BaselineInfo {
@@ -17,50 +16,38 @@ export function ColumnHeader({ agent, variant, baseline }: { agent: string; vari
     const { run } = variant;
     const labelled = run.label?.trim() ? true : false;
     return (
-        <Stack gap={2}>
-            <Text fw={600} c={labelled ? "inherit" : "dimmed"} className="wrap-key">
-                {columnTitle(variant)}
-            </Text>
-            <Text size="xs" fw="normal">
+        <div className="flex flex-col gap-0.5 text-xs font-normal">
+            <p className={cn("text-sm font-semibold wrap-anywhere", !labelled && "text-muted-foreground")}>{columnTitle(variant)}</p>
+            <p>
                 <Anchor href={versionInUseHref(agent, run.agentVersionId, run.group != null)}>Version {shortId(run.agentVersionId)}</Anchor>
-            </Text>
-            <Text size="xs" fw="normal">
+            </p>
+            <p>
                 <Anchor href={runHref(run.id)}>Run {shortId(run.id)}</Anchor>
-            </Text>
-            <Text size="xs" fw="normal" className="wrap-key">
-                Models: {variant.modelNames.length === 0 ? "unknown" : variant.modelNames.join(", ")}
-            </Text>
+            </p>
+            <p className="wrap-key">Models: {variant.modelNames.length === 0 ? "unknown" : variant.modelNames.join(", ")}</p>
             {run.dataVersion != null && <DataVersion dataVersion={run.dataVersion} description={run.dataDescription} />}
-            <Text size="xs" fw="normal" className="wrap-key">
-                Tags: {runTagsText(run.tags)}
-            </Text>
+            <p className="wrap-key">Tags: {runTagsText(run.tags)}</p>
             {run.group != null && (
-                <Text size="xs" fw="normal" className="wrap-key">
+                <p className="wrap-key">
                     <Anchor href={compareGroupHref(run.group, agent)}>Group {run.group}</Anchor>
-                </Text>
+                </p>
             )}
             {run.note?.trim() && (
                 <>
-                    <Tooltip label={run.note} multiline maw={360} style={{ whiteSpace: "pre-wrap" }}>
-                        <Text size="xs" fw="normal" lineClamp={1} className="no-print">
-                            Note: {run.note}
-                        </Text>
+                    <Tooltip label={<span className="whitespace-pre-wrap">{run.note}</span>}>
+                        <p className="no-print line-clamp-1">Note: {run.note}</p>
                     </Tooltip>
-                    <Text size="xs" fw="normal" className="print-only wrap-key">
-                        Note: {run.note}
-                    </Text>
+                    <p className="print-only wrap-key">Note: {run.note}</p>
                 </>
             )}
-            <Text size="xs" c="dimmed" fw="normal" className="no-wrap">
-                {formatTime(run.createdAt)}
-            </Text>
+            <p className="no-wrap text-muted-foreground">{formatDateTime(run.createdAt)}</p>
             {run.status !== "Done" && (
-                <Badge size="xs" w="fit-content" color={statusColor(run.status)}>
+                <Badge className="w-fit" variant={statusColor(run.status)}>
                     {statusLabel(run.status)}
                 </Badge>
             )}
             {baseline !== null && <BaselineButton baseline={baseline} runId={run.id} />}
-        </Stack>
+        </div>
     );
 }
 
@@ -68,14 +55,10 @@ function BaselineButton({ baseline, runId }: { baseline: BaselineInfo; runId: st
     const { isBaseline } = baseline;
     return (
         <>
-            {isBaseline && (
-                <Badge w="fit-content" className="print-only">
-                    Baseline
-                </Badge>
-            )}
-            <Box component="span" className="no-print">
+            {isBaseline && <Badge className="print-only w-fit">Baseline</Badge>}
+            <span className="no-print">
                 <BaselineToggle baseline={baseline} runId={runId} />
-            </Box>
+            </span>
         </>
     );
 }
@@ -85,9 +68,9 @@ function BaselineToggle({ baseline, runId }: { baseline: BaselineInfo; runId: st
     return (
         <Tooltip label="Click to unselect the baseline" disabled={!isBaseline}>
             <Button
-                size="compact-xs"
-                variant={isBaseline ? "filled" : "light"}
-                w="fit-content"
+                size="xs"
+                variant={isBaseline ? "default" : "outline"}
+                className="w-fit"
                 aria-pressed={isBaseline}
                 aria-label={
                     isBaseline ? `Run ${shortId(runId)} is the baseline: click to remove it` : `Use run ${shortId(runId)} as the baseline`

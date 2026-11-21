@@ -1,7 +1,7 @@
-import { Anchor, Group, Loader, SegmentedControl, Select, Stack, Table, Text, Title } from "@mantine/core";
-import { lazy, Suspense, useState } from "react";
+import { Anchor, Label, SegmentedControl, Select, Spinner, Table } from "@maniumek/suwfrontkit";
+import { useQuery } from "@tanstack/react-query";
+import { lazy, Suspense, useId, useState } from "react";
 
-import { useRequest } from "../../api/useRequest";
 import { percentText, seriesColor } from "../../charts/chartStyle";
 
 const MAIN_STROKE_WIDTH = 4;
@@ -10,7 +10,7 @@ import { ListPagination } from "../../pagination/ListPagination";
 import { pageOfItems } from "../../pagination/pages";
 import { usePageParam } from "../../pagination/usePageParam";
 import { failedConversationsHref } from "../../routes/links";
-import { fetchMonitoringChecks, fetchMonitoringTrend, type MonitoringTrend } from "./api";
+import { monitoringChecksQuery, monitoringTrendQuery, type MonitoringTrend } from "./api";
 import {
     MONITORING_CHECKS_PAGE_SIZE,
     checkKeys,
@@ -40,107 +40,110 @@ export function ChecksSection({
     environment: string | null;
     onEnvironmentChange: (environment: string | null) => void;
 }) {
-    const checks = useRequest(JSON.stringify([agent, environment]), (signal) => fetchMonitoringChecks(agent, environment, signal));
+    const checks = useQuery(monitoringChecksQuery(agent, environment));
+    const environmentId = useId();
     const [days, setDays] = useState<TrendDays>(30);
     const [checksPage, setChecksPage] = usePageParam("checksPage");
-    const trend = useRequest(JSON.stringify([agent, days, environment]), (signal) =>
-        fetchMonitoringTrend(agent, days, environment, signal),
-    );
-    const environments = trend.kind === "loaded" ? (trend.value.environments ?? []) : [];
+    const trend = useQuery(monitoringTrendQuery(agent, days, environment));
+    const environments = trend.data?.environments ?? [];
     const rate = (key: string, value: Rate) =>
         hasFailures(value) ? (
-            <Anchor c="red" href={failedConversationsHref(agent, key, environment)}>
+            <Anchor className="text-destructive" href={failedConversationsHref(agent, key, environment)}>
                 {rateText(value)}
             </Anchor>
         ) : (
             rateText(value)
         );
     return (
-        <Stack gap="sm">
+        <div className="flex flex-col gap-3">
             {(environments.length > 1 || environment !== null) && (
-                <Select
-                    label="Environment"
-                    placeholder="All environments"
-                    data={environments}
-                    value={environment}
-                    onChange={onEnvironmentChange}
-                    clearable
-                    maw={260}
-                />
+                <div className="flex max-w-65 flex-col gap-1">
+                    <Label htmlFor={environmentId}>Environment</Label>
+                    <Select
+                        id={environmentId}
+                        value={environment ?? ""}
+                        onChange={(event) => {
+                            onEnvironmentChange(event.target.value === "" ? null : event.target.value);
+                        }}
+                    >
+                        <option value="">All environments</option>
+                        {environments.map((name) => (
+                            <option key={name} value={name}>
+                                {name}
+                            </option>
+                        ))}
+                    </Select>
+                </div>
             )}
-            <Title order={3}>
+            <h3 className="text-[22px] font-bold">
                 <HeaderHelp label="Monitoring checks" help={MONITORING_CHECKS_HELP} />
-            </Title>
-            {checks.kind === "error" && <Text c="red">{checks.error.message}</Text>}
-            {checks.kind === "loaded" && checks.value.length === 0 && (
-                <Text c="dimmed">No monitoring checks: write them in suwageval/monitoring-checks.yaml and push.</Text>
+            </h3>
+            {checks.isError && <p className="text-destructive">{checks.error.message}</p>}
+            {checks.data?.length === 0 && (
+                <p className="text-muted-foreground">No monitoring checks: write them in suwageval/monitoring-checks.yaml and push.</p>
             )}
-            {checks.kind === "loaded" && checks.value.length > 0 && (
-                <Stack gap="sm">
-                    <Table.ScrollContainer minWidth={700}>
-                        <Table striped>
-                            <Table.Thead>
-                                <Table.Tr>
-                                    <Table.Th>Check</Table.Th>
-                                    <Table.Th>What it makes sure of</Table.Th>
-                                    <Table.Th>7 days</Table.Th>
-                                    <Table.Th>30 days</Table.Th>
-                                </Table.Tr>
-                            </Table.Thead>
-                            <Table.Tbody>
-                                {pageOfItems(checks.value, checksPage, MONITORING_CHECKS_PAGE_SIZE).items.map(
-                                    ({ check, last7Days, last30Days }) => (
-                                        <Table.Tr key={check.key}>
-                                            <Table.Td className="wrap-key">{check.key}</Table.Td>
-                                            <Table.Td>{check.description}</Table.Td>
-                                            <Table.Td>{rate(check.key, last7Days)}</Table.Td>
-                                            <Table.Td>{rate(check.key, last30Days)}</Table.Td>
-                                        </Table.Tr>
-                                    ),
-                                )}
-                            </Table.Tbody>
-                        </Table>
-                    </Table.ScrollContainer>
+            {checks.data !== undefined && checks.data.length > 0 && (
+                <div className="flex flex-col gap-3">
+                    <Table className="min-w-[700px]">
+                        <thead>
+                            <tr>
+                                <th>Check</th>
+                                <th>What it makes sure of</th>
+                                <th>7 days</th>
+                                <th>30 days</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {pageOfItems(checks.data, checksPage, MONITORING_CHECKS_PAGE_SIZE).items.map(
+                                ({ check, last7Days, last30Days }) => (
+                                    <tr key={check.key}>
+                                        <td className="wrap-key">{check.key}</td>
+                                        <td>{check.description}</td>
+                                        <td>{rate(check.key, last7Days)}</td>
+                                        <td>{rate(check.key, last30Days)}</td>
+                                    </tr>
+                                ),
+                            )}
+                        </tbody>
+                    </Table>
                     <ListPagination
-                        totalCount={checks.value.length}
+                        totalCount={checks.data.length}
                         page={checksPage}
                         pageSize={MONITORING_CHECKS_PAGE_SIZE}
                         onChange={setChecksPage}
                     />
-                </Stack>
+                </div>
             )}
-            <Group justify="space-between" align="flex-end">
-                <Title order={4}>
+            <div className="flex flex-wrap items-end justify-between gap-4">
+                <h4 className="text-lg font-bold">
                     <HeaderHelp label="Traffic and pass rates" help={MONITORING_TREND_HELP} />
-                </Title>
+                </h4>
                 <SegmentedControl
-                    aria-label="Days"
+                    label="Days"
                     value={String(days)}
-                    data={TREND_DAYS.map((value) => ({ value: String(value), label: `${String(value)} days` }))}
-                    onChange={(value) => {
+                    options={TREND_DAYS.map((value) => ({ value: String(value), label: `${String(value)} days` }))}
+                    onValueChange={(value) => {
                         setDays(TREND_DAYS.find((option) => String(option) === value) ?? 30);
                     }}
                 />
-            </Group>
-            {trend.kind === "error" && <Text c="red">{trend.error.message}</Text>}
-            {trend.kind === "loaded" && (
-                <Suspense fallback={<Loader aria-label="Loading the charts" />}>
-                    <TrendCharts trend={trend.value} />
+            </div>
+            {trend.isError && <p className="text-destructive">{trend.error.message}</p>}
+            {trend.data !== undefined && (
+                <Suspense fallback={<Spinner label="Loading the charts" />}>
+                    <TrendCharts trend={trend.data} />
                 </Suspense>
             )}
-        </Stack>
+        </div>
     );
 }
 
 function TrendCharts({ trend }: { trend: MonitoringTrend }) {
-    if (trend.days.length === 0) return <Text c="dimmed">No conversations in these days.</Text>;
+    if (trend.days.length === 0) return <p className="text-muted-foreground">No conversations in these days.</p>;
     const marks = dayMarks(trend);
     const keys = checkKeys(trend);
     return (
-        <Stack gap="md">
-            <Text size="sm" fw={500}>
-                Conversations
-            </Text>
+        <div className="flex flex-col gap-4">
+            <p className="text-sm font-medium">Conversations</p>
             <LineTrend
                 rows={volumeRows(trend)}
                 dataKey={DAY_KEY}
@@ -155,9 +158,7 @@ function TrendCharts({ trend }: { trend: MonitoringTrend }) {
             />
             {keys.length > 0 && (
                 <>
-                    <Text size="sm" fw={500}>
-                        Pass rate per check
-                    </Text>
+                    <p className="text-sm font-medium">Pass rate per check</p>
                     <LineTrend
                         rows={passRateRows(trend)}
                         dataKey={DAY_KEY}
@@ -169,6 +170,6 @@ function TrendCharts({ trend }: { trend: MonitoringTrend }) {
                     />
                 </>
             )}
-        </Stack>
+        </div>
     );
 }

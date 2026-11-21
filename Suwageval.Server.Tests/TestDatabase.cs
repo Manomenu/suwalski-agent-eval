@@ -1,5 +1,5 @@
 using Npgsql;
-using Suwageval.Server.Database;
+using Suwbackkit.Postgres;
 
 [assembly: AssemblyFixture(typeof(Suwageval.Server.Tests.TestDatabase))]
 
@@ -15,9 +15,9 @@ public sealed class TestDatabase : IAsyncLifetime
     public static readonly string ConnectionString = FromEnvironment ?? MainCheckoutConnectionString;
 
     private string? unavailable;
-    private Pool? pool;
+    private NpgsqlDataSource? dataSource;
 
-    internal Pool Pool
+    internal NpgsqlDataSource DataSource
     {
         get
         {
@@ -25,7 +25,7 @@ public sealed class TestDatabase : IAsyncLifetime
             {
                 Assert.Skip($"PostgreSQL unavailable — start it with `just db up` ({unavailable})");
             }
-            return pool!;
+            return dataSource!;
         }
     }
 
@@ -41,7 +41,7 @@ public sealed class TestDatabase : IAsyncLifetime
             unavailable = error.Message;
             return;
         }
-        pool = Pool.Create(ConnectionString, maxSize: 4);
+        dataSource = NpgsqlDataSource.Create(new NpgsqlConnectionStringBuilder(ConnectionString) { MaxPoolSize = 4 }.ConnectionString);
         await Migrator.MigrateAsync(ConnectionString, Migrator.DefaultDirectory);
     }
 
@@ -111,9 +111,9 @@ public sealed class TestDatabase : IAsyncLifetime
 
     public async ValueTask DisposeAsync()
     {
-        if (pool is not null)
+        if (dataSource is not null)
         {
-            await pool.DisposeAsync();
+            await dataSource.DisposeAsync();
         }
     }
 }

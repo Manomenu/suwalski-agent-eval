@@ -9,10 +9,10 @@ public sealed class ScenarioStoreTests(TestDatabase database)
 {
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
 
-    private ScenarioStore Store() => new(database.Pool);
+    private ScenarioStore Store() => new(database.DataSource);
 
     private async Task<Guid> NewAgentAsync() =>
-        (await new AgentStore(database.Pool).CreateAsync(AgentStoreTests.UniqueName(), "http://agent.test", Cancellation)).Agent.Id;
+        (await new AgentStore(database.DataSource).CreateAsync(AgentStoreTests.UniqueName(), "http://agent.test", Cancellation)).Agent.Id;
 
     private static ScenarioItem Item(string key, string content = """{"conversation":[]}""", params string[] tags) =>
         new(key, tags, content);

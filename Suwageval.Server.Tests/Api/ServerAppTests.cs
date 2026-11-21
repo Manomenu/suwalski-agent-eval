@@ -1,5 +1,4 @@
 using System.Net;
-using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Suwageval.Contracts;
 using Suwageval.Server.Api;
@@ -12,7 +11,7 @@ public sealed class ServerAppTests(TestDatabase database, ClassServer server) : 
 
     private HttpClient Client()
     {
-        _ = database.Pool;
+        _ = database.DataSource;
         return app.CreateClient();
     }
 
@@ -25,13 +24,14 @@ public sealed class ServerAppTests(TestDatabase database, ClassServer server) : 
         Assert.Equal(ServerVersion.Of(typeof(ServerApp).Assembly), Assert.Single(values));
     }
 
-    [Fact]
-    public async Task Health_answers_ok()
+    [Theory]
+    [InlineData("/health")]
+    [InlineData("/alive")]
+    public async Task The_probes_of_compose_and_the_chart_answer_ok(string probe)
     {
-        var response = await Client().GetAsync(new Uri("/health", UriKind.Relative), TestContext.Current.CancellationToken);
+        var response = await Client().GetAsync(new Uri(probe, UriKind.Relative), TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Equal(new Health("ok"), await response.Content.ReadFromJsonAsync<Health>(TestContext.Current.CancellationToken));
     }
 
     [Fact]

@@ -1,11 +1,9 @@
-import { ActionIcon, Drawer, Stack, Text } from "@mantine/core";
-import { useDisclosure } from "@mantine/hooks";
+import { Button, Dialog } from "@maniumek/suwfrontkit";
+import { useState } from "react";
 
 import type { CheckDefinition } from "./api";
 import { definitionSummary, definitionYaml, revisionNote } from "./definition";
 import { HighlightedYaml } from "./HighlightedYaml";
-
-const DEFINITION_DRAWER_WIDTH = 640;
 
 export function CheckDefinitionButton({
     definition,
@@ -16,26 +14,27 @@ export function CheckDefinitionButton({
     revision: number;
     latestRevision: number;
 }) {
-    const [opened, { open, close }] = useDisclosure(false);
+    const [opened, setOpened] = useState(false);
     const note = revisionNote(revision, latestRevision);
     return (
         <>
-            <ActionIcon variant="subtle" size="sm" aria-label={`Show definition of ${definition.key}`} onClick={open}>
+            <Button
+                variant="ghost"
+                size="icon"
+                aria-label={`Show definition of ${definition.key}`}
+                onClick={() => {
+                    setOpened(true);
+                }}
+            >
                 {"{ }"}
-            </ActionIcon>
-            <Drawer opened={opened} onClose={close} position="right" size={DEFINITION_DRAWER_WIDTH} title={definition.key}>
-                <Stack gap="sm">
-                    <Text size="sm" c="dimmed">
-                        {definitionSummary(definition)}
-                    </Text>
-                    {note !== null && (
-                        <Text size="sm" c="yellow">
-                            {note}
-                        </Text>
-                    )}
+            </Button>
+            <Dialog open={opened} onOpenChange={setOpened} title={definition.key} width="wide">
+                <div className="flex flex-col gap-3">
+                    <p className="text-sm text-muted-foreground">{definitionSummary(definition)}</p>
+                    {note !== null && <p className="text-sm text-warning">{note}</p>}
                     <HighlightedYaml yaml={definitionYaml(definition)} />
-                </Stack>
-            </Drawer>
+                </div>
+            </Dialog>
         </>
     );
 }

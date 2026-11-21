@@ -1,13 +1,9 @@
-import { Text, Tooltip } from "@mantine/core";
-
-const HELP_WIDTH = 320;
+import { Tooltip } from "@maniumek/suwfrontkit";
 
 export function HeaderHelp({ label, help }: { label: string; help: string }) {
     return (
-        <Tooltip label={help} multiline w={HELP_WIDTH}>
-            <Text span inherit td="underline" style={{ textDecorationStyle: "dotted", cursor: "help" }}>
-                {label}
-            </Text>
+        <Tooltip label={help}>
+            <span className="cursor-help underline decoration-dotted">{label}</span>
         </Tooltip>
     );
 }

@@ -118,11 +118,15 @@ export default defineConfig(
     },
     {
         files: ["src/**/*.{ts,tsx}"],
-        ignores: ["src/api/**", "src/**/*.e2e.ts", "src/evaluation/runs/useRunResults.ts"],
+        ignores: ["src/api/**", "src/**/*.e2e.ts"],
         rules: {
             "no-restricted-syntax": [
                 "error",
-                { selector: "NewExpression[callee.name='AbortController']", message: "Requests in an effect go through api/useRequest" },
+                {
+                    selector: "NewExpression[callee.name='AbortController']",
+                    message:
+                        "Reads go through TanStack Query: useQuery with the queryOptions of the feature's api.ts, whose signal cancels them",
+                },
             ],
         },
     },

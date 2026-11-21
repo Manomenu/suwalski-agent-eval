@@ -1,12 +1,12 @@
 using System.Text.Json;
 using Dapper;
+using Npgsql;
 using Suwageval.AgentSdk;
 using Suwageval.AgentSdk.Monitoring;
-using Suwageval.Server.Database;
 
 namespace Suwageval.Server.Monitoring.Conversations;
 
-internal sealed class ConversationStore(Pool pool)
+internal sealed class ConversationStore(NpgsqlDataSource dataSource)
 {
     private const string ConversationSelect = """
         SELECT c.id, a.name AS AgentName, c.environment, c.conversation_key AS ConversationKey, c.agent_version_id AS AgentVersionId,
@@ -37,7 +37,7 @@ internal sealed class ConversationStore(Pool pool)
         CancellationToken cancellationToken = default
     )
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
         var known = (
             await connection.QueryAsync<Guid>(
@@ -120,7 +120,7 @@ internal sealed class ConversationStore(Pool pool)
 
     public async Task<int> CloseIdleAsync(Guid agentId, DateTimeOffset idleSince, CancellationToken cancellationToken = default)
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         return await connection.ExecuteAsync(
             new CommandDefinition(
                 """
@@ -135,7 +135,7 @@ internal sealed class ConversationStore(Pool pool)
 
     public async Task<IReadOnlyList<Guid>> AgentsWithOpenAsync(CancellationToken cancellationToken = default)
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         return
         [
             .. await connection.QueryAsync<Guid>(
@@ -156,7 +156,7 @@ internal sealed class ConversationStore(Pool pool)
         CancellationToken cancellationToken = default
     )
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         return await connection.ExecuteScalarAsync<int>(
             new CommandDefinition(
                 $"SELECT count(*) FROM monitoring_conversations c {ListFilter}",
@@ -184,7 +184,7 @@ internal sealed class ConversationStore(Pool pool)
         CancellationToken cancellationToken = default
     )
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         var parameters = new
         {
             agentId,
@@ -212,7 +212,7 @@ internal sealed class ConversationStore(Pool pool)
 
     public async Task<IReadOnlyList<string>> EnvironmentsAsync(Guid agentId, CancellationToken cancellationToken = default)
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         return
         [
             .. await connection.QueryAsync<string>(
@@ -227,7 +227,7 @@ internal sealed class ConversationStore(Pool pool)
 
     public async Task<ConversationRow?> GetAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         return await connection.QuerySingleOrDefaultAsync<ConversationRow>(
             new CommandDefinition($"{ConversationSelect} WHERE c.id = @id", new { id }, cancellationToken: cancellationToken)
         );
@@ -235,7 +235,7 @@ internal sealed class ConversationStore(Pool pool)
 
     public async Task<IReadOnlyList<TurnRow>> TurnsAsync(Guid conversationId, CancellationToken cancellationToken = default)
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         return
         [
             .. await connection.QueryAsync<TurnRow>(
@@ -253,7 +253,7 @@ internal sealed class ConversationStore(Pool pool)
 
     public async Task<IReadOnlyList<ConversationResultRow>> ResultsAsync(Guid conversationId, CancellationToken cancellationToken = default)
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         return
         [
             .. await connection.QueryAsync<ConversationResultRow>(

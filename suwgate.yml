@@ -25,18 +25,6 @@ exceptions:
   - guard: architecture/interfaces-have-two-implementations
     target: Suwageval.AgentSdk.Invocation.ITurnHandler
     reason: the agent under test implements it, outside this repository
-  - guard: banned-npm-packages
-    target: "@mantine/charts"
-    reason: the web app is built on Mantine until its own change moves it to suwfrontkit (TODO.md)
-  - guard: banned-npm-packages
-    target: "@mantine/core"
-    reason: the web app is built on Mantine until its own change moves it to suwfrontkit (TODO.md)
-  - guard: banned-npm-packages
-    target: "@mantine/hooks"
-    reason: the web app is built on Mantine until its own change moves it to suwfrontkit (TODO.md)
-  - guard: no-raw-colors
-    target: Suwageval.Web/src/main.tsx
-    reason: the Mantine theme, the one place the colours are defined, until the move to suwfrontkit (TODO.md)
   - guard: forbidden-names
     target: claude-plugin/hooks
     reason: the folder name Claude Code reads a plugin's hooks from
