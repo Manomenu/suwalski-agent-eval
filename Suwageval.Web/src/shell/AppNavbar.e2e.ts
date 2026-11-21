@@ -17,13 +17,13 @@ test("the server answers, an agent opens on Versions, Evaluation is one click aw
     await expect(page.getByText("server: up", { exact: true })).toBeVisible();
     await page.getByRole("main").getByRole("link", { name, exact: true }).click();
     await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();
-    await expect(versions).toHaveAttribute("data-active", "true");
-    await expect(evaluation).not.toHaveAttribute("data-active", "true");
+    await expect(versions).toHaveAttribute("aria-current", "page");
+    await expect(evaluation).not.toHaveAttribute("aria-current", "page");
     await expect(page.getByRole("heading", { name: "Versions", exact: true })).toBeVisible();
 
     await evaluation.click();
     await expect(page).toHaveURL(new RegExp(`/agents/${name}/evaluation$`));
-    await expect(evaluation).toHaveAttribute("data-active", "true");
+    await expect(evaluation).toHaveAttribute("aria-current", "page");
     await expect(page.getByRole("heading", { name: "Runs", exact: true })).toBeVisible();
 
     await navbar.getByRole("link", { name: "Agents", exact: true }).click();
@@ -41,7 +41,7 @@ test("the sidebar shows the areas the agent's features switch on, and a switched
     const navbar = page.getByRole("navigation");
 
     await page.goto(`/agents/${name}/monitoring`);
-    await expect(navbar.getByRole("link", { name: "Monitoring", exact: true })).toHaveAttribute("data-active", "true");
+    await expect(navbar.getByRole("link", { name: "Monitoring", exact: true })).toHaveAttribute("aria-current", "page");
     await expect(navbar.getByRole("link", { name: "Evaluation", exact: true })).toHaveCount(0);
     await expect(
         page.getByText("A conversation closes after 30m without a turn · environments: production", { exact: true }),

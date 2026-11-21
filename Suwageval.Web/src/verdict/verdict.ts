@@ -8,7 +8,11 @@ export interface CheckOutcome {
     evidence?: readonly ConversationItem[] | null;
 }
 
-export const VERDICT_COLOR: Record<Verdict, "green" | "red" | "yellow"> = { passed: "green", failed: "red", "not judged": "yellow" };
+export const VERDICT_VARIANT: Record<Verdict, "success" | "danger" | "warning"> = {
+    passed: "success",
+    failed: "danger",
+    "not judged": "warning",
+};
 
 export function verdictOf(outcome: CheckOutcome): Verdict {
     if (outcome.passed) return "passed";

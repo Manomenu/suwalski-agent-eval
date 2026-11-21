@@ -1,53 +1,35 @@
-import { Anchor, Box, Group, Stack, Text, Tooltip } from "@mantine/core";
+import { Anchor, Tooltip } from "@maniumek/suwfrontkit";
 
 import type { CheckRunResult } from "./api";
 import { CHECK_HISTORY_EXPLANATION, historyMarks, type HistoryMark } from "./regression";
 
-const TOOLTIP_WIDTH = 340;
-
-const MARK_SIZE = 12;
-
 function Glyph({ outcome }: { outcome: HistoryMark["outcome"] }) {
     switch (outcome) {
         case "passed":
-            return <Box w={MARK_SIZE - 2} h={MARK_SIZE - 2} bg="green" style={{ borderRadius: "50%" }} />;
+            return <span className="size-2.5 rounded-full bg-success" />;
         case "failed":
-            return (
-                <Text span c="red" fw={900} fz={MARK_SIZE + 2} lh={1}>
-                    ✗
-                </Text>
-            );
+            return <span className="text-sm leading-none font-black text-destructive">✗</span>;
         case "agentError":
-            return (
-                <Text span c="gray" fw={900} fz={MARK_SIZE + 2} lh={1}>
-                    –
-                </Text>
-            );
+            return <span className="text-sm leading-none font-black text-muted-foreground">–</span>;
     }
 }
 
 function Mark({ mark }: { mark: HistoryMark }) {
     return (
         <Tooltip
-            multiline
-            w={TOOLTIP_WIDTH}
             label={
-                <Stack gap={4}>
-                    <Text size="sm" fw={600} inherit>
-                        {mark.tooltip}
-                    </Text>
-                    <Text size="xs" inherit>
-                        {CHECK_HISTORY_EXPLANATION}
-                    </Text>
-                </Stack>
+                <div className="flex flex-col gap-1">
+                    <p className="text-sm font-semibold">{mark.tooltip}</p>
+                    <p className="text-xs">{CHECK_HISTORY_EXPLANATION}</p>
+                </div>
             }
         >
             {mark.href === null ? (
-                <Box component="span" aria-label={mark.label} role="img" display="inline-flex">
+                <span aria-label={mark.label} role="img" className="inline-flex">
                     <Glyph outcome={mark.outcome} />
-                </Box>
+                </span>
             ) : (
-                <Anchor href={mark.href} aria-label={mark.label} display="inline-flex">
+                <Anchor href={mark.href} aria-label={mark.label} className="inline-flex">
                     <Glyph outcome={mark.outcome} />
                 </Anchor>
             )}
@@ -59,17 +41,13 @@ export function CheckHistory({ check }: { check: Pick<CheckRunResult, "passed" |
     const marks = historyMarks(check);
     if (marks.length === 0) return null;
     return (
-        <Group gap={4} wrap="nowrap" role="group" aria-label="History of the check">
+        <div className="flex items-center gap-1" role="group" aria-label="History of the check">
             {marks.map((mark, index) => (
-                <Group key={mark.key} gap={4} wrap="nowrap">
-                    {index === marks.length - 1 && (
-                        <Text span c="dimmed" size="xs">
-                            →
-                        </Text>
-                    )}
+                <div key={mark.key} className="flex items-center gap-1">
+                    {index === marks.length - 1 && <span className="text-xs text-muted-foreground">→</span>}
                     <Mark mark={mark} />
-                </Group>
+                </div>
             ))}
-        </Group>
+        </div>
     );
 }

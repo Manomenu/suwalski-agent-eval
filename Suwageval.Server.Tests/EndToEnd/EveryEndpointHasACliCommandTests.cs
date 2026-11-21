@@ -22,7 +22,6 @@ public sealed class EveryEndpointHasACliCommandTests(TestDatabase database, Clas
 
     private static readonly Dictionary<string, Coverage> Routes = new()
     {
-        ["GET /health"] = NotForCli("The liveness probe of the cluster; nobody asks it from the CLI."),
         ["GET /openapi/{documentName}.json"] = NotForCli("The OpenAPI document the web's types are generated from."),
         ["POST /agents"] = Cli("push"),
         ["GET /agents"] = Cli("agents"),
@@ -75,7 +74,7 @@ public sealed class EveryEndpointHasACliCommandTests(TestDatabase database, Clas
 
     private List<string> Mapped()
     {
-        _ = database.Pool;
+        _ = database.DataSource;
         return
         [
             .. app

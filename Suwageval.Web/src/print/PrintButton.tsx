@@ -1,18 +1,18 @@
-import { Button, Group } from "@mantine/core";
+import { Button } from "@maniumek/suwfrontkit";
 import { IconPrinter } from "@tabler/icons-react";
 
 export function PrintButton() {
     return (
-        <Group gap="sm" className="no-print">
+        <div className="no-print flex flex-wrap items-center gap-3">
             <Button
-                variant="default"
-                leftSection={<IconPrinter size={16} aria-hidden />}
+                variant="outline"
                 onClick={() => {
                     window.print();
                 }}
             >
+                <IconPrinter size={16} aria-hidden />
                 Print
             </Button>
-        </Group>
+        </div>
     );
 }

@@ -1,43 +1,26 @@
-import { useEffect, useState } from "react";
+import { queryOptions, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { fetchRunResults, fetchRunSummary, type RunResults } from "./api";
+import { fetchRunResults, fetchRunSummary, runKeys, type RunResults } from "./api";
 import { POLL_INTERVAL_MS, isActive, needsFullResults } from "./results";
 
 export type RunResultsState = { kind: "loading" } | { kind: "error"; error: Error } | { kind: "loaded"; results: RunResults };
 
 export function useRunResults(runId: string): RunResultsState {
-    const [state, setState] = useState<RunResultsState>({ kind: "loading" });
+    const queryClient = useQueryClient();
+    const query = useQuery(
+        queryOptions({
+            queryKey: runKeys.results(runId),
+            queryFn: async ({ signal }) => {
+                const cached = queryClient.getQueryData<RunResults>(runKeys.results(runId));
+                if (cached === undefined || !isActive(cached.run.status)) return fetchRunResults(runId, signal);
+                const summary = await fetchRunSummary(runId, signal);
+                return needsFullResults(cached.run, summary) ? fetchRunResults(runId, signal) : cached;
+            },
+            refetchInterval: ({ state }) => (state.data !== undefined && isActive(state.data.run.status) ? POLL_INTERVAL_MS : false),
+        }),
+    );
 
-    useEffect(() => {
-        const controller = new AbortController();
-        let timer: ReturnType<typeof setTimeout> | undefined;
-        const fail = (e: unknown) => {
-            if (!controller.signal.aborted) setState({ kind: "error", error: e instanceof Error ? e : new Error(String(e)) });
-        };
-
-        const loadResults = () => {
-            fetchRunResults(runId, controller.signal)
-                .then((results) => {
-                    setState({ kind: "loaded", results });
-                    if (isActive(results.run.status)) timer = setTimeout(() => poll(results), POLL_INTERVAL_MS);
-                })
-                .catch(fail);
-        };
-        const poll = (shown: RunResults) => {
-            fetchRunSummary(runId, controller.signal)
-                .then((summary) => {
-                    if (needsFullResults(shown.run, summary)) loadResults();
-                    else timer = setTimeout(() => poll(shown), POLL_INTERVAL_MS);
-                })
-                .catch(fail);
-        };
-        loadResults();
-
-        return () => {
-            controller.abort();
-            clearTimeout(timer);
-        };
-    }, [runId]);
-
-    return state;
+    if (query.data !== undefined) return { kind: "loaded", results: query.data };
+    if (query.isError) return { kind: "error", error: query.error };
+    return { kind: "loading" };
 }

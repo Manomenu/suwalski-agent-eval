@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { findUnstable, passedOfRuns, unstableChecksPath, unstableInRuns, unstableRowTooltip, unstableTooltip } from "./stability";
+import { findUnstable, passedOfRuns, unstableChecksQuery, unstableInRuns, unstableRowTooltip, unstableTooltip } from "./stability";
 import { type UnstableCheck } from "./api";
 
 const item = (over: Partial<UnstableCheck> = {}): UnstableCheck => ({
@@ -14,10 +14,10 @@ const item = (over: Partial<UnstableCheck> = {}): UnstableCheck => ({
     ...over,
 });
 
-describe("unstableChecksPath", () => {
+describe("unstableChecksQuery", () => {
     it("asks the default versions without a query and for given ones with repeated parameters", () => {
-        expect(unstableChecksPath("my agent", [])).toBe("/eval/agents/my%20agent/unstable-checks");
-        expect(unstableChecksPath("a", ["v1", "v2"])).toBe("/eval/agents/a/unstable-checks?version=v1&version=v2");
+        expect(unstableChecksQuery([])).toEqual({});
+        expect(unstableChecksQuery(["v1", "v2"], ["d1"])).toEqual({ version: ["v1", "v2"], dataVersion: ["d1"] });
     });
 });
 

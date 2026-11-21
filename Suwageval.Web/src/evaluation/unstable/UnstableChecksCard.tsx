@@ -1,4 +1,4 @@
-import { Anchor, Group, Paper, Stack, Text, Title, Tooltip } from "@mantine/core";
+import { Anchor, Paper, Tooltip } from "@maniumek/suwfrontkit";
 
 import { UNSTABLE_EXPLANATION, UnstableCheckIcon } from "../checks/UnstableCheckIcon";
 import { ListPagination } from "../../pagination/ListPagination";
@@ -10,55 +10,41 @@ import { versionTitle } from "../../format/names";
 import { type UnstableCheck } from "./api";
 import { UNSTABLE_CARD_PAGE_SIZE } from "./stability";
 
-const HEADING_HELP_WIDTH = 340;
-
 export function UnstableChecksCard({ checks }: { checks: UnstableCheck[] }) {
     const [requestedPage, setRequestedPage] = usePageParam("unstablePage");
     if (checks.length === 0) return null;
     const { items: listed, page } = pageOfItems(checks, requestedPage, UNSTABLE_CARD_PAGE_SIZE);
     return (
-        <Paper withBorder p="md">
-            <Stack gap="sm">
-                <Tooltip
-                    label={
-                        <Stack gap="xs">
-                            <Text size="sm">{UNSTABLE_EXPLANATION}</Text>
-                            <Text size="sm">{UNSTABLE_CARD_RULE}</Text>
-                        </Stack>
-                    }
-                    multiline
-                    w={HEADING_HELP_WIDTH}
+        <Paper className="flex flex-col gap-3">
+            <Tooltip
+                label={
+                    <span className="flex flex-col gap-2.5">
+                        <span>{UNSTABLE_EXPLANATION}</span>
+                        <span>{UNSTABLE_CARD_RULE}</span>
+                    </span>
+                }
+            >
+                <div className="flex cursor-help items-center gap-2.5 self-start">
+                    <UnstableCheckIcon />
+                    <h3 className="text-[22px] font-bold underline decoration-dotted decoration-1">Unstable checks</h3>
+                </div>
+            </Tooltip>
+            <p className="text-sm text-muted-foreground">Passed in some runs of a version and failed in others.</p>
+            {listed.map((check) => (
+                <div
+                    key={JSON.stringify([check.agentVersionId, check.scenarioKey, check.checkKey, check.checkRevision])}
+                    className="flex items-baseline justify-between gap-4"
                 >
-                    <Group gap="xs" align="center" wrap="nowrap" style={{ cursor: "help", alignSelf: "flex-start" }}>
-                        <UnstableCheckIcon />
-                        <Title order={3} td="underline" style={{ textDecorationStyle: "dotted", textDecorationThickness: 1 }}>
-                            Unstable checks
-                        </Title>
-                    </Group>
-                </Tooltip>
-                <Text c="dimmed" size="sm">
-                    Passed in some runs of a version and failed in others.
-                </Text>
-                {listed.map((check) => (
-                    <Group
-                        key={JSON.stringify([check.agentVersionId, check.scenarioKey, check.checkKey, check.checkRevision])}
-                        justify="space-between"
-                        wrap="nowrap"
-                        align="baseline"
-                    >
-                        <Anchor href={runHref(check.newestFailedRunId)} className="wrap-key">
-                            {`${check.scenarioKey} / ${check.checkKey}`}
-                        </Anchor>
-                        <Group gap="xs" wrap="nowrap">
-                            <Text fw={600}>{passedOfRuns(check)}</Text>
-                            <Text c="dimmed" size="sm">
-                                {versionTitle(check.agentVersionId, check.versionLabel)}
-                            </Text>
-                        </Group>
-                    </Group>
-                ))}
-                <ListPagination totalCount={checks.length} page={page} pageSize={UNSTABLE_CARD_PAGE_SIZE} onChange={setRequestedPage} />
-            </Stack>
+                    <Anchor href={runHref(check.newestFailedRunId)} className="wrap-key">
+                        {`${check.scenarioKey} / ${check.checkKey}`}
+                    </Anchor>
+                    <div className="flex items-baseline gap-2.5">
+                        <span className="font-semibold">{passedOfRuns(check)}</span>
+                        <span className="text-sm text-muted-foreground">{versionTitle(check.agentVersionId, check.versionLabel)}</span>
+                    </div>
+                </div>
+            ))}
+            <ListPagination totalCount={checks.length} page={page} pageSize={UNSTABLE_CARD_PAGE_SIZE} onChange={setRequestedPage} />
         </Paper>
     );
 }

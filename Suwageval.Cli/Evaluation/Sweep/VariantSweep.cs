@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Globalization;
 using Suwageval.Cli.Files;
 
@@ -11,7 +10,8 @@ internal sealed class VariantSweep(
     Func<CancellationToken, Task<VariantOutcome>> runScenarios,
     TextWriter output,
     TimeSpan labelWait,
-    TimeSpan pollInterval
+    TimeSpan pollInterval,
+    TimeProvider timeProvider
 )
 {
     public const string VariantPlaceholder = "{variant}";
@@ -96,7 +96,7 @@ internal sealed class VariantSweep(
 
     private async Task<string?> LabelProblemAsync(string variant, CancellationToken cancellationToken)
     {
-        var clock = Stopwatch.StartNew();
+        var started = timeProvider.GetTimestamp();
         while (true)
         {
             var label = await readLabel(cancellationToken);
@@ -104,14 +104,14 @@ internal sealed class VariantSweep(
             {
                 return null;
             }
-            if (clock.Elapsed >= labelWait)
+            if (timeProvider.GetElapsedTime(started) >= labelWait)
             {
                 var waited = labelWait.TotalSeconds.ToString("0.##", CultureInfo.InvariantCulture);
                 return label is null
                     ? $"the agent's contract could not be read within {waited} s"
                     : $"the contract's label is '{label}', not '{variant}', after {waited} s";
             }
-            await Task.Delay(pollInterval, cancellationToken);
+            await Task.Delay(pollInterval, timeProvider, cancellationToken);
         }
     }
 

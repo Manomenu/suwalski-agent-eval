@@ -1,13 +1,13 @@
-import { Anchor, Badge, CloseButton, Group, Select, Stack, Table, Text, Title } from "@mantine/core";
-import { useState } from "react";
+import { Anchor, Badge, Button, formatDateTime, Label, Select, Table } from "@maniumek/suwfrontkit";
+import { IconX } from "@tabler/icons-react";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useId, useState } from "react";
 
-import { useRequest } from "../../api/useRequest";
-import { formatTime } from "../../format/time";
 import { HeaderHelp } from "../../help/HeaderHelp";
 import { ListPagination } from "../../pagination/ListPagination";
 import { usePageParam } from "../../pagination/usePageParam";
 import { conversationHref, versionInMonitoringHref } from "../../routes/links";
-import { fetchConversations, type ConversationList } from "./api";
+import { conversationsQuery, type ConversationList } from "./api";
 import { VerdictBadge } from "../../verdict/VerdictBadge";
 import {
     checksVerdict,
@@ -23,13 +23,15 @@ import {
 } from "./conversations";
 
 export function ConversationsSection({ agent, environment }: { agent: string; environment: string | null }) {
+    const stateId = useId();
     const [narrowed, setFilter] = useState<ConversationFilter>(() => initialFilter(window.location.search));
     const filter = { ...narrowed, environment };
     const [page, setPage] = usePageParam("conversationsPage");
-    const loaded = useRequest(JSON.stringify([agent, filter, page]), (signal) =>
-        fetchConversations(agent, filter, page, CONVERSATIONS_PAGE_SIZE, signal),
-    );
-    const list = loaded.kind === "loaded" ? loaded.value : null;
+    const loaded = useQuery({
+        ...conversationsQuery(agent, filter, page, CONVERSATIONS_PAGE_SIZE),
+        placeholderData: keepPreviousData,
+    });
+    const list = loaded.data ?? null;
     const narrow = (change: Partial<ConversationFilter>) => {
         setFilter({ ...narrowed, ...change });
         setPage(1);
@@ -41,95 +43,91 @@ export function ConversationsSection({ agent, environment }: { agent: string; en
         window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
     };
     return (
-        <Stack gap="sm">
-            <Title order={3} id="conversations">
+        <div className="flex flex-col gap-3">
+            <h3 id="conversations" className="text-[22px] font-bold">
                 <HeaderHelp label="Conversations" help={CONVERSATIONS_HELP} />
-            </Title>
-            <Group align="flex-end">
-                <Select
-                    label="State"
-                    placeholder="Open and closed"
-                    data={["Open", "Closed"]}
-                    value={filter.state}
-                    onChange={(value) => {
-                        narrow({ state: stateOf(value) });
-                    }}
-                    clearable
-                />
-                {filter.failedCheck !== null && (
-                    <Badge
-                        size="lg"
-                        variant="light"
-                        color="red"
-                        rightSection={<CloseButton size="xs" aria-label="Show all checks" onClick={showAllChecks} />}
+            </h3>
+            <div className="flex flex-wrap items-end gap-4">
+                <div className="flex flex-col gap-1">
+                    <Label htmlFor={stateId}>State</Label>
+                    <Select
+                        id={stateId}
+                        value={filter.state ?? ""}
+                        onChange={(event) => {
+                            narrow({ state: stateOf(event.target.value) });
+                        }}
                     >
+                        <option value="">Open and closed</option>
+                        <option value="Open">Open</option>
+                        <option value="Closed">Closed</option>
+                    </Select>
+                </div>
+                {filter.failedCheck !== null && (
+                    <Badge variant="danger" className="gap-1 pr-0.5">
                         Failed {filter.failedCheck}
+                        <Button variant="ghost" size="icon" className="size-5" aria-label="Show all checks" onClick={showAllChecks}>
+                            <IconX size={12} aria-hidden />
+                        </Button>
                     </Badge>
                 )}
-            </Group>
-            {loaded.kind === "error" && <Text c="red">{loaded.error.message}</Text>}
+            </div>
+            {loaded.isError && <p className="text-destructive">{loaded.error.message}</p>}
             {list !== null && list.totalCount === 0 && (
-                <Text c="dimmed">
+                <p className="text-muted-foreground">
                     No conversations yet: the deployed agent sends them as they happen (Suwageval:Url in its configuration).
-                </Text>
+                </p>
             )}
             {list !== null && list.totalCount > 0 && (
                 <>
-                    <Table.ScrollContainer minWidth={900}>
-                        <Table striped>
-                            <Table.Thead>
-                                <Table.Tr>
-                                    <Table.Th>Conversation</Table.Th>
-                                    <Table.Th>Environment</Table.Th>
-                                    <Table.Th>State</Table.Th>
-                                    <Table.Th>Turns</Table.Th>
-                                    <Table.Th>
-                                        <HeaderHelp label="Version" help={VERSION_COLUMN_HELP} />
-                                    </Table.Th>
-                                    <Table.Th>Last turn</Table.Th>
-                                    <Table.Th>Checks</Table.Th>
-                                </Table.Tr>
-                            </Table.Thead>
-                            <Table.Tbody>
-                                {list.conversations.map((conversation) => (
-                                    <Table.Tr key={conversation.id}>
-                                        <Table.Td className="wrap-key">
-                                            <Anchor href={conversationHref(conversation.id)}>{conversation.conversationId}</Anchor>
-                                        </Table.Td>
-                                        <Table.Td>{conversation.environment}</Table.Td>
-                                        <Table.Td>
-                                            <Badge variant="light" color={conversation.state === "Open" ? "blue" : "gray"}>
-                                                {conversation.state}
-                                            </Badge>
-                                        </Table.Td>
-                                        <Table.Td>{conversation.turns}</Table.Td>
-                                        <Table.Td>
-                                            <Anchor href={versionInMonitoringHref(agent, conversation.agentVersionId)}>
-                                                {versionText(conversation)}
-                                            </Anchor>
-                                        </Table.Td>
-                                        <Table.Td>{formatTime(conversation.lastTurnAt)}</Table.Td>
-                                        <Table.Td>
-                                            <ChecksCell conversation={conversation} />
-                                        </Table.Td>
-                                    </Table.Tr>
-                                ))}
-                            </Table.Tbody>
-                        </Table>
-                    </Table.ScrollContainer>
+                    <Table className="min-w-[900px]">
+                        <thead>
+                            <tr>
+                                <th>Conversation</th>
+                                <th>Environment</th>
+                                <th>State</th>
+                                <th>Turns</th>
+                                <th>
+                                    <HeaderHelp label="Version" help={VERSION_COLUMN_HELP} />
+                                </th>
+                                <th>Last turn</th>
+                                <th>Checks</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {list.conversations.map((conversation) => (
+                                <tr key={conversation.id}>
+                                    <td className="wrap-key">
+                                        <Anchor href={conversationHref(conversation.id)}>{conversation.conversationId}</Anchor>
+                                    </td>
+                                    <td>{conversation.environment}</td>
+                                    <td>
+                                        <Badge variant={conversation.state === "Open" ? "info" : "neutral"}>{conversation.state}</Badge>
+                                    </td>
+                                    <td>{conversation.turns}</td>
+                                    <td>
+                                        <Anchor href={versionInMonitoringHref(agent, conversation.agentVersionId)}>
+                                            {versionText(conversation)}
+                                        </Anchor>
+                                    </td>
+                                    <td>{formatDateTime(conversation.lastTurnAt)}</td>
+                                    <td>
+                                        <ChecksCell conversation={conversation} />
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </Table>
                     <ListPagination totalCount={list.totalCount} page={list.page} pageSize={CONVERSATIONS_PAGE_SIZE} onChange={setPage} />
                 </>
             )}
-        </Stack>
+        </div>
     );
 }
 
 function ChecksCell({ conversation }: { conversation: ConversationList["conversations"][number] }) {
     const verdict = checksVerdict(conversation);
     return verdict === null ? (
-        <Badge variant="light" color="gray">
-            {checksText(conversation)}
-        </Badge>
+        <Badge variant="neutral">{checksText(conversation)}</Badge>
     ) : (
         <VerdictBadge verdict={verdict} label={checksText(conversation)} />
     );

@@ -1,4 +1,4 @@
-import { ActionIcon, Alert, Button, Group, Stack, Text, Textarea, ThemeIcon } from "@mantine/core";
+import { Alert, Button, Textarea } from "@maniumek/suwfrontkit";
 import { IconCheck, IconInfoCircle, IconNotes, IconPencil } from "@tabler/icons-react";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 
@@ -55,93 +55,86 @@ export function NoteBox({
     if (!editing && saved === null) {
         return (
             <Button
-                className="no-print"
-                size="compact-sm"
-                variant="subtle"
-                w="fit-content"
-                leftSection={<IconNotes size={16} aria-hidden />}
+                className="no-print w-fit"
+                size="sm"
+                variant="ghost"
                 onClick={() => {
                     setEditing(true);
                 }}
             >
+                <IconNotes size={16} aria-hidden />
                 Add note
             </Button>
         );
     }
 
     return (
-        <Alert
-            className="note-box"
-            variant="light"
-            color="blue"
-            radius="md"
-            title="Note"
-            icon={
-                <ThemeIcon variant="light" color="blue" radius="xl" size="md">
-                    <IconInfoCircle size={18} aria-hidden />
-                </ThemeIcon>
-            }
-        >
-            {editing ? (
-                <Stack gap={6}>
-                    <Textarea
-                        aria-label="Note"
-                        placeholder={placeholder}
-                        autosize
-                        autoFocus
-                        minRows={2}
-                        maxRows={8}
-                        value={draft}
-                        error={problem}
-                        onChange={(event) => {
-                            setDraft(event.currentTarget.value);
-                        }}
-                        onKeyDown={(event) => {
-                            if (event.key === "Escape") setEditing(false);
-                        }}
-                    />
-                    <Group justify="space-between" gap="sm">
-                        <Group gap={6}>
-                            <Text size="xs" c={state.kind === "failed" ? "red" : "dimmed"} role="status">
-                                {state.kind === "saving" && "Saving…"}
-                                {state.kind === "saved" && (wanted === saved ? "Saved" : "Not saved yet")}
-                                {state.kind === "failed" && `Could not save: ${state.message}`}
-                            </Text>
-                            <Text size="xs" c="dimmed">
-                                · {String(draft.trim().length)} / {String(NOTE_MAX_LENGTH)}
-                            </Text>
-                        </Group>
-                        <Button
-                            size="compact-sm"
-                            variant="light"
-                            color="blue"
-                            leftSection={<IconCheck size={14} aria-hidden />}
-                            onClick={() => {
-                                setEditing(false);
-                            }}
-                        >
-                            Done
-                        </Button>
-                    </Group>
-                </Stack>
-            ) : (
-                <Group justify="space-between" align="flex-start" wrap="nowrap" gap="sm">
-                    <Text size="sm" className="wrap-key" style={{ whiteSpace: "pre-wrap" }}>
-                        {saved}
-                    </Text>
-                    <ActionIcon
-                        className="no-print"
-                        variant="subtle"
-                        color="blue"
-                        aria-label="Edit note"
-                        onClick={() => {
-                            setEditing(true);
-                        }}
-                    >
-                        <IconPencil size={16} aria-hidden />
-                    </ActionIcon>
-                </Group>
-            )}
+        <Alert className="note-box" role="note">
+            <div className="flex items-start gap-3">
+                <IconInfoCircle size={18} aria-hidden className="mt-0.5 shrink-0" />
+                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                    <p className="font-semibold">Note</p>
+                    {editing ? (
+                        <>
+                            <Textarea
+                                aria-label="Note"
+                                placeholder={placeholder}
+                                autoFocus
+                                rows={3}
+                                value={draft}
+                                aria-invalid={problem !== null}
+                                onChange={(event) => {
+                                    setDraft(event.currentTarget.value);
+                                }}
+                                onKeyDown={(event) => {
+                                    if (event.key === "Escape") setEditing(false);
+                                }}
+                            />
+                            {problem !== null && <p className="text-sm text-destructive">{problem}</p>}
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                    <p
+                                        className={`text-xs ${state.kind === "failed" ? "text-destructive" : "text-muted-foreground"}`}
+                                        role="status"
+                                    >
+                                        {state.kind === "saving" && "Saving…"}
+                                        {state.kind === "saved" && (wanted === saved ? "Saved" : "Not saved yet")}
+                                        {state.kind === "failed" && `Could not save: ${state.message}`}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                        · {String(draft.trim().length)} / {String(NOTE_MAX_LENGTH)}
+                                    </p>
+                                </div>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                        setEditing(false);
+                                    }}
+                                >
+                                    <IconCheck size={14} aria-hidden />
+                                    Done
+                                </Button>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="flex items-start justify-between gap-3">
+                            <p className="wrap-key text-sm whitespace-pre-wrap">{saved}</p>
+                            <Button
+                                className="no-print"
+                                variant="ghost"
+                                size="icon"
+                                aria-label="Edit note"
+                                onClick={() => {
+                                    setEditing(true);
+                                }}
+                            >
+                                <IconPencil size={16} aria-hidden />
+                            </Button>
+                        </div>
+                    )}
+                </div>
+            </div>
         </Alert>
     );
 }

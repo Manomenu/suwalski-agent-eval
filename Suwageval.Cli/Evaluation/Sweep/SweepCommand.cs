@@ -212,7 +212,8 @@ internal static partial class SweepCommand
                     token => StartRunAsync(client, agent.Definition.Name, arguments, group, origins, onFirstRun, token),
                     output,
                     TimeSpan.FromSeconds(settings.WaitSeconds),
-                    pollInterval
+                    pollInterval,
+                    TimeProvider.System
                 );
                 var result = await sweep.RunAsync(chosen, group, cancellationToken);
                 await output.WriteLineAsync();

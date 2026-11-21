@@ -40,15 +40,15 @@ export function runTagsText(tags: readonly string[] | null | undefined): string 
 
 export interface CellStatus {
     label: "all passed" | "some failed" | "all failed" | "no answer" | "no checks";
-    color: "green" | "red" | "gray";
+    variant: "success" | "danger" | "neutral";
 }
 
 export function cellStatus(cell: VariantCell | null): CellStatus | null {
     if (cell === null) return null;
-    if (cell.samples > 0 && cell.samplesFailed === cell.samples) return { label: "no answer", color: "red" };
-    if (cell.checksTotal === 0) return { label: "no checks", color: "gray" };
-    if (cell.checksPassed === cell.checksTotal) return { label: "all passed", color: "green" };
-    return cell.checksPassed === 0 ? { label: "all failed", color: "red" } : { label: "some failed", color: "red" };
+    if (cell.samples > 0 && cell.samplesFailed === cell.samples) return { label: "no answer", variant: "danger" };
+    if (cell.checksTotal === 0) return { label: "no checks", variant: "neutral" };
+    if (cell.checksPassed === cell.checksTotal) return { label: "all passed", variant: "success" };
+    return cell.checksPassed === 0 ? { label: "all failed", variant: "danger" } : { label: "some failed", variant: "danger" };
 }
 
 export function scenarioDiffers(cells: readonly (VariantCell | null)[]): boolean {

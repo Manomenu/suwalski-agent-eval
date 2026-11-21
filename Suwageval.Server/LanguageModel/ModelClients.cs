@@ -43,5 +43,5 @@ internal sealed class ModelClients(ModelsOptions options, Func<ModelOptions, ICh
     }
 
     private static LimitedChatClient Limited(ModelOptions model, IChatClient client) =>
-        new(client, model.MaxConcurrency, TimeSpan.FromSeconds(model.TimeoutSeconds));
+        new(client, model.MaxConcurrency, TimeSpan.FromSeconds(model.TimeoutSeconds), TimeProvider.System);
 }

@@ -1,4 +1,4 @@
-import { Alert, Button, Group, Modal, Stack, Text } from "@mantine/core";
+import { Alert, Button, ConfirmDialog } from "@maniumek/suwfrontkit";
 import { useState } from "react";
 
 import { cancelRun, type RunSummary } from "./api";
@@ -6,66 +6,50 @@ import { canCancel } from "./results";
 
 export function CancelButton({ run }: { run: Pick<RunSummary, "id" | "status" | "cancelRequested"> }) {
     const [asking, setAsking] = useState(false);
-    const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     if (!canCancel(run)) return null;
 
-    const confirm = () => {
-        setBusy(true);
+    const confirm = async () => {
         setError(null);
-        cancelRun(run.id).then(
-            () => {
-                setAsking(false);
-                setBusy(false);
-            },
-            (failure: unknown) => {
-                setError(failure instanceof Error ? failure.message : "The run could not be cancelled.");
-                setBusy(false);
-            },
-        );
+        try {
+            await cancelRun(run.id);
+        } catch (failure: unknown) {
+            setError(failure instanceof Error ? failure.message : "The run could not be cancelled.");
+            throw failure;
+        }
     };
 
     return (
-        <Stack gap="xs" align="flex-start">
+        <div className="flex flex-col items-start gap-2.5">
             <Button
-                variant="default"
+                variant="outline"
                 onClick={() => {
                     setAsking(true);
                 }}
             >
                 Cancel run
             </Button>
-            <Modal
-                opened={asking}
-                onClose={() => {
-                    if (!busy) setAsking(false);
-                }}
+            <ConfirmDialog
+                open={asking}
+                onOpenChange={setAsking}
                 title="Cancel this run?"
+                variant="destructive"
+                confirmLabel="Cancel run"
+                cancelLabel="Keep running"
+                pendingLabel="Working…"
+                onConfirm={confirm}
             >
-                <Stack>
-                    <Text>Samples already in progress finish; no new sample starts, and the run ends as cancelled.</Text>
+                <div className="flex flex-col gap-4">
+                    <p>Samples already in progress finish; no new sample starts, and the run ends as cancelled.</p>
                     {error && (
-                        <Alert color="red" title="The run could not be cancelled">
-                            {error}
+                        <Alert variant="destructive">
+                            <p className="font-semibold">The run could not be cancelled</p>
+                            <p>{error}</p>
                         </Alert>
                     )}
-                    <Group justify="flex-end">
-                        <Button
-                            variant="default"
-                            disabled={busy}
-                            onClick={() => {
-                                setAsking(false);
-                            }}
-                        >
-                            Keep running
-                        </Button>
-                        <Button color="red" onClick={confirm} loading={busy} disabled={busy}>
-                            Cancel run
-                        </Button>
-                    </Group>
-                </Stack>
-            </Modal>
-        </Stack>
+                </div>
+            </ConfirmDialog>
+        </div>
     );
 }

@@ -37,8 +37,8 @@ test("two ticked versions open a comparison with a line diff", async ({ page, re
         await compare.click();
 
         await expect(page.getByRole("heading", { name: "Compare versions", exact: true })).toBeVisible();
-        await expect(page.locator(".line-diff-row-removed").getByText("Be brief.", { exact: true })).toBeVisible();
-        await expect(page.locator(".line-diff-row-added").getByText("Be kind.", { exact: true })).toBeVisible();
+        await expect(page.locator('tr[data-change="removed"]').getByText("Be brief.")).toBeVisible();
+        await expect(page.locator('tr[data-change="added"]').getByText("Be kind.")).toBeVisible();
 
         await expect(page.getByText("description: Finds an order.", { exact: true })).toHaveCount(0);
         await page.getByRole("button", { name: /unchanged lines$/ }).click();

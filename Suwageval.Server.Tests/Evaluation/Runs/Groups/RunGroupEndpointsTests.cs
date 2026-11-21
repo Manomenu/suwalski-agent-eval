@@ -16,7 +16,7 @@ public sealed class RunGroupEndpointsTests(TestDatabase database, ClassServer cl
 
     private Task<SeededAgent> SeedAsync() =>
         SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             "http://agent.test",
             [SeededAgent.Scenario("refund")],
             [SeededAgent.RefundAfterLookup("refund-called", "refund")]
@@ -24,7 +24,7 @@ public sealed class RunGroupEndpointsTests(TestDatabase database, ClassServer cl
 
     private async Task<Guid> FinishedRunAsync(SeededAgent agent, string? group, int samples = 1, Guid? recheckOf = null)
     {
-        var store = new RunStore(database.Pool);
+        var store = new RunStore(database.DataSource);
         var run = await store.EnqueueAsync(
             agent.Id,
             agent.VersionId,
@@ -35,8 +35,8 @@ public sealed class RunGroupEndpointsTests(TestDatabase database, ClassServer cl
             runGroup: group,
             cancellationToken: Cancellation
         );
-        var scenario = await new ScenarioStore(database.Pool).GetAsync(agent.Id, "refund", Cancellation);
-        var check = Assert.Single(await new CheckStore(database.Pool).ListAsync(agent.Id, cancellationToken: Cancellation));
+        var scenario = await new ScenarioStore(database.DataSource).GetAsync(agent.Id, "refund", Cancellation);
+        var check = Assert.Single(await new CheckStore(database.DataSource).ListAsync(agent.Id, cancellationToken: Cancellation));
         for (var sample = 1; sample <= samples; sample++)
         {
             await store.AddSampleAsync(
@@ -69,7 +69,7 @@ public sealed class RunGroupEndpointsTests(TestDatabase database, ClassServer cl
 
     private async Task<int> RunsOfAsync(params Guid[] runs)
     {
-        await using var connection = await database.Pool.OpenAsync(Cancellation);
+        await using var connection = await database.DataSource.OpenConnectionAsync(Cancellation);
         return await connection.QuerySingleAsync<int>("SELECT count(*)::int FROM runs WHERE id = ANY(@runs)", new { runs });
     }
 
@@ -144,7 +144,7 @@ public sealed class RunGroupEndpointsTests(TestDatabase database, ClassServer cl
     public async Task A_group_with_a_queued_run_is_refused_with_409_and_kept()
     {
         var agent = await SeedAsync();
-        var queued = await new RunStore(database.Pool).EnqueueAsync(
+        var queued = await new RunStore(database.DataSource).EnqueueAsync(
             agent.Id,
             agent.VersionId,
             [],
@@ -189,7 +189,7 @@ public sealed class RunGroupEndpointsTests(TestDatabase database, ClassServer cl
         await server.Put($"/eval/agents/{agent.Name}/run-groups/sweep-1/note", new NoteRequest { Note = "gone with the group" });
         await ArchiveAsync(agent, true, "sweep-1");
         Assert.Equal(HttpStatusCode.NoContent, (await server.Delete($"/eval/agents/{agent.Name}/run-groups/sweep-1")).StatusCode);
-        await using var connection = await database.Pool.OpenAsync(Cancellation);
+        await using var connection = await database.DataSource.OpenConnectionAsync(Cancellation);
         Assert.Equal(
             0,
             await connection.QuerySingleAsync<int>("SELECT count(*)::int FROM run_group_notes WHERE agent_id = @id", new { id = agent.Id })

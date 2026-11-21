@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { AGENT_ERROR_MAX_LENGTH, agentErrorsPath, errorsOfSamples, shortError } from "./agentErrors";
+import { AGENT_ERROR_MAX_LENGTH, agentErrorsQuery, errorsOfSamples, shortError } from "./agentErrors";
 import { type AgentError } from "./api";
 
 const item = (over: Partial<AgentError> = {}): AgentError => ({
@@ -19,10 +19,10 @@ describe("errorsOfSamples", () => {
     });
 });
 
-describe("agentErrorsPath", () => {
+describe("agentErrorsQuery", () => {
     it("asks the default versions without a query and the given ones with repeated parameters", () => {
-        expect(agentErrorsPath("my agent", [])).toBe("/eval/agents/my%20agent/agent-errors");
-        expect(agentErrorsPath("a", ["v1", "v2"])).toBe("/eval/agents/a/agent-errors?version=v1&version=v2");
+        expect(agentErrorsQuery([])).toEqual({});
+        expect(agentErrorsQuery(["v1", "v2"], ["d1"])).toEqual({ version: ["v1", "v2"], dataVersion: ["d1"] });
     });
 });
 

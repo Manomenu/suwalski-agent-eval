@@ -8,7 +8,7 @@ public sealed class AgentStoreTests(TestDatabase database)
 {
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
 
-    private AgentStore Store() => new(database.Pool);
+    private AgentStore Store() => new(database.DataSource);
 
     internal static string UniqueName() => $"agent-{Guid.NewGuid():N}";
 
@@ -104,7 +104,7 @@ public sealed class AgentStoreTests(TestDatabase database)
         var first = await store.RegisterVersionAsync(agent.Id, """{"model":"m1"}""", null, cancellationToken: Cancellation);
         await store.RegisterVersionAsync(agent.Id, """{"model":"m2"}""", null, cancellationToken: Cancellation);
 
-        await new VersionStore(database.Pool).ArchiveVersionsAsync(agent.Id, [first.Version.Id], archived: true, Cancellation);
+        await new VersionStore(database.DataSource).ArchiveVersionsAsync(agent.Id, [first.Version.Id], archived: true, Cancellation);
 
         Assert.Equal(1, (await store.CountAsync(agent.Id, Cancellation)).Versions);
     }
@@ -115,7 +115,7 @@ public sealed class AgentStoreTests(TestDatabase database)
         var store = Store();
         var agent = (await store.CreateAsync(UniqueName(), "http://one.test", Cancellation)).Agent;
         var first = await store.RegisterVersionAsync(agent.Id, """{"model":"m1"}""", null, cancellationToken: Cancellation);
-        await new VersionStore(database.Pool).ArchiveVersionsAsync(agent.Id, [first.Version.Id], archived: true, Cancellation);
+        await new VersionStore(database.DataSource).ArchiveVersionsAsync(agent.Id, [first.Version.Id], archived: true, Cancellation);
         Assert.NotNull((await store.GetVersionAsync(first.Version.Id, Cancellation))?.ArchivedAt);
 
         var again = await store.RegisterVersionAsync(agent.Id, """{"model":"m1"}""", null, cancellationToken: Cancellation);

@@ -70,7 +70,7 @@ public sealed class RunCommandEndToEndTests(TestDatabase database, ClassServer s
 
     private Task<SeededAgent> SeedAsync(string endpoint) =>
         SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             endpoint,
             [SeededAgent.Scenario("refund", ["regression"])],
             [SeededAgent.RefundAfterLookup("refund-called", "refund"), SeededAgent.RefundedEvent("refund-event", "refund")]
@@ -178,7 +178,7 @@ public sealed class RunCommandEndToEndTests(TestDatabase database, ClassServer s
             }
         );
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [SeededAgent.Scenario("refund")],
             [SeededAgent.RefundAfterLookup("refund-called", "refund")]

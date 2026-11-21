@@ -9,7 +9,7 @@ public sealed class AgentErrorStoreTests(TestDatabase database)
 {
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
 
-    private RunStore Store() => new(database.Pool);
+    private RunStore Store() => new(database.DataSource);
 
     private static Task<Guid> EnqueueAsync(RunStore store, SeededAgent agent) =>
         store.EnqueueAsync(agent.Id, agent.VersionId, [], agent.EndpointUrl, cancellationToken: Cancellation);
@@ -19,12 +19,12 @@ public sealed class AgentErrorStoreTests(TestDatabase database)
     {
         var store = Store();
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             "http://agent.test",
             [SeededAgent.Scenario("refund"), SeededAgent.Scenario("chat"), SeededAgent.Scenario("fine")],
             [SeededAgent.RefundAfterLookup("refund-called", "refund")]
         );
-        var scenarios = new ScenarioStore(database.Pool);
+        var scenarios = new ScenarioStore(database.DataSource);
         var refund = (await scenarios.GetAsync(agent.Id, "refund", Cancellation))!;
         var chat = (await scenarios.GetAsync(agent.Id, "chat", Cancellation))!;
         var fine = (await scenarios.GetAsync(agent.Id, "fine", Cancellation))!;
@@ -59,13 +59,13 @@ public sealed class AgentErrorStoreTests(TestDatabase database)
         await Add(second, fine, 1, null);
         await Add(outside, fine, 1, "not in the window");
 
-        var errors = await new AgentErrorStore(database.Pool).ListAgentErrorsAsync([first, second], Cancellation);
+        var errors = await new AgentErrorStore(database.DataSource).ListAgentErrorsAsync([first, second], Cancellation);
 
         Assert.Equal(
             [("refund", 3, 4, second, "HTTP 502 newest"), ("chat", 1, 2, first, "timeout"), ("fine", 0, 2, null, null)],
             [.. errors.Select(row => (row.ScenarioKey, row.Errors, row.Samples, row.NewestErrorRunId, row.NewestError))]
         );
         Assert.All(errors, row => Assert.Equal(agent.VersionId, row.AgentVersionId));
-        Assert.Empty(await new AgentErrorStore(database.Pool).ListAgentErrorsAsync([], Cancellation));
+        Assert.Empty(await new AgentErrorStore(database.DataSource).ListAgentErrorsAsync([], Cancellation));
     }
 }

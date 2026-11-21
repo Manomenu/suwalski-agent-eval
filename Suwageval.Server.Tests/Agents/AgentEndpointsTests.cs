@@ -26,7 +26,7 @@ public sealed class AgentEndpointsTests(TestDatabase database, ClassServer class
 
     internal static async Task<AgentVersion> RegisterAsync(TestDatabase database, string agentName, AgentContract contract)
     {
-        var store = new AgentStore(database.Pool);
+        var store = new AgentStore(database.DataSource);
         var agent =
             await store.GetAsync(agentName, TestContext.Current.CancellationToken) ?? throw new InvalidOperationException("no agent");
         var row = (
@@ -86,7 +86,7 @@ public sealed class AgentEndpointsTests(TestDatabase database, ClassServer class
     public async Task The_regression_settings_are_stored_replaced_and_put_back_to_the_defaults_when_left_out()
     {
         var name = AgentStoreTests.UniqueName();
-        var store = new AgentStore(database.Pool);
+        var store = new AgentStore(database.DataSource);
         var settings = new RegressionSettings { Branches = ["master", "release"], History = 3 };
 
         await server.Post(

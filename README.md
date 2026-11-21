@@ -188,7 +188,7 @@ Then ask, or use `/suwageval:scenario`, `/suwageval:fix`, `/suwageval:run`, `/su
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/visual/board/img/readme/architecture-dark.png">
-  <img alt="The moving parts: your agent in any language serves the contract and answers turns (.NET: Suwageval.AgentSdk); the suwageval CLI, a .NET tool for the repository and CI (validate, push, run, compare, monitoring); the server, ASP.NET Core and PostgreSQL with a run queue, a monitoring worker and versions by contract hash (Docker, Helm); the web app in React and Mantine with Versions, Evaluation and Monitoring pages per agent; the judge and the simulator, OpenAI-compatible models Suwageval calls; the Claude Code plugin that writes and fixes scenarios, runs them and explains failures." src="docs/visual/board/img/readme/architecture-light.png" width="100%">
+  <img alt="The moving parts: your agent in any language serves the contract and answers turns (.NET: Suwageval.AgentSdk); the suwageval CLI, a .NET tool for the repository and CI (validate, push, run, compare, monitoring); the server, ASP.NET Core and PostgreSQL with a run queue, a monitoring worker and versions by contract hash (Docker, Helm); the web app in React on suwfrontkit with Versions, Evaluation and Monitoring pages per agent; the judge and the simulator, OpenAI-compatible models Suwageval calls; the Claude Code plugin that writes and fixes scenarios, runs them and explains failures." src="docs/visual/board/img/readme/architecture-light.png" width="100%">
 </picture>
 
 | Run it | Command | For |

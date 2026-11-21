@@ -125,7 +125,7 @@ test("a baseline is picked by a column's header, lives in the address, has every
     const tagRow = page.getByRole("row", { name: /^smoke /, exact: false });
     await expect(tagRow.locator('td[data-change="better"]')).toHaveCount(1);
     await expect(page.locator('td[data-change="worse"]')).toHaveCount(0);
-    await expect(page.locator("td[style*='font-weight: 700']")).toHaveCount(0);
+    await expect(page.locator("td[data-best]")).toHaveCount(0);
 
     await page.getByRole("button", { name: `Use run ${plainAfter.slice(0, 8)} as the baseline`, exact: true }).click();
     await expect(page).toHaveURL(`/compare?runs=${plainBefore},${plainAfter}&baseline=${plainAfter}`);
@@ -149,7 +149,7 @@ test("the comparison takes the whole width of a wide screen, and its table scrol
     expect((await table.boundingBox())?.width).toBeGreaterThan(CONTENT_MAX_WIDTH);
 
     await page.setViewportSize({ width: tableMinWidth(2) - 100, height: 900 });
-    const scroller = page.locator(".mantine-ScrollArea-viewport, .mantine-Table-scrollContainer").filter({ has: table }).first();
+    const scroller = page.locator(".compare-scroll").filter({ has: table }).first();
     await expect.poll(() => scroller.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
@@ -180,8 +180,8 @@ test("a prompt's diff reads from the baseline's version, whichever column the ba
 
         const diff = page.getByRole("row").filter({ hasText: "Contract diff: p3 → p1" });
         await expect(diff).toBeVisible();
-        await expect(diff.locator(".line-diff-row-removed", { hasText: "Prompt three." })).toBeVisible();
-        await expect(diff.locator(".line-diff-row-added", { hasText: "Prompt one." })).toBeVisible();
+        await expect(diff.locator('tr[data-change="removed"]', { hasText: "Prompt three." })).toBeVisible();
+        await expect(diff.locator('tr[data-change="added"]', { hasText: "Prompt one." })).toBeVisible();
     } finally {
         agentServer.close();
     }

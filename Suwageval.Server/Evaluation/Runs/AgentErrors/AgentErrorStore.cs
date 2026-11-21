@@ -1,16 +1,16 @@
 using Dapper;
-using Suwageval.Server.Database;
+using Npgsql;
 
 namespace Suwageval.Server.Evaluation.Runs.AgentErrors;
 
-internal sealed class AgentErrorStore(Pool pool)
+internal sealed class AgentErrorStore(NpgsqlDataSource dataSource)
 {
     public async Task<IReadOnlyList<AgentErrorRow>> ListAgentErrorsAsync(
         IReadOnlyCollection<Guid> runIds,
         CancellationToken cancellationToken = default
     )
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         var rows = await connection.QueryAsync<AgentErrorRow>(
             new CommandDefinition(
                 """

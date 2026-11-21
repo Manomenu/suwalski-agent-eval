@@ -1,4 +1,5 @@
-import { formatSeconds, percent } from "../../format/numbers";
+import { formatPercent, formatSeconds, type Badge } from "@maniumek/suwfrontkit";
+import type { ComponentProps } from "react";
 import { versionTitle } from "../../format/names";
 import { failedEvidence } from "../../verdict/verdict";
 import type { CheckRunResult, RunResults, RunSummary, ScenarioRunResult } from "./api";
@@ -6,6 +7,8 @@ import type { CheckRunResult, RunResults, RunSummary, ScenarioRunResult } from "
 export const POLL_INTERVAL_MS = 2000;
 
 type Status = RunSummary["status"];
+
+export type BadgeVariant = NonNullable<ComponentProps<typeof Badge>["variant"]>;
 
 export function runLabel(run: Pick<RunSummary, "label" | "agentVersionId">, versionLabel?: string | null): string {
     return run.label?.trim() ? run.label : versionTitle(run.agentVersionId, versionLabel);
@@ -64,25 +67,25 @@ export function statusLabel(status: Status): string {
     }
 }
 
-export function statusColor(status: Status): string {
+export function statusColor(status: Status): BadgeVariant {
     switch (status) {
         case "Queued":
         case "Running":
-            return "blue";
+            return "info";
         case "Done":
-            return "green";
+            return "success";
         case "Failed":
-            return "red";
+            return "danger";
         case "Cancelled":
-            return "gray";
+            return "neutral";
         case "Interrupted":
-            return "orange";
+            return "warning";
     }
 }
 
 export function checkSummary(check: CheckRunResult): string {
     const passes = check.samples.filter((sample) => sample.passed).length;
-    return `${percent(check.passRate)} (${passes}/${check.samples.length} samples, required ${percent(check.passThreshold)})`;
+    return `${formatPercent(check.passRate)} (${passes}/${check.samples.length} samples, required ${formatPercent(check.passThreshold)})`;
 }
 
 export function notJudgedCount(check: CheckRunResult): number {

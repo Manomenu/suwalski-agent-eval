@@ -75,7 +75,7 @@ public sealed class PassRatesEndpointTests(TestDatabase database, ClassServer se
     public async Task The_trend_over_a_history_with_tags_rechecks_errors_and_missing_durations_is_pinned()
     {
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             "http://agent.test",
             [
                 SeededAgent.Scenario("refund", ["regression"]),
@@ -159,7 +159,7 @@ public sealed class PassRatesEndpointTests(TestDatabase database, ClassServer se
 
     private HttpClient Client()
     {
-        _ = database.Pool;
+        _ = database.DataSource;
         return app.CreateClient();
     }
 }

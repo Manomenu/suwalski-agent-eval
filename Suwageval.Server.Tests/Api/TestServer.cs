@@ -17,7 +17,7 @@ internal sealed class TestServer(TestDatabase database, ClassServer classServer)
     {
         get
         {
-            _ = database.Pool;
+            _ = database.DataSource;
             return app.CreateClient();
         }
     }

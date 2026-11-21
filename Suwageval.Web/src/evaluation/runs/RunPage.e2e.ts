@@ -47,7 +47,7 @@ test("Hide passed checks leaves the failed check, is kept in the address and sur
         await expect(page.getByText("says-hello", { exact: true })).toBeVisible();
         await expect(page.getByText("mentions-refund", { exact: true })).toBeVisible();
 
-        await page.locator("label", { hasText: /^Hide passed checks$/ }).click();
+        await page.getByRole("button", { name: "Hide passed checks", exact: true }).click();
         await expect(page).toHaveURL(/hide=passed$/);
         await expect(page.getByText("says-hello", { exact: true })).toHaveCount(0);
         await expect(page.getByText("mentions-refund", { exact: true })).toBeVisible();
@@ -56,7 +56,7 @@ test("Hide passed checks leaves the failed check, is kept in the address and sur
         ).toBeVisible();
 
         await page.reload();
-        await expect(page.getByRole("checkbox", { name: "Hide passed checks", exact: true })).toBeChecked();
+        await expect(page.getByRole("button", { name: "Hide passed checks", exact: true })).toHaveAttribute("aria-pressed", "true");
         await expect(page.getByText("says-hello", { exact: true })).toHaveCount(0);
         await expect(page.getByText("mentions-refund", { exact: true })).toBeVisible();
     } finally {

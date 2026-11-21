@@ -1,5 +1,4 @@
-import { Anchor, AppShell, Box, Burger, Group, Image, Title } from "@mantine/core";
-import { useDisclosure } from "@mantine/hooks";
+import { Anchor, AppShell } from "@maniumek/suwfrontkit";
 import { lazy, Suspense, useState } from "react";
 
 import { AgentsPage } from "./agents/AgentsPage";
@@ -11,8 +10,9 @@ import { ServerStatus } from "./health/ServerStatus";
 import { pageOf } from "./routes/pageOf";
 import { RunPage } from "./evaluation/runs/RunPage";
 import { AppNavbar } from "./shell/AppNavbar";
-import { ErrorBoundary } from "./shell/ErrorBoundary";
-import { contentMaxWidth, HEADER_HEIGHT, LOGO_SIZE, NAVBAR_WIDTH } from "./shell/layout";
+import { ErrorBoundary } from "@maniumek/suwfrontkit";
+import { PageFailed } from "./shell/PageFailed";
+import { contentMaxWidth } from "./shell/layout";
 import { navigationOf } from "./shell/navigation";
 import { ReportAgentContext } from "./shell/reportAgent";
 import { VersionPage } from "./versions/VersionPage";
@@ -22,58 +22,40 @@ const VersionComparePage = lazy(() => import("./versions/VersionComparePage").th
 
 export function App() {
     const page = pageOf(window.location.pathname, window.location.search);
-    const [navbarOpened, { toggle }] = useDisclosure(false);
     const [agentOfPage, setAgentOfPage] = useState<string | null>(null);
 
     return (
         <AppShell
-            header={{ height: HEADER_HEIGHT }}
-            navbar={{ width: NAVBAR_WIDTH, breakpoint: "sm", collapsed: { mobile: !navbarOpened } }}
-            padding="md"
+            appIcon={<img src="/favicon.svg" alt="" />}
+            appTitle="suwageval"
+            home={(link) => <a href="/" {...link} />}
+            headerEnd={<ServerStatus />}
+            panel={<AppNavbar {...navigationOf(page, agentOfPage)} />}
+            panelLabel="Navigation panel"
+            storageKey="suwageval.navigation-panel"
         >
-            <AppShell.Header className="no-print">
-                <Group h="100%" px="md" justify="space-between" wrap="nowrap">
-                    <Group gap="sm" wrap="nowrap">
-                        <Burger opened={navbarOpened} onClick={toggle} hiddenFrom="sm" size="sm" aria-label="Menu" />
-                        <Anchor href="/" underline="never" c="inherit">
-                            <Group gap="xs" wrap="nowrap">
-                                <Image src="/favicon.svg" alt="" w={LOGO_SIZE} h={LOGO_SIZE} />
-                                <Title order={4} component="span">
-                                    suwageval
-                                </Title>
-                            </Group>
-                        </Anchor>
-                    </Group>
-                    <ServerStatus />
-                </Group>
-            </AppShell.Header>
-            <AppShell.Navbar p="xs" className="no-print">
-                <AppNavbar {...navigationOf(page, agentOfPage)} />
-            </AppShell.Navbar>
-            <AppShell.Main>
-                <ReportAgentContext value={setAgentOfPage}>
-                    <Box maw={contentMaxWidth(page.kind)} className="print-content">
-                        <ErrorBoundary>
-                            {page.kind === "agents" && <AgentsPage />}
-                            {page.kind === "agentEvaluation" && <EvaluationPage name={page.name} />}
-                            {page.kind === "agentMonitoring" && <MonitoringPage name={page.name} />}
-                            {page.kind === "agentVersions" && <VersionsPage name={page.name} />}
-                            {page.kind === "version" && <VersionPage name={page.name} versionId={page.versionId} />}
-                            {page.kind === "versionCompare" && (
-                                <Suspense fallback={null}>
-                                    <VersionComparePage name={page.name} a={page.a} b={page.b} />
-                                </Suspense>
-                            )}
-                            {page.kind === "run" && <RunPage runId={page.runId} />}
-                            {page.kind === "conversation" && <ConversationPage conversationId={page.conversationId} />}
-                            {page.kind === "compare" && (
-                                <ComparePage runs={page.runs} group={page.group} agent={page.agent} baseline={page.baseline} />
-                            )}
-                            {page.kind === "unknown" && <Anchor href="/">Page not found — back to the list of agents</Anchor>}
-                        </ErrorBoundary>
-                    </Box>
-                </ReportAgentContext>
-            </AppShell.Main>
+            <ReportAgentContext value={setAgentOfPage}>
+                <div style={{ maxWidth: contentMaxWidth(page.kind) }} className="print-content">
+                    <ErrorBoundary key={window.location.pathname} fallback={PageFailed}>
+                        {page.kind === "agents" && <AgentsPage />}
+                        {page.kind === "agentEvaluation" && <EvaluationPage name={page.name} />}
+                        {page.kind === "agentMonitoring" && <MonitoringPage name={page.name} />}
+                        {page.kind === "agentVersions" && <VersionsPage name={page.name} />}
+                        {page.kind === "version" && <VersionPage name={page.name} versionId={page.versionId} />}
+                        {page.kind === "versionCompare" && (
+                            <Suspense fallback={null}>
+                                <VersionComparePage name={page.name} a={page.a} b={page.b} />
+                            </Suspense>
+                        )}
+                        {page.kind === "run" && <RunPage runId={page.runId} />}
+                        {page.kind === "conversation" && <ConversationPage conversationId={page.conversationId} />}
+                        {page.kind === "compare" && (
+                            <ComparePage runs={page.runs} group={page.group} agent={page.agent} baseline={page.baseline} />
+                        )}
+                        {page.kind === "unknown" && <Anchor href="/">Page not found — back to the list of agents</Anchor>}
+                    </ErrorBoundary>
+                </div>
+            </ReportAgentContext>
         </AppShell>
     );
 }

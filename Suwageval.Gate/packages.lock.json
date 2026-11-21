@@ -4,9 +4,9 @@
     "net10.0": {
       "Suwgate.Architecture": {
         "type": "Direct",
-        "requested": "[0.3.0, )",
-        "resolved": "0.3.0",
-        "contentHash": "B5Tq71LjudDSA0XiGnOIdEdWNebf3nfiCbrp81dhHUeeJxwGmraqxFq5cLfr2NLmhYOnozwiR4tIH/yhN9B1Iw==",
+        "requested": "[0.4.0, )",
+        "resolved": "0.4.0",
+        "contentHash": "nYUYByAfD0Qv9rE4BZdvCEeRHQGkDELzUmnSAYtispDpLkoD1zZ/DUztbgQqtbvpGJ8oI3A7HlWg6XqmK+H8lA==",
         "dependencies": {
           "Microsoft.CodeAnalysis.BannedApiAnalyzers": "4.14.0",
           "Microsoft.CodeAnalysis.CSharp": "5.0.0",
@@ -16,12 +16,12 @@
       },
       "Suwgate.Database": {
         "type": "Direct",
-        "requested": "[0.3.0, )",
-        "resolved": "0.3.0",
-        "contentHash": "vWg/auL4n3WLGxUsFrQ9u1ZUKaotDJAH3N0QbDe8jX33SXNWbb7vnXHAxGUDz153gsV5b9dQE1b1ZP6NsTQzVw==",
+        "requested": "[0.4.0, )",
+        "resolved": "0.4.0",
+        "contentHash": "SdGGQB2k7LpDkLv2eCsngUgXbUnX/6+PrARt2cOgwmpaaMxUKvC0ZqrGi6Kj92zL6zjVwmNn/QsIkzQ79WSolQ==",
         "dependencies": {
           "Microsoft.CodeAnalysis.CSharp": "5.0.0",
-          "Suwgate.Architecture": "0.3.0",
+          "Suwgate.Architecture": "0.4.0",
           "TngTech.ArchUnitNET": "0.13.4",
           "YamlDotNet": "18.1.0"
         }
@@ -56,6 +56,19 @@
           "Microsoft.Extensions.Logging.Console": "10.0.10"
         }
       },
+      "grate.postgresql": {
+        "type": "Transitive",
+        "resolved": "2.1.6",
+        "contentHash": "krNCVLocLaEKSWkeFVf6JA+MHhh0FnDwdVWQs2O9wvIU35wkyx8hNzUMfo/jJ3CCM6k0eP14e3E3QlADtXE4sg==",
+        "dependencies": {
+          "Dapper": "2.1.79",
+          "Microsoft.Extensions.DependencyInjection": "10.0.10",
+          "Microsoft.Extensions.Hosting": "10.0.10",
+          "Microsoft.Extensions.Logging.Console": "10.0.10",
+          "Npgsql": "10.0.3",
+          "grate.core": "2.1.6"
+        }
+      },
       "JetBrains.Annotations": {
         "type": "Transitive",
         "resolved": "2026.2.0",
@@ -73,6 +86,14 @@
         "type": "Transitive",
         "resolved": "2.23.0",
         "contentHash": "nWArUZTdU7iqZLycLKWe0TDms48KKGE6pONH2terYNa8REXiqixrMOkf1sk5DHGMaUTqONU2YkS4SAXBhLStgw=="
+      },
+      "Microsoft.AspNetCore.OpenApi": {
+        "type": "Transitive",
+        "resolved": "10.0.12",
+        "contentHash": "7RnQ/UKn+kK3JDLmTpW+vVqNErWthGPAVAy1aIiBzv4ucQ6g9NFvOJUuT0PHcpvcJxGVxctMxj6t+NESWMrgHQ==",
+        "dependencies": {
+          "Microsoft.OpenApi": "[2.12.0, 3.0.0)"
+        }
       },
       "Microsoft.Bcl.AsyncInterfaces": {
         "type": "Transitive",
@@ -498,6 +519,14 @@
         "resolved": "13.0.4",
         "contentHash": "pdgNNMai3zv51W5aq268sujXUyx7SNdE2bj1wZcWjAQrKMFZV260lbqYop1d2GM67JI1huLRwxo9ZqnfF/lC6A=="
       },
+      "Npgsql": {
+        "type": "Transitive",
+        "resolved": "10.0.3",
+        "contentHash": "7nb5YzXuvWWJxB0J8DiyL3we+X4FOctZrt0fIBnucOIaIevFEEwGQVZKtiu9olXdlNAK1eNgqSral6r/jlhI4w==",
+        "dependencies": {
+          "Microsoft.Extensions.Logging.Abstractions": "10.0.0"
+        }
+      },
       "OpenAI": {
         "type": "Transitive",
         "resolved": "2.14.0",
@@ -644,12 +673,11 @@
         "dependencies": {
           "Dapper": "[2.1.89, )",
           "Microsoft.Agents.AI": "[1.25.0, )",
-          "Microsoft.AspNetCore.OpenApi": "[10.0.12, )",
           "Microsoft.Extensions.AI.OpenAI": "[10.10.1, )",
-          "Npgsql": "[10.0.3, )",
           "Suwageval.Contracts": "[1.0.0, )",
-          "YamlDotNet": "[18.1.0, )",
-          "grate.postgresql": "[2.1.6, )"
+          "Suwbackkit.Postgres": "[0.2.2, )",
+          "Suwbackkit.Server": "[0.2.2, )",
+          "YamlDotNet": "[18.1.0, )"
         }
       },
       "Dapper": {
@@ -657,20 +685,6 @@
         "requested": "[2.1.89, )",
         "resolved": "2.1.89",
         "contentHash": "1VjFE664wnxvuhlgP8kS4PeFFF4jqD3VkbIHW6Zlc52zuibgcz5ICnIHcQXlTp6pURpPNGLV0ZpNe5x9KePJnA=="
-      },
-      "grate.postgresql": {
-        "type": "CentralTransitive",
-        "requested": "[2.1.6, )",
-        "resolved": "2.1.6",
-        "contentHash": "krNCVLocLaEKSWkeFVf6JA+MHhh0FnDwdVWQs2O9wvIU35wkyx8hNzUMfo/jJ3CCM6k0eP14e3E3QlADtXE4sg==",
-        "dependencies": {
-          "Dapper": "2.1.79",
-          "Microsoft.Extensions.DependencyInjection": "10.0.10",
-          "Microsoft.Extensions.Hosting": "10.0.10",
-          "Microsoft.Extensions.Logging.Console": "10.0.10",
-          "Npgsql": "10.0.3",
-          "grate.core": "2.1.6"
-        }
       },
       "Microsoft.Agents.AI": {
         "type": "CentralTransitive",
@@ -690,15 +704,6 @@
           "Microsoft.ML.Tokenizers": "2.0.0"
         }
       },
-      "Microsoft.AspNetCore.OpenApi": {
-        "type": "CentralTransitive",
-        "requested": "[10.0.12, )",
-        "resolved": "10.0.12",
-        "contentHash": "7RnQ/UKn+kK3JDLmTpW+vVqNErWthGPAVAy1aIiBzv4ucQ6g9NFvOJUuT0PHcpvcJxGVxctMxj6t+NESWMrgHQ==",
-        "dependencies": {
-          "Microsoft.OpenApi": "[2.12.0, 3.0.0)"
-        }
-      },
       "Microsoft.Extensions.AI.OpenAI": {
         "type": "CentralTransitive",
         "requested": "[10.10.1, )",
@@ -709,13 +714,23 @@
           "OpenAI": "2.14.0"
         }
       },
-      "Npgsql": {
+      "Suwbackkit.Postgres": {
         "type": "CentralTransitive",
-        "requested": "[10.0.3, )",
-        "resolved": "10.0.3",
-        "contentHash": "7nb5YzXuvWWJxB0J8DiyL3we+X4FOctZrt0fIBnucOIaIevFEEwGQVZKtiu9olXdlNAK1eNgqSral6r/jlhI4w==",
+        "requested": "[0.2.2, )",
+        "resolved": "0.2.2",
+        "contentHash": "CxG3PsqIIHBrHPtOkLs1Cprt0yF/zd4SWnUqWLZqgHUPlMzzQJ2dX+dQ7SrGdW2TgNHW+zSqJUGhtyp/DXpC8A==",
         "dependencies": {
-          "Microsoft.Extensions.Logging.Abstractions": "10.0.0"
+          "Npgsql": "10.0.3",
+          "grate.postgresql": "2.1.6"
+        }
+      },
+      "Suwbackkit.Server": {
+        "type": "CentralTransitive",
+        "requested": "[0.2.2, )",
+        "resolved": "0.2.2",
+        "contentHash": "995N2AUbXskLpHIFU7qDueuqnyffQ2cQIOECPgWrAcypFbe5MjfehjatMTZfwQFoRsykYtbtarxOKSz7Bc3WMQ==",
+        "dependencies": {
+          "Microsoft.AspNetCore.OpenApi": "10.0.12"
         }
       },
       "System.CommandLine": {

@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Time.Testing;
 using Suwageval.AgentSdk;
 using Suwageval.Contracts.Checks;
 using Suwageval.Contracts.Runs;
@@ -40,7 +41,7 @@ public sealed class ResultsCommandTests
             SamplesDone = 1,
             ChecksPassed = 0,
             ChecksFailed = 1,
-            CreatedAt = TimeProvider.System.GetUtcNow().UtcDateTime,
+            CreatedAt = new FakeTimeProvider().GetUtcNow().UtcDateTime,
         };
 
     private static RunResults Failing(RunStatus status) =>

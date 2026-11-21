@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 import { createAgent, serveAgent, startRun } from "../../../e2e/agentSteps";
 
-test("the runs table pages by number, keeps the page in the address and shows the last page for one past it", async ({ page, request }) => {
+test("the runs table pages forward, keeps the page in the address and shows the last page for one past it", async ({ page, request }) => {
     const name = `e2e-runs-paging-${String(Date.now())}`;
     const agentServer = await serveAgent({ label: "e2e-runs-paging" });
     try {
@@ -17,7 +17,7 @@ test("the runs table pages by number, keeps the page in the address and shows th
         await expect(runBox(newest)).toBeVisible();
         await expect(runBox(oldest)).toHaveCount(0);
 
-        await page.getByRole("button", { name: "2", exact: true }).click();
+        await page.getByRole("button", { name: "Next", exact: true }).click();
         await expect(runBox(oldest)).toBeVisible();
         await expect(runBox(newest)).toHaveCount(0);
         await expect(page).toHaveURL(/runsPage=2/);

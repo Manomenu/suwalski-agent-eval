@@ -1,9 +1,9 @@
 using Dapper;
-using Suwageval.Server.Database;
+using Npgsql;
 
 namespace Suwageval.Server.Monitoring.Checking;
 
-internal sealed class CheckingStore(Pool pool)
+internal sealed class CheckingStore(NpgsqlDataSource dataSource)
 {
     internal sealed record CheckToRun(Guid Id, int Revision, string Content);
 
@@ -19,7 +19,7 @@ internal sealed class CheckingStore(Pool pool)
 
     public async Task<IReadOnlyList<(Guid Id, Guid AgentId)>> UncheckedAsync(int limit, CancellationToken cancellationToken = default)
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         return
         [
             .. await connection.QueryAsync<(Guid, Guid)>(
@@ -39,7 +39,7 @@ internal sealed class CheckingStore(Pool pool)
 
     public async Task<IReadOnlyList<CheckToRun>> ChecksAsync(Guid agentId, CancellationToken cancellationToken = default)
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         return
         [
             .. await connection.QueryAsync<CheckToRun>(
@@ -62,7 +62,7 @@ internal sealed class CheckingStore(Pool pool)
 
     public async Task<IReadOnlyList<string>> FailedChecksAsync(Guid conversationId, CancellationToken cancellationToken = default)
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         return
         [
             .. await connection.QueryAsync<string>(
@@ -84,7 +84,7 @@ internal sealed class CheckingStore(Pool pool)
 
     public async Task<bool> StoreAsync(Guid conversationId, IReadOnlyList<Verdict> verdicts, CancellationToken cancellationToken = default)
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
         var closed = await connection.QuerySingleOrDefaultAsync<bool>(
             new CommandDefinition(

@@ -23,7 +23,7 @@ public sealed class RunExecutorTests(TestDatabase database)
 {
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
 
-    private RunStore Store() => new(database.Pool);
+    private RunStore Store() => new(database.DataSource);
 
     [SuppressMessage(
         "Reliability",
@@ -52,10 +52,10 @@ public sealed class RunExecutorTests(TestDatabase database)
         var run = await store.ClaimNextAsync(agent.Id, Cancellation);
         var executor = new RunExecutor(
             store,
-            new ScenarioStore(database.Pool),
-            new CheckStore(database.Pool),
-            new AgentStore(database.Pool),
-            new AgentClient(new HttpClient { Timeout = TimeSpan.FromSeconds(10) }, time ?? TimeProvider.System),
+            new ScenarioStore(database.DataSource),
+            new CheckStore(database.DataSource),
+            new AgentStore(database.DataSource),
+            new AgentClient(new HttpClient { Timeout = TimeSpan.FromSeconds(10) }, time ?? new FakeTimeProvider()),
             simulator ?? RecordedModel.SimulatorAnswering("simulated-end.json"),
             judge ?? RecordedModel.JudgeAnswering("passed.json"),
             argumentJudge ?? RecordedModel.Answering("passed.json").ArgumentJudge(),
@@ -94,7 +94,7 @@ public sealed class RunExecutorTests(TestDatabase database)
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [SeededAgent.Scenario("refund")],
             [SeededAgent.RefundAfterLookup("refund-called", "refund"), SeededAgent.RefundedEvent("refund-event", "refund")]
@@ -124,7 +124,7 @@ public sealed class RunExecutorTests(TestDatabase database)
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.PlainTurn);
         fake.ServeContract(SeededAgent.ExampleVersionWithFixtures);
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [
                 SeededAgent.Scenario(
@@ -172,7 +172,7 @@ public sealed class RunExecutorTests(TestDatabase database)
             }
         );
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [SeededAgent.Scenario("answered"), SeededAgent.Scenario("multi", turns: 2)],
             []
@@ -197,7 +197,7 @@ public sealed class RunExecutorTests(TestDatabase database)
                 return Results.StatusCode(500);
             }
         );
-        var agent = await SeededAgent.CreateAsync(database.Pool, fake.Url.AbsoluteUri, [SeededAgent.Scenario("down")], []);
+        var agent = await SeededAgent.CreateAsync(database.DataSource, fake.Url.AbsoluteUri, [SeededAgent.Scenario("down")], []);
 
         var results = await RunAsync(agent, time: time);
 
@@ -219,7 +219,7 @@ public sealed class RunExecutorTests(TestDatabase database)
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [SeededAgent.Scenario("refund")],
             [PoliteRefusal("polite-refusal", "refund"), SeededAgent.RefundAfterLookup("refund-called", "refund")]
@@ -242,7 +242,7 @@ public sealed class RunExecutorTests(TestDatabase database)
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [SeededAgent.Scenario("refund", samples: 2)],
             [PoliteRefusal("polite-refusal", "refund"), SeededAgent.RefundAfterLookup("refund-called", "refund")]
@@ -284,7 +284,7 @@ public sealed class RunExecutorTests(TestDatabase database)
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [SeededAgent.Scenario("refund")],
             [ReasonFits("reason-fits", "refund"), SeededAgent.RefundAfterLookup("refund-called", "refund")]
@@ -311,7 +311,7 @@ public sealed class RunExecutorTests(TestDatabase database)
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [SeededAgent.Scenario("refund")],
             [ReasonFits("reason-fits", "refund"), SeededAgent.RefundAfterLookup("refund-called", "refund")]
@@ -344,7 +344,7 @@ public sealed class RunExecutorTests(TestDatabase database)
     public async Task A_tool_call_or_event_the_version_does_not_declare_is_a_warning_on_the_sample_not_a_failure()
     {
         await using var fake = await FakeAgent.AlwaysAsync(UndeclaredTurn);
-        var agent = await SeededAgent.CreateAsync(database.Pool, fake.Url.AbsoluteUri, [SeededAgent.Scenario("refund")], []);
+        var agent = await SeededAgent.CreateAsync(database.DataSource, fake.Url.AbsoluteUri, [SeededAgent.Scenario("refund")], []);
 
         var results = await RunAsync(agent);
 
@@ -358,7 +358,7 @@ public sealed class RunExecutorTests(TestDatabase database)
     public async Task A_contract_that_is_still_the_same_at_the_end_is_not_flagged()
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
-        var agent = await SeededAgent.CreateAsync(database.Pool, fake.Url.AbsoluteUri, [SeededAgent.Scenario("refund")], []);
+        var agent = await SeededAgent.CreateAsync(database.DataSource, fake.Url.AbsoluteUri, [SeededAgent.Scenario("refund")], []);
 
         var results = await RunAsync(agent);
 
@@ -378,7 +378,7 @@ public sealed class RunExecutorTests(TestDatabase database)
             }
         );
         redeployed = fake;
-        var agent = await SeededAgent.CreateAsync(database.Pool, fake.Url.AbsoluteUri, [SeededAgent.Scenario("refund")], []);
+        var agent = await SeededAgent.CreateAsync(database.DataSource, fake.Url.AbsoluteUri, [SeededAgent.Scenario("refund")], []);
 
         var results = await RunAsync(agent);
 
@@ -391,7 +391,7 @@ public sealed class RunExecutorTests(TestDatabase database)
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
         fake.ServeContract(_ => Results.StatusCode(500));
-        var agent = await SeededAgent.CreateAsync(database.Pool, fake.Url.AbsoluteUri, [SeededAgent.Scenario("refund")], []);
+        var agent = await SeededAgent.CreateAsync(database.DataSource, fake.Url.AbsoluteUri, [SeededAgent.Scenario("refund")], []);
 
         var results = await RunAsync(agent);
 
@@ -404,7 +404,7 @@ public sealed class RunExecutorTests(TestDatabase database)
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.PlainTurn);
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [SeededAgent.Scenario("refund")],
             [SeededAgent.RefundAfterLookup("refund-called", "refund")]
@@ -429,7 +429,7 @@ public sealed class RunExecutorTests(TestDatabase database)
         );
         calls = 0;
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [SeededAgent.Scenario("refund", samples: 5)],
             [SeededAgent.RefundAfterLookup("refund-called", "refund", threshold)]
@@ -451,7 +451,7 @@ public sealed class RunExecutorTests(TestDatabase database)
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [SeededAgent.Scenario("refund", samples: 3)],
             [
@@ -486,7 +486,7 @@ public sealed class RunExecutorTests(TestDatabase database)
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [SeededAgent.Scenario("refund", samples: 1)],
             [SeededAgent.RefundAfterLookup("many", "refund") with { Samples = 4 }]
@@ -505,7 +505,7 @@ public sealed class RunExecutorTests(TestDatabase database)
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [SeededAgent.Scenario("refund", samples: null)],
             [SeededAgent.RefundAfterLookup("refund-called", "refund")],
@@ -523,7 +523,7 @@ public sealed class RunExecutorTests(TestDatabase database)
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [SeededAgent.Scenario("refund", samples: null)],
             [],
@@ -542,7 +542,7 @@ public sealed class RunExecutorTests(TestDatabase database)
     {
         await using var fake = await FakeAgent.StartAsync((_, _) => Results.Text("boom", statusCode: 500));
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [SeededAgent.Scenario("refund")],
             [SeededAgent.RefundAfterLookup("refund-called", "refund")]
@@ -565,7 +565,7 @@ public sealed class RunExecutorTests(TestDatabase database)
     public async Task An_agent_that_is_not_there_is_a_failed_sample_too()
     {
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             "http://127.0.0.1:1",
             [SeededAgent.Scenario("refund")],
             [SeededAgent.RefundAfterLookup("refund-called", "refund")]
@@ -582,7 +582,7 @@ public sealed class RunExecutorTests(TestDatabase database)
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [SeededAgent.Scenario("multi", turns: 2)],
             [SeededAgent.RefundAfterLookup("refund-called", "multi")]
@@ -602,7 +602,7 @@ public sealed class RunExecutorTests(TestDatabase database)
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.PlainTurn);
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [
                 SeededAgent.Scenario("tagged", ["regression"]),
@@ -623,7 +623,7 @@ public sealed class RunExecutorTests(TestDatabase database)
     public async Task A_scenario_without_checks_still_shows_its_output()
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.PlainTurn);
-        var agent = await SeededAgent.CreateAsync(database.Pool, fake.Url.AbsoluteUri, [SeededAgent.Scenario("greeting")], []);
+        var agent = await SeededAgent.CreateAsync(database.DataSource, fake.Url.AbsoluteUri, [SeededAgent.Scenario("greeting")], []);
 
         var scenario = Assert.Single((await RunAsync(agent)).Scenarios);
 
@@ -637,7 +637,7 @@ public sealed class RunExecutorTests(TestDatabase database)
         var held = new InFlightCalls();
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.PlainTurn, held);
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [SeededAgent.Scenario("a"), SeededAgent.Scenario("b"), SeededAgent.Scenario("c"), SeededAgent.Scenario("d", samples: 2)],
             []
@@ -658,7 +658,7 @@ public sealed class RunExecutorTests(TestDatabase database)
         var held = new InFlightCalls();
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.PlainTurn, held);
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [SeededAgent.Scenario("a"), SeededAgent.Scenario("b"), SeededAgent.Scenario("c")],
             []
@@ -677,7 +677,7 @@ public sealed class RunExecutorTests(TestDatabase database)
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.PlainTurn);
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [SeededAgent.Scenario("a"), SeededAgent.Scenario("b")],
             []
@@ -709,7 +709,7 @@ public sealed class RunExecutorTests(TestDatabase database)
             }
         );
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [.. Enumerable.Range(1, 6).Select(n => SeededAgent.Scenario($"s{n}"))],
             []
@@ -729,8 +729,12 @@ public sealed class RunExecutorTests(TestDatabase database)
     [Fact]
     public async Task Unreadable_stored_content_fails_the_run_with_the_reason()
     {
-        var agent = await SeededAgent.CreateAsync(database.Pool, "http://127.0.0.1:1", [], []);
-        await new ScenarioStore(database.Pool).UpsertAsync(agent.Id, [new ScenarioItem("broken", ["regression"], "{}")], Cancellation);
+        var agent = await SeededAgent.CreateAsync(database.DataSource, "http://127.0.0.1:1", [], []);
+        await new ScenarioStore(database.DataSource).UpsertAsync(
+            agent.Id,
+            [new ScenarioItem("broken", ["regression"], "{}")],
+            Cancellation
+        );
         var (run, executor) = await ClaimAsync(agent);
 
         await executor.ExecuteAsync(run, Cancellation);
@@ -768,7 +772,7 @@ public sealed class RunExecutorTests(TestDatabase database)
             }
         );
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [SeededAgent.Scenario("angry", turns: 3, simulatedUser: Angry)],
             [
@@ -809,7 +813,7 @@ public sealed class RunExecutorTests(TestDatabase database)
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.PlainTurn);
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [SeededAgent.Scenario("leaves", turns: 5, simulatedUser: Angry)],
             []
@@ -829,7 +833,7 @@ public sealed class RunExecutorTests(TestDatabase database)
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.PlainTurn);
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [
                 SeededAgent.Scenario(
@@ -856,7 +860,7 @@ public sealed class RunExecutorTests(TestDatabase database)
             (_, call) => Results.Text(call == 2 ? FakeAgent.RefundTurn : FakeAgent.PlainTurn, "application/json")
         );
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [SeededAgent.Scenario("later", turns: 3, simulatedUser: Angry)],
             [
@@ -882,7 +886,7 @@ public sealed class RunExecutorTests(TestDatabase database)
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.PlainTurn);
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [SeededAgent.Scenario("broken-model", turns: 3, simulatedUser: Angry)],
             [
@@ -914,7 +918,7 @@ public sealed class RunExecutorTests(TestDatabase database)
             (_, call) => call == 1 ? Results.Text(FakeAgent.PlainTurn, "application/json") : Results.StatusCode(500)
         );
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [SeededAgent.Scenario("down-later", turns: 3, simulatedUser: Angry)],
             []
@@ -933,7 +937,7 @@ public sealed class RunExecutorTests(TestDatabase database)
     public async Task A_scenario_of_one_turn_sends_a_conversation_id_of_its_own()
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.PlainTurn);
-        var agent = await SeededAgent.CreateAsync(database.Pool, fake.Url.AbsoluteUri, [SeededAgent.Scenario("once")], []);
+        var agent = await SeededAgent.CreateAsync(database.DataSource, fake.Url.AbsoluteUri, [SeededAgent.Scenario("once")], []);
 
         var results = await RunAsync(agent);
 

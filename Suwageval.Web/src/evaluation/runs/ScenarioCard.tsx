@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Accordion, Alert, Badge, Box, Card, Group, List, Stack, Text, Title } from "@mantine/core";
+import { Alert, Badge, Paper } from "@maniumek/suwfrontkit";
 
 import { OnPaper } from "../../print/OnPaper";
 import { CheckDefinitionButton } from "../checks/CheckDefinitionButton";
@@ -24,18 +24,10 @@ import { type UnstableCheck } from "../unstable/api";
 function SampleRowLabel({ scenario, sample }: { scenario: ScenarioRunResult; sample: SampleResult }) {
     const verdict = sampleVerdict(scenario, sample.sample);
     return (
-        <Group gap="xs">
+        <span className="inline-flex flex-wrap items-center gap-2.5">
             <span>{sampleTitle(sample)}</span>
-            {verdict.kind === "no output" && (
-                <Badge color="red" variant="light">
-                    no output
-                </Badge>
-            )}
-            {verdict.kind === "not simulated" && (
-                <Badge color="orange" variant="light">
-                    not simulated
-                </Badge>
-            )}
+            {verdict.kind === "no output" && <Badge variant="danger">no output</Badge>}
+            {verdict.kind === "not simulated" && <Badge variant="warning">not simulated</Badge>}
             {verdict.kind !== "unchecked" && verdict.kind !== "no output" && verdict.kind !== "not simulated" && (
                 <VerdictBadge
                     verdict={verdict.kind}
@@ -46,7 +38,7 @@ function SampleRowLabel({ scenario, sample }: { scenario: ScenarioRunResult; sam
                     }
                 />
             )}
-        </Group>
+        </span>
     );
 }
 
@@ -72,72 +64,65 @@ export function ScenarioCard({
         return () => window.removeEventListener("hashchange", openFromHash);
     }, [scenario]);
     return (
-        <Card withBorder padding="md" id={scenarioAnchor(scenario.key)}>
-            <Stack gap="sm">
-                <Group gap="xs">
-                    <Title order={3} className="wrap-key">
-                        {scenario.key}
-                    </Title>
+        <Paper id={scenarioAnchor(scenario.key)}>
+            <div className="flex flex-col gap-3">
+                <div className="flex flex-wrap items-center gap-2.5">
+                    <h3 className="wrap-key text-[22px] font-bold">{scenario.key}</h3>
                     {scenario.acGuardrail != null && (
-                        <Badge
-                            variant="light"
-                            color="gray"
-                            title="The acceptance criterion this scenario guards on the gate (suwageval gate)"
-                        >
+                        <Badge variant="neutral" title="The acceptance criterion this scenario guards on the gate (suwageval gate)">
                             {scenario.acGuardrail.id}
                         </Badge>
                     )}
-                    <Box component="span" className="no-print">
+                    <span className="no-print">
                         <ScenarioDefinitionButton scenarioKey={scenario.key} revision={scenario.revision} yaml={scenario.definitionYaml} />
-                    </Box>
-                </Group>
+                    </span>
+                </div>
 
                 {scenario.samples.map((sample) => (
-                    <Stack key={sample.sample} gap="xs">
+                    <div key={sample.sample} className="flex flex-col gap-2.5">
                         {sample.status === "Failed" && (
-                            <Alert color="red" title={`Sample ${sample.sample}: the agent returned nothing`}>
-                                {sample.error}
+                            <Alert variant="destructive">
+                                <p className="font-semibold">{`Sample ${sample.sample}: the agent returned nothing`}</p>
+                                <p>{sample.error}</p>
                             </Alert>
                         )}
                         {sample.status === "NotSimulated" && (
-                            <Alert color="orange" title={`Sample ${sample.sample}: the simulated user could not be played`}>
-                                {sample.error} Not the agent's doing: run it again.
+                            <Alert variant="warning">
+                                <p className="font-semibold">{`Sample ${sample.sample}: the simulated user could not be played`}</p>
+                                <p>{sample.error} Not the agent's doing: run it again.</p>
                             </Alert>
                         )}
                         {(sample.undeclared?.length ?? 0) > 0 && (
-                            <Alert color="yellow" title={`Sample ${sample.sample}: the agent returned what its version does not declare`}>
-                                {sample.undeclared?.join(", ")}
+                            <Alert variant="warning">
+                                <p className="font-semibold">{`Sample ${sample.sample}: the agent returned what its version does not declare`}</p>
+                                <p>{sample.undeclared?.join(", ")}</p>
                             </Alert>
                         )}
-                    </Stack>
+                    </div>
                 ))}
 
-                {scenario.checks.length === 0 && <Text c="dimmed">No checks.</Text>}
+                {scenario.checks.length === 0 && <p className="text-muted-foreground">No checks.</p>}
                 {visibleChecks(scenario, hidePassed).map((check) => {
                     const unstableCheck = findUnstable(unstable, versionId, scenario.key, check.key, check.revision);
                     return (
-                        <Stack key={check.key} gap={4} id={checkAnchor(scenario.key, check.key)} className="check-target">
-                            <Group justify="space-between" wrap="nowrap" align="flex-start">
-                                <Group gap="xs">
+                        <div key={check.key} id={checkAnchor(scenario.key, check.key)} className="check-target flex flex-col gap-1">
+                            <div className="flex items-start justify-between gap-4">
+                                <div className="flex flex-wrap items-center gap-2.5">
                                     <VerdictBadge verdict={check.passed ? "passed" : "failed"} />
                                     {check.regression != null && check.regression.state !== "Passed" && (
-                                        <StateBadge state={check.regression.state} variant="light">
-                                            {stateLabel(check.regression.state)}
-                                        </StateBadge>
+                                        <StateBadge state={check.regression.state}>{stateLabel(check.regression.state)}</StateBadge>
                                     )}
                                     {failedOnOtherData(check) && <DataChangedBadge />}
                                     <CheckHistory check={check} />
                                     {notJudgedCount(check) > 0 && (
-                                        <Badge color="yellow" variant="light">
+                                        <Badge variant="warning">
                                             {`not judged: ${notJudgedCount(check)} of ${check.samples.length} samples`}
                                         </Badge>
                                     )}
-                                    <Text fw={600} className="wrap-key">
-                                        {check.key}
-                                    </Text>
-                                    <Text c="dimmed">{checkSummary(check)}</Text>
-                                </Group>
-                                <Group gap={4} wrap="nowrap">
+                                    <p className="wrap-key font-semibold">{check.key}</p>
+                                    <p className="text-muted-foreground">{checkSummary(check)}</p>
+                                </div>
+                                <div className="flex items-center gap-1">
                                     {check.judgedByModel && (
                                         <OnPaper text="model-judged">
                                             <ModelJudgedIcon model={check.judgeModel} />
@@ -148,49 +133,66 @@ export function ScenarioCard({
                                             <UnstableCheckIcon label={unstableTooltip(unstableCheck)} />
                                         </OnPaper>
                                     )}
-                                    <Box component="span" className="no-print">
+                                    <span className="no-print">
                                         <CheckDefinitionButton
                                             definition={check.definition}
                                             revision={check.revision}
                                             latestRevision={check.latestRevision}
                                         />
-                                    </Box>
-                                </Group>
-                            </Group>
-                            <List size="sm" listStyleType="none">
+                                    </span>
+                                </div>
+                            </div>
+                            <ul className="text-sm">
                                 {check.samples
                                     .filter((sample) => !sample.passed || check.samples.length === 1)
                                     .map((sample) => (
-                                        <List.Item key={sample.sample}>
+                                        <li key={sample.sample}>
                                             {check.samples.length > 1 ? `sample ${sample.sample}: ` : ""}
                                             <VerdictMessage message={sample.message} byModel={check.judgedByModel && !sample.notJudged} />
-                                        </List.Item>
+                                        </li>
                                     ))}
-                            </List>
-                        </Stack>
+                            </ul>
+                        </div>
                     );
                 })}
 
-                <Accordion multiple variant="contained" value={openSamples} onChange={setOpenSamples} keepMountedMode="display-none">
-                    {scenario.samples.map((sample) => (
-                        <Accordion.Item key={sample.sample} value={String(sample.sample)}>
-                            <Accordion.Control>
-                                <SampleRowLabel scenario={scenario} sample={sample} />
-                            </Accordion.Control>
-                            <Accordion.Panel>
-                                <Box className="print-only" fw={600} mb="xs">
+                <div className="flex flex-col gap-2.5">
+                    {scenario.samples.map((sample) => {
+                        const id = String(sample.sample);
+                        return (
+                            <details
+                                key={sample.sample}
+                                className="sample rounded-md border border-border"
+                                open={openSamples.includes(id)}
+                                onToggle={(event) => {
+                                    const open = event.currentTarget.open;
+                                    setOpenSamples((current) =>
+                                        open === current.includes(id)
+                                            ? current
+                                            : open
+                                              ? [...current, id]
+                                              : current.filter((item) => item !== id),
+                                    );
+                                }}
+                            >
+                                <summary className="sample-toggle cursor-pointer p-3">
                                     <SampleRowLabel scenario={scenario} sample={sample} />
-                                </Box>
-                                <ConversationView
-                                    items={sample.output ?? []}
-                                    highlight={failedEvidenceKeys(scenario, sample.sample)}
-                                    simulated={isSimulated(sample)}
-                                />
-                            </Accordion.Panel>
-                        </Accordion.Item>
-                    ))}
-                </Accordion>
-            </Stack>
-        </Card>
+                                </summary>
+                                <div className="border-t border-border p-3">
+                                    <div className="print-only mb-2.5 font-semibold">
+                                        <SampleRowLabel scenario={scenario} sample={sample} />
+                                    </div>
+                                    <ConversationView
+                                        items={sample.output ?? []}
+                                        highlight={failedEvidenceKeys(scenario, sample.sample)}
+                                        simulated={isSimulated(sample)}
+                                    />
+                                </div>
+                            </details>
+                        );
+                    })}
+                </div>
+            </div>
+        </Paper>
     );
 }

@@ -58,7 +58,7 @@ spec:
                 failed=1
               }
               expect 200 /healthz
-              expect 200 /api/health '"ok"'
+              expect 200 /api/health Healthy
               exit "$failed"
           resources:
             requests: { cpu: 10m, memory: 16Mi }

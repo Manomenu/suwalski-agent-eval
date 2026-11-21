@@ -136,7 +136,8 @@ internal static class VersionEndpoints
         var (older, newer) = second.CreatedAt < first.CreatedAt ? (second, first) : (first, second);
         var counts = await versions.RunCountsAsync(row.Id, cancellationToken);
         var data = await versions.DataAsync(row.Id, cancellationToken);
-        var rows = LineDiff.Rows(ContractYaml.Of(ContentOf(older)), ContractYaml.Of(ContentOf(newer)));
+        var (olderYaml, newerYaml) = (ContractYaml.Of(ContentOf(older)), ContractYaml.Of(ContentOf(newer)));
+        var rows = LineDiff.Rows(olderYaml, newerYaml);
         return Results.Ok(
             new VersionDiff
             {
@@ -145,6 +146,8 @@ internal static class VersionEndpoints
                 Added = rows.Count(line => line.Kind == DiffKind.Added),
                 Removed = rows.Count(line => line.Kind == DiffKind.Removed),
                 Blocks = LineDiff.Blocks(rows),
+                FromYaml = olderYaml,
+                ToYaml = newerYaml,
             }
         );
     }

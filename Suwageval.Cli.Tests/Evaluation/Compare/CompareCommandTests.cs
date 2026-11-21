@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Time.Testing;
 using Suwageval.AgentSdk;
 using Suwageval.Cli.Server;
 using Suwageval.Contracts.Runs;
@@ -41,7 +42,7 @@ public sealed class CompareCommandTests
             SamplesFailed = 1,
             ChecksPassed = checksPassed,
             ChecksFailed = checksFailed,
-            CreatedAt = TimeProvider.System.GetUtcNow().UtcDateTime,
+            CreatedAt = new FakeTimeProvider().GetUtcNow().UtcDateTime,
             Label = label,
         };
 

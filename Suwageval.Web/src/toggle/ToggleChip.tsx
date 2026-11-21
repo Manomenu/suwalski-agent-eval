@@ -1,6 +1,4 @@
-import { Chip, Tooltip } from "@mantine/core";
-
-const HELP_WIDTH = 320;
+import { ToggleChip as Chip, Tooltip } from "@maniumek/suwfrontkit";
 
 export function ToggleChip({
     label,
@@ -15,18 +13,11 @@ export function ToggleChip({
     help?: string;
     disabled?: boolean;
 }) {
-    const chip = (
-        <span>
-            <Chip checked={checked} onChange={onChange} disabled={disabled}>
+    return (
+        <Tooltip label={help} disabled={help === undefined}>
+            <Chip pressed={checked} onPressedChange={onChange} disabled={disabled}>
                 {label}
             </Chip>
-        </span>
-    );
-    return help === undefined ? (
-        chip
-    ) : (
-        <Tooltip label={help} multiline w={HELP_WIDTH}>
-            {chip}
         </Tooltip>
     );
 }

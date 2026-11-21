@@ -19,13 +19,13 @@ public sealed class UnstableEndpointsTests(TestDatabase database, ClassServer se
 
     private HttpClient Client()
     {
-        _ = database.Pool;
+        _ = database.DataSource;
         return app.CreateClient();
     }
 
     private Task<SeededAgent> NewAgentAsync(string endpoint) =>
         SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             endpoint,
             [SeededAgent.Scenario("refund", ["regression"]), SeededAgent.Scenario("other", ["smoke"])],
             [SeededAgent.RefundAfterLookup("refund-called", "refund"), SeededAgent.RefundedEvent("refund-event", "refund")]

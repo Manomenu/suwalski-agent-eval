@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Time.Testing;
 using Suwageval.Contracts.Runs;
 using Suwageval.Server.Evaluation.Runs;
 using Suwageval.Server.Evaluation.Runs.Compare;
@@ -69,7 +70,7 @@ public sealed class RunComparerTests
                 SamplesDone = 0,
                 ChecksPassed = 0,
                 ChecksFailed = 0,
-                CreatedAt = TimeProvider.System.GetUtcNow().UtcDateTime,
+                CreatedAt = new FakeTimeProvider().GetUtcNow().UtcDateTime,
             },
             Scenarios = scenarios,
             MedianMs = medianMs,

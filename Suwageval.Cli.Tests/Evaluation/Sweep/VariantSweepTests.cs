@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Time.Testing;
 using Suwageval.Cli.Evaluation.Sweep;
 using Suwageval.Cli.Files;
 
@@ -18,7 +19,11 @@ public sealed class VariantSweepTests
 
     private sealed class Fakes
     {
+        private const int PollMilliseconds = 5;
+
         private int reads;
+
+        public FakeTimeProvider Clock { get; } = new();
 
         public List<string> Log { get; } = [];
 
@@ -49,7 +54,31 @@ public sealed class VariantSweepTests
         }
 
         public VariantSweep Sweep(TimeSpan? wait = null) =>
-            new(Settings, Shell, ReadLabel, Run, TextWriter.Null, wait ?? TimeSpan.FromSeconds(5), TimeSpan.FromMilliseconds(5));
+            new(
+                Settings,
+                Shell,
+                ReadLabel,
+                Run,
+                TextWriter.Null,
+                wait ?? TimeSpan.FromSeconds(5),
+                TimeSpan.FromMilliseconds(PollMilliseconds),
+                Clock
+            );
+
+        public async Task<SweepResult> RunSweepAsync(
+            VariantSweep sweep,
+            IReadOnlyList<string> variants,
+            CancellationToken cancellationToken
+        )
+        {
+            var running = sweep.RunAsync(variants, "grp", cancellationToken);
+            while (!running.IsCompleted)
+            {
+                Clock.Advance(TimeSpan.FromMilliseconds(PollMilliseconds));
+                await Task.Yield();
+            }
+            return await running;
+        }
     }
 
     [Fact]
@@ -59,7 +88,7 @@ public sealed class VariantSweepTests
         fakes.Labels["a"] = "a";
         fakes.Labels["b"] = "b";
 
-        var result = await fakes.Sweep().RunAsync(["a", "b"], "grp", Cancellation);
+        var result = await fakes.RunSweepAsync(fakes.Sweep(), ["a", "b"], Cancellation);
 
         Assert.False(result.Failed);
         Assert.Equal(
@@ -74,7 +103,7 @@ public sealed class VariantSweepTests
         var fakes = new Fakes();
         fakes.Labels["b"] = "b";
 
-        var result = await fakes.Sweep(TimeSpan.FromMilliseconds(60)).RunAsync(["a", "b"], "grp", Cancellation);
+        var result = await fakes.RunSweepAsync(fakes.Sweep(TimeSpan.FromMilliseconds(60)), ["a", "b"], Cancellation);
 
         Assert.True(result.Failed);
         Assert.Contains("label is 'default', not 'a'", result.Outcomes[0].Summary, StringComparison.Ordinal);
@@ -89,7 +118,7 @@ public sealed class VariantSweepTests
     {
         var fakes = new Fakes { LabelOnRead = read => read < 3 ? null : "a" };
 
-        var result = await fakes.Sweep().RunAsync(["a"], "grp", Cancellation);
+        var result = await fakes.RunSweepAsync(fakes.Sweep(), ["a"], Cancellation);
 
         Assert.False(result.Failed);
     }
@@ -99,7 +128,7 @@ public sealed class VariantSweepTests
     {
         var fakes = new Fakes { Label = null };
 
-        var result = await fakes.Sweep(TimeSpan.FromMilliseconds(30)).RunAsync(["a"], "grp", Cancellation);
+        var result = await fakes.RunSweepAsync(fakes.Sweep(TimeSpan.FromMilliseconds(30)), ["a"], Cancellation);
 
         Assert.Contains("could not be read", result.Outcomes.Single().Summary, StringComparison.Ordinal);
     }
@@ -110,7 +139,7 @@ public sealed class VariantSweepTests
         var fakes = new Fakes { ExitOf = command => command == "reconfigure a grp" ? 3 : 0 };
         fakes.Labels["b"] = "b";
 
-        var result = await fakes.Sweep().RunAsync(["a", "b"], "grp", Cancellation);
+        var result = await fakes.RunSweepAsync(fakes.Sweep(), ["a", "b"], Cancellation);
 
         Assert.True(result.Failed);
         Assert.Equal("reconfigure exited 3", result.Outcomes[0].Summary);
@@ -124,7 +153,7 @@ public sealed class VariantSweepTests
     {
         var fakes = new Fakes { ExitOf = command => command.StartsWith("before", StringComparison.Ordinal) ? 1 : 0 };
 
-        var result = await fakes.Sweep().RunAsync(["a"], "grp", Cancellation);
+        var result = await fakes.RunSweepAsync(fakes.Sweep(), ["a"], Cancellation);
 
         Assert.Equal(["before a", "after a"], fakes.Log);
         Assert.Equal("before exited 1", result.Outcomes.Single().Summary);
@@ -148,7 +177,8 @@ public sealed class VariantSweepTests
             },
             TextWriter.Null,
             TimeSpan.FromSeconds(5),
-            TimeSpan.FromMilliseconds(5)
+            TimeSpan.FromMilliseconds(5),
+            fakes.Clock
         );
 
         var result = await sweep.RunAsync(["a", "b"], "grp", interrupt.Token);
@@ -164,7 +194,7 @@ public sealed class VariantSweepTests
         var fakes = new Fakes { ExitOf = command => command == "restore" ? 1 : 0 };
         fakes.Labels["a"] = "a";
 
-        var result = await fakes.Sweep().RunAsync(["a"], "grp", Cancellation);
+        var result = await fakes.RunSweepAsync(fakes.Sweep(), ["a"], Cancellation);
 
         Assert.True(result.RestoreFailed);
         Assert.True(result.Failed);

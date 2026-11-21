@@ -1,6 +1,7 @@
 import type { CheckRegression, CheckRunResult, RegressionState, RegressionSummary, RunResults } from "./api";
 import { compareHref, runHref } from "../../routes/links";
 import { shortId } from "../../format/names";
+import type { BadgeVariant } from "./results";
 
 export function stateLabel(state: RegressionState): string {
     switch (state) {
@@ -44,24 +45,24 @@ export function stateExplanation(state: RegressionState): string {
     }
 }
 
-export function stateColor(state: RegressionState): string {
+export function stateColor(state: RegressionState): BadgeVariant {
     switch (state) {
         case "Passed":
-            return "green";
+            return "success";
         case "Regression":
-            return "red";
+            return "danger";
         case "New":
-            return "blue";
+            return "info";
         case "AlreadyBroken":
-            return "orange";
+            return "warning";
         case "KnownFailure":
-            return "gray";
+            return "neutral";
         case "Fixed":
-            return "green";
+            return "success";
         case "Unstable":
-            return "yellow";
+            return "warning";
         case "AgentError":
-            return "grape";
+            return "primary";
     }
 }
 

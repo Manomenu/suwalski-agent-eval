@@ -52,7 +52,7 @@ public sealed class AgentClientTests
     {
         using var stub = new Stub(answer);
         using var http = new HttpClient(stub, disposeHandler: false) { Timeout = TimeSpan.FromSeconds(30) };
-        var result = await new AgentClient(http, time ?? TimeProvider.System).TurnAsync(
+        var result = await new AgentClient(http, time ?? new FakeTimeProvider()).TurnAsync(
             Agent,
             [new UserMessage { Text = "hi" }],
             Context,
@@ -86,7 +86,7 @@ public sealed class AgentClientTests
         using var stub = new Stub(_ => Task.FromResult(Ok("""{"items":[]}""")));
         using var http = new HttpClient(stub, disposeHandler: false);
 
-        await new AgentClient(http, TimeProvider.System).TurnAsync(Agent, [new AssistantMessage { Text = "a" }], Context, Cancellation);
+        await new AgentClient(http, new FakeTimeProvider()).TurnAsync(Agent, [new AssistantMessage { Text = "a" }], Context, Cancellation);
 
         Assert.DoesNotContain("interrupted", stub.RequestBody, StringComparison.Ordinal);
     }
@@ -98,7 +98,7 @@ public sealed class AgentClientTests
         using var http = new HttpClient(stub, disposeHandler: false);
         var fixtures = JsonDocument.Parse("""{"pinnedResources":["plans"],"n":1.50}""").RootElement.Clone();
 
-        await new AgentClient(http, TimeProvider.System).TurnAsync(
+        await new AgentClient(http, new FakeTimeProvider()).TurnAsync(
             Agent,
             [new UserMessage { Text = "hi" }],
             Context with
@@ -229,7 +229,7 @@ public sealed class AgentClientTests
         using var hanging = new Hanging();
         using var http = new HttpClient(hanging, disposeHandler: false) { Timeout = TimeSpan.FromMilliseconds(200) };
 
-        var result = await new AgentClient(http, TimeProvider.System).TurnAsync(
+        var result = await new AgentClient(http, new FakeTimeProvider()).TurnAsync(
             Agent,
             [new UserMessage { Text = "hi" }],
             Context,
@@ -250,7 +250,7 @@ public sealed class AgentClientTests
     {
         using var stub = new Stub(answer);
         using var http = new HttpClient(stub, disposeHandler: false) { Timeout = TimeSpan.FromSeconds(30) };
-        return (await new AgentClient(http, TimeProvider.System).GetContractAsync(Agent, Cancellation), stub);
+        return (await new AgentClient(http, new FakeTimeProvider()).GetContractAsync(Agent, Cancellation), stub);
     }
 
     [Fact]
@@ -298,7 +298,7 @@ public sealed class AgentClientTests
         using var hanging = new Hanging();
         using var http = new HttpClient(hanging, disposeHandler: false) { Timeout = TimeSpan.FromMilliseconds(200) };
 
-        var result = await new AgentClient(http, TimeProvider.System).GetContractAsync(Agent, Cancellation);
+        var result = await new AgentClient(http, new FakeTimeProvider()).GetContractAsync(Agent, Cancellation);
 
         Assert.Null(result.Contract);
         Assert.Contains("no answer within", result.Error, StringComparison.Ordinal);
@@ -313,7 +313,7 @@ public sealed class AgentClientTests
         using var http = new HttpClient(stub, disposeHandler: false);
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            new AgentClient(http, TimeProvider.System).TurnAsync(Agent, [new UserMessage { Text = "hi" }], Context, cancelled.Token)
+            new AgentClient(http, new FakeTimeProvider()).TurnAsync(Agent, [new UserMessage { Text = "hi" }], Context, cancelled.Token)
         );
     }
 }

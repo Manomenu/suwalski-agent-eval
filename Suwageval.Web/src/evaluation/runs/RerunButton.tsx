@@ -1,4 +1,4 @@
-import { Alert, Button, Stack } from "@mantine/core";
+import { Alert, Button } from "@maniumek/suwfrontkit";
 import { useState } from "react";
 
 import { runRequestLike, startRun, type RunSummary } from "./api";
@@ -23,15 +23,16 @@ export function RerunButton({ run }: { run: RunSummary }) {
     };
 
     return (
-        <Stack gap="xs" align="flex-start">
-            <Button onClick={start} loading={busy} disabled={busy}>
-                Run again
+        <div className="flex flex-col items-start gap-2.5">
+            <Button onClick={start} disabled={busy}>
+                {busy ? "Starting…" : "Run again"}
             </Button>
             {error && (
-                <Alert color="red" title="The run could not be started">
-                    {error}
+                <Alert variant="destructive">
+                    <p className="font-semibold">The run could not be started</p>
+                    <p>{error}</p>
                 </Alert>
             )}
-        </Stack>
+        </div>
     );
 }

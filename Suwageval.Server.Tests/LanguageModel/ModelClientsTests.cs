@@ -3,6 +3,7 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Time.Testing;
 using Suwageval.Server.Evaluation.Simulation;
 using Suwageval.Server.Judges;
 using Suwageval.Server.LanguageModel;
@@ -103,10 +104,15 @@ public sealed class ModelClientsTests
             await Task.Delay(Timeout.Infinite, cancellation);
             return "";
         });
-        using var limited = new LimitedChatClient(model, 1, TimeSpan.FromMilliseconds(50));
+        var clock = new FakeTimeProvider();
+        using var limited = new LimitedChatClient(model, 1, TimeSpan.FromSeconds(30), clock);
 
-        var first = await Assert.ThrowsAsync<TimeoutException>(() => limited.GetResponseAsync(Question, cancellationToken: Cancellation));
-        await Assert.ThrowsAsync<TimeoutException>(() => limited.GetResponseAsync(Question, cancellationToken: Cancellation));
+        var firstCall = limited.GetResponseAsync(Question, cancellationToken: Cancellation);
+        clock.Advance(TimeSpan.FromSeconds(30));
+        var first = await Assert.ThrowsAsync<TimeoutException>(() => firstCall);
+        var secondCall = limited.GetResponseAsync(Question, cancellationToken: Cancellation);
+        clock.Advance(TimeSpan.FromSeconds(30));
+        await Assert.ThrowsAsync<TimeoutException>(() => secondCall);
 
         Assert.Contains("did not answer", first.Message, StringComparison.Ordinal);
     }

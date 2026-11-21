@@ -1,12 +1,13 @@
 using System.Text.Json;
 using Dapper;
+using Npgsql;
 using Suwageval.AgentSdk;
 using Suwageval.Contracts.Runs;
 using Suwageval.Server.Database;
 
 namespace Suwageval.Server.Evaluation.Runs;
 
-internal sealed class RunStore(Pool pool)
+internal sealed class RunStore(NpgsqlDataSource dataSource)
 {
     private const string RunSelect = """
         SELECT r.id, r.agent_id AS AgentId, a.name AS AgentName, r.agent_version_id AS AgentVersionId, to_jsonb(r.tags)::text AS TagsJson,
@@ -56,7 +57,7 @@ internal sealed class RunStore(Pool pool)
         CancellationToken cancellationToken = default
     )
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
         await connection.ExecuteAsync(
             new CommandDefinition(
@@ -103,7 +104,7 @@ internal sealed class RunStore(Pool pool)
 
     public async Task<RunRow?> GetAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         return await connection.QuerySingleOrDefaultAsync<RunRow>(
             new CommandDefinition($"{RunSelect} WHERE r.id = @id", new { id }, cancellationToken: cancellationToken)
         );
@@ -111,7 +112,7 @@ internal sealed class RunStore(Pool pool)
 
     public async Task<IReadOnlyList<RunRow>> ListAsync(Guid agentId, CancellationToken cancellationToken = default)
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         var rows = await connection.QueryAsync<RunRow>(
             new CommandDefinition(
                 $"{RunSelect} WHERE r.agent_id = @agentId ORDER BY r.created_at DESC, r.id",
@@ -145,7 +146,7 @@ internal sealed class RunStore(Pool pool)
         CancellationToken cancellationToken = default
     )
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         var rows = await connection.QueryAsync<RunRow>(
             new CommandDefinition(
                 $"""
@@ -181,7 +182,7 @@ internal sealed class RunStore(Pool pool)
         CancellationToken cancellationToken = default
     )
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         return await connection.ExecuteScalarAsync<int>(
             new CommandDefinition(
                 $"SELECT count(*) FROM runs r {ListFilter}",
@@ -202,7 +203,7 @@ internal sealed class RunStore(Pool pool)
     public async Task<RunRow?> ClaimNextAsync(Guid? agentId = null, CancellationToken cancellationToken = default)
     {
         Guid? id;
-        await using (var connection = await pool.OpenAsync(cancellationToken))
+        await using (var connection = await dataSource.OpenConnectionAsync(cancellationToken))
         {
             id = await connection.QuerySingleOrDefaultAsync<Guid?>(
                 new CommandDefinition(
@@ -227,7 +228,7 @@ internal sealed class RunStore(Pool pool)
 
     public async Task SetTotalAsync(Guid id, int samplesTotal, CancellationToken cancellationToken = default)
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         await connection.ExecuteAsync(
             new CommandDefinition(
                 "UPDATE runs SET samples_total = @samplesTotal WHERE id = @id",
@@ -239,7 +240,7 @@ internal sealed class RunStore(Pool pool)
 
     public async Task SetSkippedAsync(Guid id, IReadOnlyList<SkippedScenario> skipped, CancellationToken cancellationToken = default)
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         await connection.ExecuteAsync(
             new CommandDefinition(
                 "UPDATE runs SET skipped_scenarios = @skippedJson::jsonb WHERE id = @id",
@@ -251,7 +252,7 @@ internal sealed class RunStore(Pool pool)
 
     public async Task<string?> GetGroupNoteAsync(Guid agentId, string name, CancellationToken cancellationToken = default)
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         return await connection.QuerySingleOrDefaultAsync<string>(
             new CommandDefinition(
                 "SELECT note FROM run_group_notes WHERE agent_id = @agentId AND name = @name",
@@ -263,7 +264,7 @@ internal sealed class RunStore(Pool pool)
 
     public async Task<bool> SetNoteAsync(Guid id, string? note, CancellationToken cancellationToken = default)
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         return await connection.ExecuteAsync(
                 new CommandDefinition("UPDATE runs SET note = @note WHERE id = @id", new { id, note }, cancellationToken: cancellationToken)
             ) > 0;
@@ -271,7 +272,7 @@ internal sealed class RunStore(Pool pool)
 
     public async Task RequestCancelAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         await connection.ExecuteAsync(
             new CommandDefinition(
                 """
@@ -289,7 +290,7 @@ internal sealed class RunStore(Pool pool)
 
     public async Task MarkContractChangedAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         await connection.ExecuteAsync(
             new CommandDefinition(
                 "UPDATE runs SET contract_changed_during_run = true WHERE id = @id",
@@ -301,7 +302,7 @@ internal sealed class RunStore(Pool pool)
 
     public async Task<bool> IsCancelRequestedAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         return await connection.QuerySingleOrDefaultAsync<bool>(
             new CommandDefinition("SELECT cancel_requested FROM runs WHERE id = @id", new { id }, cancellationToken: cancellationToken)
         );
@@ -309,7 +310,7 @@ internal sealed class RunStore(Pool pool)
 
     public async Task FinishAsync(Guid id, RunStatus status, string? error = null, CancellationToken cancellationToken = default)
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         await connection.ExecuteAsync(
             new CommandDefinition(
                 "UPDATE runs SET status = @status, error = @error, finished_at = now() WHERE id = @id",
@@ -326,7 +327,7 @@ internal sealed class RunStore(Pool pool)
 
     public async Task<int> InterruptRunningAsync(Guid? agentId = null, CancellationToken cancellationToken = default)
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         return await connection.ExecuteAsync(
             new CommandDefinition(
                 """
@@ -344,7 +345,7 @@ internal sealed class RunStore(Pool pool)
 
     public async Task AddSampleAsync(Guid runId, NewSample sample, CancellationToken cancellationToken = default)
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
         var resultId = await connection.QuerySingleAsync<Guid>(
             new CommandDefinition(
@@ -402,7 +403,7 @@ internal sealed class RunStore(Pool pool)
 
     public async Task<IReadOnlyList<ScenarioResultRow>> ListScenarioResultsAsync(Guid runId, CancellationToken cancellationToken = default)
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         var rows = await connection.QueryAsync<ScenarioResultRow>(
             new CommandDefinition(
                 """
@@ -432,7 +433,7 @@ internal sealed class RunStore(Pool pool)
         CancellationToken cancellationToken = default
     )
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         var rows = await connection.QueryAsync<RegressionHistoryRow>(
             new CommandDefinition(
                 """
@@ -490,7 +491,7 @@ internal sealed class RunStore(Pool pool)
 
     public async Task<IReadOnlyList<CheckResultRow>> ListCheckResultsAsync(Guid runId, CancellationToken cancellationToken = default)
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         var rows = await connection.QueryAsync<CheckResultRow>(
             new CommandDefinition(
                 """

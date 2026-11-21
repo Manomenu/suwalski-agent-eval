@@ -1,4 +1,5 @@
-import { Box, NavLink } from "@mantine/core";
+import { NavLink } from "@maniumek/suwfrontkit";
+import { IconChartLine, IconHeartbeat, IconHistory, IconRobot, IconUsersGroup } from "@tabler/icons-react";
 
 import { areaOn } from "../agents/features";
 import { useAgentFeatures } from "../agents/useAgentFeatures";
@@ -10,22 +11,30 @@ export function AppNavbar({ agentName, active }: Navigation) {
     const evaluation = features === null || areaOn(features, "evaluation");
     const monitoring = features !== null && areaOn(features, "monitoring");
     return (
-        <>
-            <NavLink href="/" label="Agents" active={active === "agents"} />
+        <nav aria-label="Main" className="flex flex-col gap-1">
+            <NavLink href="/" icon={<IconUsersGroup />} label="Agents" current={active === "agents"} />
             {agentName !== null && (
-                <Box ml="md">
-                    <NavLink href={agentHref(agentName)} label={agentName} />
-                    <Box ml="md">
-                        <NavLink href={agentVersionsHref(agentName)} label="Versions" active={active === "versions"} />
-                        {evaluation && (
-                            <NavLink href={agentEvaluationHref(agentName)} label="Evaluation" active={active === "evaluation"} />
-                        )}
-                        {monitoring && (
-                            <NavLink href={agentMonitoringHref(agentName)} label="Monitoring" active={active === "monitoring"} />
-                        )}
-                    </Box>
-                </Box>
+                <>
+                    <NavLink href={agentHref(agentName)} icon={<IconRobot />} label={agentName} current={false} />
+                    <NavLink href={agentVersionsHref(agentName)} icon={<IconHistory />} label="Versions" current={active === "versions"} />
+                    {evaluation && (
+                        <NavLink
+                            href={agentEvaluationHref(agentName)}
+                            icon={<IconChartLine />}
+                            label="Evaluation"
+                            current={active === "evaluation"}
+                        />
+                    )}
+                    {monitoring && (
+                        <NavLink
+                            href={agentMonitoringHref(agentName)}
+                            icon={<IconHeartbeat />}
+                            label="Monitoring"
+                            current={active === "monitoring"}
+                        />
+                    )}
+                </>
             )}
-        </>
+        </nav>
     );
 }

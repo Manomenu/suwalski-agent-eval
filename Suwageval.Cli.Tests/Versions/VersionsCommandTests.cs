@@ -473,6 +473,8 @@ public sealed class VersionsCommandTests
             To = Version(Active, null),
             Added = changed ? 1 : 0,
             Removed = changed ? 1 : 0,
+            FromYaml = changed ? "a\nb\n" : "a\n",
+            ToYaml = changed ? "a\nc\n" : "a\n",
             Blocks = changed
                 ?
                 [

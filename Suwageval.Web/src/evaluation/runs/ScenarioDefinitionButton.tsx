@@ -1,34 +1,31 @@
-import { ActionIcon, Button, CopyButton, Drawer, Group, Stack, Text } from "@mantine/core";
-import { useDisclosure } from "@mantine/hooks";
+import { Button, CopyButton, Dialog } from "@maniumek/suwfrontkit";
+import { useState } from "react";
 
 import { HighlightedYaml } from "../checks/HighlightedYaml";
 
-const DEFINITION_DRAWER_WIDTH = 640;
-
 export function ScenarioDefinitionButton({ scenarioKey, revision, yaml }: { scenarioKey: string; revision: number; yaml: string }) {
-    const [opened, { open, close }] = useDisclosure(false);
+    const [opened, setOpened] = useState(false);
     return (
         <>
-            <ActionIcon variant="subtle" size="sm" aria-label={`Show definition of scenario ${scenarioKey}`} onClick={open}>
+            <Button
+                variant="ghost"
+                size="icon"
+                aria-label={`Show definition of scenario ${scenarioKey}`}
+                onClick={() => {
+                    setOpened(true);
+                }}
+            >
                 {"{ }"}
-            </ActionIcon>
-            <Drawer opened={opened} onClose={close} position="right" size={DEFINITION_DRAWER_WIDTH} title={scenarioKey}>
-                <Stack gap="sm">
-                    <Group justify="space-between">
-                        <Text size="sm" c="dimmed">
-                            {`Revision ${String(revision)}`}
-                        </Text>
-                        <CopyButton value={yaml}>
-                            {({ copied, copy }) => (
-                                <Button variant="light" size="xs" onClick={copy}>
-                                    {copied ? "Copied" : "Copy YAML"}
-                                </Button>
-                            )}
-                        </CopyButton>
-                    </Group>
+            </Button>
+            <Dialog open={opened} onOpenChange={setOpened} title={scenarioKey} width="wide">
+                <div className="flex flex-col gap-3">
+                    <div className="flex flex-wrap items-center justify-between gap-4">
+                        <p className="text-sm text-muted-foreground">{`Revision ${String(revision)}`}</p>
+                        <CopyButton value={yaml} label="Copy YAML" copiedLabel="Copied" variant="outline" size="xs" />
+                    </div>
                     <HighlightedYaml yaml={yaml} />
-                </Stack>
-            </Drawer>
+                </div>
+            </Dialog>
         </>
     );
 }

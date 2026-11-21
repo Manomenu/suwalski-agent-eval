@@ -1,47 +1,41 @@
-import { Anchor, Group, Paper, Stack, Text, Title } from "@mantine/core";
+import { Anchor, Diff, Paper, formatDateTime } from "@maniumek/suwfrontkit";
+import { useQuery } from "@tanstack/react-query";
 
 import { type AgentVersion } from "../agents/api";
 import { Page } from "../agents/Page";
-import { useRequest } from "../api/useRequest";
-import { LineDiffView } from "../diff/LineDiffView";
 import { agentHref, versionHref } from "../routes/links";
-import { formatTime } from "../format/time";
 import { versionTitle } from "../format/names";
-import { fetchVersionDiff } from "./api";
+import { versionDiffQuery } from "./api";
 
 function VersionCard({ name, role, version }: { name: string; role: string; version: AgentVersion }) {
     return (
-        <Paper withBorder p="md">
-            <Stack gap={4}>
-                <Text size="sm" c="dimmed">
-                    {role}
-                </Text>
-                <Anchor href={versionHref(name, version.id)} fw={600}>
-                    {versionTitle(version.id, version.label)}
-                </Anchor>
-                <Text size="sm">created {formatTime(version.createdAt)}</Text>
-                <Text size="sm">models {version.modelNames.join(", ")}</Text>
-            </Stack>
+        <Paper className="flex flex-col gap-1">
+            <p className="text-sm text-muted-foreground">{role}</p>
+            <Anchor href={versionHref(name, version.id)} className="font-semibold">
+                {versionTitle(version.id, version.label)}
+            </Anchor>
+            <p className="text-sm">created {formatDateTime(version.createdAt)}</p>
+            <p className="text-sm">models {version.modelNames.join(", ")}</p>
         </Paper>
     );
 }
 
 export function VersionComparePage({ name, a, b }: { name: string; a: string; b: string }) {
-    const state = useRequest(`${name}/${a}/${b}`, (signal) => fetchVersionDiff(name, a, b, signal));
+    const query = useQuery(versionDiffQuery(name, a, b));
 
     return (
-        <Page state={state} notFound={`Agent ${name} has no version ${a} or ${b}.`}>
+        <Page query={query} notFound={`Agent ${name} has no version ${a} or ${b}.`}>
             {(diff) => (
-                <Stack gap="md">
+                <div className="flex flex-col gap-4">
                     <Anchor href={agentHref(name)}>← {name}</Anchor>
-                    <Title order={2}>Compare versions</Title>
-                    <Group align="stretch" gap="md" grow>
+                    <h2 className="text-[26px] leading-tight font-bold">Compare versions</h2>
+                    <div className="grid grid-cols-2 items-stretch gap-4">
                         <VersionCard name={name} role="Base (older)" version={diff.from} />
                         <VersionCard name={name} role="Newer" version={diff.to} />
-                    </Group>
-                    <Title order={3}>Diff</Title>
-                    <LineDiffView blocks={diff.blocks} />
-                </Stack>
+                    </div>
+                    <h3 className="text-[22px] font-bold">Diff</h3>
+                    <Diff before={diff.fromYaml} after={diff.toYaml} />
+                </div>
             )}
         </Page>
     );

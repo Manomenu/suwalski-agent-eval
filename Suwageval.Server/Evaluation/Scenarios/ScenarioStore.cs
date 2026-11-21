@@ -4,7 +4,7 @@ using Suwageval.Server.Database;
 
 namespace Suwageval.Server.Evaluation.Scenarios;
 
-internal sealed class ScenarioStore(Pool pool)
+internal sealed class ScenarioStore(NpgsqlDataSource dataSource)
 {
     private const string LatestRevision = """
         SELECT s.id, s.agent_id AS AgentId, s.key, s.tags, r.revision, r.content::text AS Content,
@@ -35,7 +35,7 @@ internal sealed class ScenarioStore(Pool pool)
         CancellationToken cancellationToken
     )
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
         var results = new List<ScenarioUpsertResult>();
         foreach (var item in items)
@@ -140,7 +140,7 @@ internal sealed class ScenarioStore(Pool pool)
         CancellationToken cancellationToken = default
     )
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         var rows = await connection.QueryAsync<ScenarioRow>(
             new CommandDefinition(
                 $"{LatestRevision} AND (cardinality(@tags) = 0 OR s.tags && @tags) ORDER BY s.key",
@@ -153,7 +153,7 @@ internal sealed class ScenarioStore(Pool pool)
 
     public async Task<IReadOnlyList<ScenarioLifetime>> ListLifetimesAsync(Guid agentId, CancellationToken cancellationToken = default)
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         var rows = await connection.QueryAsync<ScenarioLifetime>(
             new CommandDefinition(
                 """
@@ -172,7 +172,7 @@ internal sealed class ScenarioStore(Pool pool)
 
     public async Task<ScenarioRow?> GetAsync(Guid agentId, string key, CancellationToken cancellationToken = default)
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         return await connection.QuerySingleOrDefaultAsync<ScenarioRow>(
             new CommandDefinition($"{LatestRevision} AND s.key = @key", new { agentId, key }, cancellationToken: cancellationToken)
         );
@@ -184,7 +184,7 @@ internal sealed class ScenarioStore(Pool pool)
         CancellationToken cancellationToken = default
     )
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         var rows = await connection.QueryAsync<ScenarioRevisionRow>(
             new CommandDefinition(
                 """
@@ -203,7 +203,7 @@ internal sealed class ScenarioStore(Pool pool)
 
     public async Task<bool> DeleteAsync(Guid agentId, string key, CancellationToken cancellationToken = default)
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         var deleted = await connection.ExecuteAsync(
             new CommandDefinition(
                 "UPDATE scenarios SET deleted_at = now() WHERE agent_id = @agentId AND key = @key AND deleted_at IS NULL",
@@ -222,7 +222,7 @@ internal sealed class ScenarioStore(Pool pool)
         CancellationToken cancellationToken = default
     )
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         var changed = await connection.QueryAsync<ScenarioTags>(
             new CommandDefinition(
                 """
@@ -248,7 +248,7 @@ internal sealed class ScenarioStore(Pool pool)
 
     public async Task<IReadOnlyList<TagCount>> ListTagsAsync(Guid agentId, CancellationToken cancellationToken = default)
     {
-        await using var connection = await pool.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         var rows = await connection.QueryAsync<TagCount>(
             new CommandDefinition(
                 """

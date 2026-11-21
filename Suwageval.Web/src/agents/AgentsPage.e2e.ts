@@ -11,7 +11,7 @@ test("an agent is listed, opens its page and is deleted from it after its name i
     await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();
 
     await page.getByRole("button", { name: "Delete agent", exact: true }).click();
-    const dialog = page.getByRole("dialog", { name: "Delete this agent?", exact: true });
+    const dialog = page.getByRole("alertdialog", { name: "Delete this agent?", exact: true });
     await expect(
         dialog.getByText("0 versions, 0 scenarios, 0 checks, 0 runs, 0 samples and 0 verdicts will be deleted.", { exact: true }),
     ).toBeVisible();

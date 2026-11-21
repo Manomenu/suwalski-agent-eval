@@ -39,14 +39,14 @@ describe("labels and colours", () => {
         expect(stateLabel("Regression")).toBe("Regression");
         expect(stateLabel("AgentError")).toBe("Agent error");
     });
-    it("colours the states", () => {
-        expect(stateColor("Regression")).toBe("red");
-        expect(stateColor("New")).toBe("blue");
-        expect(stateColor("AlreadyBroken")).toBe("orange");
-        expect(stateColor("KnownFailure")).toBe("gray");
-        expect(stateColor("Fixed")).toBe("green");
-        expect(stateColor("Unstable")).toBe("yellow");
-        expect(stateColor("AgentError")).toBe("grape");
+    it("gives each state a badge variant", () => {
+        expect(stateColor("Regression")).toBe("danger");
+        expect(stateColor("New")).toBe("info");
+        expect(stateColor("AlreadyBroken")).toBe("warning");
+        expect(stateColor("KnownFailure")).toBe("neutral");
+        expect(stateColor("Fixed")).toBe("success");
+        expect(stateColor("Unstable")).toBe("warning");
+        expect(stateColor("AgentError")).toBe("primary");
     });
     it("says what each state means, and which ones fail the CLI's exit code", () => {
         const states: RegressionState[] = [

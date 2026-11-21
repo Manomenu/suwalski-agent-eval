@@ -1,4 +1,4 @@
-import { Group, Paper, Stack, Table, Text, Title } from "@mantine/core";
+import { Paper, Table } from "@maniumek/suwfrontkit";
 
 import { branchesText, historyText, samplesText } from "./configuration";
 import { HeaderHelp } from "../../help/HeaderHelp";
@@ -17,64 +17,50 @@ export function ConfigurationSection({
     const branches = branchesText(regression?.branches);
     const history = historyText(regression?.history);
     return (
-        <Stack gap="sm">
-            <Title order={3}>
+        <div className="flex flex-col gap-3">
+            <h3 className="text-[22px] font-bold">
                 <HeaderHelp label="Configuration" help={CONFIGURATION_HELP} />
-            </Title>
-            <Paper withBorder p="md">
+            </h3>
+            <Paper>
                 <Table>
-                    <Table.Tbody>
-                        <Table.Tr>
-                            <Table.Th>Endpoint</Table.Th>
-                            <Table.Td className="wrap-key">{endpointUrl}</Table.Td>
-                        </Table.Tr>
-                        <Table.Tr>
-                            <Table.Th>
+                    <tbody>
+                        <tr>
+                            <th>Endpoint</th>
+                            <td className="wrap-key">{endpointUrl}</td>
+                        </tr>
+                        <tr>
+                            <th>
                                 <HeaderHelp label="Samples" help={SAMPLES_HELP} />
-                            </Table.Th>
-                            <Table.Td>
-                                <Group gap={4}>
-                                    <Text span inherit>
-                                        {sampleCount.text}
-                                    </Text>
-                                    {sampleCount.isDefault && (
-                                        <Text span inherit c="dimmed">
-                                            (default)
-                                        </Text>
-                                    )}
-                                </Group>
-                            </Table.Td>
-                        </Table.Tr>
-                        <Table.Tr>
-                            <Table.Th>
+                            </th>
+                            <td>
+                                <span className="flex flex-wrap gap-1">
+                                    <span>{sampleCount.text}</span>
+                                    {sampleCount.isDefault && <span className="text-muted-foreground">(default)</span>}
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>
                                 <HeaderHelp label="Regression branches" help={REGRESSION_BRANCHES_HELP} />
-                            </Table.Th>
-                            <Table.Td className="wrap-key">
-                                <Text span inherit c={branches.isDefault ? "dimmed" : "inherit"}>
-                                    {branches.text}
-                                </Text>
-                            </Table.Td>
-                        </Table.Tr>
-                        <Table.Tr>
-                            <Table.Th>
+                            </th>
+                            <td className="wrap-key">
+                                <span className={branches.isDefault ? "text-muted-foreground" : undefined}>{branches.text}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>
                                 <HeaderHelp label="Regression history" help={REGRESSION_HISTORY_HELP} />
-                            </Table.Th>
-                            <Table.Td>
-                                <Group gap={4}>
-                                    <Text span inherit>
-                                        {history.text}
-                                    </Text>
-                                    {history.isDefault && (
-                                        <Text span inherit c="dimmed">
-                                            (default)
-                                        </Text>
-                                    )}
-                                </Group>
-                            </Table.Td>
-                        </Table.Tr>
-                    </Table.Tbody>
+                            </th>
+                            <td>
+                                <span className="flex flex-wrap gap-1">
+                                    <span>{history.text}</span>
+                                    {history.isDefault && <span className="text-muted-foreground">(default)</span>}
+                                </span>
+                            </td>
+                        </tr>
+                    </tbody>
                 </Table>
             </Paper>
-        </Stack>
+        </div>
     );
 }

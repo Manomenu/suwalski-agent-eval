@@ -100,10 +100,10 @@ describe("seriesColor", () => {
     it("is mauve for All and a theme accent per tag, repeating after the palette", () => {
         const series = [ALL_SERIES, ...Array.from({ length: 9 }, (_, i) => `t${String(i)}`)];
 
-        expect(seriesColor(ALL_SERIES, series)).toBe("mauve.5");
-        expect(seriesColor("t0", series)).toBe("blue.5");
-        expect(seriesColor("t1", series)).toBe("green.5");
-        expect(seriesColor("t7", series)).toBe("blue.5");
+        expect(seriesColor(ALL_SERIES, series)).toBe("var(--ctp-mauve)");
+        expect(seriesColor("t0", series)).toBe("var(--ctp-blue)");
+        expect(seriesColor("t1", series)).toBe("var(--ctp-green)");
+        expect(seriesColor("t7", series)).toBe("var(--ctp-blue)");
     });
 });
 

@@ -6,22 +6,27 @@ import {
     draftCutOf,
     MESSAGE_PREVIEW_LENGTH,
     messageOptions,
-    scenarioDraftPath,
+    scenarioDraftParams,
     draftTurns,
-    conversationsPath,
+    conversationsParams,
     initialFilter,
     stateOf,
     versionText,
 } from "./conversations";
 
-describe("conversationsPath", () => {
+describe("conversationsParams", () => {
     it("asks for one page, narrowed by the filter", () => {
-        expect(conversationsPath("my bot", { environment: null, state: null, failedCheck: null }, 1, 20)).toBe(
-            "/monitoring/agents/my%20bot/conversations?page=1&pageSize=20",
-        );
-        expect(conversationsPath("a", { environment: "production", state: "Closed", failedCheck: "no-refund" }, 3, 20)).toBe(
-            "/monitoring/agents/a/conversations?page=3&pageSize=20&environment=production&state=Closed&failedCheck=no-refund",
-        );
+        expect(conversationsParams({ environment: null, state: null, failedCheck: null }, 1, 20)).toEqual({
+            page: 1,
+            pageSize: 20,
+        });
+        expect(conversationsParams({ environment: "production", state: "Closed", failedCheck: "no-refund" }, 3, 20)).toEqual({
+            page: 3,
+            pageSize: 20,
+            environment: "production",
+            state: "Closed",
+            failedCheck: "no-refund",
+        });
     });
 });
 
@@ -101,12 +106,10 @@ describe("draftTurns", () => {
 
 describe("scenario draft", () => {
     it("asks for the whole conversation or up to a user or agent message", () => {
-        expect(scenarioDraftPath("c1", "end", 1)).toBe("/monitoring/conversations/c1/scenario");
-        expect(scenarioDraftPath("c1", "user", 2)).toBe("/monitoring/conversations/c1/scenario?upToUserMessage=2");
-        expect(scenarioDraftPath("c1", "agent", 1, 4)).toBe(
-            "/monitoring/conversations/c1/scenario?upToAgentMessage=1&simulate=true&turns=4",
-        );
-        expect(scenarioDraftPath("c1", "agent", 1)).toBe("/monitoring/conversations/c1/scenario?upToAgentMessage=1");
+        expect(scenarioDraftParams("end", 1)).toEqual({});
+        expect(scenarioDraftParams("user", 2)).toEqual({ upToUserMessage: 2 });
+        expect(scenarioDraftParams("agent", 1, 4)).toEqual({ upToAgentMessage: 1, simulate: true, turns: 4 });
+        expect(scenarioDraftParams("agent", 1)).toEqual({ upToAgentMessage: 1 });
         expect(draftCutOf("agent")).toBe("agent");
         expect(draftCutOf(null)).toBe("end");
     });

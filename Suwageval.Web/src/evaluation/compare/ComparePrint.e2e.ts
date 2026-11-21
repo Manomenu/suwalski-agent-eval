@@ -75,7 +75,7 @@ test("on paper PRINT_MAX_RUNS columns fit the paper at their printed width, ever
             const r = th.getBoundingClientRect();
             return { left: r.left, right: r.right, width: r.width };
         });
-        const container = element.closest(".mantine-Table-scrollContainer");
+        const container = element.closest(".compare-scroll");
         return {
             box: { x: rect.left, width: rect.width },
             heads: ths,

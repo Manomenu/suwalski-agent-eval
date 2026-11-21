@@ -1,9 +1,10 @@
-import { Alert, Button, Group } from "@mantine/core";
+import { Alert, Button } from "@maniumek/suwfrontkit";
 import type { ReactNode } from "react";
 
 import { ToggleChip } from "../toggle/ToggleChip";
 
 export interface ArchiveLabels {
+    group: string;
     archive: string;
     unarchive: string;
     remove: string;
@@ -40,10 +41,10 @@ export function ArchiveControls({
 }) {
     return (
         <>
-            <Group justify="space-between">
-                <Group gap="sm">
+            <div role="group" aria-label={labels.group} className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex flex-wrap items-center gap-2">
                     <Button
-                        variant="light"
+                        variant="outline"
                         disabled={toArchive.length === 0 || busy}
                         onClick={() => {
                             onChange(toArchive, true);
@@ -54,7 +55,7 @@ export function ArchiveControls({
                     {extra}
                     {showArchived && (
                         <Button
-                            variant="light"
+                            variant="outline"
                             disabled={toRestore.length === 0 || busy}
                             onClick={() => {
                                 onChange(toRestore, false);
@@ -66,7 +67,7 @@ export function ArchiveControls({
                     {showArchived && (
                         <Button
                             color="red"
-                            variant="light"
+                            variant="outline"
                             disabled={!canDelete || busy}
                             title={canDelete ? undefined : labels.removeHint}
                             onClick={onDelete}
@@ -74,15 +75,16 @@ export function ArchiveControls({
                             {labels.remove}
                         </Button>
                     )}
-                </Group>
+                </div>
                 {archivedChip && (
                     <ToggleChip label="Archived" checked={showArchived} help={archivedChip.help} onChange={archivedChip.onChange} />
                 )}
-            </Group>
-            {notice !== null && <Alert color="green">{notice}</Alert>}
+            </div>
+            {notice !== null && <Alert>{notice}</Alert>}
             {error !== null && (
-                <Alert color="red" title={labels.errorTitle}>
-                    {error}
+                <Alert variant="destructive">
+                    <p className="font-semibold">{labels.errorTitle}</p>
+                    <p>{error}</p>
                 </Alert>
             )}
         </>

@@ -85,7 +85,7 @@ public sealed class CompareEndpointsTests(TestDatabase database, ClassServer ser
 
     private static Task<SeededAgent> AgentAsync(TestDatabase database) =>
         SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             "http://agent.test",
             [SeededAgent.Scenario("refund", ["billing"]), SeededAgent.Scenario("plain", [])],
             [
@@ -97,7 +97,7 @@ public sealed class CompareEndpointsTests(TestDatabase database, ClassServer ser
 
     private async Task<HttpResponseMessage> GetAsync(string url)
     {
-        _ = database.Pool;
+        _ = database.DataSource;
         return await app.CreateClient().GetAsync(new Uri(url, UriKind.Relative), Cancellation);
     }
 

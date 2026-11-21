@@ -47,12 +47,12 @@ spec:
           {{- end }}
           readinessProbe:
             httpGet:
-              path: /health
+              path: /alive
               port: {{ .Values.server.port }}
             initialDelaySeconds: 3
           livenessProbe:
             httpGet:
-              path: /health
+              path: /alive
               port: {{ .Values.server.port }}
             initialDelaySeconds: 15
           resources:

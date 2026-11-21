@@ -1,7 +1,7 @@
 .agent-layout {
     max-width: 1400px;
     display: grid;
-    gap: var(--mantine-spacing-lg);
+    gap: 20px;
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
         "header"
@@ -21,7 +21,7 @@
 .agent-health-cards {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--mantine-spacing-lg);
+    gap: 20px;
     align-items: flex-start;
 }
 
@@ -48,50 +48,15 @@
 
     .agent-layout-analytics {
         position: sticky;
-        top: calc(var(--app-shell-header-height) + var(--mantine-spacing-md));
-        max-height: calc(100vh - var(--app-shell-header-height) - 2 * var(--mantine-spacing-md));
+        top: calc(var(--header-height) + 16px);
+        max-height: calc(100vh - var(--header-height) - 2 * 16px);
         overflow-y: auto;
     }
 }
 
-.line-diff {
-    font-family: var(--mantine-font-family-monospace);
-    font-size: var(--mantine-font-size-sm);
-    border: 1px solid var(--mantine-color-default-border);
-    border-radius: var(--mantine-radius-sm);
-    overflow: hidden;
-}
-
-.line-diff-row {
-    display: grid;
-    grid-template-columns: 5ch 5ch 2ch minmax(0, 1fr);
-    column-gap: var(--mantine-spacing-xs);
-    padding-inline: var(--mantine-spacing-xs);
-}
-
-.line-diff-row-added {
-    background: var(--mantine-color-green-light);
-}
-
-.line-diff-row-removed {
-    background: var(--mantine-color-red-light);
-}
-
-.line-diff-number {
-    text-align: right;
-    color: var(--mantine-color-dimmed);
-    user-select: none;
-}
-
-.line-diff-text {
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-    min-height: 1lh;
-}
-
 .check-target {
     scroll-margin-top: 76px;
-    border-radius: var(--mantine-radius-sm);
+    border-radius: 4px;
 }
 
 .check-target:target {
@@ -100,7 +65,7 @@
 
 @keyframes check-target-flash {
     from {
-        background-color: var(--mantine-color-yellow-light);
+        background-color: var(--warning-light);
     }
     to {
         background-color: transparent;
@@ -115,15 +80,15 @@
     white-space: nowrap;
 }
 
-.no-wrap .mantine-Badge-root {
+.no-wrap [data-slot="badge"] {
     min-width: max-content;
 }
 
 .regression-checks {
     display: grid;
     grid-template-columns: minmax(0, max-content) max-content minmax(0, 1fr);
-    column-gap: var(--mantine-spacing-md);
-    row-gap: var(--mantine-spacing-xs);
+    column-gap: 16px;
+    row-gap: 10px;
 }
 
 .regression-checks-heading {
@@ -134,26 +99,12 @@
     grid-column: 1 / -1;
     display: grid;
     grid-template-columns: subgrid;
-    row-gap: var(--mantine-spacing-xs);
+    row-gap: 10px;
     list-style: none;
     margin: 0;
-    padding: 0 0 0 var(--mantine-spacing-md);
+    padding: 0 0 0 16px;
 }
 
 .regression-checks-row {
     display: contents;
-}
-
-@media (max-width: 600px) {
-    .regression-checks,
-    .regression-checks-group {
-        grid-template-columns: minmax(0, 1fr);
-    }
-
-    .regression-checks-row {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: var(--mantine-spacing-xs) var(--mantine-spacing-md);
-    }
 }

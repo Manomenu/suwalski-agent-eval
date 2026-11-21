@@ -1,37 +1,40 @@
-import { Anchor, Button, Group, Paper, Stack, Text, Title } from "@mantine/core";
+import { Anchor, Button, Paper, formatDateTime } from "@maniumek/suwfrontkit";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
-import { deleteAgent, fetchAgent, fetchAgentDeletion, fetchVersions } from "../agents/api";
-import { DeleteModal } from "../agents/DeleteModal";
+import { agentKeys, agentQuery, deleteAgent, fetchAgentDeletion, versionsQuery } from "../agents/api";
+import { DeleteDialog } from "../agents/DeleteDialog";
 import { agentDeletionSummary } from "../agents/deletion";
-import { formatTime } from "../format/time";
 import { Page } from "../agents/Page";
-import { useRequest } from "../api/useRequest";
 import { VersionsSection } from "./VersionsSection";
 import { useVersionFilter } from "./useVersionFilter";
 
 export function VersionsPage({ name }: { name: string }) {
-    const [reload, setReload] = useState(0);
+    const queryClient = useQueryClient();
     const [deleting, setDeleting] = useState(false);
     const filter = useVersionFilter();
-    const state = useRequest(`${name}/${String(reload)}`, async (signal) => {
-        const [agent, versions] = await Promise.all([fetchAgent(name, signal), fetchVersions(name, signal)]);
-        return { agent, versions };
-    });
+    const agent = useQuery(agentQuery(name));
+    const versions = useQuery(versionsQuery(name));
+    const query = {
+        isPending: agent.isPending || versions.isPending,
+        error: agent.error ?? versions.error,
+        data: agent.data !== undefined && versions.data !== undefined ? { agent: agent.data, versions: versions.data } : undefined,
+    };
 
     return (
-        <Page state={state} notFound={`There is no agent ${name}.`}>
+        <Page query={query} notFound={`There is no agent ${name}.`}>
             {({ agent, versions }) => (
-                <Stack gap="lg">
+                <div className="flex flex-col gap-5">
                     <Anchor href="/">← Agents</Anchor>
                     {deleting && (
-                        <DeleteModal
+                        <DeleteDialog
                             noun="agent"
                             title="Delete this agent?"
                             subject={agent.name}
                             note="Files in its repository are not touched, but the next push registers it again, empty."
                             typedLabel="Type the agent name to confirm"
                             expected={agent.name}
+                            previewKey={agentKeys.deletion(agent.name)}
                             loadPreview={(signal) => fetchAgentDeletion(agent.name, signal)}
                             summary={agentDeletionSummary}
                             remove={() => deleteAgent(agent.name)}
@@ -43,27 +46,24 @@ export function VersionsPage({ name }: { name: string }) {
                             }}
                         />
                     )}
-                    <Paper withBorder p="md">
-                        <Stack gap={4}>
-                            <Group justify="space-between">
-                                <Title order={2}>{agent.name}</Title>
-                                <Button
-                                    color="red"
-                                    variant="light"
-                                    onClick={() => {
-                                        setDeleting(true);
-                                    }}
-                                >
-                                    Delete agent
-                                </Button>
-                            </Group>
-                            <Text c="dimmed">
-                                {agent.endpointUrl} · created {formatTime(agent.createdAt)}
-                            </Text>
-                            <Text c="dimmed">
-                                versions {agent.versions} · scenarios {agent.scenarios} · checks {agent.checks}
-                            </Text>
-                        </Stack>
+                    <Paper className="flex flex-col gap-1">
+                        <div className="flex flex-wrap items-center justify-between gap-4">
+                            <h2 className="text-[26px] leading-tight font-bold">{agent.name}</h2>
+                            <Button
+                                variant="destructive"
+                                onClick={() => {
+                                    setDeleting(true);
+                                }}
+                            >
+                                Delete agent
+                            </Button>
+                        </div>
+                        <p className="text-muted-foreground">
+                            {agent.endpointUrl} · created {formatDateTime(agent.createdAt)}
+                        </p>
+                        <p className="text-muted-foreground">
+                            versions {agent.versions} · scenarios {agent.scenarios} · checks {agent.checks}
+                        </p>
                     </Paper>
                     <VersionsSection
                         agentName={agent.name}
@@ -75,10 +75,10 @@ export function VersionsPage({ name }: { name: string }) {
                         environment={filter.environment}
                         onEnvironmentChange={filter.setEnvironment}
                         onChanged={() => {
-                            setReload(reload + 1);
+                            void queryClient.invalidateQueries({ queryKey: agentKeys.agent(name) });
                         }}
                     />
-                </Stack>
+                </div>
             )}
         </Page>
     );

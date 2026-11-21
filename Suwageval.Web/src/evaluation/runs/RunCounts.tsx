@@ -1,19 +1,17 @@
-import { Text } from "@mantine/core";
-
 import type { RunSummary } from "./api";
 import { checksCounts, samplesCounts } from "./results";
 
 function Counts({ summary, problem }: { summary: string; problem: string | null }) {
     return (
-        <Text span inherit>
+        <span>
             {summary}
             {problem !== null && (
-                <Text span inherit c="red">
+                <span className="text-destructive">
                     {" · "}
                     {problem}
-                </Text>
+                </span>
             )}
-        </Text>
+        </span>
     );
 }
 

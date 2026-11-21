@@ -18,7 +18,7 @@ public sealed class RegressionHistoryTests(TestDatabase database, ClassServer se
 
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
 
-    private RunStore Store() => new(database.Pool);
+    private RunStore Store() => new(database.DataSource);
 
     [SuppressMessage(
         "Reliability",
@@ -27,13 +27,13 @@ public sealed class RegressionHistoryTests(TestDatabase database, ClassServer se
     )]
     private HttpClient Client()
     {
-        _ = database.Pool;
+        _ = database.DataSource;
         return app.CreateClient();
     }
 
     private Task<SeededAgent> NewAgentAsync() =>
         SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             "http://agent.test",
             [SeededAgent.Scenario("refund")],
             [SeededAgent.RefundAfterLookup("refund-called", "refund")]
@@ -87,8 +87,8 @@ public sealed class RegressionHistoryTests(TestDatabase database, ClassServer se
             runGroup: runGroup,
             cancellationToken: Cancellation
         );
-        var scenario = await new ScenarioStore(database.Pool).GetAsync(agent.Id, "refund", Cancellation);
-        var check = Assert.Single(await new CheckStore(database.Pool).ListAsync(agent.Id, cancellationToken: Cancellation));
+        var scenario = await new ScenarioStore(database.DataSource).GetAsync(agent.Id, "refund", Cancellation);
+        var check = Assert.Single(await new CheckStore(database.DataSource).ListAsync(agent.Id, cancellationToken: Cancellation));
         for (var i = 0; i < samplePassed.Length; i++)
         {
             var failed = error is not null || (errored?[i] ?? false);
@@ -168,7 +168,7 @@ public sealed class RegressionHistoryTests(TestDatabase database, ClassServer se
         var agent = await NewAgentAsync();
         await PassAsync(agent, Reference());
         await PassAsync(agent, Reference());
-        await new CheckStore(database.Pool).UpsertAsync(
+        await new CheckStore(database.DataSource).UpsertAsync(
             agent.Id,
             [
                 new CheckItem(
@@ -288,7 +288,7 @@ public sealed class RegressionHistoryTests(TestDatabase database, ClassServer se
         await PassAsync(agent, Reference());
         var current = await FailAsync(agent, OnBranch("feature/x"));
         var before = (await ResultsAsync(current)).Regression!;
-        await new AgentStore(database.Pool).SetSettingsAsync(
+        await new AgentStore(database.DataSource).SetSettingsAsync(
             agent.Id,
             null,
             new RegressionSettings { History = 2 },
@@ -375,7 +375,7 @@ public sealed class RegressionHistoryTests(TestDatabase database, ClassServer se
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [SeededAgent.Scenario("refund")],
             [SeededAgent.RefundAfterLookup("refund-called", "refund")]
@@ -412,7 +412,7 @@ public sealed class RegressionHistoryTests(TestDatabase database, ClassServer se
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [SeededAgent.Scenario("refund")],
             [SeededAgent.RefundAfterLookup("refund-called", "refund")]
@@ -470,7 +470,7 @@ public sealed class RegressionHistoryTests(TestDatabase database, ClassServer se
     {
         await using var fake = await FakeAgent.AlwaysAsync(FakeAgent.RefundTurn);
         var agent = await SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             fake.Url.AbsoluteUri,
             [SeededAgent.Scenario("refund")],
             [SeededAgent.RefundAfterLookup("refund-called", "refund")]

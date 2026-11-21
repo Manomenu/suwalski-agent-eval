@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.Time.Testing;
 using Suwageval.AgentSdk;
 using Suwageval.Contracts.Checks;
 using Suwageval.Server.Evaluation.Runs;
@@ -25,7 +26,7 @@ public sealed class RunReportTests
             0,
             false,
             false,
-            TimeProvider.System.GetUtcNow().UtcDateTime,
+            new FakeTimeProvider().GetUtcNow().UtcDateTime,
             null,
             null
         );

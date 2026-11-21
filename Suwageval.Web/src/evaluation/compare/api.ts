@@ -1,6 +1,10 @@
-import { request } from "../../api/client";
+import { queryOptions } from "@tanstack/react-query";
+import { dataOf } from "@maniumek/suwfrontkit";
+
+import { agentKeys, fetchVersion } from "../../agents/api";
+import { api } from "../../api/client";
 import type { components } from "../../api/openapi";
-import type { ValidSelection } from "./variants";
+import { type ValidSelection } from "./variants";
 
 export type RunComparison = components["schemas"]["RunComparison"];
 export type BaselineComparison = components["schemas"]["BaselineComparison"];
@@ -16,14 +20,35 @@ export type VariantScenario = components["schemas"]["VariantScenario"];
 export type VariantCell = components["schemas"]["VariantCell"];
 export type VariantCheck = components["schemas"]["VariantCheck"];
 
-export function fetchComparison(selection: ValidSelection, baseline: string | null, signal: AbortSignal): Promise<RunComparison> {
-    const query = new URLSearchParams(selection.kind === "runs" ? selection.ids.map((id) => ["runs", id]) : [["group", selection.group]]);
-    if (selection.kind === "group" && selection.agent !== null) query.set("agent", selection.agent);
-    if (baseline !== null) query.set("baseline", baseline);
-    return request<RunComparison>(`/eval/runs/compare?${query.toString()}`, { signal });
+function comparisonParams(selection: ValidSelection, baseline: string | null) {
+    return {
+        ...(selection.kind === "runs" ? { runs: selection.ids } : { group: selection.group }),
+        ...(selection.kind === "group" && selection.agent !== null ? { agent: selection.agent } : {}),
+        ...(baseline === null ? {} : { baseline }),
+    };
 }
 
-export function setGroupNote(agent: string, group: string, note: string | null): Promise<void> {
-    const path = `/eval/agents/${encodeURIComponent(agent)}/run-groups/${encodeURIComponent(group)}/note`;
-    return request<undefined>(path, { method: "PUT", body: JSON.stringify({ note }) }).then(() => undefined);
+function fetchComparison(selection: ValidSelection, baseline: string | null, signal: AbortSignal): Promise<RunComparison> {
+    return dataOf(api.GET("/eval/runs/compare", { params: { query: comparisonParams(selection, baseline) }, signal }));
+}
+
+export const compareKeys = {
+    all: ["compare"] as const,
+    selection: (selection: ValidSelection, baseline: string | null) => ["compare", selection, baseline] as const,
+};
+
+export const comparisonQuery = (selection: ValidSelection, baseline: string | null) =>
+    queryOptions({
+        queryKey: compareKeys.selection(selection, baseline),
+        queryFn: ({ signal }) => fetchComparison(selection, baseline, signal),
+    });
+
+export const comparedVersionsQuery = (agent: string, versionIds: string[]) =>
+    queryOptions({
+        queryKey: [...agentKeys.versions(agent), "compared", ...versionIds] as const,
+        queryFn: ({ signal }) => Promise.all(versionIds.map((id) => fetchVersion(agent, id, signal))),
+    });
+
+export async function setGroupNote(agent: string, group: string, note: string | null): Promise<void> {
+    await dataOf(api.PUT("/eval/agents/{agent}/run-groups/{name}/note", { params: { path: { agent, name: group } }, body: { note } }));
 }

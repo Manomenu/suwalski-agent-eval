@@ -1,39 +1,42 @@
 # The web app: practices
 
-The frontend is React 19 with Mantine and Vite, TypeScript strict. `src/health/` shows the pattern end to end: `api.ts`, `status.ts` with its test, `ServerStatus.tsx` with its browser test.
+The frontend is React 19 and Vite on the shared kit [`@maniumek/suwfrontkit`](https://github.com/Manomenu/suwfrontkit) (Tailwind 4, the theme and the components) with TanStack Query v5, TypeScript strict. `src/health/` shows the pattern end to end: `api.ts`, `status.ts` with its test, `ServerStatus.tsx` with its browser test.
 
 - **One feature, one folder**, holding its screen, hooks, logic and `api.ts`. `App.tsx` only
-  puts features together; `main.tsx` only sets up providers and the theme.
-- **Types come from the server.** A feature's `api.ts` calls `request<T>()` from
-  `api/client.ts` with `T` taken from `api/openapi.d.ts`. No hand-written copies of server
-  models, no `fetch` outside `api/client.ts`, no host names: the browser always calls `/api`
-  on its own origin (the Vite proxy in development, nginx in the image).
+  puts features together; `main.tsx` only sets up the providers (the query client) and the stylesheets.
+- **Types come from the server.** A feature's `api.ts` calls the kit's typed client (`api` of
+  `api/client.ts`, `dataOf(api.GET("/eval/runs/{id}", …))`), typed by `api/openapi.d.ts`, and
+  offers each read as a TanStack Query `queryOptions` with a key that starts with what it belongs
+  to (`["agents", name, …]`, `["runs", id, …]`), so a write invalidates by prefix. No hand-written
+  copies of server models, no host names: the browser always calls `/api` on its own origin (the
+  Vite proxy in development, nginx in the image); the one plain `fetch` is the health probe, which is
+  not in the contract.
 - **Logic out of components.** Rules (parsing, formatting, state machines, saving) are
   plain TypeScript modules with a `<name>.test.ts` beside them; components and hooks only connect them to
   React. If a component needs a test of its own to cover a rule, the rule is in the wrong
   file.
-- **Effects are safe to run twice.** `StrictMode` runs every effect twice in development:
-  every request in an effect gets an `AbortController` and ignores its result once aborted;
-  one-off actions (a notification, a migration of stored data) happen where code runs once,
+- **Reads go through TanStack Query**, never an effect: `useQuery` with the query's `signal`, so
+  `StrictMode`'s double mount and a changed key cancel the stale request. One-off actions (a notification, a migration of stored data) happen where code runs once,
   not in a component that may mount twice.
 - **Never block the user on the network.** Typing and clicking change local state at once;
   saving happens in the background — debounced, one request in flight, retried when it
   fails — and a small status shows where it stands (saving / saved / offline), instead of a
   spinner over the form. A conflict (409) is shown to the user, never silently overwritten.
-- **Errors reach the user in their language.** `api/client.ts` turns every failed response
-  into an `Error` with the server's `detail`; a validation error (422) maps onto the fields
+- **Errors reach the user in their language.** The kit's `dataOf` turns every failed response
+  into an `ApiError` with the server's `detail`; a validation error (422) maps onto the fields
   it belongs to. No raw stack traces, no silent `catch`.
-- **Mantine first.** Layout and spacing through Mantine components and props, colours from
-  the theme (`main.tsx`). A global stylesheet (`src/app.css`) only when Mantine has no prop
-  for it, with classes named after the feature (`.draft-row`), not inline style objects that
-  are repeated.
+- **The kit first.** Components from `@maniumek/suwfrontkit`, layout and spacing with Tailwind
+  utilities, colours only from the kit's tokens (`text-muted-foreground`, `bg-success-light`,
+  `var(--ctp-mauve)`). A global stylesheet (`src/app.css`) only for a grid or an effect no utility
+  says, with classes named after the feature (`.agent-layout`), not inline style objects that
+  are repeated. A piece every app could use goes into the kit, not into `src/`.
 - **Accessible names are the test contract.** Interactive things are real buttons, links and
   inputs with a visible label or an `aria-label` (an icon button: `aria-label="Account"`).
   That is what screen readers read and what the e2e tests find them by.
-- **Chips (Mantine `Badge`) in a table cell stand one under another**, in a `Stack` (`gap={4}`, `align="flex-start"`), never
+- **Chips (the kit's `Badge`) in a table cell stand one under another**, in a column (`flex flex-col items-start gap-1`), never
   side by side: `Done` above `Reference`, a name above its `Archived`. A row of chips in a narrow column wraps unevenly and is
   hard to scan down a column.
-- **Numbers that shape the layout are named constants** (`NAVBAR_WIDTH`), exported, and tests
+- **Numbers that shape the layout are named constants** (`CONTENT_MAX_WIDTH`), exported, and tests
   compute expectations from them — a test that hard-codes 220 breaks on a design tweak.
 - **The browser's storage is for conveniences only** (a panel width, the last tab): read it
   defensively (it can be empty, full or blocked) and validate what comes back. Anything the
@@ -41,9 +44,7 @@ The frontend is React 19 with Mantine and Vite, TypeScript strict. `src/health/`
 - **Browser tests** (`<name>.e2e.ts` beside the code) find elements by role and visible text,
   use `exact: true` (a substring match passes on the wrong text), create their own data and
   never depend on another test's. They test what a user relies on, not every button.
-- **Dependencies:** Mantine's packages come in only when used (`@mantine/dates` with the
-  first date field, `@mantine/notifications` with the first notification), each in the same
-  change as its provider and stylesheet in `main.tsx`.
+- **Charts** are Recharts, drawn by `charts/LineTrend.tsx` in the kit's colours; nothing else draws.
 
 ## File nesting: a file and its companions are one entry
 
@@ -86,4 +87,4 @@ Panel.e2e.ts              └ Panel.e2e.ts
 | `unstable` | `checks` | the card of an unstable check sits under the icon `checks/` owns |
 | `agent` | `conversations`, `checks` | the agent's Monitoring page lists its conversations and its monitoring checks with their charts |
 
-A request in an effect goes through `api/useRequest.ts` (a signal, a key, the result ignored once aborted), written once there; `evaluation/runs/useRunResults.ts` is the one other place, a polling loop that owns its `AbortController`.
+A read goes through TanStack Query (`useQuery` with a feature's `queryOptions`); an `AbortController` of its own is refused by eslint outside `api/`. A running run is polled by `refetchInterval` of its results query, which asks the cheap summary first.

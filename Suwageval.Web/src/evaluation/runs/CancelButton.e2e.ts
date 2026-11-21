@@ -26,7 +26,7 @@ test("Cancel run asks first, then the run ends as cancelled", async ({ page, req
         await expect(page.getByText("running", { exact: true })).toBeVisible();
 
         await page.getByRole("button", { name: "Cancel run", exact: true }).click();
-        const dialog = page.getByRole("dialog", { name: "Cancel this run?", exact: true });
+        const dialog = page.getByRole("alertdialog", { name: "Cancel this run?", exact: true });
         await dialog.getByRole("button", { name: "Keep running", exact: true }).click();
         await expect(dialog).toBeHidden();
         await expect(page.getByText("running", { exact: true })).toBeVisible();

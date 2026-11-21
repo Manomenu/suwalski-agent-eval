@@ -19,7 +19,7 @@ public sealed class DeletionTests(TestDatabase database, ClassServer classServer
 
     internal static Task<SeededAgent> SeedAsync(TestDatabase database) =>
         SeededAgent.CreateAsync(
-            database.Pool,
+            database.DataSource,
             "http://agent.test",
             [SeededAgent.Scenario("refund")],
             [SeededAgent.RefundAfterLookup("refund-called", "refund")]
@@ -27,7 +27,7 @@ public sealed class DeletionTests(TestDatabase database, ClassServer classServer
 
     internal static async Task<Guid> OtherVersionAsync(TestDatabase database, SeededAgent agent) =>
         (
-            await new AgentStore(database.Pool).RegisterVersionAsync(
+            await new AgentStore(database.DataSource).RegisterVersionAsync(
                 agent.Id,
                 SeededAgent.Serialized(SeededAgent.ExampleVersionConfigured("another config")),
                 null,
@@ -45,7 +45,7 @@ public sealed class DeletionTests(TestDatabase database, ClassServer classServer
         Guid? recheckOf = null
     )
     {
-        var store = new RunStore(database.Pool);
+        var store = new RunStore(database.DataSource);
         var run = await store.EnqueueAsync(
             agent.Id,
             versionId,
@@ -55,8 +55,8 @@ public sealed class DeletionTests(TestDatabase database, ClassServer classServer
             recheckOf,
             cancellationToken: Cancellation
         );
-        var scenario = await new ScenarioStore(database.Pool).GetAsync(agent.Id, "refund", Cancellation);
-        var check = Assert.Single(await new CheckStore(database.Pool).ListAsync(agent.Id, cancellationToken: Cancellation));
+        var scenario = await new ScenarioStore(database.DataSource).GetAsync(agent.Id, "refund", Cancellation);
+        var check = Assert.Single(await new CheckStore(database.DataSource).ListAsync(agent.Id, cancellationToken: Cancellation));
         for (var sample = 1; sample <= samples; sample++)
         {
             await store.AddSampleAsync(
@@ -83,7 +83,7 @@ public sealed class DeletionTests(TestDatabase database, ClassServer classServer
         Guid agentId
     )
     {
-        await using var connection = await database.Pool.OpenAsync(Cancellation);
+        await using var connection = await database.DataSource.OpenConnectionAsync(Cancellation);
         return await connection.QuerySingleAsync<(int, int, int, int, int, int, int)>(
             """
             SELECT (SELECT count(*) FROM agents WHERE id = @agentId)::int,
@@ -124,7 +124,13 @@ public sealed class DeletionTests(TestDatabase database, ClassServer classServer
     public async Task An_agent_with_a_queued_run_is_refused_with_409_and_kept_and_a_preview_changes_nothing()
     {
         var agent = await SeedAsync(database);
-        await new RunStore(database.Pool).EnqueueAsync(agent.Id, agent.VersionId, [], agent.EndpointUrl, cancellationToken: Cancellation);
+        await new RunStore(database.DataSource).EnqueueAsync(
+            agent.Id,
+            agent.VersionId,
+            [],
+            agent.EndpointUrl,
+            cancellationToken: Cancellation
+        );
 
         var preview = await server.Get($"/agents/{agent.Name}/deletion");
         var deleted = await server.Delete($"/agents/{agent.Name}");

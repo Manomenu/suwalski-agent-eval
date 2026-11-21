@@ -37,12 +37,14 @@ export function checksVerdict(conversation: Checked): Verdict | null {
     return (conversation.notJudgedChecks ?? 0) > 0 ? "not judged" : "passed";
 }
 
-export function conversationsPath(agent: string, filter: ConversationFilter, page: number, pageSize: number): string {
-    const query = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
-    if (filter.environment !== null) query.set("environment", filter.environment);
-    if (filter.state !== null) query.set("state", filter.state);
-    if (filter.failedCheck !== null) query.set("failedCheck", filter.failedCheck);
-    return `/monitoring/agents/${encodeURIComponent(agent)}/conversations?${query.toString()}`;
+export function conversationsParams(filter: ConversationFilter, page: number, pageSize: number) {
+    return {
+        page,
+        pageSize,
+        ...(filter.environment === null ? {} : { environment: filter.environment }),
+        ...(filter.state === null ? {} : { state: filter.state }),
+        ...(filter.failedCheck === null ? {} : { failedCheck: filter.failedCheck }),
+    };
 }
 
 export function stateOf(value: string | null): ConversationState | null {
@@ -68,11 +70,10 @@ export function draftCutOf(value: string | null): DraftCut {
 
 export const MAX_DRAFT_TURNS = 20;
 
-export function scenarioDraftPath(id: string, cut: DraftCut, ordinal: number, turns: number | null = null): string {
-    const base = `/monitoring/conversations/${id}/scenario`;
-    if (cut === "end") return base;
-    const upTo = `${cut === "user" ? "upToUserMessage" : "upToAgentMessage"}=${String(ordinal)}`;
-    return turns === null ? `${base}?${upTo}` : `${base}?${upTo}&simulate=true&turns=${String(turns)}`;
+export function scenarioDraftParams(cut: DraftCut, ordinal: number, turns: number | null = null) {
+    if (cut === "end") return {};
+    const upTo = cut === "user" ? { upToUserMessage: ordinal } : { upToAgentMessage: ordinal };
+    return turns === null ? upTo : { ...upTo, simulate: true, turns };
 }
 
 export function draftTurns(items: readonly { kind?: string }[], cut: Exclude<DraftCut, "end">, ordinal: number): number {

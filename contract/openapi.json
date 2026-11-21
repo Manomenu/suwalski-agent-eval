@@ -5,25 +5,6 @@
     "version": "1.0.0"
   },
   "paths": {
-    "/health": {
-      "get": {
-        "tags": [
-          "Suwageval.Server"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Health"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/agents": {
       "post": {
         "tags": [
@@ -3786,18 +3767,6 @@
         },
         "additionalProperties": false
       },
-      "Health": {
-        "required": [
-          "status"
-        ],
-        "type": "object",
-        "properties": {
-          "status": {
-            "type": "string"
-          }
-        },
-        "additionalProperties": false
-      },
       "JsonElement": { },
       "LlmAgentDefinition": {
         "required": [
@@ -4469,7 +4438,12 @@
         "additionalProperties": false
       },
       "RunGrouping": {
-        "type": "integer"
+        "enum": [
+          "All",
+          "None",
+          "Any",
+          null
+        ]
       },
       "RunList": {
         "required": [
@@ -5693,7 +5667,9 @@
           "to",
           "added",
           "removed",
-          "blocks"
+          "blocks",
+          "fromYaml",
+          "toYaml"
         ],
         "type": "object",
         "properties": {
@@ -5716,6 +5692,12 @@
             "items": {
               "$ref": "#/components/schemas/DiffBlock"
             }
+          },
+          "fromYaml": {
+            "type": "string"
+          },
+          "toYaml": {
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -5749,9 +5731,6 @@
     }
   },
   "tags": [
-    {
-      "name": "Suwageval.Server"
-    },
     {
       "name": "AgentEndpoints"
     },
