@@ -30,7 +30,7 @@ One line per top-level path (at most 300 characters each). suwgate's `repository
 - `docs/` — documentation: this map, `development.md`, `deployment.md`, `release.md`, `web.md`, the file format, the concepts and the front doors; specs in `visual/spec/`.
 - `.claude/` — the committed Claude Code settings: `suwgate hook stop` and `suwgate hook guard-edit`.
 - `scripts/` — `scripts/.internal/` holds everyday tools CI and `just` run; each answers `--help`.
-- `.github/` — `workflows/ci.yml` (gate, browser tests, then images, published only from `master`) and `workflows/agent-sdk.yml` (the SDK release; a nuget.org policy names this file, so it is never renamed alone).
+- `.github/` — `workflows/ci.yml` (suwgate's gate workflow with the browser tests, then images, published only from `master`) and `workflows/agent-sdk.yml` (the SDK release; a nuget.org policy names this file, so it is never renamed alone).
 - `.githooks/` — `pre-commit` runs `suwgate hook pre-commit` (gitleaks on what is being committed, then the quick gate); `just sync` enables it.
 - `.vscode/` — the editor's glue: recommended extensions, file nesting, launch configurations, no style rules.
 - `.config/` — `dotnet-tools.json`: the pinned CSharpier.

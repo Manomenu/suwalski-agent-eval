@@ -8,7 +8,7 @@ COPY Suwageval.Web/package.json Suwageval.Web/pnpm-lock.yaml Suwageval.Web/pnpm-
 RUN corepack enable && pnpm install --frozen-lockfile
 
 COPY Suwageval.Web/ ./
-RUN pnpm build
+RUN pnpm exec vite build
 
 FROM docker.io/nginxinc/nginx-unprivileged:1.29-alpine
 

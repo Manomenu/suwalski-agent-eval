@@ -2,8 +2,8 @@
 set -euo pipefail
 if [ "${1:-}" = "--help" ]; then
     cat <<'HELP'
-Starts the release of Suwageval.AgentSdk: runs .github/workflows/agent-sdk.yml on master, which tests, packs and pushes
-to nuget.org. Nothing is packed here and no key is used.
+Starts the release of Suwageval.AgentSdk: runs .github/workflows/agent-sdk.yml on master, which checks that the ci run
+of the commit passed, packs and pushes to nuget.org. Nothing is packed here and no key is used.
 Not for agents: a version on nuget.org cannot be deleted.
 HELP
     exit 0
