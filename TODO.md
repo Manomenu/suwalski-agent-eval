@@ -252,6 +252,10 @@ To do in that change:
 ## The rest of the move to the shared kits
 
 - **A gap of suwgate:** no lookup of one criterion (`just criteria <id>` is gone).
-- **Offer this repository's own guards to suwgate**, which does not have them yet: the Helm chart step, the worktree database
-  refusal (`TestDatabase`), web modules differing only in letter case (`WebModuleNamesTests`), the server image copying every project it builds from (`ServerImageTests`), prose files of
+- **Suwbackkit.Testing and the shared refusal format (Suwbackkit 0.3.0, 0.4.0).** `TestDatabase` may call
+  `LinkedWorktree.RefuseSharedDatabase()` and `TestDatabases.RecreateAsync`/`DropAsync` instead of its own refusal and
+  database helpers (and drop `TestDatabaseTests`, whose cases the kit tests); `Problems/ProblemResults.cs` may answer with
+  `Refusals.Refuse`/`ProducesRefusal`, which the web reads with the kit's `refusalReader` and `MistakeList`. Both change
+  behaviour or the contract, so they wait for a change of their own.
+- **Offer this repository's own guards to suwgate**, which does not have them yet: the Helm chart step, web modules differing only in letter case (`WebModuleNamesTests`), the server image copying every project it builds from (`ServerImageTests`), prose files of
   `criteria.json` holding no test (`CriteriaExamplesTests`).

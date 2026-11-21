@@ -1,10 +1,9 @@
-import { Alert, Button, CopyButton, Dialog, Input, Label, Select, Spinner } from "@maniumek/suwfrontkit";
+import { Alert, Button, CopyButton, Dialog, Input, Label, Select, Spinner, ToggleChip } from "@maniumek/suwfrontkit";
 import { useQuery } from "@tanstack/react-query";
 import { useId, useState } from "react";
 
 import { scenarioDraftQuery } from "./api";
 import type { ConversationItem } from "../../conversation/items";
-import { ToggleChip } from "../../toggle/ToggleChip";
 import {
     DRAFT_CUTS,
     draftCutOf,
@@ -105,15 +104,16 @@ export function ScenarioDraftButton({
                         {cut !== "end" && (
                             <div className="flex flex-wrap items-end gap-3">
                                 <ToggleChip
-                                    label="Simulate the rest"
-                                    checked={simulating}
+                                    pressed={simulating}
                                     disabled={turnsLeft === 0}
                                     help={turnsLeft === 0 ? NOTHING_TO_SIMULATE : SIMULATE_REST_HELP}
-                                    onChange={(checked) => {
-                                        setSimulate(checked);
+                                    onPressedChange={(pressed) => {
+                                        setSimulate(pressed);
                                         changed();
                                     }}
-                                />
+                                >
+                                    Simulate the rest
+                                </ToggleChip>
                                 {simulating && (
                                     <>
                                         <div className="flex w-25 flex-col gap-1">

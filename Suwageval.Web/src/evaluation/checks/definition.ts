@@ -55,10 +55,7 @@ function subject(definition: CheckDefinition): string {
         }
         case "judge":
             return "judge";
-        case undefined:
-            break;
     }
-    return "check";
 }
 
 function quotedTexts(texts: string | readonly string[]): string {

@@ -1,4 +1,4 @@
-import { Alert, Anchor, Badge, Paper, Spinner, formatDateTime } from "@maniumek/suwfrontkit";
+import { Alert, Anchor, Badge, formatDateTime, Paper, Spinner, ToggleChip } from "@maniumek/suwfrontkit";
 import { DataVersion } from "../../dataVersion/DataVersion";
 
 import { isNotFound } from "../../api/client";
@@ -33,7 +33,6 @@ import { PrintButton } from "../../print/PrintButton";
 import { usePrintOnLoad } from "../../print/usePrintOnLoad";
 import { runPrintLine } from "./printLine";
 import { useReportAgent } from "../../shell/reportAgent";
-import { ToggleChip } from "../../toggle/ToggleChip";
 
 export function RunPage({ runId }: { runId: string }) {
     const state = useRunResults(runId);
@@ -71,7 +70,7 @@ export function RunPage({ runId }: { runId: string }) {
                 <div className="flex flex-wrap items-center gap-3">
                     <h2 className="text-[26px] leading-tight font-bold">Run {run.agent}</h2>
                     <Badge variant={statusColor(run.status)}>{runStatusLabel(run)}</Badge>
-                    {isActive(run.status) && <Spinner size="sm" label="Run in progress" />}
+                    {isActive(run.status) && <Spinner size="sm" className="text-sm" label="Updating as results arrive" />}
                 </div>
                 <p className="text-muted-foreground">
                     id {run.id} · version{" "}
@@ -130,7 +129,9 @@ export function RunPage({ runId }: { runId: string }) {
                     />
                 </div>
                 <div className="no-print flex flex-wrap items-center gap-5">
-                    <ToggleChip label="Hide passed checks" checked={hidePassed} onChange={setHidePassed} />
+                    <ToggleChip pressed={hidePassed} onPressedChange={setHidePassed}>
+                        Hide passed checks
+                    </ToggleChip>
                     <PrintButton />
                 </div>
                 {hidePassed && <p className="no-print text-sm">{hiddenLine(hiddenCounts(scenarios))}</p>}

@@ -1,4 +1,4 @@
-import { Paginated } from "@maniumek/suwfrontkit";
+import { PreviousNext } from "@maniumek/suwfrontkit";
 
 import { clampPage, DEFAULT_PAGE_SIZE, pageCountOf } from "./pages";
 
@@ -15,9 +15,20 @@ export function ListPagination({
 }) {
     const pages = pageCountOf(totalCount, pageSize);
     if (pages === 1) return null;
+    const shown = clampPage(page, totalCount, pageSize);
     return (
-        <Paginated paging={{ page: clampPage(page, totalCount, pageSize), pages, asking: false, failure: null, onMove: onChange }}>
-            {null}
-        </Paginated>
+        <PreviousNext
+            label="Pages"
+            counter={`Page ${String(shown)} of ${String(pages)}`}
+            previousDisabled={shown <= 1}
+            nextDisabled={shown >= pages}
+            onPrevious={() => {
+                onChange(shown - 1);
+            }}
+            onNext={() => {
+                onChange(shown + 1);
+            }}
+            className="justify-center"
+        />
     );
 }

@@ -1,11 +1,10 @@
-import { Anchor, Badge, Button, Label, Paper, Select, Table, formatDateTime } from "@maniumek/suwfrontkit";
+import { Anchor, Badge, Button, formatDateTime, Label, Paper, Select, Table, ToggleChip } from "@maniumek/suwfrontkit";
 import { IconX } from "@tabler/icons-react";
 import { useId } from "react";
 
 import { agentKeys, type AgentVersion } from "../agents/api";
 import { DeleteDialog } from "../agents/DeleteDialog";
 import { HeaderHelp } from "../help/HeaderHelp";
-import { ToggleChip } from "../toggle/ToggleChip";
 import { ListPagination } from "../pagination/ListPagination";
 import { pageOfItems } from "../pagination/pages";
 import { usePageParam } from "../pagination/usePageParam";
@@ -92,19 +91,20 @@ export function VersionsSection({
                             {VERSION_USAGE_OPTIONS.map((option) => (
                                 <ToggleChip
                                     key={option.value}
-                                    label={option.label}
                                     help={option.help}
-                                    checked={usage.includes(option.value)}
-                                    onChange={(checked) => {
+                                    pressed={usage.includes(option.value)}
+                                    onPressedChange={(pressed) => {
                                         setRequestedPage(1);
                                         list.clear();
                                         onUsageChange(
                                             usagesOfValues(
-                                                checked ? [...usage, option.value] : usage.filter((value) => value !== option.value),
+                                                pressed ? [...usage, option.value] : usage.filter((value) => value !== option.value),
                                             ),
                                         );
                                     }}
-                                />
+                                >
+                                    {option.label}
+                                </ToggleChip>
                             ))}
                         </div>
                     </div>
