@@ -16,11 +16,11 @@ Agents commit and push only with [suwgit](https://github.com/Manomenu/suwgit) (`
 
 - When a change is finished and the gate is green, push it right away with `suwgit push`, not a bare `suwgit commit`.
 - Without suwgit on the machine, or the repository not registered, do not fall back to plain git: leave the change in the working tree and say so.
-- Everything that rewrites or discards history stays the owner's: no amend, reset, rebase, force-push or deleting branches. Merging and releasing are the owner's too.
+- Everything that rewrites or discards history stays the owner's: no amend, reset, rebase, force-push or deleting branches. An agent may merge a pull request whose CI is green, and release.
 - The main branch is `master`, never `main`: CI publishes images only from it.
 - A change with a red gate is not committed: it stays in the working tree and the summary says why.
 - One task, one branch. Unrelated refactors, renames, version bumps and fixes go to their own branch or into `TODO.md`; say so once when you reach for one.
-- Agents never publish `Suwageval.AgentSdk`: a version on nuget.org cannot be deleted ([docs/release.md](docs/release.md)).
+- `Suwageval.AgentSdk` is released through CI with `just agent-publish <version>`: a version on nuget.org cannot be deleted, only unlisted ([docs/release.md](docs/release.md)).
 
 ## Commands
 
