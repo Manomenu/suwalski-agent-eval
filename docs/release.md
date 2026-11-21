@@ -1,12 +1,12 @@
 # Releasing Suwageval.AgentSdk
 
-The owner releases it, from a commit of `master` whose CI is green: `just agent-publish 0.1.0` runs `.github/workflows/agent-sdk.yml` on
+The owner or an agent releases it, from a commit of `master` whose CI is green: `just agent-publish 0.1.0` runs `.github/workflows/agent-sdk.yml` on
 `master` (`gh workflow run`) and says how to follow the run; it stops first on a bad version, another branch, uncommitted changes or a
 `master` that differs from the remote master. The workflow refuses anything but `master`, refuses a commit whose `ci` run has not passed (its tree carries no green
 tree stamp, the commit status suwgate's gate workflow writes after a green run: the whole gate, SDK tests included, ran on exactly
 that tree, so the release does not test it again; wait for the run and start the release again), packs that version (`-p:Version=`, built with `ContinuousIntegrationBuild`, so the symbols hold no local paths)
 and pushes it with its `.snupkg` to nuget.org. A version on nuget.org can never be deleted, only unlisted, so a bad release is followed by
-the next version, never replaced. The csproj says `0.0.0-local`, which is what `just agent-pack` produces. Agents never publish.
+the next version, never replaced. The csproj says `0.0.0-local`, which is what `just agent-pack` produces.
 
 **Why in CI, with no key.** Trusted Publishing is how nuget.org gives a key to a CI job instead of to a person: the job's OIDC token is
 exchanged (the NuGet login action) for a key that lives one hour, so the repository holds no key to leak or rotate, and only the job that pushes,

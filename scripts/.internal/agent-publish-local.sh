@@ -6,7 +6,7 @@ The fallback to `just agent-publish`, which is the normal way, for the two thing
 a first release nuget.org's Trusted Publishing refuses, and another feed. Packs Suwageval.AgentSdk as <version> on this machine and
 pushes it: to nuget.org with AGENT_SDK_NUGET_API_KEY, or, when AGENT_SDK_FEED_URL is set, to that feed with AGENT_SDK_FEED_API_KEY.
 The values come from the gitignored .env.
-Two keys, so that neither feed is ever sent the other's. Not for agents: a version on nuget.org cannot be deleted.
+Two keys, so that neither feed is ever sent the other's. A version on nuget.org cannot be deleted, only unlisted.
 HELP
     exit 0
 fi
