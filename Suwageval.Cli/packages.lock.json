@@ -2,6 +2,15 @@
   "version": 2,
   "dependencies": {
     "net10.0": {
+      "Suwbackkit.Cli": {
+        "type": "Direct",
+        "requested": "[0.5.0, )",
+        "resolved": "0.5.0",
+        "contentHash": "voDe9Sh8XDgPg4hNyqbIFtnwnj36kpNxGlG06jfRyeD6MeKxGFZYPDojD/Wg7P1hFKGLfpClV74WFNGlmZ2b1w==",
+        "dependencies": {
+          "System.CommandLine": "2.0.13"
+        }
+      },
       "Suwgate.Architecture": {
         "type": "Direct",
         "requested": "[0.4.0, )",

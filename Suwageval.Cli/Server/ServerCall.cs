@@ -16,7 +16,12 @@ internal static class ServerCall
     {
         ArgumentNullException.ThrowIfNull(error);
         ArgumentNullException.ThrowIfNull(action);
-        var site = ServerAddress.Site(serverOption, agentDir);
+        var choice = ServerAddress.Site(serverOption, agentDir);
+        if (choice.Address is not { } site)
+        {
+            await error.WriteLineAsync(choice.Problem);
+            return 2;
+        }
         HttpClient? owned = null;
         try
         {

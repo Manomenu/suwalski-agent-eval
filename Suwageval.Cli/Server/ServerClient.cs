@@ -11,6 +11,7 @@ using Suwageval.Contracts.Monitoring;
 using Suwageval.Contracts.Refusals;
 using Suwageval.Contracts.Runs;
 using Suwageval.Contracts.Scenarios;
+using Suwbackkit.Cli;
 
 namespace Suwageval.Cli.Server;
 
@@ -18,7 +19,6 @@ internal sealed class ServerClient(HttpClient http)
 {
     private const int MaxPageSize = 100;
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(1);
-    private static readonly JsonSerializerOptions LenientRefusals = new(JsonSerializerDefaults.Web);
 
     public Task<(Agent Agent, bool Created)> PutAgentAsync(AgentDefinition definition, CancellationToken cancellationToken) =>
         ReadAsync(
@@ -559,7 +559,7 @@ internal sealed class ServerClient(HttpClient http)
 
     private static string? FeatureOf(string body)
     {
-        var code = KnownCode(RefusalOf(body)?.Code);
+        var code = KnownCode(ServerRefusal.Read(body)?.Code);
         return code == RefusalCode.EvaluationOff ? "evaluation"
             : code == RefusalCode.MonitoringOff ? "monitoring"
             : null;
@@ -584,7 +584,7 @@ internal sealed class ServerClient(HttpClient http)
     private static string Describe(HttpStatusCode status, string body)
     {
         var text = new StringBuilder().Append(CultureInfo.InvariantCulture, $"The server answered {(int)status} {status}");
-        var refusal = RefusalOf(body);
+        var refusal = ServerRefusal.Read(body);
         var mistakes = (refusal?.Mistakes ?? []).Where(mistake => mistake.Message is not null && mistake.Fix is not null).ToList();
         if (mistakes.Count > 0)
         {
@@ -604,17 +604,5 @@ internal sealed class ServerClient(HttpClient http)
             text.Append(": ").Append(detail);
         }
         return text.ToString();
-    }
-
-    private static Refusal? RefusalOf(string body)
-    {
-        try
-        {
-            return JsonSerializer.Deserialize<Refusal>(body, LenientRefusals);
-        }
-        catch (JsonException)
-        {
-            return null;
-        }
     }
 }

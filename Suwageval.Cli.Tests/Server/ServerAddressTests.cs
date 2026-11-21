@@ -13,19 +13,19 @@ public sealed class ServerAddressTests : IDisposable
 
     [Fact]
     public void The_option_wins_over_everything() =>
-        Assert.Equal(new Uri("http://option/"), ServerAddress.Site("http://option", "http://variable", FromFile("http://file")));
+        Assert.Equal(new Uri("http://option/"), ServerAddress.Site("http://option", "http://variable", FromFile("http://file")).Address);
 
     [Fact]
     public void The_variable_wins_over_the_file() =>
-        Assert.Equal(new Uri("http://variable/"), ServerAddress.Site(null, "http://variable", FromFile("http://file")));
+        Assert.Equal(new Uri("http://variable/"), ServerAddress.Site(null, "http://variable", FromFile("http://file")).Address);
 
     [Fact]
     public void The_file_wins_over_the_default() =>
-        Assert.Equal(new Uri("http://file/"), ServerAddress.Site(null, "", FromFile("http://file/")));
+        Assert.Equal(new Uri("http://file/"), ServerAddress.Site(null, "", FromFile("http://file/")).Address);
 
     [Fact]
     public void Without_anything_it_is_the_default() =>
-        Assert.Equal(new Uri(ServerAddress.Default + "/"), ServerAddress.Site(null, null, FromFile(null)));
+        Assert.Equal(new Uri(ServerAddress.Default + "/"), ServerAddress.Site(null, null, FromFile(null)).Address);
 
     [Fact]
     public void The_file_is_not_read_when_the_option_or_the_variable_answers()

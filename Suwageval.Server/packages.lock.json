@@ -41,9 +41,9 @@
       },
       "Suwbackkit.Postgres": {
         "type": "Direct",
-        "requested": "[0.4.0, )",
-        "resolved": "0.4.0",
-        "contentHash": "BvlZo1q1IlhOOlnNU1xzYzNlJjId6HXBdUqyR3nb6f5WfwVgw4SayB+hlnuXLHO9hIjTg8USKc4wpua6xrkzIw==",
+        "requested": "[0.5.0, )",
+        "resolved": "0.5.0",
+        "contentHash": "pqpRh1BlatbKioxzdCxGdiAOJhu5dX0R80y/pMDqUNYWOI4oSnatzHaTtLoCygNBIxSDcjUfRm4i6Ntdtf11bA==",
         "dependencies": {
           "Npgsql": "10.0.3",
           "grate.postgresql": "2.1.6"
@@ -51,9 +51,9 @@
       },
       "Suwbackkit.Server": {
         "type": "Direct",
-        "requested": "[0.4.0, )",
-        "resolved": "0.4.0",
-        "contentHash": "528AMHitY0YOxAQtwWWOjWivL1wQK11F6vzaSZRosWH5y83bSTyXKCU6PmUq+5fk5Vbj5eTYePmZOXL6BRSxSg==",
+        "requested": "[0.5.0, )",
+        "resolved": "0.5.0",
+        "contentHash": "pJ3IRUxpU7eepJ3CzgteeZSBU6p+gBs12OsruvKFTlNv8E8jUOecegBc591wyQpKOcAzdSQ0wKOThxlGog8FsQ==",
         "dependencies": {
           "Microsoft.AspNetCore.OpenApi": "10.0.12"
         }
