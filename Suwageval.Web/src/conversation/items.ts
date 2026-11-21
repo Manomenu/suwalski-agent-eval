@@ -20,10 +20,7 @@ export function itemTitle(item: ConversationItem): string {
             return `retrieval: ${item.query}`;
         case "Event":
             return `event: ${item.type}`;
-        case undefined:
-            break;
     }
-    return "?";
 }
 
 export function itemBody(item: ConversationItem): string {
@@ -41,8 +38,5 @@ export function itemBody(item: ConversationItem): string {
                 .join("\n\n");
         case "Event":
             return JSON.stringify(item.data, null, 2);
-        case undefined:
-            break;
     }
-    return "";
 }

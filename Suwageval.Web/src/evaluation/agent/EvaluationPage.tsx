@@ -1,9 +1,21 @@
-import { Alert, Anchor, Badge, Button, formatDateTime, Label, MultiSelect, Paper, Select, Spinner, Table } from "@maniumek/suwfrontkit";
+import {
+    Alert,
+    Anchor,
+    Badge,
+    Button,
+    formatDateTime,
+    Label,
+    MultiSelect,
+    Paper,
+    Select,
+    Spinner,
+    Table,
+    ToggleChip,
+} from "@maniumek/suwfrontkit";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { lazy, Suspense, useId, useState, type ReactNode } from "react";
 
 import { ARCHIVED_RUNS_PARAM } from "../../archive/archivedParam";
-import { ToggleChip } from "../../toggle/ToggleChip";
 import { useArchivedParam } from "../../archive/useArchivedParam";
 import { ListPagination } from "../../pagination/ListPagination";
 import { usePageParam } from "../../pagination/usePageParam";
@@ -19,7 +31,7 @@ import { Page, type PageData } from "../../agents/Page";
 import { AreaOff } from "../../agents/AreaOff";
 import { areaOn } from "../../agents/features";
 import { RunGroupsSection } from "../groups/RunGroupsSection";
-import { TagSelect } from "../../tagSelect/TagSelect";
+import { tagOptions } from "../../tagFilter/tagOptions";
 import { useTagFilter } from "../../tagFilter/useTagFilter";
 import { useGroupFilter } from "./useGroupFilter";
 import { offeredVersions, versionGroupingFor } from "./offeredVersions";
@@ -162,6 +174,10 @@ function AgentView({
         };
     };
 
+    const tagChoices = tagOptions(
+        tags.map((usage) => usage.tag),
+        tagFilter,
+    ).map((tag) => ({ value: tag, label: tag }));
     const offered = offeredVersions(versions, versionGroupingFor(groupFilter), models, dataVersions, versionFilter);
     const toCompare = runsToCompare(runs, selected);
 
@@ -270,19 +286,24 @@ function AgentView({
                                     </Select>
                                 )}
                             </Filter>
-                            <TagSelect
-                                label="Filter runs by tag"
-                                placeholder={TAG_FILTER_PLACEHOLDER}
-                                tags={tags.map((usage) => usage.tag)}
-                                selected={tagFilter}
-                                onChange={filtered(setTagFilter)}
-                            />
-                            <ToggleChip
-                                label="Archived"
-                                checked={showArchived}
-                                help={ARCHIVED_RUNS_HELP}
-                                onChange={filtered(setShowArchived)}
-                            />
+                            {tagChoices.length > 0 && (
+                                <Filter label="Filter runs by tag">
+                                    {(id) => (
+                                        <MultiSelect
+                                            id={id}
+                                            label="Filter runs by tag"
+                                            placeholder={TAG_FILTER_PLACEHOLDER}
+                                            emptyLabel="No such tag"
+                                            options={tagChoices}
+                                            value={tagFilter}
+                                            onValueChange={filtered(setTagFilter)}
+                                        />
+                                    )}
+                                </Filter>
+                            )}
+                            <ToggleChip pressed={showArchived} help={ARCHIVED_RUNS_HELP} onPressedChange={filtered(setShowArchived)}>
+                                Archived
+                            </ToggleChip>
                         </div>
                         <Button
                             disabled={!canCompare(toCompare.length)}

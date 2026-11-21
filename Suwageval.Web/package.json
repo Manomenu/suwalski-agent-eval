@@ -9,7 +9,7 @@
         "build": "tsc --noEmit && vite build"
     },
     "dependencies": {
-        "@maniumek/suwfrontkit": "0.9.0",
+        "@maniumek/suwfrontkit": "0.11.1",
         "@tabler/icons-react": "^3.49.0",
         "@tailwindcss/vite": "^4.3.5",
         "@tanstack/react-query": "^5.108.1",

@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@maniumek/suwfrontkit':
-        specifier: 0.9.0
-        version: 0.9.0(@tanstack/react-query@5.108.1(@types/react@19.3.0)(react@19.3.0))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(tailwindcss@4.3.5)
+        specifier: 0.11.1
+        version: 0.11.1(@tanstack/react-query@5.108.1(@types/react@19.3.0)(react@19.3.0))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(tailwindcss@4.3.5)
       '@tabler/icons-react':
         specifier: ^3.49.0
         version: 3.49.0(react@19.3.0)
@@ -464,8 +464,8 @@ packages:
   '@keyv/serialize@1.1.1':
     resolution: {integrity: sha512-dXn3FZhPv0US+7dtJsIi2R+c7qWYiReoEh5zUntWCf4oSpMNib8FDhSoed6m3QyZdx5hK7iLFkYk3rNxwt8vTA==}
 
-  '@maniumek/suwfrontkit@0.9.0':
-    resolution: {integrity: sha512-t0DgCk5fys6IkMgRMnYzIemAD3sx4VU8uxCc8UWf7qH3iOje2mlWBR66C674Gr6rrssf/LwJ8ppsysBxzujDFg==}
+  '@maniumek/suwfrontkit@0.11.1':
+    resolution: {integrity: sha512-XnJF92TGnJhU6xAfMRFf/hz/d9tSfuyfc0ejjc/TPwsY+TVEr9AYAQBiznrMpW5eXFL4xm48brnxMfkD+c09nA==}
     peerDependencies:
       '@tanstack/react-query': ^5.0.0
       '@xyflow/react': ^13.0.2
@@ -3445,7 +3445,7 @@ snapshots:
 
   '@keyv/serialize@1.1.1': {}
 
-  '@maniumek/suwfrontkit@0.9.0(@tanstack/react-query@5.108.1(@types/react@19.3.0)(react@19.3.0))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(tailwindcss@4.3.5)':
+  '@maniumek/suwfrontkit@0.11.1(@tanstack/react-query@5.108.1(@types/react@19.3.0)(react@19.3.0))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(tailwindcss@4.3.5)':
     dependencies:
       '@fontsource-variable/inter': 5.3.0
       class-variance-authority: 0.7.1

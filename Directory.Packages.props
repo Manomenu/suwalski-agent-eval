@@ -8,8 +8,8 @@
     <PackageVersion Include="Suwgate.Database" Version="0.4.0" />
   </ItemGroup>
   <ItemGroup Label="server">
-    <PackageVersion Include="Suwbackkit.Server" Version="0.2.2" />
-    <PackageVersion Include="Suwbackkit.Postgres" Version="0.2.2" />
+    <PackageVersion Include="Suwbackkit.Server" Version="0.4.0" />
+    <PackageVersion Include="Suwbackkit.Postgres" Version="0.4.0" />
     <PackageVersion Include="Microsoft.Extensions.ApiDescription.Server" Version="10.0.12" />
     <PackageVersion Include="Dapper" Version="2.1.89" />
     <PackageVersion Include="Microsoft.Agents.AI" Version="1.25.0" />

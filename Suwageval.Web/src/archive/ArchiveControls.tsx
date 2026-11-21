@@ -1,7 +1,5 @@
-import { Alert, Button } from "@maniumek/suwfrontkit";
+import { Alert, Button, ToggleChip } from "@maniumek/suwfrontkit";
 import type { ReactNode } from "react";
-
-import { ToggleChip } from "../toggle/ToggleChip";
 
 export interface ArchiveLabels {
     group: string;
@@ -77,7 +75,9 @@ export function ArchiveControls({
                     )}
                 </div>
                 {archivedChip && (
-                    <ToggleChip label="Archived" checked={showArchived} help={archivedChip.help} onChange={archivedChip.onChange} />
+                    <ToggleChip pressed={showArchived} help={archivedChip.help} onPressedChange={archivedChip.onChange}>
+                        Archived
+                    </ToggleChip>
                 )}
             </div>
             {notice !== null && <Alert>{notice}</Alert>}

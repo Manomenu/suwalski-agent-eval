@@ -1,4 +1,4 @@
-import { Anchor, Badge, Button, cn, formatDateTime, Tooltip } from "@maniumek/suwfrontkit";
+import { Anchor, Badge, cn, formatDateTime, ToggleChip, Tooltip } from "@maniumek/suwfrontkit";
 
 import { DataVersion } from "../../dataVersion/DataVersion";
 import { statusColor, statusLabel } from "../runs/results";
@@ -66,19 +66,16 @@ function BaselineButton({ baseline, runId }: { baseline: BaselineInfo; runId: st
 function BaselineToggle({ baseline, runId }: { baseline: BaselineInfo; runId: string }) {
     const { isBaseline } = baseline;
     return (
-        <Tooltip label="Click to unselect the baseline" disabled={!isBaseline}>
-            <Button
-                size="xs"
-                variant={isBaseline ? "default" : "outline"}
-                className="w-fit"
-                aria-pressed={isBaseline}
-                aria-label={
-                    isBaseline ? `Run ${shortId(runId)} is the baseline: click to remove it` : `Use run ${shortId(runId)} as the baseline`
-                }
-                onClick={baseline.onToggleBaseline}
-            >
-                {isBaseline ? "Baseline" : "Use as baseline"}
-            </Button>
-        </Tooltip>
+        <ToggleChip
+            className="w-fit"
+            pressed={isBaseline}
+            help={isBaseline ? "Click to unselect the baseline" : undefined}
+            aria-label={
+                isBaseline ? `Run ${shortId(runId)} is the baseline: click to remove it` : `Use run ${shortId(runId)} as the baseline`
+            }
+            onPressedChange={baseline.onToggleBaseline}
+        >
+            {isBaseline ? "Baseline" : "Use as baseline"}
+        </ToggleChip>
     );
 }

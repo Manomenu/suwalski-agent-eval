@@ -1,4 +1,4 @@
-import { Alert, Anchor, Badge, cn, formatPercent, Paper, SegmentedControl, Spinner, Tooltip } from "@maniumek/suwfrontkit";
+import { Alert, Anchor, Badge, cn, formatPercent, Paper, SegmentedControl, Spinner, ToggleChip, Tooltip } from "@maniumek/suwfrontkit";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
@@ -58,7 +58,6 @@ import { agentEvaluationHref } from "../../routes/links";
 import { useReportAgent } from "../../shell/reportAgent";
 import { PrintButton } from "../../print/PrintButton";
 import { usePrintOnLoad } from "../../print/usePrintOnLoad";
-import { ToggleChip } from "../../toggle/ToggleChip";
 
 const PRINT_WIDTHS = {
     "--print-label-width": `${String(PRINT_LABEL_COLUMN_WIDTH)}px`,
@@ -353,11 +352,9 @@ function View({
                                     <div className="flex flex-wrap items-center justify-between gap-4">
                                         Scenarios
                                         <div className="no-print flex flex-wrap items-center gap-5">
-                                            <ToggleChip
-                                                label="Only rows that differ"
-                                                checked={onlyDifferences}
-                                                onChange={setOnlyDifferences}
-                                            />
+                                            <ToggleChip pressed={onlyDifferences} onPressedChange={setOnlyDifferences}>
+                                                Only rows that differ
+                                            </ToggleChip>
                                             <SegmentedControl
                                                 label="List scenarios"
                                                 value={byTag ? "tag" : "scenario"}
