@@ -11,8 +11,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Suwbackkit.Cli" />
     <PackageReference Include="System.CommandLine" />
     <PackageReference Include="YamlDotNet" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Suwbackkit.Cli.WebPage" Alias="WebPage" />
   </ItemGroup>
 
   <ItemGroup>

@@ -218,6 +218,7 @@
         "type": "Project",
         "dependencies": {
           "Suwageval.Contracts": "[1.0.0, )",
+          "Suwbackkit.Cli": "[0.5.0, )",
           "System.CommandLine": "[2.0.13, )",
           "YamlDotNet": "[18.1.0, )"
         }
@@ -226,6 +227,15 @@
         "type": "Project",
         "dependencies": {
           "Suwageval.AgentSdk": "[0.0.0-local, )"
+        }
+      },
+      "Suwbackkit.Cli": {
+        "type": "CentralTransitive",
+        "requested": "[0.5.0, )",
+        "resolved": "0.5.0",
+        "contentHash": "voDe9Sh8XDgPg4hNyqbIFtnwnj36kpNxGlG06jfRyeD6MeKxGFZYPDojD/Wg7P1hFKGLfpClV74WFNGlmZ2b1w==",
+        "dependencies": {
+          "System.CommandLine": "2.0.13"
         }
       },
       "System.CommandLine": {

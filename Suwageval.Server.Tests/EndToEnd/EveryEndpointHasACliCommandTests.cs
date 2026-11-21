@@ -1,9 +1,10 @@
 extern alias Cli;
 
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.AspNetCore.Routing;
-using Microsoft.Extensions.DependencyInjection;
+using Suwbackkit.Cli;
+using Suwbackkit.Testing;
 using CliApp = Cli::Suwageval.Cli.CliApp;
+using Terminal = Cli::Suwageval.Cli.Output.Terminal;
 
 namespace Suwageval.Server.Tests.EndToEnd;
 
@@ -72,31 +73,11 @@ public sealed class EveryEndpointHasACliCommandTests(TestDatabase database, Clas
         ["GET /monitoring/agents/{agent}/trend"] = Cli("monitoring trend"),
     };
 
-    private List<string> Mapped()
+    private IReadOnlyList<string> Mapped()
     {
         _ = database.DataSource;
-        return
-        [
-            .. app
-                .Services.GetRequiredService<EndpointDataSource>()
-                .Endpoints.OfType<RouteEndpoint>()
-                .SelectMany(endpoint =>
-                    (endpoint.Metadata.GetMetadata<HttpMethodMetadata>()?.HttpMethods ?? []).Select(method =>
-                        $"{method} {StripConstraints(endpoint.RoutePattern.RawText ?? "")}"
-                    )
-                )
-                .Order(StringComparer.Ordinal),
-        ];
+        return MappedRoutes.Of(app.Services);
     }
-
-    private static string StripConstraints(string pattern) =>
-        System.Text.RegularExpressions.Regex.Replace(
-            pattern,
-            @"\{(\w+):[^}]+\}",
-            "{$1}",
-            System.Text.RegularExpressions.RegexOptions.None,
-            TimeSpan.FromSeconds(1)
-        );
 
     private static string UnderEval(string route)
     {
@@ -151,28 +132,11 @@ public sealed class EveryEndpointHasACliCommandTests(TestDatabase database, Clas
     [Fact]
     public void Every_command_the_table_names_exists()
     {
-        var commands = Routes.Values.Where(coverage => coverage.Command is not null).Select(coverage => coverage.Command!).Distinct();
+        var root = CliApp.Create(new Terminal(TextReader.Null, false), TextReader.Null, null, null, null, null, null);
 
-        foreach (var command in commands)
+        foreach (var command in Routes.Values.Select(coverage => coverage.Command).OfType<string>().Distinct())
         {
-            var words = command.Split(' ');
-            using var output = new StringWriter();
-            using var error = new StringWriter();
-
-            var exit = CliApp.Run(
-                [.. words[..^1], "--help"],
-                new StringReader(""),
-                output,
-                error,
-                interrupt: TestContext.Current.CancellationToken
-            );
-
-            Assert.Equal(0, exit);
-            var listed = output.ToString().Split(Environment.NewLine).Select(line => line.Trim()).ToList();
-            Assert.True(
-                listed.Exists(line => line.StartsWith(words[^1] + " ", StringComparison.Ordinal)),
-                $"`suwageval {command}` is named in the table but is not a command."
-            );
+            Assert.True(CommandTree.Find(root, command) is not null, $"`suwageval {command}` is named in the table but is not a command.");
         }
     }
 }
