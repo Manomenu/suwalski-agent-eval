@@ -2,9 +2,9 @@
 
 The owner releases it, from a commit of `master` whose CI is green: `just agent-publish 0.1.0` runs `.github/workflows/agent-sdk.yml` on
 `master` (`gh workflow run`) and says how to follow the run; it stops first on a bad version, another branch, uncommitted changes or a
-`master` that differs from the remote master. The workflow refuses anything but `master`, runs the tests that protect the SDK (the classes
-it names, with a PostgreSQL for the one that needs it: the whole gate already ran on that commit in `ci.yml`, and `AgentSdkWorkflowTests`
-fails for a class that no longer exists), packs that version (`-p:Version=`, built with `ContinuousIntegrationBuild`, so the symbols hold no local paths)
+`master` that differs from the remote master. The workflow refuses anything but `master`, refuses a commit whose `ci` run has not passed (its tree carries no green
+tree stamp, the commit status suwgate's gate workflow writes after a green run: the whole gate, SDK tests included, ran on exactly
+that tree, so the release does not test it again; wait for the run and start the release again), packs that version (`-p:Version=`, built with `ContinuousIntegrationBuild`, so the symbols hold no local paths)
 and pushes it with its `.snupkg` to nuget.org. A version on nuget.org can never be deleted, only unlisted, so a bad release is followed by
 the next version, never replaced. The csproj says `0.0.0-local`, which is what `just agent-pack` produces. Agents never publish.
 

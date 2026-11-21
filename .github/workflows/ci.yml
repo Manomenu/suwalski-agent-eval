@@ -6,33 +6,24 @@ on:
   pull_request:
   workflow_dispatch:
 
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
-
 permissions:
   contents: read
-
-env:
-  DOTNET_NOLOGO: "1"
-  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
 
 jobs:
   gate:
     permissions:
       contents: read
-    uses: Manomenu/suwgate/.github/workflows/gate.yml@36f0b304991e9c4bc6ecf0a5352e396a350cbac9
+      statuses: write
+      pull-requests: read
+    uses: Manomenu/suwgate/.github/workflows/gate.yml@e05e6a8a0387033d0a009db1e4b69b2471568df0
     with:
       working-directory: Suwageval.Web
-      dotnet: true
-      database: true
-      oasdiff: true
-      browser-install-command: pnpm exec playwright install --with-deps chromium
-      command: Suwageval.Web/node_modules/.bin/suwgate check --verbose
+      browser: chromium
 
   build:
     needs: [gate]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
     permissions:
       contents: read
       packages: write
@@ -45,27 +36,34 @@ jobs:
           - component: web
             dockerfile: Suwageval.Web/Dockerfile
     steps:
-      - uses: actions/checkout@v4
+      - name: actions/checkout v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
 
       - id: repo
         run: echo "lower=${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
 
-      - uses: docker/setup-buildx-action@v3
+      - name: docker/setup-buildx-action v3.12.0
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
 
-      - if: github.event_name != 'pull_request'
-        uses: docker/login-action@v3
+      - name: docker/login-action v3.7.0
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - id: meta
-        uses: docker/metadata-action@v5
+      - name: docker/metadata-action v5.10.0
+        id: meta
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051
         with:
           images: ghcr.io/${{ steps.repo.outputs.lower }}/${{ matrix.component }}
           tags: type=sha,format=short,prefix=sha-
 
-      - uses: docker/build-push-action@v6
+      - name: docker/build-push-action v6.19.2
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
         with:
           context: .
           file: ${{ matrix.dockerfile }}
