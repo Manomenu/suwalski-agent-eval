@@ -1,4 +1,4 @@
-FROM docker.io/library/node:24-alpine AS builder
+FROM docker.io/library/node:26-alpine AS builder
 
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 
