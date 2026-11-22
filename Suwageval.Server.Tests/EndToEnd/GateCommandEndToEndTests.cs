@@ -121,9 +121,8 @@ public sealed class GateCommandEndToEndTests(TestDatabase database, ClassServer 
             lines[^1],
             StringComparison.Ordinal
         );
-        Assert.DoesNotContain(
-            lines,
-            line => line.Contains("passed ", StringComparison.Ordinal) && !line.StartsWith("FAILED", StringComparison.Ordinal)
+        Assert.DoesNotContain(lines, line =>
+            line.Contains("passed ", StringComparison.Ordinal) && !line.StartsWith("FAILED", StringComparison.Ordinal)
         );
     }
 

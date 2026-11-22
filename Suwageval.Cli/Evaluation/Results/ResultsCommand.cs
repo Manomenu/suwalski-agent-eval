@@ -56,35 +56,30 @@ internal static class ResultsCommand
                         "--print needs --open: it opens the page's print dialog."
                     );
                 }
-                return ServerCall.RunAsync(
-                    parsed.GetValue(server),
-                    http,
-                    parsed.InvocationConfiguration.Error,
-                    async (client, site) =>
+                return ServerCall.RunAsync(parsed.GetValue(server), http, parsed.InvocationConfiguration.Error, async (client, site) =>
+                {
+                    var output = parsed.InvocationConfiguration.Output;
+                    var id = parsed.GetRequiredValue(runId);
+                    if (parsed.GetValue(open))
                     {
-                        var output = parsed.InvocationConfiguration.Output;
-                        var id = parsed.GetRequiredValue(runId);
-                        if (parsed.GetValue(open))
-                        {
-                            await client.GetAsync(id, cancellationToken);
-                            await WebPage.ShowAsync(
-                                ServerAddress.RunPage(site, id, parsed.GetValue(print)),
-                                output,
-                                parsed.InvocationConfiguration.Error,
-                                openBrowser
-                            );
-                            return 0;
-                        }
-                        await client.WaitForEndAsync(id, cancellationToken);
-                        var results = await client.ResultsAsync(id, cancellationToken);
-                        await output.WriteLineAsync(
-                            parsed.GetValue(json)
-                                ? OutputJson.Of(results)
-                                : ResultsText.Describe(results, ServerAddress.RunPage(site, id), parsed.GetValue(failedOnly))
+                        await client.GetAsync(id, cancellationToken);
+                        await WebPage.ShowAsync(
+                            ServerAddress.RunPage(site, id, parsed.GetValue(print)),
+                            output,
+                            parsed.InvocationConfiguration.Error,
+                            openBrowser
                         );
-                        return RunVerdict.ExitCode(results, strict: true);
+                        return 0;
                     }
-                );
+                    await client.WaitForEndAsync(id, cancellationToken);
+                    var results = await client.ResultsAsync(id, cancellationToken);
+                    await output.WriteLineAsync(
+                        parsed.GetValue(json)
+                            ? OutputJson.Of(results)
+                            : ResultsText.Describe(results, ServerAddress.RunPage(site, id), parsed.GetValue(failedOnly))
+                    );
+                    return RunVerdict.ExitCode(results, strict: true);
+                });
             }
         );
         return command;

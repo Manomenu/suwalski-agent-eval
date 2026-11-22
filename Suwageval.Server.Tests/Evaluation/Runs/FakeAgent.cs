@@ -53,31 +53,28 @@ internal sealed class FakeAgent : IAsyncDisposable
         var app = builder.Build();
         var agent = new FakeAgent();
         app.MapGet("/suwageval/contract", () => Volatile.Read(ref agent.contract)(Interlocked.Increment(ref agent.contractRequests)));
-        app.MapPost(
-            "/suwageval/turn",
-            async (HttpRequest request) =>
+        app.MapPost("/suwageval/turn", async (HttpRequest request) =>
+        {
+            using var reader = new StreamReader(request.Body);
+            var body = await reader.ReadToEndAsync();
+            agent.headers.Enqueue(
+                request.Headers.ToDictionary(header => header.Key, header => header.Value.ToString(), StringComparer.OrdinalIgnoreCase)
+            );
+            agent.requests.Enqueue(body);
+            if (held is null)
             {
-                using var reader = new StreamReader(request.Body);
-                var body = await reader.ReadToEndAsync();
-                agent.headers.Enqueue(
-                    request.Headers.ToDictionary(header => header.Key, header => header.Value.ToString(), StringComparer.OrdinalIgnoreCase)
-                );
-                agent.requests.Enqueue(body);
-                if (held is null)
-                {
-                    return await answer(body, agent.requests.Count);
-                }
-                try
-                {
-                    await held.EnterAsync();
-                    return await answer(body, agent.requests.Count);
-                }
-                finally
-                {
-                    held.Leave();
-                }
+                return await answer(body, agent.requests.Count);
             }
-        );
+            try
+            {
+                await held.EnterAsync();
+                return await answer(body, agent.requests.Count);
+            }
+            finally
+            {
+                held.Leave();
+            }
+        });
         await app.StartAsync();
         agent.app = app;
         agent.Url = new Uri(app.Urls.First());

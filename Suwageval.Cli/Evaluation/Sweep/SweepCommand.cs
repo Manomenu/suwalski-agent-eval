@@ -178,8 +178,7 @@ internal static partial class SweepCommand
         }
 
         using var agentHttp = http is null ? new HttpClient { Timeout = ContractFetcher.Timeout } : null;
-        var contractHttp =
-            http
+        var contractHttp = http
             ?? agentHttp
             ?? throw new InvalidOperationException("agentHttp is created whenever no http client was injected, so one of the two is set.");
         return await ServerCall.RunAsync(

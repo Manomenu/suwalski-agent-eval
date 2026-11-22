@@ -48,19 +48,17 @@ public sealed class VersionEndpointsTests(TestDatabase database, ClassServer cla
         var listed = await TestServer.Read<AgentVersion[]>(await server.Get($"/agents/{name}/versions"));
 
         Assert.Equal(["group-only", "mixed", "no-runs", "recheck"], listed.Select(version => models[version.Id]).Order());
-        Assert.All(
-            listed,
-            version =>
-                Assert.Equal(
-                    version.Id switch
-                    {
-                        var id when id == seeded.GroupOnly => (0, 1),
-                        var id when id == seeded.Mixed => (1, 1),
-                        var id when id == seeded.RecheckOfGroup => (0, 2),
-                        _ => (0, 0),
-                    },
-                    (version.Runs, version.GroupRuns)
-                )
+        Assert.All(listed, version =>
+            Assert.Equal(
+                version.Id switch
+                {
+                    var id when id == seeded.GroupOnly => (0, 1),
+                    var id when id == seeded.Mixed => (1, 1),
+                    var id when id == seeded.RecheckOfGroup => (0, 2),
+                    _ => (0, 0),
+                },
+                (version.Runs, version.GroupRuns)
+            )
         );
     }
 

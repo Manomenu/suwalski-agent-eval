@@ -67,8 +67,7 @@ internal static class MonitoringCheckEndpoints
             {
                 Revision = check.Revision,
                 CreatedAt = check.CreatedAt,
-                Check =
-                    JsonSerializer.Deserialize<CheckInput>(check.Content, ContractContent.Lenient)
+                Check = JsonSerializer.Deserialize<CheckInput>(check.Content, ContractContent.Lenient)
                     ?? throw new InvalidOperationException("A stored check is empty."),
                 Last7Days = new CheckRate(check.Passed7, check.Checked7),
                 Last30Days = new CheckRate(check.Passed30, check.Checked30),

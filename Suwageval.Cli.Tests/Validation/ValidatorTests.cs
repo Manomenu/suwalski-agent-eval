@@ -89,9 +89,8 @@ public sealed class ValidatorTests
     [Fact]
     [Trait("criterion", "AC-gate-runs-1")]
     public void An_agent_default_limit_outside_one_to_twenty_is_a_problem() =>
-        Assert.Contains(
-            ValidateAgentFile(TestAgent.Yaml + "\nacGuardrailRetryLimit: 0\n").Problems,
-            problem => problem.Path == "acGuardrailRetryLimit"
+        Assert.Contains(ValidateAgentFile(TestAgent.Yaml + "\nacGuardrailRetryLimit: 0\n").Problems, problem =>
+            problem.Path == "acGuardrailRetryLimit"
         );
 
     [Fact]
@@ -798,9 +797,8 @@ public sealed class ValidatorTests
     {
         var result = Validate($"key: k\nconversation:\n  - user: hi\nchecks:\n  - key: c\n    {check}\n");
 
-        Assert.Contains(
-            result.Problems,
-            p => p.Path.StartsWith("checks[0]", StringComparison.Ordinal) && p.Message.Contains(messagePart, StringComparison.Ordinal)
+        Assert.Contains(result.Problems, p =>
+            p.Path.StartsWith("checks[0]", StringComparison.Ordinal) && p.Message.Contains(messagePart, StringComparison.Ordinal)
         );
     }
 
@@ -826,9 +824,8 @@ public sealed class ValidatorTests
     {
         var result = Validate($"key: k\nconversation:\n  {item}\n");
 
-        Assert.Contains(
-            result.Problems,
-            p => p.Path.StartsWith("conversation[0]", StringComparison.Ordinal) && p.Message.Contains(messagePart, StringComparison.Ordinal)
+        Assert.Contains(result.Problems, p =>
+            p.Path.StartsWith("conversation[0]", StringComparison.Ordinal) && p.Message.Contains(messagePart, StringComparison.Ordinal)
         );
     }
 

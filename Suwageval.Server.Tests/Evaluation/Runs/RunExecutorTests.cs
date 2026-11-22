@@ -254,15 +254,12 @@ public sealed class RunExecutorTests(TestDatabase database)
         Assert.Equal((2, 2, 1), (results.Run.SamplesTotal, results.Run.SamplesDone, results.Run.ChecksPassed));
         Assert.Equal(1, results.Run.ChecksFailed);
         var checks = Assert.Single(results.Scenarios).Checks.ToDictionary(check => check.Key);
-        Assert.All(
-            checks["polite-refusal"].Samples,
-            sample =>
-            {
-                Assert.False(sample.Passed);
-                Assert.True(sample.NotJudged);
-                Assert.Contains("connection refused", sample.Message, StringComparison.Ordinal);
-            }
-        );
+        Assert.All(checks["polite-refusal"].Samples, sample =>
+        {
+            Assert.False(sample.Passed);
+            Assert.True(sample.NotJudged);
+            Assert.Contains("connection refused", sample.Message, StringComparison.Ordinal);
+        });
         Assert.All(checks["refund-called"].Samples, sample => Assert.False(sample.NotJudged));
         Assert.True(checks["refund-called"].Passed);
     }

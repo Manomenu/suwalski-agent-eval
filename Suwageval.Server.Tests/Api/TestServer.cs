@@ -49,13 +49,10 @@ internal sealed class TestServer(TestDatabase database, ClassServer classServer)
         var refusal = await Read<JsonElement>(response);
         Assert.Equal("request.invalid", refusal.GetProperty("code").GetString());
         var mistakes = refusal.GetProperty("mistakes").EnumerateArray().ToList();
-        Assert.All(
-            mistakes,
-            mistake =>
-                Assert.All(
-                    FieldMistakeMembers,
-                    member => Assert.False(string.IsNullOrWhiteSpace(mistake.GetProperty(member).GetString()), member)
-                )
+        Assert.All(mistakes, mistake =>
+            Assert.All(FieldMistakeMembers, member =>
+                Assert.False(string.IsNullOrWhiteSpace(mistake.GetProperty(member).GetString()), member)
+            )
         );
         return [.. mistakes.Select(mistake => mistake.GetProperty("at").GetString() ?? "").Distinct()];
     }

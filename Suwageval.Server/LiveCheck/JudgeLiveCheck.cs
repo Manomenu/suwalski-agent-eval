@@ -84,12 +84,11 @@ internal static class JudgeLiveCheck
         using var host = builder.Build();
         await host.StartAsync();
 
-        var problem =
-            await ProblemAsync(
-                host.Services.GetRequiredService<Judge>(),
-                host.Services.GetRequiredService<ArgumentJudge>(),
-                CancellationToken.None
-            )
+        var problem = await ProblemAsync(
+            host.Services.GetRequiredService<Judge>(),
+            host.Services.GetRequiredService<ArgumentJudge>(),
+            CancellationToken.None
+        )
             ?? await SimulatorLiveCheck.ProblemAsync(host.Services.GetRequiredService<UserSimulator>(), CancellationToken.None)
             ?? await DescriberLiveCheck.ProblemAsync(host.Services.GetRequiredService<UserDescriber>(), CancellationToken.None);
         if (problem is null)
