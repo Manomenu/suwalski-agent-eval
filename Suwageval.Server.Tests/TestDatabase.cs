@@ -11,8 +11,8 @@ public sealed class TestDatabase : IAsyncLifetime
     private const string MainCheckoutConnectionString =
         "Host=127.0.0.1;Port=5463;Database=suwageval_test;Username=suwageval;Password=suwageval";
 
-    public static readonly string ConnectionString =
-        Environment.GetEnvironmentVariable("TEST_CONNECTION_STRING") ?? MainCheckoutConnectionString;
+    public static readonly string ConnectionString = Environment.GetEnvironmentVariable("TEST_CONNECTION_STRING")
+        ?? MainCheckoutConnectionString;
 
     private string? unavailable;
     private NpgsqlDataSource? dataSource;

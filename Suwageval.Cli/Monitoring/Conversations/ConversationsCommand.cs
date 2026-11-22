@@ -124,28 +124,23 @@ internal static class ConversationsCommand
         CommandOptions.RefuseJsonWithOpen(command, json, open);
         command.SetAction(
             (parsed, cancellationToken) =>
-                ServerCall.RunAsync(
-                    parsed.GetValue(server),
-                    http,
-                    parsed.InvocationConfiguration.Error,
-                    async (client, site) =>
+                ServerCall.RunAsync(parsed.GetValue(server), http, parsed.InvocationConfiguration.Error, async (client, site) =>
+                {
+                    var detail = await client.ConversationAsync(parsed.GetValue(id), cancellationToken);
+                    var output = parsed.InvocationConfiguration.Output;
+                    if (parsed.GetValue(open))
                     {
-                        var detail = await client.ConversationAsync(parsed.GetValue(id), cancellationToken);
-                        var output = parsed.InvocationConfiguration.Output;
-                        if (parsed.GetValue(open))
-                        {
-                            await WebPage.ShowAsync(
-                                ServerAddress.ConversationPage(site, detail.Conversation.Id),
-                                parsed.InvocationConfiguration.Output,
-                                parsed.InvocationConfiguration.Error,
-                                openBrowser
-                            );
-                            return 0;
-                        }
-                        await output.WriteLineAsync(parsed.GetValue(json) ? OutputJson.Of(detail) : Describe(detail));
+                        await WebPage.ShowAsync(
+                            ServerAddress.ConversationPage(site, detail.Conversation.Id),
+                            parsed.InvocationConfiguration.Output,
+                            parsed.InvocationConfiguration.Error,
+                            openBrowser
+                        );
                         return 0;
                     }
-                )
+                    await output.WriteLineAsync(parsed.GetValue(json) ? OutputJson.Of(detail) : Describe(detail));
+                    return 0;
+                })
         );
         return command;
     }

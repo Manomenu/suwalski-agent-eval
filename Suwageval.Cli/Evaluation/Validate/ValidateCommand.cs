@@ -112,8 +112,7 @@ internal static class ValidateCommand
         }
 
         var source = new List<Problem>();
-        var url =
-            AgentEndpoint.Override(endpoint)
+        var url = AgentEndpoint.Override(endpoint)
             ?? AgentFileReader
                 .Read(
                     agentFile,

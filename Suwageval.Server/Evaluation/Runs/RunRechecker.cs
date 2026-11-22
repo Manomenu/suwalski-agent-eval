@@ -57,21 +57,19 @@ internal sealed partial class RunRechecker(
                 );
                 var work = sourceSamples.Where(sample => kept.ContainsKey(sample.ScenarioId)).ToList();
                 await runs.SetSkippedAsync(run.Id, plan.Skipped, cancellationToken);
-                return new RunLoop.Plan<ScenarioResultRow>(
-                    work,
-                    sample =>
-                        RecheckSampleAsync(
-                            run.Id,
-                            kept[sample.ScenarioId],
-                            sample,
-                            agentSamples,
-                            [
-                                .. verdictSampleOf.TryGetValue((sample.ScenarioId, sample.Sample), out var verdictSample)
-                                    ? verdictsOf[verdictSample]
-                                    : [],
-                            ],
-                            cancellationToken
-                        )
+                return new RunLoop.Plan<ScenarioResultRow>(work, sample =>
+                    RecheckSampleAsync(
+                        run.Id,
+                        kept[sample.ScenarioId],
+                        sample,
+                        agentSamples,
+                        [
+                            .. verdictSampleOf.TryGetValue((sample.ScenarioId, sample.Sample), out var verdictSample)
+                                ? verdictsOf[verdictSample]
+                                : [],
+                        ],
+                        cancellationToken
+                    )
                 );
             },
             error => LogRecheckFailed(error, run.Id),

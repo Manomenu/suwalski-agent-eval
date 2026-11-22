@@ -22,8 +22,7 @@ internal sealed class ConversationChecker(CheckingStore checking, ConversationSt
         var verdicts = new List<CheckingStore.Verdict>();
         foreach (var check in await checking.ChecksAsync(agentId, cancellationToken))
         {
-            var input =
-                JsonSerializer.Deserialize<CheckInput>(check.Content, ContractContent.Lenient)
+            var input = JsonSerializer.Deserialize<CheckInput>(check.Content, ContractContent.Lenient)
                 ?? throw new InvalidOperationException("A stored check is empty.");
             var verdict = input switch
             {

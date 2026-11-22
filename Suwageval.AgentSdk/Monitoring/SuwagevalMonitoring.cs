@@ -44,22 +44,19 @@ public static class SuwagevalMonitoring
             provider.GetRequiredService<Channel<MonitoredTurn>>(),
             provider.GetRequiredService<TimeProvider>()
         ));
-        services.AddHttpClient(
-            HttpClientName,
-            (provider, client) =>
+        services.AddHttpClient(HttpClientName, (provider, client) =>
+        {
+            var options = provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<MonitoringOptions>>().Value;
+            client.BaseAddress = new Uri(
+                $"{(options.Url ?? throw new InvalidOperationException("This registration runs only with Suwageval:Url set, and validation on start refuses a bad one.")).TrimEnd('/')}/api/"
+            );
+            client.Timeout = TimeSpan.FromSeconds(10);
+            if (!string.IsNullOrEmpty(options.AccessClientId))
             {
-                var options = provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<MonitoringOptions>>().Value;
-                client.BaseAddress = new Uri(
-                    $"{(options.Url ?? throw new InvalidOperationException("This registration runs only with Suwageval:Url set, and validation on start refuses a bad one.")).TrimEnd('/')}/api/"
-                );
-                client.Timeout = TimeSpan.FromSeconds(10);
-                if (!string.IsNullOrEmpty(options.AccessClientId))
-                {
-                    client.DefaultRequestHeaders.Add("CF-Access-Client-Id", options.AccessClientId);
-                    client.DefaultRequestHeaders.Add("CF-Access-Client-Secret", options.AccessClientSecret);
-                }
+                client.DefaultRequestHeaders.Add("CF-Access-Client-Id", options.AccessClientId);
+                client.DefaultRequestHeaders.Add("CF-Access-Client-Secret", options.AccessClientSecret);
             }
-        );
+        });
         services.AddHostedService(provider => new MonitoringSender(
             provider.GetRequiredService<Channel<MonitoredTurn>>(),
             provider.GetRequiredService<IHttpClientFactory>(),

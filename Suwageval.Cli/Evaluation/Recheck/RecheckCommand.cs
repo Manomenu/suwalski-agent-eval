@@ -37,47 +37,43 @@ internal static class RecheckCommand
                 var output = parsed.InvocationConfiguration.Output;
                 var error = parsed.InvocationConfiguration.Error;
                 var asJson = parsed.GetValue(json);
-                return ServerCall.RunAsync(
-                    parsed.GetValue(server),
-                    http,
-                    error,
-                    (client, site) =>
-                        RunOutput.GuardAsync(
-                            async () =>
+                return ServerCall.RunAsync(parsed.GetValue(server), http, error, (client, site) =>
+                    RunOutput.GuardAsync(
+                        async () =>
+                        {
+                            var plan = await client.RecheckPlanAsync(parsed.GetRequiredValue(runId), cancellationToken);
+                            if (parsed.GetValue(dryRun) || !plan.Possible)
                             {
-                                var plan = await client.RecheckPlanAsync(parsed.GetRequiredValue(runId), cancellationToken);
-                                if (parsed.GetValue(dryRun) || !plan.Possible)
-                                {
-                                    await output.WriteLineAsync(
-                                        asJson ? OutputJson.Of(plan) : RecheckText.Describe(parsed.GetRequiredValue(runId), plan)
-                                    );
-                                    return plan.Blocker is null or RecheckBlocker.NothingChanged || parsed.GetValue(dryRun) ? 0 : 2;
-                                }
-                                if (!asJson)
-                                {
-                                    foreach (var skipped in plan.SkippedScenarios)
-                                    {
-                                        await output.WriteLineAsync(RecheckText.Skipped(skipped));
-                                    }
-                                }
-                                var created = await client.RecheckAsync(parsed.GetRequiredValue(runId), cancellationToken);
-                                return await RunOutput.ReportAsync(
-                                    client,
-                                    created,
-                                    parsed.GetValue(wait),
-                                    asJson,
-                                    parsed.GetValue(strict),
-                                    site,
-                                    output,
-                                    error,
-                                    terminal,
-                                    cancellationToken
+                                await output.WriteLineAsync(
+                                    asJson ? OutputJson.Of(plan) : RecheckText.Describe(parsed.GetRequiredValue(runId), plan)
                                 );
-                            },
-                            error,
-                            "re-check",
-                            cancellationToken
-                        )
+                                return plan.Blocker is null or RecheckBlocker.NothingChanged || parsed.GetValue(dryRun) ? 0 : 2;
+                            }
+                            if (!asJson)
+                            {
+                                foreach (var skipped in plan.SkippedScenarios)
+                                {
+                                    await output.WriteLineAsync(RecheckText.Skipped(skipped));
+                                }
+                            }
+                            var created = await client.RecheckAsync(parsed.GetRequiredValue(runId), cancellationToken);
+                            return await RunOutput.ReportAsync(
+                                client,
+                                created,
+                                parsed.GetValue(wait),
+                                asJson,
+                                parsed.GetValue(strict),
+                                site,
+                                output,
+                                error,
+                                terminal,
+                                cancellationToken
+                            );
+                        },
+                        error,
+                        "re-check",
+                        cancellationToken
+                    )
                 );
             }
         );

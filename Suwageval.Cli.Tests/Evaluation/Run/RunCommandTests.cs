@@ -246,9 +246,8 @@ public sealed class RunCommandTests
     [Fact]
     public void The_origin_read_from_the_repository_is_sent()
     {
-        var (_, _, _, server) = RunWith(
-            Repository("feature-x", pushed: false),
-            (request, _) => Server(request, Summary(RunStatus.Queued), Results(RunStatus.Queued))
+        var (_, _, _, server) = RunWith(Repository("feature-x", pushed: false), (request, _) =>
+            Server(request, Summary(RunStatus.Queued), Results(RunStatus.Queued))
         );
 
         using var sent = JsonDocument.Parse(server.Requests[0].Body ?? "");
@@ -732,9 +731,8 @@ public sealed class RunCommandTests
         var scenario = printed.RootElement.GetProperty("scenarios")[0];
         Assert.Equal(text, scenario.GetProperty("samples")[0].GetProperty("output")[0].GetProperty("text").GetString());
         Assert.Equal(text, scenario.GetProperty("checks")[0].GetProperty("samples")[0].GetProperty("message").GetString());
-        Assert.DoesNotContain(
-            [LineSeparator, ParagraphSeparator, NextLine],
-            character => output.Contains(character, StringComparison.Ordinal)
+        Assert.DoesNotContain([LineSeparator, ParagraphSeparator, NextLine], character =>
+            output.Contains(character, StringComparison.Ordinal)
         );
     }
 

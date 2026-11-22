@@ -4,11 +4,11 @@
     "net10.0": {
       "Suwbackkit.Cli": {
         "type": "Direct",
-        "requested": "[0.5.0, )",
-        "resolved": "0.5.0",
-        "contentHash": "voDe9Sh8XDgPg4hNyqbIFtnwnj36kpNxGlG06jfRyeD6MeKxGFZYPDojD/Wg7P1hFKGLfpClV74WFNGlmZ2b1w==",
+        "requested": "[0.5.1, )",
+        "resolved": "0.5.1",
+        "contentHash": "lAgWegIJIVSqnZU+dk82E+JIAuKZrTYcn6rpve+CdPhQo+SXmarVM49Q68ZlCNXkRP2LlNeTZvgIZhhxJlZuyA==",
         "dependencies": {
-          "System.CommandLine": "2.0.13"
+          "System.CommandLine": "2.0.15"
         }
       },
       "Suwgate.Architecture": {
@@ -25,9 +25,9 @@
       },
       "System.CommandLine": {
         "type": "Direct",
-        "requested": "[2.0.13, )",
-        "resolved": "2.0.13",
-        "contentHash": "TIO2lMV+sSP7WW7pD/oCRHD9ENWY+jqwXmYzgks3R46cEdDzwjQOAhsiBn+M3EegfGjgTpa2h+eIrcU+AM2k6A=="
+        "requested": "[2.0.15, )",
+        "resolved": "2.0.15",
+        "contentHash": "zsnY7Ex2dPmbS/Nrg5RUKJFCEMbHeP9TdzmTJrsNh59mgr8ulba1SHmE1SVgmVqivvr79kV1GAlInC44F4ggEg=="
       },
       "YamlDotNet": {
         "type": "Direct",

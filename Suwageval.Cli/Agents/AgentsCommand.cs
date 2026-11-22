@@ -17,45 +17,40 @@ internal static class AgentsCommand
         CommandOptions.RefuseJsonWithOpen(command, json, open);
         command.SetAction(
             (parsed, cancellationToken) =>
-                ServerCall.RunAsync(
-                    parsed.GetValue(server),
-                    http,
-                    parsed.InvocationConfiguration.Error,
-                    async (client, site) =>
+                ServerCall.RunAsync(parsed.GetValue(server), http, parsed.InvocationConfiguration.Error, async (client, site) =>
+                {
+                    if (parsed.GetValue(open))
                     {
-                        if (parsed.GetValue(open))
-                        {
-                            await WebPage.ShowAsync(
-                                ServerAddress.AgentsPage(site),
-                                parsed.InvocationConfiguration.Output,
-                                parsed.InvocationConfiguration.Error,
-                                openBrowser
-                            );
-                            return 0;
-                        }
-                        var agents = await client.AgentsAsync(cancellationToken);
-                        var output = parsed.InvocationConfiguration.Output;
-                        if (parsed.GetValue(json))
-                        {
-                            await output.WriteLineAsync(OutputJson.Of(agents));
-                            return 0;
-                        }
-                        if (agents.Count == 0)
-                        {
-                            await output.WriteLineAsync("No agents.");
-                        }
-                        foreach (var agent in agents)
-                        {
-                            await output.WriteLineAsync(
-                                string.Create(
-                                    CultureInfo.InvariantCulture,
-                                    $"{agent.Name}  {agent.EndpointUrl}  created {agent.CreatedAt.UtcDateTime:yyyy-MM-dd HH:mm}Z"
-                                )
-                            );
-                        }
+                        await WebPage.ShowAsync(
+                            ServerAddress.AgentsPage(site),
+                            parsed.InvocationConfiguration.Output,
+                            parsed.InvocationConfiguration.Error,
+                            openBrowser
+                        );
                         return 0;
                     }
-                )
+                    var agents = await client.AgentsAsync(cancellationToken);
+                    var output = parsed.InvocationConfiguration.Output;
+                    if (parsed.GetValue(json))
+                    {
+                        await output.WriteLineAsync(OutputJson.Of(agents));
+                        return 0;
+                    }
+                    if (agents.Count == 0)
+                    {
+                        await output.WriteLineAsync("No agents.");
+                    }
+                    foreach (var agent in agents)
+                    {
+                        await output.WriteLineAsync(
+                            string.Create(
+                                CultureInfo.InvariantCulture,
+                                $"{agent.Name}  {agent.EndpointUrl}  created {agent.CreatedAt.UtcDateTime:yyyy-MM-dd HH:mm}Z"
+                            )
+                        );
+                    }
+                    return 0;
+                })
         );
         return command;
     }

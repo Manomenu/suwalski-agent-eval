@@ -458,9 +458,8 @@ public sealed class RegressionHistoryTests(TestDatabase database, ClassServer se
         var recheckOfGroup = await ResultsAsync(recheck);
 
         Assert.All([inGroup, recheckOfGroup], results => Assert.Null(results.Regression));
-        Assert.All(
-            [inGroup, recheckOfGroup],
-            results => Assert.All(results.Scenarios.SelectMany(scenario => scenario.Checks), check => Assert.Null(check.Regression))
+        Assert.All([inGroup, recheckOfGroup], results =>
+            Assert.All(results.Scenarios.SelectMany(scenario => scenario.Checks), check => Assert.Null(check.Regression))
         );
         Assert.Empty(await HistoryAsync(plain, null));
     }

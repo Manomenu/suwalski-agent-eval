@@ -11,32 +11,27 @@ public static class SuwagevalAgentEndpoints
     public static IEndpointRouteBuilder MapSuwagevalAgent(this IEndpointRouteBuilder endpoints)
     {
         ArgumentNullException.ThrowIfNull(endpoints);
-        endpoints.MapGet(
-            "/suwageval/contract",
-            async (IAgentContractSource source, CancellationToken cancellationToken) =>
-                Results.Json(await source.GetContractAsync(cancellationToken), ContractJson.Options)
+        endpoints.MapGet("/suwageval/contract", async (IAgentContractSource source, CancellationToken cancellationToken) =>
+            Results.Json(await source.GetContractAsync(cancellationToken), ContractJson.Options)
         );
-        endpoints.MapPost(
-            "/suwageval/turn",
-            async (HttpRequest request, ITurnHandler handler, CancellationToken cancellationToken) =>
+        endpoints.MapPost("/suwageval/turn", async (HttpRequest request, ITurnHandler handler, CancellationToken cancellationToken) =>
+        {
+            var (turn, problem) = await ReadAsync(request, cancellationToken);
+            if (turn is null)
             {
-                var (turn, problem) = await ReadAsync(request, cancellationToken);
-                if (turn is null)
-                {
-                    return Rejected(problem);
-                }
-                try
-                {
-                    var correlated = turn with { Correlation = TurnCorrelation.From(request.Headers) };
-                    using var evaluation = EvaluationTurn.Enter();
-                    return Results.Json(await handler.HandleAsync(correlated, cancellationToken), ContractJson.Options);
-                }
-                catch (TurnRejectedException rejection)
-                {
-                    return Rejected(rejection.Message);
-                }
+                return Rejected(problem);
             }
-        );
+            try
+            {
+                var correlated = turn with { Correlation = TurnCorrelation.From(request.Headers) };
+                using var evaluation = EvaluationTurn.Enter();
+                return Results.Json(await handler.HandleAsync(correlated, cancellationToken), ContractJson.Options);
+            }
+            catch (TurnRejectedException rejection)
+            {
+                return Rejected(rejection.Message);
+            }
+        });
         return endpoints;
     }
 

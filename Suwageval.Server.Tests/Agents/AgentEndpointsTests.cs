@@ -27,8 +27,8 @@ public sealed class AgentEndpointsTests(TestDatabase database, ClassServer class
     internal static async Task<AgentVersion> RegisterAsync(TestDatabase database, string agentName, AgentContract contract)
     {
         var store = new AgentStore(database.DataSource);
-        var agent =
-            await store.GetAsync(agentName, TestContext.Current.CancellationToken) ?? throw new InvalidOperationException("no agent");
+        var agent = await store.GetAsync(agentName, TestContext.Current.CancellationToken)
+            ?? throw new InvalidOperationException("no agent");
         var row = (
             await store.RegisterVersionAsync(
                 agent.Id,

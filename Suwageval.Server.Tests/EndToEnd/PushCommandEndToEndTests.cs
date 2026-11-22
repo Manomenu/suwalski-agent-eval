@@ -145,9 +145,8 @@ public sealed class PushCommandEndToEndTests(TestDatabase database, ClassServer 
         Assert.False(result.TryGetProperty("versionCreated", out _));
         Assert.Equal(3, result.GetProperty("scenarios").GetArrayLength());
         Assert.Equal(5, result.GetProperty("checks").GetArrayLength());
-        Assert.All(
-            result.GetProperty("checks").EnumerateArray(),
-            check => Assert.Equal("created", check.GetProperty("outcome").GetString())
+        Assert.All(result.GetProperty("checks").EnumerateArray(), check =>
+            Assert.Equal("created", check.GetProperty("outcome").GetString())
         );
     }
 

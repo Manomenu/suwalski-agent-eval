@@ -165,12 +165,10 @@ internal static class InitCommand
         NewMonitoring? newMonitoring = null;
         if (!hasMonitoring && (asked || (terminal.Interactive && await AskYesAsync(MonitoringQuestion, terminal, console.Output))))
         {
-            var close =
-                given.CloseAfter
+            var close = given.CloseAfter
                 ?? (terminal.Interactive ? await AskAsync("  closeAfter", DefaultCloseAfter, terminal, console.Output) : null)
                 ?? DefaultCloseAfter;
-            var named =
-                given.Environments
+            var named = given.Environments
                 ?? (
                     terminal.Interactive
                         ? (await AskAsync("  environments, comma-separated (empty: any)", null, terminal, console.Output) ?? "").Split(
@@ -216,8 +214,7 @@ internal static class InitCommand
             var created = AgentYamlEditor.NewFile(fields);
             if (newMonitoring is not null)
             {
-                created =
-                    AgentYamlEditor.WithMonitoring(created, newMonitoring.CloseAfter, newMonitoring.Environments)
+                created = AgentYamlEditor.WithMonitoring(created, newMonitoring.CloseAfter, newMonitoring.Environments)
                     ?? throw new InvalidOperationException("A new file has no features yet.");
             }
             Directory.CreateDirectory(dir);
@@ -234,8 +231,8 @@ internal static class InitCommand
         }
         else
         {
-            var (edited, changes) =
-                AgentYamlEditor.Edit(file, text, fields, []) ?? throw new InvalidOperationException("The file was read above.");
+            var (edited, changes) = AgentYamlEditor.Edit(file, text, fields, [])
+                ?? throw new InvalidOperationException("The file was read above.");
             if (newMonitoring is not null)
             {
                 if (

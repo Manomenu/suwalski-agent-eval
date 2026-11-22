@@ -34,15 +34,8 @@ internal static class RegressionText
         var sections = new StringBuilder();
         Section(sections, checks, RegressionState.Regression, summary.Regressions, "✗", "regression", "regressions", withMessage: true);
         Section(sections, checks, RegressionState.New, summary.New, "✗", "new check failing", "new checks failing", withMessage: true);
-        Section(
-            sections,
-            checks,
-            RegressionState.AgentError,
-            summary.AgentErrors,
-            "✗",
-            "agent error",
-            "agent errors",
-            detail: item => agentErrors[item.Scenario] ?? "the agent gave no answer"
+        Section(sections, checks, RegressionState.AgentError, summary.AgentErrors, "✗", "agent error", "agent errors", detail: item =>
+            agentErrors[item.Scenario] ?? "the agent gave no answer"
         );
         Section(
             sections,

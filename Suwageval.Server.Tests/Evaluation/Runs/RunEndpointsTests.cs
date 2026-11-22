@@ -98,9 +98,8 @@ public sealed class RunEndpointsTests(TestDatabase database, ClassServer server)
         Assert.Equal(("index-2", "1900 articles"), (secondRun.DataVersion, secondRun.DataDescription));
         var onSecond = await GetAsync<RunList>(client, $"/eval/runs?agent={agent.Name}&dataVersion=index-2");
         Assert.Equal([second.RunId], onSecond.Runs.Select(run => run.Id));
-        var version = Assert.Single(
-            await GetAsync<AgentVersion[]>(client, $"/agents/{agent.Name}/versions"),
-            listed => listed.Id == first.AgentVersionId
+        var version = Assert.Single(await GetAsync<AgentVersion[]>(client, $"/agents/{agent.Name}/versions"), listed =>
+            listed.Id == first.AgentVersionId
         );
         Assert.Equal(
             [new RetrievalData("index-1", "1832 articles"), new RetrievalData("index-2", "1900 articles")],

@@ -263,10 +263,8 @@ public sealed class SweepCommandTests : IDisposable
         var agent = AgentFileReader.Read(file, File.ReadAllText(file), problems);
 
         Assert.Null(agent);
-        Assert.Contains(
-            problems,
-            problem =>
-                problem.Path.Contains(mentioned, StringComparison.Ordinal) || problem.Message.Contains(mentioned, StringComparison.Ordinal)
+        Assert.Contains(problems, problem =>
+            problem.Path.Contains(mentioned, StringComparison.Ordinal) || problem.Message.Contains(mentioned, StringComparison.Ordinal)
         );
     }
 }
