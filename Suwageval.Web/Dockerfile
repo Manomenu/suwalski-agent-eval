@@ -1,11 +1,11 @@
-FROM docker.io/library/node:24-alpine AS builder
+FROM docker.io/library/node:26-alpine AS builder
 
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 
 WORKDIR /app
 
 COPY Suwageval.Web/package.json Suwageval.Web/pnpm-lock.yaml Suwageval.Web/pnpm-workspace.yaml ./
-RUN corepack enable && pnpm install --frozen-lockfile
+RUN npm install -g corepack@0.36.0 && corepack enable && pnpm install --frozen-lockfile
 
 COPY Suwageval.Web/ ./
 RUN pnpm exec vite build
