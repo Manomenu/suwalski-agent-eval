@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:10.0.402-noble AS builder
+FROM mcr.microsoft.com/dotnet/sdk:10.0.404-noble AS builder
 
 WORKDIR /src
 
@@ -14,7 +14,7 @@ COPY Suwageval.Contracts/ Suwageval.Contracts/
 COPY Suwageval.Server/ Suwageval.Server/
 RUN dotnet publish Suwageval.Server --no-restore -c Release -o /app
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0.13-noble
+FROM mcr.microsoft.com/dotnet/aspnet:10.0.15-noble
 
 COPY --from=builder /app /app
 

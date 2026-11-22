@@ -1,4 +1,4 @@
-FROM docker.io/library/node:24-alpine AS builder
+FROM docker.io/library/node:26-alpine AS builder
 
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 
@@ -10,7 +10,7 @@ RUN corepack enable && pnpm install --frozen-lockfile
 COPY Suwageval.Web/ ./
 RUN pnpm exec vite build
 
-FROM docker.io/nginxinc/nginx-unprivileged:1.29-alpine
+FROM docker.io/nginxinc/nginx-unprivileged:1.31-alpine
 
 ENV NGINX_ENVSUBST_FILTER="^(API_UPSTREAM|NGINX_LOCAL_RESOLVERS)$"
 ENV NGINX_ENTRYPOINT_LOCAL_RESOLVERS=1

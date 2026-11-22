@@ -3,7 +3,7 @@ name: suwageval
 services:
   db:
     profiles: ["db"]
-    image: docker.io/library/postgres:17.11
+    image: docker.io/library/postgres:19.0
     environment:
       POSTGRES_USER: suwageval
       POSTGRES_PASSWORD: suwageval
@@ -43,7 +43,7 @@ services:
         condition: service_healthy
 
   postgres:
-    image: docker.io/library/postgres:17.11
+    image: docker.io/library/postgres:19.0
     environment:
       POSTGRES_USER: suwageval
       POSTGRES_PASSWORD: suwageval
