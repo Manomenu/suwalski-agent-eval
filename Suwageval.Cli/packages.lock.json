@@ -4,9 +4,9 @@
     "net10.0": {
       "Suwbackkit.Cli": {
         "type": "Direct",
-        "requested": "[0.5.1, )",
-        "resolved": "0.5.1",
-        "contentHash": "lAgWegIJIVSqnZU+dk82E+JIAuKZrTYcn6rpve+CdPhQo+SXmarVM49Q68ZlCNXkRP2LlNeTZvgIZhhxJlZuyA==",
+        "requested": "[0.5.2, )",
+        "resolved": "0.5.2",
+        "contentHash": "sUxhpLqvv8iB1lgc5YsZjqoK1mTsiJLxNesti0Bl5Wbd3w5JDahqp4+vtlHQt8ifixzGmGJtQhqqm/RcwlrUFQ==",
         "dependencies": {
           "System.CommandLine": "2.0.15"
         }
