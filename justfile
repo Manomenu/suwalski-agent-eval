@@ -32,7 +32,7 @@ db *args:
 # Regenerate the API contract (contract/openapi.json) and the web app's types from it, after changing a record the API sends or receives; then raise the contract's version in contract/package.json
 [group('dev')]
 api-types:
-    @./scripts/.internal/api-types.sh
+    @{{ suwgate }} dev api-types
 
 # Run the suwageval CLI from source, e.g. `just cli validate ../my-agent/suwageval`
 [group('dev')]
