@@ -379,7 +379,7 @@ pre.out { font: 12px/1.5 var(--mono); background: var(--code-bg); border: 1px so
     </div>
     <div class="stats">
       <div><b>2</b><span>areas: Evaluation and Monitoring</span></div>
-      <div><b>7</b><span>check types, one a model judge</span></div>
+      <div><b>8</b><span>check types, one a model judge</span></div>
       <div><b>3 of 8</b><span>check states fail CI</span></div>
       <div><b>any</b><span>agent language: two HTTP routes</span></div>
     </div>
@@ -424,7 +424,7 @@ pre.out { font: 12px/1.5 var(--mono); background: var(--code-bg); border: 1px so
   <div class="cards" style="--cols:4">
     <div><span class="ico">📉</span><h4>Regressions</h4><p class="when">every run</p><p>each check judged against its own history</p><div class="foot"><span class="tag accent">CI-ready</span></div></div>
     <div><span class="ico">🎲</span><h4>Unstable checks</h4><p class="when">per version</p><p>flaky checks found, not blamed on the change</p><div class="foot"><span class="tag accent">trend</span></div></div>
-    <div><span class="ico">🔀</span><h4>Compare</h4><p class="when">up to 20 runs</p><p>side by side, against a baseline run</p><div class="foot"><span class="tag accent">web · CLI</span></div></div>
+    <div><span class="ico">🔀</span><h4>Compare</h4><p class="when">up to 7 runs</p><p>side by side, against a baseline run</p><div class="foot"><span class="tag accent">web · CLI</span></div></div>
     <div><span class="ico">🧾</span><h4>Version diff</h4><p class="when">any two versions</p><p>prompts, models, tools read from the agent</p><div class="foot"><span class="tag accent">automatic</span></div></div>
     <div><span class="ico">🗣️</span><h4>Simulated users</h4><p class="when">multi-turn</p><p>a model plays a user described in plain words</p><div class="foot"><span class="tag accent">continuation</span></div></div>
     <div><span class="ico">♻️</span><h4>Re-check</h4><p class="when">after fixing a check</p><p>stored answers judged again, no agent call</p><div class="foot"><span class="tag accent">recheck</span></div></div>
@@ -442,12 +442,13 @@ pre.out { font: 12px/1.5 var(--mono); background: var(--code-bg); border: 1px so
 
 <section id="checks">
   <h2>Checks</h2>
-  <div class="cards" style="--cols:4">
+  <div class="cards" style="--cols:3">
     <div><span class="ico">🔧</span><h4><code>tool-called</code></h4><p class="when">by whom, with what</p><p>it looked the order up</p></div>
     <div><span class="ico">🚫</span><h4><code>tool-not-called</code></h4><p class="when">a forbidden action</p><p>no refund without asking</p></div>
-    <div><span class="ico">📣</span><h4><code>event</code> · <code>event-not-emitted</code></h4><p class="when">what the agent signalled</p><p>a handover happened</p></div>
+    <div><span class="ico">📣</span><h4><code>event</code> · <code>event-not-emitted</code></h4><p class="when">what it signalled, how often, last</p><p>a handover happened</p></div>
     <div><span class="ico">📚</span><h4><code>cited</code></h4><p class="when">RAG sources</p><p>answered from the right policy</p></div>
     <div><span class="ico">🔤</span><h4><code>text</code></h4><p class="when">contains · not · pattern</p><p>no internal ids leaked</p></div>
+    <div><span class="ico">🔢</span><h4><code>message-count</code></h4><p class="when">min · max · exactly</p><p>one reply, not three in a row</p></div>
     <div><span class="ico">⚖️</span><h4><code>judge</code></h4><p class="when">criteria in plain words</p><p>tone, correctness, policy</p></div>
     <div><span class="ico">🎯</span><h4><code>where</code></h4><p class="when">any check</p><p>one turn, after or before a tool or event</p></div>
     <div><span class="ico">🎲</span><h4><code>samples</code></h4><p class="when">per scenario or check</p><p>a pass threshold over repeats</p></div>

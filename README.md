@@ -1,6 +1,6 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/visual/board/img/readme/hero-dark.png">
-  <img alt="Suwageval — regression tests for LLM agents before a release, and checks on their real conversations after it. Scenarios as YAML, regressions not noise, production monitoring, a Claude Code plugin. A sample run: gives-tracking-link is a regression (passed 5 times, fails now), declines-politely is unstable, mentions-carrier is fixed; exit 1 for one regression. 2 areas (Evaluation and Monitoring), 7 check types (one a model judge), 3 of 8 check states fail CI, any agent language (two HTTP routes)." src="docs/visual/board/img/readme/hero-light.png" width="100%">
+  <img alt="Suwageval — regression tests for LLM agents before a release, and checks on their real conversations after it. Scenarios as YAML, regressions not noise, production monitoring, a Claude Code plugin. A sample run: gives-tracking-link is a regression (passed 5 times, fails now), declines-politely is unstable, mentions-carrier is fixed; exit 1 for one regression. 2 areas (Evaluation and Monitoring), 8 check types (one a model judge), 3 of 8 check states fail CI, any agent language (two HTTP routes)." src="docs/visual/board/img/readme/hero-light.png" width="100%">
 </picture>
 
 **Suwageval** tests LLM agents the way unit tests test code. Scenarios — a conversation plus checks on the agent's next
@@ -62,7 +62,9 @@ suwageval push           # the agent and its scenarios
 suwageval run --wait     # regressions first; exit 1 only on a regression, a new failure or an agent error
 ```
 
-The same two last lines go into CI.
+The same two last lines go into CI. A request the server refuses says what is wrong, where, and how to fix it, in the CLI and on
+the web. When scenarios guard a spec's acceptance criteria, `suwageval gate` runs them on the project's own gate
+([docs/scenario-format.md#the-gate](docs/scenario-format.md#the-gate)).
 
 ## What you get
 
@@ -89,7 +91,7 @@ and multi-turn **simulation** where a model plays a user you describe in plain w
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/visual/board/img/readme/checks-dark.png">
-  <img alt="Checks: tool-called (the agent called a tool, optionally by which LLM agent and with which arguments); tool-not-called (a forbidden action); event and event-not-emitted (what the agent signalled); cited (the RAG sources the answer used); text (contains, does not contain, matches a pattern); judge (a model decides against criteria in plain words). Any check can be narrowed with where (one turn, after or before a tool or event), and samples with a pass threshold count repeats." src="docs/visual/board/img/readme/checks-light.png" width="100%">
+  <img alt="Checks: tool-called (the agent called a tool, optionally by which LLM agent and with which arguments); tool-not-called (a forbidden action); event and event-not-emitted (what the agent signalled, how often, or last); cited (the RAG sources the answer used); text (contains, does not contain, matches a pattern); message-count (how many messages, within min, max or exactly); judge (a model decides against criteria in plain words). Any check can be narrowed with where (one turn, after or before a tool or event), and samples with a pass threshold count repeats." src="docs/visual/board/img/readme/checks-light.png" width="100%">
 </picture>
 
 <picture>
